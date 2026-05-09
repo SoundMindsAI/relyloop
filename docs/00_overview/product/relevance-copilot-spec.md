@@ -1851,8 +1851,8 @@ Branch protection rules on `main`:
 
 - **README** with a 5-minute quickstart for new engineers (clone, `docker compose up`, point at the local UI).
 - **OpenAPI spec** auto-published at `/openapi.json` and rendered by Stoplight or Redoc at `/docs`.
-- **ADRs** (Architecture Decision Records) for big choices: LangGraph, Langfuse, SigNoz, Fusion-as-primary-Solr-side-adapter, no-MCP, etc. One file per decision in `docs/adr/`.
-- **Runbooks** in `docs/runbooks/` for: cassette refresh, eval-suite failure investigation, Langfuse storage cleanup, Postgres restore, study cancellation cleanup.
+- **ADRs** (Architecture Decision Records) for big choices: LangGraph, Langfuse, SigNoz, Fusion-as-primary-Solr-side-adapter, no-MCP, etc. One file per decision in `docs/09_decisions/`.
+- **Runbooks** in `docs/03_runbooks/` for: cassette refresh, eval-suite failure investigation, Langfuse storage cleanup, Postgres restore, study cancellation cleanup.
 - **Inline**: every Pydantic model has field descriptions; every public function has a docstring (enforced by `ruff D`).
 
 ### Backup & disaster recovery
@@ -2425,7 +2425,7 @@ GA v1 layers in the polish that elevates RelyLoop from a working tool to a prope
   - CONTRIBUTING.md (DCO model), CODE_OF_CONDUCT.md (Contributor Covenant 2.1), SECURITY.md, MAINTAINERS.md, GOVERNANCE.md
   - Issue and PR templates with DCO reminder
   - GitHub Container Registry image publication, signed with cosign, multi-arch (amd64 + arm64)
-  - Comprehensive docs: README, install.md, operate.md, tutorial-first-study.md, architecture.md, comparison.md, migration-from-quepid.md, cookbook.md, faq.md, ADRs in `docs/adr/`
+  - Comprehensive docs: README, `docs/08_guides/install.md`, `docs/03_runbooks/operate.md`, `docs/08_guides/tutorial-first-study.md`, `docs/01_architecture/architecture.md`, `docs/07_research/comparison.md`, `docs/08_guides/migration-from-quepid.md`, `docs/08_guides/cookbook.md`, `docs/08_guides/faq.md`, ADRs in `docs/09_decisions/`
   - API reference auto-generated from OpenAPI and rendered with Stoplight or Redoc
 - **ZDR (Zero Data Retention) enforcement** — deployment refuses to start if ZDR is required by config but the LLM key isn't enrolled.
 - **Telemetry stance** — explicit zero-telemetry commitment with CI grep gate against telemetry-pattern strings.
@@ -2780,15 +2780,15 @@ The application *does* emit traces, logs, and LLM call data — but only to the 
 Beyond this spec, the following ship with v1:
 
 - `README.md` — 5-minute quickstart, value proposition, links
-- `docs/install.md` — full Docker Compose install with screenshots
-- `docs/operate.md` — production operator's guide (TLS, scaling, backup, monitoring, upgrade)
-- `docs/tutorial-first-study.md` — hands-on walkthrough with sample data
-- `docs/architecture.md` — distilled version of this spec for deep-dive readers
-- `docs/comparison.md` — vs. Quepid, RRE, LangSmith, vendor offerings (factual, not promotional)
-- `docs/migration-from-quepid.md` — for Quepid users, importing query sets and judgment lists
-- `docs/cookbook.md` — recipes for common patterns
-- `docs/faq.md`
-- `docs/adr/` — Architecture Decision Records for the major choices (LangGraph, Langfuse, SigNoz, Apache 2.0 license, no-MCP, etc.)
+- `docs/08_guides/install.md` — full Docker Compose install with screenshots
+- `docs/03_runbooks/operate.md` — production operator's guide (TLS, scaling, backup, monitoring, upgrade)
+- `docs/08_guides/tutorial-first-study.md` — hands-on walkthrough with sample data
+- `docs/01_architecture/architecture.md` — distilled version of this spec for deep-dive readers
+- `docs/07_research/comparison.md` — vs. Quepid, RRE, LangSmith, vendor offerings (factual, not promotional)
+- `docs/08_guides/migration-from-quepid.md` — for Quepid users, importing query sets and judgment lists
+- `docs/08_guides/cookbook.md` — recipes for common patterns
+- `docs/08_guides/faq.md`
+- `docs/09_decisions/` — Architecture Decision Records for the major choices (LangGraph, Langfuse, SigNoz, Apache 2.0 license, no-MCP, etc.)
 
 API reference is auto-generated from OpenAPI and rendered with Stoplight or Redoc at the operator's `/docs` URL.
 

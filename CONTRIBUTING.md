@@ -66,7 +66,7 @@ cd relyloop
 docker compose up
 ```
 
-The full local-development guide ships with MVP1. See `docs/install.md` (forthcoming).
+The full local-development guide ships with MVP1. See `docs/08_guides/install.md` (forthcoming).
 
 ## Branching strategy
 
@@ -101,9 +101,9 @@ RelyLoop's engine, LLM provider, and Git provider adapters are designed for comm
 - Implements the relevant Protocol in `backend/adapters/`, `backend/llm/`, or `backend/git/`
 - Passes the conformance test suite in `tests/contracts/`
 - Includes unit tests with `pytest-recording` cassettes
-- Documents auth flow, version support, and any quirks in `docs/adapters/<name>.md`
+- Documents auth flow, version support, and any quirks in `docs/06_vendor_docs/adapters/<name>.md`
 
-See the spec (`relevance-copilot-spec.md` §8 for engine adapters, §15 for LLM providers, §16 for Git providers) for the full contracts.
+See the spec (`docs/00_overview/product/relevance-copilot-spec.md` §8 for engine adapters, §15 for LLM providers, §16 for Git providers) for the full contracts.
 
 ## Maintainers
 

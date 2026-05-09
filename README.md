@@ -8,8 +8,9 @@
 
 This repo currently holds the design artifacts:
 
-- [`relevance-copilot-spec.md`](relevance-copilot-spec.md) — the full 30-section product and architectural specification (~2,800 lines)
-- [`mvp1-execution-plan.md`](mvp1-execution-plan.md) — week-by-week plan for the 5-week MVP1 release
+- [`docs/README.md`](docs/README.md) — documentation index and section map
+- [`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md) — the full 30-section product and architectural specification (~2,800 lines)
+- [`docs/00_overview/product/mvp1-execution-plan.md`](docs/00_overview/product/mvp1-execution-plan.md) — week-by-week plan for the 5-week MVP1 release
 - [`LICENSE`](LICENSE) — Apache License 2.0
 - [`NOTICE`](NOTICE) — Apache 2.0 NOTICE file with dependency attribution
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — DCO-based contribution guide (forward-looking)
