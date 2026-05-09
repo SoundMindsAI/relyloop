@@ -1,0 +1,47 @@
+# Source-controlled dirs irrelevant to the API/worker build.
+.git/
+.github/
+
+# Frontend build context (UI is not Compose-served in MVP1; runs via `pnpm dev`).
+ui/
+
+# Local data + secrets — must NEVER be baked into the image.
+data/
+secrets/
+
+# Python build/cache artifacts.
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage/
+htmlcov/
+.coverage
+.coverage.*
+*.egg-info/
+
+# Editor / OS junk.
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+
+# Docs are read-only context for humans, not the container.
+docs/
+
+# Tests are not needed inside the runtime image.
+backend/tests/
+
+# Local environment file (mounted secrets handle production config).
+.env
+.env.*
+!.env.example
+
+# Pre-commit cache + Claude tooling.
+.pre-commit-cache/
+.claude/

@@ -1,0 +1,277 @@
+"""Health check endpoint (infra_foundation Story 3.2 / FR-2 / spec §7.1).
+
+``GET /healthz`` returns the documented JSON shape per spec §7.3:
+
+.. code-block:: json
+
+    {
+      "status": "ok" | "degraded",
+      "subsystems": {
+        "db": "ok" | "down",
+        "redis": "ok" | "down",
+        "openai": "configured" | "missing_key" | "incapable",
+        "elasticsearch": "reachable" | "unreachable",
+        "opensearch": "reachable" | "unreachable"
+      },
+      "openai_endpoint": "<base_url>",
+      "openai_capabilities": {"chat": ..., "function_calling": ..., "structured_output": ...},
+      "version": "0.1.0",
+      "uptime_seconds": <int>
+    }
+
+HTTP 200 when all required subsystems are healthy.
+HTTP 503 when any of (db, redis, elasticsearch, opensearch) is down/unreachable.
+
+OpenAI degraded states (``missing_key`` / ``incapable``) do **not** trigger 503 —
+OpenAI is optional pre-judgments-feature per spec FR-2.
+
+The endpoint is **unauthenticated** by design (operator probe, unprefixed —
+not under /api/v1/) per CLAUDE.md Absolute Rule #6.
+
+**Spec inconsistency note:** §7.4 enum table lists ``subsystems.openai`` values
+as ``configured | missing_key`` (2 values), but FR-2 lists them as
+``configured | missing_key | incapable`` (3 values). Plan §13 Review log
+finding #1: implementing FR-2 (more specific) and recommending spec patch.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import time
+from collections.abc import AsyncIterator
+from typing import Annotated, Literal
+
+import httpx
+from fastapi import APIRouter, Depends, status
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from redis.asyncio import Redis
+
+from backend.app.api import probes
+from backend.app.core.settings import Settings, get_settings
+from backend.app.db.session import get_engine
+from backend.app.llm.capability_models import CapabilityResult
+
+router = APIRouter()
+
+# Process-start timestamp for uptime_seconds calculation. Captured at module
+# import (i.e. at API process start), reset only on process restart.
+_PROCESS_STARTED_AT = time.monotonic()
+
+# Per-subsystem probe timeout (spec FR-2: each probe runs in parallel with
+# a 200ms timeout so the endpoint stays under 500ms p99 even if one probe hangs).
+PROBE_TIMEOUT_SECONDS = 0.2
+
+
+# ----------------------------------------------------------------------------
+# Pydantic response models
+# ----------------------------------------------------------------------------
+
+
+class OpenAICapabilities(BaseModel):
+    """Cached results of the OpenAI capability check (Story 3.3 populates Redis)."""
+
+    chat: Literal["ok", "fail", "untested"] = Field(description="Chat completion probe result")
+    function_calling: Literal["ok", "fail", "untested"] = Field(
+        description="Function-calling probe result (tool_choice=required)"
+    )
+    structured_output: Literal["ok", "fail", "untested"] = Field(
+        description="JSON-schema response_format probe result"
+    )
+
+
+class Subsystems(BaseModel):
+    """Per-subsystem reachability/configuration state. Wire values per spec §7.4."""
+
+    db: Literal["ok", "down"] = Field(description="Postgres reachability")
+    redis: Literal["ok", "down"] = Field(description="Redis reachability")
+    openai: Literal["configured", "missing_key", "incapable"] = Field(
+        description=(
+            "OpenAI key + capability state. 'incapable' added per FR-2 vs. spec §7.4 "
+            "enum table — see implementation_plan.md §13 Review log."
+        )
+    )
+    elasticsearch: Literal["reachable", "unreachable"] = Field(
+        description="Local Elasticsearch container reachability"
+    )
+    opensearch: Literal["reachable", "unreachable"] = Field(
+        description="Local OpenSearch container reachability"
+    )
+
+
+class HealthResponse(BaseModel):
+    """The /healthz response body. Same shape for HTTP 200 and 503."""
+
+    status: Literal["ok", "degraded"]
+    subsystems: Subsystems
+    openai_endpoint: str = Field(description="Configured OPENAI_BASE_URL")
+    openai_capabilities: OpenAICapabilities
+    version: str = Field(description="Application version (relyloop_git_sha)")
+    uptime_seconds: int = Field(description="Seconds since the API process started")
+
+
+# ----------------------------------------------------------------------------
+# Status mapping (per spec FR-2 §7.3)
+# ----------------------------------------------------------------------------
+
+
+def overall_status(s: Subsystems) -> Literal["ok", "degraded"]:
+    """Compute overall status from per-subsystem state.
+
+    Per spec §7.3: only db/redis/elasticsearch/opensearch trigger degraded.
+    OpenAI 'missing_key' and 'incapable' are NON-blocking.
+    """
+    blocking_down = (
+        s.db == "down"
+        or s.redis == "down"
+        or s.elasticsearch == "unreachable"
+        or s.opensearch == "unreachable"
+    )
+    return "degraded" if blocking_down else "ok"
+
+
+# ----------------------------------------------------------------------------
+# Dependency injection helpers (overridden in tests)
+# ----------------------------------------------------------------------------
+
+
+async def get_redis_client() -> AsyncIterator[Redis]:
+    """Yield a Redis async client; close after the request completes.
+
+    Yield-style FastAPI dependency so the connection is closed when the
+    handler returns (otherwise frequent /healthz polls accumulate
+    connections — surfaced by GPT-5.5 final review of PR #4).
+    """
+    client: Redis = Redis.from_url(get_settings().redis_url, decode_responses=False)
+    try:
+        yield client
+    finally:
+        await client.aclose()
+
+
+async def get_es_client() -> AsyncIterator[httpx.AsyncClient]:
+    """Yield an httpx async client for ES probes; close after the request."""
+    client = httpx.AsyncClient(timeout=PROBE_TIMEOUT_SECONDS)
+    try:
+        yield client
+    finally:
+        await client.aclose()
+
+
+def _safe_status(value: object, fallback: str) -> str:
+    """Coerce probe results, treating exceptions as the safe fallback."""
+    if isinstance(value, BaseException):
+        return fallback
+    return str(value)
+
+
+async def _read_capability_cache(redis_client: Redis, base_url: str) -> CapabilityResult | None:
+    """Best-effort read of the cached capability check from Redis.
+
+    Returns None on cache miss or Redis error. Story 3.3 wires the cache writer.
+    """
+    import hashlib
+
+    cache_key = f"openai:capabilities:{hashlib.sha256(base_url.encode()).hexdigest()}"
+    try:
+        raw = await redis_client.get(cache_key)
+    except Exception:  # noqa: BLE001 — cache miss is non-fatal
+        return None
+    if raw is None:
+        return None
+    try:
+        return CapabilityResult.model_validate_json(raw)
+    except Exception:  # noqa: BLE001 — corrupted cache entry treated as miss
+        return None
+
+
+# ----------------------------------------------------------------------------
+# /healthz handler
+# ----------------------------------------------------------------------------
+
+
+@router.get(
+    "/healthz",
+    response_model=HealthResponse,
+    responses={
+        503: {"model": HealthResponse, "description": "One or more required subsystems is down"}
+    },
+    tags=["operator"],
+)
+async def healthz(
+    settings: Annotated[Settings, Depends(get_settings)],
+    redis_client: Annotated[Redis, Depends(get_redis_client)],
+    es_client: Annotated[httpx.AsyncClient, Depends(get_es_client)],
+) -> JSONResponse:
+    """Probe each subsystem in parallel and return the documented JSON shape.
+
+    Args:
+        settings: Application settings (DB URL, ES/OS URLs, OpenAI base URL, etc.)
+        redis_client: Redis client for ping probe + capability-cache read
+        es_client: shared httpx client for ES + OpenSearch HTTP probes
+
+    Returns:
+        JSONResponse with the HealthResponse body and HTTP 200 (healthy) or 503 (degraded).
+    """
+    engine = get_engine()
+    es_base_url = "http://elasticsearch:9200"
+    os_base_url = "http://opensearch:9200"
+
+    # Run all four async probes concurrently with per-probe 200ms timeouts.
+    # asyncio.wait_for raises TimeoutError on timeout; gather(return_exceptions=True)
+    # collects the exception so a single hung probe doesn't fail the others.
+    results = await asyncio.gather(
+        asyncio.wait_for(probes.probe_db(engine), timeout=PROBE_TIMEOUT_SECONDS),
+        asyncio.wait_for(probes.probe_redis(redis_client), timeout=PROBE_TIMEOUT_SECONDS),
+        asyncio.wait_for(
+            probes.probe_elasticsearch(es_client, es_base_url),
+            timeout=PROBE_TIMEOUT_SECONDS,
+        ),
+        asyncio.wait_for(
+            probes.probe_opensearch(es_client, os_base_url),
+            timeout=PROBE_TIMEOUT_SECONDS,
+        ),
+        return_exceptions=True,
+    )
+    db_status = _safe_status(results[0], fallback="down")
+    redis_status = _safe_status(results[1], fallback="down")
+    es_status = _safe_status(results[2], fallback="unreachable")
+    os_status = _safe_status(results[3], fallback="unreachable")
+
+    # OpenAI state is computed from cached capability data + key presence.
+    cap = await _read_capability_cache(redis_client, settings.openai_base_url)
+    openai_state = probes.probe_openai_state(settings.openai_api_key, cap)
+
+    subsystems = Subsystems.model_validate(
+        {
+            "db": db_status,
+            "redis": redis_status,
+            "openai": openai_state,
+            "elasticsearch": es_status,
+            "opensearch": os_status,
+        }
+    )
+
+    capabilities = (
+        OpenAICapabilities(
+            chat=cap.chat_completion,
+            function_calling=cap.function_calling,
+            structured_output=cap.structured_output,
+        )
+        if cap is not None
+        else OpenAICapabilities(
+            chat="untested", function_calling="untested", structured_output="untested"
+        )
+    )
+
+    body = HealthResponse(
+        status=overall_status(subsystems),
+        subsystems=subsystems,
+        openai_endpoint=settings.openai_base_url,
+        openai_capabilities=capabilities,
+        version=settings.relyloop_git_sha,
+        uptime_seconds=int(time.monotonic() - _PROCESS_STARTED_AT),
+    )
+
+    http_status = status.HTTP_200_OK if body.status == "ok" else status.HTTP_503_SERVICE_UNAVAILABLE
+    return JSONResponse(status_code=http_status, content=body.model_dump())
