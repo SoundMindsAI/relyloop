@@ -55,7 +55,10 @@ chore(deps): bump structlog to 24.4
 
 Prerequisites:
 
-- Docker 24+ with Docker Compose
+- Docker 24+ with Docker Compose v2
+- Python 3.12+ (managed by `uv`; install [`uv`](https://docs.astral.sh/uv/) via Homebrew or the official installer)
+- Node 18.17+ (Node 20 LTS recommended)
+- pnpm 9+ (`corepack enable`)
 - Git
 - ~16 GB free disk space
 - A laptop with 16 GB RAM (32 GB recommended)
@@ -63,10 +66,31 @@ Prerequisites:
 ```bash
 git clone https://github.com/SoundMindsAI/relyloop.git
 cd relyloop
-docker compose up
+uv sync                                  # install Python deps + create .venv
+pnpm --dir ui install                     # install frontend deps
+make pre-commit-install                   # install Git hooks (Story 1.4)
+make up                                   # boot the Docker stack
 ```
 
-The full local-development guide ships with MVP1. See `docs/08_guides/install.md` (forthcoming).
+The full local-development guide ships with MVP1 — see [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) when `infra_foundation` lands.
+
+## Pre-commit hooks
+
+RelyLoop enforces formatting, linting, type-checking, secret scanning, and Conventional Commits via [pre-commit](https://pre-commit.com). After cloning:
+
+```bash
+make pre-commit-install
+```
+
+This installs both `pre-commit` (file-quality checks: ruff, mypy, prettier, eslint, gitleaks, large-file guards) and `commit-msg` (Conventional Commits format) hooks.
+
+To run all hooks against the entire repo (useful before pushing):
+
+```bash
+make pre-commit
+```
+
+**Never bypass hooks with `--no-verify` or `-n`.** If a hook fails, fix the underlying issue. Bypassing the Conventional Commits hook breaks the auto-changelog generation that lands at GA v1; bypassing gitleaks risks committing credentials.
 
 ## Branching strategy
 

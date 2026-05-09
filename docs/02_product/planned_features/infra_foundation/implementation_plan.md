@@ -1476,7 +1476,7 @@ If an operator skips a pause point ("use defaults", "skip"), record the skip in 
 - [x] Story 1.1 — Monorepo layout & root configs
 - [x] Story 1.2 — Python project (`uv`, ruff, mypy, pytest)
 - [x] Story 1.3 — Frontend project (Next.js 14, pnpm, TS strict)
-- [ ] Story 1.4 — Pre-commit hooks (ruff, mypy, eslint, prettier, gitleaks, Conventional Commits) **[FR-6]**
+- [x] Story 1.4 — Pre-commit hooks (ruff, mypy, eslint, prettier, gitleaks, Conventional Commits) **[FR-6]**
 - [ ] Story 2.1 — SQLAlchemy 2.0 async engine + Pydantic Settings **[FR-3 app layer]**
 - [ ] Story 2.2 — Alembic init + baseline migration + `make migrate` **[FR-5]**
 - [ ] Story 3.1 — FastAPI app skeleton + structlog + X-Request-ID middleware + error envelope

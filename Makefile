@@ -5,6 +5,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
         ui-lint ui-typecheck ui-test ui-build \
+        pre-commit pre-commit-install \
         up down logs reset migrate migrate-create
 
 help:  ## Show this help message
@@ -41,6 +42,15 @@ test-integration:  ## Run backend integration tests (requires running stack)
 
 test-contract:  ## Run backend contract tests (response shape + error codes)
 	uv run pytest backend/tests/contract/
+
+# ---------- Pre-commit (Story 1.4) ----------
+
+pre-commit:  ## Run all pre-commit hooks against the entire repo
+	uv run pre-commit run --all-files
+
+pre-commit-install:  ## Install pre-commit hooks (commit-msg + pre-commit stages)
+	uv run pre-commit install --hook-type commit-msg --hook-type pre-commit
+	@echo "Pre-commit hooks installed. Hooks run automatically on git commit."
 
 # ---------- Frontend (UI) ----------
 

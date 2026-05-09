@@ -43,6 +43,7 @@ dev = [
     "pytest-mock>=3.14",
     "pytest-recording>=0.13",
     "testcontainers[postgresql]>=4.9",
+    "pre-commit>=4.6.0",
 ]
 
 [build-system]
