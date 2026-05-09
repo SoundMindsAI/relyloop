@@ -8,8 +8,8 @@
 
 ## Current branch / execution context
 
-- **Branch:** `main` (clean; `infra_foundation` PR #4 merged 2026-05-09)
-- **Active feature:** None in flight. Next up: [`infra_adapter_elastic`](docs/02_product/planned_features/infra_adapter_elastic/) — the engine adapter (Elasticsearch + OpenSearch) that unblocks every downstream MVP1 feature.
+- **Branch:** `feature/infra-adapter-elastic` (plan landed 2026-05-09; implementation not started)
+- **Active feature:** [`infra_adapter_elastic`](docs/02_product/planned_features/infra_adapter_elastic/) — the engine adapter (Elasticsearch + OpenSearch) that unblocks every downstream MVP1 feature. Spec approved, [implementation_plan.md](docs/02_product/planned_features/infra_adapter_elastic/implementation_plan.md) approved (3 GPT-5.5 review cycles, 19 findings all accepted + applied). One open user question: spec §2 `/healthz` extension has no FR backing it — see [pipeline_status.md](docs/02_product/planned_features/infra_adapter_elastic/pipeline_status.md) for the resolution options.
 - **Alembic head:** `0001_baseline` (registers `alembic_version`; first
   business-table migration lands with `infra_adapter_elastic`)
 - **Coverage:** 90.17% backend (gate is 80%); `health.py` + `probes.py` +
@@ -17,6 +17,14 @@
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-09 — `infra_adapter_elastic` implementation plan approved** on
+  branch `feature/infra-adapter-elastic`. 20 stories across 5 epics. Three GPT-5.5
+  cross-model review cycles raised 19 findings (12 High / 7 Medium); every
+  finding was accepted and applied. Plan creates `clusters` + `config_repos`
+  tables (migration `0002`), `backend/app/adapters/{protocol,elastic,credentials,errors,health_cache}.py`,
+  six API endpoints under `/api/v1/clusters`, the `make seed-clusters` Make target,
+  and `docs/03_runbooks/cluster-registration.md`. One open user question
+  (spec §2 `/healthz` extension has no FR — see pipeline_status.md).
 - **2026-05-09 — `infra_foundation` PR #4 merged to `main`** (squash commit
   `93eeb64`). Bootstrap complete: 6-service Compose stack, FastAPI +
   `/healthz`, OpenAI capability check at startup, Alembic baseline
@@ -54,25 +62,21 @@
 
 ## In flight
 
-None. `main` is clean post-merge of PR #4.
+- **`infra_adapter_elastic`** — plan landed 2026-05-09; ready for `/impl-execute`
+  pending operator resolution of the §2 `/healthz` extension question.
 
 ## Queued (priority-ordered by dependency)
 
-1. **`infra_adapter_elastic`** ← **next up.** `clusters` + `config_repos`
-   tables; `ElasticAdapter` covering ES 8.11+/9.x and OpenSearch 2.x/3.x.
-   `infra_foundation` is now merged so this is unblocked. Run
-   `/pipeline docs/02_product/planned_features/infra_adapter_elastic --auto`
-   to start.
-2. **`infra_optuna_eval`** — Optuna RDBStorage tables + pytrec_eval wiring.
-3. **`feat_study_lifecycle`** — 7-table study/trial/proposal schema.
-4. **`feat_llm_judgments`** — judgment-list LLM rubric runner.
-5. **`feat_digest_proposal`** — study-end digest narrative.
-6. **`feat_github_pr_worker`** — GitHub PR creation Arq job.
-7. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified).
-8. **`feat_studies_ui`** — UI shell + `/studies` + `/studies/[id]`.
-9. **`feat_chat_agent`** — streaming chat orchestrator.
-10. **`feat_proposals_ui`** — `/proposals` review surface.
-11. **`chore_tutorial_polish`** — sample data + walkthrough.
+1. **`infra_optuna_eval`** ← **next up after `infra_adapter_elastic`.** Optuna RDBStorage tables + pytrec_eval wiring.
+2. **`feat_study_lifecycle`** — 7-table study/trial/proposal schema.
+3. **`feat_llm_judgments`** — judgment-list LLM rubric runner.
+4. **`feat_digest_proposal`** — study-end digest narrative.
+5. **`feat_github_pr_worker`** — GitHub PR creation Arq job.
+6. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified).
+7. **`feat_studies_ui`** — UI shell + `/studies` + `/studies/[id]`.
+8. **`feat_chat_agent`** — streaming chat orchestrator.
+9. **`feat_proposals_ui`** — `/proposals` review surface.
+10. **`chore_tutorial_polish`** — sample data + walkthrough.
 
 Run `/pipeline status` for the live view from spec dependencies.
 
