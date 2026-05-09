@@ -17,7 +17,10 @@ repos:
   # Python — ruff (format + check)
   # ---------------------------------------------------------------------------
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.4
+    # Pin matches the project's `pyproject.toml` `[dependency-groups].dev`
+    # ruff version. Drift between the two surfaces as format ping-pong (the
+    # hook reformats one way, `make fmt` reformats back). Bump in lockstep.
+    rev: v0.15.12
     hooks:
       - id: ruff-format
         files: \.py$

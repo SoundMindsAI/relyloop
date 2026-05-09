@@ -84,8 +84,8 @@ async def test_healthz_status_consistent_with_subsystems() -> None:
         or s["opensearch"] == "unreachable"
     )
     expected = "degraded" if blocking_down else "ok"
-    assert (
-        body["status"] == expected
-    ), f"status={body['status']!r} but subsystems={s!r} imply {expected!r}"
+    assert body["status"] == expected, (
+        f"status={body['status']!r} but subsystems={s!r} imply {expected!r}"
+    )
     expected_http = 503 if expected == "degraded" else 200
     assert resp.status_code == expected_http
