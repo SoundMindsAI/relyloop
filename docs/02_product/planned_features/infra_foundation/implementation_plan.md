@@ -1480,7 +1480,8 @@ If an operator skips a pause point ("use defaults", "skip"), record the skip in 
 - [x] **Epic 1 phase gate** — GPT-5.5 review cycle 1: pass-with-notes (11 findings, 8 accepted, 3 rejected with cited counter-evidence). Gate passed.
 - [x] Story 2.1 — SQLAlchemy 2.0 async engine + Pydantic Settings **[FR-3 app layer]**
 - [x] Story 2.2 — Alembic init + baseline migration + `make migrate` **[FR-5]**
-- [ ] Story 3.1 — FastAPI app skeleton + structlog + X-Request-ID middleware + error envelope
+- [x] **Epic 2 phase gate** — Opus-only Pass 1 + Pass 2 (no API surface, no security-sensitive paths in this epic). Per-epic GPT-5.5 review **deferred to final review** (Step 7 post-impl) per user direction to minimize per-step ceremony and consolidate cross-model audit at the end. All quality gates (lint, mypy --strict, unit tests, alembic --sql parse-check, pre-commit chain) green.
+- [x] Story 3.1 — FastAPI app skeleton + structlog + X-Request-ID middleware + error envelope
 - [ ] Story 3.2 — `/healthz` endpoint with parallel subsystem probes **[FR-2]**
 - [ ] Story 3.3 — OpenAI capability check at startup + Redis cache **[FR-7]**
 - [ ] Story 4.1 — Dockerfile (`relyloop/api`)

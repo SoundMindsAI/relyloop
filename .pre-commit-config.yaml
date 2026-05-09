@@ -43,6 +43,7 @@ repos:
           - httpx>=0.28
           - pytest>=8.3   # test files import pytest.MonkeyPatch and friends
           - pytest-asyncio>=0.24
+          - uuid-utils>=0.10   # used by RequestIDMiddleware for UUIDv7
 
   # ---------------------------------------------------------------------------
   # Frontend — prettier + eslint (run via the project's pnpm to use pinned versions)
