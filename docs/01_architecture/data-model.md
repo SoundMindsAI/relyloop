@@ -34,27 +34,29 @@ The umbrella spec describes a multi-tenant data model; MVP1 ships a strict subse
 
 Feature specs that touch these entities mark the deferred columns/tables as `(MVPN+)` and do not include them in MVP1 migrations.
 
-## MVP1 table inventory
+## MVP1 table inventory + migration ownership
 
-13 application tables ship across the MVP1 features. Each is owned by a specific feature spec and lands in that feature's migration.
+13 application tables ship across the MVP1 features. **Each table is owned by exactly one feature spec** — that feature's migration creates the full MVP1 shape (no piecemeal column additions across multiple PRs). Subsequent features consume; they do not extend.
 
-| Table | Owning feature | Purpose |
+| Table | Owning feature (creates full MVP1 shape) | Consumed by |
 |---|---|---|
-| `clusters` | `infra_adapter_elastic` | Registered ES / OpenSearch clusters |
-| `config_repos` | `infra_adapter_elastic` (defined) / `feat_github_pr_worker` (consumed) | Git repos holding canonical search-config |
-| `query_templates` | `feat_study_lifecycle` | Jinja2 query templates with declared params |
-| `query_sets` | `feat_study_lifecycle` | Named groups of test queries |
-| `queries` | `feat_study_lifecycle` | Individual query rows under a query set |
-| `judgment_lists` | `feat_llm_judgments` | Named judgment lists (per query set + cluster) |
-| `judgments` | `feat_llm_judgments` | (query, doc, rating) rows under a judgment list |
-| `studies` | `feat_study_lifecycle` | The study definition + status |
-| `trials` | `feat_study_lifecycle` | One row per Optuna trial (params + metrics) |
-| `digests` | `feat_digest_proposal` | Post-study narrative + parameter importance |
-| `proposals` | `feat_digest_proposal` (defined) / `feat_github_pr_worker` (consumed) | Recommendation rows; the apply-path artifact |
-| `conversations` | `feat_chat_agent` | Chat threads |
-| `messages` | `feat_chat_agent` | Chat messages within a conversation |
+| `clusters` | `infra_adapter_elastic` | feat_study_lifecycle, feat_llm_judgments, feat_digest_proposal, feat_github_pr_worker |
+| `config_repos` | `infra_adapter_elastic` | feat_github_pr_worker, feat_github_webhook (writes `webhook_registration_error`) |
+| `query_templates` | `feat_study_lifecycle` | feat_llm_judgments, feat_digest_proposal |
+| `query_sets` | `feat_study_lifecycle` | feat_llm_judgments |
+| `queries` | `feat_study_lifecycle` | feat_llm_judgments |
+| `judgment_lists` | `feat_study_lifecycle` (full shape, including cluster_id/target/current_template_id/status/calibration) | feat_llm_judgments (writes status + calibration + creates child judgments rows) |
+| `studies` | `feat_study_lifecycle` (full shape, including failed_reason) | feat_digest_proposal, feat_studies_ui |
+| `trials` | `feat_study_lifecycle` | infra_optuna_eval (writes via run_trial), feat_digest_proposal |
+| `proposals` | `feat_study_lifecycle` (full shape, including pr_url/pr_state/pr_merged_at/pr_open_error/rejected_reason) | feat_digest_proposal (writes), feat_github_pr_worker (writes pr_url + pr_open_error), feat_github_webhook (writes pr_state + pr_merged_at) |
+| `judgments` | `feat_llm_judgments` | (terminal — no consumers in MVP1 beyond pytrec_eval reads) |
+| `digests` | `feat_digest_proposal` | feat_studies_ui, feat_proposals_ui |
+| `conversations` | `feat_chat_agent` | (terminal) |
+| `messages` | `feat_chat_agent` | (terminal) |
 
 Plus Alembic's internal `alembic_version` (created by `infra_foundation`).
+
+**Migration ordering:** `infra_foundation` → `infra_adapter_elastic` → `feat_study_lifecycle` → `infra_optuna_eval` → all other backend features in any order. The orchestration features (`feat_github_pr_worker`, `feat_github_webhook`) extend pre-existing tables (`webhook_registration_error` on `config_repos`); they do NOT create new tables.
 
 ## Detailed schemas (MVP1 shape)
 
@@ -86,15 +88,16 @@ CREATE TABLE clusters (
 
 ```sql
 CREATE TABLE config_repos (
-    id                  UUID PRIMARY KEY,
-    name                TEXT NOT NULL UNIQUE,
-    provider            TEXT NOT NULL CHECK (provider IN ('github')),  -- only GitHub in MVP1
-    repo_url            TEXT NOT NULL,
-    default_branch      TEXT NOT NULL DEFAULT 'main',
-    pr_base_branch      TEXT NOT NULL DEFAULT 'main',
-    auth_ref            TEXT NOT NULL,                 -- mounted secret key
-    webhook_secret_ref  TEXT,                          -- mounted secret key for webhook signature verification
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                          UUID PRIMARY KEY,
+    name                        TEXT NOT NULL UNIQUE,
+    provider                    TEXT NOT NULL CHECK (provider IN ('github')),  -- only GitHub in MVP1
+    repo_url                    TEXT NOT NULL,
+    default_branch              TEXT NOT NULL DEFAULT 'main',
+    pr_base_branch              TEXT NOT NULL DEFAULT 'main',
+    auth_ref                    TEXT NOT NULL,                 -- mounted secret key for the GitHub PAT
+    webhook_secret_ref          TEXT,                          -- mounted secret key for webhook signature verification (nullable; null means polling-only)
+    webhook_registration_error  TEXT,                          -- populated by feat_github_webhook if GitHub auto-registration fails; cleared on successful re-registration
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
 
@@ -132,16 +135,30 @@ CREATE TABLE queries (
 );
 ```
 
-### `judgment_lists`, `judgments` (owned by `feat_llm_judgments`)
+### `judgment_lists` (owned by `feat_study_lifecycle`) and `judgments` (owned by `feat_llm_judgments`)
+
+`judgment_lists` is created by `feat_study_lifecycle` (full MVP1 shape — not a stub) so that `studies.judgment_list_id` FK has a target and `feat_llm_judgments` can author rows immediately. `judgments` (the child table) is created by `feat_llm_judgments`.
 
 ```sql
 CREATE TABLE judgment_lists (
-    id              UUID PRIMARY KEY,
-    name            TEXT NOT NULL UNIQUE,
-    query_set_id    UUID NOT NULL REFERENCES query_sets(id),
-    description     TEXT,
-    rubric          TEXT NOT NULL,                     -- the rubric used (LLM or human)
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                      UUID PRIMARY KEY,
+    name                    TEXT NOT NULL UNIQUE,
+    description             TEXT,
+    query_set_id            UUID NOT NULL REFERENCES query_sets(id),
+    -- Generation context: persisted so the worker can reconstruct what
+    -- cluster/index/template the judgments were generated against. Required for
+    -- regeneration, calibration audits, and lineage. Set at create-time even for
+    -- imported lists (point at the cluster + target the imports correspond to).
+    cluster_id              UUID NOT NULL REFERENCES clusters(id),
+    target                  TEXT NOT NULL,                     -- index or collection name on the cluster
+    current_template_id     UUID REFERENCES query_templates(id),  -- template used at generation time; nullable for imports
+    -- Lifecycle:
+    rubric                  TEXT NOT NULL,                     -- the rubric used (LLM or human)
+    status                  TEXT NOT NULL CHECK (status IN ('generating', 'complete', 'failed')),
+    failed_reason           TEXT,                              -- populated when status='failed'
+    -- Calibration (advisory; not gating):
+    calibration             JSONB,                             -- {cohens_kappa, weighted_kappa, per_class, n_samples}
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE judgments (
@@ -151,7 +168,7 @@ CREATE TABLE judgments (
     doc_id              TEXT NOT NULL,
     rating              SMALLINT NOT NULL CHECK (rating BETWEEN 0 AND 3),
     source              TEXT NOT NULL CHECK (source IN ('llm', 'human', 'click')),
-    rater_ref           TEXT,                          -- model name or user id
+    rater_ref           TEXT,                          -- model name (e.g., 'openai:gpt-4o-2024-08-06') or 'operator'
     confidence          REAL,
     notes               TEXT,
     -- lineage columns (langfuse_trace_id, prompt_version, input_hash) added at MVP2
@@ -173,11 +190,12 @@ CREATE TABLE studies (
     judgment_list_id    UUID NOT NULL REFERENCES judgment_lists(id),
     search_space        JSONB NOT NULL,                -- per-parameter range/choice spec
     objective           JSONB NOT NULL,                -- {metric, k, direction}
-    config              JSONB NOT NULL,                -- {max_trials, time_budget_min, parallelism, sampler, seed}
+    config              JSONB NOT NULL,                -- {max_trials, time_budget_min, parallelism, sampler, pruner, seed, trial_timeout_s}
     status              TEXT NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'cancelled', 'failed')),
-    optuna_study_name   TEXT NOT NULL UNIQUE,
+    failed_reason       TEXT,                          -- populated when status='failed'
+    optuna_study_name   TEXT NOT NULL UNIQUE,          -- convention: optuna_study_name = str(studies.id)
     parent_study_id     UUID REFERENCES studies(id),   -- for forks (MVP2)
-    baseline_metric     REAL,
+    baseline_metric     REAL,                          -- single non-Optuna trial run before Optuna starts; populated by orchestrator
     best_metric         REAL,
     best_trial_id       UUID,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -221,16 +239,17 @@ CREATE TABLE digests (
 
 CREATE TABLE proposals (
     id              UUID PRIMARY KEY,
-    study_id        UUID REFERENCES studies(id),       -- null if hand-crafted
-    study_trial_id  UUID REFERENCES trials(id),        -- the winning trial
+    study_id        UUID REFERENCES studies(id),       -- null if hand-crafted via feat_chat_agent
+    study_trial_id  UUID REFERENCES trials(id),        -- the winning trial; null for hand-crafted
     cluster_id      UUID NOT NULL REFERENCES clusters(id),
     template_id     UUID NOT NULL REFERENCES query_templates(id),
     config_diff     JSONB NOT NULL,                    -- {param: {from, to}}
-    metric_delta    JSONB,                             -- {ndcg@10: {baseline, achieved, delta_pct}}
+    metric_delta    JSONB,                             -- {ndcg@10: {baseline, achieved, delta_pct}}; null for hand-crafted
     status          TEXT NOT NULL CHECK (status IN ('pending', 'pr_opened', 'pr_merged', 'rejected')),
     pr_url          TEXT,
-    pr_state        TEXT,                              -- mirrors GitHub: open | closed | merged
+    pr_state        TEXT CHECK (pr_state IS NULL OR pr_state IN ('open', 'closed', 'merged')),  -- mirrors GitHub
     pr_merged_at    TIMESTAMPTZ,
+    pr_open_error   TEXT,                              -- populated when feat_github_pr_worker fails to open the PR; cleared on successful retry
     rejected_reason TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

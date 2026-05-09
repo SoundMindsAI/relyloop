@@ -136,7 +136,7 @@ Check the current head revision number and use the next sequential number.
 | `backend/app/db/models/<model>.py` | <model name>: list key columns and constraints |
 | `backend/app/db/repo/<repo>.py` | <list key functions> |
 | `backend/app/services/<service>.py` | <orchestration scope> |
-| `backend/app/api/tenant/<router>.py` | <endpoint group> |
+| `backend/app/api/<router>.py` | <endpoint group> |
 | `web/src/app/<route>/page.tsx` | <page purpose> |
 
 **Modified files**
@@ -377,7 +377,7 @@ Plan testing explicitly by layer and map to stories.
 ### 3.4 E2E tests
 - Location: `web/tests/e2e/`
 - Scope: critical user/admin journeys, discoverability, role gating
-- **Rule: E2E tests must use real browser interactions via Playwright's `page` object.** API `request` is for test setup only (creating users, tenants, seeding data). Assertions must verify browser-visible behavior — navigate pages, fill forms, click buttons, assert DOM elements. Pattern: setup via API helpers → seed localStorage with real tokens via `addInitScript` → interact via `page`. Reference: `signup_flow.spec.ts`.
+- **Rule: E2E tests must use real browser interactions via Playwright's `page` object.** API `request` is for test setup only (registering clusters, creating query sets, seeding judgments). Assertions must verify browser-visible behavior — navigate pages, fill forms, click buttons, assert DOM elements. Pattern: setup via API helpers → interact via `page`.
 - Tasks:
   - [ ] <e2e test task>
 - DoD:
@@ -566,7 +566,7 @@ Before marking the plan as "Ready for Execution," perform a cross-reference revi
    - The endpoint table matches the Pydantic schemas (field names, types).
    - The DoD assertions reference the correct error codes and HTTP status codes.
    - New files listed in the story are not also listed as new files in another story (no ownership conflict).
-   - Modified files match reality (e.g., don't list `api/v1/` if the codebase uses `api/tenant/`).
+   - Modified files match reality (don't invent paths the codebase doesn't use).
 
 4. **Test file count**: count the test files listed across all stories and verify the total matches
    the testing workstream (§3) inventory. Check the contract test file explicitly covers every error
@@ -627,17 +627,7 @@ Before marking the plan as "Ready for Execution," perform a cross-reference revi
     422 VALIDATION_ERROR responses or silent zero-result filters. TypeScript, lint, and unit tests
     do not catch this class of drift — only a grep-against-source audit does.
 
-12. **Admin control and ceiling enforcement audit**: for any feature that adds admin-configurable
-    defaults with tenant-level overrides:
-    - **Admin UI**: Verify the plan includes a story for super admin UI (Global Controls panel)
-      to manage the new settings. Backend-only admin controls without UI are a gap — admins
-      cannot manage what they cannot see.
-    - **Ceiling enforcement**: If tenants should not exceed admin-set values, verify the plan
-      includes validation on both create and update endpoints (not just Pydantic schema
-      validation — ceiling values come from the DB, not the request). Frontend input controls
-      must also be capped.
-    - **Contract tests**: Verify the plan includes tests for ceiling boundary conditions
-      (at ceiling → 200, above ceiling → 422).
+12. **Admin control and ceiling enforcement audit** (MVP4+ only — RelyLoop has no admin/tenant model in MVP1–MVP3 per [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../../../01_architecture/tech-stack.md)). For MVP4+ plans that add admin-configurable defaults with tenant-level overrides: verify the plan includes a story for the platform_admin UI panel, ceiling validation on both create and update endpoints (not just Pydantic — values come from the DB), frontend input caps, and contract tests for ceiling boundaries (at ceiling → 200, above ceiling → 422).
 
 13. **Audit-event coverage audit** (MVP2+ only — `audit_log` arrives at MVP2 per [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md)). For MVP2+ plans: for every endpoint or service function the plan adds or modifies that mutates state, verify the spec's §6 audit-event matrix lists the mutation site with a chosen event_type, the story includes an atomic `audit_log` INSERT inside the primary mutation's transaction, the metadata schema contains no credentials/tokens/PII beyond display-name strings, and the plan includes a contract test asserting the audit row's metadata shape. Mutations that do not need an audit event must be explicitly justified.
 

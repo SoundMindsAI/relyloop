@@ -22,17 +22,17 @@
 ## 2) Current state audit
 
 After dependencies ship:
-- `studies`, `trials`, `judgment_lists` exist with completed studies producing `best_metric` and `best_trial_id` populated.
+- `studies`, `trials`, `judgment_lists`, `proposals` all exist with full MVP1 shapes (created by `feat_study_lifecycle`).
 - The orchestrator (per `feat_study_lifecycle` FR-4) enqueues a digest job on study completion. This feature implements the consumer of that enqueue.
 - `digests` table doesn't exist; this feature creates it.
-- `proposals` table doesn't exist; this feature creates the MVP1 shape (without the `pr_url` / `pr_state` columns — those are added by `feat_github_pr_worker`). **Sequencing alternative:** create the full `proposals` schema here with PR columns nullable, so `feat_github_pr_worker` doesn't need a migration. Decided in §19 open questions.
+- This feature does NOT extend `proposals` — full MVP1 shape (including `pr_url`/`pr_state`/`pr_merged_at`/`pr_open_error`/`rejected_reason`) is created by `feat_study_lifecycle` per [`data-model.md`](../../../01_architecture/data-model.md). This feature only INSERTs proposal rows.
 
 ## 3) Scope
 
 ### In scope
 
 - Migration creating `digests` table per [`data-model.md`](../../../01_architecture/data-model.md): `(id, study_id UNIQUE, narrative TEXT, parameter_importance JSONB, recommended_config JSONB, suggested_followups TEXT[], generated_by TEXT, generated_at)`.
-- Migration creating `proposals` table per [`data-model.md`](../../../01_architecture/data-model.md) — full MVP1 shape including `pr_url`/`pr_state`/`pr_merged_at`/`rejected_reason` columns (all nullable; populated by `feat_github_pr_worker`).
+- This feature does NOT migrate `proposals` — owned by `feat_study_lifecycle` per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md). This feature INSERTs proposal rows only.
 - Worker job: `generate_digest(study_id)` in `backend/worker/digest.py`:
   - Loads the study + best trial + top-10 trials + baseline_metric
   - Calls `optuna.importance.get_param_importances(study)` to get a `{param: importance_score}` map
@@ -117,9 +117,58 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `digest.gener
 - Returns 404 `DIGEST_NOT_READY` if the study is not `completed` OR if the digest row hasn't been written yet (the orchestrator's enqueue may have lag).
 
 ### FR-4: Proposal CRUD
-- `POST /api/v1/proposals` accepts `{cluster_id, template_id, config_diff, metric_delta?}` for manual proposals (study_id NULL).
-- `GET /api/v1/proposals?status=&cluster_id=&cursor=&limit=` paginated, filterable.
-- `GET /api/v1/proposals/{id}` returns full detail.
+- `POST /api/v1/proposals` accepts `{cluster_id, template_id, config_diff, metric_delta?}` for manual proposals (`study_id` NULL, `study_trial_id` NULL).
+- `GET /api/v1/proposals?status=&cluster_id=&cursor=&limit=` paginated, filterable. Each item is a `ProposalSummary`:
+  ```json
+  {
+    "id": "uuid",
+    "study_id": "uuid|null",
+    "cluster": {"id": "uuid", "name": "products-prod-es", "engine_type": "elasticsearch"},
+    "template": {"id": "uuid", "name": "product_search", "version": 3},
+    "status": "pending|pr_opened|pr_merged|rejected",
+    "pr_state": "open|closed|merged|null",
+    "pr_url": "string|null",
+    "metric_delta": {"primary": {"baseline": 0.612, "achieved": 0.762, "delta_pct": 24.5}} | null,
+    "created_at": "iso8601"
+  }
+  ```
+- `GET /api/v1/proposals/{id}` returns the full `ProposalDetail` shape:
+  ```json
+  {
+    "id": "uuid",
+    "study_id": "uuid|null",
+    "study_summary": null | {
+      "id": "uuid",
+      "name": "string",
+      "status": "completed",
+      "best_metric": 0.762,
+      "best_trial_id": "uuid",
+      "query_set": {"id": "uuid", "name": "qs_modelnums", "query_count": 50},
+      "judgment_list": {"id": "uuid", "name": "tutorial-v1", "status": "complete"}
+    },
+    "study_trial_id": "uuid|null",
+    "cluster": {"id": "uuid", "name": "string", "engine_type": "elasticsearch", "environment": "prod"},
+    "template": {"id": "uuid", "name": "string", "version": 3, "engine_type": "elasticsearch"},
+    "config_diff": {"field_boosts.title": {"from": 2.5, "to": 4.7}, "tie_breaker": {"from": 0.1, "to": 0.34}},
+    "metric_delta": {"ndcg@10": {"baseline": 0.612, "achieved": 0.762, "delta_pct": 24.5}} | null,
+    "status": "pending|pr_opened|pr_merged|rejected",
+    "pr_url": "string|null",
+    "pr_state": "open|closed|merged|null",
+    "pr_merged_at": "iso8601|null",
+    "pr_open_error": "string|null",
+    "rejected_reason": "string|null",
+    "digest": null | {
+      "id": "uuid",
+      "narrative": "markdown string",
+      "parameter_importance": {"field_boosts.title": 0.42, "tie_breaker": 0.21, ...},
+      "recommended_config": {...},
+      "suggested_followups": ["string", ...],
+      "generated_at": "iso8601"
+    },
+    "created_at": "iso8601"
+  }
+  ```
+  `study_summary` is non-null when `study_id` is non-null. `digest` is non-null when an associated `digests` row exists for the study (one-to-one). Inlining the `digest` object on the proposal-detail response avoids a fan-out query from the UI.
 - `POST /api/v1/proposals/{id}/reject` accepts `{reason?}`; transitions `pending → rejected`. Returns 409 if already in a terminal state.
 
 ### FR-5: Digest prompt
@@ -285,12 +334,14 @@ This feature has no UI surface; UI is owned by `feat_studies_ui` (digest panel o
 
 ### Open questions
 
-1. **`baseline_metric` source** — is it (a) the metric of trial #0 (uses Optuna defaults), (b) a separately-run baseline trial with hardcoded "current production" params, or (c) explicitly populated by the orchestrator on study creation? Recommend: (c) — orchestrator runs a single non-Optuna trial with template defaults BEFORE Optuna starts; result lands in `studies.baseline_metric`. — Owner: Product — Due: before plan.
-2. **Proposals schema ownership boundary** — this feature creates the full `proposals` schema (with `pr_url`/`pr_state` columns nullable). Confirm with `feat_github_pr_worker` author that no migration is needed in their feature. Recommend: yes, full shape here. — Owner: TBD — Due: before plan.
-3. **Digest re-generation runbook** — should there be a `POST /api/v1/studies/{id}/digest/regenerate` endpoint, or is "manual DELETE + re-enqueue" sufficient? Recommend: manual escape hatch via runbook for MVP1; add endpoint at MVP2 if needed. — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — One digest per study (UNIQUE) — per umbrella spec §9.
 - 2026-05-09 — Top-10 trials in prompt (not full table) — token-budget discipline.
 - 2026-05-09 — Failed studies get a digest row with placeholder narrative + no proposal — fail-loud-but-cheap principle.
+- 2026-05-09 — `baseline_metric` source: **option (c)** — `feat_study_lifecycle`'s orchestrator runs a single non-Optuna trial with template defaults BEFORE Optuna starts; result lands in `studies.baseline_metric` (column added per [`data-model.md`](../../../01_architecture/data-model.md)).
+- 2026-05-09 — `proposals` schema is owned by `feat_study_lifecycle` (full MVP1 shape, all columns including `pr_url`/`pr_state`/`pr_open_error`). This feature INSERTs rows only.
+- 2026-05-09 — Digest re-generation: **manual escape hatch via runbook for MVP1** (`DELETE FROM digests WHERE study_id = ...` + re-enqueue); add a `POST /studies/{id}/digest/regenerate` endpoint at MVP2 if real demand emerges.
+- 2026-05-09 — `GET /api/v1/proposals/{id}` response shape locked in FR-4: includes inline `study_summary` (when applicable) and inline `digest` (when applicable) so the UI doesn't need fan-out queries. Consumed by `feat_proposals_ui`.

@@ -7,7 +7,7 @@
 - Umbrella spec [§27 MVP1 scope](../00_overview/product/relevance-copilot-spec.md) (lines 2286–2322) — in-scope capabilities
 - Umbrella spec §8, §12, §14, §15, §16, §19, §22 — capability detail
 
-**Scope boundary:** MVP1 only. Stories that depend on MVP2+ capabilities (Langfuse, multi-LLM provider abstraction, multi-tenant, LangGraph state graph, GitLab/Bitbucket, Lucidworks Fusion) are explicitly out of scope and live in their respective release plans.
+**Scope boundary:** MVP1 only. Stories that depend on later-release capabilities (Langfuse → MVP2; Lucidworks Fusion + GitLab/Bitbucket → MVP3; multi-tenant + multi-LLM provider abstraction + SSO + API keys → MVP4; LangGraph state graph + subagents + PostgresSaver → GA v1) are explicitly out of scope and live in their respective release plans. See [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md) for the source of truth.
 
 ---
 
@@ -122,7 +122,7 @@ For visibility — these capabilities appear in the umbrella spec but are explic
 - **GitLab / Bitbucket** as Git providers → MVP3 (per §27 line 2298).
 - **Lucidworks Fusion** as an engine adapter → MVP3 (per umbrella §27 — "Production Stacks").
 - **Multi-tenant** (`tenants` table, `tenant_id` scoping) → MVP4 (per §27 lines 2299–2300).
-- **LangGraph state graph + subagents + `PostgresSaver`** → MVP2+ (per §27 line 2306).
+- **LangGraph state graph + subagents + `PostgresSaver`** → GA v1 per [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md). MVP1 uses plain `openai` SDK + function calling.
 - **Auth / RBAC** (`viewer` / `runner` / `tenant_admin` / `platform_admin` role enforcement; SSO via reverse proxy; bearer API keys) → MVP4 per umbrella §18.
 - **Forking studies with narrowed search-space ranges** (top story #4 from §6) → MVP2.
 - **Pairwise quick-experiment tool** (`run_pairwise`) → MVP2 nice-to-have, not required for MVP1 loop.

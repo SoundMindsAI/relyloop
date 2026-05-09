@@ -36,7 +36,7 @@
 - `SearchAdapter` Protocol per [`adapters.md` §"The Protocol"](../../../01_architecture/adapters.md), defined in `backend/adapters/protocol.py` with all six methods: `health_check`, `list_targets`, `get_schema`, `list_query_parsers`, `render`, `search_batch`, `explain`. Type-only `Protocol` with `@runtime_checkable`.
 - `ElasticAdapter` per [`adapters.md` §"ElasticAdapter (MVP1)"](../../../01_architecture/adapters.md), implementing the Protocol against ES/OpenSearch in `backend/adapters/elastic.py`. Single class, `engine_type` field selects between ES and OpenSearch behavior where it differs.
 - Auth flows per [`adapters.md` §"Authentication and credentials"](../../../01_architecture/adapters.md): `es_apikey`, `es_basic`, `opensearch_basic` active in MVP1. `opensearch_sigv4` reserved (raises `NotImplementedError`); deferred to MVP3.
-- `clusters` and `config_repos` tables per [`data-model.md`](../../../01_architecture/data-model.md). The MVP1 omissions (no `tenant_id`, no `created_by`, etc.) are documented there in §"MVP1 omissions vs. the umbrella spec."
+- `clusters` and `config_repos` tables per [`data-model.md`](../../../01_architecture/data-model.md). Both created in **full MVP1 shape** including `config_repos.webhook_registration_error` (which `feat_github_webhook` later writes to). Per the no-piecemeal-migrations rule in [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md), this feature owns these two tables outright; downstream features INSERT/UPDATE rows but do not ALTER the schemas.
 - API endpoints:
   - `POST /api/v1/clusters` — register a cluster.
   - `GET /api/v1/clusters` — list registered clusters.
@@ -384,14 +384,15 @@ The API is consumed by `feat_studies_ui` later; this feature has no UI. The inte
 
 ### Open questions
 
-1. **Should `health_check` cache its result?** Re-probing on every `GET /api/v1/clusters` is N×100ms — acceptable for MVP1 but might warrant a 30s TTL cache when the UI polls. — Owner: TBD — Due: before plan.
-2. **OpenSearch 3.x compatibility** — [`adapters.md` §"ElasticAdapter (MVP1)"](../../../01_architecture/adapters.md) lists "OpenSearch 2.x (matches ES 7.10 baseline) and 3.x" as supported. OpenSearch 3.0 ships in 2026; should MVP1 test against both 2.18 and a 3.x preview, or punt 3.x to MVP2? — Owner: TBD — Due: before plan.
-3. **`engine_config.api_version`** — is it required at registration, or auto-detected from the cluster? Auto-detect is more user-friendly but adds a probe. Recommend: optional at registration; auto-fill from `health_check.version` if missing. — Owner: TBD — Due: before plan.
-4. **`run_query` `top_k` cap** — recommend 1000 max for MVP1; confirm. — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-08 — Single `ElasticAdapter` for ES + OpenSearch (not split classes) — see [`adapters.md` §"ElasticAdapter (MVP1)"](../../../01_architecture/adapters.md).
-- 2026-05-08 — `tenant_id` and `created_by` columns omitted for MVP1 — see [`data-model.md` §"MVP1 omissions"](../../../01_architecture/data-model.md).
-- 2026-05-08 — Fusion / Solr adapters explicitly out of scope — see [`adapters.md` §"Reserved adapters"](../../../01_architecture/adapters.md).
+- 2026-05-08 — `tenant_id` and `created_by` columns omitted for MVP1 — see [`data-model.md` §"Reserved for later releases"](../../../01_architecture/data-model.md).
+- 2026-05-08 — Fusion / Solr adapters explicitly out of scope — see [`adapters.md` §"Reserved for later releases"](../../../01_architecture/adapters.md).
 - 2026-05-08 — `auth_kind=opensearch_sigv4` reserved but not implemented in MVP1 — defers AWS managed OpenSearch support to MVP3.
+- 2026-05-09 — `health_check` cached with **30s TTL** — UI polls `GET /clusters` aggressively; without caching, N clusters × 100ms per probe is wasteful.
+- 2026-05-09 — OpenSearch 3.x: **MVP1 tests against 2.18 only**; defer 3.x compatibility testing to MVP2. Documented as a known limitation in the cluster-registration runbook.
+- 2026-05-09 — `engine_config.api_version`: **optional at registration; auto-filled from `health_check.version` if missing**.
+- 2026-05-09 — `run_query` `top_k` cap: **1000** (FastAPI Pydantic validation rejects above).

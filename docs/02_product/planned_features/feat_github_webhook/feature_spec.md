@@ -132,6 +132,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, `proposal.pr_merged` and `pr
   - `events`: `["pull_request"]`
 - If GitHub API fails (404 — repo not accessible to the PAT, 422 — webhook URL unreachable from GitHub), return 200 from `POST /api/v1/config-repos` (the config_repo IS registered) but populate a `webhook_registration_error TEXT NULLABLE` column added by this feature. UI surfaces this.
 - If `webhook_secret_ref` is NULL, skip webhook registration silently (polling-only mode).
+- The `config_repos.webhook_registration_error` column is pre-created by `infra_adapter_elastic` per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md); this feature only writes to it.
 
 ## 8) API and data contract baseline
 
@@ -169,7 +170,7 @@ This matches GitHub's expectations for webhook responses (they don't require RFC
 
 ## 9) Data model and state transitions
 
-This feature adds `config_repos.webhook_registration_error TEXT NULLABLE`.
+This feature adds NO new tables and ADDS NO new columns. The `config_repos.webhook_registration_error` column is pre-created by `infra_adapter_elastic` per [`data-model.md`](../../../01_architecture/data-model.md).
 
 ### State transitions
 
@@ -275,7 +276,7 @@ This feature has no UI; `feat_proposals_ui` displays `pr_state` and surfaces `we
 ## 16) Rollout and migration readiness
 
 - **Feature flags:** None.
-- **Migration/backfill:** Adds `config_repos.webhook_registration_error` column.
+- **Migration/backfill:** None — this feature creates no tables and adds no columns.
 - **Operational readiness gates:** Synthetic webhook flips a proposal in <5s; polling catches a deliberately-missed webhook in <15 min.
 
 ## 17) Traceability matrix
@@ -298,12 +299,13 @@ This feature has no UI; `feat_proposals_ui` displays `pr_state` and surfaces `we
 
 ### Open questions
 
-1. **`RELYLOOP_BASE_URL` for webhook URL** — needed for webhook auto-registration. Default to `http://localhost:8000` won't work for actual GitHub delivery (GitHub can't reach localhost). The MVP1 install runbook documents that operators using webhooks must expose the API publicly (ngrok / tunnel for laptop installs; reverse proxy for VM installs). Recommend: `webhook_secret_ref` NULL means "polling only" (the default for laptop installs); operators with real public URLs supply both. — Owner: Product — Due: before plan.
-2. **Polling cadence configurability** — 15 min hardcoded vs. `RELYLOOP_PR_POLL_MINUTES` env var? Recommend: env var with 15-min default. — Owner: TBD — Due: before plan.
-3. **`X-GitHub-Delivery` dedup** — current design relies on idempotent state machine. Should we ALSO cache delivery_ids for ~24h to short-circuit re-processing? Adds complexity; recommend SKIP for MVP1 (the state machine is enough). — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — Webhook + polling = belt and suspenders — per umbrella spec §16 lines 1140+.
 - 2026-05-09 — HMAC-SHA256 signature mandatory; no unsigned-acceptance escape — security-baseline principle.
-- 2026-05-09 — `webhook_registration_error` column added by this feature — keeps the migration ownership clean.
+- 2026-05-09 — `RELYLOOP_BASE_URL`: **`webhook_secret_ref` NULL means polling-only (the default for laptop installs); operators with real public URLs supply both** the secret AND a non-localhost `RELYLOOP_BASE_URL`. Documented in `docs/03_runbooks/webhook-debugging.md`.
+- 2026-05-09 — Polling cadence: **`RELYLOOP_PR_POLL_MINUTES` env var with 15-min default**.
+- 2026-05-09 — `X-GitHub-Delivery` dedup: **SKIP for MVP1** — state-machine idempotency is enough. Add per-delivery dedup at MVP2 if real duplicate-replay issues appear.
+- 2026-05-09 — `config_repos.webhook_registration_error` column owned by `infra_adapter_elastic` (full schema there) — this feature only writes; no migration here.

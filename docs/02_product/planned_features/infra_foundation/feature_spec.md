@@ -144,9 +144,11 @@ Single-phase. No deferred work; everything in scope ships in one PR.
 - The system **MUST** fail the CI run if any gate fails.
 - The system **MUST** report coverage as a workflow comment / summary (use Coverage Gutters–compatible LCOV or coverage.py XML output).
 
-### FR-5: Single migration scaffold
+### FR-5: Migration scaffold
 - The system **MUST** ship one Alembic migration that creates the `alembic_version` table only (no business tables).
-- The system **MUST** provide a `make migrate` target running `alembic upgrade head` against the configured database.
+- The system **MUST** provide a `make migrate` target that:
+  1. Runs `alembic upgrade head` against the configured database (RelyLoop's `public.*` schema)
+  2. Calls a Python helper that initializes Optuna's RDBStorage against the same Postgres under the `optuna.*` schema (creates Optuna's tables on first run; no-op on subsequent runs). Stub helper in MVP1 (no Optuna usage yet); becomes load-bearing when `infra_optuna_eval` ships.
 - The system **MUST** provide `make migrate-create name=<slug>` running `alembic revision --autogenerate -m "<slug>"` for engineers adding the next migration.
 
 ### FR-6: Conventional Commits enforced via pre-commit
@@ -365,13 +367,14 @@ N/A for this feature — no UI surface beyond the placeholder `/` page that says
 
 ### Open questions
 
-1. **Pre-commit secret scanning tool:** gitleaks vs. trufflehog vs. detect-secrets? — Owner: TBD — Due: before plan.
-2. **Docker image base:** `python:3.12-slim` vs. `python:3.12-alpine` vs. distroless? — Owner: TBD — Due: before plan. (Alpine pulls fastest but musl libc has surprised real Python projects; distroless adds CI complexity. Recommend slim for MVP1 simplicity.)
-3. **uv vs. uv+pip-tools** for the lockfile workflow? — Owner: TBD — Due: before plan. (uv supports both; recommend uv-only for MVP1 simplicity.)
-4. **Should `/healthz` include `version`?** Currently FR-2's response example shows it. Source-of-truth for `version`: package metadata? Hardcoded constant? Git SHA injected at build? — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-08 — Single-tenant + no auth for MVP1 — confirmed by umbrella spec §27 line 2299.
 - 2026-05-08 — MVP1 ships ES + OpenSearch only (no Fusion, no Solr) — confirmed by umbrella spec §27 line 2296 and §25 line 2192.
-- 2026-05-08 — Langfuse, ClickHouse, SigNoz, Caddy excluded from MVP1 Compose — derived from §27 line 2308 ("no Langfuse, no SigNoz; OTel exporter optional and pointed at nothing by default").
+- 2026-05-08 — Langfuse, ClickHouse, SigNoz, Caddy excluded from MVP1 Compose — derived from §27 line 2308.
+- 2026-05-09 — Pre-commit secret scanning: **gitleaks** (industry standard, single binary, fastest of the three).
+- 2026-05-09 — Docker image base: **`python:3.12-slim`** (Alpine's musl libc has surprised real Python projects; distroless adds CI complexity).
+- 2026-05-09 — Lockfile workflow: **uv-only** (uv handles lockfile + venv + install in one tool).
+- 2026-05-09 — `/healthz.version` source: **`importlib.metadata.version("relyloop")` + git SHA injected at build via `RELYLOOP_GIT_SHA` Docker ARG**, formatted as `0.1.0+abc1234`.

@@ -21,8 +21,7 @@
 ## 2) Current state audit
 
 After dependencies ship:
-- `proposals`, `config_repos`, `clusters` tables exist (created by `feat_digest_proposal` + `infra_adapter_elastic`).
-- The `proposals.pr_url`, `pr_state`, `pr_merged_at`, `rejected_reason` columns already exist (created by `feat_digest_proposal` per its open question #2 decision); this feature populates them.
+- `proposals`, `config_repos`, `clusters` tables all exist with full MVP1 shapes per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md). All columns this feature writes — `pr_url`, `pr_state`, `pr_merged_at`, `pr_open_error`, `rejected_reason` — are pre-created by `feat_study_lifecycle` (the proposals-table owner) and `infra_adapter_elastic` (the config_repos-table owner).
 - The `pr` Arq queue exists as a placeholder (per `infra_foundation`); this feature adds the `open_pr` job.
 - No `gh` CLI assumed installed in the worker container — this feature uses `httpx` for the GitHub REST API and shells out to `git` (which IS in the worker image per [`tech-stack.md`](../../../01_architecture/tech-stack.md)).
 
@@ -42,7 +41,7 @@ After dependencies ship:
   - Attach parameter-importance chart as a PR comment (PNG generated from `digests.parameter_importance` via `matplotlib`)
   - Update `proposals.pr_url` + `pr_state='open'`
 - Validation: every key in `proposal.config_diff` must exist in the template's `declared_params` (rejects with `PARAM_NOT_IN_TEMPLATE`).
-- Error-mode handling: if the GitHub API fails or the `*.params.json` doesn't exist in the repo, the proposal stays `pending` with a `pr_open_error` field populated for the UI to surface (column added in this feature's migration).
+- Error-mode handling: if the GitHub API fails or the `*.params.json` doesn't exist in the repo, the proposal stays `pending` with `pr_open_error` populated for the UI to surface. (Column pre-created by `feat_study_lifecycle`; this feature only writes.)
 - Config-repo CRUD endpoints (CREATE-only in MVP1; LIST + DETAIL):
   - `POST /api/v1/config-repos` — register a repo
   - `GET /api/v1/config-repos` (paginated)
@@ -86,7 +85,8 @@ Single-phase. The MVP1 deliverable: "click Open PR on a digest's proposal → wi
 
 - **Dependency: `infra_foundation`** — Arq, Postgres, Pydantic Settings; `GITHUB_TOKEN_FILE` may be empty (returns `GITHUB_NOT_CONFIGURED`).
 - **Dependency: `infra_adapter_elastic`** — `clusters.config_repo_id` and `clusters.config_path` populated; `config_repos` table exists.
-- **Dependency: `feat_digest_proposal`** — `proposals` table created with `pr_url`, `pr_state`, `pr_merged_at`, `rejected_reason` columns. This feature ADDS one column: `pr_open_error TEXT NULLABLE` (for surfacing PR-creation failures to the UI).
+- **Dependency: `feat_study_lifecycle`** — `proposals` table created with full MVP1 shape including `pr_url`, `pr_state`, `pr_merged_at`, `pr_open_error`, `rejected_reason` columns. This feature ADDS NO COLUMNS — it writes to existing ones only.
+- **Dependency: `feat_digest_proposal`** — proposals are typically created by digest auto-creation; this feature opens PRs against existing rows.
 - **`git` binary** in the worker container image (standard in `python:3.12-slim`).
 - **`matplotlib`** for the parameter-importance PNG (added to `pyproject.toml`).
 - **Network egress to `github.com`** from the worker container.
@@ -131,8 +131,8 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `proposal.pr_
 - `GET /api/v1/config-repos` paginated.
 - `GET /api/v1/config-repos/{id}` returns full detail.
 
-### FR-4: pr_open_error column
-- The system **MUST** add `proposals.pr_open_error TEXT NULLABLE` in this feature's migration.
+### FR-4: pr_open_error population
+- The `proposals.pr_open_error TEXT NULLABLE` column is pre-created by `feat_study_lifecycle`; this feature only writes to it.
 - On a failed PR-open attempt, the worker **MUST** populate this column with a human-readable error message (e.g., `"GitHub API returned 422: PR already exists for branch relyloop/study-stu_01HXYZ"`).
 - On a successful retry that opens the PR, the column **MUST** be cleared to NULL.
 
@@ -174,10 +174,11 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `proposal.pr_
 | `PARAM_NOT_IN_TEMPLATE` | 422 | Worker-internal: config_diff key not in `declared_params`. Surfaced via `proposals.pr_open_error`. |
 | `BRANCH_EXISTS` | 409 | Worker-internal: branch already exists upstream. Surfaced via `pr_open_error`. |
 | `PARAMS_FILE_NOT_FOUND` | 404 | Worker-internal: `*.params.json` missing in the repo at the expected path. Surfaced via `pr_open_error`. |
+| `CLUSTER_HAS_NO_CONFIG_REPO` | 422 | Cluster's `config_repo_id` is NULL — operator must register a config_repo first via `POST /api/v1/config-repos` and update the cluster. |
 
 ## 9) Data model and state transitions
 
-This feature adds `proposals.pr_open_error TEXT NULLABLE`. All other table creation owned by `feat_digest_proposal` + `infra_adapter_elastic`.
+This feature creates NO new tables and ADDS NO new columns. All schema is pre-created by `feat_study_lifecycle` (proposals) and `infra_adapter_elastic` (config_repos) per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md).
 
 ### State transitions
 
@@ -287,7 +288,7 @@ This feature has no UI; "Open PR" button lives in `feat_proposals_ui`.
 ## 16) Rollout and migration readiness
 
 - **Feature flags:** None.
-- **Migration/backfill:** Adds `proposals.pr_open_error` column.
+- **Migration/backfill:** None — this feature creates no tables and adds no columns.
 - **Operational readiness gates:** PR-open against a sample test repo completes in <60s; runbook for pr_open_error debugging exists.
 - **Release gate:** `feat_github_webhook` author confirms the polling-reconciler interface (proposals with `status='pr_opened'` and `pr_state='open'` >15 min old) is queryable.
 
@@ -313,12 +314,13 @@ This feature has no UI; "Open PR" button lives in `feat_proposals_ui`.
 
 ### Open questions
 
-1. **Test config repo for CI** — CI integration tests need a real GitHub repo to push to. Recommend: create `SoundMindsAI/relyloop-test-configs` as a public test repo; CI runs use a dedicated test PAT with scope only for that repo. — Owner: Ops — Due: before plan.
-2. **Parameter-importance PNG dimensions + style** — fixed 800x600 with shadcn/Tailwind-compatible colors? Or use the same color palette as the UI's Recharts component (defined later by `feat_studies_ui`)? Recommend: 800x600 PNG, simple horizontal bar chart, monochrome (no UI palette dependency). — Owner: TBD — Due: before plan.
-3. **`CLUSTER_HAS_NO_CONFIG_REPO` error code** — should it be added to §7.5 (it's referenced in §11 edge flows)? Recommend yes. — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
-- 2026-05-09 — `pr_open_error` column added by this feature (not by `feat_digest_proposal`) — keeps the migration ownership clean per the feature's responsibility.
 - 2026-05-09 — Token-via-URL for `git clone` (`https://x-access-token:<pat>@github.com/...`) — per [`apply-path.md` §"GitHub auth"](../../../01_architecture/apply-path.md). Alternative (SSH key) is rejected for MVP1 (more setup for the operator).
 - 2026-05-09 — No force-push, no `--no-verify` — per global git-safety rules.
+- 2026-05-09 — `proposals.pr_open_error` column owned by `feat_study_lifecycle` (full MVP1 schema there) — this feature only writes; no migration here.
+- 2026-05-09 — Parameter-importance PNG: **800×600 horizontal bar chart, monochrome** (matplotlib default + shadcn-friendly grayscale; no dependency on the `feat_studies_ui` Recharts color palette).
+- 2026-05-09 — `CLUSTER_HAS_NO_CONFIG_REPO` error code added to §7.5 (referenced in §11 edge flows).
+- 2026-05-09 — Test config repo: **public `SoundMindsAI/relyloop-test-configs`** with a dedicated test PAT scoped only to it. CI integration tests use this repo. Same repo serves `chore_tutorial_polish` for the tutorial's apply-PR step. Decision shared with `chore_tutorial_polish` decision-log.

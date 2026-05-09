@@ -67,6 +67,35 @@ These appear in the topical arch docs because the docs cover all releases — bu
 ### Reserved for v2+
 - `SolrAdapter` (pure Apache Solr support)
 
+## MVP1 feature sequencing (locked)
+
+The 12 MVP1 features have a partial-order dependency. Migration ownership per [`data-model.md` §"MVP1 table inventory + migration ownership"](data-model.md) determines the order:
+
+```
+infra_foundation
+    ↓
+infra_adapter_elastic           ← creates clusters + config_repos (full shape)
+    ↓
+feat_study_lifecycle            ← creates studies + trials + query_* + judgment_lists + proposals (full shape)
+    ↓
+infra_optuna_eval               ← reads studies, writes trials via run_trial
+    ↓
+feat_llm_judgments              ← creates judgments (child); writes judgment_lists rows
+    ↓
+feat_digest_proposal            ← creates digests; INSERTs into proposals
+    ↓
+feat_github_pr_worker           ← writes proposals.pr_url + pr_open_error
+    ↓
+feat_github_webhook             ← writes proposals.pr_state + config_repos.webhook_registration_error
+
+feat_studies_ui     (parallel after feat_study_lifecycle + feat_digest_proposal + feat_llm_judgments)
+feat_chat_agent     (parallel after feat_studies_ui)
+feat_proposals_ui   (parallel after feat_studies_ui + feat_github_pr_worker)
+chore_tutorial_polish (last; depends on all)
+```
+
+Two-engineer compression: A drives the backend chain (study_lifecycle → optuna_eval → llm_judgments → digest_proposal → github_pr_worker → github_webhook); B drives the UI chain (studies_ui → chat_agent → proposals_ui) starting once the consumed APIs are stable. They re-converge on chore_tutorial_polish.
+
 ## Per-feature reading guide
 
 When you start work on an MVP1 feature, read the topical arch docs in this order:

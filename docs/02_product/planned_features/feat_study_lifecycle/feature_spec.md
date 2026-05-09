@@ -32,7 +32,16 @@ After `infra_foundation`, `infra_adapter_elastic`, and `infra_optuna_eval` ship:
 
 ### In scope
 
-- Migrations adding `studies`, `trials`, `query_templates`, `query_sets`, `queries` tables per [`data-model.md`](../../../01_architecture/data-model.md). MVP1 shapes (no `tenant_id`, no `created_by`).
+- Migrations creating the **full MVP1 shape** of these 6 tables per [`data-model.md`](../../../01_architecture/data-model.md):
+  - `query_templates`
+  - `query_sets`
+  - `queries`
+  - `studies` (including `failed_reason TEXT`, `baseline_metric REAL`)
+  - `trials`
+  - `judgment_lists` (full shape — `cluster_id`, `target`, `current_template_id`, `status`, `failed_reason`, `calibration` columns are all created here so `feat_llm_judgments` can read/write without further migration)
+  - `proposals` (full shape — `pr_url`, `pr_state`, `pr_merged_at`, `pr_open_error`, `rejected_reason` all nullable; populated by `feat_digest_proposal` / `feat_github_pr_worker` / `feat_github_webhook`)
+
+  Per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md), this feature owns 6 of the 13 MVP1 application tables; downstream features only INSERT/UPDATE rows, they don't ALTER schemas.
 - API endpoints:
   - `POST /api/v1/query-sets` + `GET /api/v1/query-sets` + `GET /api/v1/query-sets/{id}` (cluster-scoped)
   - `POST /api/v1/query-sets/{id}/queries` (bulk add via JSON or CSV upload)
@@ -89,7 +98,7 @@ Single-phase. The MVP1 deliverable is "create a study via API, watch trials accu
 - **Dependency: `infra_foundation`** — Postgres, Alembic, Arq, settings.
 - **Dependency: `infra_adapter_elastic`** — `clusters` rows exist for the orchestrator to look up cluster details.
 - **Dependency: `infra_optuna_eval`** — `run_trial` Arq job + `optimization.py` config helpers.
-- **Dependency: `judgment_lists` table** — created by `feat_llm_judgments`. This feature's `studies.judgment_list_id` FK references it. **Sequencing note:** if `feat_study_lifecycle` lands first, the `judgment_list_id` FK is added in a stub-table migration (empty `judgment_lists` table); `feat_llm_judgments` then adds columns + writers. Verify ordering in the plan.
+- **Dependency: `judgment_lists` table is OWNED by this feature** — full MVP1 shape created here so `feat_llm_judgments` can land later without further migration.
 - **Pydantic v2** for request/response models.
 
 ## 6) Actors and roles
@@ -194,20 +203,20 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `start_study`
 
 ## 9) Data model and state transitions
 
-This feature creates all five tables per their MVP1 schemas in [`data-model.md`](../../../01_architecture/data-model.md): `query_templates`, `query_sets`, `queries`, `studies`, `trials`. Plus a stub `judgment_lists` table (just `id` UUID PK + `query_set_id` FK) so this feature's `studies.judgment_list_id` FK has a target — `feat_llm_judgments` extends it with content columns.
+This feature creates the full MVP1 shape of 6 tables per [`data-model.md`](../../../01_architecture/data-model.md): `query_templates`, `query_sets`, `queries`, `studies`, `trials`, `judgment_lists`, plus `proposals`. (Counting wise: 7 tables — see in-scope.) Downstream features author rows but do NOT ALTER any of these tables.
 
 ### State transitions
 
 ```
 studies.status:    queued → running → completed
                                    → cancelled
-                                   → failed
+                                   → failed (failed_reason populated)
 ```
 
 - `queued → running`: orchestrator picks up the `start_study` job.
 - `running → completed`: stop condition fires (`max_trials` reached OR `time_budget_min` elapsed).
 - `running → cancelled`: user cancels via `POST /api/v1/studies/{id}/cancel`; orchestrator drains and stamps.
-- `running → failed`: orchestrator catches an unrecoverable infra error (DB unreachable >5min, all workers crashed). Includes `studies.failed_reason TEXT` (added in this feature's migration but not in the §9 umbrella schema — confirm during plan).
+- `running → failed`: orchestrator catches an unrecoverable infra error (DB unreachable >5min, all workers crashed). `studies.failed_reason` populated.
 - All other transitions raise `INVALID_STATE_TRANSITION`.
 
 ## 10) Security, privacy, and compliance
@@ -353,12 +362,13 @@ This feature has no UI surface; UI is owned by `feat_studies_ui`. The API is con
 
 ### Open questions
 
-1. **`studies.failed_reason` column** — the umbrella spec §9 doesn't include this column, but FR-4 + AC-5 need it. Add it in this feature's migration? — Owner: TBD — Due: before plan.
-2. **Orchestrator polling interval** — 10s default for `studies.status` cancel poll. Faster (1s) feels more responsive but loads Postgres. — Owner: TBD — Due: before plan.
-3. **Trial replenishment strategy** — initial enqueue of `parallelism` trials, then replenish via Arq job-completion callback OR via a separate periodic tick? Callback is more responsive but couples to Arq's API; tick is simpler but adds 1-5s latency. — Owner: TBD — Due: before plan. Recommend: tick for MVP1.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — State transitions go through `backend/services/study_state.py`; direct ORM writes raise — per spec §12 lines 648–674 + the no-mutex-via-state principle.
 - 2026-05-09 — `studies.optuna_study_name = str(studies.id)` for traceability — convention rather than spec mandate.
-- 2026-05-09 — Stub `judgment_lists` table created here so this feature's FK has a target; `feat_llm_judgments` extends — sequencing decision to allow either feature to land first.
+- 2026-05-09 — `studies.failed_reason TEXT` added to schema in [`data-model.md`](../../../01_architecture/data-model.md) — required by FR-4 + AC-5.
+- 2026-05-09 — Orchestrator cancel-poll interval: **10s** — fast enough for UI responsiveness; doesn't hammer Postgres.
+- 2026-05-09 — Trial replenishment: **periodic tick (1s)** — simpler than Arq job-completion callback; couples nothing to Arq's internal API.
+- 2026-05-09 — This feature owns 7 tables in full MVP1 shape — `query_templates`, `query_sets`, `queries`, `studies`, `trials`, `judgment_lists`, `proposals` — per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md). Downstream features (`feat_llm_judgments`, `feat_digest_proposal`, `feat_github_pr_worker`, `feat_github_webhook`) write rows but do NOT migrate any of these tables.

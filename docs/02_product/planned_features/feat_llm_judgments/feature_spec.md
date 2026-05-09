@@ -22,7 +22,7 @@
 
 After dependencies ship:
 - `query_sets`, `queries`, `clusters` tables exist (per `feat_study_lifecycle` + `infra_adapter_elastic`).
-- `judgment_lists` exists as a stub (just `id` + `query_set_id` FK) created by `feat_study_lifecycle` so its `studies.judgment_list_id` FK has a target. This feature extends `judgment_lists` with content columns AND creates the `judgments` child table.
+- `judgment_lists` exists with the **full MVP1 shape** per [`data-model.md`](../../../01_architecture/data-model.md) — created by `feat_study_lifecycle` (the previously-described "stub" approach was changed during the schema-locking pass per the data-model.md §"MVP1 table inventory + migration ownership"). This feature creates ONLY the `judgments` child table and writes rows + status updates into the existing `judgment_lists`.
 - `openai` Python SDK is installed (per `infra_foundation`) but no LLM calls are made yet.
 - No `prompts/` directory exists yet — this feature creates `prompts/judgment_generation.system.md` + `prompts/judgment_generation.user.jinja` + `prompts/judgment_generation.rubric_v1.md` per [`llm-orchestration.md` §"Prompt directory layout"](../../../01_architecture/llm-orchestration.md).
 
@@ -30,10 +30,11 @@ After dependencies ship:
 
 ### In scope
 
-- Migration extending `judgment_lists` with content columns (`name`, `description`, `rubric`, `calibration` JSONB, `created_at`).
 - Migration creating `judgments` table per [`data-model.md`](../../../01_architecture/data-model.md): `(judgment_list_id, query_id, doc_id, rating, source, rater_ref, confidence, notes, created_at)` with `UNIQUE (judgment_list_id, query_id, doc_id)`.
+- This feature does NOT migrate `judgment_lists` — the full MVP1 shape (including `cluster_id`, `target`, `current_template_id`, `status`, `failed_reason`, `calibration`) is created by `feat_study_lifecycle`.
 - API endpoints:
-  - `POST /api/v1/judgments/generate` — async; enqueues a `generate_judgments_llm` Arq job and returns a job_id + judgment_list_id (status=`generating`)
+  - `POST /api/v1/judgments/generate` — async; creates `judgment_lists` row with `status='generating'` + persists `cluster_id`/`target`/`current_template_id` so the worker can reconstruct context; enqueues `generate_judgments_llm(judgment_list_id)` Arq job; returns `{judgment_list_id, status: 'generating'}`
+  - `POST /api/v1/judgment-lists/import` — **import path for pre-baked judgments** (used by the tutorial's no-OpenAI first-run flow per `chore_tutorial_polish`). Accepts `{name, description?, query_set_id, cluster_id, target, rubric, judgments: [{query_id, doc_id, rating, notes?}]}`. Creates `judgment_lists` row with `status='complete'`, `current_template_id=NULL` (imports aren't tied to a template), and bulk-inserts the `judgments` rows with `source='human'`, `rater_ref='import'`. Returns the created list.
   - `GET /api/v1/judgment-lists` (paginated) + `GET /api/v1/judgment-lists/{id}` (returns list + counts by source + calibration if present)
   - `GET /api/v1/judgment-lists/{id}/judgments` (paginated, filterable by `source`)
   - `PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}` — override a single rating (creates a new judgment row with `source='human'` and the same `(query_id, doc_id)` — UNIQUE constraint enforced via UPSERT)
@@ -98,12 +99,13 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `judgment_lis
 
 ## 7) Functional requirements
 
-### FR-1: judgment_lists and judgments schema
-- The system **MUST** extend the stub `judgment_lists` table with `name TEXT NOT NULL UNIQUE`, `description TEXT`, `rubric TEXT NOT NULL`, `status TEXT NOT NULL CHECK status IN ('generating', 'complete', 'failed')`, `calibration JSONB`, `created_at TIMESTAMPTZ DEFAULT now()`.
+### FR-1: judgments schema
 - The system **MUST** create the `judgments` table per [`data-model.md`](../../../01_architecture/data-model.md) with `UNIQUE (judgment_list_id, query_id, doc_id)`.
+- The system **MUST NOT** extend `judgment_lists` (full MVP1 shape owned by `feat_study_lifecycle`). This feature only writes rows + status/calibration updates.
 
 ### FR-2: Generate-judgments worker job
 - The system **MUST** define `generate_judgments_llm(ctx, judgment_list_id)` as an Arq job in `backend/worker/judgments.py`.
+- The job **MUST** load the `judgment_lists` row to get `cluster_id`, `target`, `current_template_id`, `query_set_id`, `rubric` — these are persisted on the row by the `POST /generate` endpoint so the worker is fully self-contained on a `judgment_list_id`.
 - The job **MUST** for each query in the set: render the current template (default params), `adapter.search_batch(target, [query], top_k=50)`, batched LLM call asking for ratings + rationales for all returned docs, persist `judgments` rows with `source='llm'` and `rater_ref='openai:gpt-4o-2024-08-06'`, `notes` populated with the rationale.
 - The job **MUST** mark the parent `judgment_lists.status = 'complete'` on success or `'failed'` with an error reason on infra-level failure.
 - The job **MUST** check the daily OpenAI budget before each LLM call; if exceeded, partial results persist + the list status becomes `failed` with reason `OPENAI_BUDGET_EXCEEDED`.
@@ -111,10 +113,40 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `judgment_lis
 
 ### FR-3: Generate endpoint
 - `POST /api/v1/judgments/generate` accepts `{name, description?, query_set_id, cluster_id, target, current_template_id, rubric}` and:
-  - Creates a `judgment_lists` row with `status='generating'`
-  - Enqueues `generate_judgments_llm(judgment_list_id)`
+  - Creates a `judgment_lists` row with `status='generating'`, persisting `cluster_id`/`target`/`current_template_id`/`query_set_id`/`rubric` on the row
+  - Enqueues `generate_judgments_llm(judgment_list_id)` (the worker is fully self-contained on `judgment_list_id`)
   - Returns HTTP 202 with `{judgment_list_id, status: 'generating'}`
 - The endpoint **MUST** validate `OPENAI_API_KEY_FILE` is configured at request time (returns `OPENAI_NOT_CONFIGURED` if not).
+
+### FR-3c: Starter rubric content for `prompts/judgment_generation.rubric_v1.md`
+
+Ships as a placeholder; Product replaces with the final tailored content (per §19 open question) before this feature merges. The starter is generic-enough to demo against any e-commerce-shaped dataset (including the Amazon ESCI subset shipped by `chore_tutorial_polish`):
+
+```markdown
+# Relevance Rubric v1
+
+Rate each (query, document) pair on a 0–3 scale based on how well the document satisfies the user's intent expressed by the query.
+
+**3 — Highly relevant.** This document is exactly what the user wants. They would click through, find the information / product they're looking for, and consider the search successful. Examples: searching "wireless noise-canceling headphones" and getting Sony WH-1000XM5; searching "running shoes for flat feet" and getting a model explicitly designed for flat feet.
+
+**2 — Relevant.** This document substantially addresses the query but isn't the perfect match. The user would consider it useful but might keep looking. Examples: searching "wireless noise-canceling headphones" and getting wireless headphones without active noise cancellation; searching "running shoes for flat feet" and getting general running shoes that don't specifically address flat feet.
+
+**1 — Marginally related.** This document is in the same general category as the query but doesn't address the user's specific intent. The user would skip it. Examples: searching "wireless noise-canceling headphones" and getting wired earbuds; searching "running shoes for flat feet" and getting hiking boots.
+
+**0 — Irrelevant.** This document has nothing meaningful to do with the query. Examples: searching "wireless noise-canceling headphones" and getting a kitchen appliance; searching "running shoes for flat feet" and getting a book about feet anatomy.
+
+When in doubt between two ratings, choose the lower one — relevance ratings should be conservative.
+```
+
+The actual prompt sent to OpenAI **MUST** include this rubric in full as part of the system prompt.
+
+### FR-3b: Import endpoint (tutorial path; no OpenAI required)
+- `POST /api/v1/judgment-lists/import` accepts `{name, description?, query_set_id, cluster_id, target, rubric, judgments: [{query_id, doc_id, rating, notes?}]}` and:
+  - Creates a `judgment_lists` row with `status='complete'`, `current_template_id=NULL`
+  - Bulk-inserts every supplied judgment with `source='human'` (semantically: imported = curated by a human, even if the original generator was an LLM offline), `rater_ref='import'`
+  - Returns HTTP 201 with the created list including `judgment_count`
+- The endpoint **MUST** validate every `query_id` exists in the supplied `query_set_id` (returns `QUERY_NOT_IN_SET` for any invalid).
+- Notes: this is the path `chore_tutorial_polish` uses to ship `samples/judgments.json` for a no-OpenAI first run.
 
 ### FR-4: Override endpoint
 - `PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}` accepts `{rating: int, notes?: str}` and:
@@ -305,12 +337,14 @@ This feature has no UI surface; the review/override UI is owned by `feat_studies
 
 ### Open questions
 
-1. **`top_k` per query at generation** — default 50 docs/query. Configurable per request? Recommend: hard-code at 50 for MVP1; add knob in MVP2 if needed. — Owner: TBD — Due: before plan.
-2. **Default rubric content** — needs to be drafted as `prompts/judgment_generation.rubric_v1.md`. Should be generic-enough for tutorial e-commerce-ish data but explicit on the 0–3 scale. — Owner: Product — Due: before plan.
-3. **Cassette recording for OpenAI tests** — should we mock via `pytest-recording` (HTTP cassettes) OR via `respx` (mock the httpx client)? Cassettes are more realistic; respx is faster. Recommend cassettes. — Owner: TBD — Due: before plan.
+1. **Final rubric content** for `prompts/judgment_generation.rubric_v1.md` — the spec ships with the **starter rubric below** (per FR-3c) as a placeholder. Product to replace with the final ~200-word rubric tailored to the Amazon ESCI tutorial dataset before this feature ships. The starter is enough to unblock plan generation and writing the worker; the final rubric content is a copy edit. — Owner: **User** — Due: before this feature merges to main (NOT before plan generation).
 
 ### Decision log
 
 - 2026-05-09 — Batched LLM call per query (not per doc) — cost optimization confirmed by umbrella spec §14 lines 740 + project constraint of <$1 tutorial cost.
 - 2026-05-09 — Human overrides REPLACE LLM rows (UPSERT via UNIQUE) — per project preference: no DEPRECATED-style preservation.
 - 2026-05-09 — Re-generating with new rubric creates a new list (immutable) — per umbrella spec §14 lines 743.
+- 2026-05-09 — `top_k` per query at generation: **hard-coded 50 in MVP1**; add knob in MVP2 if needed.
+- 2026-05-09 — Cassette recording for OpenAI tests: **`pytest-recording` cassettes** (more realistic than respx mocking; matches the cassette pattern already used for ES/OpenSearch tests).
+- 2026-05-09 — `judgment_lists` table is owned by `feat_study_lifecycle` (full MVP1 shape including `cluster_id`, `target`, `current_template_id`, `status`, `failed_reason`, `calibration`); this feature creates only `judgments` and writes rows.
+- 2026-05-09 — Added `POST /api/v1/judgment-lists/import` endpoint (FR-3b) for the tutorial's no-OpenAI first-run path per `chore_tutorial_polish`.

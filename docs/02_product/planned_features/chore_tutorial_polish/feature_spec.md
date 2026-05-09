@@ -320,14 +320,15 @@ This feature has no in-product UI. The "UX" is the README + tutorial.
 
 ### Open questions
 
-1. **Sample dataset choice** — Amazon ESCI (publicly licensed e-commerce search dataset, ~1.5M queries × ~1.8M products; we'd subset) vs. IMDB (movies; less retail-shaped) vs. synthetic (full control of license but harder to make realistic). Recommend: Amazon ESCI subset (1K products, 50 queries). — Owner: Product — Due: before plan.
-2. **Test config repo** — `SoundMindsAI/relyloop-test-configs` public test repo for Apply-PR demo (per `feat_github_pr_worker` open question), or tarball-extract pattern? Recommend: public test repo (cleaner UX). — Owner: Ops — Due: before plan.
-3. **Quepid comparison stub** — write a one-paragraph "How RelyLoop compares to Quepid" or skip for MVP1? Recommend: skip for MVP1; add at MVP2 once feature parity is more defined. — Owner: Product — Due: before plan.
-4. **Cosign signing effort** — empirical question. If maintainer can configure in <1h, ship; otherwise defer. — Owner: TBD — Due: at implementation time.
-5. **Demo recording host** — YouTube unlisted vs. Loom vs. self-hosted? Recommend: YouTube unlisted (free, ubiquitous, embed-friendly). — Owner: Product — Due: before recording.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — The smoke test is the release gate, not optional — per umbrella spec §27 strategic-rationale and the project's "fail loudly" principle.
-- 2026-05-09 — Pre-baked `samples/judgments.json` so first-run users don't pay OpenAI cost — adoption-funnel hygiene.
+- 2026-05-09 — Pre-baked `samples/judgments.json` so first-run users don't pay OpenAI cost — adoption-funnel hygiene. Imported via `POST /api/v1/judgment-lists/import` (added to `feat_llm_judgments` FR-3b).
 - 2026-05-09 — Container UI as part of MVP1 (not a post-release polish) — `make up` should bring the full stack including UI; running `pnpm dev` is a developer-mode optimization, not the user-facing path.
+- 2026-05-09 — Test config repo: **public `SoundMindsAI/relyloop-test-configs`** — same repo serves both `feat_github_pr_worker` integration tests and the tutorial's apply-PR step. Public repo + dedicated test PAT scoped only to it. Operator instructions in the tutorial point at this repo for the demo apply step.
+- 2026-05-09 — Sample dataset: **Amazon ESCI subset** (publicly licensed CC-BY-4.0; ~1,000 products + 50 queries subsetted from the upstream 1.5M × 1.8M dataset). Pre-existing ESCI judgments seed `samples/judgments.json` so first-run users get a working tutorial without OpenAI cost.
+- 2026-05-09 — Quepid comparison stub: **skip for MVP1**; add at MVP2 once feature parity is more defined.
+- 2026-05-09 — Cosign signing: **ship if achievable in <1 hour effort at implementation time**; otherwise defer to GA v1 (empirical decision, not blocking).
+- 2026-05-09 — Demo recording host: **YouTube unlisted** (free, ubiquitous, embed-friendly).

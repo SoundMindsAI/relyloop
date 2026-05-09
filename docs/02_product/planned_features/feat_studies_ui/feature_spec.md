@@ -344,14 +344,15 @@ vitest + msw for everything in MVP1. Tests run in CI under `pnpm test`.
 
 ### Open questions
 
-1. **Studies-completed-in-7-days count endpoint** — backend dependency. Add a count endpoint, or accept that the dashboard does `GET /api/v1/studies?status=completed&limit=1` and reads a header? Recommend: add `X-Total-Count` response header to list endpoints, implemented in `feat_study_lifecycle` as a follow-up. — Owner: TBD — Due: before plan.
-2. **Markdown sanitizer for digest narrative** — `react-markdown` with what plugin set? Recommend: `react-markdown` + `remark-gfm` (no raw HTML allowed). — Owner: TBD — Due: before plan.
-3. **CSV size cap** — UI rejects >10MB; is that the right number? — Owner: Product — Due: before plan.
-4. **Source-of-truth-comment CI gate** — implemented as a custom Python script in `pr.yml` OR an eslint rule? Recommend: shell script that greps and checks. — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — Server state via TanStack Query only; no `useState` for server data — per [`ui-architecture.md` §"Server state pattern"](../../../01_architecture/ui-architecture.md).
 - 2026-05-09 — shadcn primitives copied into repo, not npm-imported — per [`tech-stack.md`](../../../01_architecture/tech-stack.md) and [`ui-architecture.md`](../../../01_architecture/ui-architecture.md).
 - 2026-05-09 — Cursor pagination, no page-numbers — per [`api-conventions.md`](../../../01_architecture/api-conventions.md).
-- 2026-05-09 — Source-of-truth comments on every option array (per the verification rigor of the porting `spec-gen` skill) — applied to the UI for the same drift-prevention reason.
+- 2026-05-09 — Source-of-truth comments on every option array — drift-prevention.
+- 2026-05-09 — Studies-completed count: **`X-Total-Count` response header on every list endpoint** (added in `feat_study_lifecycle` as a follow-up to its FR-1). Dashboard reads the header from `?status=completed&limit=1` calls.
+- 2026-05-09 — Markdown sanitizer: **`react-markdown` + `remark-gfm`**; no raw HTML allowed.
+- 2026-05-09 — CSV size cap: **10MB on the UI** (rejects before submitting); backend has its own quota.
+- 2026-05-09 — Source-of-truth-comment CI gate: **shell script in `pr.yml`** that greps `// Values must match <path> <symbol>` comments and verifies the cited Literal contains the option list. Simpler than an eslint rule.

@@ -257,11 +257,12 @@ This feature has no schema. UI-side state in TanStack Query cache + local React 
 
 ### Open questions
 
-1. **`GET /api/v1/proposals/{id}` study_summary inline** — confirm with `feat_digest_proposal` author that the response includes a `study_summary` object (study name, primary metric, query set name) so the UI doesn't fan out additional queries. Recommend: yes. — Owner: TBD — Due: before plan.
-2. **Hypothesis pre-fill on follow-up "Create study"** — best-effort string interpolation into the search-space textarea, OR structured (LLM parses the hypothesis to a SearchSpace via `propose_search_space`)? Recommend: best-effort string in MVP1; structured in MVP2 with `propose_search_space`. — Owner: Product — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — PR state is read-only from the UI (mirrors GitHub via webhook + polling) — per [`apply-path.md`](../../../01_architecture/apply-path.md).
 - 2026-05-09 — One Open PR action per proposal; retry-on-error is via re-issuing through the API or chat, not a "Retry" button — keeps the state machine simple.
 - 2026-05-09 — No bulk operations in MVP1 — defer to MVP2 if real demand emerges.
+- 2026-05-09 — `GET /api/v1/proposals/{id}` returns inline `study_summary` and inline `digest` — locked in `feat_digest_proposal` FR-4 with full response shape. UI does NOT fan out additional queries.
+- 2026-05-09 — Hypothesis pre-fill on follow-up "Create study": **best-effort string interpolation into the search-space JSON textarea in MVP1**. Structured parsing via `propose_search_space` arrives at MVP2 (per `feat_chat_agent` decision-log).

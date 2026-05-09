@@ -323,13 +323,14 @@ This feature populates `conversations` and `messages` (created by `feat_study_li
 
 ### Open questions
 
-1. **`propose_search_space` tool** — the umbrella spec §19 lists it under MVP1 scope but the umbrella spec §27 line 2306 says "no agent state graph in MVP1." Without LangGraph, `propose_search_space` is essentially a one-shot LLM call that returns a SearchSpace. Recommend: defer to MVP2 (the agent in MVP1 just helps the user fill in the create-study form; structured search-space proposal is a more sophisticated capability that benefits from LangGraph). — Owner: Product — Due: before plan.
-2. **Multiple-tab conversation handling** — both tabs polling + sending. Recommend: laissez-faire (allow), document as edge case. Add `CONVERSATION_BUSY` only at MVP2 if it becomes a real problem. — Owner: TBD — Due: before plan.
-3. **System-prompt rubric for what to confirm** — confirmation list per FR-5: `create_study`, `cancel_study`, `generate_judgments_llm`, `open_pr`, `create_proposal_*`. Should `import_queries_from_csv` also require confirmation (could be a large bulk add)? Recommend: yes, add to the confirmation list. — Owner: Product — Due: before plan.
-4. **Tool loop limit value** — 10 vs. 20 vs. 5. Recommend: 10 (per FR-3). — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — `gpt-4o-mini-2024-07-18` for orchestrator (vs. `gpt-4o-2024-08-06` for judgments/digest) — cost discipline.
 - 2026-05-09 — Sequential tool dispatch only — auditability + simplicity. LangGraph at GA v1 brings parallel subagents.
 - 2026-05-09 — No `override_judgment` tool in MVP1 — judgment override happens in the UI; chat agent points the user there.
+- 2026-05-09 — `propose_search_space` tool: **defer to MVP2**. Without LangGraph (GA v1), the one-shot LLM call without state-graph review feels half-built; better to ship structured search-space proposal alongside the orchestrator that supports human-in-the-loop interrupts. The MVP1 chat agent helps fill the create-study form via dialogue, doesn't propose search spaces unaided.
+- 2026-05-09 — Multi-tab handling: **laissez-faire** (allow concurrent tabs to both POST messages; LLM responses interleave; rare in practice). Add `CONVERSATION_BUSY` 409 at MVP2 if real complaints emerge.
+- 2026-05-09 — Confirmation list expanded to include `import_queries_from_csv` (large bulk add risk).
+- 2026-05-09 — Tool loop limit: **10** (per FR-3).

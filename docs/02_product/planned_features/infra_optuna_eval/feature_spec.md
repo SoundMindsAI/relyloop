@@ -290,11 +290,12 @@ N/A — worker-internal feature, no UI.
 
 ### Open questions
 
-1. **Trial timeout default** — `studies.config.trial_timeout_s` default of 60s — confirm with `feat_study_lifecycle` author. Some trials against large indices may legitimately take 30s+. — Owner: TBD — Due: before plan.
-2. **Optuna RDB Alembic integration** — Optuna runs its own Alembic; should our `make migrate` invoke Optuna's Alembic explicitly, or rely on Optuna's lazy table creation on first connection? — Owner: TBD — Due: before plan.
+None — all resolved (see Decision log).
 
 ### Decision log
 
 - 2026-05-09 — pytrec_eval everywhere (no engine-native `_rank_eval`) — per umbrella spec §14 + [`optimization.md`](../../../01_architecture/optimization.md).
 - 2026-05-09 — Optuna co-tenants with app Postgres (separate schema) — per umbrella spec §13.
 - 2026-05-09 — Multi-objective deferred to v2; CMA-ES deferred to MVP2 — per [`optimization.md` §"Reserved for later releases"](../../../01_architecture/optimization.md).
+- 2026-05-09 — `studies.config.trial_timeout_s` default: **60s** (per `feat_study_lifecycle` decision-log).
+- 2026-05-09 — Optuna RDB Alembic: **invoke explicitly via `make migrate`** (resolves the §3 vs §19 contradiction in earlier draft). The Makefile target runs RelyLoop's Alembic first, then `python -c "import optuna; optuna.storages.RDBStorage(...).initialize()"` to bootstrap Optuna's tables on first run; subsequent runs are no-ops.
