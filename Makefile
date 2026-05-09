@@ -4,6 +4,7 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
+        ui-lint ui-typecheck ui-test ui-build \
         up down logs reset migrate migrate-create
 
 help:  ## Show this help message
@@ -16,20 +17,21 @@ help:  ## Show this help message
 	@echo "Conventional flow: make up → make migrate → curl localhost:8000/healthz"
 	@echo ""
 
-# ---------- Code quality (Story 1.2 wires uv) ----------
+# ---------- Code quality ----------
 
 fmt:  ## Format Python (ruff format) and frontend (prettier)
 	uv run ruff format .
+	pnpm --dir ui format
 
-lint:  ## Lint Python (ruff check) and frontend (eslint, wired by Story 1.3)
+lint: ui-lint  ## Lint Python (ruff check) and frontend (eslint)
 	uv run ruff check .
 
-typecheck:  ## Type-check Python (mypy --strict)
+typecheck: ui-typecheck  ## Type-check Python (mypy --strict) and frontend (tsc --noEmit)
 	uv run mypy backend/
 
-# ---------- Tests (Story 1.2 wires pytest; Story 1.3 wires vitest) ----------
+# ---------- Tests ----------
 
-test: test-unit test-integration test-contract  ## Run all backend test layers
+test: test-unit test-integration test-contract ui-test  ## Run all backend + UI test layers
 
 test-unit:  ## Run backend unit tests (no DB / Docker required)
 	uv run pytest backend/tests/unit/
@@ -39,6 +41,20 @@ test-integration:  ## Run backend integration tests (requires running stack)
 
 test-contract:  ## Run backend contract tests (response shape + error codes)
 	uv run pytest backend/tests/contract/
+
+# ---------- Frontend (UI) ----------
+
+ui-lint:  ## Lint frontend (next lint / eslint)
+	pnpm --dir ui lint
+
+ui-typecheck:  ## Type-check frontend (tsc --noEmit, --strict, noUncheckedIndexedAccess)
+	pnpm --dir ui typecheck
+
+ui-test:  ## Run frontend tests (vitest run)
+	pnpm --dir ui test
+
+ui-build:  ## Production build of the frontend (next build)
+	pnpm --dir ui build
 
 # ---------- Stack lifecycle (Story 4.4 fills install.sh) ----------
 

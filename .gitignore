@@ -236,6 +236,10 @@ ui/coverage/
 ui/playwright-report/
 ui/test-results/
 
+# TypeScript / SWC build caches
+*.tsbuildinfo
+.swc/
+
 # Docker volumes (ALWAYS gitignored — bind-mounted runtime data)
 data/
 ./data/
