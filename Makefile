@@ -37,7 +37,7 @@ test: test-unit test-integration test-contract ui-test  ## Run all backend + UI 
 test-unit:  ## Run backend unit tests (smoke test required; exit-5 NOT tolerated)
 	uv run pytest backend/tests/unit/
 
-test-integration:  ## Run backend integration tests (requires running stack)
+test-integration:  ## Run backend integration tests from host (Postgres tests skip — see runbook for alternatives)
 	@uv run pytest -m integration backend/tests/integration/ ; rc=$$?; \
 	  [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit $$rc   # exit 5 = no tests yet; OK pre-Story-2.2
 
@@ -90,13 +90,19 @@ reset:  ## DESTRUCTIVE: docker compose down -v && rm -rf ./data (use FORCE=1 to 
 
 # ---------- Migrations (Story 2.2 wires alembic) ----------
 
-migrate:  ## alembic upgrade head + initialize Optuna RDB schema (no-op MVP1)
-	uv run alembic upgrade head
-	uv run python -m backend.app.db.optuna_schema
+migrate:  ## alembic upgrade head + initialize Optuna RDB schema (runs inside api container)
+	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \
+	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
+	}
+	docker compose exec -T api alembic upgrade head
+	docker compose exec -T api python -m backend.app.db.optuna_schema
 
-migrate-create:  ## Create new migration: make migrate-create name=<slug>
+migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs inside api container)
 	@if [ -z "$(name)" ]; then \
 		echo "ERROR: name=<slug> required (e.g., make migrate-create name=add_studies_table)"; \
 		exit 1; \
 	fi
-	uv run alembic revision --autogenerate -m "$(name)"
+	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \
+	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
+	}
+	docker compose exec -T api alembic revision --autogenerate -m "$(name)"

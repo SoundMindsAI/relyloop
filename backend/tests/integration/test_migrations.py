@@ -4,6 +4,22 @@ Marked ``@pytest.mark.integration`` — only runs when a Postgres instance is
 reachable via ``DATABASE_URL_FILE``. Skipped in unit-only test runs (the default
 for ``make test-unit``).
 
+**Where this works:**
+
+- CI (``.github/workflows/pr.yml`` exposes Postgres as a service container on
+  ``localhost:5432`` and exports ``DATABASE_URL_FILE``).
+- Locally if you point ``DATABASE_URL_FILE`` at a Postgres reachable from
+  the test process (e.g. an ad-hoc ``docker run -p 5432:5432 postgres:16``).
+
+**Where this skips:**
+
+- Host shell without ``DATABASE_URL_FILE`` set, or pointing at a Postgres URL
+  whose host:port isn't TCP-reachable from the test process. By design,
+  ``docker-compose.yml`` does NOT expose Postgres on a host port (per
+  CLAUDE.md "Ports" — Postgres is internal-only on the Compose network).
+  See ``docs/03_runbooks/local-dev.md`` §"Local-vs-CI test layers" for
+  alternatives (use ``make migrate`` to sanity-check end-to-end, or trust CI).
+
 Verifies AC-7: from a fresh DB, ``alembic upgrade head`` creates the
 ``alembic_version`` table at the head revision; subsequent ``make migrate`` is
 a no-op; round-trip via ``alembic downgrade -1 && alembic upgrade head``
@@ -12,9 +28,12 @@ succeeds.
 
 from __future__ import annotations
 
+import os
+import socket
 import subprocess
 from collections.abc import Iterator
 from pathlib import Path
+from urllib.parse import urlparse
 
 import pytest
 from sqlalchemy import create_engine, text
@@ -22,6 +41,39 @@ from sqlalchemy import create_engine, text
 from backend.app.core.settings import get_settings
 
 REPO = Path(__file__).resolve().parents[3]
+
+
+def _postgres_reachable() -> bool:
+    """Return True only if Settings is constructible AND its DB host:port accepts TCP.
+
+    Used to gate the whole module: skip cleanly on a host that can't reach
+    Postgres (the common case when an operator runs `make test-integration`
+    from their shell — Compose's `postgres` service is not host-exposed).
+    """
+    if not os.environ.get("DATABASE_URL_FILE") or not os.environ.get("POSTGRES_PASSWORD_FILE"):
+        return False
+    try:
+        url = get_settings().database_url
+    except Exception:  # noqa: BLE001 — best-effort skip-detector; any failure → skip
+        return False
+    parsed = urlparse(url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 5432
+    try:
+        with socket.create_connection((host, port), timeout=1.0):
+            return True
+    except (TimeoutError, OSError):
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _postgres_reachable(),
+    reason=(
+        "Postgres not reachable from this process — see "
+        "docs/03_runbooks/local-dev.md §'Local-vs-CI test layers' "
+        "(use `make migrate` to sanity-check locally; CI runs the round-trip)."
+    ),
+)
 
 
 def _alembic(*args: str) -> subprocess.CompletedProcess[str]:

@@ -80,6 +80,26 @@ These are the manual handoffs `make up` does NOT do for you:
    `pr / docker` checks. This is the final operator-only gate before merging
    `infra_foundation`.
 
+## Local-vs-CI test layers
+
+| Layer | Local from host | CI |
+|---|---|---|
+| `make test-unit` | ✓ runs (no Docker, no DB) | ✓ runs |
+| `make test-contract` | ✓ runs (no DB; mocked deps) | ✓ runs |
+| `make test-integration` (`/healthz` shape) | ✓ runs if `make up` first; skips cleanly otherwise | ✓ skips (API not booted in CI) |
+| `make test-integration` (Alembic round-trip) | ⚠ **skips** — Postgres is internal-only on the Compose network per CLAUDE.md "Ports". Migration tests can't reach `postgres:5432` from your shell. | ✓ runs (CI exposes Postgres on `localhost:5432` via service containers) |
+
+**To sanity-check migrations locally**, use `make migrate` instead — it runs `alembic upgrade head` against the live Compose Postgres from inside an Alembic process that uses the asyncpg driver and the secret URL:
+
+```bash
+make migrate           # alembic upgrade head + init optuna schema
+docker compose exec postgres psql -U relyloop -d relyloop -c '\dt'   # confirm alembic_version row
+```
+
+This exercises the same code path as the CI test (`alembic upgrade head` → `alembic_version` row at `0001`) without needing host-side Postgres.
+
+If you want the round-trip test to actually run from your shell, you'd need to either expose Postgres on `127.0.0.1:5432` (changes spec — don't ship that) or run the test inside the api container after installing dev deps (out of scope for MVP1).
+
 ## Daily-use Make targets
 
 | Target | What it does |
