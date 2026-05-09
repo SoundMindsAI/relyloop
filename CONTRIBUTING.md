@@ -92,6 +92,20 @@ make pre-commit
 
 **Never bypass hooks with `--no-verify` or `-n`.** If a hook fails, fix the underlying issue. Bypassing the Conventional Commits hook breaks the auto-changelog generation that lands at GA v1; bypassing gitleaks risks committing credentials.
 
+### Verifying the gitleaks hook
+
+To confirm secret scanning is wired correctly on your machine:
+
+```bash
+echo "AKIAIOSFODNN7EXAMPLE" > /tmp/fake-key.txt   # well-known AWS test key
+git add /tmp/fake-key.txt 2>/dev/null || cp /tmp/fake-key.txt fake-key.txt && git add fake-key.txt
+git commit -m "test(security): verify gitleaks rejects fake AKIA key"
+# Expect: gitleaks blocks the commit with a "rule: aws-access-token" finding.
+git restore --staged fake-key.txt && rm -f fake-key.txt   # clean up
+```
+
+The commit should be rejected by the `Detect hardcoded secrets` hook. If it isn't, run `make pre-commit-install` again or check `.git/hooks/pre-commit` exists.
+
 ## Branching strategy
 
 Trunk-based development:

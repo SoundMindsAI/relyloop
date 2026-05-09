@@ -6,14 +6,25 @@
 
 ## Quickstart
 
+> **Note:** the bootstrap is in flight. The full `make up` flow (Docker stack + health endpoint) lands when `infra_foundation` Stories 4.1–4.4 + 3.1–3.3 ship. Until then, the Python and frontend toolchains work locally.
+
 ```bash
 git clone https://github.com/SoundMindsAI/relyloop.git
 cd relyloop
-make up                       # auto-generates required secrets, then docker compose up -d
-curl http://localhost:8000/healthz   # all subsystems should report healthy within 60s
+make help                    # list every Make target with descriptions
+uv sync                      # install Python deps + create .venv (Story 1.2)
+pnpm --dir ui install        # install frontend deps (Story 1.3)
+make pre-commit-install      # install Git hooks (Story 1.4)
 ```
 
-The full operator runbook lands in [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) when `infra_foundation` ships. Run `make help` for the list of available targets.
+When the Compose stack lands (Stories 4.1–4.4):
+
+```bash
+make up                                  # auto-generates required secrets, then docker compose up -d
+curl http://localhost:8000/healthz       # all subsystems healthy in <60s (Story 3.2 lands /healthz)
+```
+
+The full operator runbook lands in [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) when `infra_foundation` Story 5.2 ships.
 
 ## What's in this repo today
 

@@ -34,17 +34,16 @@ typecheck: ui-typecheck  ## Type-check Python (mypy --strict) and frontend (tsc 
 
 test: test-unit test-integration test-contract ui-test  ## Run all backend + UI test layers
 
-test-unit:  ## Run backend unit tests (no DB / Docker required)
-	@uv run pytest backend/tests/unit/ ; rc=$$?; \
-	  [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit $$rc   # exit 5 = no tests collected; OK
+test-unit:  ## Run backend unit tests (smoke test required; exit-5 NOT tolerated)
+	uv run pytest backend/tests/unit/
 
 test-integration:  ## Run backend integration tests (requires running stack)
 	@uv run pytest -m integration backend/tests/integration/ ; rc=$$?; \
-	  [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit $$rc
+	  [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit $$rc   # exit 5 = no tests yet; OK pre-Story-2.2
 
 test-contract:  ## Run backend contract tests (response shape + error codes)
 	@uv run pytest backend/tests/contract/ ; rc=$$?; \
-	  [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit $$rc
+	  [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit $$rc   # exit 5 = no tests yet; OK pre-Story-3.2
 
 # ---------- Pre-commit (Story 1.4) ----------
 

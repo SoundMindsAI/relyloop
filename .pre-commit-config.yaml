@@ -32,7 +32,7 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
-        files: ^backend/app/
+        files: ^backend/
         args: [--strict, --config-file=pyproject.toml]
         additional_dependencies:
           - pydantic>=2.9
@@ -48,15 +48,21 @@ repos:
   - repo: local
     hooks:
       - id: prettier-ui
-        name: prettier (ui/)
-        # Run prettier from the ui/ dir against its src/ tree. We use
-        # pass_filenames: false because pre-commit passes paths relative
-        # to the repo root (ui/src/...), but `pnpm --dir ui` flips cwd to
-        # ui/ where those paths don't exist. For a small UI tree, full-src
-        # check is fast enough.
-        entry: pnpm --dir ui exec prettier --check src
+        name: prettier (ui/ entire tree)
+        # Run prettier from the ui/ dir against ALL relevant files (not just
+        # src/) so package.json, tsconfig.json, .prettierrc.json, and any
+        # root-level docs land formatted too. pass_filenames: false because
+        # pre-commit passes ui/-prefixed paths from the repo root but
+        # `pnpm --dir ui` flips cwd to ui/.
+        entry: pnpm --dir ui exec prettier --check
+          src
+          package.json
+          tsconfig.json
+          .eslintrc.json
+          .prettierrc.json
         language: system
-        files: ^ui/src/.*\.(ts|tsx|css|md|json)$
+        files: ^ui/.*\.(ts|tsx|js|jsx|css|md|json)$
+        exclude: ^(ui/node_modules/|ui/\.next/|ui/pnpm-lock\.yaml)
         pass_filenames: false
 
       - id: eslint-ui

@@ -111,7 +111,6 @@ strict = true
 python_version = "3.12"
 plugins = ["pydantic.mypy"]
 files = ["backend"]
-exclude = ["backend/tests/.*"]
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
@@ -119,6 +118,15 @@ warn_no_return = true
 warn_return_any = true
 warn_unreachable = true
 disallow_any_unimported = true
+
+# Tests run against fixtures and pytest decorators that don't always carry
+# precise types. Relax strict-untyped requirements there but keep most checks.
+[[tool.mypy.overrides]]
+module = "backend.tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+warn_return_any = false
 
 # ---------------------------------------------------------------------------
 # Pytest
