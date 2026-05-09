@@ -1,0 +1,199 @@
+name: pr
+
+# infra_foundation Story 5.1 / FR-4.
+# Runs on every PR to main + every push to main.
+#
+# Three parallel jobs:
+#   - backend  — uv sync · ruff check · ruff format --check · mypy · pytest
+#                with coverage gate (80% via pyproject.toml fail_under)
+#   - frontend — pnpm install · lint · typecheck · vitest · next build
+#   - docker   — buildx build relyloop/api (no push; needs backend+frontend green)
+#
+# CI runs hermetically — service containers (Postgres, Redis, ES, OpenSearch)
+# are launched by GitHub Actions, never against managed cloud (CLAUDE.md
+# Common Pitfalls).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Cancel in-flight runs of the same PR / branch when a new push lands.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: backend (lint + typecheck + tests + coverage)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: relyloop
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: relyloop
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U relyloop -d relyloop"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      elasticsearch:
+        image: elasticsearch:9.0.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: "false"
+          ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9200:9200
+        options: >-
+          --health-cmd "curl -fs http://localhost:9200/_cluster/health || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+      opensearch:
+        image: opensearchproject/opensearch:2.18.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: "true"
+          OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+        ports:
+          - 9201:9200
+        options: >-
+          --health-cmd "curl -fs http://localhost:9200 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+          version: "0.5.7"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install project deps (frozen)
+        run: uv sync --frozen
+
+      - name: Write file-based secrets (CI parity with mounted-secrets pattern)
+        # Pydantic Settings reads DATABASE_URL_FILE / POSTGRES_PASSWORD_FILE.
+        # In CI we materialize them from the service-container env values.
+        run: |
+          echo "testpassword" > "${RUNNER_TEMP}/postgres_password"
+          echo "postgresql+asyncpg://relyloop:testpassword@localhost:5432/relyloop" \
+            > "${RUNNER_TEMP}/database_url"
+          chmod 600 "${RUNNER_TEMP}/postgres_password" "${RUNNER_TEMP}/database_url"
+
+      - name: ruff check
+        run: uv run ruff check .
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+
+      - name: mypy --strict
+        run: uv run mypy backend/
+
+      - name: pytest (unit + integration + contract) with coverage
+        env:
+          DATABASE_URL_FILE: ${{ runner.temp }}/database_url
+          POSTGRES_PASSWORD_FILE: ${{ runner.temp }}/postgres_password
+          REDIS_URL: redis://localhost:6379/0
+          OPENAI_BASE_URL: https://api.openai.com/v1
+          OPENAI_MODEL: gpt-4o-2024-08-06
+          OPENAI_MODEL_CHAT: gpt-4o-mini-2024-07-18
+          # ES / OpenSearch are reachable on localhost — the /healthz integration
+          # test points at API_URL which expects the API container; we don't
+          # boot the API in CI yet (that lands at MVP3 with the deploy job).
+          # The health integration test will skip without a running API; that
+          # behavior is acceptable until the deploy workflow exists.
+          RELYLOOP_API_URL: http://localhost:8000
+        run: |
+          uv run pytest backend/tests/ \
+            --cov=backend \
+            --cov-report=xml \
+            --cov-report=term-missing
+
+      - name: Upload coverage XML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
+
+  frontend:
+    name: frontend (lint + typecheck + tests + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      - name: pnpm install
+        run: pnpm --dir ui install --frozen-lockfile
+
+      - name: ESLint (next lint)
+        run: pnpm --dir ui lint
+
+      - name: tsc --noEmit
+        run: pnpm --dir ui typecheck
+
+      - name: vitest
+        run: pnpm --dir ui test
+
+      - name: Production build (next build)
+        run: pnpm --dir ui build
+
+  docker:
+    name: docker buildx (relyloop/api)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build relyloop/api (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          tags: relyloop/api:${{ github.sha }}
+          build-args: |
+            RELYLOOP_GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

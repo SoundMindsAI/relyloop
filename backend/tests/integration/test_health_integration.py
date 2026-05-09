@@ -18,6 +18,16 @@ import pytest
 API_URL = os.environ.get("RELYLOOP_API_URL", "http://localhost:8000")
 
 
+async def _api_reachable() -> bool:
+    """Probe the API root with a 1s timeout. Skip the test if it's down."""
+    try:
+        async with httpx.AsyncClient(timeout=1.0) as client:
+            await client.get(f"{API_URL}/healthz")
+        return True
+    except (httpx.HTTPError, OSError):
+        return False
+
+
 @pytest.mark.integration
 async def test_healthz_returns_documented_shape() -> None:
     """`GET /healthz` must return spec §7.3's JSON shape.
@@ -26,6 +36,8 @@ async def test_healthz_returns_documented_shape() -> None:
     asserting specific reachability — both 200 (all healthy) and 503
     (some down) are valid HTTP statuses for this contract.
     """
+    if not await _api_reachable():
+        pytest.skip(f"API not reachable at {API_URL} — run `make up` first")
     async with httpx.AsyncClient(timeout=5.0) as client:
         resp = await client.get(f"{API_URL}/healthz")
     # 200 or 503 — both are valid responses depending on subsystem state.
@@ -59,6 +71,8 @@ async def test_healthz_returns_documented_shape() -> None:
 @pytest.mark.integration
 async def test_healthz_status_consistent_with_subsystems() -> None:
     """`status: degraded` ⇔ at least one of db/redis/es/opensearch is unhealthy."""
+    if not await _api_reachable():
+        pytest.skip(f"API not reachable at {API_URL} — run `make up` first")
     async with httpx.AsyncClient(timeout=5.0) as client:
         resp = await client.get(f"{API_URL}/healthz")
     body = resp.json()
