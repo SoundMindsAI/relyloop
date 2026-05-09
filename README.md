@@ -1,45 +1,74 @@
 # RelyLoop
 
-> **Status: MVP1 in progress (private alpha).** Spec is complete; the foundation feature (`infra_foundation`) is in flight on a feature branch. This repo is currently soundminds.ai-internal; it will become public when MVP1 ships.
+> **Status: MVP1 in progress (private alpha).** Spec is complete; the foundation feature (`infra_foundation`) has shipped — Docker stack, FastAPI + `/healthz`, OpenAI capability check, Alembic baseline, CI workflow, 90% backend coverage. The next 11 MVP1 features are spec-approved and queued. This repo is currently soundminds.ai-internal; it will become public when MVP1 ships.
 
 **Open-source automated relevance tuning for enterprise search platforms.** RelyLoop combines an LLM-driven agent with an Optuna-driven optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion. Engineers describe relevance problems in chat; the agent introspects the cluster, proposes a search-space, and queues thousands of trials against pytrec_eval-computed metrics. Winning configurations are surfaced as Pull Requests against a central search-config Git repo, where named approvers review and merge.
 
 ## Quickstart
 
-> **Note:** the bootstrap is in flight. The full `make up` flow (Docker stack + health endpoint) lands when `infra_foundation` Stories 4.1–4.4 + 3.1–3.3 ship. Until then, the Python and frontend toolchains work locally.
-
 ```bash
 git clone https://github.com/SoundMindsAI/relyloop.git
 cd relyloop
-make help                    # list every Make target with descriptions
-uv sync                      # install Python deps + create .venv (Story 1.2)
-pnpm --dir ui install        # install frontend deps (Story 1.3)
-make pre-commit-install      # install Git hooks (Story 1.4)
+
+# 1. Install dev toolchain
+uv sync                          # Python deps + .venv (requires Python 3.12+)
+pnpm --dir ui install            # frontend deps (requires Node 20+ + pnpm 9+)
+make pre-commit-install          # install Git hooks
+
+# 2. Bring up the stack
+make up                          # auto-generates secrets, then docker compose up -d
+                                 # ~90s cold (image pulls), ~60s warm
+
+# 3. Verify
+curl -s http://localhost:8000/healthz | jq    # status: ok, all subsystems reachable
+
+# 4. (Optional) populate OpenAI key for the capability check
+echo "sk-..." > ./secrets/openai_key
+make down && make up             # re-runs the 4-step capability check at startup
 ```
 
-When the Compose stack lands (Stories 4.1–4.4):
+`make` (no target) prints every Make target with descriptions. Full operator
+walkthrough — debugging, port collisions, ES OOMs, the `make reset` flow, the
+operator setup checklist — lives in
+[`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md).
 
-```bash
-make up                                  # auto-generates required secrets, then docker compose up -d
-curl http://localhost:8000/healthz       # all subsystems healthy in <60s (Story 3.2 lands /healthz)
-```
-
-The full operator runbook lands in [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) when `infra_foundation` Story 5.2 ships.
+**Hardware:** 16 GB RAM is comfortable. Elasticsearch + OpenSearch each
+consume ~1 GB; bump `ES_HEAP_SIZE` in `.env` if you index large corpora.
 
 ## What's in this repo today
 
-This repo currently holds the design artifacts plus the in-flight bootstrap implementation:
+The bootstrap (`infra_foundation`) has shipped. The repo now holds:
+
+**Code (MVP1 Stories 1.1 → 5.2):**
+
+- [`backend/app/`](backend/app/) — FastAPI skeleton + `/healthz` + structlog +
+  request-ID middleware + error envelope + Settings (mounted-secret pattern) +
+  async SQLAlchemy engine + OpenAI capability check
+- [`backend/workers/`](backend/workers/) — Arq worker stub
+  (`functions=[]` until later features add jobs)
+- [`backend/tests/`](backend/tests/) — unit / integration / contract layers (90% backend coverage)
+- [`migrations/`](migrations/) — Alembic baseline (`0001_baseline`)
+- [`ui/`](ui/) — Next.js 14 placeholder page (real shell lands with `feat_studies_ui`)
+- [`Dockerfile`](Dockerfile) + [`docker-compose.yml`](docker-compose.yml) +
+  [`.env.example`](.env.example) + [`scripts/install.sh`](scripts/install.sh) — the 6-service stack
+- [`.github/workflows/pr.yml`](.github/workflows/pr.yml) + [`.github/dependabot.yml`](.github/dependabot.yml) — CI gates
+
+**Design artifacts:**
 
 - [`docs/README.md`](docs/README.md) — documentation index and section map
 - [`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md) — the full 30-section product and architectural specification (~2,800 lines)
 - [`docs/02_product/mvp1-user-stories.md`](docs/02_product/mvp1-user-stories.md) — MVP1 broken into 31 user stories mapped to 12 feature folders
-- [`docs/02_product/planned_features/`](docs/02_product/planned_features/) — per-feature spec folders (each contains `feature_spec.md` to be advanced through `/impl-plan-gen` → `/impl-execute`)
+- [`docs/02_product/planned_features/`](docs/02_product/planned_features/) — per-feature spec folders (`infra_foundation` will move to `docs/00_overview/implemented_features/` on merge; the next 11 are spec-approved and queued)
+- [`state.md`](state.md) · [`architecture.md`](architecture.md) · [`CLAUDE.md`](CLAUDE.md) — project context root files
+- [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) — local boot, debug, reset
+- [`docs/05_quality/testing.md`](docs/05_quality/testing.md) — test layers + 80% coverage gate
+
+**Open-source housekeeping:**
+
 - [`LICENSE`](LICENSE) — Apache License 2.0
 - [`NOTICE`](NOTICE) — Apache 2.0 NOTICE file with dependency attribution
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — DCO-based contribution guide (forward-looking)
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — DCO-based contribution guide
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — Contributor Covenant 2.1
-
-Engineering for MVP1 is described in the execution plan and starts when the pre-flight checklist (TESS, domains, namespaces, design partners) is complete.
 
 ## Roadmap at a glance
 

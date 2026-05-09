@@ -1488,8 +1488,8 @@ If an operator skips a pause point ("use defaults", "skip"), record the skip in 
 - [x] Story 4.2 — `docker-compose.yml` (6 services + healthchecks + secrets)
 - [x] Story 4.3 — Worker process skeleton (Arq WorkerSettings stub)
 - [x] Story 4.4 — `.env.example` + secrets layout + install script + Make targets **[FR-1, FR-3 install layer]**
-- [ ] Story 5.1 — GitHub Actions `pr.yml` (backend + frontend + Docker build) **[FR-4]**
-- [ ] Story 5.2 — Documentation updates + create root `state.md` / `architecture.md` / `CLAUDE.md`
+- [x] Story 5.1 — GitHub Actions `pr.yml` (backend + frontend + Docker build) **[FR-4]**
+- [x] Story 5.2 — Documentation updates + create root `state.md` / `architecture.md` / `CLAUDE.md`
 
 ### Blocked items
 
