@@ -1,7 +1,7 @@
 # Feature Specification — infra_adapter_elastic
 
-**Date:** 2026-05-08
-**Status:** Draft
+**Date:** 2026-05-08 (header status refreshed 2026-05-09)
+**Status:** Approved — all open questions resolved (see §19 Decision log: 8 dated entries, the most recent on 2026-05-09 closing out `health_check` TTL, `engine_config.api_version` defaulting, `run_query` `top_k` cap, and the OpenSearch 3.x scope deferral)
 **Owners:** TBD
 **Related docs:**
 - [docs/02_product/mvp1-user-stories.md](../../mvp1-user-stories.md) — covers US-4, US-5, US-6
