@@ -8,10 +8,8 @@
 
 ## Current branch / execution context
 
-- **Branch:** `feature/infra-foundation` (PR open against `main`)
-- **Active feature:** [`infra_foundation`](docs/02_product/planned_features/infra_foundation/)
-  — bootstrap of the entire MVP1 stack. **Implementation complete; PR
-  pending merge.**
+- **Branch:** `main` (clean; `infra_foundation` PR #4 merged 2026-05-09)
+- **Active feature:** None in flight. Next up: [`infra_adapter_elastic`](docs/02_product/planned_features/infra_adapter_elastic/) — the engine adapter (Elasticsearch + OpenSearch) that unblocks every downstream MVP1 feature.
 - **Alembic head:** `0001_baseline` (registers `alembic_version`; first
   business-table migration lands with `infra_adapter_elastic`)
 - **Coverage:** 90.17% backend (gate is 80%); `health.py` + `probes.py` +
@@ -19,6 +17,17 @@
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-09 — `infra_foundation` PR #4 merged to `main`** (squash commit
+  `93eeb64`). Bootstrap complete: 6-service Compose stack, FastAPI +
+  `/healthz`, OpenAI capability check at startup, Alembic baseline
+  (`0001`), 80% coverage gate (currently at 90.17%), GitHub Actions
+  `pr.yml` with three required-check jobs. Five first-run bugs surfaced
+  during operator testing and were fixed inline (stale image, stale
+  database_url stub, host-vs-container env var assumptions, alembic
+  post-write hook crash, hashed rev-id); two process patches landed in
+  the same PR (`impl-execute` operator-path verification gate +
+  CLAUDE.md local-stub hygiene rule). Feature folder moved to
+  [`docs/00_overview/implemented_features/2026_05_09_infra_foundation/`](docs/00_overview/implemented_features/2026_05_09_infra_foundation/).
 - **2026-05-09 — `infra_foundation` Stories 3.3 / 4.1 / 4.2 / 4.3 / 4.4 / 5.1
   / 5.2 land on `feature/infra-foundation`.**
   - Story 3.3: OpenAI capability check at startup (4-step probe) + Redis
@@ -43,20 +52,17 @@
   merged earlier on the same branch** (Python toolchain, frontend, pre-commit,
   Settings, Alembic baseline, FastAPI skeleton, `/healthz`).
 
-## In flight (this PR)
+## In flight
 
-- **`infra_foundation`** — all 14 stories complete. Awaiting:
-  - CI green on the PR (`pr / backend`, `pr / frontend`, `pr / docker`)
-  - Gemini Code Assist review adjudication
-  - Final GPT-5.5 cross-model review against the full diff
-  - GitHub branch-protection update (operator handoff §7.5 #3)
-  - PR merge → state.md flips to `infra_adapter_elastic` as the next focus
+None. `main` is clean post-merge of PR #4.
 
 ## Queued (priority-ordered by dependency)
 
-1. **`infra_adapter_elastic`** — `clusters` + `config_repos` tables;
-   `ElasticAdapter` covering ES 8.11+/9.x and OpenSearch 2.x/3.x. Requires
-   `infra_foundation` merged.
+1. **`infra_adapter_elastic`** ← **next up.** `clusters` + `config_repos`
+   tables; `ElasticAdapter` covering ES 8.11+/9.x and OpenSearch 2.x/3.x.
+   `infra_foundation` is now merged so this is unblocked. Run
+   `/pipeline docs/02_product/planned_features/infra_adapter_elastic --auto`
+   to start.
 2. **`infra_optuna_eval`** — Optuna RDBStorage tables + pytrec_eval wiring.
 3. **`feat_study_lifecycle`** — 7-table study/trial/proposal schema.
 4. **`feat_llm_judgments`** — judgment-list LLM rubric runner.
@@ -72,11 +78,14 @@ Run `/pipeline status` for the live view from spec dependencies.
 
 ## Known debt / fragility
 
-- **Tangential bug captured during this PR:** [`bug_env_file_corrupted_during_session`](docs/02_product/planned_features/bug_env_file_corrupted_during_session/idea.md)
-  — the operator's `.env` was renamed to `.env.old` mid-session by an
-  unidentified tool. `.gitignore` patched defensively to exclude
-  `.env.old` / `.env.bak` / `.env.local`; root cause investigation
-  deferred.
+- **CI lacks a `make up` smoke job.** All 5 first-run bugs in the
+  `infra_foundation` PR surfaced after CI was green. Captured at
+  [`infra_ci_smoke_makeup`](docs/02_product/planned_features/infra_ci_smoke_makeup/idea.md)
+  with a ready-to-paste workflow YAML — should land before MVP1 ships
+  to prevent recurrence.
+- **Tangential bugs captured during the bootstrap:**
+  - [`bug_env_file_corrupted_during_session`](docs/02_product/planned_features/bug_env_file_corrupted_during_session/idea.md) — operator's `.env` was renamed to `.env.old` mid-session by an unidentified tool. `.gitignore` patched defensively; root cause investigation deferred.
+  - [`chore_starlette_422_deprecation`](docs/02_product/planned_features/chore_starlette_422_deprecation/idea.md) — `HTTP_422_UNPROCESSABLE_ENTITY` rename surfaces a `DeprecationWarning` on every test run; mechanical fix.
 - **Manual operator handoffs (per `infra_foundation` §7.5):** `.env` is
   not auto-created (operator opts in via `cp .env.example .env`); OpenAI
   key file is empty by default; GitHub branch protection requires repo-admin
