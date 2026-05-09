@@ -1,36 +1,3 @@
-<!--
-PORTING BANNER — REMOVE BEFORE USE
-This template was ported from the sibling creator-discovery-outreach project. Renames
-are applied; some sections embed architecture that RelyLoop has not adopted yet.
-When you fill this in:
-
-  Audit-event story checks
-    RelyLoop has no audit-events subsystem (no TENANT_ACTIVITY_ALLOWLIST, no
-    FILTER_GROUPS, no formatEventDescription cases, no `create_audit_event()`).
-    Skip every story task referencing those symbols. Re-enable when/if RelyLoop
-    adds one.
-
-  Backend/frontend path conventions
-    Cited paths (backend/app/domain/, backend/app/db/repo/, backend/app/api/tenant/,
-    web/src/app/) match the FastAPI+Next.js layout RelyLoop's spec proposes, but no
-    directory exists yet — the first feature to ship will establish the actual layout.
-    Treat these as proposals and adjust to match what MVP1 builds.
-
-  Migration tool
-    The template hedges between `backend/alembic/versions/` and
-    `backend/app/db/migrations/versions/`. RelyLoop has not picked one — the first
-    migration story should establish and document the choice.
-
-  Cross-model review (GPT-5.4, Gemini Code Assist)
-    The principle (cross-model review catches phantom values + dropped JSX behaviors)
-    is universal; the specific tooling is CDO's. RelyLoop needs to choose its own
-    review setup — until then, treat these references as TBD.
-
-  Domain examples (creator/draft/campaign/keywords/PlatformsKeywordsTab/stage_buckets,
-  Stripe webhooks, Resend) are illustrative — substitute RelyLoop equivalents
-  (relevance trials, search-configs, engines, Pull Requests).
--->
-
 # Implementation Plan — <Feature Name>
 
 **Date:** <YYYY-MM-DD>
@@ -654,7 +621,7 @@ Before marking the plan as "Ready for Execution," perform a cross-reference revi
     - Grep the cited backend source file(s) to confirm the exact allowlist. Flag any frontend option
       the backend does not accept, and any backend value the frontend fails to surface.
     - Require the plan to specify a source-of-truth comment above each generated option array
-      (e.g., `// Values must match backend/app/domain/creator/stage_buckets.py VALID_BUCKETS`) so
+      (e.g., `// Values must match backend/db/models/study.py StudyStatus`) so
       future edits don't silently drift.
     **Why this matters:** Phantom values ("mid" tier, "drafting" bucket) look plausible but produce
     422 VALIDATION_ERROR responses or silent zero-result filters. TypeScript, lint, and unit tests
@@ -672,30 +639,8 @@ Before marking the plan as "Ready for Execution," perform a cross-reference revi
     - **Contract tests**: Verify the plan includes tests for ceiling boundary conditions
       (at ceiling → 200, above ceiling → 422).
 
-13. **Audit-event coverage audit**: for every endpoint or service function the plan adds or modifies
-    that mutates state, verify:
-    - The spec's §6 audit-event instrumentation matrix lists the mutation site with a chosen
-      event type (new or existing).
-    - For **new event types** marked tenant-visible: the plan has a story to add the type to
-      `TENANT_ACTIVITY_ALLOWLIST` in `backend/app/db/repo/audit_event_repo.py`, update the exact-set
-      assertion in `backend/tests/unit/domain/test_tenant_activity_allowlist.py`, add a `FILTER_GROUPS`
-      entry in `web/src/components/settings/activity-tab.tsx`, add a `formatEventDescription` case,
-      and (if the admin per-tenant timeline shows it) update `web/src/components/admin/tenant-detail/tenant-timeline-tab.tsx`.
-    - **Atomic emission**: the story specifies that `create_audit_event()` is called inside the
-      same transaction as the primary mutation, before `db.commit()`, with `resolve_audit_actor()`
-      to handle admin impersonation FK-safely.
-    - **Metadata schema**: the metadata fields are listed and contain no forbidden content (email
-      bodies, draft content, reply tokens, restore tokens, password fields, OAuth tokens). Tenant-
-      authored display strings (tag names, campaign names) must already be in `_SENSITIVE_KEYS` of
-      `backend/app/core/log_scrubber.py`.
-    - **Contract test**: the plan includes a contract test asserting metadata shape on the audit row,
-      mirroring the canary pattern in `backend/tests/contract/test_creator_notes_audit.py`.
-    - **Mutations that do not need an audit event** must be explicitly justified (e.g. "internal
-      cache update", "covered by existing `OUTREACH_EMAIL_SENT` emission") in the plan.
-    **Why this matters:** Audit-event capture gaps are silent — tests pass, the feature ships,
-    and only weeks later does someone ask "who edited this draft?" and discover there's no record.
-    The drift test catches allowlist-vs-IA mismatches but cannot catch missing emission. Reference:
-    [docs/01_architecture/audit_events.md](../../../01_architecture/audit_events.md).
+13. **Audit-event coverage audit** (MVP2+ only — `audit_log` arrives at MVP2 per [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md)). For MVP2+ plans: for every endpoint or service function the plan adds or modifies that mutates state, verify the spec's §6 audit-event matrix lists the mutation site with a chosen event_type, the story includes an atomic `audit_log` INSERT inside the primary mutation's transaction, the metadata schema contains no credentials/tokens/PII beyond display-name strings, and the plan includes a contract test asserting the audit row's metadata shape. Mutations that do not need an audit event must be explicitly justified.
+
 
 This review catches mismatches between the spec, plan, and codebase that would otherwise surface as
 bugs or missing coverage during implementation.

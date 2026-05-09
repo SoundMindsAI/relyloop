@@ -1,35 +1,3 @@
-<!--
-PORTING BANNER — REMOVE BEFORE USE
-This template was ported from the sibling creator-discovery-outreach project. Renames
-are applied; some sections embed architecture that RelyLoop has not adopted yet.
-When you fill this in:
-
-  §6 "Audit-event instrumentation matrix"
-    RelyLoop has no audit-events subsystem (no TENANT_ACTIVITY_ALLOWLIST, no
-    FILTER_GROUPS, no `create_audit_event()`, no `docs/01_architecture/audit_events.md`).
-    Write the matrix as: "N/A — RelyLoop has no audit-events subsystem yet."
-    Re-enable when/if RelyLoop adds one.
-
-  §6 "RBAC authorization matrix" — Admin impersonation column
-    RelyLoop has no superadmin/impersonation model yet. Drop the Impersonation column;
-    keep the role columns that map to actual RelyLoop roles.
-
-  §9 "Data model" — tenant_id scoping
-    RelyLoop is single-tenant for MVP1–MVP3 per the umbrella spec; multi-tenant arrives
-    at MVP4. For MVP1–3 features, drop `tenant_id (FK to tenants.id)` and replace with
-    the appropriate scoping unit (workspace_id / project_id / none). Add a note:
-    "single-tenant for MVP1; revisit at multi-tenant cutover."
-
-  Domain examples (creators, drafts, campaigns, outreach, OUTREACH_EMAIL_SENT,
-  stage_buckets, tier=mid, Instagram/TikTok platforms) are illustrative — substitute
-  RelyLoop equivalents (relevance trials, search-configs, engines, Pull Requests,
-  Elasticsearch/OpenSearch/Lucidworks).
-
-  Cited file paths (backend/app/..., web/src/...) match the FastAPI+Next.js layout
-  RelyLoop's spec proposes, but no directory exists yet — verify before grounding any
-  claim on a path.
--->
-
 # Feature Specification — <Feature Name>
 
 **Date:** <YYYY-MM-DD>
@@ -152,56 +120,21 @@ Call out every external or cross-team dependency explicitly.
 ## 6) Actors and roles
 
 - Primary actor(s): <user/admin/system>
-- Role model: <owner/admin/member/etc>
+- Role model: <RelyLoop MVP1–MVP3: single-tenant, no auth (write `N/A`). MVP4+: `viewer` / `runner` / `tenant_admin` (per-tenant) + `platform_admin` (cross-tenant) per umbrella §18.>
 - Permission boundaries: <who can do what>
 
-### Admin control scope checklist
+### Authorization
 
-**Complete this checklist for any feature that introduces admin-configurable settings.**
-Skipping this section is a common source of gaps — backend controls without admin UI, or tenant overrides without ceiling enforcement.
+For MVP1–MVP3 (single-tenant, no auth per [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../../../01_architecture/tech-stack.md)): write `N/A — single-tenant install, no auth surface`.
 
-- [ ] **Admin UI needed?** If the feature adds backend fields to `global_admin_configuration`, does the super admin need a UI to manage them? If yes, add admin Global Controls panel fields to scope.
-- [ ] **Ceiling enforcement needed?** If the feature adds admin defaults that tenants can override, can tenants set values *above* the admin ceiling? If not, add ceiling validation to both create and update endpoints, and cap frontend input controls.
-- [ ] **Override hierarchy documented?** State the full resolution chain (e.g., "per-platform override → campaign default → admin default → hardcoded fallback") and which levels are tenant-controllable vs. admin-only.
+For MVP4+ (auth lands): author an RBAC matrix mapping each endpoint to allow/deny across roles `viewer / runner / tenant_admin / platform_admin` (per umbrella §18) with the enforcement mechanism (guard function / dependency) named per row.
 
-### RBAC authorization matrix (if role-gated endpoints)
+### Audit events
 
-For features with multiple roles and endpoints, use a matrix to make authorization reviewable and
-testable at a glance. Include the enforcement mechanism — the specific dependency or guard function
-from the codebase that implements the check. This prevents specs that define allow/deny rules without
-specifying how they're enforced.
+For MVP1 (no `audit_log` table yet per [`docs/01_architecture/data-model.md` §"Reserved for later releases"](../../../01_architecture/data-model.md)): write `N/A — audit_log lands at MVP2`.
 
-**Admin impersonation column is mandatory.** Every tenant-facing endpoint must specify how it behaves
-when a superadmin impersonates the tenant. Admin impersonation has three failure modes:
-1. Membership checks fail (admin is not a tenant member)
-2. RBAC checks fail (admin has no tenant role)
-3. FK constraints fail (`audit_events.user_id`, `user_invites.invited_by_user_id` reference `users.id` — admin IDs are not in that table)
+For MVP2+: list every state-mutating endpoint or service function this spec adds, with the event_type it emits, the metadata fields, and the visibility (tenant-visible / admin-only / system). Emission must be atomic — `audit_log` INSERT inside the same transaction as the primary mutation, before `db.commit()`. Metadata must contain no credentials, tokens, or PII beyond display-name strings.
 
-For each endpoint, state whether impersonation is: `bypass` (skip RBAC, use `None` for FK user_id columns, record admin in metadata), `deny` (impersonation not supported), or `N/A` (no RBAC or FK writes).
-
-| Endpoint | `owner` | `admin` | `member` | Impersonation | Enforcement |
-|----------|---------|---------|----------|---------------|-------------|
-| `<METHOD /path>` | <allow/deny> | <allow/deny> | <allow/deny> | <bypass/deny/N/A> | <guard function or dependency> |
-
-### Audit-event instrumentation matrix
-
-**Complete for every endpoint or service function this spec adds or modifies that mutates state.**
-
-Audit events are how owners (via `/settings` Activity tab) and super admins (via `/admin/tenants/{id}` Timeline + cross-tenant `/admin/events`) reconstruct what happened on a workspace. Skipping this matrix is the single most common cause of "we have the data but no record of who changed it" support cases. Reference: [docs/01_architecture/audit_events.md](../../../01_architecture/audit_events.md), in particular §"Decision tree: do I need an audit event?".
-
-| Mutation site | Event type | Visibility | Metadata fields | IA placement |
-|---|---|---|---|---|
-| `<METHOD /path>` or `<service.function>` | `<NEW_EVENT_TYPE>` or `<existing — none new>` | tenant-visible (`TENANT_ACTIVITY_ALLOWLIST`) / admin-only / system | `<list>` — never include email bodies, draft content, reply tokens, OAuth tokens, password fields | `FILTER_GROUPS.<group>` + `formatEventDescription` case + (admin) `tenant-timeline-tab.tsx` |
-
-**Rules to enforce:**
-
-1. Every tenant-visible mutation either emits a new event type **or** explicitly cites an existing event type that already covers the case.
-2. Tenant-visible event types are added to `TENANT_ACTIVITY_ALLOWLIST` AND have a `FILTER_GROUPS` category AND have a `formatEventDescription` case. The drift test in `backend/tests/unit/domain/test_tenant_activity_allowlist.py` enforces the allowlist exact-set; any new event type must update it.
-3. Emission is atomic — `create_audit_event()` is called inside the same transaction as the primary mutation, before `db.commit()`. Resolve actor via `resolve_audit_actor(auth, db)` so admin impersonation does not violate the FK constraint on `audit_events.user_id`.
-4. Metadata never includes: email bodies, draft subject/body content, reply tokens, restore tokens, pending-delete tokens, password fields, OAuth tokens, or note bodies. Tenant-authored display strings (e.g. tag names, campaign names) are allowed in metadata for activity-feed readability but MUST be in `_SENSITIVE_KEYS` of [backend/app/core/log_scrubber.py](../../../../backend/app/core/log_scrubber.py) so they are redacted from application logs.
-5. If the spec introduces a new tenant-visible event type, it must specify the format-case string template (e.g. `"Edited draft for @{creator_handle}"`) — the implementation plan can pick this up directly without re-deriving.
-
-If a mutation does NOT need an audit event, state why explicitly (e.g. "internal cache update, no business meaning" / "covered by existing `OUTREACH_EMAIL_SENT` emission").
 
 ## 7) Functional requirements
 
@@ -283,9 +216,9 @@ Format:
 
 | Field | Accepted values (exact) | Backend source of truth | Frontend call site(s) |
 |---|---|---|---|
-| `?tier` | `nano`, `micro`, `macro`, `mega` | `backend/app/domain/scoring/engagement.py` (`classify_influencer_tier`) | filter dropdown in `<path>` |
-| `?stage_bucket` | `discovered`, `scored`, `drafted`, `sent`, `replied`, `collaborated`, `terminal` | `backend/app/domain/creator/stage_buckets.py` (`VALID_BUCKETS`) | filter dropdown in `<path>` |
-| `?sort` | `last_interaction_desc`, `last_interaction_asc`, `best_fit_score_desc`, ... | `<router or schema path>:<lines>` | sort dropdown in `<path>` |
+| `?engine_type` | `elasticsearch`, `opensearch` | `backend/adapters/protocol.py` (`EngineType` `Literal[...]`) | cluster filter dropdown in `<path>` |
+| `?status` (studies) | `queued`, `running`, `completed`, `cancelled`, `failed` | `backend/db/models/study.py` (`StudyStatus` `Literal[...]` or DB CHECK) | studies filter chip in `<path>` |
+| `?status` (proposals) | `pending`, `pr_opened`, `pr_merged`, `rejected` | `backend/db/models/proposal.py` (`ProposalStatus`) | proposals filter chip in `<path>` |
 
 **Rules:**
 - Labels shown to the user (e.g., "Nano (<10k)") may differ from the wire value (`nano`) — the wire value is the contract, the label is UX. Spell out both when they diverge.
@@ -315,11 +248,13 @@ memory or convention — check the model file. If the column does not exist, eit
 column that fits or explicitly call for a migration to add it.
 
 **New table: `<table_name>`**
-- `id` (UUID PK)
-- `tenant_id` (FK to `tenants.id`, indexed)
+- `id` (UUID PK, UUIDv7)
 - `<column>` (`<type>`, <constraints: nullable, default, unique, indexed>)
 - `<column>` (`<type>`, <constraints>)
 - `created_at` (timestamptz, default now)
+- `deleted_at` (timestamptz, nullable) — for soft-delete on user-facing tables; omit for append-only tables
+
+> **RELYLOOP MVP1–MVP3:** do NOT include `tenant_id` or `created_by` columns. RelyLoop is single-tenant + no auth through MVP3 per [`docs/01_architecture/data-model.md` §"Reserved for later releases"](../../../01_architecture/data-model.md). MVP4 adds `tenants`, `users`, and the per-table `tenant_id` migration with a `default`-tenant backfill.
 
 **Modified table: `<existing_table>`**
 - Add `<column>` (`<type>`, <constraints>) — <purpose>
