@@ -1,7 +1,7 @@
 # Implementation Plan — infra_foundation
 
 **Date:** 2026-05-09
-**Status:** Draft
+**Status:** Complete (PR #4, awaiting merge)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy sources:**
 - [`docs/01_architecture/tech-stack.md`](../../../01_architecture/tech-stack.md) — language/framework/tooling choices
@@ -1497,7 +1497,42 @@ None.
 
 ### Done this sprint
 
-(Filled in as stories complete.)
+All 14 stories merged onto `feature/infra-foundation` and pushed via PR #4
+(https://github.com/SoundMindsAI/relyloop/pull/4):
+
+- Story 1.1 — Monorepo layout & root configs (`66fc136`)
+- Story 1.2 — Python project (uv + ruff + mypy + pytest) (`0da146a`)
+- Story 1.3 — Frontend project (Next.js 14 + pnpm + TS strict) (`ff807c4`)
+- Story 1.4 — Pre-commit hooks (`960f66b`)
+- **Epic 1 phase gate** — GPT-5.5 cycle 1 (`ca76601`)
+- Story 2.1 — SQLAlchemy 2.0 async engine + Pydantic Settings (`1efcf3c`)
+- Story 2.2 — Alembic init + baseline migration + `make migrate` (`8413fa4`)
+- **Epic 2 phase gate** — Opus-only (GPT-5.5 deferred to final review)
+- Story 3.1 — FastAPI skeleton + structlog + X-Request-ID + error envelope (`27db398`)
+- Story 3.2 — `/healthz` endpoint with parallel subsystem probes (`f1cb5f1`); test backfill in Story 5.1 commit
+- Story 3.3 — OpenAI capability check at startup + Redis cache (`407da4b`)
+- Story 4.1 — Dockerfile (`f4860c9`)
+- Story 4.2 — docker-compose.yml — 6 services (`ede8fa6`)
+- Story 4.3 — Arq worker skeleton (`6a3032b`)
+- Story 4.4 — .env.example + install script + integration test (`3ffa1d2`)
+- Story 5.1 — GitHub Actions pr.yml + missing tests backfill (`16f4d4b`)
+- Story 5.2 — Root state.md / architecture.md / runbooks / quality docs (`7b9cfde`)
+
+Post-impl follow-ups landed on the same branch:
+
+- ES image bump 9.0.0 → 9.4.0 (yanked tag) (`f5f13d4`, `3bae56b`)
+- Pre-commit ruff pin v0.8.4 → v0.15.12 (format ping-pong fix) (`93b54e4`)
+- CI fix-pass: env pollution / psycopg2-binary / REDIS_URL default test (`b039771`)
+- conftest autouse fixture clears settings lru_cache between tests (`fba5eff`)
+- GPT-5.5 final-review fixes: /healthz dep client-leak + README accuracy (`e8cb22b`)
+
+Tangential idea files captured during the sprint:
+
+- [`bug_env_file_corrupted_during_session/idea.md`](../bug_env_file_corrupted_during_session/idea.md)
+- [`chore_starlette_422_deprecation/idea.md`](../chore_starlette_422_deprecation/idea.md)
+
+Final coverage: **90.17% backend** (gate 80%); CI green on `e8cb22b`
+(backend / frontend / docker-buildx).
 
 ---
 
