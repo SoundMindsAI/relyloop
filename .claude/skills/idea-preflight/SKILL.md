@@ -11,8 +11,6 @@ user-invocable: true
 
 # Idea Preflight — verify an idea.md is ready for /pipeline
 
-> **Ported skill.** Domain anecdotes (PR #183, `upsert_creator`, scheduler 5-touch-point checklist, audit-events architecture, draft/creator/campaign/outreach surfaces) come from the sibling `creator-discovery-outreach` project — treat them as guidance, not as RelyLoop references.
-
 You are auditing a planned-feature `idea.md` file before it enters the `/pipeline` flow (which runs `/spec-gen` → `/impl-plan-gen` → `/impl-execute` → `/guide-gen`). The idea may have been written days, weeks, or months ago. Your job is to ground every concrete claim against the **current** codebase, force decisions on every open fork, and either declare the idea **ready for /pipeline** or emit a concrete patch list.
 
 This skill **defaults to Audit & Patch** — apply the patches you propose, do not ask for permission first. The findings table is still emitted, but the user sees it as "here's what I changed and why," not "here's a list of edits I'd like to make if you say yes."
@@ -79,10 +77,10 @@ This step has the highest leverage of the whole skill. Skip it and the spec will
 Per CLAUDE.md "planned-features folder naming":
 
 1. **Prefix:** must be `feat_`, `bug_`, `chore_`, `infra_`, or `epic_`. Legacy `feature_` is no longer used. If the folder uses `feature_`, recommend a rename.
-2. **Intent clarity:** the name should telegraph **why** the feature exists, not just what file it touches. Examples from this codebase's lineage:
-   - `feature_youtube_data_freshness` → `feat_youtube_30day_data_refresh` ("freshness" was vague; the locked design is a 30-day refresh job).
-   - `epic_bug_reports_ai_triage` → `feat_bug_report_capture_and_email` (after AI triage was scoped out, "ai_triage" no longer reflected the MVP intent).
-   - `feature_dedicated_role_change_history` → `feat_role_change_audit_log` ("dedicated history" buries the audit-log mechanism).
+2. **Intent clarity:** the name should telegraph **why** the feature exists, not just what file it touches. Examples:
+   - `feat_judgment_freshness` → `feat_judgment_30day_refresh` ("freshness" was vague; the locked design is a 30-day re-grading job).
+   - `epic_proposal_auto_apply` → `feat_proposal_pr_open_and_merge` (after auto-apply was scoped down to opening a PR for human review, "auto_apply" no longer reflected the MVP intent).
+   - `feat_dedicated_study_status_history` → `feat_study_status_audit_log` ("dedicated history" buries the audit-log mechanism).
 3. **Length:** prefer 4–6 underscore-separated tokens. Single-token names (`feat_billing`) are too vague; 8+ token names (`feat_role_change_audit_log_table_for_admin_oversight`) are too verbose.
 
 If a rename is recommended, propose the new name with one-line rationale and 2–3 alternatives considered.
@@ -95,21 +93,16 @@ If a rename is recommended, propose the new name with one-line rationale and 2�
 
 ### Step 7 — Cross-check against CLAUDE.md absolute rules
 
-For each claim in the idea, mentally walk the CLAUDE.md "Absolute Rules — Never Violate" section:
+For each claim in the idea, mentally walk the project's "Absolute Rules — Never Violate" section. RelyLoop's CLAUDE.md (when it exists per `infra_foundation`) will codify these; until then, derive from the umbrella spec + `docs/01_architecture/`. Common rules to check:
 
-- Touching `tenant_id`-scoped tables? → confirm tenant_id is in every write
-- Adding a webhook handler? → idempotency check called out
-- Adding a quota-incurring action? → `get_allowed_for_resource()` mentioned
-- Mutating `pipeline_items.stage` or `delivery_status`? → routed through the domain transition layer
-- Sending email? → tenant-explicit-action wording (no auto-send)
-- Adding a migration? → downgrade + idempotency guards mentioned
-- Adding a webhook? → signature verification on raw body
-- Stripe plan logic? → Price ID mapping, never derived
-- Adding a scheduled job? → 5-touch-point checklist (`worker_runtime.md`)
-- Adding a `<select>` / dropdown? → option list grounded in a backend source-of-truth file with a sourced-from comment
-- Logging? → no `reply_token`, no `pending_delete_token`, no `restore_token` ever logged
-- Hard-deleting users? → routed through the daily purge job; auth_events anonymized
-- **Mutating tenant-visible state** (drafts, creators, tags, notes, campaigns, settings, billing, sessions, plan, member roles)? → `create_audit_event()` emission required in the same transaction. Grep the proposed write paths for adjacent `create_audit_event(` calls. If the idea introduces a new mutation site without surfacing the emission decision, flag as a finding. Cite [docs/01_architecture/audit_events.md](../../../docs/01_architecture/audit_events.md) §"Decision tree: do I need an audit event?".
+- Adding a migration? → reversible downgrade + idempotency guards mentioned (per [`infra_foundation/feature_spec.md`](../../docs/02_product/planned_features/infra_foundation/feature_spec.md) FR-5).
+- Adding a webhook handler (e.g., `/webhooks/github`)? → signature verification on raw body + idempotency.
+- Adding a state-machine transition (e.g., `studies.status`)? → routed through the centralized service-layer guard (`backend/services/study_state.py`); direct ORM writes raise.
+- Adding a `<select>` / dropdown / status badge? → option list grounded in a backend source-of-truth file (Pydantic `Literal[...]`, `frozenset`, or DB CHECK) with a `// Values must match <path>` comment.
+- Calling an LLM? → uses the configured `OPENAI_BASE_URL` (per [`llm-orchestration.md`](../../docs/01_architecture/llm-orchestration.md)); reads the capability cache before relying on tool-calling or structured-output; respects the daily-budget gate.
+- Adding API endpoints? → follows the conventions in [`api-conventions.md`](../../docs/01_architecture/api-conventions.md) (URL prefix, error envelope, cursor pagination, X-Total-Count + ?since on list endpoints).
+- Mutating tenant-visible state (studies, trials, judgments, judgment_lists, proposals, query_sets, query_templates, clusters, config_repos)? → audit_log INSERT required in the same transaction (MVP2+ when audit_log lands per [`data-model.md`](../../docs/01_architecture/data-model.md)). Grep the proposed write paths for adjacent `audit_log` writes; if the idea adds a new mutation site without addressing emission, flag as a finding.
+- Adding a secret? → mounted file via `*_FILE` env var (per [`deployment.md` §"Secrets"](../../docs/01_architecture/deployment.md)); never bare env vars.
 
 If the idea quietly violates any of these, that's a hard blocker, not a "fix-up."
 
@@ -117,7 +110,7 @@ If the idea quietly violates any of these, that's a hard blocker, not a "fix-up.
 
 Scan the idea for "Option A vs Option B" forks. For each:
 
-- If the fork has a clear default and the idea doesn't pick one, propose locking it. Use the same "(locked)" header pattern this codebase uses (see `feat_youtube_30day_data_refresh/idea.md` for the canonical structure).
+- If the fork has a clear default and the idea doesn't pick one, propose locking it. Use the same "(locked)" header pattern this codebase uses; structure the locked decisions as a Decision-log entry similar to the §19 sections in the existing MVP1 feature specs under `docs/02_product/planned_features/`.
 - If the fork genuinely needs user input (UX call, product call, business call), keep it but reframe in the "Open questions for /spec-gen" section with a recommended default so /spec-gen doesn't start from zero.
 
 A "locked decision" is a decision someone reading the idea cold can act on without re-litigating.
@@ -154,16 +147,16 @@ Use plain prose with markdown tables for capability audits. **Do not** invent a 
 
 Cap each section at what fits on screen. If the audit produces 20+ findings, group them by severity and emit the top 5 inline + the rest as an indented appendix.
 
-## Common gotchas (learned from this codebase)
+## Common gotchas
 
-- **The "shared component" trap.** When an idea says "extract X into a reusable component for surfaces A and B," verify that A and B actually have parallel feature sets. They often don't — the inbox follow-up panel and the drafts-tab editor in this repo share an underlying API but have meaningfully different UIs. Skipping the per-surface capability audit silently drops capabilities at extraction time.
+- **The "shared component" trap.** When an idea says "extract X into a reusable component for surfaces A and B," verify that A and B actually have parallel feature sets. They often don't — for example, a study-detail trials table (live-polling, sortable) and a proposal-detail diff table (static, read-only) might both be "tables" but render very different shapes. Skipping the per-surface capability audit silently drops capabilities at extraction time.
 - **The "regenerate" trap.** Idea claims an existing capability that doesn't actually exist. Always grep for the named action / endpoint / button before listing it as something to "preserve."
-- **Stale call-site counts.** Anything written more than two weeks ago and quoting a number ("~42 calls") is almost certainly wrong now. Re-measure with `grep -rn "<symbol>(" backend/app | wc -l`.
-- **Deferral rationale obsolescence.** Many ideas say "deferred until X ships." Check `implemented_features/` to see whether X shipped — if so, the rationale needs to flip from "why later" to "why now."
+- **Stale call-site counts.** Anything written more than two weeks ago and quoting a number ("~42 calls") is almost certainly wrong now. Re-measure with `grep -rn "<symbol>(" backend/ | wc -l`.
+- **Deferral rationale obsolescence.** Many ideas say "deferred until X ships." Check whether X shipped — if so, the rationale needs to flip from "why later" to "why now."
 - **Doc path drift.** Architecture docs get reorganized. Test every `[](path)` link in the idea's "Related" / "References" sections.
-- **The "broad enough to skip CLAUDE.md" trap.** Even tiny ideas need to walk the absolute rules. The 30-day youtube refresh idea looked trivial until the scheduler 5-touch-point checklist surfaced.
-- **The folder-name-buries-intent trap.** "feature_dedicated_role_change_history" sounds clear until you ask: what does it actually deliver? An audit log table. Folder names should match the deliverable, not the description.
-- **The silent-mutation trap.** An idea proposes new endpoints, new service functions, or new webhook handlers that mutate tenant-visible state without saying anything about audit-event emission. The mutations ship, the activity feed shows nothing, and weeks later someone asks "who changed this?" with no answer. Always cross-check proposed write paths against the audit catalog ([docs/01_architecture/audit_events.md](../../../docs/01_architecture/audit_events.md)). Examples this codebase has hit: draft edit (silent until 2026-04-29 audit), Resend bounce/complaint webhooks, admin global-config writes, tag rename. Idea-preflight Step 7 has the explicit check.
+- **The "broad enough to skip the rules" trap.** Even tiny ideas need to walk the Absolute Rules in Step 7. Innocuous-looking ideas often surface a rule violation (e.g., a proposed config knob that needs to be `_FILE`-mounted, not bare env).
+- **The folder-name-buries-intent trap.** A folder named `feat_role_change_tracking` sounds clear until you ask: what does it actually deliver? An audit_log entry. Folder names should match the deliverable, not the description.
+- **The silent-mutation trap.** An idea proposes new endpoints, new service functions, or new webhook handlers that mutate tenant-visible state without saying anything about audit-event emission. The mutations ship, the audit_log shows nothing, and weeks later someone asks "who changed this?" with no answer. Always cross-check proposed write paths against the audit_log event-type catalog ([`data-model.md` §"Forthcoming: audit_log"](../../docs/01_architecture/data-model.md)). Activates at MVP2 when audit_log lands; pre-MVP2 ideas can mark audit-events as "N/A — pre-MVP2".
 
 ## What this skill does NOT do
 

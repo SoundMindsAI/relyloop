@@ -11,8 +11,6 @@ user-invocable: true
 
 # Feature Pipeline Orchestrator
 
-> **Ported skill.** This skill came from the sibling `creator-discovery-outreach` project. Universal renames (project name, repo URL, planning paths) have been applied, but domain anecdotes (PR #183, `upsert_creator`, `OUTREACH_EMAIL_SENT`, `feat_youtube_30day_data_refresh`, audit-events architecture) are kept verbatim as illustrative provenance — they encode hard-won lessons but do not refer to RelyLoop. Replace anecdotes with RelyLoop equivalents as the project accumulates its own.
-
 You orchestrate the full feature development pipeline for the RelyLoop project. You do NOT duplicate the logic of individual skills — you detect the current stage of a feature, invoke the appropriate skill, pause for user approval, and advance to the next stage.
 
 ## Pipeline stages
@@ -294,7 +292,7 @@ Even in `--auto` mode, the pipeline **stops and escalates to the user** when:
 1. **Verification gate failure** — lint, typecheck, or test failure that can't be auto-fixed
 2. **Cross-model review produces unresolved High-severity findings after 3 cycles** — convergence not reached
 3. **CI failure** — GitHub Actions workflow fails
-4. **Manual configuration required** — Stripe setup, DNS changes, etc.
+4. **Manual configuration required** — GitHub App registration, DNS changes, deployment-target env vars, registering an Elasticsearch/OpenSearch test cluster, etc.
 5. **Missing prerequisites** — idea.md doesn't exist, spec has unresolved open questions
 6. **Dependency not met (epic mode)** — prior feature's PR hasn't been merged yet
 

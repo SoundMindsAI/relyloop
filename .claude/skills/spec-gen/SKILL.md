@@ -11,8 +11,6 @@ user-invocable: true
 
 # Feature Specification Generator & Reviewer
 
-> **Ported skill.** Anecdotes from the sibling `creator-discovery-outreach` project (PR #183 stage-bucket bug, `upsert_creator` repo-guard incident, `keywords.py` mixed error envelopes, audit-events instrumentation, `_SENSITIVE_KEYS` in `log_scrubber.py`) are kept as illustrative provenance — apply the underlying rule, but verify any cited file/function exists in RelyLoop before grounding a claim on it.
-
 You are working with feature specifications for the RelyLoop project. Depending on the mode, you either generate a new spec, review an existing spec for accuracy, or reconcile an input brief against an existing spec.
 
 ## Mode selection
@@ -76,15 +74,15 @@ Systematically verify every claim in the spec against the codebase:
 1. **File paths**: Glob for every file/directory referenced. Do they exist? Are the paths correct?
 2. **Table/column names**: Read the ORM models for every table referenced. Do the columns exist with the stated types?
 3. **API endpoints**: Read the router files. Do referenced endpoints exist? Are methods/paths correct? What is the return type annotation?
-4. **Function names and behavior**: Grep for every function referenced. Does it exist? Is the signature correct? **Read the function body** for any function whose behavioral semantics are claimed in the spec (e.g., "upsert_creator prevents overwriting"). Do not infer behavior from the function name alone.
+4. **Function names and behavior**: Grep for every function referenced. Does it exist? Is the signature correct? **Read the function body** for any function whose behavioral semantics are claimed in the spec (e.g., "create_study prevents overwriting"). Do not infer behavior from the function name alone.
 5. **Domain rules**: Read domain layer files. Are transition rules, quota logic, and validation rules accurately described?
 6. **Existing implementations (Section 2)**: Search for all existing code that the feature touches. Are there implementations the spec missed?
-7. **Downstream consumers**: For every field being changed or added, grep for all code that *reads* that field — not just the code that writes it. A longer `summary` may affect drafting; an enriched `bio_email` may already be visible in the drafts API. Missing downstream impact is a common spec failure.
+7. **Downstream consumers**: For every field being changed or added, grep for all code that *reads* that field — not just the code that writes it. A longer `Study.description` may affect digest prompt construction; an enriched `Judgment.rationale` may already be surfaced by the proposals UI. Missing downstream impact is a common spec failure.
 8. **Navigation/link impact**: Search for URL references that will change.
 9. **Test impact**: Search test files for references to affected pages/behaviors. Classify mocked Playwright tests (`page.route()`) as "mocked UI regression coverage" — not true E2E coverage. Prefer real-backend suites when recommending coverage.
 10. **Information architecture (Section 11)**: If the feature adds UI, verify: (a) the spec's navigation placement matches the actual page structure in the codebase (read the relevant page/layout files), (b) labels in the spec match existing terminology (grep for similar labels to avoid inconsistency), (c) the spec defines where new elements sit relative to existing ones.
 11. **Tooltips and contextual help (Section 11)**: If the feature adds settings, limits, status indicators, or actions with consequences, verify the spec includes a tooltip inventory. Check the existing codebase for tooltip patterns (`title` attributes, info icons, helper text) to confirm the spec's approach matches established patterns.
-12. **Enumerated value contracts (Section 7.4 / §8)**: If the feature has filters, sort keys, status badges, tier/bucket/role labels, or any other field the backend validates against a fixed allowlist, verify the spec enumerates the **exact wire values** (not just user-facing labels) for each field AND cites the backend source-of-truth file (enum, `frozenset`, `Literal[...]`, Pydantic `Field(pattern=...)`, or DB CHECK constraint). Grep the cited file to confirm every value is real and every real value is listed. If the spec contains plausible-sounding values without a source citation (e.g., a "mid" tier label with no grep target), flag it as a **High** severity finding — frontend option lists generated from unsourced spec values will drift and produce 422 errors in production (this was the failure mode on Creator Management Phase 1, PR #183).
+12. **Enumerated value contracts (Section 7.4 / §8)**: If the feature has filters, sort keys, status badges, role labels, or any other field the backend validates against a fixed allowlist, verify the spec enumerates the **exact wire values** (not just user-facing labels) for each field AND cites the backend source-of-truth file (enum, `frozenset`, `Literal[...]`, Pydantic `Field(pattern=...)`, or DB CHECK constraint). Grep the cited file to confirm every value is real and every real value is listed. If the spec contains plausible-sounding values without a source citation (e.g., a "Paused" status label with no grep target), flag it as a **High** severity finding — frontend option lists generated from unsourced spec values will drift and produce 422 VALIDATION_ERROR responses in production. This failure mode is documented from the sibling `creator-discovery-outreach` project (their PR #183 shipped four wrong allowlist values undetected).
 
 Record every finding in the verification ledger (see below). Fix every inaccuracy found.
 
@@ -98,9 +96,9 @@ Review the spec for consistency with project architecture:
 4. Are service layer patterns correct (job_run lifecycle, execution_id propagation, quota checks)?
 5. Are migration requirements complete (downgrade, idempotency guards)?
 6. Does the test strategy cover all required layers per project conventions?
-7. **Invariant write-path audit**: For every new invariant stated in the spec (e.g., "contact_source must be set whenever bio_email is set"), grep for ALL existing code paths that write the related fields. If existing write paths would violate the new invariant after deploy, the spec must either: (a) include updating those write paths in scope, or (b) weaken the invariant to account for legacy behavior.
+7. **Invariant write-path audit**: For every new invariant stated in the spec (e.g., "`engine_version` must be set whenever `Result.score` is written"), grep for ALL existing code paths that write the related fields. If existing write paths would violate the new invariant after deploy, the spec must either: (a) include updating those write paths in scope, or (b) weaken the invariant to account for legacy behavior.
 8. **Cross-feature dependencies**: If the spec references columns, tables, or behavior introduced by another planned feature, classify the dependency as **hard** (blocks implementation) or **soft** (works without, value reduced). Check the confirmed build order if known.
-9. **Audit-event instrumentation**: For every endpoint or service function the spec adds or modifies that mutates state, the spec MUST populate the §6 "Audit-event instrumentation matrix" — choosing a new event type or citing an existing one, deciding visibility (tenant-visible via `TENANT_ACTIVITY_ALLOWLIST` vs admin-only), specifying metadata fields, and noting IA placement (`FILTER_GROUPS` category + `formatEventDescription` case + admin timeline coverage if applicable). Reference: [docs/01_architecture/audit_events.md](../../../docs/01_architecture/audit_events.md). If the spec proposes a mutation without addressing audit emission, that's a finding — flag as **High** severity. Tenant-authored display strings (tag names, campaign names, etc.) included in metadata MUST already be in `_SENSITIVE_KEYS` of `backend/app/core/log_scrubber.py`. Forbidden in metadata: email bodies, draft content, reply tokens, restore tokens, password fields, OAuth tokens, note bodies.
+9. **Audit-event instrumentation** (MVP2+ — `audit_log` arrives at MVP2 per [`docs/01_architecture/data-model.md` §"Forthcoming: audit_log"](../../docs/01_architecture/data-model.md)). For MVP2+ specs: every endpoint or service function the spec adds or modifies that mutates state MUST populate the §6 "Audit-event instrumentation matrix" — choosing a new event type or citing an existing one, deciding visibility (system / tenant-visible), specifying metadata fields. RelyLoop's MVP2 audit-log is a single append-only `audit_log` table with a Postgres trigger blocking UPDATE/DELETE; no per-event-type allowlist machinery (the design is intentionally simpler than CDO's). If the spec proposes a mutation without addressing audit emission, that's a finding — flag as **High** severity. Forbidden in `metadata_json`: credentials, tokens, PII beyond display-name strings.
 
 Record every finding in the verification ledger. Fix any inconsistencies.
 
@@ -334,9 +332,9 @@ For every material claim in the spec (API shapes, column existence, auth pattern
 
 | Claim | Verified by | Status |
 |---|---|---|
-| `pipeline_items.summary` is `sa.Text`, nullable | Read `backend/app/db/models/pipeline.py:XX` | Verified |
-| `upsert_creator()` prevents non-null overwrites | Read `backend/app/db/repo/creator_repo.py:36-49` — only guards `None` | **Corrected** — spec updated |
-| `drafts_review.spec.ts` provides scored-creators E2E coverage | Read file — uses `page.route()` mocking | **Corrected** — reclassified as mocked UI debt |
+| `studies.description` is `sa.Text`, nullable | Read `backend/app/db/models/study.py:XX` | Verified |
+| `create_study()` prevents non-null overwrites | Read `backend/db/repo/study_repo.py:36-49` — only guards `None` | **Corrected** — spec updated |
+| `study_detail.spec.ts` provides live-trials-table E2E coverage | Read file — uses `page.route()` mocking | **Corrected** — reclassified as mocked UI debt |
 
 Include the ledger in the review log output. This makes the review trustworthy and auditable.
 
@@ -346,12 +344,12 @@ These are patterns that have caused spec inaccuracies in the past. Check for eac
 
 1. **Error shapes assumed globally** — This repo has mixed error patterns (structured `detail` objects and plain strings). Verify per-route by reading the handler and any contract test, not by assuming one global envelope.
 2. **Assuming auth mechanism** — Don't write `x-tenant-id` header or `get_current_auth` without reading the actual route's `Depends()` chain. Most tenant routes use `require_tenant_membership`.
-3. **Claiming repo-layer guards that don't exist** — If you say "upsert_creator prevents X," read the function body to confirm. The guard may only cover `None` values, not all overwrites.
-4. **Missing downstream field consumers** — When changing a field's content (e.g., longer summary), search for every place that field is read, not just where it's written. Drafting prompts, API serializers, and frontend renders may all be affected.
+3. **Claiming repo-layer guards that don't exist** — If you say "create_study prevents X," read the function body to confirm. The guard may only cover `None` values, not all overwrites.
+4. **Missing downstream field consumers** — When changing a field's content (e.g., longer description), search for every place that field is read, not just where it's written. Digest prompt construction, API serializers, and frontend renders may all be affected.
 5. **Citing mocked Playwright tests as E2E coverage** — Any `page.route()` in E2E tests is mocked UI regression coverage, not true end-to-end coverage. Prefer real-backend suites like `signup_flow.spec.ts`.
 6. **Response shape mismatch (object vs array)** — Check the route's return type annotation. `list[dict]` means the example must be `[{...}]`.
 7. **Hardcoded LLM model names** — Always reference `LLMProvider` abstraction and `create_llm_provider()`, never a specific model.
-8. **Unstated invariant violations** — When adding a new invariant, trace every existing write path. If discovery writes `bio_email` without `contact_source`, the invariant is violated on day one.
+8. **Unstated invariant violations** — When adding a new invariant, trace every existing write path. If the engine adapter writes `Result.score` without `engine_version`, the invariant is violated on day one.
 9. **Input doc / spec scope drift** — The input doc may promise features the spec marks out-of-scope. Reconcile before finalizing.
 10. **Invented enum / filter / dropdown values** — Specs that name filter options, sort keys, status badge variants, tier labels, or any other field the backend validates against a fixed allowlist MUST cite the backend source-of-truth file. If a value appears in the spec without a grep target, assume it was invented. Phantom values (e.g., "mid" tier when the backend only produces nano/micro/macro/mega) produce 422 errors or silent zero-result filters in production — TypeScript and unit tests do not catch them. Require §7.4 "Enumerated value contracts" for every feature with filters/dropdowns.
 

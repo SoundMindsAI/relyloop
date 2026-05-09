@@ -4,6 +4,7 @@ Use this section for high-level project context, repository orientation, and umb
 
 Current contents:
 
-- `product/` — full product spec and product-management artifacts
+- `product/` — full product spec
   - `product/relevance-copilot-spec.md` — full product and system specification
-  - `product/mvp1-execution-plan.md` — MVP1 delivery plan and sequencing
+
+For MVP1 decomposition (user stories + per-feature spec folders), see [`docs/02_product/`](../02_product/).
