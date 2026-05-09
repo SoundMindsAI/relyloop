@@ -1,12 +1,23 @@
 # RelyLoop
 
-> **Status: pre-MVP1 (private alpha).** Spec is complete; engineering has not started. This repo is currently soundminds.ai-internal; it will become public when MVP1 ships.
+> **Status: MVP1 in progress (private alpha).** Spec is complete; the foundation feature (`infra_foundation`) is in flight on a feature branch. This repo is currently soundminds.ai-internal; it will become public when MVP1 ships.
 
 **Open-source automated relevance tuning for enterprise search platforms.** RelyLoop combines an LLM-driven agent with an Optuna-driven optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion. Engineers describe relevance problems in chat; the agent introspects the cluster, proposes a search-space, and queues thousands of trials against pytrec_eval-computed metrics. Winning configurations are surfaced as Pull Requests against a central search-config Git repo, where named approvers review and merge.
 
+## Quickstart
+
+```bash
+git clone https://github.com/SoundMindsAI/relyloop.git
+cd relyloop
+make up                       # auto-generates required secrets, then docker compose up -d
+curl http://localhost:8000/healthz   # all subsystems should report healthy within 60s
+```
+
+The full operator runbook lands in [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) when `infra_foundation` ships. Run `make help` for the list of available targets.
+
 ## What's in this repo today
 
-This repo currently holds the design artifacts:
+This repo currently holds the design artifacts plus the in-flight bootstrap implementation:
 
 - [`docs/README.md`](docs/README.md) — documentation index and section map
 - [`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md) — the full 30-section product and architectural specification (~2,800 lines)

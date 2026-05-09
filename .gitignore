@@ -216,3 +216,51 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===================== RelyLoop additions =====================
+
+# Node / Next.js / pnpm
+node_modules/
+.next/
+.pnpm-store/
+pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+out/
+.turbo/
+
+# Frontend test artifacts
+ui/coverage/
+ui/playwright-report/
+ui/test-results/
+
+# Docker volumes (ALWAYS gitignored — bind-mounted runtime data)
+data/
+./data/
+
+# Mounted secrets (ALWAYS gitignored — never commit secret files)
+# .gitkeep is allowed so the directory exists for Compose to mount.
+secrets/*
+!secrets/.gitkeep
+
+# OS junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Build / temp / sandbox
+.tmp/
+tmp/

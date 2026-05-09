@@ -1,0 +1,22 @@
+# Force consistent line endings across platforms.
+* text=auto eol=lf
+
+# Explicit binary types — never run line-ending normalization.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.zip binary
+*.tar binary
+*.tar.gz binary
+*.tgz binary
+*.gz binary
+*.svg text
+
+# Lockfiles — keep LF, never auto-merge.
+uv.lock binary
+pnpm-lock.yaml binary
+package-lock.json binary
+yarn.lock binary
