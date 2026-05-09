@@ -1,0 +1,180 @@
+"""Application settings (infra_foundation Story 2.1, FR-3 application layer).
+
+RelyLoop reads secrets from mounted files via ``*_FILE``-suffixed env vars per
+[`docs/01_architecture/deployment.md` §"Secrets"](../../../docs/01_architecture/deployment.md).
+Bare env vars (e.g. ``OPENAI_API_KEY=sk-...``) are NOT supported for secrets —
+they appear in container ``inspect`` output, container logs, and ``ps``-style
+introspection, defeating the secrets-management purpose (CLAUDE.md Absolute
+Rule #2).
+
+Required secrets (raise ``SettingsError`` on missing or empty content):
+    - ``DATABASE_URL_FILE``
+    - ``POSTGRES_PASSWORD_FILE``
+
+Optional secrets (return ``None`` on missing/empty; API logs WARN at startup):
+    - ``OPENAI_API_KEY_FILE``
+    - ``GITHUB_TOKEN_FILE``
+    - ``CLUSTER_CREDENTIALS_FILE``
+
+Plain values (env-var literal):
+    ``REDIS_URL``, ``OPENAI_BASE_URL``, ``OPENAI_MODEL``, ``OPENAI_MODEL_CHAT``,
+    ``OPENAI_DAILY_BUDGET_USD``, ``RELYLOOP_GIT_SHA``, ``ES_HEAP_SIZE``.
+
+Use ``get_settings()`` (lru_cache'd) anywhere settings are needed; never
+instantiate ``Settings()`` directly.
+"""
+
+from functools import cached_property, lru_cache
+from pathlib import Path
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class SettingsError(RuntimeError):
+    """Raised when a required secret file is missing or empty at startup."""
+
+
+def _read_secret_file(path: Path | None, *, required: bool, name: str) -> str | None:
+    """Read a mounted secret file's content (stripped).
+
+    Args:
+        path: The ``Path`` from a ``*_FILE`` setting, or ``None`` if unset.
+        required: If True, missing/empty content raises ``SettingsError``.
+        name: Human-readable secret name for error messages.
+
+    Returns:
+        The file content stripped of trailing whitespace, or ``None`` for
+        optional secrets that are missing/empty.
+    """
+    if path is None or not path.exists():
+        if required:
+            raise SettingsError(
+                f"Required secret {name} is not configured: file path is missing or unreadable. "
+                f"Run `make up` to auto-generate, or check ./secrets/ exists."
+            )
+        return None
+    content = path.read_text().strip()
+    if not content:
+        if required:
+            raise SettingsError(
+                f"Required secret {name} is empty at {path}. Populate the file before starting."
+            )
+        return None
+    return content
+
+
+class Settings(BaseSettings):
+    """Application configuration loaded from env vars and mounted secret files."""
+
+    model_config = SettingsConfigDict(
+        env_file=None,  # Settings read from env directly; .env is for Compose substitution
+        env_prefix="",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    # Required secret-file paths (resolved content via @cached_property below)
+    database_url_file: Path = Field(
+        description="Path to file containing the Postgres SQLAlchemy URL"
+    )
+    postgres_password_file: Path = Field(
+        description="Path to file containing the Postgres password"
+    )
+
+    # Optional secret-file paths
+    openai_api_key_file: Path | None = Field(
+        default=None,
+        description="Path to file containing the OpenAI API key (or any OpenAI-compatible "
+        "endpoint's key). Optional pre-feat_llm_judgments; empty file = not configured.",
+    )
+    github_token_file: Path | None = Field(
+        default=None,
+        description="Path to file containing the GitHub PAT. Optional pre-feat_github_pr_worker.",
+    )
+    cluster_credentials_file: Path | None = Field(
+        default=None,
+        description="Path to YAML file containing per-cluster credentials. "
+        "Optional pre-infra_adapter_elastic; empty doc {} = no clusters need creds.",
+    )
+
+    # Plain values
+    redis_url: str = Field(
+        default="redis://redis:6379/0",
+        description="Redis connection URL for Arq queue + capability cache",
+    )
+    openai_base_url: str = Field(
+        default="https://api.openai.com/v1",
+        description="OpenAI-compatible endpoint root. For local LLM, "
+        "e.g. http://host.docker.internal:11434/v1 (Ollama)",
+    )
+    openai_model: str = Field(
+        default="gpt-4o-2024-08-06",
+        description="LLM model for judgment generation + digest narrative",
+    )
+    openai_model_chat: str = Field(
+        default="gpt-4o-mini-2024-07-18",
+        description="LLM model for chat orchestrator (cost-sensitive)",
+    )
+    openai_daily_budget_usd: float = Field(
+        default=10.0,
+        description="Rolling 24h spend cap. 0 disables the budget guard.",
+    )
+    relyloop_git_sha: str = Field(
+        default="dev",
+        description="Build-time git SHA injected via Docker ARG; surfaced in /healthz.version",
+    )
+    es_heap_size: str = Field(
+        default="512m",
+        description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",
+    )
+
+    @cached_property
+    def database_url(self) -> str:
+        """Resolved Postgres URL from ``DATABASE_URL_FILE``. Required."""
+        content = _read_secret_file(self.database_url_file, required=True, name="DATABASE_URL")
+        # _read_secret_file raises when required=True and the secret is missing,
+        # so the None branch here is unreachable — narrow for mypy.
+        if content is None:  # pragma: no cover  - unreachable, see above
+            raise SettingsError("required secret resolved to None unexpectedly")
+        return content
+
+    @cached_property
+    def postgres_password(self) -> str:
+        """Resolved Postgres password from ``POSTGRES_PASSWORD_FILE``. Required."""
+        content = _read_secret_file(
+            self.postgres_password_file, required=True, name="POSTGRES_PASSWORD"
+        )
+        if content is None:  # pragma: no cover  - unreachable, see database_url
+            raise SettingsError("required secret resolved to None unexpectedly")
+        return content
+
+    @cached_property
+    def openai_api_key(self) -> str | None:
+        """Resolved OpenAI key. Returns ``None`` if file is missing or empty."""
+        return _read_secret_file(self.openai_api_key_file, required=False, name="OPENAI_API_KEY")
+
+    @cached_property
+    def github_token(self) -> str | None:
+        """Resolved GitHub PAT. Returns ``None`` if file is missing or empty."""
+        return _read_secret_file(self.github_token_file, required=False, name="GITHUB_TOKEN")
+
+    @cached_property
+    def cluster_credentials_yaml(self) -> str | None:
+        """Resolved cluster-credentials YAML body. Returns ``None`` if missing/empty."""
+        return _read_secret_file(
+            self.cluster_credentials_file,
+            required=False,
+            name="CLUSTER_CREDENTIALS",
+        )
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Return the singleton Settings instance.
+
+    Uses ``lru_cache`` so the file-IO behind the @cached_property accessors only
+    runs once per process. Tests using ``monkeypatch.setenv`` should call
+    ``get_settings.cache_clear()`` between tests to force re-read.
+    """
+    return Settings()
