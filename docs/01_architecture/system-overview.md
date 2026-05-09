@@ -58,7 +58,7 @@ The smallest stack that demonstrates the Karpathy loop end-to-end on a developer
 | `redis` | Arq task queue | `redis:7` |
 | `api` | FastAPI HTTP API + agent orchestrator | `relyloop/api:latest` (built from this repo) |
 | `worker` | Arq workers (trial / digest / PR) | Same image as `api`, different command |
-| `elasticsearch` | Local target cluster for the tutorial / dev | `elasticsearch:9.0.0` |
+| `elasticsearch` | Local target cluster for the tutorial / dev | `elasticsearch:9.4.0` |
 | `opensearch` | Local target cluster for the tutorial / dev | `opensearchproject/opensearch:2.18.0` |
 
 The UI runs via `pnpm dev` during MVP1 (not yet a Compose service); a `ui` container ships when MVP1's release polish lands.
