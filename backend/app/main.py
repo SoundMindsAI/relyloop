@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from backend.app.api import health
 from backend.app.api.errors import install_exception_handlers
 from backend.app.api.middleware import RequestIDMiddleware
 from backend.app.core.logging import configure_logging
@@ -43,3 +44,4 @@ app = FastAPI(
 
 app.add_middleware(RequestIDMiddleware)
 install_exception_handlers(app)
+app.include_router(health.router)  # /healthz unprefixed; operator endpoint per Rule #6

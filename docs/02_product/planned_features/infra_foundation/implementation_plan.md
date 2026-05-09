@@ -1482,7 +1482,7 @@ If an operator skips a pause point ("use defaults", "skip"), record the skip in 
 - [x] Story 2.2 — Alembic init + baseline migration + `make migrate` **[FR-5]**
 - [x] **Epic 2 phase gate** — Opus-only Pass 1 + Pass 2 (no API surface, no security-sensitive paths in this epic). Per-epic GPT-5.5 review **deferred to final review** (Step 7 post-impl) per user direction to minimize per-step ceremony and consolidate cross-model audit at the end. All quality gates (lint, mypy --strict, unit tests, alembic --sql parse-check, pre-commit chain) green.
 - [x] Story 3.1 — FastAPI app skeleton + structlog + X-Request-ID middleware + error envelope
-- [ ] Story 3.2 — `/healthz` endpoint with parallel subsystem probes **[FR-2]**
+- [x] Story 3.2 — `/healthz` endpoint with parallel subsystem probes **[FR-2]**
 - [ ] Story 3.3 — OpenAI capability check at startup + Redis cache **[FR-7]**
 - [ ] Story 4.1 — Dockerfile (`relyloop/api`)
 - [ ] Story 4.2 — `docker-compose.yml` (6 services + healthchecks + secrets)

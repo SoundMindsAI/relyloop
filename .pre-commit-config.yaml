@@ -26,24 +26,20 @@ repos:
         files: \.py$
 
   # ---------------------------------------------------------------------------
-  # Python — mypy (--strict; uses its own pinned env with project types)
+  # Python — mypy via the project venv (uv run), so type stubs match exactly
+  # what `make typecheck` sees. The mirrors-mypy hook with its own isolated
+  # env caused chronic drift between hook stubs and project package versions
+  # (uuid-utils, types-redis, Redis generics, etc.). System mypy is the
+  # single source of truth.
   # ---------------------------------------------------------------------------
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+  - repo: local
     hooks:
       - id: mypy
+        name: mypy (project venv via uv run)
+        entry: uv run mypy --strict --config-file=pyproject.toml backend/
+        language: system
         files: ^backend/
-        args: [--strict, --config-file=pyproject.toml]
-        additional_dependencies:
-          - pydantic>=2.9
-          - pydantic-settings>=2.6
-          - sqlalchemy[asyncio]>=2.0.36
-          - fastapi>=0.115
-          - structlog>=24.4
-          - httpx>=0.28
-          - pytest>=8.3   # test files import pytest.MonkeyPatch and friends
-          - pytest-asyncio>=0.24
-          - uuid-utils>=0.10   # used by RequestIDMiddleware for UUIDv7
+        pass_filenames: false
 
   # ---------------------------------------------------------------------------
   # Frontend — prettier + eslint (run via the project's pnpm to use pinned versions)
