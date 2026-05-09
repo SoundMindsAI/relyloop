@@ -396,6 +396,21 @@ This rule applies even if the issue feels minor. A 3-line idea file with the rig
 
 **Anti-pattern to recognize in yourself:** "I'll just note this and come back to it later." Either fix it now (if it's truly inline-cheap) or capture the idea file now (if it's not). There is no "later" — the conversation will end.
 
+## Local-stub hygiene — never leave commit-eligible debug artifacts in the repo
+
+When you need to verify something locally (`docker compose config --quiet`, `alembic --sql`, an install-script dry-run, a temporary YAML for testing), it is tempting to write the stub file directly into the repo path it would eventually live at — `./secrets/database_url`, `./.env`, `./migrations/versions/0002_*.py`, `./data/postgres/`, etc. **Don't.** The next story (or the next operator) inherits that file and treats it as canonical. Idempotency guards (`[[ ! -s ./secrets/database_url ]]` and friends) silently preserve it. The bug surfaces hours or days later, in a different scope, and is much harder to attribute back to the verification step that created it.
+
+**Canonical incident** (infra_foundation Story 4.2 → 4.4 → PR #4 first-run testing): I wrote `postgresql://relyloop:test_pw@postgres/relyloop` to `./secrets/database_url` to test `docker compose config --quiet` — without the `+asyncpg` driver prefix the runtime needs. install.sh's idempotency check kept it. Three commits later (Story 4.4) `make up` succeeded but `/healthz` 500'd because SQLAlchemy fell back to the psycopg2 dialect. Cost: one user-blocking debugging cycle.
+
+**Rules:**
+
+1. **Verify in tmpdir.** For commands that just need *some* file at *some* path (compose config, alembic --sql parse, install-script behavior in isolation), use `mktemp -d` or `/tmp/<scratch>/` — never the repo's canonical paths.
+2. **If you must touch a real repo path**, revert it before commit. `git stash` the working tree first, do the verification, `git stash pop`. Or use `git checkout -- <path>` after.
+3. **Generated artifacts go to gitignored locations.** `./data/`, `./.venv/`, `./.pytest_cache/` are already gitignored. `./secrets/*` is gitignored except `.gitkeep`. `./.env` is gitignored. If you generate something somewhere else, that's a smell — find the right gitignored home.
+4. **The next story's idempotency assumption is your responsibility.** If install.sh / migrate / make up has a "skip if file exists" guard, anything you leave behind alters the next operator's first-run experience. Treat your own debug artifacts as user-facing state.
+
+If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>` idea file the moment you notice (per the tangential-discoveries rule above) — don't silently fix it without acknowledging the failure mode.
+
 ## Feature Status
 
 **See [`state.md`](state.md)** for full completion snapshot, recent changes, Alembic head, and active priorities. Do not duplicate feature status here — it goes stale.

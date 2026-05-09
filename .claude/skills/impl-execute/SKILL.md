@@ -205,7 +205,24 @@ If the story includes a migration:
 .venv/bin/alembic downgrade -1 && .venv/bin/alembic upgrade head  # round-trip
 ```
 
-**Hard stop:** Do not proceed to frontend or commit if any check fails.
+**Operator-path verification — MANDATORY for any story that adds or modifies an operator surface.**
+
+If the story added or changed any of the following, you MUST run the actual command end-to-end from the documented operator environment before marking the story complete. `make test-unit` and lint/typecheck passing are necessary but **not sufficient** — they cannot detect bugs in container plumbing, env-var propagation, image cache freshness, mounted-secret handling, alembic post-write hooks, Compose dependency ordering, or any other integration-boundary issue.
+
+| Surface added/changed | Verification you must run |
+|---|---|
+| New `Makefile` target | Run the target end-to-end (`make <target>`); confirm exit 0 + observable side effect |
+| New / modified `scripts/install.sh` (or any install/bootstrap script) | Run the script from a clean state; re-run to verify idempotency |
+| Compose service / volume / healthcheck | `make up` (or `docker compose up -d`); `docker compose ps` shows the affected container healthy; targeted probe of the changed surface (e.g., `curl /healthz`, `docker compose exec <svc> <cmd>`) |
+| Dockerfile change (new layer, deps, ENV) | Rebuild the image; run a smoke command in the resulting container |
+| Migration via `make migrate` / `make migrate-create` | Run the actual `make` target; confirm the file landed at the expected host path with the expected revision ID format |
+| Endpoint exposed publicly (FastAPI router, Compose port, etc.) | Hit the endpoint from the documented client environment (host shell, browser, sibling container) and confirm response shape |
+
+**Why this gate exists** (canonical incident, infra_foundation PR #4 first-run testing, 2026-05-09): five integration-boundary bugs shipped through CI green and surfaced in the first 30 minutes of operator first-run testing — a stale image missing a Python dep, a stub secret without a driver prefix, two Make targets that assumed env vars only present in CI, and an alembic post-write hook that crashed inside the runtime image (no dev deps). Every one would have been caught by literally running `make up` once before declaring stories complete. CI's hermetic test layers cannot substitute for end-to-end operator-path execution. See [`docs/02_product/planned_features/infra_ci_smoke_makeup/idea.md`](../../../docs/02_product/planned_features/infra_ci_smoke_makeup/idea.md) for the systemic CI follow-up.
+
+If you cannot run the operator-path verification (e.g., no Docker daemon available in the agent environment), **escalate to the user** rather than skip — do not silently mark the story complete.
+
+**Hard stop:** Do not proceed to frontend or commit if any check fails — including the operator-path verification.
 
 ### Step 4: Implement frontend changes (if story has frontend scope)
 
