@@ -1483,11 +1483,11 @@ If an operator skips a pause point ("use defaults", "skip"), record the skip in 
 - [x] **Epic 2 phase gate** — Opus-only Pass 1 + Pass 2 (no API surface, no security-sensitive paths in this epic). Per-epic GPT-5.5 review **deferred to final review** (Step 7 post-impl) per user direction to minimize per-step ceremony and consolidate cross-model audit at the end. All quality gates (lint, mypy --strict, unit tests, alembic --sql parse-check, pre-commit chain) green.
 - [x] Story 3.1 — FastAPI app skeleton + structlog + X-Request-ID middleware + error envelope
 - [x] Story 3.2 — `/healthz` endpoint with parallel subsystem probes **[FR-2]**
-- [ ] Story 3.3 — OpenAI capability check at startup + Redis cache **[FR-7]**
-- [ ] Story 4.1 — Dockerfile (`relyloop/api`)
-- [ ] Story 4.2 — `docker-compose.yml` (6 services + healthchecks + secrets)
-- [ ] Story 4.3 — Worker process skeleton (Arq WorkerSettings stub)
-- [ ] Story 4.4 — `.env.example` + secrets layout + install script + Make targets **[FR-1, FR-3 install layer]**
+- [x] Story 3.3 — OpenAI capability check at startup + Redis cache **[FR-7]**
+- [x] Story 4.1 — Dockerfile (`relyloop/api`)
+- [x] Story 4.2 — `docker-compose.yml` (6 services + healthchecks + secrets)
+- [x] Story 4.3 — Worker process skeleton (Arq WorkerSettings stub)
+- [x] Story 4.4 — `.env.example` + secrets layout + install script + Make targets **[FR-1, FR-3 install layer]**
 - [ ] Story 5.1 — GitHub Actions `pr.yml` (backend + frontend + Docker build) **[FR-4]**
 - [ ] Story 5.2 — Documentation updates + create root `state.md` / `architecture.md` / `CLAUDE.md`
 
