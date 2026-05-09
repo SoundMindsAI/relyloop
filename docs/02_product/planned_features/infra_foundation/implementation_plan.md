@@ -1479,7 +1479,7 @@ If an operator skips a pause point ("use defaults", "skip"), record the skip in 
 - [x] Story 1.4 — Pre-commit hooks (ruff, mypy, eslint, prettier, gitleaks, Conventional Commits) **[FR-6]**
 - [x] **Epic 1 phase gate** — GPT-5.5 review cycle 1: pass-with-notes (11 findings, 8 accepted, 3 rejected with cited counter-evidence). Gate passed.
 - [x] Story 2.1 — SQLAlchemy 2.0 async engine + Pydantic Settings **[FR-3 app layer]**
-- [ ] Story 2.2 — Alembic init + baseline migration + `make migrate` **[FR-5]**
+- [x] Story 2.2 — Alembic init + baseline migration + `make migrate` **[FR-5]**
 - [ ] Story 3.1 — FastAPI app skeleton + structlog + X-Request-ID middleware + error envelope
 - [ ] Story 3.2 — `/healthz` endpoint with parallel subsystem probes **[FR-2]**
 - [ ] Story 3.3 — OpenAI capability check at startup + Redis cache **[FR-7]**

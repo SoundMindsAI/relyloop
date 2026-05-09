@@ -90,7 +90,8 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"backend/tests/**" = ["S101", "D"]   # asserts and docstrings ok in tests
+"backend/tests/**" = ["S", "D"]      # bandit + docstrings: tests legitimately use
+                                      # asserts, subprocess, fixtures-as-credentials
 "migrations/env.py" = ["E402", "D"]   # alembic generated boilerplate
 "migrations/versions/*.py" = ["D", "E501"]
 
