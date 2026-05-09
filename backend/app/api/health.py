@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import AsyncIterator
 from typing import Annotated, Literal
 
 import httpx
@@ -134,15 +135,27 @@ def overall_status(s: Subsystems) -> Literal["ok", "degraded"]:
 # ----------------------------------------------------------------------------
 
 
-async def get_redis_client() -> Redis:
-    """Return a Redis async client. Tests override via ``app.dependency_overrides``."""
+async def get_redis_client() -> AsyncIterator[Redis]:
+    """Yield a Redis async client; close after the request completes.
+
+    Yield-style FastAPI dependency so the connection is closed when the
+    handler returns (otherwise frequent /healthz polls accumulate
+    connections — surfaced by GPT-5.5 final review of PR #4).
+    """
     client: Redis = Redis.from_url(get_settings().redis_url, decode_responses=False)
-    return client
+    try:
+        yield client
+    finally:
+        await client.aclose()
 
 
-async def get_es_client() -> httpx.AsyncClient:
-    """Return an httpx async client for ES probes. Tests override."""
-    return httpx.AsyncClient(timeout=PROBE_TIMEOUT_SECONDS)
+async def get_es_client() -> AsyncIterator[httpx.AsyncClient]:
+    """Yield an httpx async client for ES probes; close after the request."""
+    client = httpx.AsyncClient(timeout=PROBE_TIMEOUT_SECONDS)
+    try:
+        yield client
+    finally:
+        await client.aclose()
 
 
 def _safe_status(value: object, fallback: str) -> str:

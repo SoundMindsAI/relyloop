@@ -1,6 +1,6 @@
 # RelyLoop
 
-> **Status: MVP1 in progress (private alpha).** Spec is complete; the foundation feature (`infra_foundation`) has shipped — Docker stack, FastAPI + `/healthz`, OpenAI capability check, Alembic baseline, CI workflow, 90% backend coverage. The next 11 MVP1 features are spec-approved and queued. This repo is currently soundminds.ai-internal; it will become public when MVP1 ships.
+> **Status: MVP1 in progress (private alpha).** Spec is complete; the foundation feature (`infra_foundation`) is in review (PR #4) — Docker stack, FastAPI + `/healthz`, OpenAI capability check, Alembic baseline, CI workflow, 90% measured backend coverage against an 80% gate. The next 11 MVP1 features are spec-approved and queued. This repo is currently soundminds.ai-internal; it will become public when MVP1 ships.
 
 **Open-source automated relevance tuning for enterprise search platforms.** RelyLoop combines an LLM-driven agent with an Optuna-driven optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion. Engineers describe relevance problems in chat; the agent introspects the cluster, proposes a search-space, and queues thousands of trials against pytrec_eval-computed metrics. Winning configurations are surfaced as Pull Requests against a central search-config Git repo, where named approvers review and merge.
 
