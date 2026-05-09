@@ -117,6 +117,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `judgment_lis
   - Enqueues `generate_judgments_llm(judgment_list_id)` (the worker is fully self-contained on `judgment_list_id`)
   - Returns HTTP 202 with `{judgment_list_id, status: 'generating'}`
 - The endpoint **MUST** validate `OPENAI_API_KEY_FILE` is configured at request time (returns `OPENAI_NOT_CONFIGURED` if not).
+- The endpoint **MUST** read the capability cache (per `infra_foundation` FR-7) and refuse with `LLM_PROVIDER_INCAPABLE` (HTTP 503, `retryable: false`) if `structured_output != "ok"` for the configured `OPENAI_BASE_URL`. Judgment generation requires structured output and will not work against a model that can't deliver it. (The error message names the capability that's missing so the operator knows which model to upgrade.)
 
 ### FR-3c: Starter rubric content for `prompts/judgment_generation.rubric_v1.md`
 
@@ -195,6 +196,7 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 |---|---|---|
 | `OPENAI_NOT_CONFIGURED` | 503 | `OPENAI_API_KEY_FILE` is missing/empty |
 | `OPENAI_BUDGET_EXCEEDED` | 503 | Daily budget exceeded; `retryable: true` after 24h |
+| `LLM_PROVIDER_INCAPABLE` | 503 | The configured `OPENAI_BASE_URL` doesn't support a required capability (e.g., structured output for judgments). `retryable: false`. Operator must reconfigure to a capable model/provider. |
 | `JUDGMENT_LIST_NOT_FOUND` | 404 | List ID not found |
 | `JUDGMENT_LIST_NAME_TAKEN` | 409 | Name already in use |
 | `JUDGMENT_NOT_FOUND` | 404 | Judgment row not found within the list |

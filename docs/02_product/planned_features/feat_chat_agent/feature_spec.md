@@ -121,7 +121,8 @@ N/A — `audit_log` is MVP2. When MVP2 ships, this feature's mutating tool dispa
 - Returns 503 `OPENAI_NOT_CONFIGURED` if `OPENAI_API_KEY_FILE` is missing.
 
 ### FR-3: Orchestrator loop
-- The orchestrator **MUST** call OpenAI's `chat.completions.create` with `model='gpt-4o-mini-2024-07-18'`, `tools=TOOLS`, `tool_choice='auto'`, `stream=True`.
+- The orchestrator **MUST** call OpenAI's `chat.completions.create` with `model={settings.OPENAI_MODEL_CHAT}` (default `gpt-4o-mini-2024-07-18` for OpenAI; for local providers reuses `OPENAI_MODEL`), against the configured `OPENAI_BASE_URL`, with `tools=TOOLS`, `tool_choice='auto'`, `stream=True`.
+- The orchestrator **MUST** read the capability cache (per `infra_foundation` FR-7). If `function_calling != "ok"` for the configured endpoint, the orchestrator runs WITHOUT tools (passes `tools=[]`); the agent can still chat but cannot dispatch. The first assistant turn in such a session emits a system-level message (visible in the chat UI) explaining: "Tool dispatch is unavailable on this LLM provider (`{base_url}` lacks reliable function-calling). Use the UI to create studies / open PRs."
 - The orchestrator **MUST** stream tokens to the SSE connection as they arrive.
 - The orchestrator **MUST** detect tool_calls in the stream and, after the stream ends:
   - Persist the assistant message (with `tool_calls` JSONB)

@@ -121,8 +121,9 @@ Single-phase. No deferred work; everything in scope ships in one PR.
 - Notes: covers US-1.
 
 ### FR-2: Health check endpoint reports subsystem status
-- The system **MUST** expose `GET /healthz` returning JSON: `{ "status": "ok" | "degraded", "subsystems": { "db": "ok" | "down", "redis": "ok" | "down", "openai": "configured" | "missing_key", "elasticsearch": "reachable" | "unreachable", "opensearch": "reachable" | "unreachable" } }` with HTTP 200 if `status=ok`, HTTP 503 if any subsystem is `down` or `unreachable`.
+- The system **MUST** expose `GET /healthz` returning JSON: `{ "status": "ok" | "degraded", "subsystems": { "db": "ok" | "down", "redis": "ok" | "down", "openai": "configured" | "missing_key" | "incapable", "elasticsearch": "reachable" | "unreachable", "opensearch": "reachable" | "unreachable" }, "openai_endpoint": "<base_url>", "openai_capabilities": {"chat": "ok" | "fail", "function_calling": "ok" | "fail" | "untested", "structured_output": "ok" | "fail" | "untested"} }` with HTTP 200 if `status=ok`, HTTP 503 if any subsystem is `down` or `unreachable`.
 - The endpoint **MUST** complete in <500ms (each subsystem probe runs in parallel with a 200ms timeout).
+- The `openai` subsystem **MUST** report `incapable` when `OPENAI_API_KEY_FILE` is configured but the capability check (per FR-7) reports degraded chat / function-calling / structured-output. `incapable` is non-blocking for the overall `status` (the system can run with degraded LLM features); `missing_key` likewise non-blocking.
 - Notes: covers US-2.
 
 ### FR-3: Secrets via mounted files, never raw env vars
@@ -154,6 +155,17 @@ Single-phase. No deferred work; everything in scope ships in one PR.
 ### FR-6: Conventional Commits enforced via pre-commit
 - The system **SHOULD** ship a pre-commit hook validating commit-message format against the Conventional Commits regex (`^(feat|fix|chore|docs|infra|refactor|test|style|perf|build|ci)(\([a-z0-9-]+\))?(!)?:`).
 - Notes: per §28 "Conventional Commits" — auto-changelog generation (GA v1) depends on this.
+
+### FR-7: OpenAI-compatible endpoint capability check
+- The system **MUST** read `OPENAI_BASE_URL` (default `https://api.openai.com/v1`) and `OPENAI_MODEL` from settings at startup.
+- The system **MUST** perform a capability self-test against `OPENAI_BASE_URL` once at startup IF `OPENAI_API_KEY_FILE` exists and is non-empty:
+  - `GET {base_url}/models` — verify reachable
+  - `POST {base_url}/chat/completions` with a 1-token prompt — verify chat works
+  - `POST {base_url}/chat/completions` with a trivial `echo(text)` tool definition + `tool_choice="required"` — verify the response includes a parseable `tool_calls` field
+  - `POST {base_url}/chat/completions` with `response_format={type: "json_schema", ...}` for a trivial Pydantic shape — verify the response parses
+- The results **MUST** be cached in Redis under `openai:capabilities:{sha256(base_url)}` with 24h TTL.
+- The capability check **MUST NOT** crash the API on failure — it logs at WARN and stores partial results. Downstream features (`feat_llm_judgments`, `feat_digest_proposal`, `feat_chat_agent`) read the capability cache and either gate themselves (judgment generation needs structured_output=ok) or degrade gracefully (chat agent works without function_calling, just refuses to dispatch tools).
+- Per [`llm-orchestration.md` §"OpenAI-compatible endpoints"](../../../01_architecture/llm-orchestration.md). Covers part of US-32.
 
 ## 8) API and data contract baseline
 

@@ -90,6 +90,10 @@
 - **US-30: Complete the tutorial in under 30 minutes on a fresh laptop.** *As a Relevance Engineer (new user)*, I follow the tutorial in `docs/08_guides/tutorial-first-study.md` from `git clone` through "PR opened in GitHub" in under 30 minutes on a 16GB laptop, so I form a positive first impression and decide to bring RelyLoop to my team. *(Source: §27 lines 2310, 2312, 2322 — "Demonstrates the value prop", "design partners".)*
 - **US-31: Sample data lets me skip my own setup.** *As a Relevance Engineer (new user)*, the tutorial includes a 50-query set + pre-baked judgment list + sample ES index of ~1,000 products, so I can run the loop end-to-end without having to provide my own data. *(Source: §27 line 2312.)*
 
+### Cross-cutting — LLM provider flexibility
+
+- **US-32: Air-gapped evaluation against a local LLM.** *As a privacy-conscious Relevance Engineer (or one without an OpenAI account)*, I configure RelyLoop to use a local LLM via Ollama / LM Studio / vLLM / HuggingFace TGI by setting `OPENAI_BASE_URL` and `OPENAI_MODEL` in `.env` before `make up`. The startup capability check probes my local endpoint and surfaces in `/healthz` whether chat / function-calling / structured-output all work. Features that need capabilities my local model doesn't support either gate themselves with `LLM_PROVIDER_INCAPABLE` (judgment generation needs structured output) or degrade gracefully (chat agent runs without tool dispatch; digest falls back to narrative-only). The tutorial in `chore_tutorial_polish` documents both the hosted-OpenAI and local-LLM paths side-by-side. *(Source: per [`docs/01_architecture/llm-orchestration.md` §"OpenAI-compatible endpoints"](../01_architecture/llm-orchestration.md). Cross-cuts `infra_foundation` (capability check), `feat_llm_judgments` (gate), `feat_digest_proposal` (degrade), `feat_chat_agent` (degrade), `chore_tutorial_polish` (documentation).)*
+
 ---
 
 ## Story → feature mapping
@@ -108,6 +112,7 @@
 | US-25, US-26, US-27 | `feat_chat_agent` | §15, §19, §21, §22 |
 | US-28, US-29 | `feat_proposals_ui` | §22, §16 |
 | US-30, US-31 | `chore_tutorial_polish` | §27 |
+| US-32 (cross-cutting) | `infra_foundation` (FR-7), `feat_llm_judgments`, `feat_digest_proposal`, `feat_chat_agent`, `chore_tutorial_polish` | umbrella §15 + new arch §"OpenAI-compatible endpoints" |
 
 **Coverage check:** every umbrella §27 in-scope item maps to at least one US-N. Every US-N maps to exactly one feature folder (with cross-feature dependencies expressed via the dependency table in the plan, not via story duplication).
 

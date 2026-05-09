@@ -34,8 +34,8 @@ After all 11 prior features ship:
 ### In scope
 
 - **Worked tutorial** at `docs/08_guides/tutorial-first-study.md`:
-  - Step 0: Prerequisites (Docker, OpenAI API key, GitHub PAT optional but recommended for the apply step)
-  - Step 1: Clone + `make up`
+  - Step 0: Prerequisites — Docker; one of (OpenAI API key | local LLM via Ollama/LM Studio/vLLM/TGI per [`llm-orchestration.md` §"OpenAI-compatible endpoints"](../../../01_architecture/llm-orchestration.md)); GitHub PAT optional but recommended for the apply step
+  - Step 1: Clone + `make up`. **Local-LLM alternative path:** if running Ollama/LM Studio/vLLM/TGI instead of OpenAI, set `OPENAI_BASE_URL` + `OPENAI_MODEL` per `deployment.md` §"Local-LLM operator workflow" before `make up`. Tutorial documents both paths side-by-side.
   - Step 2: Run `scripts/seed_es.py` (or equivalent) to populate the sample ES index from `samples/products.json`
   - Step 3: In the UI, register `local-es` (or via `make seed-clusters`)
   - Step 4: Create a query set from `samples/queries.csv` (50 hand-curated queries)
@@ -326,6 +326,7 @@ None — all resolved (see Decision log).
 
 - 2026-05-09 — The smoke test is the release gate, not optional — per umbrella spec §27 strategic-rationale and the project's "fail loudly" principle.
 - 2026-05-09 — Pre-baked `samples/judgments.json` so first-run users don't pay OpenAI cost — adoption-funnel hygiene. Imported via `POST /api/v1/judgment-lists/import` (added to `feat_llm_judgments` FR-3b).
+- 2026-05-09 — Tutorial documents two LLM paths: (a) hosted OpenAI with API key, (b) local LLM via Ollama/LM Studio/vLLM/TGI with `OPENAI_BASE_URL` config. Both paths produce a working tutorial; the local path skips OpenAI cost AND demonstrates RelyLoop's air-gap-friendly architecture. Per `feat_chat_agent` and `feat_llm_judgments` capability-check semantics, smaller local models may degrade some features (chat agent without tools; digest narrative-only). Tutorial calls this out in Step 0 with a "tested model matrix" link to [`llm-orchestration.md` §"OpenAI-compatible endpoints"](../../../01_architecture/llm-orchestration.md).
 - 2026-05-09 — Container UI as part of MVP1 (not a post-release polish) — `make up` should bring the full stack including UI; running `pnpm dev` is a developer-mode optimization, not the user-facing path.
 - 2026-05-09 — Test config repo: **public `SoundMindsAI/relyloop-test-configs`** — same repo serves both `feat_github_pr_worker` integration tests and the tutorial's apply-PR step. Public repo + dedicated test PAT scoped only to it. Operator instructions in the tutorial point at this repo for the demo apply step.
 - 2026-05-09 — Sample dataset: **Amazon ESCI subset** (publicly licensed CC-BY-4.0; ~1,000 products + 50 queries subsetted from the upstream 1.5M × 1.8M dataset). Pre-existing ESCI judgments seed `samples/judgments.json` so first-run users get a working tutorial without OpenAI cost.
