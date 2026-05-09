@@ -8,6 +8,31 @@ Distilled from <https://docs.github.com> on 2026-05-09 (Rulesets path is GitHub'
 
 The plan ([`infra_foundation/implementation_plan.md` §7.5 manual handoff #3](../02_product/planned_features/infra_foundation/implementation_plan.md)) defers this to a repo-admin manual step because GitHub's branch-protection API requires admin permissions the agent never holds.
 
+## Plan-tier asymmetry — read this before upgrading
+
+GitHub gates rulesets enforcement on plan tier × repo visibility:
+
+| Plan tier | Public repo | Private repo |
+|---|---|---|
+| **Free** (individual or org) | ✅ Rulesets enforced | ⚠ Rulesets configurable but **NOT enforced** ("Your rulesets won't be enforced on this private repository until you move to GitHub Team organization account") |
+| **Pro** (individual, $4/mo) | ✅ Enforced | ✅ Enforced |
+| **Team** (org, $4/user/mo) | ✅ Enforced | ✅ Enforced |
+| **Enterprise** | ✅ Enforced | ✅ Enforced |
+
+For RelyLoop today: SoundMindsAI is on the Free org plan, the repo is private, so creating the ruleset is informational-only — the rules sit dormant. **The moment the repo flips to public** (planned for MVP1 ship), enforcement activates automatically, no plan change required. Until then, lean on:
+
+- CLAUDE.md Absolute Rule #1 ("Never commit directly to `main`") — the agent refuses to do this.
+- CI status visible in the PR UI — humans can see red checks even without the merge being blocked.
+- Solo-maintainer discipline (low-risk threat model while no contributors are on the keyboard).
+
+**When to actually upgrade to Team** (in priority order):
+
+1. A second human contributor joins while the repo is still private.
+2. You stay private through MVP4 (audit/compliance surfaces appear).
+3. You need org-level features (SAML SSO, audit logs, IP allow-lists).
+
+Until one of those triggers, the $4/user/month is buying enforcement of a rule the agent already enforces.
+
 ## The three checks to require for `relyloop`
 
 These are the exact strings GitHub will autocomplete in the Rulesets UI (verified via `gh api repos/SoundMindsAI/relyloop/commits/<sha>/check-runs`):
