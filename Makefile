@@ -97,7 +97,7 @@ migrate:  ## alembic upgrade head + initialize Optuna RDB schema (runs inside ap
 	docker compose exec -T api alembic upgrade head
 	docker compose exec -T api python -m backend.app.db.optuna_schema
 
-migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs inside api container)
+migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs inside api container; pins sequential rev-id)
 	@if [ -z "$(name)" ]; then \
 		echo "ERROR: name=<slug> required (e.g., make migrate-create name=add_studies_table)"; \
 		exit 1; \
@@ -105,4 +105,8 @@ migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs 
 	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \
 	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
 	}
-	docker compose exec -T api alembic revision --autogenerate -m "$(name)"
+	@NEXT_REV=$$(printf '%04d' $$(( $$(ls migrations/versions/[0-9]*.py 2>/dev/null | wc -l | tr -d ' ') + 1 ))); \
+	  echo "Generating migration with --rev-id $${NEXT_REV} (sequential numeric per CLAUDE.md Rule #5)"; \
+	  docker compose exec -T api alembic revision --autogenerate --rev-id "$${NEXT_REV}" -m "$(name)"
+	@echo ""
+	@echo "Run 'make fmt' to apply ruff formatting to the new revision file."

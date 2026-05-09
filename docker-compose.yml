@@ -72,6 +72,14 @@ services:
       - github_token
     volumes:
       - ./data/repo-clones:/var/lib/relyloop/repos
+      # Bind-mount migrations + alembic.ini so `make migrate-create` (which
+      # runs inside this container — see Makefile) writes generated revision
+      # files back to the host repo, and so host-side tweaks to alembic.ini
+      # (e.g. disabling the ruff post-write hook that requires dev deps) take
+      # effect without a rebuild. The Dockerfile COPYs both at build time for
+      # production deployments; these overlays only matter in dev.
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini:ro
     healthcheck:
       # `worker` waits for api healthy before starting (so it doesn't enqueue
       # against a not-yet-started API). `curl` is in the runtime image.
