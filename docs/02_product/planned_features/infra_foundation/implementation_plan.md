@@ -1473,7 +1473,7 @@ If an operator skips a pause point ("use defaults", "skip"), record the skip in 
 
 ### Current sprint (this PR)
 
-- [ ] Story 1.1 — Monorepo layout & root configs
+- [x] Story 1.1 — Monorepo layout & root configs
 - [ ] Story 1.2 — Python project (`uv`, ruff, mypy, pytest)
 - [ ] Story 1.3 — Frontend project (Next.js 14, pnpm, TS strict)
 - [ ] Story 1.4 — Pre-commit hooks (ruff, mypy, eslint, prettier, gitleaks, Conventional Commits) **[FR-6]**
