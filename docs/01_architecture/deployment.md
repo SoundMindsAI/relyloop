@@ -72,7 +72,7 @@ services:
     volumes: [./data/repo-clones:/var/lib/relyloop/repos]
 
   elasticsearch:
-    image: elasticsearch:9.0.0
+    image: elasticsearch:9.4.0
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false      # local dev only

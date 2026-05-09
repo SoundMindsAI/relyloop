@@ -1,0 +1,164 @@
+# RelyLoop MVP1 stack (infra_foundation Story 4.2 / FR-1).
+#
+# Six services per docs/01_architecture/deployment.md §"MVP1 deployment shape":
+#   postgres · redis · api · worker · elasticsearch · opensearch
+#
+# Conventions:
+#   - Host port binds use 127.0.0.1: only — never 0.0.0.0:.
+#   - Secrets are mounted from ./secrets/<name> via Docker secrets, NEVER as
+#     bare env vars (CLAUDE.md Absolute Rule #2).
+#   - Healthchecks gate dependents through `depends_on: condition: service_healthy`.
+#
+# `make up` (scripts/install.sh, Story 4.4) auto-generates the required +
+# placeholder secret files before invoking `docker compose up -d`.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: relyloop
+      POSTGRES_DB: relyloop
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U relyloop -d relyloop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    image: relyloop/api:${RELYLOOP_GIT_SHA:-dev}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_API_KEY_FILE: /run/secrets/openai_key
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-2024-08-06}
+      OPENAI_MODEL_CHAT: ${OPENAI_MODEL_CHAT:-gpt-4o-mini-2024-07-18}
+      GITHUB_TOKEN_FILE: /run/secrets/github_token
+      CLUSTER_CREDENTIALS_FILE: /run/secrets/cluster_credentials
+      RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+    ports:
+      - "127.0.0.1:8000:8000"
+    secrets:
+      - postgres_password
+      - database_url
+      - openai_key
+      - cluster_credentials
+      - github_token
+    volumes:
+      - ./data/repo-clones:/var/lib/relyloop/repos
+      # Bind-mount migrations + alembic.ini so `make migrate-create` (which
+      # runs inside this container — see Makefile) writes generated revision
+      # files back to the host repo, and so host-side tweaks to alembic.ini
+      # (e.g. disabling the ruff post-write hook that requires dev deps) take
+      # effect without a rebuild. The Dockerfile COPYs both at build time for
+      # production deployments; these overlays only matter in dev.
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini:ro
+    healthcheck:
+      # `worker` waits for api healthy before starting (so it doesn't enqueue
+      # against a not-yet-started API). `curl` is in the runtime image.
+      test: ["CMD-SHELL", "curl -fs http://localhost:8000/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  worker:
+    image: relyloop/api:${RELYLOOP_GIT_SHA:-dev}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+    command: ["arq", "backend.workers.all.WorkerSettings"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      REDIS_URL: redis://redis:6379/0
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_API_KEY_FILE: /run/secrets/openai_key
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-2024-08-06}
+      OPENAI_MODEL_CHAT: ${OPENAI_MODEL_CHAT:-gpt-4o-mini-2024-07-18}
+      GITHUB_TOKEN_FILE: /run/secrets/github_token
+      CLUSTER_CREDENTIALS_FILE: /run/secrets/cluster_credentials
+    secrets:
+      - postgres_password
+      - database_url
+      - openai_key
+      - cluster_credentials
+      - github_token
+    volumes:
+      - ./data/repo-clones:/var/lib/relyloop/repos
+
+  elasticsearch:
+    image: elasticsearch:9.4.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false  # local dev only — production install activates at MVP3
+      - ES_JAVA_OPTS=-Xms${ES_HEAP_SIZE:-512m} -Xmx${ES_HEAP_SIZE:-512m}
+    ports:
+      - "127.0.0.1:9200:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true  # local dev only
+      - OPENSEARCH_JAVA_OPTS=-Xms${ES_HEAP_SIZE:-512m} -Xmx${ES_HEAP_SIZE:-512m}
+    ports:
+      - "127.0.0.1:9201:9200"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:9200 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+secrets:
+  postgres_password:
+    file: ./secrets/postgres_password
+  database_url:
+    file: ./secrets/database_url
+  openai_key:
+    file: ./secrets/openai_key
+  cluster_credentials:
+    file: ./secrets/cluster_credentials.yaml
+  github_token:
+    file: ./secrets/github_token
