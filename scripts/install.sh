@@ -26,9 +26,15 @@ if [[ ! -s ./secrets/postgres_password ]]; then
   chmod 600 ./secrets/postgres_password
 fi
 
-# 3. Generate database_url if missing or empty (templated from password).
-if [[ ! -s ./secrets/database_url ]]; then
-  echo "Generating ./secrets/database_url..."
+# 3. Generate database_url if missing, empty, OR using a non-asyncpg driver.
+#    The app reads this URL via SQLAlchemy; without `+asyncpg` the default
+#    psycopg2 dialect is selected and the async event loop blocks on sync
+#    DB-API calls (or, if psycopg2 isn't installed, ModuleNotFoundError at
+#    /healthz). The early prefix-check catches stale stub files left behind
+#    by manual `docker compose config` testing — a real bug surfaced during
+#    PR #4 first-run testing.
+if [[ ! -s ./secrets/database_url ]] || ! grep -q '^postgresql+asyncpg://' ./secrets/database_url; then
+  echo "Generating ./secrets/database_url (asyncpg driver)..."
   PASSWORD="$(cat ./secrets/postgres_password)"
   printf 'postgresql+asyncpg://relyloop:%s@postgres/relyloop' "${PASSWORD}" \
     > ./secrets/database_url
@@ -46,5 +52,12 @@ fi
 # 5. Validate Compose config (catches typos before pulling images).
 docker compose config --quiet
 
-# 6. Bring the stack up. `docker compose up -d` is itself idempotent.
+# 6. Build images locally. `docker compose up -d` does NOT auto-rebuild after
+#    code changes — it uses the cached `relyloop/api:dev` tag. Without an
+#    explicit build step, contributors who pull new code and re-run `make up`
+#    keep running the stale image (PR #4 first-run testing surfaced exactly
+#    this — a stale image missing newly-added Python deps).
+docker compose build api worker
+
+# 7. Bring the stack up. `docker compose up -d` is itself idempotent.
 exec docker compose up -d
