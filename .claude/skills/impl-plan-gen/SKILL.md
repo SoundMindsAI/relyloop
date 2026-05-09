@@ -11,8 +11,6 @@ user-invocable: true
 
 # Implementation Plan Generator & Reviewer
 
-> **Ported skill.** Anecdotes from the sibling `creator-discovery-outreach` project (PR #183 stage-buckets, `creator_repo.py`, `TENANT_ACTIVITY_ALLOWLIST`, `FILTER_GROUPS` in `activity-tab.tsx`, `tenant-timeline-tab.tsx`, GPT-5.5 cross-model review) reflect the source project's architecture. Apply the underlying rule, but verify any cited path/symbol exists in RelyLoop before treating it as authoritative.
-
 You are working with implementation plans for the RelyLoop project. Depending on the mode, you either generate a new plan from an approved feature spec, review an existing plan for accuracy, or reconcile a plan against its spec and the codebase.
 
 The implementation plan is the bridge between "what to build" (the spec) and "how to build it" (the code). Every claim in the plan must be grounded in both the spec and the codebase.
@@ -134,16 +132,16 @@ Verify the plan's claims against the actual codebase:
     - Confirm the spec has a §7.4 "Enumerated value contracts" table (or equivalent) citing the backend source-of-truth file (enum, `frozenset`, `Literal[...]`, Pydantic `Field(pattern=...)`, or DB CHECK constraint).
     - Grep that backend file to enumerate the exact wire values. Build a 3-column verification: (1) values in backend, (2) values in spec, (3) values the plan's frontend story will render. All three columns MUST match character-for-character.
     - Flag any story that adds a frontend `<select>` / filter chip / badge variant without explicitly listing the wire values AND the backend source file in the UI element inventory.
-    - Require the plan to specify a source-of-truth comment above each generated option array (e.g., `// Values must match backend/app/domain/creator/stage_buckets.py VALID_BUCKETS`). Missing comments make future drift harder to prevent.
-    **Why:** This is the highest-leverage check for frontend/backend contract drift. The Creator Management Phase 1 filter-bar shipped with a phantom "mid" tier and four wrong stage-bucket values (PR #183) — none caught by TypeScript, lint, unit tests, or contract tests. Only a grep-against-source audit surfaces this class of bug before production.
+    - Require the plan to specify a source-of-truth comment above each generated option array (e.g., `// Values must match backend/db/models/study.py StudyStatus`). Missing comments make future drift harder to prevent.
+    **Why:** This is the highest-leverage check for frontend/backend contract drift. The the sibling project (PR #183) filter-bar shipped with a phantom "mid" tier and four wrong stage-bucket values (PR #183) — none caught by TypeScript, lint, unit tests, or contract tests. Only a grep-against-source audit surfaces this class of bug before production.
 
 11. **Audit-event coverage verification**: For every endpoint or service function the plan adds or modifies that mutates state:
     - Confirm the spec's §6 "Audit-event instrumentation matrix" lists the mutation site with a chosen event type (new or existing).
-    - For new event types marked tenant-visible: verify the plan has stories to (a) add the type to `TENANT_ACTIVITY_ALLOWLIST` in `backend/app/db/repo/audit_event_repo.py`, (b) update the exact-set assertion in `backend/tests/unit/domain/test_tenant_activity_allowlist.py`, (c) add a `FILTER_GROUPS` entry in `web/src/components/settings/activity-tab.tsx`, (d) add a `formatEventDescription` case, and (e) update `web/src/components/admin/tenant-detail/tenant-timeline-tab.tsx` if the admin per-tenant timeline shows it.
-    - Confirm the emission story specifies atomic emission: `create_audit_event()` is called inside the same transaction as the primary mutation, before `db.commit()`, with `resolve_audit_actor()` for FK-safe admin impersonation.
-    - Confirm the plan includes a contract test asserting metadata shape on the audit row (mirror the canary pattern in `backend/tests/contract/test_creator_notes_audit.py`).
-    - Mutations that do NOT need an audit event must be explicitly justified in the plan (e.g. "internal cache update", "covered by existing `OUTREACH_EMAIL_SENT` emission"). Silent gaps are findings.
-    **Why:** Audit-event capture gaps are silent — tests pass, the feature ships, and only weeks later does someone ask "who edited this draft?" with no record. The drift test catches allowlist↔IA mismatches but cannot catch missing emission. Reference: [docs/01_architecture/audit_events.md](../../../docs/01_architecture/audit_events.md).
+    - For new event types: verify the plan has a story to add the type to the canonical `audit_log` event-type Literal/enum in `backend/db/models/audit_log.py`. RelyLoop's MVP2 audit-log is a single append-only table per [`docs/01_architecture/data-model.md` §"Forthcoming: audit_log"](../../docs/01_architecture/data-model.md); no separate allowlist machinery, no per-event UI category mapping, no admin timeline tab.
+    - Confirm the emission story specifies atomic emission: the `audit_log` INSERT happens inside the same transaction as the primary mutation, before `db.commit()`. (When MVP4 brings auth + tenants, this story expands to include `actor_id`/`tenant_id` FK resolution.)
+    - Confirm the plan includes a contract test asserting metadata shape on the audit row (mirror the canary pattern in `backend/tests/contract/test_study_audit.py`).
+    - Mutations that do NOT need an audit event must be explicitly justified in the plan (e.g. "internal cache update", "covered by existing `STUDY_STARTED` emission"). Silent gaps are findings.
+    **Why:** Audit-event capture gaps are silent — tests pass, the feature ships, and only weeks later does someone ask "who changed this study?" with no record. Reference: [`docs/01_architecture/data-model.md` §"Forthcoming: audit_log"](../../docs/01_architecture/data-model.md). (Activates at MVP2 when audit_log lands.)
 
 Record every finding in the verification ledger.
 
@@ -355,9 +353,9 @@ For every material claim in the plan (file paths, endpoint tables, key interface
 |---|---|---|
 | Migration dir is `backend/alembic/versions/` | `ls backend/alembic/versions/` | Verified |
 | Alembic head is `0022_llm_routing_cfg` | `ls backend/alembic/versions/ \| sort \| tail -1` | Verified |
-| `upsert_creator()` accepts `contact_source` kwarg | Read `backend/app/db/repo/creator_repo.py:43` — uses `**kwargs` | Verified — kwargs pass-through |
+| `create_study()` accepts `contact_source` kwarg | Read `backend/db/repo/study_repo.py:43` — uses `**kwargs` | Verified — kwargs pass-through |
 | Story 1.2 modifies `platforms-keywords-tab.tsx` | `glob web/src/components/settings/platforms-keywords-tab.tsx` | Verified |
-| Frontend `scoringVertical` available in DraftsPage | Read `web/src/app/drafts/page.tsx` — not currently fetched | **Corrected** — story must add fetch |
+| Frontend `best_metric` available in StudiesPage | Read `web/src/app/studies/page.tsx` — not currently fetched | **Corrected** — story must add fetch |
 
 Include the ledger in the review log output.
 
@@ -372,13 +370,13 @@ These are patterns that have caused plan inaccuracies in past projects. Check fo
 5. **"Follow the X pattern" without copying the markup** — Always include the actual JSX/CSS from the analogous section. References are ambiguous; copied code is unambiguous.
 6. **Endpoint tables that don't match the spec** — The plan's endpoint tables must exactly match the spec's Section 8. If they diverge, the contract tests will be wrong.
 7. **Stories that claim to modify files they don't need to** — Grep for actual usage before listing a file in "Modified files." False entries waste implementation time.
-8. **Test tasks pointing at mocked E2E suites** — `drafts_review.spec.ts` uses `page.route()` mocking. Anchor new E2E tasks to real-backend suites like `signup_flow.spec.ts`.
+8. **Test tasks pointing at mocked E2E suites** — `study_detail.spec.ts` uses `page.route()` mocking. Anchor new E2E tasks to real-backend suites like `signup_flow.spec.ts`.
 9. **Key interfaces that don't match existing layer conventions** — Repo functions take `db: Session` first. Services are async. Domain functions are pure (no DB, no async). Read the layer before writing signatures.
 10. **Frontend data plumbing gaps** — If a story says "pass X as a prop," verify the parent component actually has X. This is the most common frontend plan failure.
 11. **Missing plan-level UI Guidance section** — If any story has frontend scope, the plan MUST include a top-level "UI Guidance" section with actual JSX patterns, layout description, visual consistency table, interaction behavior table, and handler function code. Story-level UI element inventories are necessary but NOT sufficient — the plan-level section provides the unambiguous markup patterns that prevent implementation rework. This was the #1 failure mode on the Wave 2.0b plan.
 12. **Persistence scope mismatch** — `localStorage` persists forever; `sessionStorage` clears on tab close. If the task says one and the DoD says the other, that's a bug in the plan.
 13. **Gate arithmetic errors** — If a gate says "all 8 endpoints live" but the stories below only define 6, the gate is wrong.
-14. **Invented enum / filter / dropdown values in frontend stories** — Frontend stories that define a `<select>`, filter dropdown, status badge, sort control, or any option list whose values are sent back to the backend MUST enumerate the exact wire values AND cite the backend source-of-truth file (enum, `frozenset`, `Literal[...]`, `Field(pattern=...)`, or DB CHECK). Grep the cited file to verify every option is real. Plans that only specify the user-facing labels ("Mid tier", "Drafting") without the wire values and source file produce frontend bugs that TypeScript, lint, and unit tests will not catch — the bug only surfaces as a 422 or a silent zero-result filter in the browser. Require a source-of-truth comment in the story's task list (e.g., `// Values must match backend/app/domain/creator/stage_buckets.py VALID_BUCKETS`). This was the failure mode on Creator Management Phase 1, PR #183, where `tier=mid` and four wrong stage-bucket values shipped undetected.
+14. **Invented enum / filter / dropdown values in frontend stories** — Frontend stories that define a `<select>`, filter dropdown, status badge, sort control, or any option list whose values are sent back to the backend MUST enumerate the exact wire values AND cite the backend source-of-truth file (enum, `frozenset`, `Literal[...]`, `Field(pattern=...)`, or DB CHECK). Grep the cited file to verify every option is real. Plans that only specify the user-facing labels (e.g., "Paused" without `paused` being in the backend's `StudyStatus` Literal) without the wire values and source file produce frontend bugs that TypeScript, lint, and unit tests will not catch — the bug only surfaces as a 422 VALIDATION_ERROR or a silent zero-result filter in the browser. Require a source-of-truth comment in the story's task list (e.g., `// Values must match backend/db/models/study.py StudyStatus`). This failure mode is documented from the sibling `creator-discovery-outreach` project (their PR #183 shipped four wrong allowlist values undetected).
 
 15. **Missing Legacy Behavior Parity table on delete-and-replace stories** — When a story deletes or replaces a user-facing component >100 LOC, omitting the parity table is how client-side validations, inflight-disable states, and confirmation dialogs silently disappear. "TypeScript compiles" does not exercise a missing `minLength={20}` check or a button that re-fires while a POST is pending. This was the failure mode on the Setup IA overhaul (Story 4.1 deleted `PlatformsKeywordsTab` and dropped NL-description length validation + Run-discovery button inflight disable; both were caught post-hoc by Gemini).
 

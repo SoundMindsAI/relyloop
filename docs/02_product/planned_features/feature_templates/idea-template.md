@@ -31,7 +31,8 @@
 - **Frontend:** <impact hints>
 - **Migration:** <expected or not>
 - **Config:** <new settings, env vars>
-- **Audit events:** <RelyLoop has no audit-events subsystem yet — write "N/A". This bullet is preserved for the future; if RelyLoop adopts an audit-events architecture, list new event types this idea introduces here.>
+- **Audit events:** <new event_types this idea introduces, OR `N/A` if no state mutations or pre-MVP2>
+
 
 ## Why <deferred / not yet prioritized>
 

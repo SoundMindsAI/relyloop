@@ -24,5 +24,6 @@ The repository now uses a numbered documentation IA so related material stays gr
 
 ## Current seed docs
 
-- `00_overview/product/relevance-copilot-spec.md`
-- `00_overview/product/mvp1-execution-plan.md`
+- `00_overview/product/relevance-copilot-spec.md` — umbrella product + architectural spec
+- `02_product/mvp1-user-stories.md` — MVP1 user stories mapped to feature folders
+- `02_product/planned_features/` — per-feature spec folders, each ready for `/impl-plan-gen`
