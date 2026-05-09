@@ -9,8 +9,11 @@
 - [docs/01_architecture/optimization.md](../../../01_architecture/optimization.md) — Optuna integration consumed via `run_trial`
 - [docs/01_architecture/system-overview.md](../../../01_architecture/system-overview.md) — worker pool detail
 - [docs/01_architecture/api-conventions.md](../../../01_architecture/api-conventions.md)
-- Depends on: [`infra_foundation`](../infra_foundation/feature_spec.md), [`infra_adapter_elastic`](../infra_adapter_elastic/feature_spec.md), [`infra_optuna_eval`](../infra_optuna_eval/feature_spec.md)
+- Depends on (migration): [`infra_foundation`](../infra_foundation/feature_spec.md), [`infra_adapter_elastic`](../infra_adapter_elastic/feature_spec.md). The schema migration ships first (creates 7 tables) — does NOT depend on `infra_optuna_eval`.
+- Depends on (runtime orchestrator): [`infra_optuna_eval`](../infra_optuna_eval/feature_spec.md). The orchestrator's `start_study` job enqueues `run_trial` jobs from `infra_optuna_eval`. Schema can land before `infra_optuna_eval` ships; the orchestrator only becomes functional after.
 - Consumed by: [`feat_llm_judgments`](../feat_llm_judgments/feature_spec.md), [`feat_digest_proposal`](../feat_digest_proposal/feature_spec.md), [`feat_studies_ui`](../feat_studies_ui/feature_spec.md), [`feat_chat_agent`](../feat_chat_agent/feature_spec.md)
+
+**Implementation sequencing within this feature:** ship the schema migration as the first story (unblocks `infra_optuna_eval` and downstream feature migrations). API endpoints (FR-1..6) and the orchestrator (FR-4 + FR-5) ship as later stories AFTER `infra_optuna_eval` lands the `run_trial` job. The plan generator should split this feature into a "schema" epic (no orchestrator dependency) and an "orchestrator + API" epic (depends on `infra_optuna_eval`).
 
 ---
 
@@ -22,17 +25,20 @@
 
 ## 2) Current state audit
 
-After `infra_foundation`, `infra_adapter_elastic`, and `infra_optuna_eval` ship:
+After `infra_foundation` + `infra_adapter_elastic` ship (this feature's schema epic depends on these only):
 - `clusters` and `config_repos` tables exist.
+- No `studies`, `trials`, `query_templates`, `query_sets`, `queries`, `judgment_lists`, `proposals` tables yet — this feature's schema epic creates all 7.
+
+After `infra_optuna_eval` then ships (between this feature's schema and orchestrator epics):
 - The `run_trial` Arq job exists and works against any seeded study.
-- No `studies`, `trials`, `query_templates`, `query_sets`, `queries` tables yet — this feature creates all five.
-- No orchestrator process — this feature adds it as the `studies` Arq queue consumer.
+
+Then this feature's orchestrator epic adds the API endpoints + `start_study` orchestrator process as the `studies` Arq queue consumer.
 
 ## 3) Scope
 
 ### In scope
 
-- Migrations creating the **full MVP1 shape** of these 6 tables per [`data-model.md`](../../../01_architecture/data-model.md):
+- Migrations creating the **full MVP1 shape** of these 7 tables per [`data-model.md`](../../../01_architecture/data-model.md):
   - `query_templates`
   - `query_sets`
   - `queries`
@@ -41,7 +47,7 @@ After `infra_foundation`, `infra_adapter_elastic`, and `infra_optuna_eval` ship:
   - `judgment_lists` (full shape — `cluster_id`, `target`, `current_template_id`, `status`, `failed_reason`, `calibration` columns are all created here so `feat_llm_judgments` can read/write without further migration)
   - `proposals` (full shape — `pr_url`, `pr_state`, `pr_merged_at`, `pr_open_error`, `rejected_reason` all nullable; populated by `feat_digest_proposal` / `feat_github_pr_worker` / `feat_github_webhook`)
 
-  Per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md), this feature owns 6 of the 13 MVP1 application tables; downstream features only INSERT/UPDATE rows, they don't ALTER schemas.
+  Per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md), this feature owns 7 of the 13 MVP1 application tables; downstream features only INSERT/UPDATE rows, they don't ALTER schemas.
 - API endpoints:
   - `POST /api/v1/query-sets` + `GET /api/v1/query-sets` + `GET /api/v1/query-sets/{id}` (cluster-scoped)
   - `POST /api/v1/query-sets/{id}/queries` (bulk add via JSON or CSV upload)
@@ -71,6 +77,8 @@ After `infra_foundation`, `infra_adapter_elastic`, and `infra_optuna_eval` ship:
 Per [`api-conventions.md`](../../../01_architecture/api-conventions.md):
 - All endpoints under `/api/v1/`
 - Cursor pagination on `GET /api/v1/studies`, `GET /api/v1/studies/{id}/trials`, `GET /api/v1/query-sets`, `GET /api/v1/query-templates` (default `limit=50`, max `200`)
+- **Every list endpoint** (across this feature AND every downstream feature that ships list endpoints) **MUST** return an `X-Total-Count` response header containing the total count matching the current filter (regardless of pagination). Required by `feat_studies_ui` for the dashboard's "studies completed in last 7 days" widget and similar count surfaces in `feat_proposals_ui`. Backend implementation: a single `COUNT(*)` query alongside the paginated SELECT. May be expensive on large lists in MVP1; if perf becomes an issue, optimize via cached estimates at MVP2 — but the contract is fixed.
+- List endpoints **MUST** also accept a `?since=<iso8601>` query param that filters by `created_at >= since` (used by the dashboard's last-7-days widget; combines with `?status=` and other filters)
 - Structured error envelope per `api-conventions.md` §"Error envelope"
 - `X-Request-ID` propagated to structlog context
 
@@ -160,7 +168,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `start_study`
 | Method | Path | Purpose | Key error codes |
 |---|---|---|---|
 | `POST` | `/api/v1/studies` | Create a study (status=queued); enqueues `start_study` | `VALIDATION_ERROR`, `CLUSTER_NOT_FOUND`, `TEMPLATE_NOT_FOUND`, `QUERY_SET_NOT_FOUND`, `JUDGMENT_LIST_NOT_FOUND`, `INVALID_SEARCH_SPACE` |
-| `GET` | `/api/v1/studies` | List studies with cursor pagination + status filter | (none) |
+| `GET` | `/api/v1/studies` | List studies with cursor pagination + status filter + `?since=<iso8601>` filter; returns `X-Total-Count` header | (none) |
 | `GET` | `/api/v1/studies/{id}` | Study detail + `trials_summary` | `STUDY_NOT_FOUND` |
 | `POST` | `/api/v1/studies/{id}/cancel` | Cancel a queued/running study | `STUDY_NOT_FOUND`, `INVALID_STATE_TRANSITION` |
 | `GET` | `/api/v1/studies/{id}/trials` | Paginated trial list, sortable | `STUDY_NOT_FOUND` |
@@ -203,7 +211,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `start_study`
 
 ## 9) Data model and state transitions
 
-This feature creates the full MVP1 shape of 6 tables per [`data-model.md`](../../../01_architecture/data-model.md): `query_templates`, `query_sets`, `queries`, `studies`, `trials`, `judgment_lists`, plus `proposals`. (Counting wise: 7 tables — see in-scope.) Downstream features author rows but do NOT ALTER any of these tables.
+This feature creates the full MVP1 shape of 7 tables per [`data-model.md`](../../../01_architecture/data-model.md): `query_templates`, `query_sets`, `queries`, `studies`, `trials`, `judgment_lists`, `proposals`. Downstream features author rows but do NOT ALTER any of these tables.
 
 ### State transitions
 
@@ -335,7 +343,7 @@ This feature has no UI surface; UI is owned by `feat_studies_ui`. The API is con
 - **Feature flags:** None.
 - **Migration/backfill:** First migration that creates business tables. No backfill needed.
 - **Operational readiness gates:** state-transition guard verified by unit + integration tests; stop-condition reasons logged.
-- **Release gate:** `feat_llm_judgments` author confirms the stub `judgment_lists` table interface meets their needs.
+- **Release gate:** `feat_llm_judgments` author confirms the full-shape `judgment_lists` table (with `cluster_id`, `target`, `current_template_id`, `status`, `failed_reason`, `calibration` columns) meets their needs.
 
 ## 17) Traceability matrix
 

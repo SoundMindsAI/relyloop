@@ -76,7 +76,7 @@ Single-phase. The MVP1 deliverable: "from a completed study's digest, the operat
 
 ### Anti-patterns
 
-- **Do not** fetch the underlying study via a separate query when the proposal detail loads — `GET /api/v1/proposals/{id}` includes the study summary inline. (Open question for the API: confirm the response includes `study_summary`.)
+- **Do not** fetch the underlying study via a separate query when the proposal detail loads — `GET /api/v1/proposals/{id}` returns inline `study_summary` and inline `digest` per [`feat_digest_proposal` FR-4](../feat_digest_proposal/feature_spec.md).
 - **Do not** display the PR diff inline. Link out to GitHub. Reproducing GitHub's diff renderer is out of scope.
 - **Do not** block the UI on the "Open PR" call. POST returns 202 immediately; UI shows a spinner; polls for status flip.
 

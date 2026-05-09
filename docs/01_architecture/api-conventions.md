@@ -98,7 +98,11 @@ All list endpoints use **cursor pagination**. No offset/limit.
 
 `next_cursor` is `null` when there are no more pages. Cursors are opaque to clients — never construct them. They're typically `(created_at, id)` base64-encoded.
 
-**MVP1 status:** Active for `GET /api/v1/clusters`, `GET /api/v1/studies`, `GET /api/v1/proposals`, `GET /api/v1/conversations`. Not used on resource-detail or sub-resource endpoints.
+**Total counts.** Every list endpoint **MUST** return an `X-Total-Count` response header with the total row count matching the current filter (independent of pagination). Required for dashboard count widgets in `feat_studies_ui` + `feat_proposals_ui` (e.g., "studies completed in last 7 days") without forcing the UI to paginate the entire list. Backend implementation is a separate `COUNT(*)` query alongside the paginated SELECT; perf is acceptable for MVP1 list sizes (<10K rows typical) and can be optimized via cached estimates at MVP2.
+
+**Filtering by recency.** Every list endpoint **MUST** accept a `?since=<iso8601>` query param that filters by `created_at >= since`. Combines with other filter params.
+
+**MVP1 status:** Active for `GET /api/v1/clusters`, `GET /api/v1/studies`, `GET /api/v1/proposals`, `GET /api/v1/conversations`, `GET /api/v1/query-sets`, `GET /api/v1/query-templates`, `GET /api/v1/judgment-lists`, `GET /api/v1/config-repos`. Not used on resource-detail or sub-resource endpoints.
 
 ## Idempotency
 

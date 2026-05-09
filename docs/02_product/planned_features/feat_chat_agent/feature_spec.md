@@ -8,7 +8,7 @@
 - [docs/01_architecture/agent-tools.md](../../../01_architecture/agent-tools.md) — tool registry + dispatch pattern
 - [docs/01_architecture/llm-orchestration.md](../../../01_architecture/llm-orchestration.md) — OpenAI SDK + function-calling pattern
 - [docs/01_architecture/ui-architecture.md](../../../01_architecture/ui-architecture.md) — chat surface UI patterns
-- [docs/01_architecture/data-model.md](../../../01_architecture/data-model.md) — `conversations`, `messages` tables (extends from `feat_study_lifecycle` stub)
+- [docs/01_architecture/data-model.md](../../../01_architecture/data-model.md) — `conversations`, `messages` tables (created by THIS feature)
 - Depends on: ALL prior backend features (the agent dispatches into them)
 
 ---
@@ -17,13 +17,13 @@
 
 - **Problem:** Without a chat surface, every operation requires the UI's structured forms. Chat lets the engineer describe the goal in plain language ("tune product_search overnight on staging-products-es") and let the agent translate that to API calls.
 - **Outcome:** A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. The agent has a tool registry covering the 18 MVP1 tools (per [`agent-tools.md`](../../../01_architecture/agent-tools.md)). Conversation state persists in `conversations` + `messages` tables; tool calls are visible in expandable panels.
-- **Non-goal:** No `propose_search_space` LLM tool (MVP2 — open question). No LangGraph state graph or subagents (GA v1). No human-in-the-loop interrupts (GA v1). No Fusion-specific tools (MVP3). No `fork_study` (MVP2). No multi-conversation parallelism enforcement (MVP4 with multi-tenant).
+- **Non-goal:** No `propose_search_space` LLM tool (deferred to MVP2 per Decision log). No LangGraph state graph or subagents (GA v1). No human-in-the-loop interrupts (GA v1). No Fusion-specific tools (MVP3). No `fork_study` (MVP2). No multi-conversation parallelism enforcement (MVP4 with multi-tenant).
 
 ## 2) Current state audit
 
 After all dependencies ship:
 - Every consumed API endpoint exists.
-- `conversations` and `messages` tables exist (created by `feat_study_lifecycle` per its stub-table responsibility) — this feature populates them.
+- `conversations` and `messages` tables do NOT exist yet — this feature creates them in their full MVP1 shape per [`data-model.md`](../../../01_architecture/data-model.md). They are terminal (no other features depend on them).
 - The Next.js skeleton + layout + nav (per `infra_foundation` + `feat_studies_ui`) include a `/chat` link that goes nowhere yet.
 - `openai` Python SDK is installed; no LLM calls are being made yet beyond `feat_llm_judgments` and `feat_digest_proposal`.
 
@@ -50,11 +50,11 @@ After all dependencies ship:
     - Tool calls rendered as collapsible `<Card>`s (default collapsed) showing `name` + `arguments` (JSON). Tool results render as a sibling `<Card>` (default collapsed) showing the JSON response.
     - Token streaming: assistant text appears character-by-character as the SSE delivers it.
     - Errors (network, 4xx, 5xx) surface as toast + an inline `<Alert>` below the conversation.
-  - SSE consumer in `ui/lib/api/conversations.ts` using native `EventSource`.
+  - Streaming consumer in `ui/lib/api/conversations.ts` using `fetch()` with `ReadableStream` (per [`ui-architecture.md` §"Streaming chat"](../../../01_architecture/ui-architecture.md)). **Native `EventSource` is NOT used** — it's GET-only and the user message belongs in the POST body.
 
 ### Out of scope
 
-- `propose_search_space` tool — open question; recommend deferral to MVP2.
+- `propose_search_space` tool — deferred to MVP2 (per Decision log).
 - `fork_study` tool — MVP2.
 - Fusion-specific tools (`list_pipelines`, `get_pipeline`, `pull_signals`) — MVP3.
 - LangGraph orchestrator + subagents + `PostgresSaver` — GA v1.
@@ -113,11 +113,11 @@ N/A — `audit_log` is MVP2. When MVP2 ships, this feature's mutating tool dispa
 - `GET /api/v1/conversations/{id}` returns the conversation + all `messages` ordered by `created_at`.
 - `DELETE /api/v1/conversations/{id}` soft-delete (`deleted_at` populated; messages cascade-deleted on hard purge — runbook covers).
 
-### FR-2: SSE messages endpoint
+### FR-2: Streaming messages endpoint
 - `POST /api/v1/conversations/{id}/messages` accepts `{role: 'user', content: {text: '...'}}` body and:
   - Persists the user message
   - Initiates the orchestrator loop (per FR-3)
-  - Streams events (`token`, `tool_call`, `tool_result`, `done`) via SSE per [`agent-tools.md` §"Streaming + SSE"](../../../01_architecture/agent-tools.md)
+  - Returns HTTP 200 with `Content-Type: text/event-stream` and streams events (`token`, `tool_call`, `tool_result`, `done`) in standard SSE framing (`event: <type>\ndata: <json>\n\n`) per [`agent-tools.md` §"Streaming + SSE"](../../../01_architecture/agent-tools.md). Frontend consumes via `fetch() + ReadableStream` per [`ui-architecture.md` §"Streaming chat"](../../../01_architecture/ui-architecture.md) (NOT native `EventSource`, which is GET-only).
 - Returns 503 `OPENAI_NOT_CONFIGURED` if `OPENAI_API_KEY_FILE` is missing.
 
 ### FR-3: Orchestrator loop
@@ -192,7 +192,7 @@ The SSE response body uses standard SSE framing per FR-2.
 
 ## 9) Data model and state transitions
 
-This feature populates `conversations` and `messages` (created by `feat_study_lifecycle` per stub responsibility). No new tables.
+This feature creates `conversations` and `messages` per [`data-model.md`](../../../01_architecture/data-model.md). Both are terminal tables (no other MVP1 feature depends on them). Migration adds full MVP1 shape; no other features ALTER these tables.
 
 ## 10) Security, privacy, and compliance
 
@@ -299,7 +299,7 @@ This feature populates `conversations` and `messages` (created by `feat_study_li
 ## 16) Rollout and migration readiness
 
 - **Feature flags:** None.
-- **Migration/backfill:** N/A — schema owned by `feat_study_lifecycle`.
+- **Migration/backfill:** Creates `conversations` and `messages` tables in their full MVP1 shape. No backfill (these tables start empty).
 - **Operational readiness gates:** Tutorial chat flow at AC-1 succeeds.
 
 ## 17) Traceability matrix

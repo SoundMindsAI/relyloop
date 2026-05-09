@@ -85,7 +85,7 @@ Single-phase. The MVP1 deliverable is "a `run_trial` job that successfully compl
 
 - **Dependency: `infra_foundation` shipped** — provides Postgres, Alembic, Arq worker scaffolding, structlog.
 - **Dependency: `infra_adapter_elastic` shipped** — provides `SearchAdapter` Protocol + `ElasticAdapter` (the `search_batch` callee).
-- **Dependency: `feat_study_lifecycle` schema** — `studies` and `trials` tables. This feature's `run_trial` job reads from `studies` and writes to `trials`. The schema is owned by `feat_study_lifecycle` but this feature can land first if `feat_study_lifecycle`'s migration is in flight; verify ordering during plan.
+- **Dependency: `feat_study_lifecycle` schema epic must ship first.** `studies`, `trials`, `judgment_lists`, `proposals`, `query_*` tables (full MVP1 shape) are created by `feat_study_lifecycle`'s schema epic. This feature's `run_trial` job reads `studies` and writes `trials`. Ordering: `feat_study_lifecycle` schema → `infra_optuna_eval` (this feature) → `feat_study_lifecycle` orchestrator epic.
 - **Optuna ≥ 3.6** — required for `RDBStorage` async-friendly behavior in 3.12.
 - **pytrec_eval ≥ 0.5** — Python 3.12 wheel availability.
 

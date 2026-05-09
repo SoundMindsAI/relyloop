@@ -46,11 +46,11 @@ After all 11 prior features ship:
   - Step 9: (Optional) Open the PR against `samples/sample-config-repo` (a fixture)
   - Each step has expected output (screenshots / JSON snippets) so users can verify they're on track
 - **`samples/` directory** at repo root:
-  - `samples/products.json` — ~1,000 sample products (e-commerce-ish; see open question on dataset choice)
+  - `samples/products.json` — ~1,000 sample products (Amazon ESCI subset, CC-BY-4.0)
   - `samples/queries.csv` — 50 hand-curated queries
   - `samples/judgments.json` — pre-baked judgment list (so first-run users don't pay for OpenAI judgments)
   - `samples/templates/product_search.j2` — Jinja2 template with multi_match + field_boosts + tie_breaker + fuzziness as parameters
-  - `samples/sample-config-repo.tar.gz` — a tarball that the operator can extract + push to their own GitHub for the apply step (or a public test repo on `SoundMindsAI` org per `feat_github_pr_worker` open question)
+  - The tutorial's apply-PR step targets the public **`SoundMindsAI/relyloop-test-configs`** repo (created in `feat_github_pr_worker`'s ops setup). The operator can read or fork to demo against their own; the tutorial walks through the read-only path.
   - `scripts/seed_es.py` — populates the local ES container with `samples/products.json`
 - **`ui` Compose service** — containerize the Next.js app; add to `docker-compose.yml` with `depends_on: [api]` and bind to `127.0.0.1:3000`. Build the Docker image locally in the same `pr.yml` CI workflow. The `make up` script is updated to include the `ui` service.
 - **README polish**:
@@ -58,7 +58,7 @@ After all 11 prior features ship:
   - 5-minute quickstart at the top
   - Value-proposition section
   - "What's in MVP1 / what's coming" honest list
-  - Links to spec, comparison-with-Quepid stub (a one-paragraph "How RelyLoop compares to Quepid" — see open question), and CONTRIBUTING
+  - Links to spec, architecture index, and CONTRIBUTING. (Quepid comparison stub deferred to MVP2 per Decision log.)
 - **`pr.yml` extension** — add a smoke-test job that:
   - Provisions a fresh Ubuntu runner
   - Runs `make up`
@@ -108,8 +108,8 @@ Single-phase. The MVP1 deliverable: "the `v0.1.0` tag is pushed with passing CI 
 ## 5) Assumptions and dependencies
 
 - **Dependency: ALL 11 prior MVP1 features** shipped and merged.
-- **Sample dataset license cleared** (per open question — recommend Amazon ESCI).
-- **Public test config repo** (per `feat_github_pr_worker` open question — recommend `SoundMindsAI/relyloop-test-configs` public repo) OR the tarball pattern.
+- **Sample dataset license cleared:** Amazon ESCI is CC-BY-4.0 (per Decision log).
+- **Public test config repo:** `SoundMindsAI/relyloop-test-configs` (per `feat_github_pr_worker` Decision log). Operator forks for hands-on demo or reads in-place for the tutorial walk-through.
 - **`SoundMindsAI` GitHub org has GHCR enabled** for image publishing (per umbrella §27 line 2563 & §28).
 - **YouTube account** for hosting the demo recording (or alternative host like Loom).
 

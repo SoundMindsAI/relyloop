@@ -99,7 +99,8 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `digest.gener
 ## 7) Functional requirements
 
 ### FR-1: Schema
-- The system **MUST** create `digests` and `proposals` tables per [`data-model.md`](../../../01_architecture/data-model.md). MVP1 shapes (no `tenant_id`, no `created_by`).
+- The system **MUST** create the `digests` table per [`data-model.md`](../../../01_architecture/data-model.md) (MVP1 shape: no `tenant_id`, no `created_by`).
+- The system **MUST NOT** migrate `proposals` — that table's full MVP1 shape is owned by `feat_study_lifecycle` per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md). This feature only INSERTs proposal rows (via FR-2 worker + FR-4 manual endpoint).
 
 ### FR-2: Digest worker
 - The system **MUST** define `generate_digest(ctx, study_id)` as an Arq job in `backend/worker/digest.py`.

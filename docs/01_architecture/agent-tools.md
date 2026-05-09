@@ -109,7 +109,7 @@ event: done
 data: {"conversation_id": "conv_..."}
 ```
 
-The UI's chat surface (`feat_chat_agent`) consumes this stream via native `EventSource`.
+The UI's chat surface (`feat_chat_agent`) consumes this stream via `fetch() + ReadableStream` (the user message lives in the POST body, so native `EventSource` — which is GET-only — isn't usable). See [`ui-architecture.md` §"Streaming chat"](ui-architecture.md) for the consumer pattern.
 
 ## Per-call validation
 

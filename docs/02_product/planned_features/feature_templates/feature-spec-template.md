@@ -68,18 +68,15 @@ decision.
 - <non-goal B>
 
 ### API convention check
-Verify the project's conventions before writing endpoint tables or response examples. Check the
-actual codebase for each of the following — do not assume defaults or copy from the template.
+Verify the project's conventions before writing endpoint tables or response examples. For RelyLoop, the canonical conventions are documented in [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md); cite that doc rather than re-deriving. Confirm by inspecting the actual codebase before grounding a claim:
 
-- **Endpoint prefix convention:** <e.g., "unprefixed tenant routes: /drafts, /keywords, /pipeline/*">
-- **Router namespace for this feature's endpoints:** <e.g., "/admin/configuration/" — verify by reading the actual router file>
-- **HTTP methods for CRUD:** <e.g., "POST for create, GET for read, PUT for full replace, PATCH for partial update — verify existing similar endpoints">
-- **Non-auth error envelope shape:** <paste the actual shape from the project's error helper, e.g., `{ "detail": { "code": ..., "message": ..., "details": {} } }`>
-- **Auth error shape:** <paste the actual shape, e.g., `{ "detail": "Admin authentication required" }` — often a plain string, not structured>
+- **Endpoint prefix convention:** `/api/v1/<resource>` for business endpoints; unprefixed for operator/webhook endpoints. Verify in `backend/app/api/`.
+- **Router namespace for this feature's endpoints:** name the file (e.g., `backend/app/api/studies.py`).
+- **HTTP methods for CRUD:** standard set per `api-conventions.md` (POST=create, GET=read, PUT=replace, PATCH=update, DELETE=soft-delete).
+- **Non-auth error envelope shape:** `{ "detail": { "error_code": "<CODE>", "message": "<human>", "retryable": <bool> } }` per `api-conventions.md`.
+- **Auth error shape:** N/A in MVP1–3 (no auth surface). Documented at MVP4 per `api-conventions.md`.
 
-**Why this matters:** Response examples in the spec become the source of truth for contract tests.
-If the spec uses a different envelope shape than the codebase actually produces, every contract
-test written from the spec will be wrong.
+**Why this matters:** Response examples in the spec become the source of truth for contract tests. If the spec invents a different envelope shape than the canonical one, every contract test written from the spec will be wrong.
 
 ### Phase boundaries (if multi-phase)
 
@@ -313,8 +310,8 @@ confidently.
 **Guidelines for tooltip content:**
 - Answer "what does this do?" or "why would I change this?" — not just the field name restated.
 - Use concrete examples where possible (e.g., "e.g., 'vegan food brands'" not "enter a keyword").
-- For limits/thresholds, state the consequence of the setting (e.g., "Creators below this score
-  won't appear in your drafts queue").
+- For limits/thresholds, state the consequence of the setting (e.g., "Trials below this metric
+  won't appear in the digest's top-10 table").
 - For destructive or irreversible actions, the tooltip should state the consequence clearly.
 - Keep tooltip text under ~120 characters. For longer explanations, use an inline helper text
   pattern (text below the field) or a "Learn more" link.

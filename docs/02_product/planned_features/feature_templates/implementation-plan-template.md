@@ -290,10 +290,10 @@ Format each pattern as:
 
 Example:
 ```tsx
-{/* Tooltip pattern — from existing codebase */}
+{/* Tooltip pattern — adapt to the project's existing primitive */}
 <label>
-  Min Fit Score
-  <span className="tooltip-trigger" title="Creators below this score won't appear in your drafts queue. Recommended: 60-80.">ⓘ</span>
+  Max trials
+  <span className="tooltip-trigger" title="Stop the study after this many trials, even if the time budget is unused. Recommended: 100-2000.">ⓘ</span>
 </label>
 ```
 
@@ -305,7 +305,7 @@ Example:
 
 Before deleting or replacing an existing component, enumerate every user-observable behavior it ships: client-side validations (min/max length, regex, required), loading states, disabled conditions, error messages, button-label changes tied to state, optimistic updates with rollback, confirmation dialogs, tooltips, focus management, keyboard shortcuts. Each behavior gets a verdict.
 
-**Why this matters:** Deleting 1,000+ LOC of JSX silently drops behaviors that tests don't assert. TypeScript compilation and happy-path rendering do not catch a missing `minLength={20}` check, a button that re-fires while a request is in flight, or a confirmation dialog that quietly disappeared. Reviewers (GPT-5.4, Gemini Code Assist) repeatedly catch these post-hoc, which costs review cycles and risks shipping regressions to tenants.
+**Why this matters:** Deleting 1,000+ LOC of JSX silently drops behaviors that tests don't assert. TypeScript compilation and happy-path rendering do not catch a missing `minLength={20}` check, a button that re-fires while a request is in flight, or a confirmation dialog that quietly disappeared. Cross-model code review repeatedly catches these post-hoc, which costs review cycles and risks shipping regressions to users.
 
 How to build the table:
 1. Read the full deleted/replaced component top-to-bottom.
@@ -601,8 +601,8 @@ Before marking the plan as "Ready for Execution," perform a cross-reference revi
    - The parent component actually has access to that data (or the plan includes fetching it).
    - The data isn't only available in a sibling or unrelated component tree.
    - If a story says "pass X from page.tsx", confirm page.tsx currently fetches or can derive X.
-   This prevents plans that claim "pass `scoringVertical` from the parent" when the parent
-   doesn't fetch tenant settings.
+   This prevents plans that claim "pass `best_metric` from the parent" when the parent fetches
+   only the study summary (no metric details).
 
 10. **Persistence scope consistency**: for stories that use `localStorage` or `sessionStorage`,
     verify that the task description and DoD agree on persistence scope. `localStorage` persists

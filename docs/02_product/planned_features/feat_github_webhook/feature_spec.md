@@ -130,7 +130,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, `proposal.pr_merged` and `pr
   - `content_type`: `json`
   - `secret`: the secret content from `webhook_secret_ref`-mounted file
   - `events`: `["pull_request"]`
-- If GitHub API fails (404 — repo not accessible to the PAT, 422 — webhook URL unreachable from GitHub), return 200 from `POST /api/v1/config-repos` (the config_repo IS registered) but populate a `webhook_registration_error TEXT NULLABLE` column added by this feature. UI surfaces this.
+- If GitHub API fails (404 — repo not accessible to the PAT, 422 — webhook URL unreachable from GitHub), return 200 from `POST /api/v1/config-repos` (the config_repo IS registered) but populate `config_repos.webhook_registration_error` (column pre-created by `infra_adapter_elastic`; see next bullet). UI surfaces this.
 - If `webhook_secret_ref` is NULL, skip webhook registration silently (polling-only mode).
 - The `config_repos.webhook_registration_error` column is pre-created by `infra_adapter_elastic` per [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md); this feature only writes to it.
 

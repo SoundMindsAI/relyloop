@@ -22,7 +22,7 @@
 
 After dependencies ship:
 - `query_sets`, `queries`, `clusters` tables exist (per `feat_study_lifecycle` + `infra_adapter_elastic`).
-- `judgment_lists` exists with the **full MVP1 shape** per [`data-model.md`](../../../01_architecture/data-model.md) — created by `feat_study_lifecycle` (the previously-described "stub" approach was changed during the schema-locking pass per the data-model.md §"MVP1 table inventory + migration ownership"). This feature creates ONLY the `judgments` child table and writes rows + status updates into the existing `judgment_lists`.
+- `judgment_lists` exists with the **full MVP1 shape** per [`data-model.md`](../../../01_architecture/data-model.md) — created by `feat_study_lifecycle`. This feature creates ONLY the `judgments` child table and writes rows + status updates into the existing `judgment_lists`.
 - `openai` Python SDK is installed (per `infra_foundation`) but no LLM calls are made yet.
 - No `prompts/` directory exists yet — this feature creates `prompts/judgment_generation.system.md` + `prompts/judgment_generation.user.jinja` + `prompts/judgment_generation.rubric_v1.md` per [`llm-orchestration.md` §"Prompt directory layout"](../../../01_architecture/llm-orchestration.md).
 
@@ -82,7 +82,7 @@ Single-phase. The MVP1 deliverable is "create a judgment list via API for the tu
 
 - **Dependency: `infra_foundation`** — Postgres, Arq, settings; `OPENAI_API_KEY_FILE` mounted (per [`deployment.md`](../../../01_architecture/deployment.md)).
 - **Dependency: `infra_adapter_elastic`** — `clusters` rows exist; `SearchAdapter.search_batch` works for fetching top-K candidates per query.
-- **Dependency: `feat_study_lifecycle`** — `query_sets`, `queries`, `query_templates` tables; stub `judgment_lists` table this feature extends.
+- **Dependency: `feat_study_lifecycle`** — `query_sets`, `queries`, `query_templates`, `judgment_lists` tables (all in full MVP1 shape; this feature only INSERTs/UPDATEs rows).
 - **OpenAI API key** is required at generation time (the API logs a warning at startup if missing per `infra_foundation` FR-3; `POST /api/v1/judgments/generate` returns `OPENAI_NOT_CONFIGURED` if missing).
 
 ## 6) Actors and roles
@@ -206,7 +206,7 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 
 ## 9) Data model and state transitions
 
-This feature extends `judgment_lists` (stub created by `feat_study_lifecycle`) and creates `judgments`. Schemas per [`data-model.md`](../../../01_architecture/data-model.md).
+This feature creates the `judgments` child table per [`data-model.md`](../../../01_architecture/data-model.md). It does NOT migrate `judgment_lists` (full MVP1 shape owned by `feat_study_lifecycle`).
 
 ### State transitions
 
@@ -312,7 +312,7 @@ This feature has no UI surface; the review/override UI is owned by `feat_studies
 ## 16) Rollout and migration readiness
 
 - **Feature flags:** None.
-- **Migration/backfill:** Adds columns to stub `judgment_lists`; creates `judgments` table.
+- **Migration/backfill:** Creates `judgments` table only. Does NOT migrate `judgment_lists` (owned by `feat_study_lifecycle`).
 - **Operational readiness gates:** Tutorial generation completes in <5 min for <$1.
 - **Release gate:** `feat_studies_ui` review-and-override UI can call this API without modification.
 

@@ -18,7 +18,7 @@ Per [`tech-stack.md` §"Frontend"](tech-stack.md):
 | Server state | TanStack Query (caching, retries, optimistic updates) |
 | Forms | React Hook Form + Zod |
 | Charts | Recharts |
-| Streaming | Native `EventSource` (browser SSE) |
+| Streaming | `fetch()` with `ReadableStream` (SSE-framed body over POST). Native `EventSource` is GET-only and unsuitable for the chat surface where the user message is in the request body. |
 | Testing | vitest + msw |
 | Lint | eslint (Next.js + security plugins) |
 
@@ -169,19 +169,47 @@ function CreateStudyForm() {
 
 Validation errors from Zod show inline; backend `VALIDATION_ERROR` (422) responses are surfaced via toast + form-field highlighting.
 
-## SSE streaming (chat)
+## Streaming chat (fetch + SSE-framed POST response)
 
-Per umbrella spec §22, the chat surface uses SSE for OpenAI streaming proxied through the API. Pattern:
+Per umbrella spec §22, the chat surface uses server-sent events for OpenAI streaming proxied through the API. **The implementation uses `fetch()` with a `ReadableStream` body — NOT native `EventSource`** — because the user message is in the request body and `EventSource` is GET-only.
 
 ```typescript
-function useChatStream(conversationId: string) {
-  // EventSource subscription managed in a useEffect; cleanup on unmount.
-  // Tokens streamed into a useState(messages: Message[]) buffer.
-  // Tool-call rendering: each tool invocation is its own collapsible <Card />.
+async function useChatStream(conversationId: string, userMessage: string, onEvent: (event: SSEEvent) => void) {
+  const response = await fetch(`/api/v1/conversations/${conversationId}/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "text/event-stream",
+      "X-Request-ID": crypto.randomUUID(),
+    },
+    body: JSON.stringify({ role: "user", content: { text: userMessage } }),
+  });
+
+  if (!response.ok || !response.body) {
+    // surface error via toast + abort
+    return;
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    // Split on SSE event delimiter (\n\n) and dispatch parsed events
+    const events = buffer.split("\n\n");
+    buffer = events.pop() ?? "";  // keep partial event in buffer
+    for (const raw of events) {
+      const event = parseSSEEvent(raw);  // {event, data}
+      onEvent(event);
+    }
+  }
 }
 ```
 
-Native `EventSource` only — no library. The chat surface is the only SSE consumer in MVP1.
+The same SSE wire format (`event: <type>\ndata: <json>\n\n`) is used; only the transport changes. The chat surface is the only streaming consumer in MVP1.
 
 ## Component composition
 

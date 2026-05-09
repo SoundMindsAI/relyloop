@@ -60,7 +60,7 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 | Server state | TanStack Query | Caching, retries, optimistic updates, mutations. |
 | Forms | React Hook Form + Zod | Zod schemas can be reused for API request validation. |
 | Charts | Recharts | Sufficient for parameter-importance bars, scatter plots, trial-progress lines. |
-| Streaming | Native `EventSource` (SSE) | No library needed for the small SSE surface in MVP1 (chat). |
+| Streaming | `fetch()` with `ReadableStream` (SSE-framed body over POST) | Native `EventSource` is GET-only; the chat surface POSTs the user message in the body so we use `fetch()` streaming. See [`ui-architecture.md` §"Streaming chat"](ui-architecture.md). |
 | Testing | vitest + msw | msw mocks HTTP at the network layer. |
 | Linter | eslint (Next.js + security plugins) | |
 | Formatter | prettier | |

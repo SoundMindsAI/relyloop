@@ -76,9 +76,11 @@ infra_foundation
     ↓
 infra_adapter_elastic           ← creates clusters + config_repos (full shape)
     ↓
-feat_study_lifecycle            ← creates studies + trials + query_* + judgment_lists + proposals (full shape)
+feat_study_lifecycle (schema)   ← creates studies + trials + query_* + judgment_lists +
+    ↓                              proposals (full shape, all 7 tables); NO orchestrator yet
+infra_optuna_eval               ← reads studies, writes trials via run_trial worker
     ↓
-infra_optuna_eval               ← reads studies, writes trials via run_trial
+feat_study_lifecycle (orch.)    ← study CRUD API + start_study orchestrator (enqueues run_trial)
     ↓
 feat_llm_judgments              ← creates judgments (child); writes judgment_lists rows
     ↓
@@ -88,11 +90,13 @@ feat_github_pr_worker           ← writes proposals.pr_url + pr_open_error
     ↓
 feat_github_webhook             ← writes proposals.pr_state + config_repos.webhook_registration_error
 
-feat_studies_ui     (parallel after feat_study_lifecycle + feat_digest_proposal + feat_llm_judgments)
-feat_chat_agent     (parallel after feat_studies_ui)
+feat_studies_ui     (parallel after feat_study_lifecycle orchestrator + feat_digest_proposal + feat_llm_judgments)
+feat_chat_agent     (parallel after feat_studies_ui)  ← creates conversations + messages tables
 feat_proposals_ui   (parallel after feat_studies_ui + feat_github_pr_worker)
 chore_tutorial_polish (last; depends on all)
 ```
+
+**Note on feat_study_lifecycle split:** the spec ships as one feature folder but should be planned as two epics — (1) "schema" (just the migration + Pydantic models) which unblocks `infra_optuna_eval`, then (2) "API + orchestrator" which depends on `infra_optuna_eval`'s `run_trial` worker existing. See [`feat_study_lifecycle/feature_spec.md` §"Implementation sequencing within this feature"](../02_product/planned_features/feat_study_lifecycle/feature_spec.md).
 
 Two-engineer compression: A drives the backend chain (study_lifecycle → optuna_eval → llm_judgments → digest_proposal → github_pr_worker → github_webhook); B drives the UI chain (studies_ui → chat_agent → proposals_ui) starting once the consumed APIs are stable. They re-converge on chore_tutorial_polish.
 

@@ -112,8 +112,11 @@ N/A — `audit_log` is MVP2.
 
 ### FR-2: Dashboard
 - The dashboard at `/` **MUST** show: 5 most recent studies (cards: name, cluster, status, best_metric or progress); "Open proposals" count card linking to `/proposals?status=pr_opened`; "Studies completed in last 7 days" count.
-- Initial load fetches from `GET /api/v1/studies?limit=5` + `GET /api/v1/proposals?status=pr_opened&limit=1` (response includes `total` count) + studies count via dedicated endpoint OR the `data.length`. Recommend: `GET /api/v1/studies?status=completed&since=<7d ago>` returns count via header.
-- Notes: open question on the count endpoint pattern (§19).
+- Initial load fetches:
+  - `GET /api/v1/studies?limit=5` for the recent-studies cards
+  - `GET /api/v1/proposals?status=pr_opened&limit=1` and reads the `X-Total-Count` response header for the open-proposals count
+  - `GET /api/v1/studies?status=completed&since=<7d-ago-iso8601>&limit=1` and reads `X-Total-Count` for the 7-day count
+- Per [`api-conventions.md` §"Pagination"](../../../01_architecture/api-conventions.md), every list endpoint returns `X-Total-Count` and accepts `?since=<iso8601>` — no dedicated count endpoints needed.
 
 ### FR-3: Studies list
 - `/studies` **MUST** show a cursor-paginated table with columns: name (link), cluster, status badge, primary metric (best_metric or "—"), trials_summary (e.g., "23/100"), created_at.
