@@ -11,9 +11,9 @@ user-invocable: true
 
 # Walkthrough Guide Generator & Visual Auditor
 
-> **Ported skill — DORMANT until RelyLoop has a web frontend.** This skill assumes a tenant-facing web app served from `web/` with a `GuideViewer` component, Playwright e2e harness, `web/public/guides/` asset tree, and `docs/08_guides/` walkthrough inventory. RelyLoop's MVP1 ships as a CLI/backend; per the spec roadmap, a relevant frontend appears in MVP3 ("Production Stacks") at the earliest. Do not invoke this skill until those preconditions exist. Domain examples (signup, discovery, drafts, outreach, campaigns) come from the source project — once RelyLoop has its own user-flow inventory, replace the §"Walkthrough inventory" table accordingly.
+> **DORMANT** until RelyLoop has a tenant-facing web frontend (MVP3+ at the earliest per the umbrella spec roadmap). Do NOT invoke this skill before the web stack lands. The patterns below describe how the skill will work once activated; concrete file paths (`web/`, `web/src/components/guide-trigger.tsx`, `docs/08_guides/`) don't exist yet.
 
-You generate, audit, and maintain tenant-facing walkthrough guides for the RelyLoop project. Each guide is a set of Playwright-captured screenshots with captions, served in-app via the `GuideViewer` component and on the marketing site.
+You generate, audit, and maintain user-facing walkthrough guides for the RelyLoop project. Each guide is a set of Playwright-captured screenshots with captions, served in-app via a `GuideViewer` component (to be built when the UI matures).
 
 The core value of this skill is **visual verification**: every screenshot is compared against the codebase's expected state to catch UI bugs, missing features, stale content, and broken flows — before a tenant ever sees them.
 
@@ -60,15 +60,15 @@ docs/08_guides/
 
 ## Walkthrough inventory
 
+**This skill is DORMANT until RelyLoop has a tenant-facing web frontend** (per the umbrella spec roadmap, MVP3+ at the earliest). The walkthrough inventory below will be authored when the UI matures. Likely first guides for RelyLoop:
+
 | # | Guide ID | Flow | Route prefix |
 |---|---|---|---|
-| 01 | `01_signup_and_onboarding` | Signup → verify → profile → plan → workspace → outreach | `/signup`, `/login` |
-| 02 | `02_first_discovery_run` | Run discovery → view activity → review results | `/outreach` |
-| 03 | `03_review_and_approve_drafts` | Read drafts → approve/reject → edit | `/outreach` |
-| 04 | `04_send_outreach_email` | Send approved draft → delivery status | `/outreach` |
-| 05 | `05_manage_replies_and_inbox` | Inbox → thread → status change | `/outreach` |
-| 06 | `06_campaign_management` | Create campaign → configure → switch | `/outreach` |
-| 07 | `07_billing_and_plan_changes` | View plan → upgrade/downgrade → cancel | `/settings` |
+| 01 | `01_register_first_cluster` | Add cluster → configure auth → verify health | `/clusters` |
+| 02 | `02_create_query_set_and_judgments` | Upload CSV → generate or import judgments → review calibration | `/query-sets`, `/judgments` |
+| 03 | `03_run_first_study` | Create study form → watch live trials → see digest | `/studies` |
+| 04 | `04_review_digest_and_open_pr` | Read narrative + parameter importance → click Open PR → see PR in GitHub | `/proposals` |
+| 05 | `05_chat_driven_workflow` | Ask agent to tune → watch tool calls → confirm → study runs | `/chat` |
 
 ---
 
@@ -89,12 +89,14 @@ Build an **expected-state model** for the flow — what the user should see at e
 
 Example expected-state entry:
 ```
-Screen: /signup/plan
+Screen: /studies/{id}
 Expected elements:
-  - Heading: "Choose your plan"
-  - 5 plan options: Free Trial (Free), Starter Monthly ($49/mo), Starter Annual ($39.20/mo, Save 20%), Pro Monthly ($99/mo), Pro Annual ($79.20/mo, Save 20%)
-  - "Back" button, "Start free trial" / "Continue to checkout" button
-Source: web/src/app/signup/plan/page.tsx lines 9-15 (PLANS array)
+  - Heading: study name
+  - Status badge: one of "queued | running | completed | cancelled | failed"
+  - Trials table: columns (#, params, primary_metric, duration_ms, status)
+  - Cancel button: visible only when status="running"
+  - Digest panel: visible only when an associated digests row exists
+Source: web/src/app/studies/[id]/page.tsx — depends on `useStudy(id)` hook in ui/lib/api/studies.ts
 ```
 
 ### Step 2: Write the Playwright spec
@@ -102,16 +104,16 @@ Source: web/src/app/signup/plan/page.tsx lines 9-15 (PLANS array)
 Create `web/tests/e2e/guides/<NN>_<slug>.spec.ts` following the established patterns:
 
 **Required conventions:**
-- Import helpers from `../helpers/` (signupUser, adminVerifyEmail, seedTenantSession, cleanupTenants, etc.)
+- Import helpers from `../helpers/` (registerCluster, seedQuerySet, importJudgments, cleanupTestStudies, etc.)
 - Write screenshots to `web/public/guides/<guide_id>/`
 - Dismiss cookie consent banner at the start (`page.getByRole("button", { name: /got it/i })`)
 - Hide floating overlays via MutationObserver (for Notion Web Clipper or similar)
 - Use `page.evaluate(() => window.scrollTo(0, 0))` and `page.waitForTimeout(400)` before screenshots
-- Clean up created tenants in `test.afterEach`
+- Clean up created tests in `test.afterEach`
 - Use `getByRole()`, `getByLabel()`, `getByText()` — not CSS selectors
 - Add `fullPage: true` for long pages that extend below the viewport
 
-**Screenshot naming:** `NN-descriptive-slug.png` (e.g., `01-signup-form.png`)
+**Screenshot naming:** `NN-descriptive-slug.png` (e.g., `01-cluster-list.png`)
 
 ### Step 3: Run the spec
 
@@ -127,12 +129,12 @@ npx playwright test -c playwright.demo.config.ts \
 2. Frontend is responding: `curl -s http://localhost:4100`
 3. If either is down, run `bash scripts/dev/start.sh` and wait for both to come up
 
-**Rate limiter:** If the signup endpoint returns "Too many requests", the backend's in-memory rate limiter needs a reset. Restart the backend: kill the uvicorn process and restart it.
+**Rate limiter:** If the cluster registration endpoint returns "Too many requests", the backend's in-memory rate limiter needs a reset. Restart the backend: kill the uvicorn process and restart it.
 
 **If the spec fails:** Read the error, check the failure screenshot at `web/test-results/demo-artifacts/`, fix the spec, and re-run. Common issues:
-- Rate limiter blocking signup (restart backend)
-- Workspace selection redirect (click workspace before proceeding)
-- Keyword input placeholder mismatch (check actual placeholder text in the component)
+- Rate limiter blocking the API (restart backend)
+- Cluster-not-yet-registered redirect (register a cluster first)
+- Form field placeholder mismatch (check actual placeholder text in the component)
 - `page.goto()` losing session context (use in-page navigation instead)
 
 ### Step 4: Visual audit (Opus — Pass 1)
@@ -215,11 +217,11 @@ If the guide is incomplete, extend it or adjust the scope and bridge to the next
 Verify the guide is mapped to the correct pages in `GUIDE_MAP` (`web/src/components/guide-trigger.tsx`):
 
 1. **Read `GUIDE_MAP`** and check which route prefixes are mapped to this guide.
-2. **For each slide**, verify the screenshot was taken on a page that matches one of the mapped route prefixes. A guide mapped to `/outreach` should not show `/settings` screenshots unless the user is explicitly navigated there as part of the flow.
+2. **For each slide**, verify the screenshot was taken on a page that matches one of the mapped route prefixes. A guide mapped to `/studies` should not show `/settings` screenshots unless the user is explicitly navigated there as part of the flow.
 3. **Check for missing mappings:** If the guide shows pages not in its route mapping, either:
    - Add the route prefix to `GUIDE_MAP`, OR
    - Remove those slides (they belong in a different guide)
-4. **Check for wrong mappings:** If the guide is mapped to a page where its content isn't relevant (e.g., a signup guide showing on the outreach page), remove that mapping.
+4. **Check for wrong mappings:** If the guide is mapped to a page where its content isn't relevant (e.g., a signup guide showing on the studies page), remove that mapping.
 5. **Verify the guide is listed on the `/guide` page** (`web/src/app/guide/page.tsx` → `GUIDE_CATALOG`). If it's a new guide, add it.
 
 ### Step 6: Findings gate
@@ -343,7 +345,7 @@ if (await gotIt.isVisible({ timeout: 2000 }).catch(() => false)) {
 }
 ```
 
-**Authenticated flows (outreach, settings):**
+**Authenticated flows (studies, clusters):**
 ```ts
 import { seedTenantSession } from "../helpers/tenant_session";
 import { createAdminTenant } from "../helpers/admin_tenant";
@@ -351,14 +353,14 @@ import { createAdminTenant } from "../helpers/admin_tenant";
 // Create tenant with pre-seeded data
 const { tenantId } = await createAdminTenant(request, { name: "Guide Tenant", plan: "pro" });
 await seedTenantSession(page, { tenantId, tenantName: "Guide Tenant" });
-await page.goto("/outreach");
+await page.goto("/studies");
 ```
 
-**Flows requiring existing data (drafts, inbox):**
+**Flows requiring existing data (study results, proposals):**
 ```ts
 // Seed via admin API endpoints
 const adminToken = createAdminAccessToken("super_admin");
-await request.post(`${API_URL}/admin/e2e/seed-scored-creator`, { ... });
+await request.post(`${API_URL}/admin/e2e/seed-completed-study`, { ... });
 ```
 
 ### Screenshot capture pattern
@@ -405,6 +407,6 @@ await page.addInitScript(() => {
 8. **Clean up test data** — every Playwright spec must clean up created tenants/users in `test.afterEach`.
 9. **Use Playwright's bundled Chromium** — not system Chrome. The demo config sets `channel: undefined` and `--disable-extensions` to avoid browser extension artifacts.
 10. **Present findings to the user** before creating bug/idea files. Major findings require confirmation.
-11. **Captions must be action-oriented instructions.** Every caption starts with a verb telling the user what to do: "Click", "Enter", "Select", "Scroll", "Open". Never describe outcomes — describe actions. Bad: "The Inbox tab shows conversations." Good: "Click the Inbox tab to see your creator conversations."
+11. **Captions must be action-oriented instructions.** Every caption starts with a verb telling the user what to do: "Click", "Enter", "Select", "Scroll", "Open". Never describe outcomes — describe actions. Bad: "The Studies tab shows your studies." Good: "Click the Studies tab to see your study trial logs."
 12. **Guides must be complete.** A guide that ends before the user can accomplish the stated goal is not done. If a technical limitation prevents completion (e.g., session issues), bridge to the next guide explicitly in the last caption.
 13. **Route mappings must be verified.** Every guide must be mapped to the correct pages in `GUIDE_MAP` and listed in `GUIDE_CATALOG` on the `/guide` page. A guide should only appear on pages where its content is relevant to what the user is currently doing.

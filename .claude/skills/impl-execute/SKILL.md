@@ -11,8 +11,6 @@ user-invocable: true
 
 # Implementation Plan Executor
 
-> **Ported skill.** Anecdotes from the sibling `creator-discovery-outreach` project (PR #183 stage-buckets, `creator_repo.py`, `OUTREACH_EMAIL_SENT`, audit-events `metadata_json` canaries, GPT-5.5/Gemini cross-model review, `relyloop-release-main` worktree, `pipeline_status.md` finalization steps) reflect the source project. Apply the underlying rule; verify cited paths/symbols exist in RelyLoop before grounding a claim. Cross-model review tooling (Gemini PR comments fetch, GPT-5.5 invocation) needs to be re-wired before the corresponding gates work here.
-
 You execute implementation plans for the RelyLoop project. Every story follows a prescribed workflow with mandatory verification gates. Code quality is enforced by lint/typecheck/test gates and cross-model code review via GPT-5.5.
 
 ## Inputs
@@ -96,7 +94,7 @@ Ad-hoc mode (`/impl-execute --ad-hoc`) is for changes that don't warrant `/pipel
 - Post-implementation Step 4 (push + `gh pr create` with the standard Summary / Test plan template).
 - Post-implementation Step 5 (CI watch).
 - Post-implementation Step 6 (Gemini Code Assist adjudication with the four-quadrant rubric — accept/reject/defer/escalate; this is the highest-value piece for small fixes since drive-by bugs often slip past human review without the discipline).
-- Post-implementation Step 7 (**OPTIONAL** — final cross-model review). Default to skipping for changes ≤30 LOC across ≤3 files; require for anything larger or anything touching `pipeline_items`, billing, auth, or migrations. **In ad-hoc mode, the review is performed against CLAUDE.md rules + relevant `architecture.md` invariants + the actual diff (no `implementation_plan.md` exists to seed the system prompt).** The skill prompts the user when the diff threshold is crossed and confirms the review-input swap.
+- Post-implementation Step 7 (**OPTIONAL** — final cross-model review). Default to skipping for changes ≤30 LOC across ≤3 files; require for anything larger or anything touching `studies`, `judgments`, the engine adapter, the GitHub PR worker, or migrations. **In ad-hoc mode, the review is performed against CLAUDE.md rules + relevant architecture docs (`docs/01_architecture/`) + the actual diff (no `implementation_plan.md` exists to seed the system prompt).** The skill prompts the user when the diff threshold is crossed and confirms the review-input swap.
 - Post-implementation Step 9 (post-merge local cleanup).
 
 **Recommended PR-body shape for ad-hoc mode:**
@@ -220,8 +218,8 @@ If the story includes a migration:
    - Identify the backend allowlist the values must match (cited in the plan's UI inventory or the spec's §7.4 "Enumerated value contracts").
    - `Grep` the cited backend file to enumerate the exact allowed values.
    - Compare character-for-character: every `value` in the frontend array must exist in the backend allowlist; every backend value the user should be able to select must appear in the frontend array.
-   - Add a source-of-truth comment above the array pointing at `backend/<path>:<symbol>` so future edits don't drift (e.g., `// Values must match backend/app/domain/creator/stage_buckets.py VALID_BUCKETS`).
-   - If the plan omitted the backend source citation, STOP and update the plan before implementing — do not guess a plausible allowlist. This is the failure mode that shipped `tier=mid` and four wrong stage-bucket values in Creator Management Phase 1 (PR #183).
+   - Add a source-of-truth comment above the array pointing at `backend/<path>:<symbol>` so future edits don't drift (e.g., `// Values must match backend/db/models/study.py StudyStatus`).
+   - If the plan omitted the backend source citation, STOP and update the plan before implementing — do not guess a plausible allowlist. This failure mode is documented from the sibling `creator-discovery-outreach` project (their PR #183 shipped four wrong allowlist values undetected).
 7. Verify TypeScript compiles: `npx tsc --noEmit`
 8. If the plan specifies analogous markup, use it — do not invent new patterns
 
@@ -402,8 +400,10 @@ Check for:
 4. Test coverage gaps — stories with DoD test requirements that have no
    corresponding test in the diff
 5. Security concerns — auth bypass, missing tenant_id scoping, unsanitized input
-6. Convention violations — direct Stripe/OpenAI calls bypassing abstractions,
-   missing error handling, mutable stage outside domain layer
+6. Convention violations — direct OpenAI/Optuna/engine-client calls bypassing
+   the configured abstractions (`LLMProvider`, `EngineAdapter`,
+   `OptimizerService`), missing error handling, mutable state outside the
+   domain layer
 
 Return findings as JSON: {"findings": [{"severity": "High/Medium/Low",
 "file": "path", "issue": "description", "suggestion": "fix"}]}
@@ -510,15 +510,15 @@ User confirms → apply the recommendations → proceed to Step 0b.
 
 For every new `event_type` literal introduced by the diff (grep `git diff` for `create_audit_event(` calls and string literals matching `[A-Z_]+` that are passed as the `event_type` argument):
 
-1. **Allowlist alignment:** if the event is intended to be tenant-visible, confirm it has been added to `TENANT_ACTIVITY_ALLOWLIST` in `backend/app/db/repo/audit_event_repo.py` AND the exact-set assertion in `backend/tests/unit/domain/test_tenant_activity_allowlist.py` has been updated.
-2. **Frontend IA coverage:** confirm a `formatEventDescription` case exists in `web/src/components/settings/activity-tab.tsx` AND a `FILTER_GROUPS` entry assigns the event to a category. If the admin per-tenant timeline shows the event, `web/src/components/admin/tenant-detail/tenant-timeline-tab.tsx` must also have an `EVENT_TYPES` entry + a `formatEventSummary` case.
-3. **Contract test:** confirm a contract test asserts the metadata shape on the audit row (mirroring `backend/tests/contract/test_creator_notes_audit.py`). Specifically, a metadata canary check for tenant-visible events to confirm no forbidden fields (email bodies, draft content, reply tokens, restore tokens, password fields, OAuth tokens, note bodies) leak into `metadata_json`.
-4. **Atomic emission:** confirm `create_audit_event()` is called inside the same transaction as the primary mutation (before `db.commit()`) and uses `resolve_audit_actor(auth, db)` for FK-safe admin impersonation handling.
+1. **Event-type catalog:** confirm any new event type has been added to the canonical `audit_log` event-type Literal/enum in `backend/db/models/audit_log.py`. Single source of truth per [`docs/01_architecture/data-model.md` §"Forthcoming: audit_log"](../../docs/01_architecture/data-model.md). RelyLoop's MVP2 audit-log is one append-only table; no per-event-type allowlist machinery exists.
+2. **Frontend display (MVP2+ when the audit panel lands):** if the event surfaces in the UI, confirm a display-string mapping exists in the audit-event renderer component. RelyLoop scopes activity feeds per-study or per-proposal; no global tenant-timeline tab.
+3. **Contract test:** confirm a contract test asserts the metadata shape on the audit row (mirroring `backend/tests/contract/test_study_audit.py`). Metadata canary check confirms no forbidden fields (credentials, tokens, PII beyond display-name strings) leak into `metadata_json`.
+4. **Atomic emission:** confirm the `audit_log` INSERT happens inside the same transaction as the primary mutation (before `db.commit()`). (When MVP4 brings auth + tenants, expands to include `actor_id`/`tenant_id` FK resolution.)
 5. Build a coverage table:
 
 | New event_type | Allowlist? | Frontend IA case? | Contract test? | Atomic? |
 |---|---|---|---|---|
-| `DRAFT_EDITED` | Yes | activity-tab.tsx:NNN | test_drafts_audit.py | Yes |
+| `STUDY_CREATED` | Yes | activity-tab.tsx:NNN | test_studies_audit.py | Yes |
 
 **Hard stop:** Do not proceed to documentation or PR if any new tenant-visible event type is missing allowlist + IA + contract test coverage. Reference: [docs/01_architecture/audit_events.md](../../../docs/01_architecture/audit_events.md).
 
@@ -749,7 +749,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 
 ### Step 8: Finalize — verify completion, update docs, move to implemented
 
-> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (post-merge branch setup — derive the finalization branch slug from the **feature branch name** instead of a feature directory; e.g., feature branch `bug_outreach_runs_threshold` → `docs/finalize-outreach-runs-threshold`), 1a / 2 (guide impact), 5 (`state.md` if applicable), 8 (commit + push), 9 (report completion) still apply.
+> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (post-merge branch setup — derive the finalization branch slug from the **feature branch name** instead of a feature directory; e.g., feature branch `bug_study_status_transition` → `docs/finalize-study-status-transition`), 1a / 2 (guide impact), 5 (`state.md` if applicable), 8 (commit + push), 9 (report completion) still apply.
 
 **This step is MANDATORY after CI passes and Gemini review comments are addressed.** It closes out the feature lifecycle and ensures the feature is properly archived.
 
@@ -778,8 +778,8 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
      sidesteps the conflict cleanly.
 
    Slug convention: lowercase, kebab-case, derived from the feature
-   directory name (e.g., `feat_creator_management_tags` →
-   `docs/finalize-tags-phase2` or just `docs/finalize-creator-mgmt-tags`).
+   directory name (e.g., `feat_study_lifecycle` →
+   `docs/finalize-pr-worker-pat-rotation`).
 
    After this step, all subsequent finalization commits land on the new
    branch and are merged via a second, docs-only PR.
@@ -987,12 +987,12 @@ it incrementally at merge time costs ~30 seconds.
 
 ## Manual steps
 
-Some stories involve manual configuration (Stripe Dashboard, Render env vars, DNS changes). For these:
+Some stories involve manual configuration outside the codebase (GitHub App registration + private-key install, deployment-target env vars, DNS changes for the demo install, configuring an Elasticsearch/OpenSearch test cluster, registering an LLM provider account or starting a local Ollama server). For these:
 
-1. Read the relevant vendor documentation from `docs/06_vendor_docs/`
+1. Read the relevant docs in `docs/01_architecture/` and any vendor links cited there
 2. Present step-by-step instructions to the user
 3. Wait for the user to confirm completion
-4. Verify the configuration (e.g., fetch Stripe price to confirm it exists)
+4. Verify the configuration (e.g., hit `/api/v1/clusters/{id}/health` to confirm the registered cluster responds; round-trip a one-token prompt against the configured LLM provider)
 5. Update the implementation plan tracker
 
 ---
