@@ -2,7 +2,7 @@
 
 **Status:** Draft v0.1
 **Date:** 2026-05-07
-**Companion to:** `relevance-copilot-spec.md` §27 *Phased delivery*
+**Companion to:** `../00_overview/relevance-copilot-spec.md` §27 *Phased delivery*
 **Audience:** The engineer(s) building MVP1, plus stakeholders tracking progress
 
 ---
@@ -41,7 +41,7 @@ The engineer building MVP1 needs:
 - **Skills:** Python 3.12+ (FastAPI, asyncpg, Pydantic), TypeScript / Next.js 14+, Docker / Docker Compose, Postgres, basic Optuna familiarity (or willingness to learn — it's not deep), familiarity with one of ES or OpenSearch (the API is the same), GitHub Actions
 - **Hardware:** Laptop with 16 GB RAM minimum (32 GB recommended for running ES + OpenSearch + Postgres + Redis + workers concurrently)
 - **Access:** GitHub org admin (for image publishing, branch protection); OpenAI API key; the org's test config repo
-- **Familiarity with the spec:** Has read `relevance-copilot-spec.md` §1 (Summary), §7 (Architecture), §8 (Adapters), §9 (Data model), §13 (Optuna), §14 (Evaluation), §15 (LLM orchestration), §27 (MVP1 scope), and §28 (OSS positioning). Other sections describe MVP2+ work and don't gate week-1 progress.
+- **Familiarity with the spec:** Has read `../00_overview/relevance-copilot-spec.md` §1 (Summary), §7 (Architecture), §8 (Adapters), §9 (Data model), §13 (Optuna), §14 (Evaluation), §15 (LLM orchestration), §27 (MVP1 scope), and §28 (OSS positioning). Other sections describe MVP2+ work and don't gate week-1 progress.
 
 ---
 
@@ -183,11 +183,11 @@ The engineer building MVP1 needs:
 
 ### Week 5 — Tutorial, polish, release
 
-**Goal:** Anyone can clone the repo, follow `docs/tutorial-first-study.md`, and reproduce the demo from week 4 on their own laptop with no tribal knowledge.
+**Goal:** Anyone can clone the repo, follow `docs/08_guides/tutorial-first-study.md`, and reproduce the demo from week 4 on their own laptop with no tribal knowledge.
 
 **Deliverables:**
 
-- `docs/tutorial-first-study.md`:
+- `docs/08_guides/tutorial-first-study.md`:
   - Prerequisites (Docker, OpenAI key, GitHub PAT)
   - Step 1: Clone and `docker compose up`
   - Step 2: Run `scripts/seed_es.py` to populate the sample data
@@ -203,7 +203,7 @@ The engineer building MVP1 needs:
   - Value proposition (what RelyLoop does, who it's for)
   - "What's in MVP1 / what's coming" honest list (so adopters know it's an alpha)
   - Links to spec, comparison-with-Quepid stub, and CONTRIBUTING
-- `docs/install.md` — production-style install walkthrough (TLS, SSO via reverse proxy, secrets in mounted files)
+- `docs/08_guides/install.md` — production-style install walkthrough (TLS, SSO via reverse proxy, secrets in mounted files)
 - Bug fixes from end-to-end testing — at minimum a 30-minute smoke run through the tutorial flow on a fresh VM, fixing whatever breaks
 - Coverage gate: `coverage.py` reports 80%+ for backend Python; CI fails on regression
 - Docker images built and pushed to `ghcr.io/relyloop/api:0.1.0`, `ghcr.io/relyloop/ui:0.1.0`, `ghcr.io/relyloop/worker:0.1.0`. Cosign-signed (deferred from "future polish" — add it now since it's cheap)
