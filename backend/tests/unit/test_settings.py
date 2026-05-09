@@ -213,6 +213,9 @@ class TestValidContent:
 
 class TestPlainValueDefaults:
     def test_default_redis_url(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        # CI sets REDIS_URL to point at the service-container Postgres on
+        # localhost; clear it before asserting the in-process default.
+        monkeypatch.delenv("REDIS_URL", raising=False)
         s = _make_settings(
             monkeypatch,
             database_url_file=_write(tmp_path / "db-url", "postgresql://x"),

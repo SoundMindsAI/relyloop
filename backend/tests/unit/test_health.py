@@ -27,16 +27,20 @@ from backend.app.api.middleware import RequestIDMiddleware
 from backend.app.core.settings import Settings, get_settings
 
 
-def _make_settings(tmp_path) -> Settings:
-    """Build a Settings instance with stubbed required-secret files."""
+def _make_settings(tmp_path, monkeypatch: pytest.MonkeyPatch) -> Settings:
+    """Build a Settings instance with stubbed required-secret files.
+
+    Uses ``monkeypatch.setenv`` so the env vars are restored after the test —
+    direct ``os.environ`` mutation would persist across tests and pollute
+    the Alembic subprocess in ``test_migrations.py`` (CalledProcessError:
+    password authentication failed for user "x").
+    """
     db_url_file = tmp_path / "db_url"
     db_url_file.write_text("postgresql+asyncpg://x:y@localhost/test")
     pw_file = tmp_path / "pw"
     pw_file.write_text("test")
-    import os
-
-    os.environ["DATABASE_URL_FILE"] = str(db_url_file)
-    os.environ["POSTGRES_PASSWORD_FILE"] = str(pw_file)
+    monkeypatch.setenv("DATABASE_URL_FILE", str(db_url_file))
+    monkeypatch.setenv("POSTGRES_PASSWORD_FILE", str(pw_file))
     return Settings()
 
 
@@ -48,7 +52,7 @@ def app(tmp_path, monkeypatch) -> FastAPI:
     test_app.add_middleware(RequestIDMiddleware)
     test_app.include_router(health.router)
 
-    settings = _make_settings(tmp_path)
+    settings = _make_settings(tmp_path, monkeypatch)
     test_app.dependency_overrides[get_settings] = lambda: settings
     return test_app
 

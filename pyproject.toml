@@ -24,6 +24,10 @@ dependencies = [
     "pydantic-settings>=2.6",
     "sqlalchemy[asyncio]>=2.0.36",
     "asyncpg>=0.30",
+    # psycopg2-binary is the sync Postgres driver for one-shot DDL outside the
+    # async event loop — used by `init_optuna_schema()` (CREATE SCHEMA IF NOT
+    # EXISTS optuna). Async asyncpg is the primary path for app traffic.
+    "psycopg2-binary>=2.9",
     "alembic>=1.14",
     "redis>=5.2",
     "httpx>=0.28",

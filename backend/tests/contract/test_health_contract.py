@@ -23,15 +23,19 @@ from backend.app.api.middleware import RequestIDMiddleware
 from backend.app.core.settings import Settings, get_settings
 
 
-def _make_settings(tmp_path) -> Settings:
+def _make_settings(tmp_path, monkeypatch: pytest.MonkeyPatch) -> Settings:
+    """Build Settings with stubbed required-secret files.
+
+    Uses ``monkeypatch.setenv`` (not direct ``os.environ`` mutation) so the
+    Alembic subprocess in ``test_migrations.py`` doesn't inherit a polluted
+    DATABASE_URL_FILE pointing at this test's stub URL.
+    """
     db_url_file = tmp_path / "db_url"
     db_url_file.write_text("postgresql+asyncpg://x:y@localhost/test")
     pw_file = tmp_path / "pw"
     pw_file.write_text("test")
-    import os
-
-    os.environ["DATABASE_URL_FILE"] = str(db_url_file)
-    os.environ["POSTGRES_PASSWORD_FILE"] = str(pw_file)
+    monkeypatch.setenv("DATABASE_URL_FILE", str(db_url_file))
+    monkeypatch.setenv("POSTGRES_PASSWORD_FILE", str(pw_file))
     return Settings()
 
 
@@ -87,12 +91,12 @@ def _override_probes(
 
 
 @pytest.fixture
-def app(tmp_path) -> FastAPI:
+def app(tmp_path, monkeypatch: pytest.MonkeyPatch) -> FastAPI:
     test_app = FastAPI(title="RelyLoop test", version="0.1.0")
     install_exception_handlers(test_app)
     test_app.add_middleware(RequestIDMiddleware)
     test_app.include_router(health.router)
-    settings = _make_settings(tmp_path)
+    settings = _make_settings(tmp_path, monkeypatch)
     test_app.dependency_overrides[get_settings] = lambda: settings
     return test_app
 
