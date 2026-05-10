@@ -98,6 +98,56 @@ it has tests at every layer it touches.
 Every accepted endpoint needs a contract test asserting response shape +
 documented error codes (per spec §7.5 and api-conventions.md).
 
+## Benchmarks (opt-in)
+
+Performance budgets are enforced by benchmark tests under
+[`backend/tests/benchmarks/`](../../backend/tests/benchmarks/), marked with
+`@pytest.mark.benchmark` so they don't run as part of the default
+`make test-unit` / `make test-contract` flow. Opt in via:
+
+```bash
+uv run pytest -m benchmark backend/tests/benchmarks/
+```
+
+First-shipped benchmark: `test_scoring_perf.py` (from `infra_optuna_eval`)
+asserts `backend.app.eval.scoring.score` completes in <100ms per query for
+a 50-query × top_k=10 fixture (spec §FR-3 SHOULD).
+
+## Testing the `run_trial` worker
+
+The hot-path Arq job at [`backend/workers/trials.py`](../../backend/workers/trials.py)
+is exercised at three test layers:
+
+* **Unit** — `backend/tests/unit/workers/test_trials_unit.py`. Tests the
+  `_snapshot_optuna_trial` helper and the state-specific
+  `_reconstruct_from_optuna` reconciliation (COMPLETE / FAIL / PRUNED) via
+  `AsyncMock` — no real Postgres or Optuna storage.
+* **Integration** — six modules under `backend/tests/integration/`
+  (test_run_trial.py, test_run_trial_adapter_failure.py,
+  test_run_trial_idempotent_retry.py, test_run_trial_partial_failure.py,
+  test_pruner_defaults.py, test_optuna_rdb.py). Each:
+  * skips when Postgres isn't reachable (CI provides it as a service
+    container);
+  * uses `setup_study_with_cluster()` from
+    `backend/tests/integration/fixtures/run_trial_setup.py` to create the
+    cluster / template / query_set / study rows;
+  * simulates Phase 2's orchestrator via
+    `create_optuna_trial_for_study()` (which calls `study.ask()` AND
+    `trial.suggest_*()` to populate params before the worker runs);
+  * installs a `StubAdapter` (from `fixtures/stub_adapter.py`) via
+    `monkeypatch` so AC-7's "exactly one _msearch, zero _search" assertion
+    is verified by stub call recording (no real ES + no cassette).
+* **Contract** — `backend/tests/contract/test_trial_row_shape.py` asserts
+  the `Trial` ORM row's FR-5 invariants after a happy-path run.
+
+For partial-failure tests (AC-8b) the worker runs in a subprocess via
+`backend/tests/integration/_subprocess_helpers/run_trial_with_test_stubs.py`,
+which reinstalls the qrels + adapter stubs inside the child process from
+env-var-passed JSON (pytest monkeypatches do not survive into a fresh
+interpreter). Fault injection is via the `INFRA_OPTUNA_EVAL_FAULT` env
+var, which triggers `os._exit(1)` at one of two seams
+(`after_trial_load_before_execute`, `after_tell_before_insert`).
+
 ## Where to look
 
 - [`backend/tests/conftest.py`](../../backend/tests/conftest.py) — shared

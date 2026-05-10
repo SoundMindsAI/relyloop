@@ -61,11 +61,13 @@ Computed at trial time and stored in `trials.metrics` (JSONB):
 | Metric | Notes |
 |---|---|
 | `ndcg@k` | Default `k=10`; `k` configurable per study via `studies.objective.k` |
-| `map` | Mean Average Precision |
+| `map` | Mean Average Precision (full-recall when `studies.objective.k` omitted; `map@k` when set) |
 | `precision@k` | `precision@10` is the convention; `k` follows `studies.objective.k` |
 | `recall@k` | Same `k` |
-| `mrr` | Mean Reciprocal Rank |
-| `err@k` | Expected Reciprocal Rank — graded-relevance counterpart to MRR |
+| `mrr` | Mean Reciprocal Rank (k ignored — always full-recall) |
+
+ERR@k is deferred to MVP2 (pytrec_eval doesn't ship it; reserved for the
+metric-expansion alongside CMA-ES per [`infra_optuna_eval` spec §3](../02_product/planned_features/infra_optuna_eval/feature_spec.md)).
 
 Studies declare a single primary `objective.metric` (the value Optuna optimizes against) and the others are recorded for analysis. The primary metric is denormalized into `trials.primary_metric` (REAL) for fast sort.
 
@@ -89,22 +91,43 @@ Ratings in `0..3` (graded) or `0..1` (binary). pytrec_eval is configured per met
 
 ## Worker job: `run_trial`
 
-The Arq job that executes one trial:
+The Arq job that executes one trial. Implemented in
+[`backend/workers/trials.py`](../../backend/workers/trials.py) (lands with
+`infra_optuna_eval`).
+
+Per the spec §11 orchestrator-vs-worker contract, the worker does NOT call
+`study.ask()` or `suggest_*` — Phase 2's orchestrator does both before
+enqueue. The worker loads the in-flight trial via `study.trials[N]` and
+calls `study.tell(integer_trial_number, value)` (the integer form, NOT a
+`FrozenTrial`):
 
 ```python
 async def run_trial(ctx, study_id: UUID, optuna_trial_number: int) -> None:
     """
-    Hot-path Arq job. Reads the study, asks Optuna for params, renders + executes
-    + scores, writes a `trials` row, calls `study.tell()`.
+    Hot-path Arq job. Loads the pre-allocated Optuna trial, renders + executes
+    + scores, writes a `trials` row, calls `study.tell(number, value)`.
     """
-    # 1. Load study, get adapter, get judgments, get template
-    # 2. study.ask() → params
-    # 3. adapter.render(template, params, query_text) → native_query (per query)
-    # 4. adapter.search_batch(target, native_queries, top_k=study.objective.k)
-    # 5. pytrec_eval.RelevanceEvaluator(qrels, metric_set).evaluate(run)
-    # 6. INSERT INTO trials (... params, metrics, primary_metric, status, duration_ms, ...)
-    # 7. study.tell(trial, primary_metric_value)
+    # 0.  Open session; pre-generate trial_id (UUIDv7) for the app row PK +
+    #     structlog binding.
+    # 1a. App-row idempotency — if a terminal trials row exists for
+    #     (study_id, optuna_trial_number), return no-op.
+    # 1b. Load study.trials[optuna_trial_number] (sync; wrapped in
+    #     asyncio.to_thread); if state.is_finished(), reconstruct the app
+    #     row from the cached Optuna state — NO re-run of search/score.
+    # 2.  Happy path: load adapter / template / queries / qrels;
+    #     render N native queries; single `_msearch` via search_batch;
+    #     score; compute primary via objective_metric_key();
+    #     await asyncio.to_thread(study.tell, optuna_trial_number, primary);
+    #     INSERT trials row.
+    # 3.  Trial-level failure (adapter/render/score raises BEFORE tell):
+    #     tell(state=FAIL); write status='failed' row; return normally.
+    # 4.  Infra-level failure (Postgres lost, Redis lost): re-raise so Arq
+    #     retries with backoff.
 ```
+
+Retrieval depth (`top_k` passed to `adapter.search_batch`) derives from
+`study.objective.k` when present, falling back to a default of 100 when k
+is absent (the case for `map` without a cut, or `mrr` which ignores k).
 
 **Concurrency:** N worker processes consume the `trials` Arq queue. Each handles one trial at a time. Optuna's RDB locking serializes the `ask()`/`tell()` calls correctly across workers.
 

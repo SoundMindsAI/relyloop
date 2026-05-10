@@ -7,9 +7,9 @@ _Reflects feature-folder state as of **2026-05-10** (latest mtime of any planned
 | Metric | Value |
 |---|---|
 | Features done | **2 / 12** (17%) |
-| Path to MVP1 | **14** items remaining (features + bugs + chores) |
+| Path to MVP1 | **15** items remaining (features + bugs + chores) |
 | Open bugs | 2 |
-| Open chores | 2 (idea-stage debt) |
+| Open chores | 3 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
@@ -28,11 +28,13 @@ _Reflects feature-folder state as of **2026-05-10** (latest mtime of any planned
 |---|---|---|---|---|
 | [feat_study_lifecycle](../02_product/planned_features/feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
+| [infra_optuna_eval](../02_product/planned_features/infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 
-### Spec (9)
+### Spec (8)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -43,15 +45,15 @@ _None._
 | [feat_llm_judgments](../02_product/planned_features/feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | Draft |
 | [feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | Draft |
 | [feat_studies_ui](../02_product/planned_features/feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | Draft |
-| [infra_optuna_eval](../02_product/planned_features/infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | — | Draft |
 
-### Idea (6)
+### Idea (7)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_ci_smoke_makeup](../02_product/planned_features/infra_ci_smoke_makeup/idea.md) | Infra | CI runs `make test-unit && make test-integration && make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure | — | Idea — captured during `infra_foundation` PR #4 first-run testing |
 | [infra_frontend_stack_refresh](../02_product/planned_features/infra_frontend_stack_refresh/idea.md) | Infra | The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09): | — | Idea — surfaced during dependency audit on `feature/infra-foundation` |
+| [chore_infra_optuna_eval_spec_text_drift](../02_product/planned_features/chore_infra_optuna_eval_spec_text_drift/idea.md) | Chore | The `infra_optuna_eval` feature spec at [`feature_spec.md`](../infra_optuna_eval/feature_spec.md) has internal drift between §11 and §14 about the partial-failure retry contract: | — | — |
 | [chore_starlette_422_deprecation](../02_product/planned_features/chore_starlette_422_deprecation/idea.md) | Chore | Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name: | — | Idea — captured during `infra_foundation` Story 5.1 test backfill |
 | [chore_test_both_engines](../02_product/planned_features/chore_test_both_engines/idea.md) | Chore | `backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test: | — | Idea (deferred from `infra_adapter_elastic` — refactor sweep, 2026-05-09) |
 | [bug_capability_check_test_isolation](../02_product/planned_features/bug_capability_check_test_isolation/idea.md) | Bug | Idea (deferred from `infra_adapter_elastic` Story 5.1) | — | Idea (deferred from `infra_adapter_elastic` Story 5.1) |
@@ -87,7 +89,7 @@ graph LR
   feat_study_lifecycle["study lifecycle"]
   class feat_study_lifecycle implement;
   infra_optuna_eval["optuna eval"]
-  class infra_optuna_eval spec;
+  class infra_optuna_eval plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   infra_adapter_elastic["adapter elastic"]

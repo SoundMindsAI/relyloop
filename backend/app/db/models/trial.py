@@ -43,9 +43,15 @@ class Trial(Base):
         String(36), ForeignKey("studies.id", ondelete="CASCADE"), nullable=False
     )
     optuna_trial_number: Mapped[int] = mapped_column(Integer, nullable=False)
-    """Optuna's per-study trial number; idempotent across worker restarts
-    (re-running a trial_number doesn't create a duplicate row because
-    Optuna's ``study.ask()`` is idempotent on the trial number)."""
+    """Optuna's per-study trial number. Pre-assigned by ``feat_study_lifecycle``
+    Phase 2's orchestrator via ``study.ask().number`` (which also calls
+    ``trial.suggest_*`` to populate params) before enqueueing
+    ``run_trial(study_id, optuna_trial_number)``. The ``infra_optuna_eval``
+    worker does NOT call ``study.ask()`` — it loads the pre-assigned
+    in-flight trial via ``study.trials[optuna_trial_number]``. Idempotency
+    on ``(study_id, optuna_trial_number)`` is enforced by the worker
+    (app-row check + Optuna-side reconciliation) per
+    ``infra_optuna_eval/feature_spec.md`` §11."""
     params: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
     """The parameter combination Optuna's sampler picked for this trial."""
     primary_metric: Mapped[float | None] = mapped_column(Float, nullable=True)

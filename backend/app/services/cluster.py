@@ -7,7 +7,11 @@ Composes the repo + adapter + Redis cache into business operations:
   soft-deleted same-named row (per spec §10 Data retention).
 * ``get_or_probe_health`` — read-through cache on top of ``read_cached_health``;
   on miss probes the cluster and writes the result with the canonical 30s TTL.
-* ``_build_adapter`` — small factory used by routers (Stories 3.3/3.4).
+* ``build_adapter`` — public factory used by routers (Stories 3.3/3.4) AND
+  by ``backend/workers/trials.py`` (the Optuna trial runner from
+  ``infra_optuna_eval``). Renamed from the private ``_build_adapter`` in
+  ``infra_optuna_eval`` Story 2.3 so the worker doesn't have to import
+  across module boundaries via a leading-underscore symbol.
 * ``dispatch_run_query`` — wraps the adapter's ``search_batch`` with
   ``asyncio.wait_for`` as an outer wall-clock guard for the run_query API.
 
@@ -193,7 +197,7 @@ async def get_or_probe_health(redis: Redis, cluster: Cluster) -> HealthStatus:
     if cached is not None:
         return cached
     try:
-        adapter = _build_adapter(cluster)
+        adapter = build_adapter(cluster)
     except CredentialsMissing as exc:
         return HealthStatus(
             status="unreachable",
@@ -237,7 +241,7 @@ async def acquire_adapter(cluster: Cluster) -> AsyncIterator[ElasticAdapter]:
             raise _err(404, "TARGET_NOT_FOUND", ...) from exc
     """
     try:
-        adapter = _build_adapter(cluster)
+        adapter = build_adapter(cluster)
     except CredentialsMissing as exc:
         raise ClusterUnreachable(f"credentials resolution failed: {exc}") from exc
     try:
@@ -296,7 +300,7 @@ __all__ = [
     "get_or_probe_health",
     "register_cluster",
     "soft_delete_cluster",
-    "_build_adapter",
+    "build_adapter",
 ]
 
 
@@ -305,7 +309,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 
-def _build_adapter(cluster: Cluster) -> ElasticAdapter:
+def build_adapter(cluster: Cluster) -> ElasticAdapter:
     """Construct a fresh ``ElasticAdapter`` from a stored cluster row."""
     return ElasticAdapter(
         cluster_id=cluster.id,
