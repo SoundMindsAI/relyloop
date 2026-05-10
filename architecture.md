@@ -41,9 +41,12 @@ tests, and never modifies cluster schema/mapping/analyzer settings.
 
 ## Critical flows (where to look in the topical docs)
 
-- **First boot (`make up` → `/healthz` 200):**
+- **First boot (`make up` → `make migrate` → `make seed-clusters` → `/healthz` 200):**
   [`deployment.md` §"MVP1 deployment shape"](docs/01_architecture/deployment.md)
-  + [`infra_foundation` feature_spec.md §7.3](docs/02_product/planned_features/infra_foundation/feature_spec.md)
+  + [`infra_foundation` feature_spec.md §7.3](docs/00_overview/implemented_features/2026_05_09_infra_foundation/feature_spec.md)
+- **Cluster registration (POST /api/v1/clusters → adapter probe → DB insert):**
+  [`backend/app/services/cluster.py`](backend/app/services/cluster.py) +
+  [`docs/03_runbooks/cluster-registration.md`](docs/03_runbooks/cluster-registration.md)
 - **OpenAI capability check at startup:**
   [`llm-orchestration.md` §"Capability check at startup"](docs/01_architecture/llm-orchestration.md)
 - **Subsystem health probes (DB / Redis / ES / OpenSearch):**
@@ -85,18 +88,26 @@ expected to honor them. The full text lives in [`CLAUDE.md`](CLAUDE.md):
 ```
 backend/
   app/
-    api/         routers (health.py + future v1/* + webhooks/*)
+    api/         routers (health.py with /healthz + v1/clusters.py + future
+                 webhooks/*)
     core/        settings, logging, request-id middleware, error envelope
-    db/          base, session, models/ (none in MVP1), repo/ (none in MVP1)
-    services/    use-case orchestrators (arrive with their owning features)
-    domain/      pure business logic
-    adapters/    engine adapters (lands with infra_adapter_elastic)
+    db/          base, session,
+                 models/ (Cluster, ConfigRepo from infra_adapter_elastic),
+                 repo/ (cluster.py + config_repo.py)
+    services/    use-case orchestrators — cluster.py from infra_adapter_elastic;
+                 future ones arrive with their owning features
+    domain/      pure business logic — query/render.py from
+                 infra_adapter_elastic
+    adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
+                 8 Pydantic types), elastic.py (ES + OpenSearch),
+                 credentials.py, errors.py, health_cache.py
+    scripts/     operator entrypoints — seed_clusters.py
     llm/         OpenAI-compatible client + capability check
     git/         Git provider clients (lands with feat_github_pr_worker)
   workers/       Arq WorkerSettings (functions=[] in MVP1)
   tests/         unit / integration / contract layers
 ui/              Next.js 14 App Router (placeholder page in MVP1)
-migrations/      Alembic config + versions/ (0001_baseline only)
+migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters)
 docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
                  05_quality / 08_guides
 ```

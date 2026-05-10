@@ -8,23 +8,45 @@
 
 ## Current branch / execution context
 
-- **Branch:** `feature/infra-adapter-elastic` (plan landed 2026-05-09; implementation not started)
-- **Active feature:** [`infra_adapter_elastic`](docs/02_product/planned_features/infra_adapter_elastic/) — the engine adapter (Elasticsearch + OpenSearch) that unblocks every downstream MVP1 feature. Spec approved, [implementation_plan.md](docs/02_product/planned_features/infra_adapter_elastic/implementation_plan.md) approved (3 GPT-5.5 review cycles, 19 findings all accepted + applied). One open user question: spec §2 `/healthz` extension has no FR backing it — see [pipeline_status.md](docs/02_product/planned_features/infra_adapter_elastic/pipeline_status.md) for the resolution options.
-- **Alembic head:** `0001_baseline` (registers `alembic_version`; first
-  business-table migration lands with `infra_adapter_elastic`)
-- **Coverage:** 90.17% backend (gate is 80%); `health.py` + `probes.py` +
-  `capability_models.py` + `errors.py` all at 100%.
+- **Branch:** `feature/infra-adapter-elastic` (implementation complete 2026-05-09; PR pending)
+- **Active feature:** [`infra_adapter_elastic`](docs/02_product/planned_features/infra_adapter_elastic/) — the engine adapter (Elasticsearch + OpenSearch) that unblocks every downstream MVP1 feature. **Implementation complete**: 20 stories across 5 epics, 14 commits on the branch, all phase gates green, coverage 90.85%. The §2 `/healthz` extension question (no-FR aggregate field) was resolved by implementing per spec §2 text (Story 3.5 — `subsystems.elasticsearch_clusters`).
+- **Alembic head:** `0002_clusters_config_repos` (`clusters` + `config_repos`
+  tables created; round-trip verified locally + in CI).
+- **Coverage:** 90.85% backend (gate is 80%); `protocol.py` + `errors.py` +
+  `health_cache.py` + new `models/*` all at 100%; adapter at 95%+;
+  `services/cluster.py` at 82%.
 
 ## Most recent meaningful changes (newest first)
 
-- **2026-05-09 — `infra_adapter_elastic` implementation plan approved** on
-  branch `feature/infra-adapter-elastic`. 20 stories across 5 epics. Three GPT-5.5
-  cross-model review cycles raised 19 findings (12 High / 7 Medium); every
-  finding was accepted and applied. Plan creates `clusters` + `config_repos`
-  tables (migration `0002`), `backend/app/adapters/{protocol,elastic,credentials,errors,health_cache}.py`,
-  six API endpoints under `/api/v1/clusters`, the `make seed-clusters` Make target,
-  and `docs/03_runbooks/cluster-registration.md`. One open user question
-  (spec §2 `/healthz` extension has no FR — see pipeline_status.md).
+- **2026-05-09 — `infra_adapter_elastic` implementation complete on
+  `feature/infra-adapter-elastic`** (PR pending). All 20 stories across 5
+  epics shipped:
+  - **Epic 1**: `SearchAdapter` Protocol + 8 Pydantic types + `clusters` /
+    `config_repos` ORM models + Alembic migration `0002` (round-trip
+    verified) + repo functions with cursor pagination.
+  - **Epic 2**: `ElasticAdapter` for ES (8.11+/9.x) + OpenSearch (2.x),
+    auth resolution (apikey / basic), `_request` with spec §13 single
+    retry + 401/403/5xx translation, `health_check` with 30s Redis cache,
+    `list_targets` / `get_schema` / `list_query_parsers`,
+    `render` (Jinja → ES Query DSL), `search_batch` via single `_msearch`
+    call, `explain`, engine-branch tests.
+  - **Epic 3**: cluster service (registration probe + revival of soft-deleted
+    rows + dispatch_run_query), 6 endpoints under `/api/v1/clusters` (POST
+    register, GET list with cursor + `X-Total-Count`, GET detail, DELETE
+    soft-delete, GET `/schema`, POST `/run_query`), `/healthz` extension
+    with `subsystems.elasticsearch_clusters` aggregate field.
+  - **Epic 4**: `make seed-clusters` (idempotent — `local-es` +
+    `local-opensearch`), `scripts/install.sh` seeds the dev-default
+    cluster credentials, `docs/03_runbooks/cluster-registration.md`,
+    spec/adapters.md path patches (`backend/adapters/` →
+    `backend/app/adapters/`, section §7.x → §8.x).
+  - **Epic 5**: 8-code error envelope contract test, dispatch_run_query
+    unit tests, coverage audit (90.85% — well above gate).
+  - 19 GPT-5.5 plan-review findings (12 High / 7 Medium) all applied.
+  - Operator-path verification: live ES 9.4.0 + OpenSearch 2.18.0
+    exercised end-to-end via the dev-deps container; `/healthz` returns
+    `subsystems.elasticsearch_clusters: {"registered": 2, "healthy": 2,
+    "unreachable": 0}` after `make seed-clusters`.
 - **2026-05-09 — `infra_foundation` PR #4 merged to `main`** (squash commit
   `93eeb64`). Bootstrap complete: 6-service Compose stack, FastAPI +
   `/healthz`, OpenAI capability check at startup, Alembic baseline
@@ -62,12 +84,14 @@
 
 ## In flight
 
-- **`infra_adapter_elastic`** — plan landed 2026-05-09; ready for `/impl-execute`
-  pending operator resolution of the §2 `/healthz` extension question.
+- **`infra_adapter_elastic`** — implementation complete on
+  `feature/infra-adapter-elastic`; PR pending push + open. After merge,
+  Alembic head moves from `0002` to whatever `infra_optuna_eval` adds
+  next.
 
 ## Queued (priority-ordered by dependency)
 
-1. **`infra_optuna_eval`** ← **next up after `infra_adapter_elastic`.** Optuna RDBStorage tables + pytrec_eval wiring.
+1. **`infra_optuna_eval`** ← **next up.** Optuna RDBStorage tables + pytrec_eval wiring.
 2. **`feat_study_lifecycle`** — 7-table study/trial/proposal schema.
 3. **`feat_llm_judgments`** — judgment-list LLM rubric runner.
 4. **`feat_digest_proposal`** — study-end digest narrative.

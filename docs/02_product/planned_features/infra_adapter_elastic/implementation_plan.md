@@ -1,7 +1,7 @@
 # Implementation Plan — infra_adapter_elastic
 
 **Date:** 2026-05-09
-**Status:** Ready for Execution (pending O4 user resolution — spec §2 `/healthz` extension; see §11 Review log)
+**Status:** Implementation Complete (PR pending — branch `feature/infra-adapter-elastic`, 2026-05-09)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):**
 - [CLAUDE.md](../../../../CLAUDE.md) — Absolute Rules #2 (mounted secrets), #4 (engine adapter Protocol), #5 (Alembic round-trip), #6 (`/healthz` unauth), #11 (200ms probe timeout)
@@ -2542,11 +2542,11 @@ For solo execution, sequential is fine — the parallelization notes are for mul
 - [x] Story 3.5 — `/healthz` extension (commit `4c13b52`, 2026-05-09)
 - [x] Epic 3 gate (passed 2026-05-09)
 - [x] Story 4.1 — Seed command (commit `b157386`, 2026-05-09)
-- [ ] Story 4.2 — Docs + path patches
-- [ ] Epic 4 gate
-- [ ] Story 5.1 — Test coverage audit
-- [ ] Story 5.2 — Finalization
-- [ ] Epic 5 gate
+- [x] Story 4.2 — Docs + path patches (commit `31d8bae`, 2026-05-09)
+- [x] Epic 4 gate (passed 2026-05-09)
+- [x] Story 5.1 — Test coverage audit (commit `64e11aa`, 2026-05-09)
+- [x] Story 5.2 — Finalization (this commit)
+- [x] Epic 5 gate (passed 2026-05-09)
 
 ### Blocked items
 

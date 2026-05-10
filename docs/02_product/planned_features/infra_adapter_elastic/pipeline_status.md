@@ -24,25 +24,39 @@
 - Phases covered: All (single-phase per spec §3)
 
 ## Implement
-- Status: In progress (1 of 20 stories complete)
-- Branch: `feature/infra-adapter-elastic` (current)
-- Completed:
-  - Story 1.1 (commit `6bf565b`, 2026-05-09) — `SearchAdapter` Protocol + 8 Pydantic types; 19 unit tests passing.
-- Next: Story 1.2 (ORM models for `clusters` + `config_repos`).
-- Resume command: `/impl-execute docs/02_product/planned_features/infra_adapter_elastic/implementation_plan.md --all` from a fresh session — the skill auto-resumes from the first `[ ]` story in the execution tracker.
+- Status: **Implementation complete (PR pending)** — 20 of 20 stories complete, all phase gates green
+- Branch: `feature/infra-adapter-elastic`
+- Completed (newest first):
+  - Story 5.2 (this commit) — Finalization: state.md / architecture.md / CLAUDE.md updated; pipeline_status flipped to complete.
+  - Story 5.1 (`64e11aa`) — error_codes contract test (8 spec §7.5 codes); dispatch_run_query unit test; coverage 90.85% (gate 80%).
+  - Story 4.2 (`31d8bae`) — cluster-registration runbook; backend/adapters → backend/app/adapters path patches; spec §7.x → §8.x renumber; README Quickstart adds make seed-clusters.
+  - Story 4.1 (`b157386`) — make seed-clusters target; idempotent script; install.sh seeds dev-default cluster credentials.
+  - Story 3.5 (`4c13b52`) — /healthz extension with subsystems.elasticsearch_clusters aggregate.
+  - Stories 3.1-3.4 (`37ed558`) — cluster service + 6 endpoints under /api/v1/clusters; 18 integration tests pass against live ES + Postgres.
+  - Stories 2.6 + 2.7 (`bfd6328`) — explain + engine-branch parametrized tests.
+  - Story 2.5 (`abff542`) — search_batch via single _msearch call; AC-4 verified.
+  - Story 2.4 (`1cc17a4`) — Jinja-to-NativeQuery render with StrictUndefined.
+  - Story 2.3 (`9251281`) — list_targets + get_schema (no _field_caps; cycle 1 F6 fix verified) + list_query_parsers.
+  - Story 2.2 (`ecb2895`) — health_check + ES 8.11 / OpenSearch 2.0 floor + 30s Redis cache.
+  - Story 2.1 (`451d725`) — ElasticAdapter skeleton, credentials, retry, errors module.
+  - Story 1.4 (`3d5f789`) — repo functions + cursor pagination.
+  - Story 1.3 (`1b80290`) — Alembic 0002 migration; round-trip verified.
+  - Story 1.2 (`264b8d0`) — Cluster + ConfigRepo ORM models.
+  - Story 1.1 (`6bf565b`) — SearchAdapter Protocol + 8 Pydantic types.
+- Next: open PR; CI watch; Gemini Code Assist adjudication; final GPT-5.5 review; merge.
 
 ## Done
-- —
+- All 5 epic gates passed.
+- Operator-path verification: live ES 9.4.0 + OpenSearch 2.18.0 exercised end-to-end via the dev-deps container.
+- 19 GPT-5.5 plan-review findings (12 High / 7 Medium) all applied.
 
 ## Open items requiring user input
 
-- **O4 — `/healthz` extension spec gap.** Spec §2 references adding `subsystems.elasticsearch_clusters` to `/healthz`, but no FR in §7 backs it. Plan implements per §2 text (Story 3.5). Two options:
-  1. Add FR-8 to the spec formally documenting the field shape (response examples + degraded-status mapping). Story 3.5 stays as-is.
-  2. Remove the §2 sentence and drop Story 3.5. The four health/probe test files in §3.5 of the plan become no-op rows.
-
-  No-decision default if not resolved before implementation begins: Story 3.5 ships per the plan's documented shape, and the spec is patched in Story 4.2 to add FR-8 with that shape.
+- None remaining. The §2 `/healthz` extension question (`O4` in the
+  plan's review log) was resolved by implementing per spec §2 text
+  (Story 3.5).
 
 ## Next action
 
-- Operator resolves O4 (or accepts the no-decision default).
-- Then: `/impl-execute docs/02_product/planned_features/infra_adapter_elastic/implementation_plan.md --all` to execute Stories 1.1 → 5.2 sequentially with phase gates.
+- Push the branch + open PR; monitor CI; adjudicate Gemini Code Assist
+  review; run final GPT-5.5 review of the cumulative diff; merge.
