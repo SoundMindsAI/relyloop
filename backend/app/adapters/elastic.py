@@ -21,6 +21,7 @@ module — services consume the unified ``SearchAdapter`` Protocol.
 from __future__ import annotations
 
 import base64
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -475,8 +476,100 @@ class ElasticAdapter:
         strict_errors: bool = False,
         timeout: float | None = None,
     ) -> dict[str, list[ScoredHit]]:
-        """Stub — implemented in Story 2.5."""
-        raise NotImplementedError("Story 2.5")
+        """Issue one ``_msearch`` call and preserve query_id mapping (FR-3, AC-4).
+
+        ``strict_errors`` controls per-query error handling:
+
+        * ``False`` (default — Optuna trial runner): per-query engine errors
+          yield empty ``[]`` for that ``query_id``; caller records a trial failure.
+        * ``True`` (run_query API path): per-query parsing errors raise
+          ``InvalidQueryDSLError``; per-query non-parse errors raise
+          ``ClusterUnreachableError``.
+
+        ``timeout`` overrides the adapter's default httpx client timeout for this
+        call so the run_query endpoint's operator-supplied budget actually fires.
+
+        Cycle 3 F2 fix: routed through ``_request`` to inherit the spec §13
+        single retry + 401/403/5xx translation. Top-level 400 is mapped here
+        (strict → ``InvalidQueryDSLError``, non-strict →
+        ``ClusterUnreachableError``).
+        """
+        from backend.app.adapters.errors import InvalidQueryDSLError, QueryTimeoutError
+
+        if not queries:
+            return {}
+
+        # Build the NDJSON body: alternating {index header} + {query body, size}
+        lines: list[str] = []
+        for q in queries:
+            lines.append(json.dumps({"index": target}))
+            body = dict(q.body)
+            body.setdefault("size", top_k)
+            lines.append(json.dumps(body))
+        ndjson_body = "\n".join(lines) + "\n"
+
+        try:
+            resp = await self._request(
+                "POST",
+                "/_msearch",
+                content=ndjson_body,
+                extra_headers={"Content-Type": "application/x-ndjson"},
+                request_id=request_id,
+                timeout=timeout,
+                translate_errors=False,
+            )
+        except httpx.ReadTimeout as exc:
+            # Read timeout the retry didn't recover — strict callers (run_query)
+            # get QueryTimeoutError; hot-path gets ClusterUnreachableError so
+            # trial runners can degrade gracefully.
+            if strict_errors:
+                raise QueryTimeoutError(str(exc)) from exc
+            raise ClusterUnreachableError(str(exc)) from exc
+        except (httpx.ConnectError, httpx.RemoteProtocolError, httpx.ConnectTimeout) as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+
+        # Top-level status mapping (translate_errors=False kept it visible).
+        if resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {resp.status_code}) for _msearch"
+            )
+        if resp.status_code >= 500:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from _msearch")
+        if resp.status_code == 400:
+            body_txt = resp.text[:500]
+            if strict_errors:
+                raise InvalidQueryDSLError(f"_msearch rejected the request: {body_txt}")
+            raise ClusterUnreachableError(f"HTTP 400 from _msearch: {body_txt}")
+        resp.raise_for_status()
+
+        payload = resp.json()
+        items = payload.get("responses", [])
+        out: dict[str, list[ScoredHit]] = {}
+        for q, item in zip(queries, items, strict=True):
+            if "error" in item:
+                err = item["error"]
+                err_type = err.get("type") if isinstance(err, dict) else None
+                err_reason = err.get("reason") if isinstance(err, dict) else str(err)
+                if strict_errors:
+                    if err_type in (
+                        "parsing_exception",
+                        "x_content_parse_exception",
+                        "json_parse_exception",
+                    ):
+                        raise InvalidQueryDSLError(f"query {q.query_id}: {err_reason}")
+                    raise ClusterUnreachableError(f"query {q.query_id} failed: {err_reason}")
+                out[q.query_id] = []
+                continue
+            hits = item.get("hits", {}).get("hits", [])
+            out[q.query_id] = [
+                ScoredHit(
+                    doc_id=h["_id"],
+                    score=float(h.get("_score") or 0.0),
+                    source=h.get("_source"),
+                )
+                for h in hits
+            ]
+        return out
 
     async def explain(
         self,
