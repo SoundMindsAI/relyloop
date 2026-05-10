@@ -26,7 +26,7 @@ from backend.tests.integration.fixtures.handbuilt_qrels import (
     build_qrels,
 )
 from backend.tests.integration.fixtures.run_trial_setup import (
-    cleanup_study,
+    cleanup_fixture,
     create_optuna_trial_for_study,
     setup_study_with_cluster,
 )
@@ -129,4 +129,4 @@ async def test_run_trial_writes_complete_trial_row_with_tpe_sampler(
     assert "bm25_k1" in t.params
     assert "bm25_b" in t.params
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)

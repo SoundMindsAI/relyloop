@@ -21,7 +21,7 @@ from backend.tests.integration.fixtures.handbuilt_qrels import (
     build_qrels,
 )
 from backend.tests.integration.fixtures.run_trial_setup import (
-    cleanup_study,
+    cleanup_fixture,
     create_optuna_trial_for_study,
     setup_study_with_cluster,
 )
@@ -85,4 +85,4 @@ async def test_re_running_completed_trial_is_no_op(monkeypatch: pytest.MonkeyPat
     # No second search_batch call — short-circuit fired before reaching the adapter.
     assert len(stub.search_batch_calls) == 1
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)

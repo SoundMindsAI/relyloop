@@ -25,7 +25,7 @@ from backend.app.eval.optuna_runtime import build_storage
 from backend.tests.conftest import postgres_reachable
 from backend.tests.integration.fixtures.handbuilt_qrels import build_qrels
 from backend.tests.integration.fixtures.run_trial_setup import (
-    cleanup_study,
+    cleanup_fixture,
     create_optuna_trial_for_study,
     setup_study_with_cluster,
 )
@@ -82,4 +82,4 @@ async def test_run_trial_persists_failed_row_on_adapter_failure(
     # Adapter aclose() still ran via finally.
     assert failing_stub.aclose_called is True
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)

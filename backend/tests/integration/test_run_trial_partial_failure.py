@@ -31,7 +31,7 @@ from backend.app.eval.optuna_runtime import build_storage
 from backend.tests.conftest import postgres_reachable
 from backend.tests.integration.fixtures.handbuilt_qrels import build_qrels
 from backend.tests.integration.fixtures.run_trial_setup import (
-    cleanup_study,
+    cleanup_fixture,
     create_optuna_trial_for_study,
     setup_study_with_cluster,
 )
@@ -159,7 +159,7 @@ async def test_ac8b_case1_death_before_tell_recoverable_on_retry(
     # Only one trial for this study (no duplicate ask was called).
     assert len(optuna_study.trials) == 1
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)
 
 
 async def test_ac8b_case2_death_after_tell_before_insert_reconciles(
@@ -225,4 +225,4 @@ async def test_ac8b_case2_death_after_tell_before_insert_reconciles(
     # load_qrels was NEVER called either.
     qrels_mock.assert_not_called()
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)

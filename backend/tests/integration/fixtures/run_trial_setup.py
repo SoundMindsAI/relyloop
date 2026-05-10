@@ -19,7 +19,14 @@ from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db import repo
-from backend.app.db.models import Query, Study
+from backend.app.db.models import (
+    Cluster,
+    JudgmentList,
+    Query,
+    QuerySet,
+    QueryTemplate,
+    Study,
+)
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
 
@@ -221,14 +228,34 @@ def create_optuna_trial_for_study(
     return trial.number
 
 
-async def cleanup_study(study_id: str) -> None:
-    """Delete the study row at teardown (cascades to trials via FK).
+async def cleanup_fixture(fixture: TrialFixture) -> None:
+    """Delete every row created by ``setup_study_with_cluster`` in FK-safe order.
 
-    Other rows (cluster, template, query_set, queries, judgment_list) are
-    left in place — they're cheap to accumulate in the test DB; CI uses
-    an ephemeral container so they don't survive across runs anyway.
+    Required because the run_trial integration tests bypass the
+    ``db_session`` fixture's SAVEPOINT rollback (the worker opens its own
+    session via ``get_session_factory()`` and commits to its own connection).
+    Without explicit cleanup, the rows persist across tests in the same CI
+    run and break pre-existing assertions (e.g.,
+    ``test_cluster_repo::test_count_clusters_excludes_soft_deleted`` counts
+    the total clusters table).
+
+    Deletion order matches the FK chain:
+
+    1. trials (cascades from study — handled by Study delete).
+    2. study (FK→cluster, judgment_list, query_set, template; delete first
+       to free those parents).
+    3. judgment_list (FK→cluster, query_set, template; soft-deletable but
+       hard-deleted here for test isolation).
+    4. queries (cascades from query_set, handled below).
+    5. query_set (FK→cluster).
+    6. query_template.
+    7. cluster.
     """
     factory = get_session_factory()
     async with factory() as db:
-        await db.execute(delete(Study).where(Study.id == study_id))
+        await db.execute(delete(Study).where(Study.id == fixture.study_id))
+        await db.execute(delete(JudgmentList).where(JudgmentList.id == fixture.judgment_list_id))
+        await db.execute(delete(QuerySet).where(QuerySet.id == fixture.query_set_id))
+        await db.execute(delete(QueryTemplate).where(QueryTemplate.id == fixture.template_id))
+        await db.execute(delete(Cluster).where(Cluster.id == fixture.cluster_id))
         await db.commit()

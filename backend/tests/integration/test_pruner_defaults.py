@@ -19,7 +19,7 @@ from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_pruner
 from backend.tests.conftest import postgres_reachable
 from backend.tests.integration.fixtures.run_trial_setup import (
-    cleanup_study,
+    cleanup_fixture,
     setup_study_with_cluster,
 )
 
@@ -48,7 +48,7 @@ async def test_pruner_omitted_with_small_max_trials_round_trips_to_nop():
     pruner = build_pruner(loaded.config)
     assert isinstance(pruner, NopPruner)
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)
 
 
 async def test_pruner_explicit_median_with_small_max_trials_round_trips_to_median():
@@ -66,4 +66,4 @@ async def test_pruner_explicit_median_with_small_max_trials_round_trips_to_media
     pruner = build_pruner(loaded.config)
     assert isinstance(pruner, MedianPruner)
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)

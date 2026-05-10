@@ -34,7 +34,7 @@ from backend.tests.integration.fixtures.handbuilt_qrels import (
     build_qrels,
 )
 from backend.tests.integration.fixtures.run_trial_setup import (
-    cleanup_study,
+    cleanup_fixture,
     create_optuna_trial_for_study,
     setup_study_with_cluster,
 )
@@ -128,4 +128,4 @@ async def test_trial_row_shape_after_happy_path_run_trial(
     assert t.params  # populated by orchestrator simulation
     assert t.metrics  # populated by scorer
 
-    await cleanup_study(fixture.study_id)
+    await cleanup_fixture(fixture)
