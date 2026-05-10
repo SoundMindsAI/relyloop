@@ -45,7 +45,19 @@ fi
 [[ -e ./secrets/openai_key ]]     || { touch ./secrets/openai_key;     chmod 600 ./secrets/openai_key;     }
 [[ -e ./secrets/github_token ]]   || { touch ./secrets/github_token;   chmod 600 ./secrets/github_token;   }
 if [[ ! -e ./secrets/cluster_credentials.yaml ]]; then
-  printf '{}\n' > ./secrets/cluster_credentials.yaml
+  # Seed default credentials for the local Compose ES + OpenSearch containers
+  # (well-known dev defaults — not production secrets). The seed-clusters
+  # script (`make seed-clusters`) reads these refs to register the two
+  # containers as cluster rows. Operators add real production credentials
+  # by editing this file before `make seed-clusters` for non-local clusters.
+  cat > ./secrets/cluster_credentials.yaml <<'CLUSTER_CREDS_EOF'
+local-es:
+  username: elastic
+  password: changeme
+local-opensearch:
+  username: admin
+  password: admin
+CLUSTER_CREDS_EOF
   chmod 600 ./secrets/cluster_credentials.yaml
 fi
 
