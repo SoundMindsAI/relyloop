@@ -32,20 +32,32 @@ Multi-phase feature. Phase 1 = Schema (this PR scope); Phase 2 = Orchestrator + 
 - Gemini Code Assist: N/A (not configured on `SoundMindsAI/relyloop`; same as PR #16)
 - Test coverage added: 14 integration test methods across 8 classes in `test_study_lifecycle_migration.py`; 11 round-trip tests in `test_study_repos.py`.
 
+## Plan (Phase 2 — Orchestrator + API)
+- Status: **Approved** — 2026-05-10
+- File: [phase2_implementation_plan.md](phase2_implementation_plan.md)
+- Cross-model review: GPT-5.5 — 3 cycles, **21 findings**, 19 accepted + applied, 1 rejected with cited counter-evidence (cycle-1 F2 → spec drift, captured as [`chore_spec_query_set_cluster_id_drift`](../chore_spec_query_set_cluster_id_drift/idea.md)), 1 second-pass discovery (C3-F3) applied in-cycle.
+  - Cycle 1: 12 findings (5 High / 6 Medium / 1 Low) — 11 accepted + applied, 1 rejected with cited counter-evidence
+  - Cycle 2: 6 findings (1 High / 3 Medium / 2 Low) — all accepted + applied (closing residual gaps in cycle-1 F6/F10/F11 fixes + 1 new architectural concern C2-F4)
+  - Cycle 3: 3 findings (0 High / 3 Medium) — all accepted + applied (C3-F1 config key-omission, C3-F2 long-lived DB session, C3-F3 digest handoff atomicity)
+- Stories: **14 across 4 epics** (Epic 1 foundations × 5 stories → Epic 2 orchestrator × 3 stories → Epic 3 API × 5 stories → Epic 4 docs × 1 story)
+- Phase 2 endpoints: 12 (all in spec §7.1)
+- Phase 2 error codes: 12 (all in spec §7.5) + 1 add-on (judgment/query-set mismatch → VALIDATION_ERROR)
+- Test files: 4 new unit + 6 new integration + 2 new contract = 12 new test files; estimated +75 new test methods across all files
+
 ## Done
 - Phase 1: **Complete (PR #18, merged 2026-05-10)**
-- Phase 2: pending (full feature DoD requires both phases — see [phase2_idea.md](phase2_idea.md))
+- Phase 2: in flight — Plan approved 2026-05-10; implementation pending via `/impl-execute`
 
 ## Open items requiring user input
 
-- None for Phase 1. Phase 2 unblocks once `infra_optuna_eval`'s `run_trial` Arq job ships.
+- None. Phase 2 plan is execution-ready.
 
 ## Next action
 
-Phase 2 generation is gated on `infra_optuna_eval` shipping. Once that lands, run:
+Run `/impl-execute` against the approved Phase 2 plan:
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md
+/impl-execute docs/02_product/planned_features/feat_study_lifecycle/phase2_implementation_plan.md --all
 ```
 
-This invokes the pipeline against `phase2_idea.md` to scaffold the Phase 2 spec → plan → impl-execute sequence (Orchestrator + API surface). Per the impl-execute Step 8.6 "phase idea files" check, this folder remains in `planned_features/` until Phase 2 ships — moving it to `implemented_features/` while Phase 2 work is still queued would archive the deferred trail.
+The plan has 4 epics with phase gates between them. Each epic's gate includes a GPT-5.5 phase-diff review per the impl-execute Step 4 contract. Final review + Gemini adjudication run at PR time.

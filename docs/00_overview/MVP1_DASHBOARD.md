@@ -7,9 +7,9 @@ _Reflects feature-folder state as of **2026-05-10** (latest mtime of any planned
 | Metric | Value |
 |---|---|
 | Features done | **3 / 12** (25%) |
-| Path to MVP1 | **14** items remaining (features + bugs + chores) |
+| Path to MVP1 | **15** items remaining (features + bugs + chores) |
 | Open bugs | 2 |
-| Open chores | 3 (idea-stage debt) |
+| Open chores | 4 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
@@ -46,13 +46,14 @@ _None._
 | [feat_studies_ui](../02_product/planned_features/feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | Draft |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | — | Draft |
 
-### Idea (7)
+### Idea (8)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_ci_smoke_makeup](../02_product/planned_features/infra_ci_smoke_makeup/idea.md) | Infra | CI runs `make test-unit && make test-integration && make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure | — | Idea — captured during `infra_foundation` PR #4 first-run testing |
 | [infra_frontend_stack_refresh](../02_product/planned_features/infra_frontend_stack_refresh/idea.md) | Infra | The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09): | — | Idea — surfaced during dependency audit on `feature/infra-foundation` |
 | [chore_infra_optuna_eval_spec_text_drift](../02_product/planned_features/chore_infra_optuna_eval_spec_text_drift/idea.md) | Chore | The `infra_optuna_eval` feature spec at [`feature_spec.md`](../infra_optuna_eval/feature_spec.md) has internal drift between §11 and §14 about the partial-failure retry contract: | — | — |
+| [chore_spec_query_set_cluster_id_drift](../02_product/planned_features/chore_spec_query_set_cluster_id_drift/idea.md) | Chore | `docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md` §7 FR-3 says: | — | — |
 | [chore_starlette_422_deprecation](../02_product/planned_features/chore_starlette_422_deprecation/idea.md) | Chore | Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name: | — | Idea — captured during `infra_foundation` Story 5.1 test backfill |
 | [chore_test_both_engines](../02_product/planned_features/chore_test_both_engines/idea.md) | Chore | `backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test: | — | Idea (deferred from `infra_adapter_elastic` — refactor sweep, 2026-05-09) |
 | [bug_capability_check_test_isolation](../02_product/planned_features/bug_capability_check_test_isolation/idea.md) | Bug | Idea (deferred from `infra_adapter_elastic` Story 5.1) | — | Idea (deferred from `infra_adapter_elastic` Story 5.1) |
