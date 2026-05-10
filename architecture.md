@@ -33,6 +33,7 @@ tests, and never modifies cluster schema/mapping/analyzer settings.
 | [`api-conventions.md`](docs/01_architecture/api-conventions.md) | Endpoint conventions, error envelope, pagination, idempotency |
 | [`data-model.md`](docs/01_architecture/data-model.md) | Per-table column-level reference; lineage; future audit_log |
 | [`adapters.md`](docs/01_architecture/adapters.md) | The `SearchAdapter` Protocol shape |
+| [`cluster-lifecycle.md`](docs/01_architecture/cluster-lifecycle.md) | What a "cluster" is, why registration probes, soft-delete + revival, the 6 cluster endpoints mapped to operator intent |
 | [`llm-orchestration.md`](docs/01_architecture/llm-orchestration.md) | Capability check, function-calling, per-task LLM patterns |
 | [`optimization.md`](docs/01_architecture/optimization.md) | Optuna sampler choice, RDBStorage, trial scheduling |
 | [`ui-architecture.md`](docs/01_architecture/ui-architecture.md) | Next.js layout, streaming chat, server-state pattern |

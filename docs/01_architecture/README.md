@@ -9,6 +9,7 @@ System design docs, interface descriptions, and topology overviews. Each topical
 - [`api-conventions.md`](api-conventions.md) — URL structure, HTTP methods, error envelope, pagination, idempotency, trace propagation
 - [`data-model.md`](data-model.md) — Postgres tables, conventions (UUIDv7, soft-delete, JSONB), MVP1 omissions
 - [`adapters.md`](adapters.md) — engine adapter Protocol, ElasticAdapter, cross-engine parameter naming
+- [`cluster-lifecycle.md`](cluster-lifecycle.md) — what a "cluster" is, why registration probes, soft-delete + revival, the 6 endpoints mapped to operator intent (read first if the cluster API is unfamiliar)
 - [`deployment.md`](deployment.md) — Docker Compose layout, secrets, volumes, network exposure
 
 ## Per-MVP navigation summaries

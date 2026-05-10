@@ -3,6 +3,8 @@
 **Status:** Active (lands with `infra_adapter_elastic`, 2026-05-09)
 **Audience:** Operators registering a search cluster against RelyLoop.
 
+> **New to RelyLoop?** Read [`docs/01_architecture/cluster-lifecycle.md`](../01_architecture/cluster-lifecycle.md) first — it explains what "a cluster" is, why registration probes the engine before inserting, and how the 6 endpoints map to operator intent. This runbook assumes that conceptual model and focuses on the procedural commands.
+
 ---
 
 ## Prerequisites
