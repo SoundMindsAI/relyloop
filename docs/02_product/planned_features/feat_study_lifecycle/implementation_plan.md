@@ -1,7 +1,7 @@
 # Implementation Plan — feat_study_lifecycle (Phase 1 — Schema)
 
 **Date:** 2026-05-10
-**Status:** Approved (cross-model review converged 2026-05-10 — 3 cycles, 15 findings, all accepted + applied)
+**Status:** Complete (Phase 1 only) — PR #18, squash-merged 2026-05-10 as `d74e1be`. Phase 2 deferred via [phase2_idea.md](phase2_idea.md).
 **Primary spec:** [feature_spec.md](feature_spec.md) (Phase 1 scope only)
 **Deferred work:** [phase2_idea.md](phase2_idea.md) — Phase 2 (Orchestrator + API)
 **Policy source(s):**
