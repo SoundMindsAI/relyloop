@@ -20,7 +20,7 @@ from ipaddress import ip_address
 from typing import Any, Literal
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from backend.app.core.settings import get_settings
 
@@ -332,14 +332,15 @@ class StudyConfigSpec(BaseModel):
     seed: int | None = None
     secondary_metrics: list[str] | None = None
 
-    @field_validator("secondary_metrics")
-    @classmethod
-    def _check_secondary_metrics(cls, v: list[str] | None) -> list[str] | None:
-        # Plain validator — keeps the list as-is. Real allowlist checking
-        # is owned by the worker which translates user-facing names to wire
-        # metric keys (per infra_optuna_eval's scoring layer). Empty list is
-        # allowed (operator override of the default fallback).
-        return v
+    @model_validator(mode="after")
+    def _require_one_stop_condition(self) -> StudyConfigSpec:
+        if self.max_trials is None and self.time_budget_min is None:
+            raise ValueError(
+                "studies.config must specify at least one of `max_trials` or "
+                "`time_budget_min` — otherwise the study has no terminating "
+                "stop condition"
+            )
+        return self
 
 
 class CreateStudyRequest(BaseModel):
