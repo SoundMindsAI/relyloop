@@ -35,6 +35,7 @@ from backend.app.api.middleware import RequestIDMiddleware
 from backend.app.api.v1 import clusters as clusters_router
 from backend.app.api.v1 import query_sets as query_sets_router
 from backend.app.api.v1 import query_templates as query_templates_router
+from backend.app.api.v1 import studies as studies_router
 from backend.app.core.logging import configure_logging, get_logger
 from backend.app.core.settings import get_settings
 from backend.app.llm.capability_check import run_capability_check_background
@@ -68,9 +69,32 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             redis_client=redis_client,
         )
     )
+
+    # Build the Arq pool used by Phase 2's POST /api/v1/studies to
+    # enqueue the start_study orchestrator job. The pool is best-effort:
+    # if Redis isn't reachable we log + skip (the study row still lands
+    # in the DB and the worker's on_startup resume sweep will pick it up
+    # if it's running).
+    from arq.connections import RedisSettings, create_pool
+
+    arq_pool = None
+    try:
+        arq_pool = await create_pool(RedisSettings.from_dsn(settings.redis_url))
+        _app.state.arq_pool = arq_pool
+    except Exception as exc:  # noqa: BLE001 — best-effort
+        logger.warning(
+            "failed to build Arq pool at startup; POST /studies will not enqueue",
+            error=str(exc),
+        )
+
     try:
         yield
     finally:
+        if arq_pool is not None:
+            try:
+                await arq_pool.close()
+            except Exception as exc:  # noqa: BLE001 — shutdown swallow
+                logger.warning("arq pool close raised during shutdown", error=str(exc))
         # Cancel the capability check if it's still running on shutdown
         # (e.g. a slow endpoint pushed it past process lifetime).
         if not cap_task.done():
@@ -102,3 +126,4 @@ app.include_router(health.router)  # /healthz unprefixed; operator endpoint per 
 app.include_router(clusters_router.router, prefix="/api/v1")  # Story 3.2 — cluster CRUD
 app.include_router(query_templates_router.router, prefix="/api/v1")  # Phase 2 Story 3.1
 app.include_router(query_sets_router.router, prefix="/api/v1")  # Phase 2 Story 3.2
+app.include_router(studies_router.router, prefix="/api/v1")  # Phase 2 Stories 3.3 + 3.4
