@@ -273,7 +273,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">14</div>
+      <div class="value">15</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -283,7 +283,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">2</div>
+      <div class="value">3</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -311,7 +311,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">6</span></h3>
+  <h3>Idea <span class="count">7</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_ci_smoke_makeup">Ci Smoke Makeup</a></div>
@@ -332,6 +332,18 @@ footer {
 
   </div>
   <div class="one-liner">The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09):</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_infra_optuna_eval_spec_text_drift">Infra Optuna Eval Spec Text Drift</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">The `infra_optuna_eval` feature spec at [`feature_spec.md`](../infra_optuna_eval/feature_spec.md) has internal drift between §11 and §14 about the partial-failure retry contract:</div>
 
 
 </div>
@@ -387,7 +399,7 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">9</span></h3>
+  <h3>Spec <span class="count">8</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -473,18 +485,6 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_optuna_eval/feature_spec.md">Optuna Eval</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/18">PR #18</a><span>merged 2026-05-10</span>
-  </div>
-  <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
-
-
-</div>
-
-
 <div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
   <div class="meta">
@@ -499,7 +499,18 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_optuna_eval/feature_spec.md">Optuna Eval</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/18">PR #18</a><span>merged 2026-05-10</span>
+  </div>
+  <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
+
+
+</div>
 
 </div>
 
@@ -577,7 +588,7 @@ footer {
   feat_study_lifecycle[&quot;study lifecycle&quot;]
   class feat_study_lifecycle implement;
   infra_optuna_eval[&quot;optuna eval&quot;]
-  class infra_optuna_eval spec;
+  class infra_optuna_eval plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   infra_adapter_elastic[&quot;adapter elastic&quot;]
@@ -626,7 +637,7 @@ footer {
   feat_study_lifecycle[&quot;study lifecycle&quot;]
   class feat_study_lifecycle implement;
   infra_optuna_eval[&quot;optuna eval&quot;]
-  class infra_optuna_eval spec;
+  class infra_optuna_eval plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   infra_adapter_elastic[&quot;adapter elastic&quot;]
