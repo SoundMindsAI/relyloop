@@ -141,6 +141,13 @@ disallow_incomplete_defs = false
 disallow_untyped_decorators = false
 warn_return_any = false
 
+# Third-party libraries without py.typed marker / stubs.
+# pytrec_eval ships no type info; treat its imports as untyped (we wrap it in
+# backend/app/eval/scoring.py which is fully typed).
+[[tool.mypy.overrides]]
+module = "pytrec_eval"
+ignore_missing_imports = true
+
 # ---------------------------------------------------------------------------
 # Pytest
 # ---------------------------------------------------------------------------
