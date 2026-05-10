@@ -213,7 +213,7 @@ Format:
 
 | Field | Accepted values (exact) | Backend source of truth | Frontend call site(s) |
 |---|---|---|---|
-| `?engine_type` | `elasticsearch`, `opensearch` | `backend/adapters/protocol.py` (`EngineType` `Literal[...]`) | cluster filter dropdown in `<path>` |
+| `?engine_type` | `elasticsearch`, `opensearch` | `backend/app/adapters/protocol.py` (`EngineType` `Literal[...]`) | cluster filter dropdown in `<path>` |
 | `?status` (studies) | `queued`, `running`, `completed`, `cancelled`, `failed` | `backend/db/models/study.py` (`StudyStatus` `Literal[...]` or DB CHECK) | studies filter chip in `<path>` |
 | `?status` (proposals) | `pending`, `pr_opened`, `pr_merged`, `rejected` | `backend/db/models/proposal.py` (`ProposalStatus`) | proposals filter chip in `<path>` |
 

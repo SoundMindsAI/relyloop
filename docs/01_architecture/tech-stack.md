@@ -102,7 +102,7 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 - Single monorepo: `relyloop/relyloop` on GitHub.
 - Top-level structure: `backend/`, `ui/`, `worker/`, `migrations/`, `prompts/`, `templates/`, `samples/`, `scripts/`, `docs/`, `tests/`.
 - One test file per source file; mirror the source tree under `tests/`.
-- Adapters live under `backend/adapters/` (engine), `backend/llm/` (LLM provider), `backend/git/` (Git provider).
+- Adapters live under `backend/app/adapters/` (engine), `backend/llm/` (LLM provider), `backend/git/` (Git provider).
 
 ### Python coding standards
 

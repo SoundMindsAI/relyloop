@@ -3,7 +3,8 @@
 Most fixtures land with the stories that need them:
 
 - ``async_client`` (httpx.AsyncClient against the FastAPI app) — Story 3.1+
-- ``db_session`` (async SQLAlchemy session against a test database) — Story 2.1+
+- ``db_session`` (async SQLAlchemy session against a test database) — added
+  with infra_adapter_elastic Story 1.4 (the first feature with business tables).
 - ``redis_client`` (aioredis client against the test Redis) — Story 3.3+
 - ``mock_llm`` (OpenAI client stub) — Story 3.3+
 
@@ -22,7 +23,13 @@ Bootstrap-level isolation:
 
 from __future__ import annotations
 
+import os
+import socket
+from collections.abc import AsyncIterator
+from urllib.parse import urlparse
+
 import pytest
+import pytest_asyncio
 
 
 @pytest.fixture(autouse=True)
@@ -38,3 +45,90 @@ def _clear_settings_caches() -> None:
     get_settings.cache_clear()
     get_engine.cache_clear()
     get_session_factory.cache_clear()
+
+
+def postgres_reachable() -> bool:
+    """Return True only if Settings is constructible AND the DB host:port accepts TCP.
+
+    Used by integration test fixtures to skip cleanly when Postgres isn't
+    available from the test process (e.g. host shell against a Compose
+    Postgres that's bound to internal-only networking).
+    """
+    if not os.environ.get("DATABASE_URL_FILE") or not os.environ.get("POSTGRES_PASSWORD_FILE"):
+        return False
+    try:
+        from backend.app.core.settings import get_settings
+
+        url = get_settings().database_url
+    except Exception:  # noqa: BLE001 — best-effort skip-detector
+        return False
+    parsed = urlparse(url)
+    host = parsed.hostname or "localhost"
+    port = parsed.port or 5432
+    try:
+        with socket.create_connection((host, port), timeout=1.0):
+            return True
+    except (TimeoutError, OSError):
+        return False
+
+
+_MIGRATIONS_APPLIED = False
+"""Module-level flag to apply Alembic migrations exactly once per test session.
+
+CI doesn't run a migration step before pytest, so any test that reads/writes
+business tables (``test_cluster_repo.py``, etc.) needs the schema in place
+on first use. ``test_clusters_migration.py`` exercises the full upgrade /
+downgrade cycle itself and resets this flag to force re-application after.
+"""
+
+
+def _apply_migrations_if_needed() -> None:
+    """Apply ``alembic upgrade head`` once if schema isn't already present."""
+    global _MIGRATIONS_APPLIED
+    if _MIGRATIONS_APPLIED:
+        return
+    import subprocess
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[2]
+    subprocess.run(
+        ["uv", "run", "alembic", "upgrade", "head"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    _MIGRATIONS_APPLIED = True
+
+
+@pytest_asyncio.fixture
+async def db_session() -> AsyncIterator[AsyncSession]:  # type: ignore[name-defined] # noqa: F821
+    """Yield an ``AsyncSession`` against the integration-test Postgres.
+
+    Skips automatically when Postgres isn't reachable. Each test runs inside
+    a SAVEPOINT-style transaction that's rolled back on teardown, so tests
+    don't leak rows between runs and cleanup never runs against a partially
+    committed schema. On first use per session, applies Alembic migrations
+    so the business tables exist (CI doesn't have a separate migration step).
+    """
+    if not postgres_reachable():
+        pytest.skip(
+            "Postgres not reachable — see docs/03_runbooks/local-dev.md §'Local-vs-CI test layers'."
+        )
+    _apply_migrations_if_needed()
+
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+    from backend.app.core.settings import get_settings
+
+    engine = create_async_engine(get_settings().database_url, echo=False, future=True)
+    async with engine.connect() as conn:
+        outer_tx = await conn.begin()
+        factory = async_sessionmaker(bind=conn, class_=AsyncSession, expire_on_commit=False)
+        async with factory() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+                await outer_tx.rollback()
+    await engine.dispose()

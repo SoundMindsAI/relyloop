@@ -6,7 +6,7 @@
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
         ui-lint ui-typecheck ui-test ui-build \
         pre-commit pre-commit-install \
-        up down logs reset migrate migrate-create
+        up down logs reset migrate migrate-create seed-clusters
 
 help:  ## Show this help message
 	@echo ""
@@ -96,6 +96,12 @@ migrate:  ## alembic upgrade head + initialize Optuna RDB schema (runs inside ap
 	}
 	docker compose exec -T api alembic upgrade head
 	docker compose exec -T api python -m backend.app.db.optuna_schema
+
+seed-clusters:  ## Register local-es + local-opensearch clusters (idempotent — safe to re-run)
+	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \
+	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
+	}
+	docker compose exec -T api python -m backend.app.scripts.seed_clusters
 
 migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs inside api container; pins sequential rev-id)
 	@if [ -z "$(name)" ]; then \

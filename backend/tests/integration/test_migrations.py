@@ -121,7 +121,9 @@ class TestBaselineMigration:
                 row = result.fetchone()
                 assert row is not None, "alembic_version table empty after upgrade head"
                 # Baseline is "0001" per migrations/versions/0001_baseline.py.
-                assert row[0] == "0001"
+                # Head is "0002" once infra_adapter_elastic Story 1.3 lands the
+                # clusters_config_repos migration.
+                assert row[0] == "0002"
         finally:
             engine.dispose()
 
@@ -136,15 +138,17 @@ class TestBaselineMigration:
         """Downgrade by one revision and re-upgrade returns cleanly to head."""
         _alembic("upgrade", "head")
         _alembic("downgrade", "-1")
-        # After downgrade -1 from baseline, alembic_version table is dropped.
-        # Re-upgrade re-creates it at head.
+        # After downgrade -1 from 0002 we land at 0001 (the baseline). Re-upgrade
+        # re-applies 0002 cleanly per CLAUDE.md Absolute Rule #5.
         _alembic("upgrade", "head")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
                 row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 assert row is not None
-                assert row[0] == "0001"
+                # Head is "0002" once infra_adapter_elastic Story 1.3 lands the
+                # clusters_config_repos migration.
+                assert row[0] == "0002"
         finally:
             engine.dispose()
 

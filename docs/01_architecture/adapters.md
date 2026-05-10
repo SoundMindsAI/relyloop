@@ -9,7 +9,7 @@
 
 **The adapter layer is the only place engine-specific logic lives.** Every other service (study runner, judgment generator, agent, UI) speaks the unified parameter vocabulary defined in §"Cross-engine parameter naming" below. Adapters translate from the unified vocabulary to the native engine API.
 
-Why this matters: a feature that adds, say, a new tuning parameter does so once at the unified layer; every adapter implementation pivots it to its native form. There's no scenario in MVP1+ where engine-specific code lives outside `backend/adapters/`.
+Why this matters: a feature that adds, say, a new tuning parameter does so once at the unified layer; every adapter implementation pivots it to its native form. There's no scenario in MVP1+ where engine-specific code lives outside `backend/app/adapters/`.
 
 ## The Protocol
 
@@ -53,7 +53,7 @@ class SearchAdapter(Protocol):
 
 `search_batch` is the **only hot-path method** during a study (called once per Optuna trial). Every other method is define-time (`get_schema`, `list_targets` — called during cluster registration and study creation) or debug-time (`explain` — called from the UI when a user wants to see why a doc ranked where it did).
 
-The Protocol lives in `backend/adapters/protocol.py`. Adapter implementations live as siblings (`backend/adapters/elastic.py`, future `backend/adapters/fusion.py`, etc.).
+The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py`, future `backend/app/adapters/fusion.py`, etc.).
 
 ## ElasticAdapter (MVP1)
 

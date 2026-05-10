@@ -19,10 +19,15 @@ make pre-commit-install          # install Git hooks
 make up                          # auto-generates secrets, then docker compose up -d
                                  # ~90s cold (image pulls), ~60s warm
 
-# 3. Verify
-curl -s http://localhost:8000/healthz | jq    # status: ok, all subsystems reachable
+# 3. Apply migrations + seed local clusters
+make migrate                     # applies the alembic chain (incl. 0002_clusters_config_repos)
+make seed-clusters               # registers local-es + local-opensearch (idempotent)
 
-# 4. (Optional) populate OpenAI key for the capability check
+# 4. Verify
+curl -s http://localhost:8000/healthz | jq    # status: ok, all subsystems reachable
+                                              # subsystems.elasticsearch_clusters.registered: 2
+
+# 5. (Optional) populate OpenAI key for the capability check
 echo "sk-..." > ./secrets/openai_key
 make down && make up             # re-runs the 4-step capability check at startup
 ```

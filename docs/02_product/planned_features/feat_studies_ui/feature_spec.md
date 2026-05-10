@@ -187,8 +187,8 @@ The UI's filter chips, status badges, and dropdown options **MUST** match the ba
 |---|---|
 | Studies status filter chips | `backend/db/models/study.py` (`StudyStatus` `Literal[...]`) |
 | Trials sort dropdown | `backend/api/studies.py` (`TrialSortKey` `Literal[...]`) |
-| Cluster engine_type select | `backend/adapters/protocol.py` (`EngineType` `Literal[...]`) |
-| Cluster auth_kind select | `backend/adapters/elastic.py` (`SUPPORTED_AUTH_KINDS` frozenset) |
+| Cluster engine_type select | `backend/app/adapters/protocol.py` (`EngineType` `Literal[...]`) |
+| Cluster auth_kind select | `backend/app/adapters/elastic.py` (`SUPPORTED_AUTH_KINDS` frozenset) |
 | Study sampler select | `backend/db/models/study.py` (`SamplerKind`) |
 | Study pruner select | `backend/db/models/study.py` (`PrunerKind`) |
 | Objective metric select | `backend/eval/scoring.py` (`SUPPORTED_METRICS`) |

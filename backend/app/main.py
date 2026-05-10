@@ -32,6 +32,7 @@ from redis.asyncio import Redis
 from backend.app.api import health
 from backend.app.api.errors import install_exception_handlers
 from backend.app.api.middleware import RequestIDMiddleware
+from backend.app.api.v1 import clusters as clusters_router
 from backend.app.core.logging import configure_logging, get_logger
 from backend.app.core.settings import get_settings
 from backend.app.llm.capability_check import run_capability_check_background
@@ -96,3 +97,4 @@ app = FastAPI(
 app.add_middleware(RequestIDMiddleware)
 install_exception_handlers(app)
 app.include_router(health.router)  # /healthz unprefixed; operator endpoint per Rule #6
+app.include_router(clusters_router.router, prefix="/api/v1")  # Story 3.2 — cluster CRUD

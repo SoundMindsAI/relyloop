@@ -46,10 +46,11 @@ from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api import probes
 from backend.app.core.settings import Settings, get_settings
-from backend.app.db.session import get_engine
+from backend.app.db.session import get_db, get_engine
 from backend.app.llm.capability_models import CapabilityResult
 
 router = APIRouter()
@@ -96,6 +97,13 @@ class Subsystems(BaseModel):
     )
     opensearch: Literal["reachable", "unreachable"] = Field(
         description="Local OpenSearch container reachability"
+    )
+    elasticsearch_clusters: probes.ClusterAggregateHealth = Field(
+        description=(
+            "Aggregate health of user-registered clusters (infra_adapter_elastic "
+            "Story 3.5 / spec §2). registered=0 → all-zero counts; informational "
+            "only — does NOT trigger overall `degraded`."
+        )
     )
 
 
@@ -202,6 +210,7 @@ async def healthz(
     settings: Annotated[Settings, Depends(get_settings)],
     redis_client: Annotated[Redis, Depends(get_redis_client)],
     es_client: Annotated[httpx.AsyncClient, Depends(get_es_client)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> JSONResponse:
     """Probe each subsystem in parallel and return the documented JSON shape.
 
@@ -209,6 +218,7 @@ async def healthz(
         settings: Application settings (DB URL, ES/OS URLs, OpenAI base URL, etc.)
         redis_client: Redis client for ping probe + capability-cache read
         es_client: shared httpx client for ES + OpenSearch HTTP probes
+        db: Async DB session for the registered-clusters aggregate (Story 3.5)
 
     Returns:
         JSONResponse with the HealthResponse body and HTTP 200 (healthy) or 503 (degraded).
@@ -231,12 +241,22 @@ async def healthz(
             probes.probe_opensearch(es_client, os_base_url),
             timeout=PROBE_TIMEOUT_SECONDS,
         ),
+        asyncio.wait_for(
+            probes.probe_registered_clusters(db, redis_client),
+            timeout=PROBE_TIMEOUT_SECONDS,
+        ),
         return_exceptions=True,
     )
     db_status = _safe_status(results[0], fallback="down")
     redis_status = _safe_status(results[1], fallback="down")
     es_status = _safe_status(results[2], fallback="unreachable")
     os_status = _safe_status(results[3], fallback="unreachable")
+    clusters_aggregate: probes.ClusterAggregateHealth
+    if isinstance(results[4], BaseException):
+        # Probe timeout / DB/Redis hiccup: surface zeros (informational field).
+        clusters_aggregate = probes.ClusterAggregateHealth(registered=0, healthy=0, unreachable=0)
+    else:
+        clusters_aggregate = results[4]
 
     # OpenAI state is computed from cached capability data + key presence.
     cap = await _read_capability_cache(redis_client, settings.openai_base_url)
@@ -249,6 +269,7 @@ async def healthz(
             "openai": openai_state,
             "elasticsearch": es_status,
             "opensearch": os_status,
+            "elasticsearch_clusters": clusters_aggregate.model_dump(),
         }
     )
 
