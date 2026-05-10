@@ -9,7 +9,7 @@
 - [docs/01_architecture/data-model.md](../../../01_architecture/data-model.md) — `studies`, `trials` tables (consumed; created by `feat_study_lifecycle`)
 - [docs/01_architecture/system-overview.md](../../../01_architecture/system-overview.md) — worker pool detail
 - Depends on: [`infra_foundation/feature_spec.md`](../infra_foundation/feature_spec.md)
-- Consumed by: [`feat_study_lifecycle` Phase 2 (orchestrator + API)](../feat_study_lifecycle/phase2_idea.md) — Phase 2's `start_study` Arq job dispatches this feature's `run_trial`
+- Consumed by: [`feat_study_lifecycle` Phase 2 (orchestrator + API)](../../../02_product/planned_features/feat_study_lifecycle/phase2_idea.md) — Phase 2's `start_study` Arq job dispatches this feature's `run_trial`
 
 ---
 
@@ -28,7 +28,7 @@ All upstream dependencies have shipped — this feature is unblocked:
 - **Worker process** (`infra_foundation` Story 4.3): exists as a placeholder at [`backend/workers/all.py`](../../../../backend/workers/all.py) with `functions=[]`; this feature adds the `run_trial` job to that list. The file's docstring already pre-declares the slot: "feat_study_lifecycle → run_trial".
 - **Engine adapter** (`infra_adapter_elastic` / PR #16 merged 2026-05-10): provides `SearchAdapter` Protocol + `ElasticAdapter.search_batch()` — the engine call this feature's `run_trial` makes.
 - **Schema** (`feat_study_lifecycle` Phase 1 / PR #18 merged 2026-05-10): `studies`, `trials`, `judgment_lists`, `query_*`, `proposals` tables exist on `0003`. This feature's `run_trial` job reads `studies` and writes `trials` — both shapes are documented in [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md). 15 minimal repo functions also shipped at [`backend/app/db/repo/`](../../../../backend/app/db/repo/) covering the read/write set this feature needs.
-- **Phase 2 of `feat_study_lifecycle`** (orchestrator + 12 endpoints + `start_study` Arq job) is **deferred** via [`phase2_idea.md`](../feat_study_lifecycle/phase2_idea.md). Phase 2 dispatches this feature's `run_trial`; this feature provides the trial runner that Phase 2 enqueues.
+- **Phase 2 of `feat_study_lifecycle`** (orchestrator + 12 endpoints + `start_study` Arq job) is **deferred** via [`phase2_idea.md`](../../../02_product/planned_features/feat_study_lifecycle/phase2_idea.md). Phase 2 dispatches this feature's `run_trial`; this feature provides the trial runner that Phase 2 enqueues.
 
 ## 3) Scope
 
