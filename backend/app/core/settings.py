@@ -18,7 +18,9 @@ Optional secrets (return ``None`` on missing/empty; API logs WARN at startup):
 
 Plain values (env-var literal):
     ``REDIS_URL``, ``OPENAI_BASE_URL``, ``OPENAI_MODEL``, ``OPENAI_MODEL_CHAT``,
-    ``OPENAI_DAILY_BUDGET_USD``, ``RELYLOOP_GIT_SHA``, ``ES_HEAP_SIZE``.
+    ``OPENAI_DAILY_BUDGET_USD``, ``RELYLOOP_GIT_SHA``, ``ES_HEAP_SIZE``,
+    ``RELYLOOP_ALLOW_PRIVATE_CLUSTERS``, ``STUDIES_DEFAULT_PARALLELISM``,
+    ``STUDIES_DEFAULT_TIMEOUT_S``.
 
 Use ``get_settings()`` (lru_cache'd) anywhere settings are needed; never
 instantiate ``Settings()`` directly.
@@ -134,6 +136,26 @@ class Settings(BaseSettings):
         "Default True for MVP1 (laptop convenience) per spec §10 Threat 3; flips to "
         "False at MVP3 hardening so production deployments can't accidentally point "
         "at internal hosts.",
+    )
+    # feat_study_lifecycle Phase 2 fallbacks. The API layer does NOT
+    # materialize these into the stored `studies.config` JSONB — the keys
+    # stay omitted so `infra_optuna_eval`'s pruner key-presence contract
+    # (spec FR-2 explicit-override semantics) remains intact. The worker
+    # reads these via `get_settings()` at job time when the key is absent.
+    studies_default_parallelism: int = Field(
+        default=4,
+        ge=1,
+        le=64,
+        description="Fallback for `studies.config.parallelism` when omitted "
+        "at study create. Operator-tunable without redeploy.",
+    )
+    studies_default_timeout_s: int = Field(
+        default=60,
+        ge=5,
+        le=3600,
+        description="Fallback for `studies.config.trial_timeout_s` when "
+        "omitted at study create. Bounds the wall-clock budget for a single "
+        "Optuna trial. Operator-tunable without redeploy.",
     )
 
     @cached_property

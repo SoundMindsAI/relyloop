@@ -254,3 +254,49 @@ class TestPlainValueDefaults:
             postgres_password_file=_write(tmp_path / "pw", "pw"),
         )
         assert s.redis_url == "redis://localhost:6380/1"
+
+    # feat_study_lifecycle Phase 2 — Story 1.5 fallbacks.
+
+    def test_default_studies_default_parallelism(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.delenv("STUDIES_DEFAULT_PARALLELISM", raising=False)
+        s = _make_settings(
+            monkeypatch,
+            database_url_file=_write(tmp_path / "db-url", "postgresql://x"),
+            postgres_password_file=_write(tmp_path / "pw", "pw"),
+        )
+        assert s.studies_default_parallelism == 4
+
+    def test_default_studies_default_timeout_s(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.delenv("STUDIES_DEFAULT_TIMEOUT_S", raising=False)
+        s = _make_settings(
+            monkeypatch,
+            database_url_file=_write(tmp_path / "db-url", "postgresql://x"),
+            postgres_password_file=_write(tmp_path / "pw", "pw"),
+        )
+        assert s.studies_default_timeout_s == 60
+
+    def test_env_override_studies_default_parallelism(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setenv("STUDIES_DEFAULT_PARALLELISM", "8")
+        s = _make_settings(
+            monkeypatch,
+            database_url_file=_write(tmp_path / "db-url", "postgresql://x"),
+            postgres_password_file=_write(tmp_path / "pw", "pw"),
+        )
+        assert s.studies_default_parallelism == 8
+
+    def test_env_override_studies_default_timeout_s(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setenv("STUDIES_DEFAULT_TIMEOUT_S", "180")
+        s = _make_settings(
+            monkeypatch,
+            database_url_file=_write(tmp_path / "db-url", "postgresql://x"),
+            postgres_password_file=_write(tmp_path / "pw", "pw"),
+        )
+        assert s.studies_default_timeout_s == 180
