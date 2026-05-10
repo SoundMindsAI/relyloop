@@ -27,10 +27,11 @@ from typing import Any
 import httpx
 
 from backend.app.adapters.credentials import resolve_credentials
-from backend.app.adapters.errors import ClusterUnreachableError
+from backend.app.adapters.errors import ClusterUnreachableError, TargetNotFoundError
 from backend.app.adapters.protocol import (
     EngineType,
     ExplainTree,
+    FieldSpec,
     HealthStatus,
     NativeQuery,
     ParamValue,
@@ -313,16 +314,121 @@ class ElasticAdapter:
             )
 
     async def list_targets(self, *, request_id: str | None = None) -> list[TargetInfo]:
-        """Stub — implemented in Story 2.3."""
-        raise NotImplementedError("Story 2.3")
+        """List indices on the cluster via ``_cat/indices?format=json``.
+
+        System indices (those whose name starts with ``.``) are filtered out
+        so the operator sees only user-facing collections.
+        """
+        resp = await self._request(
+            "GET",
+            "/_cat/indices",
+            params={"format": "json", "h": "index,docs.count"},
+            request_id=request_id,
+        )
+        resp.raise_for_status()
+        rows: list[dict[str, Any]] = resp.json()
+        out: list[TargetInfo] = []
+        for row in rows:
+            name = row.get("index")
+            if not name or name.startswith("."):
+                continue
+            doc_count_raw = row.get("docs.count")
+            doc_count: int | None
+            if doc_count_raw is None or doc_count_raw == "":
+                doc_count = None
+            else:
+                doc_count = int(str(doc_count_raw))
+            out.append(TargetInfo(name=name, doc_count=doc_count))
+        return out
 
     async def get_schema(self, target: str, *, request_id: str | None = None) -> Schema:
-        """Stub — implemented in Story 2.3."""
-        raise NotImplementedError("Story 2.3")
+        """Build a ``Schema`` from ``_mapping`` + the index's default analyzer.
+
+        Per cycle 1 F6 + cycle 2 F5: ``_field_caps`` is **not** consulted —
+        that endpoint does not return analyzer info on either ES or
+        OpenSearch. Analyzer derivation:
+
+        * Explicit ``analyzer`` in the field mapping → used verbatim.
+        * ``text`` field with no explicit analyzer → defaults to the index's
+          default analyzer from ``_settings`` (or ``"standard"`` on miss).
+        * Non-``text`` fields (``keyword``, ``float``, ``date``, ...) → ``None``.
+
+        Raises:
+            TargetNotFoundError: when the cluster returns 404 for ``target``.
+            ClusterUnreachableError: connection / auth / 5xx; raised inside
+                ``_request`` because ``translate_errors=True`` (default).
+        """
+        mapping_resp = await self._request(
+            "GET",
+            f"/{target}/_mapping",
+            request_id=request_id,
+            translate_errors=False,
+        )
+        if mapping_resp.status_code == 404:
+            raise TargetNotFoundError(target)
+        if mapping_resp.status_code in (401, 403) or mapping_resp.status_code >= 500:
+            raise ClusterUnreachableError(
+                f"HTTP {mapping_resp.status_code} from /{target}/_mapping"
+            )
+        if mapping_resp.status_code >= 400:
+            # Other 4xx (e.g. 400 with "invalid_index_name") — no separate
+            # spec error code, surface as unreachable.
+            raise ClusterUnreachableError(
+                f"HTTP {mapping_resp.status_code} from /{target}/_mapping"
+            )
+        mapping = mapping_resp.json()
+        if not mapping:
+            return Schema(name=target, fields=[])
+        # Mapping body is keyed by index name (which can differ from `target`
+        # when `target` is an alias). Take the first / only entry.
+        inner = next(iter(mapping.values()))
+        props = inner.get("mappings", {}).get("properties", {})
+
+        default_analyzer = await self._resolve_default_analyzer(target, request_id=request_id)
+
+        fields: list[FieldSpec] = []
+        for name, defn in props.items():
+            ftype = defn.get("type", "object")
+            analyzer = defn.get("analyzer")
+            if analyzer is None and ftype == "text":
+                analyzer = default_analyzer
+            fields.append(FieldSpec(name=name, type=ftype, analyzer=analyzer))
+        return Schema(name=target, fields=fields)
+
+    async def _resolve_default_analyzer(self, target: str, *, request_id: str | None = None) -> str:
+        """Resolve the index's default analyzer.
+
+        Defaults to ``"standard"`` on any error — this is a UX nicety, not a
+        load-bearing contract. The caller already succeeded fetching
+        ``_mapping`` so the cluster is reachable; analyzer-fetch failures
+        degrade rather than propagate.
+        """
+        try:
+            resp = await self._request(
+                "GET",
+                f"/{target}/_settings",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except Exception:  # noqa: BLE001 — defensive: degrade to default
+            return "standard"
+        if resp.status_code != 200:
+            return "standard"
+        body = resp.json()
+        if not body:
+            return "standard"
+        inner = next(iter(body.values()))
+        analysis = inner.get("settings", {}).get("index", {}).get("analysis", {})
+        default = analysis.get("analyzer", {}).get("default", {})
+        return str(default.get("type", "standard"))
 
     def list_query_parsers(self) -> list[str]:
-        """Stub — implemented in Story 2.3."""
-        raise NotImplementedError("Story 2.3")
+        """Return the static set of query parsers MVP1 templates use.
+
+        Both ES and OpenSearch support these out of the box; future engines
+        (Solr, Vespa) override at the adapter level.
+        """
+        return ["match", "multi_match", "match_phrase", "bool", "function_score"]
 
     def render(
         self,
