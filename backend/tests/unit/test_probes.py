@@ -180,25 +180,25 @@ class TestProbeRegisteredClusters:
     budget per CLAUDE.md Rule #11.
     """
 
-    async def test_zero_clusters_returns_zeros(self) -> None:
+    async def test_zero_clusters_returns_zeros(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from backend.app.api.probes import probe_registered_clusters
         from backend.app.db import repo as repo_module
 
         async def _empty_list(*_args, **_kwargs):
             return []
 
-        # Use monkeypatch via direct attribute swap on the module reference.
-        original = repo_module.list_clusters
-        repo_module.list_clusters = _empty_list
-        try:
-            db = MagicMock()
-            redis = MagicMock(spec=Redis)
-            agg = await probe_registered_clusters(db, redis)
-            assert agg.registered == 0
-            assert agg.healthy == 0
-            assert agg.unreachable == 0
-        finally:
-            repo_module.list_clusters = original
+        async def _count_zero(*_args, **_kwargs):
+            return 0
+
+        monkeypatch.setattr(repo_module, "list_clusters", _empty_list)
+        monkeypatch.setattr(repo_module, "count_clusters", _count_zero)
+
+        db = MagicMock()
+        redis = MagicMock(spec=Redis)
+        agg = await probe_registered_clusters(db, redis)
+        assert agg.registered == 0
+        assert agg.healthy == 0
+        assert agg.unreachable == 0
 
     async def test_counts_by_cached_status(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from types import SimpleNamespace
@@ -223,12 +223,20 @@ class TestProbeRegisteredClusters:
         }
 
         async def _list(*_args, **_kwargs):
-            return clusters
+            # Cursor pagination: first call (cursor is None) returns the
+            # 5-cluster page; we're well under the 200-row cap so it's a
+            # single page. Subsequent calls (with cursor) return [].
+            cursor = _kwargs.get("cursor")
+            return clusters if cursor is None else []
+
+        async def _count(*_args, **_kwargs):
+            return len(clusters)
 
         async def _read(_redis, cluster_id: str) -> HealthStatus | None:
             return cached.get(cluster_id)
 
         monkeypatch.setattr(repo_module, "list_clusters", _list)
+        monkeypatch.setattr(repo_module, "count_clusters", _count)
         # Patch the imported name inside backend.app.api.probes (not the
         # health_cache module — probe_registered_clusters imports the helper
         # at module load and the module attribute is what monkeypatch must

@@ -26,6 +26,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.adapters.credentials import CredentialsMissing
 from backend.app.adapters.errors import (
     ClusterUnreachableError,
     InvalidQueryDSLError,
@@ -251,7 +252,16 @@ async def get_cluster_schema(
     cluster = await repo.get_cluster(db, cluster_id)
     if cluster is None:
         raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id} not found", False)
-    adapter = cluster_svc._build_adapter(cluster)
+    # Per GPT-5.5 final-review F3: adapter construction can raise
+    # CredentialsMissing (e.g. operator removed the YAML entry between
+    # registration and now). Translate to CLUSTER_UNREACHABLE rather than
+    # letting it escape as a 500. Only `aclose()` if construction succeeded.
+    try:
+        adapter = cluster_svc._build_adapter(cluster)
+    except CredentialsMissing as exc:
+        raise _err(
+            503, "CLUSTER_UNREACHABLE", f"credentials resolution failed: {exc}", True
+        ) from exc
     try:
         return await adapter.get_schema(target)
     except TargetNotFoundError as exc:
@@ -285,7 +295,13 @@ async def run_query(
     cluster = await repo.get_cluster(db, cluster_id)
     if cluster is None:
         raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id} not found", False)
-    adapter = cluster_svc._build_adapter(cluster)
+    # Per GPT-5.5 final-review F3: see get_cluster_schema for rationale.
+    try:
+        adapter = cluster_svc._build_adapter(cluster)
+    except CredentialsMissing as exc:
+        raise _err(
+            503, "CLUSTER_UNREACHABLE", f"credentials resolution failed: {exc}", True
+        ) from exc
     try:
         hits = await dispatch_run_query(
             adapter,

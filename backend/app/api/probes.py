@@ -22,7 +22,7 @@ so /healthz stays under the 200ms timeout per CLAUDE.md Absolute Rule #11.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 from pydantic import BaseModel
@@ -102,19 +102,35 @@ async def probe_registered_clusters(db: _AsyncSession, redis: Redis) -> ClusterA
     A cache miss (no ``cluster:health:{id}`` entry yet) is counted as
     ``unreachable`` rather than skipped, so the operator sees stale-or-
     unprobed clusters distinctly from healthy ones.
+
+    Per GPT-5.5 final-review F5: ``count_clusters()`` is used for the
+    ``registered`` total because ``list_clusters`` clamps ``limit`` to
+    ``MAX_PAGE_LIMIT`` (200). For the per-cluster cache aggregation, we
+    page through in 200-row windows (cursor pagination) so the field
+    stays accurate as cluster count grows past the page cap. MVP1
+    deployments hold ~2 rows so this loop terminates in one window;
+    the cap exists as defense-in-depth so /healthz stays under its
+    200ms budget even at hundreds of registered clusters.
     """
-    clusters = await repo.list_clusters(db, limit=1000)
+    registered = await repo.count_clusters(db)
     healthy = 0
     unreachable = 0
-    for c in clusters:
-        cached = await read_cached_health(redis, c.id)
-        if cached is None or cached.status in ("red", "unreachable"):
-            unreachable += 1
-        else:
-            healthy += 1
-    return ClusterAggregateHealth(
-        registered=len(clusters), healthy=healthy, unreachable=unreachable
-    )
+    cursor: tuple[Any, str] | None = None
+    while True:
+        page = await repo.list_clusters(db, cursor=cursor, limit=200)
+        if not page:
+            break
+        for c in page:
+            cached = await read_cached_health(redis, c.id)
+            if cached is None or cached.status in ("red", "unreachable"):
+                unreachable += 1
+            else:
+                healthy += 1
+        if len(page) < 200:
+            break
+        last = page[-1]
+        cursor = (last.created_at, last.id)
+    return ClusterAggregateHealth(registered=registered, healthy=healthy, unreachable=unreachable)
 
 
 def probe_openai_state(

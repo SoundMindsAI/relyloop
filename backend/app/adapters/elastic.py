@@ -272,9 +272,30 @@ class ElasticAdapter:
                 httpx.ConnectTimeout,
             ) as exc:
                 return HealthStatus(status="unreachable", checked_at=now, error=str(exc))
-            self._version = (
-                info.json().get("version", {}).get("number") if info.status_code == 200 else None
-            )
+            # Per GPT-5.5 final-review F2: non-200 on GET / must surface as
+            # unreachable so registration refuses to insert. Without this guard,
+            # an auth-misconfigured cluster (200 on /_cluster/health, 401 on /)
+            # would pass registration with version=None and bypass
+            # _enforce_min_version (no-op when _version is None).
+            if info.status_code in (401, 403):
+                return HealthStatus(
+                    status="unreachable",
+                    checked_at=now,
+                    error=f"Authentication failed (HTTP {info.status_code}) on GET /",
+                )
+            if info.status_code != 200:
+                return HealthStatus(
+                    status="unreachable",
+                    checked_at=now,
+                    error=f"HTTP {info.status_code} from GET / — cannot read engine version",
+                )
+            self._version = info.json().get("version", {}).get("number")
+            if self._version is None:
+                return HealthStatus(
+                    status="unreachable",
+                    checked_at=now,
+                    error="GET / response missing version.number — cannot enforce engine floor",
+                )
             try:
                 self._enforce_min_version()
             except ValueError as exc:

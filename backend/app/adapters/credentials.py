@@ -54,4 +54,29 @@ def resolve_credentials(auth_kind: str, credentials_ref: str) -> dict[str, Any]:
             f"credentials_ref {credentials_ref!r} not found in mounted YAML "
             f"(auth_kind={auth_kind!r})"
         )
-    return cast(dict[str, Any], parsed[credentials_ref])
+    entry = parsed[credentials_ref]
+    # Per GPT-5.5 final-review F4: validate the inner entry shape so a
+    # malformed YAML entry surfaces as CredentialsMissing (translated to
+    # 503 CLUSTER_UNREACHABLE upstream) rather than a downstream KeyError /
+    # TypeError leaking as an opaque 500. Error messages name the missing
+    # key but never echo the secret value (CLAUDE.md Rule #10).
+    if not isinstance(entry, dict):
+        raise CredentialsMissing(
+            f"credentials_ref {credentials_ref!r} is not a mapping; got {type(entry).__name__}"
+        )
+    required: tuple[str, ...]
+    if auth_kind == "es_apikey":
+        required = ("api_key",)
+    elif auth_kind in ("es_basic", "opensearch_basic"):
+        required = ("username", "password")
+    else:
+        # Unknown / reserved auth_kind — adapter constructor rejects before
+        # this branch is reachable, but be defensive.
+        required = ()
+    missing = [k for k in required if k not in entry]
+    if missing:
+        raise CredentialsMissing(
+            f"credentials_ref {credentials_ref!r} is missing required "
+            f"fields for auth_kind={auth_kind!r}: {missing}"
+        )
+    return cast(dict[str, Any], entry)
