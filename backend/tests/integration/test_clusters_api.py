@@ -164,6 +164,29 @@ class TestPostCluster:
         assert resp.status_code == 400
         assert resp.json()["detail"]["error_code"] == "AUTH_KIND_NOT_SUPPORTED"
 
+    async def test_engine_auth_mismatch_returns_400(
+        self, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """engine_type × auth_kind cross-product check: opensearch + es_apikey."""
+        resp = await app_client.post(
+            "/api/v1/clusters",
+            json=_cluster_body(engine_type="opensearch", auth_kind="es_apikey"),
+        )
+        assert resp.status_code == 400
+        body = resp.json()
+        assert body["detail"]["error_code"] == "AUTH_KIND_NOT_SUPPORTED"
+        assert "not valid for engine_type='opensearch'" in body["detail"]["message"]
+
+    async def test_engine_auth_mismatch_es_with_opensearch_basic_returns_400(
+        self, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        resp = await app_client.post(
+            "/api/v1/clusters",
+            json=_cluster_body(engine_type="elasticsearch", auth_kind="opensearch_basic"),
+        )
+        assert resp.status_code == 400
+        assert resp.json()["detail"]["error_code"] == "AUTH_KIND_NOT_SUPPORTED"
+
     async def test_ftp_scheme_returns_422(
         self, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:

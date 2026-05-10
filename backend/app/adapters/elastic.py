@@ -64,6 +64,22 @@ RESERVED_AUTH_KINDS: frozenset[str] = frozenset({"opensearch_sigv4"})
 The cluster service raises ``AuthKindNotSupported`` for these so the operator
 gets a 400 with a clear message rather than a 500 from the adapter."""
 
+ALLOWED_AUTH_PER_ENGINE: dict[str, frozenset[str]] = {
+    "elasticsearch": frozenset({"es_apikey", "es_basic"}),
+    "opensearch": frozenset({"opensearch_basic"}),  # + opensearch_sigv4 at MVP3
+}
+"""Cross-product allowlist enforced at registration time.
+
+The DB ``auth_kind`` CHECK constraint accepts any of the four wire values for
+any engine, but pairing ``engine_type=opensearch`` with ``auth_kind=es_apikey``
+(or vice versa) is operator misconfiguration: the labels exist precisely to
+distinguish which auth method goes with which engine. The service layer rejects
+mismatched pairings with 400 ``AUTH_KIND_NOT_SUPPORTED`` so the error surfaces
+at request time rather than at the first probe.
+
+Reserved kinds (``opensearch_sigv4``) are NOT enumerated here — they're rejected
+earlier in ``register_cluster`` via ``RESERVED_AUTH_KINDS`` regardless of engine."""
+
 
 class ElasticAdapter:
     """Engine adapter for Elasticsearch (8.11+/9.x) and OpenSearch (2.x)."""

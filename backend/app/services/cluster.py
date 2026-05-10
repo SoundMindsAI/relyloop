@@ -19,6 +19,8 @@ caught here and translated to ``ClusterUnreachable`` so the router emits
 from __future__ import annotations
 
 import asyncio
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from typing import Any
 
@@ -28,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.adapters.credentials import CredentialsMissing
 from backend.app.adapters.elastic import (
+    ALLOWED_AUTH_PER_ENGINE,
     RESERVED_AUTH_KINDS,
     SUPPORTED_AUTH_KINDS,
     SUPPORTED_ENGINE_TYPES,
@@ -104,6 +107,17 @@ async def register_cluster(
             f"auth_kind must be one of: "
             f"{sorted(SUPPORTED_AUTH_KINDS | RESERVED_AUTH_KINDS)} "
             f"(got: {auth_kind!r})"
+        )
+    # Cross-product allowlist — engine_type × auth_kind. Independently-valid
+    # values can still form a nonsense pairing (e.g. opensearch + es_apikey).
+    # Reject those at the request boundary rather than discovering them later
+    # when the operator tries to debug why their cluster keeps probing
+    # unreachable.
+    allowed_for_engine = ALLOWED_AUTH_PER_ENGINE.get(engine_type, frozenset())
+    if auth_kind not in allowed_for_engine:
+        raise AuthKindNotSupported(
+            f"auth_kind={auth_kind!r} is not valid for engine_type={engine_type!r}; "
+            f"allowed for {engine_type!r}: {sorted(allowed_for_engine)}"
         )
 
     existing = await repo.get_any_cluster_by_name(db, name)
@@ -200,6 +214,36 @@ async def soft_delete_cluster(db: AsyncSession, cluster_id: str) -> Cluster | No
     if cluster is not None:
         await db.commit()
     return cluster
+
+
+@asynccontextmanager
+async def acquire_adapter(cluster: Cluster) -> AsyncIterator[ElasticAdapter]:
+    """Build an adapter from a stored cluster row, ensure ``aclose()`` on exit.
+
+    Translates ``CredentialsMissing`` (raised by adapter construction when the
+    operator removes a YAML entry between registration and now) into the
+    service-layer ``ClusterUnreachable`` so router callers can adjudicate it
+    under the same 503 ``CLUSTER_UNREACHABLE`` translation they already use
+    for adapter-internal failures (per cycle 1 F8 + final-review F3).
+
+    Usage in a router::
+
+        try:
+            async with acquire_adapter(cluster) as adapter:
+                return await adapter.get_schema(target)
+        except (ClusterUnreachable, ClusterUnreachableError) as exc:
+            raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
+        except TargetNotFoundError as exc:
+            raise _err(404, "TARGET_NOT_FOUND", ...) from exc
+    """
+    try:
+        adapter = _build_adapter(cluster)
+    except CredentialsMissing as exc:
+        raise ClusterUnreachable(f"credentials resolution failed: {exc}") from exc
+    try:
+        yield adapter
+    finally:
+        await adapter.aclose()
 
 
 async def dispatch_run_query(
