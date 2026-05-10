@@ -136,11 +136,11 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, `feat_study_lifecycle` will 
 
 ## 8) API and data contract baseline
 
-### 7.1 Endpoint surface
+### 8.1 Endpoint surface
 
 N/A — no HTTP endpoints. This feature is worker-internal.
 
-### 7.4 Enumerated value contracts
+### 8.4 Enumerated value contracts
 
 | Field | Accepted values (exact) | Backend source of truth |
 |---|---|---|
@@ -150,7 +150,7 @@ N/A — no HTTP endpoints. This feature is worker-internal.
 | `studies.objective.k` | positive int ∈ {1, 3, 5, 10, 20, 50, 100} | `backend/eval/scoring.py` (`SUPPORTED_K_VALUES` frozenset) |
 | `trials.status` | `complete`, `failed`, `pruned` | `backend/db/models/trial.py` (`TrialStatus` `Literal[...]`) |
 
-### 7.5 Error code catalog
+### 8.5 Error code catalog
 
 N/A — no HTTP-level errors from this feature. Trial failures land in `trials.status='failed'` with `trials.error` populated.
 
