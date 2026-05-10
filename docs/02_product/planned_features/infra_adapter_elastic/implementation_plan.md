@@ -2523,8 +2523,8 @@ For solo execution, sequential is fine — the parallelization notes are for mul
 
 ### Current sprint
 - [x] Story 1.1 — `SearchAdapter` Protocol + types (commit `6bf565b`, 2026-05-09)
-- [ ] Story 1.2 — ORM models for `clusters` + `config_repos`
-- [ ] Story 1.3 — Alembic migration `0002`
+- [x] Story 1.2 — ORM models for `clusters` + `config_repos` (commit `264b8d0`, 2026-05-09)
+- [x] Story 1.3 — Alembic migration `0002` (commit `1b80290`, 2026-05-09)
 - [ ] Story 1.4 — Repo functions
 - [ ] Epic 1 gate
 - [ ] Story 2.1 — `ElasticAdapter` skeleton + version detection
