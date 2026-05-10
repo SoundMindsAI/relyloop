@@ -17,6 +17,11 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 # Import Base so target_metadata picks up every ORM model declared by features.
 from backend.app.core.settings import get_settings
+
+# Force-load every ORM model module so its classes register with Base.metadata
+# before --autogenerate runs. The noqa is intentional — this is a side-effect
+# import; the symbols are not referenced by name in this module.
+from backend.app.db import models  # noqa: F401
 from backend.app.db.base import Base
 
 config = context.config
