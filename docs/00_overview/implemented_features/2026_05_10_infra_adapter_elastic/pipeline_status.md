@@ -24,8 +24,10 @@
 - Phases covered: All (single-phase per spec §3)
 
 ## Implement
-- Status: **Implementation complete (PR pending)** — 20 of 20 stories complete, all phase gates green
-- Branch: `feature/infra-adapter-elastic`
+- Status: **Complete** — merged 2026-05-10 as PR #16 (squash commit `43ab813`).
+- 20 of 20 stories complete, all phase gates green.
+- Final cross-model GPT-5.5 review: 5 findings raised; 4 accepted + fixed in `1ce618f`, 1 rejected with cited counter-evidence (truncation artifact); adjudication summary [posted on PR #16](https://github.com/SoundMindsAI/relyloop/pull/16#issuecomment-4414159418).
+- Branch: `feature/infra-adapter-elastic` (squash-merged into `main`).
 - Completed (newest first):
   - Story 5.2 (this commit) — Finalization: state.md / architecture.md / CLAUDE.md updated; pipeline_status flipped to complete.
   - Story 5.1 (`64e11aa`) — error_codes contract test (8 spec §7.5 codes); dispatch_run_query unit test; coverage 90.85% (gate 80%).
@@ -43,7 +45,7 @@
   - Story 1.3 (`1b80290`) — Alembic 0002 migration; round-trip verified.
   - Story 1.2 (`264b8d0`) — Cluster + ConfigRepo ORM models.
   - Story 1.1 (`6bf565b`) — SearchAdapter Protocol + 8 Pydantic types.
-- Next: open PR; CI watch; Gemini Code Assist adjudication; final GPT-5.5 review; merge.
+- Next: feature folder moves to `docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/` via the docs-only finalization PR.
 
 ## Done
 - All 5 epic gates passed.
