@@ -420,6 +420,51 @@ class TestBulkQueryInsert:
 
 
 @pytest.mark.integration
+class TestListQueryTemplatesAndSets:
+    """list_query_templates / list_query_sets pagination + count (E1-F4 fix)."""
+
+    async def test_list_query_templates_paginates(self, db_session: AsyncSession) -> None:
+        for _ in range(3):
+            await _seed_template(db_session)
+            await asyncio.sleep(0.01)
+        await db_session.commit()
+        page1 = await repo.list_query_templates(db_session, limit=2)
+        assert len(page1) == 2
+        last = page1[-1]
+        page2 = await repo.list_query_templates(
+            db_session, cursor=(last.created_at, last.id), limit=10
+        )
+        assert {t.id for t in page1}.isdisjoint({t.id for t in page2})
+
+    async def test_count_query_templates_matches_list(self, db_session: AsyncSession) -> None:
+        for _ in range(2):
+            await _seed_template(db_session)
+        await db_session.commit()
+        rows = await repo.list_query_templates(db_session)
+        assert await repo.count_query_templates(db_session) == len(rows)
+
+    async def test_list_query_sets_paginates(self, db_session: AsyncSession) -> None:
+        cluster_id = await _seed_cluster(db_session)
+        for _ in range(3):
+            await _seed_query_set(db_session, cluster_id)
+            await asyncio.sleep(0.01)
+        await db_session.commit()
+        page1 = await repo.list_query_sets(db_session, limit=2)
+        assert len(page1) == 2
+        last = page1[-1]
+        page2 = await repo.list_query_sets(db_session, cursor=(last.created_at, last.id), limit=10)
+        assert {q.id for q in page1}.isdisjoint({q.id for q in page2})
+
+    async def test_count_query_sets_matches_list(self, db_session: AsyncSession) -> None:
+        cluster_id = await _seed_cluster(db_session)
+        for _ in range(2):
+            await _seed_query_set(db_session, cluster_id)
+        await db_session.commit()
+        rows = await repo.list_query_sets(db_session)
+        assert await repo.count_query_sets(db_session) == len(rows)
+
+
+@pytest.mark.integration
 class TestListRunningStudyIds:
     """Phase 2 / FR-5 resume-sweep helper."""
 

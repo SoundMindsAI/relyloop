@@ -108,27 +108,38 @@ async def list_trials_paginated(
     order: tuple[UnaryExpression[Any], UnaryExpression[Any]]
     if sort_key == "primary_metric_desc":
         # NULLS LAST matches the trials_study_metric index in migration 0003.
+        # NULL-pagination correctness (E1-F3 cycle-1 fix): if the cursor's
+        # primary_metric is non-null, the next page includes rows with a
+        # smaller metric AND all NULL-metric rows (failed/pruned trials).
+        # If the cursor is on a NULL row, only later NULL rows by id.
         order = (Trial.primary_metric.desc().nulls_last(), Trial.id.desc())
         if cursor is not None:
             cval, cid = cursor
-            stmt = stmt.where(
-                or_(
-                    Trial.primary_metric < cval
-                    if cval is not None
-                    else Trial.primary_metric.is_(None),
-                    and_(Trial.primary_metric == cval, Trial.id < cid),
+            if cval is not None:
+                stmt = stmt.where(
+                    or_(
+                        Trial.primary_metric < cval,
+                        Trial.primary_metric.is_(None),
+                        and_(Trial.primary_metric == cval, Trial.id < cid),
+                    )
                 )
-            )
+            else:
+                # Within the NULL-metric block, paginate by id only.
+                stmt = stmt.where(and_(Trial.primary_metric.is_(None), Trial.id < cid))
     elif sort_key == "primary_metric_asc":
         order = (Trial.primary_metric.asc().nulls_last(), Trial.id.asc())
         if cursor is not None:
             cval, cid = cursor
-            stmt = stmt.where(
-                or_(
-                    Trial.primary_metric > cval if cval is not None else False,
-                    and_(Trial.primary_metric == cval, Trial.id > cid),
+            if cval is not None:
+                stmt = stmt.where(
+                    or_(
+                        Trial.primary_metric > cval,
+                        Trial.primary_metric.is_(None),
+                        and_(Trial.primary_metric == cval, Trial.id > cid),
+                    )
                 )
-            )
+            else:
+                stmt = stmt.where(and_(Trial.primary_metric.is_(None), Trial.id > cid))
     elif sort_key == "created_at_desc":
         # Trials don't have created_at; use ended_at as proxy for "when did
         # the trial finish" (the user-meaningful timestamp).

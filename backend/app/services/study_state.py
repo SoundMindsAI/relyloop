@@ -43,11 +43,14 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
+import structlog
 from sqlalchemy import event, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
 from backend.app.db.models import Study
+
+logger = structlog.get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # Public exceptions — router translates these to spec §7.5 error codes.
@@ -150,11 +153,19 @@ async def start_study(db: AsyncSession, study_id: str) -> Study:
     study = await _load_for_update(db, study_id)
     if study.status == "running":
         return study  # idempotent — resume path
-    _ensure_legal(study.status, "running")
+    from_status = study.status
+    _ensure_legal(from_status, "running")
     async with _authorize_status_mutation(db):
         study.status = "running"
         study.started_at = datetime.now(UTC)
         await db.flush()
+    logger.info(
+        "study state transition",
+        event_type="study_state_transition",
+        study_id=study_id,
+        from_status=from_status,
+        to_status="running",
+    )
     return study
 
 
@@ -165,11 +176,19 @@ async def cancel_study(db: AsyncSession, study_id: str) -> Study:
     end time.
     """
     study = await _load_for_update(db, study_id)
-    _ensure_legal(study.status, "cancelled")
+    from_status = study.status
+    _ensure_legal(from_status, "cancelled")
     async with _authorize_status_mutation(db):
         study.status = "cancelled"
         study.completed_at = datetime.now(UTC)
         await db.flush()
+    logger.info(
+        "study state transition",
+        event_type="study_state_transition",
+        study_id=study_id,
+        from_status=from_status,
+        to_status="cancelled",
+    )
     return study
 
 
@@ -189,15 +208,25 @@ async def complete_study(
     contract). Accepted values: ``max_trials_reached`` |
     ``time_budget_exceeded``.
     """
-    del stop_reason  # for log context only; not persisted in MVP1
     study = await _load_for_update(db, study_id)
-    _ensure_legal(study.status, "completed")
+    from_status = study.status
+    _ensure_legal(from_status, "completed")
     async with _authorize_status_mutation(db):
         study.status = "completed"
         study.completed_at = datetime.now(UTC)
         study.best_metric = best_metric
         study.best_trial_id = best_trial_id
         await db.flush()
+    logger.info(
+        "study state transition",
+        event_type="study_state_transition",
+        study_id=study_id,
+        from_status=from_status,
+        to_status="completed",
+        stop_reason=stop_reason,
+        best_metric=best_metric,
+        best_trial_id=best_trial_id,
+    )
     return study
 
 
@@ -209,12 +238,21 @@ async def fail_study(
 ) -> Study:
     """``running → failed`` + populate ``failed_reason`` per AC-5."""
     study = await _load_for_update(db, study_id)
-    _ensure_legal(study.status, "failed")
+    from_status = study.status
+    _ensure_legal(from_status, "failed")
     async with _authorize_status_mutation(db):
         study.status = "failed"
         study.completed_at = datetime.now(UTC)
         study.failed_reason = failed_reason
         await db.flush()
+    logger.warning(
+        "study state transition",
+        event_type="study_state_transition",
+        study_id=study_id,
+        from_status=from_status,
+        to_status="failed",
+        failed_reason=failed_reason,
+    )
     return study
 
 
