@@ -1,7 +1,7 @@
 # Feature Specification — feat_study_lifecycle
 
 **Date:** 2026-05-09
-**Status:** Draft
+**Status:** Approved (Phase 1 ready for impl-plan-gen, 2026-05-10)
 **Owners:** TBD
 **Related docs:**
 - [docs/02_product/mvp1-user-stories.md](../../mvp1-user-stories.md) — covers US-9, US-10, US-11, US-12
@@ -84,7 +84,28 @@ Per [`api-conventions.md`](../../../01_architecture/api-conventions.md):
 
 ### Phase boundaries
 
-Single-phase. The MVP1 deliverable is "create a study via API, watch trials accumulate over a few minutes, study completes when stop conditions hit, status transitions are correct."
+Two phases, ordered by the dependency on `infra_optuna_eval`:
+
+- **Phase 1 — Schema** (this implementation_plan covers this phase only).
+  Creates the full MVP1 shape of all 7 tables (`query_templates`, `query_sets`,
+  `queries`, `studies`, `trials`, `judgment_lists`, `proposals`) via a single
+  Alembic migration. ORM models + minimal repository functions land alongside.
+  No API endpoints; no orchestrator. Deliverable: a downstream feature can
+  ``INSERT`` / ``SELECT`` these tables; in particular, `infra_optuna_eval`'s
+  `run_trial` worker can read `studies` and write `trials` rows. **Unblocks
+  `infra_optuna_eval`.**
+- **Phase 2 — Orchestrator + API.** The 11 endpoints (FR-1, FR-2, FR-3, FR-6),
+  the `start_study` Arq job (FR-4), the resume-after-restart loop (FR-5),
+  and the service-layer state-transition guard (FR-7). Depends on
+  `infra_optuna_eval`'s `run_trial` job being shipped (so the orchestrator
+  has something to enqueue). Deferred via `phase2_idea.md` per the
+  impl-execute Step 1 "Extract deferred work" mechanism.
+
+The MVP1 deliverable described elsewhere in this spec ("create a study via
+API, watch trials accumulate, study completes when stop conditions hit")
+lands at the end of **Phase 2**. Phase 1's deliverable is narrower: the
+seven tables exist with the documented columns + constraints + indexes,
+round-trip cleanly, and pass per-table integration tests.
 
 ## 4) Product principles and constraints
 
