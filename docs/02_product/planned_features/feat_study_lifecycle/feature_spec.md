@@ -94,7 +94,7 @@ Two phases, ordered by the dependency on `infra_optuna_eval`:
   ``INSERT`` / ``SELECT`` these tables; in particular, `infra_optuna_eval`'s
   `run_trial` worker can read `studies` and write `trials` rows. **Unblocks
   `infra_optuna_eval`.**
-- **Phase 2 — Orchestrator + API.** The 11 endpoints (FR-1, FR-2, FR-3, FR-6),
+- **Phase 2 — Orchestrator + API.** The 12 endpoints (FR-1, FR-2, FR-3, FR-6),
   the `start_study` Arq job (FR-4), the resume-after-restart loop (FR-5),
   and the service-layer state-transition guard (FR-7). Depends on
   `infra_optuna_eval`'s `run_trial` job being shipped (so the orchestrator
