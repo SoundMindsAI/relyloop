@@ -283,6 +283,24 @@ def _load_implemented(folder_path: Path) -> Feature | None:
     )
 
 
+def _data_freshness() -> dt.datetime:
+    """Return the most-recent mtime across feature folders + this script.
+
+    Determines the "data as-of" date displayed on the dashboard. Using
+    mtime instead of `datetime.now()` keeps regeneration idempotent so
+    the pre-commit hook doesn't produce churn on every unrelated commit.
+    The script itself is included so layout/parser changes shift the
+    timestamp.
+    """
+    candidates: list[float] = [Path(__file__).stat().st_mtime]
+    for root in (PLANNED_DIR, IMPLEMENTED_DIR):
+        if not root.exists():
+            continue
+        for path in root.rglob("*.md"):
+            candidates.append(path.stat().st_mtime)
+    return dt.datetime.fromtimestamp(max(candidates), tz=dt.UTC)
+
+
 def load_all() -> list[Feature]:
     features: list[Feature] = []
     if PLANNED_DIR.exists():
@@ -688,7 +706,10 @@ def render(features: list[Feature]) -> str:
 
     columns = "".join(_column_html(s, by_stage[s]) for s in STAGES)
     mermaid = _mermaid_graph(features)
-    now = dt.datetime.now(tz=dt.UTC).strftime("%Y-%m-%d %H:%M UTC")
+    # Use the most-recent mtime of any feature-folder file (or this script
+    # itself) instead of `now()` — keeps regeneration idempotent so the
+    # pre-commit hook doesn't churn the dashboard on every unrelated commit.
+    now = _data_freshness().strftime("%Y-%m-%d")
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -701,8 +722,9 @@ def render(features: list[Feature]) -> str:
 <header>
   <h1>RelyLoop MVP1 Dashboard</h1>
   <div class="meta">
-    Generated {now} from <code>docs/02_product/planned_features/</code> +
-    <code>docs/00_overview/implemented_features/</code>.
+    Reflects feature-folder state as of {now} (latest mtime of any
+    <code>docs/02_product/planned_features/</code> or
+    <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
     <a href="../../CLAUDE.md">CLAUDE.md</a> for conventions, and
     <a href="../02_product/mvp1-user-stories.md">mvp1-user-stories.md</a>
