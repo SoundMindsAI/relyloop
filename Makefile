@@ -6,7 +6,8 @@
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
         ui-lint ui-typecheck ui-test ui-build \
         pre-commit pre-commit-install \
-        up down logs reset migrate migrate-create seed-clusters
+        up down logs reset migrate migrate-create seed-clusters \
+        dashboard
 
 help:  ## Show this help message
 	@echo ""
@@ -116,3 +117,8 @@ migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs 
 	  docker compose exec -T api alembic revision --autogenerate --rev-id "$${NEXT_REV}" -m "$(name)"
 	@echo ""
 	@echo "Run 'make fmt' to apply ruff formatting to the new revision file."
+
+# ---------- MVP1 Dashboard ----------
+
+dashboard:  ## Regenerate docs/00_overview/mvp1_dashboard.html from feature folders
+	@python3 scripts/build_mvp1_dashboard.py
