@@ -239,7 +239,7 @@ class TestCheckConstraints:
                         text(
                             "INSERT INTO judgment_lists (id, name, query_set_id, "
                             "cluster_id, target, rubric, status) VALUES "
-                            "('bad', 'jl-bad', :qs, :c, 't', 'r', 'archived')"
+                            "('bad', 'jl-bad', :qs, :c, 't', 'r', 'cancelled')"
                         ),
                         {"qs": qs_id, "c": cluster_id},
                     )
@@ -350,6 +350,246 @@ class TestUniqueConstraints:
                     )
             with engine.begin() as conn:
                 conn.execute(text("DELETE FROM query_templates WHERE id LIKE 'qt-%'"))
+        finally:
+            engine.dispose()
+
+
+@pytest.mark.integration
+class TestNotNullCoverage:
+    """Per plan §3 (cycle-1 GPT-5.5 F7): introspect information_schema.columns
+    and assert NOT NULL boundaries match data-model.md for every column on
+    each of the 7 tables.
+    """
+
+    # (table, column, expected is_nullable). Mirrors data-model.md §"Tables
+    # added by feat_study_lifecycle". query_sets.cluster_id ships as NOT NULL
+    # in the migration (stricter than the SQL excerpt in data-model.md, which
+    # leaves it implicit) — codify the migration's choice.
+    _EXPECTED: tuple[tuple[str, str, str], ...] = (
+        # query_templates
+        ("query_templates", "id", "NO"),
+        ("query_templates", "name", "NO"),
+        ("query_templates", "engine_type", "NO"),
+        ("query_templates", "body", "NO"),
+        ("query_templates", "declared_params", "NO"),
+        ("query_templates", "version", "NO"),
+        ("query_templates", "parent_id", "YES"),
+        ("query_templates", "created_at", "NO"),
+        # query_sets
+        ("query_sets", "id", "NO"),
+        ("query_sets", "name", "NO"),
+        ("query_sets", "description", "YES"),
+        ("query_sets", "cluster_id", "NO"),
+        ("query_sets", "created_at", "NO"),
+        # queries
+        ("queries", "id", "NO"),
+        ("queries", "query_set_id", "NO"),
+        ("queries", "query_text", "NO"),
+        ("queries", "reference_answer", "YES"),
+        ("queries", "metadata", "YES"),
+        # judgment_lists
+        ("judgment_lists", "id", "NO"),
+        ("judgment_lists", "name", "NO"),
+        ("judgment_lists", "description", "YES"),
+        ("judgment_lists", "query_set_id", "NO"),
+        ("judgment_lists", "cluster_id", "NO"),
+        ("judgment_lists", "target", "NO"),
+        ("judgment_lists", "current_template_id", "YES"),
+        ("judgment_lists", "rubric", "NO"),
+        ("judgment_lists", "status", "NO"),
+        ("judgment_lists", "failed_reason", "YES"),
+        ("judgment_lists", "calibration", "YES"),
+        ("judgment_lists", "created_at", "NO"),
+        # studies
+        ("studies", "id", "NO"),
+        ("studies", "name", "NO"),
+        ("studies", "cluster_id", "NO"),
+        ("studies", "target", "NO"),
+        ("studies", "template_id", "NO"),
+        ("studies", "query_set_id", "NO"),
+        ("studies", "judgment_list_id", "NO"),
+        ("studies", "search_space", "NO"),
+        ("studies", "objective", "NO"),
+        ("studies", "config", "NO"),
+        ("studies", "status", "NO"),
+        ("studies", "failed_reason", "YES"),
+        ("studies", "optuna_study_name", "NO"),
+        ("studies", "parent_study_id", "YES"),
+        ("studies", "baseline_metric", "YES"),
+        ("studies", "best_metric", "YES"),
+        ("studies", "best_trial_id", "YES"),
+        ("studies", "created_at", "NO"),
+        ("studies", "started_at", "YES"),
+        ("studies", "completed_at", "YES"),
+        # trials
+        ("trials", "id", "NO"),
+        ("trials", "study_id", "NO"),
+        ("trials", "optuna_trial_number", "NO"),
+        ("trials", "params", "NO"),
+        ("trials", "primary_metric", "YES"),
+        ("trials", "metrics", "NO"),
+        ("trials", "duration_ms", "YES"),
+        ("trials", "status", "NO"),
+        ("trials", "error", "YES"),
+        ("trials", "started_at", "YES"),
+        ("trials", "ended_at", "YES"),
+        # proposals
+        ("proposals", "id", "NO"),
+        ("proposals", "study_id", "YES"),
+        ("proposals", "study_trial_id", "YES"),
+        ("proposals", "cluster_id", "NO"),
+        ("proposals", "template_id", "NO"),
+        ("proposals", "config_diff", "NO"),
+        ("proposals", "metric_delta", "YES"),
+        ("proposals", "status", "NO"),
+        ("proposals", "pr_url", "YES"),
+        ("proposals", "pr_state", "YES"),
+        ("proposals", "pr_merged_at", "YES"),
+        ("proposals", "pr_open_error", "YES"),
+        ("proposals", "rejected_reason", "YES"),
+        ("proposals", "created_at", "NO"),
+    )
+
+    def test_not_null_boundaries(self, restore_head: None) -> None:
+        _alembic("upgrade", "head")
+        engine = create_engine(_sync_database_url(), future=True)
+        try:
+            with engine.connect() as conn:
+                rows = conn.execute(
+                    text(
+                        "SELECT table_name, column_name, is_nullable "
+                        "FROM information_schema.columns "
+                        "WHERE table_schema = 'public' "
+                        "AND table_name IN ('query_templates', 'query_sets', 'queries', "
+                        "'judgment_lists', 'studies', 'trials', 'proposals')"
+                    )
+                ).fetchall()
+                actual = {(t, c): n for t, c, n in rows}
+            for table, column, expected in self._EXPECTED:
+                got = actual.get((table, column))
+                assert got == expected, (
+                    f"{table}.{column}: expected is_nullable={expected!r}, got {got!r}"
+                )
+        finally:
+            engine.dispose()
+
+
+@pytest.mark.integration
+class TestForeignKeyTargets:
+    """Per plan §3: introspect information_schema.referential_constraints +
+    key_column_usage to verify every FK target and ON DELETE rule.
+    """
+
+    # (constraint_name_substring, table, column, ref_table, ref_column, delete_rule).
+    # Constraint names follow Alembic's auto-generated <table>_<col>_fkey
+    # convention; we match by table+column rather than exact name to stay
+    # robust to future renames.
+    _EXPECTED_FKS: tuple[tuple[str, str, str, str, str], ...] = (
+        # CASCADE behavior
+        ("queries", "query_set_id", "query_sets", "id", "CASCADE"),
+        ("trials", "study_id", "studies", "id", "CASCADE"),
+        # NO ACTION (default) — studies' five outgoing FKs
+        ("studies", "cluster_id", "clusters", "id", "NO ACTION"),
+        ("studies", "template_id", "query_templates", "id", "NO ACTION"),
+        ("studies", "query_set_id", "query_sets", "id", "NO ACTION"),
+        ("studies", "judgment_list_id", "judgment_lists", "id", "NO ACTION"),
+        ("studies", "parent_study_id", "studies", "id", "NO ACTION"),
+        # judgment_lists' three outgoing FKs
+        ("judgment_lists", "query_set_id", "query_sets", "id", "NO ACTION"),
+        ("judgment_lists", "cluster_id", "clusters", "id", "NO ACTION"),
+        ("judgment_lists", "current_template_id", "query_templates", "id", "NO ACTION"),
+        # query_templates self-FK + query_sets cluster FK
+        ("query_templates", "parent_id", "query_templates", "id", "NO ACTION"),
+        ("query_sets", "cluster_id", "clusters", "id", "NO ACTION"),
+        # proposals' four outgoing FKs
+        ("proposals", "study_id", "studies", "id", "NO ACTION"),
+        ("proposals", "study_trial_id", "trials", "id", "NO ACTION"),
+        ("proposals", "cluster_id", "clusters", "id", "NO ACTION"),
+        ("proposals", "template_id", "query_templates", "id", "NO ACTION"),
+    )
+
+    def test_foreign_key_targets_and_delete_rules(self, restore_head: None) -> None:
+        _alembic("upgrade", "head")
+        engine = create_engine(_sync_database_url(), future=True)
+        try:
+            with engine.connect() as conn:
+                # Join referential_constraints + key_column_usage so we can
+                # match by (table, column) rather than relying on Alembic's
+                # auto-generated constraint name format.
+                rows = conn.execute(
+                    text(
+                        "SELECT kcu.table_name, kcu.column_name, "
+                        "ccu.table_name AS ref_table, ccu.column_name AS ref_column, "
+                        "rc.delete_rule "
+                        "FROM information_schema.referential_constraints rc "
+                        "JOIN information_schema.key_column_usage kcu "
+                        "  ON rc.constraint_name = kcu.constraint_name "
+                        " AND rc.constraint_schema = kcu.constraint_schema "
+                        "JOIN information_schema.constraint_column_usage ccu "
+                        "  ON rc.unique_constraint_name = ccu.constraint_name "
+                        " AND rc.unique_constraint_schema = ccu.constraint_schema "
+                        "WHERE rc.constraint_schema = 'public' "
+                        "AND kcu.table_name IN ('query_templates', 'query_sets', "
+                        "'queries', 'judgment_lists', 'studies', 'trials', 'proposals')"
+                    )
+                ).fetchall()
+                actual = {(r[0], r[1]): (r[2], r[3], r[4]) for r in rows}
+            for table, column, ref_table, ref_column, delete_rule in self._EXPECTED_FKS:
+                got = actual.get((table, column))
+                assert got is not None, f"FK {table}.{column} → {ref_table}.{ref_column} not found"
+                got_ref_table, got_ref_column, got_delete_rule = got
+                assert got_ref_table == ref_table, (
+                    f"{table}.{column}: expected ref_table={ref_table}, got {got_ref_table}"
+                )
+                assert got_ref_column == ref_column, (
+                    f"{table}.{column}: expected ref_column={ref_column}, got {got_ref_column}"
+                )
+                assert got_delete_rule == delete_rule, (
+                    f"{table}.{column}: expected delete_rule={delete_rule}, got {got_delete_rule}"
+                )
+        finally:
+            engine.dispose()
+
+
+@pytest.mark.integration
+class TestUniqueConstraintCatalog:
+    """Per plan §3: introspect pg_constraint for the 4 documented UNIQUE
+    constraints (composite + 3 single-column).
+    """
+
+    def test_unique_constraint_inventory(self, restore_head: None) -> None:
+        _alembic("upgrade", "head")
+        engine = create_engine(_sync_database_url(), future=True)
+        try:
+            with engine.connect() as conn:
+                # pg_constraint stores key columns as an int[] of attnums;
+                # join through pg_attribute to materialize column names.
+                rows = conn.execute(
+                    text(
+                        "SELECT t.relname AS table_name, "
+                        "ARRAY_AGG(a.attname ORDER BY u.ord) AS columns "
+                        "FROM pg_constraint c "
+                        "JOIN pg_class t ON t.oid = c.conrelid "
+                        "JOIN pg_namespace n ON n.oid = t.relnamespace "
+                        "JOIN LATERAL unnest(c.conkey) WITH ORDINALITY AS u(attnum, ord) ON TRUE "
+                        "JOIN pg_attribute a "
+                        "  ON a.attrelid = c.conrelid AND a.attnum = u.attnum "
+                        "WHERE c.contype = 'u' "
+                        "AND n.nspname = 'public' "
+                        "AND t.relname IN ('query_templates', 'query_sets', "
+                        "'judgment_lists', 'studies') "
+                        "GROUP BY t.relname, c.oid"
+                    )
+                ).fetchall()
+                actual = {(r[0], tuple(r[1])) for r in rows}
+            expected = {
+                ("query_templates", ("name", "version")),
+                ("query_sets", ("name",)),
+                ("judgment_lists", ("name",)),
+                ("studies", ("optuna_study_name",)),
+            }
+            missing = expected - actual
+            assert not missing, f"missing UNIQUE constraints: {missing}"
         finally:
             engine.dispose()
 
