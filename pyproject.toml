@@ -35,6 +35,8 @@ dependencies = [
     "structlog>=24.4",
     "arq>=0.26",
     "uuid-utils>=0.10",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
 ]
 
 [dependency-groups]
@@ -48,6 +50,7 @@ dev = [
     "pytest-recording>=0.13",
     "testcontainers[postgresql]>=4.9",
     "pre-commit>=4.6.0",
+    "types-PyYAML>=6.0",
 ]
 
 [build-system]
