@@ -72,6 +72,35 @@ def postgres_reachable() -> bool:
         return False
 
 
+_MIGRATIONS_APPLIED = False
+"""Module-level flag to apply Alembic migrations exactly once per test session.
+
+CI doesn't run a migration step before pytest, so any test that reads/writes
+business tables (``test_cluster_repo.py``, etc.) needs the schema in place
+on first use. ``test_clusters_migration.py`` exercises the full upgrade /
+downgrade cycle itself and resets this flag to force re-application after.
+"""
+
+
+def _apply_migrations_if_needed() -> None:
+    """Apply ``alembic upgrade head`` once if schema isn't already present."""
+    global _MIGRATIONS_APPLIED
+    if _MIGRATIONS_APPLIED:
+        return
+    import subprocess
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[2]
+    subprocess.run(
+        ["uv", "run", "alembic", "upgrade", "head"],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    _MIGRATIONS_APPLIED = True
+
+
 @pytest_asyncio.fixture
 async def db_session() -> AsyncIterator[AsyncSession]:  # type: ignore[name-defined] # noqa: F821
     """Yield an ``AsyncSession`` against the integration-test Postgres.
@@ -79,12 +108,15 @@ async def db_session() -> AsyncIterator[AsyncSession]:  # type: ignore[name-defi
     Skips automatically when Postgres isn't reachable. Each test runs inside
     a SAVEPOINT-style transaction that's rolled back on teardown, so tests
     don't leak rows between runs and cleanup never runs against a partially
-    committed schema.
+    committed schema. On first use per session, applies Alembic migrations
+    so the business tables exist (CI doesn't have a separate migration step).
     """
     if not postgres_reachable():
         pytest.skip(
             "Postgres not reachable — see docs/03_runbooks/local-dev.md §'Local-vs-CI test layers'."
         )
+    _apply_migrations_if_needed()
+
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
     from backend.app.core.settings import get_settings
