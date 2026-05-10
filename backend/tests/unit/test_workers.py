@@ -1,8 +1,9 @@
-"""Worker smoke tests (infra_foundation Story 4.3).
+"""Worker smoke tests (infra_foundation Story 4.3 + infra_optuna_eval Story 2.3).
 
-The MVP1 worker registers no functions. These tests verify the
-``WorkerSettings`` class is importable, ``functions`` is empty, and
-``redis_settings`` resolves the host from ``Settings.redis_url``.
+These tests verify the ``WorkerSettings`` class is importable,
+``functions`` contains the registered Arq jobs, ``redis_settings`` resolves
+the host from ``Settings.redis_url``, and the ``on_startup`` hook exists
+(spec FR-1 — RDBStorage MUST initialize at worker startup).
 """
 
 from __future__ import annotations
@@ -30,10 +31,29 @@ def _settings_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_worker_settings_importable(_settings_env: None) -> None:
-    """WorkerSettings should import without raising and expose `functions`."""
+    """WorkerSettings should import without raising and register run_trial.
+
+    Per infra_optuna_eval Story 2.3: functions list contains exactly
+    ``run_trial``. Additional jobs land in subsequent features
+    (``generate_digest``, ``open_pr``).
+    """
     from backend.workers.all import WorkerSettings
 
-    assert WorkerSettings.functions == []
+    assert len(WorkerSettings.functions) == 1
+    assert WorkerSettings.functions[0].__name__ == "run_trial"
+
+
+def test_worker_settings_has_on_startup_hook(_settings_env: None) -> None:
+    """Spec FR-1 — RDBStorage MUST be initialized at worker startup.
+
+    WorkerSettings.on_startup is a coroutine that constructs Optuna's
+    RDBStorage and caches it in ctx['optuna_storage'].
+    """
+    from backend.workers.all import WorkerSettings
+
+    assert hasattr(WorkerSettings, "on_startup")
+    # on_startup is bound as a coroutine on the class; verify it's callable.
+    assert callable(WorkerSettings.on_startup)
 
 
 def test_worker_settings_redis_host_parsed(_settings_env: None) -> None:
