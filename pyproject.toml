@@ -102,6 +102,8 @@ ignore = [
                                       # asserts, subprocess, fixtures-as-credentials
 "migrations/env.py" = ["E402", "D"]   # alembic generated boilerplate
 "migrations/versions/*.py" = ["D", "E501"]
+"scripts/**" = ["D"]                  # operator tooling (e.g., dashboard generator)
+                                      # — same rationale as tests: not library code
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
