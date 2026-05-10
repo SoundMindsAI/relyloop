@@ -36,8 +36,25 @@ def _sync_database_url() -> str:
     return get_settings().database_url.replace("postgresql+asyncpg://", "postgresql://")
 
 
+def _ensure_schemas_initialized() -> None:
+    """Idempotent: applies migrations + creates the ``optuna`` schema.
+
+    CI runs ``alembic upgrade head`` (via the ``db_session`` fixture's autouse
+    trigger when invoked from any test) but does NOT run
+    ``python -m backend.app.db.optuna_schema``. These integration tests bypass
+    the ``db_session`` fixture, so we replicate the ``make migrate`` chain
+    here: alembic head + the optuna schema initializer.
+    """
+    from backend.app.db.optuna_schema import init_optuna_schema
+    from backend.tests.conftest import _apply_migrations_if_needed
+
+    _apply_migrations_if_needed()
+    init_optuna_schema(get_settings().database_url)
+
+
 def test_ac1a_optuna_schema_exists_after_migrate():
     """AC-1a — ``optuna`` schema is present after migrations + bootstrap."""
+    _ensure_schemas_initialized()
     engine = create_engine(_sync_database_url(), future=True)
     try:
         with engine.connect() as conn:
@@ -55,6 +72,7 @@ def test_ac1a_optuna_schema_exists_after_migrate():
 
 def test_ac1b_optuna_creates_internal_tables_in_optuna_namespace():
     """AC-1b — first ``create_study`` lands tables in optuna.*, not public.*."""
+    _ensure_schemas_initialized()
     storage = build_storage(get_settings().database_url)
     study_name = f"ac1b-{uuid.uuid4()}"
     study = optuna.create_study(storage=storage, study_name=study_name, direction="maximize")

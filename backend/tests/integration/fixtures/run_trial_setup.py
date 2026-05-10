@@ -56,7 +56,26 @@ async def setup_study_with_cluster(
     Returns a TrialFixture with all generated IDs. The Optuna study is NOT
     created here — the caller drives that via ``create_optuna_trial_for_study``
     (simulating the orchestrator per spec §11 / plan Conventions).
+
+    Migrations are applied here on first call (CI doesn't run a separate
+    ``make migrate`` before pytest, and tests that bypass the ``db_session``
+    fixture's autouse migration trigger would otherwise hit
+    ``relation "clusters" does not exist``).
     """
+    # Apply migrations once per test session — module-level idempotent flag
+    # inside conftest._apply_migrations_if_needed.
+    from backend.app.core.settings import get_settings
+    from backend.app.db.optuna_schema import init_optuna_schema
+    from backend.tests.conftest import _apply_migrations_if_needed
+
+    _apply_migrations_if_needed()
+    # CI runs `alembic upgrade head` (via the autouse trigger) but does NOT
+    # run `python -m backend.app.db.optuna_schema`. The Makefile's `make migrate`
+    # target chains both; in tests we replicate the second step manually so
+    # the ``optuna`` schema exists before ``RDBStorage`` touches it.
+    # Idempotent (CREATE SCHEMA IF NOT EXISTS).
+    init_optuna_schema(get_settings().database_url)
+
     config: dict[str, object] = {"max_trials": max_trials, "sampler": sampler}
     if pruner is not None:
         config["pruner"] = pruner
