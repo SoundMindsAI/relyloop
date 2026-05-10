@@ -2,14 +2,14 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-09
+**Last updated:** 2026-05-10
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `feature/infra-adapter-elastic` (implementation complete 2026-05-09; PR pending)
-- **Active feature:** [`infra_adapter_elastic`](docs/02_product/planned_features/infra_adapter_elastic/) — the engine adapter (Elasticsearch + OpenSearch) that unblocks every downstream MVP1 feature. **Implementation complete**: 20 stories across 5 epics, 14 commits on the branch, all phase gates green, coverage 90.85%. The §2 `/healthz` extension question (no-FR aggregate field) was resolved by implementing per spec §2 text (Story 3.5 — `subsystems.elasticsearch_clusters`).
+- **Branch:** `main` is now the canonical reference; PR #16 squash-merged 2026-05-10 (commit `43ab813`). A short-lived `docs/finalize-infra-adapter-elastic` branch ships the folder move + status flips.
+- **Active feature:** none in flight; **next up: `infra_optuna_eval`** (Optuna RDBStorage + pytrec_eval).
 - **Alembic head:** `0002_clusters_config_repos` (`clusters` + `config_repos`
   tables created; round-trip verified locally + in CI).
 - **Coverage:** 90.85% backend (gate is 80%); `protocol.py` + `errors.py` +
@@ -18,9 +18,8 @@
 
 ## Most recent meaningful changes (newest first)
 
-- **2026-05-09 — `infra_adapter_elastic` implementation complete on
-  `feature/infra-adapter-elastic`** (PR pending). All 20 stories across 5
-  epics shipped:
+- **2026-05-10 — `infra_adapter_elastic` merged into `main`** as PR #16
+  (squash commit `43ab813`). All 20 stories across 5 epics shipped:
   - **Epic 1**: `SearchAdapter` Protocol + 8 Pydantic types + `clusters` /
     `config_repos` ORM models + Alembic migration `0002` (round-trip
     verified) + repo functions with cursor pagination.
@@ -42,11 +41,24 @@
     `backend/app/adapters/`, section §7.x → §8.x).
   - **Epic 5**: 8-code error envelope contract test, dispatch_run_query
     unit tests, coverage audit (90.85% — well above gate).
-  - 19 GPT-5.5 plan-review findings (12 High / 7 Medium) all applied.
+  - 19 GPT-5.5 plan-review findings (12 High / 7 Medium) all applied
+    pre-implementation; final-cycle review of the merged diff raised 5
+    findings (4 accepted + fixed in `1ce618f`, 1 rejected with cited
+    counter-evidence — truncation artifact).
+  - Refactor sweep (commit `c6758bd`): cross-product `engine_type ×
+    auth_kind` allowlist (rejects misconfigurations like
+    `opensearch + es_apikey` at registration); `acquire_adapter` async
+    context manager dedupes the schema/run_query handlers'
+    "build adapter, translate CredentialsMissing, finally aclose"
+    boilerplate. Filed [`chore_test_both_engines`](docs/02_product/planned_features/chore_test_both_engines/idea.md)
+    as a follow-up for parameterizing integration tests over both engines.
+  - Operator-facing docs: [`docs/03_runbooks/cluster-registration.md`](docs/03_runbooks/cluster-registration.md)
+    runbook + new conceptual overview at [`docs/01_architecture/cluster-lifecycle.md`](docs/01_architecture/cluster-lifecycle.md).
   - Operator-path verification: live ES 9.4.0 + OpenSearch 2.18.0
     exercised end-to-end via the dev-deps container; `/healthz` returns
     `subsystems.elasticsearch_clusters: {"registered": 2, "healthy": 2,
     "unreachable": 0}` after `make seed-clusters`.
+  - Feature folder moved to [`docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/`](docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/).
 - **2026-05-09 — `infra_foundation` PR #4 merged to `main`** (squash commit
   `93eeb64`). Bootstrap complete: 6-service Compose stack, FastAPI +
   `/healthz`, OpenAI capability check at startup, Alembic baseline
@@ -84,10 +96,9 @@
 
 ## In flight
 
-- **`infra_adapter_elastic`** — implementation complete on
-  `feature/infra-adapter-elastic`; PR pending push + open. After merge,
-  Alembic head moves from `0002` to whatever `infra_optuna_eval` adds
-  next.
+- None. **Next up:** `infra_optuna_eval` (Optuna RDBStorage tables +
+  pytrec_eval wiring). Alembic head will advance from `0002` to
+  whatever its first business-table migration ID is.
 
 ## Queued (priority-ordered by dependency)
 
