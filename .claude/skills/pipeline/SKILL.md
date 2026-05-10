@@ -3,7 +3,7 @@ name: pipeline
 pipeline-stage: 0
 pipeline-role: orchestrator
 description: "Orchestrate the full feature development pipeline from idea to staging deployment. Detects current stage, invokes the next skill (spec-gen, impl-plan-gen, impl-execute, guide-gen), and pauses for approval between stages. Use when: running a feature end-to-end, resuming a feature pipeline, checking pipeline status, or advancing a feature to the next stage. Trigger phrases: run pipeline, advance feature, pipeline status, idea to staging, full pipeline, resume pipeline."
-argument-hint: "<path to feature directory> [--auto] [--from <stage>] [--to <stage>] [--status]"
+argument-hint: "status | <path to feature directory> [--auto] [--from <stage>] [--to <stage>] [--status]"
 allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Agent, WebFetch, WebSearch, TodoWrite
 model: claude-opus-4-7
 user-invocable: true
@@ -35,13 +35,16 @@ Guide generation is handled automatically by `/impl-execute` post-implementation
 
 ## Inputs
 
-- **`$ARGUMENTS`**: Required. Path to the feature directory under `docs/02_product/planned_features/`.
+`$ARGUMENTS` is one of:
+
+- **`status`** (or empty) — **Project-wide status mode.** Enumerate every feature under `docs/02_product/planned_features/`, sort by dependency-derived priority order, and render a status table with a single explicit "Next action" line. No skills are invoked. See [Project-wide status mode](#project-wide-status-mode-no-feature-path) below.
+- **`<path to feature directory>`** — Single-feature mode. Detect the current stage and advance it. Path must be under `docs/02_product/planned_features/`.
   - Example: `docs/02_product/planned_features/EPIC_RBAC-GAPS_01-team_management_ui`
-- **Optional flags** (appended after the path):
+- **Optional flags** (appended after the path; ignored in `status` mode):
   - `--auto` — **Autonomous mode.** Run the entire pipeline (idea → spec → plan → implement → PR) without pausing for inter-stage approval. Cross-model review, verification gates, and test suites still run within each skill — those are hard gates, not skippable. In epic mode, `--auto` pauses only between features (not between stages within a feature). See "Autonomous mode" section below.
   - `--from <stage>` — Force start from a specific stage (`idea`, `spec`, `plan`, `implement`). Overrides auto-detection.
   - `--to <stage>` — Stop after completing a specific stage. Useful for generating just the spec or just the plan.
-  - `--status` — Report current pipeline status without advancing. No skills invoked.
+  - `--status` — Report current single-feature status without advancing. No skills invoked. (For project-wide status across all features, use the bare `status` argument instead.)
 
 ## Stage detection
 
@@ -77,7 +80,82 @@ Next action: Generate implementation plan from approved spec
 Command: /impl-plan-gen <path>/feature_spec.md
 ```
 
+## Project-wide status mode (no feature path)
+
+When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wide pipeline status across **all** features in `docs/02_product/planned_features/`. **Do not invoke any skills in this mode.** The user is asking "where are we and what's next" — give them an unambiguous answer.
+
+**The output MUST be ordered by dependency-derived priority.** Never sort by `ls`, alphabet, or directory mtime — the user should not have to guess what comes next.
+
+### Algorithm
+
+1. **Enumerate feature directories.** `ls docs/02_product/planned_features/`. Exclude `feature_templates/` and any non-feature folders (no `feature_spec.md` and no `idea.md`).
+
+2. **Parse dependencies for each feature.** For each `<feature>/feature_spec.md`:
+   - Read the first ~20 lines.
+   - Look for a `Depends on:` line (typically near the top metadata block, e.g. `- Depends on: [\`infra_foundation\`](...)`).
+   - Extract the list of referenced feature folder names. Treat phrases like "ALL prior backend features", "ALL prior MVP1 features", or "all backend" as a transitive dependency on every other feature whose folder name starts with `infra_` or `feat_`.
+   - If the spec has no `Depends on:` line, treat it as a root (no dependencies).
+   - If only `idea.md` exists (no spec), parse `idea.md` the same way; if neither exists, the feature is uncategorizable — list it separately under "Unparseable" at the bottom.
+
+3. **Topologically sort.** Standard Kahn's algorithm:
+   - Roots (features with no remaining unsatisfied deps) come first.
+   - Tiebreaker among same-tier features: prefix order `infra_` → `feat_` → `chore_`, then alphabetical.
+   - If a cycle is detected, list the cycle members at the bottom under "Cycle detected — review these specs" and continue with the rest.
+
+4. **Cross-check against `docs/02_product/mvp1-user-stories.md`** §"Stories grouped by feature". That doc lists features in their canonical narrative order. Compare to the dep-derived order:
+   - **If they match:** great — present the priority order without comment.
+   - **If they disagree:** present the dep-derived order (it's authoritative because it's machine-verifiable from the specs), and add a single line below the table flagging the disagreement: `**Note:** dep-derived order differs from mvp1-user-stories.md (X is at position N here vs. M in the doc) — review the spec's "Depends on" line or the doc to reconcile.`
+
+5. **Detect each feature's current stage** from artifacts in its directory:
+   - Folder exists in `implemented_features/` for this slug AND no `phase*_idea.md` remains in the planned-features folder (or the planned-features folder is gone) → **DONE**.
+   - `implementation_plan.md` exists with completed stories in execution tracker AND a `phase*_idea.md` file remains alongside it → **PARTIAL (Phase N done, Phase N+1 pending)**. The folder stays in `planned_features/` until every deferred phase ships, per `impl-execute` Step 8.6. The "Next action" for a partial feature is to run `/pipeline <feature>/phase<N+1>_idea.md` so a fresh spec/plan loop starts on the deferred phase.
+   - `implementation_plan.md` exists with completed stories in execution tracker → **IMPLEMENT (in progress)**
+   - `implementation_plan.md` exists, no completed stories → **PLAN complete, ready for IMPLEMENT**
+   - `feature_spec.md` exists, no plan → **SPEC complete, ready for PLAN**
+   - `idea.md` exists only → **IDEA complete, ready for SPEC**
+   - Folder exists with no artifacts → **EMPTY**
+
+6. **Pick the "Next action."** The next feature is the first feature in priority order whose stage is not DONE. For PARTIAL features, the next action targets the deferred phase's `phase*_idea.md`, not the original feature folder. Quote the exact `/pipeline <path>` command.
+
+> **Canonical algorithm reference.** This algorithm is also implemented in [`scripts/build_mvp1_dashboard.py`](../../../scripts/build_mvp1_dashboard.py), which generates [`docs/00_overview/MVP1_DASHBOARD.md`](../../../docs/00_overview/MVP1_DASHBOARD.md) (GitHub-rendered) and `docs/00_overview/mvp1_dashboard.html` (rich local view). The dashboard is the durable artifact — `/pipeline status` is the live-conversation view that should match what the dashboard shows for the same working tree. If the two ever disagree on priority order or stage detection, the dashboard generator is the source of truth (it has explicit code paths for the deferred-phase / partial-completion case); update either this skill's prose or the script to converge, never let them drift.
+
+### Required output format
+
+```
+Pipeline Status — MVP1 Priority Order
+
+| #  | Feature                | Depends on | Idea | Spec | Plan | Implement | Done |
+|----|------------------------|-----------|------|------|------|-----------|------|
+| 1  | infra_foundation       | —         |  —   |  ✓   |  —   |    —      |  —   |
+| 2  | infra_adapter_elastic  | 1         |  —   |  ✓   |  —   |    —      |  —   |
+| ...                                                                                |
+| 12 | chore_tutorial_polish  | all MVP1  |  —   |  ✓   |  —   |    —      |  —   |
+
+**Next action: advance #<n> `<feature>` from <STAGE> → <NEXT STAGE>.**
+
+```
+/pipeline docs/02_product/planned_features/<feature>
+```
+
+Implemented: <count> · Planned: <count> · Cross-checked against mvp1-user-stories.md: <match | disagreement noted above>
+```
+
+- The `Depends on` column shows the **`#`** of each upstream feature, not the full slug, to keep the table tight. Use `—` for roots, `all backend` / `all MVP1` for transitive deps.
+- Use `✓` for completed stages, `—` for not-started, `…` for in-progress (e.g. plan exists but stories are partial).
+- File-link each feature name to its `feature_spec.md` so the user can click through.
+- The "Next action" line is mandatory and must contain exactly one feature, exactly one stage transition, and exactly one runnable command.
+
+### Why this matters
+
+The user explicitly asked never to have to guess what's next. A status table sorted by `ls` output forces them to mentally walk the dependency graph; a priority-sorted table with a single "Next action" line does that work for them.
+
 ## Workflow
+
+### Step 0: Branch on `status` vs. feature path
+
+If `$ARGUMENTS` is `status` (or empty), execute "Project-wide status mode" above and return. Do not proceed to Step 1.
+
+Otherwise (a feature path was provided), continue to Step 1 below.
 
 ### Step 1: Read context and detect stage
 
@@ -346,3 +424,4 @@ If the feature branch already exists or has diverged:
 8. **Handle missing pipeline_status.md gracefully.** Many features pre-date this orchestrator — fall back to artifact detection.
 9. **One feature at a time.** In epic mode, complete one feature's full pipeline before starting the next.
 10. **Inform the user at every transition.** What just completed, what's next, what they need to review.
+11. **Project-wide status output is always priority-ordered with one explicit "Next action."** When invoked as `/pipeline status` (or with no arguments), sort features by dependency-derived order parsed from each spec's "Depends on:" line; never sort by directory listing, alphabet, or recency. End the output with a single bold "Next action:" line and the exact `/pipeline <path>` command to run. The user must not have to scan the table and guess.
