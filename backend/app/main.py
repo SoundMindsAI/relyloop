@@ -33,6 +33,7 @@ from backend.app.api import health
 from backend.app.api.errors import install_exception_handlers
 from backend.app.api.middleware import RequestIDMiddleware
 from backend.app.api.v1 import clusters as clusters_router
+from backend.app.api.v1 import query_sets as query_sets_router
 from backend.app.api.v1 import query_templates as query_templates_router
 from backend.app.core.logging import configure_logging, get_logger
 from backend.app.core.settings import get_settings
@@ -100,3 +101,4 @@ install_exception_handlers(app)
 app.include_router(health.router)  # /healthz unprefixed; operator endpoint per Rule #6
 app.include_router(clusters_router.router, prefix="/api/v1")  # Story 3.2 — cluster CRUD
 app.include_router(query_templates_router.router, prefix="/api/v1")  # Phase 2 Story 3.1
+app.include_router(query_sets_router.router, prefix="/api/v1")  # Phase 2 Story 3.2
