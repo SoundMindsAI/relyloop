@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import datetime as dt
 import html
+import os
 import re
 import sys
 from dataclasses import dataclass, field
@@ -31,7 +32,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLANNED_DIR = REPO_ROOT / "docs/02_product/planned_features"
 IMPLEMENTED_DIR = REPO_ROOT / "docs/00_overview/implemented_features"
-OUTPUT = REPO_ROOT / "docs/00_overview/mvp1_dashboard.html"
+OUTPUT_HTML = REPO_ROOT / "docs/00_overview/mvp1_dashboard.html"
+OUTPUT_MD = REPO_ROOT / "docs/00_overview/MVP1_DASHBOARD.md"
 
 # Feature directory name → human title fragment. Anything not in this map
 # falls back to the folder name with the prefix stripped.
@@ -149,10 +151,43 @@ def _extract_depends_on(text: str) -> list[str]:
     return [f for f in folders if any(f.startswith(p + "_") for p in PREFIX_LABELS)]
 
 
-def _extract_pr_number(text: str) -> int | None:
-    """Look for the most recent `PR #N` reference."""
-    matches = re.findall(r"PR\s*#(\d+)", text)
-    return int(matches[-1]) if matches else None
+def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
+    """Find this feature's PR number, not dependency cites.
+
+    Priority order:
+    1. The `## Implement` section of pipeline_status.md — most authoritative
+       for shipped features. Accepts both `PR #N` and `[#N]` markdown-link
+       formats.
+    2. The plan's `**Status:**` header (catches in-flight features).
+    3. A `merged`-context match across all artifacts (catches features
+       described in narrative form elsewhere).
+    4. First `#N` reference, as a last-resort fallback.
+    """
+    # 1. Scope to pipeline_status.md's Implement section first.
+    impl = re.search(
+        r"^##\s+Implement[^\n]*\n(.+?)(?=^##|\Z)",
+        pipe,
+        flags=re.MULTILINE | re.DOTALL,
+    )
+    if impl:
+        m = re.search(r"#(\d+)", impl.group(1))
+        if m:
+            return int(m.group(1))
+    # 2. Plan's Status header.
+    m = re.search(r"^\*\*Status:\*\*[^\n]*PR\s*#(\d+)", plan, flags=re.MULTILINE)
+    if m:
+        return int(m.group(1))
+    # 3. Merged-context across all sources.
+    combined = pipe + "\n" + plan + "\n" + spec
+    m = re.search(r"PR[^a-zA-Z\n]{0,5}#(\d+)[^.\n]{0,80}merged", combined)
+    if m:
+        return int(m.group(1))
+    m = re.search(r"merged[^.\n]{0,80}PR[^a-zA-Z\n]{0,5}#(\d+)", combined)
+    if m:
+        return int(m.group(1))
+    # 4. Last-resort: first PR reference.
+    matches = re.findall(r"PR[^a-zA-Z\n]{0,5}#(\d+)", combined)
+    return int(matches[0]) if matches else None
 
 
 def _extract_merged_date(text: str) -> str | None:
@@ -241,7 +276,7 @@ def _load_planned(folder_path: Path) -> Feature | None:
         status_line=status_line,
         one_liner=one_liner,
         depends_on=_extract_depends_on(spec),
-        pr_number=_extract_pr_number(pipe + plan + spec),
+        pr_number=_extract_pr_number(pipe, plan, spec),
         merged_date=_extract_merged_date(pipe + plan + spec),
         deferred_phase=deferred,
     )
@@ -260,7 +295,7 @@ def _load_implemented(folder_path: Path) -> Feature | None:
     pipe = _read(folder_path / "pipeline_status.md")
 
     one_liner = _extract_one_liner(spec)
-    pr = _extract_pr_number(pipe + plan + spec)
+    pr = _extract_pr_number(pipe, plan, spec)
     merged = _extract_merged_date(pipe + plan + spec)
 
     # Date prefix from the folder is the canonical merged date.
@@ -690,7 +725,7 @@ def _mermaid_graph(features: list[Feature]) -> str:
     return "\n".join(lines)
 
 
-def render(features: list[Feature]) -> str:
+def render_html(features: list[Feature]) -> str:
     kpi = _classify_kpi(features)
     pct = (
         round(kpi["done_features"] * 100 / kpi["scoped_features"]) if kpi["scoped_features"] else 0
@@ -827,11 +862,163 @@ def _strip_trailing_ws(text: str) -> str:
     return "\n".join(line.rstrip() for line in text.splitlines()) + "\n"
 
 
+# ---------------------------------------------------------------------------
+# Markdown renderer (GitHub-native view alongside the rich HTML)
+# ---------------------------------------------------------------------------
+
+
+def _md_escape_cell(text: str) -> str:
+    """Escape characters that break GitHub markdown table cells."""
+    if not text:
+        return ""
+    return text.replace("|", "\\|").replace("\n", " ")
+
+
+def _md_link(label: str, target: Path) -> str:
+    """Build a relative markdown link from the markdown output's location.
+
+    Markdown lives at `docs/00_overview/MVP1_DASHBOARD.md`, so paths are
+    computed relative to `docs/00_overview/` (using os.path.relpath which
+    correctly emits `../` segments for parent traversal).
+    """
+    rel = os.path.relpath(target, OUTPUT_MD.parent)
+    # POSIX-style separators so GitHub renders correctly on any platform.
+    return f"[{label}]({Path(rel).as_posix()})"
+
+
+def _md_feature_link(f: Feature) -> str:
+    """Link the feature name to its primary artifact."""
+    primary = f.path / "feature_spec.md"
+    if not primary.exists():
+        primary = f.path / "idea.md"
+    if not primary.exists():
+        primary = f.path
+    return _md_link(f.folder, primary)
+
+
+def _md_status_cell(f: Feature) -> str:
+    pr_url = f"https://github.com/SoundMindsAI/relyloop/pull/{f.pr_number}"
+    if f.pr_number and f.merged_date:
+        return f"[PR #{f.pr_number}]({pr_url}) merged {f.merged_date}"
+    if f.pr_number:
+        return f"[PR #{f.pr_number}]({pr_url})"
+    if f.deferred_phase:
+        return f"deferred: {f.deferred_phase}"
+    return _md_escape_cell(f.status_line) or "—"
+
+
+def _md_deps_cell(f: Feature) -> str:
+    if not f.depends_on:
+        return "—"
+    return " ".join(f"`{d}`" for d in f.depends_on)
+
+
+def _md_stage_section(stage: str, features: list[Feature]) -> str:
+    if not features:
+        return f"### {STAGE_LABELS[stage]} (0)\n\n_None._\n"
+    rows = ["| Feature | Type | One-liner | Depends on | Status |", "|---|---|---|---|---|"]
+    for f in features:
+        rows.append(
+            "| "
+            + " | ".join(
+                [
+                    _md_feature_link(f),
+                    PREFIX_LABELS.get(f.prefix, f.prefix),
+                    _md_escape_cell((f.one_liner or f.status_line)[:200]),
+                    _md_deps_cell(f),
+                    _md_status_cell(f),
+                ]
+            )
+            + " |"
+        )
+    return f"### {STAGE_LABELS[stage]} ({len(features)})\n\n" + "\n".join(rows) + "\n"
+
+
+def render_markdown(features: list[Feature]) -> str:
+    """Render the GitHub-native dashboard view.
+
+    Mirrors the HTML's information architecture using GitHub-native
+    primitives (tables + Mermaid block) so the file renders inline when
+    browsed on github.com without any preview proxy.
+    """
+    kpi = _classify_kpi(features)
+    pct = (
+        round(kpi["done_features"] * 100 / kpi["scoped_features"]) if kpi["scoped_features"] else 0
+    )
+    by_stage: dict[str, list[Feature]] = {s: [] for s in STAGES}
+    for f in features:
+        by_stage[f.stage].append(f)
+    type_order = {"feat": 0, "infra": 1, "epic": 2, "chore": 3, "bug": 4}
+    for s in STAGES:
+        by_stage[s].sort(key=lambda f: (type_order.get(f.prefix, 99), f.short_name))
+
+    asof = _data_freshness().strftime("%Y-%m-%d")
+    mermaid = _mermaid_graph(features)
+
+    lines: list[str] = []
+    lines.append("# RelyLoop MVP1 Dashboard")
+    lines.append("")
+    lines.append(
+        f"_Reflects feature-folder state as of **{asof}** "
+        "(latest mtime of any planned/implemented feature `.md` file). "
+        "Regenerated by `make dashboard` and the `mvp1-dashboard-regen` pre-commit hook. "
+        "For the rich local view (filter chips, type colors), open "
+        "[`mvp1_dashboard.html`](mvp1_dashboard.html) in a browser._"
+    )
+    lines.append("")
+    lines.append("## MVP1 Progress")
+    lines.append("")
+    lines.append("| Metric | Value |")
+    lines.append("|---|---|")
+    lines.append(
+        f"| Features done | **{kpi['done_features']} / {kpi['scoped_features']}** ({pct}%) |"
+    )
+    lines.append(
+        f"| Path to MVP1 | **{kpi['remaining']}** items remaining (features + bugs + chores) |"
+    )
+    lines.append(f"| Open bugs | {kpi['open_bugs']} |")
+    lines.append(f"| Open chores | {kpi['open_chores_idea']} (idea-stage debt) |")
+    lines.append(
+        f"| Backlog ideas | {kpi['backlog_ideas']} idea-only feat/infra "
+        "(not yet scoped into MVP1) |"
+    )
+    lines.append(f"| In flight | {len(by_stage['implement'])} feature(s) actively shipping |")
+    lines.append("")
+    lines.append("## Pipeline")
+    lines.append("")
+    # Done first (most useful at the top), then the active stages, then idea backlog.
+    for stage in ("done", "implement", "plan", "spec", "idea"):
+        lines.append(_md_stage_section(stage, by_stage[stage]))
+    lines.append("## Dependency graph")
+    lines.append("")
+    lines.append("Scoped feat/infra/chore nodes only. Idea-stage debt is omitted.")
+    lines.append("")
+    lines.append("```mermaid")
+    lines.append(mermaid)
+    lines.append("```")
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append(
+        "Source of truth: feature folders under "
+        "[`docs/02_product/planned_features/`](../02_product/planned_features/) and "
+        "[`docs/00_overview/implemented_features/`](implemented_features/). "
+        "See [`state.md`](../../state.md) for active-branch context and "
+        "[`CLAUDE.md`](../../CLAUDE.md) for conventions."
+    )
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     features = load_all()
-    output_html = _strip_trailing_ws(render(features))
-    OUTPUT.write_text(output_html, encoding="utf-8")
-    print(f"wrote {OUTPUT} ({len(features)} features)")
+    output_html = _strip_trailing_ws(render_html(features))
+    OUTPUT_HTML.write_text(output_html, encoding="utf-8")
+    output_md = _strip_trailing_ws(render_markdown(features))
+    OUTPUT_MD.write_text(output_md, encoding="utf-8")
+    print(
+        f"wrote {OUTPUT_HTML.relative_to(REPO_ROOT)} + "
+        f"{OUTPUT_MD.relative_to(REPO_ROOT)} ({len(features)} features)"
+    )
     return 0
 
 
