@@ -272,3 +272,9 @@ Thumbs.db
 # Build / temp / sandbox
 .tmp/
 tmp/
+
+# Claude Code runtime state (per-session lock files, local-only settings).
+# `.claude/skills/` is intentionally tracked (committed skill definitions);
+# only ignore lock files + the local-settings overlay.
+.claude/*.lock
+.claude/settings.local.json
