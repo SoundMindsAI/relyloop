@@ -24,8 +24,12 @@
 - Phases covered: All (single-phase per spec §3)
 
 ## Implement
-- Status: Not started
+- Status: In progress (1 of 20 stories complete)
 - Branch: `feature/infra-adapter-elastic` (current)
+- Completed:
+  - Story 1.1 (commit `6bf565b`, 2026-05-09) — `SearchAdapter` Protocol + 8 Pydantic types; 19 unit tests passing.
+- Next: Story 1.2 (ORM models for `clusters` + `config_repos`).
+- Resume command: `/impl-execute docs/02_product/planned_features/infra_adapter_elastic/implementation_plan.md --all` from a fresh session — the skill auto-resumes from the first `[ ]` story in the execution tracker.
 
 ## Done
 - —

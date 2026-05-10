@@ -2522,7 +2522,7 @@ For solo execution, sequential is fine — the parallelization notes are for mul
 ## 9) Execution tracker (copy/paste section)
 
 ### Current sprint
-- [ ] Story 1.1 — `SearchAdapter` Protocol + types
+- [x] Story 1.1 — `SearchAdapter` Protocol + types (commit `6bf565b`, 2026-05-09)
 - [ ] Story 1.2 — ORM models for `clusters` + `config_repos`
 - [ ] Story 1.3 — Alembic migration `0002`
 - [ ] Story 1.4 — Repo functions
