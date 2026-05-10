@@ -21,6 +21,7 @@ module — services consume the unified ``SearchAdapter`` Protocol.
 from __future__ import annotations
 
 import base64
+from datetime import UTC, datetime
 from typing import Any
 
 import httpx
@@ -30,6 +31,7 @@ from backend.app.adapters.errors import ClusterUnreachableError
 from backend.app.adapters.protocol import (
     EngineType,
     ExplainTree,
+    HealthStatus,
     NativeQuery,
     ParamValue,
     QueryTemplate,
@@ -37,6 +39,12 @@ from backend.app.adapters.protocol import (
     ScoredHit,
     TargetInfo,
 )
+
+ES_MIN_VERSION: tuple[int, int] = (8, 11)
+"""Elasticsearch minimum supported version (per spec §11)."""
+
+OPENSEARCH_MIN_VERSION: tuple[int, int] = (2, 0)
+"""OpenSearch minimum supported version (per spec §11)."""
 
 SUPPORTED_ENGINE_TYPES: frozenset[str] = frozenset({"elasticsearch", "opensearch"})
 """Wire-value source of truth for cluster registration. Mirrors the
@@ -203,9 +211,106 @@ class ElasticAdapter:
     # Protocol method stubs — filled by Stories 2.2–2.6.
     # ------------------------------------------------------------------
 
-    async def health_check(self, *, request_id: str | None = None) -> Any:
-        """Stub — implemented in Story 2.2."""
-        raise NotImplementedError("Story 2.2")
+    async def health_check(self, *, request_id: str | None = None) -> HealthStatus:
+        """Probe ``GET /_cluster/health``; lazy-load engine version on first call.
+
+        All connection-class failures and unsupported versions surface as
+        ``HealthStatus(status='unreachable', error=...)`` — never raised. The
+        cluster service relies on this contract to translate to
+        ``CLUSTER_UNREACHABLE`` (FR-5 / AC-6).
+
+        ``translate_errors=False`` is used so this method owns its own status
+        mapping (rather than catching ``ClusterUnreachableError`` from
+        ``_request``); the spec §13 single retry still applies inside
+        ``_request`` before the call returns.
+        """
+        now = datetime.now(UTC).isoformat()
+        try:
+            resp = await self._request(
+                "GET",
+                "/_cluster/health",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except (
+            httpx.ConnectError,
+            httpx.ReadTimeout,
+            httpx.RemoteProtocolError,
+            httpx.ConnectTimeout,
+        ) as exc:
+            return HealthStatus(status="unreachable", checked_at=now, error=str(exc))
+
+        if resp.status_code >= 500:
+            return HealthStatus(
+                status="unreachable",
+                checked_at=now,
+                error=f"HTTP {resp.status_code} from /_cluster/health",
+            )
+        if resp.status_code in (401, 403):
+            return HealthStatus(
+                status="unreachable",
+                checked_at=now,
+                error=f"Authentication failed (HTTP {resp.status_code})",
+            )
+
+        body = resp.json()
+        cluster_status = body.get("status", "red")
+        if cluster_status not in ("green", "yellow", "red"):
+            cluster_status = "red"
+
+        if self._version is None:
+            try:
+                info = await self._request(
+                    "GET", "/", request_id=request_id, translate_errors=False
+                )
+            except (
+                httpx.ConnectError,
+                httpx.ReadTimeout,
+                httpx.RemoteProtocolError,
+                httpx.ConnectTimeout,
+            ) as exc:
+                return HealthStatus(status="unreachable", checked_at=now, error=str(exc))
+            self._version = (
+                info.json().get("version", {}).get("number") if info.status_code == 200 else None
+            )
+            try:
+                self._enforce_min_version()
+            except ValueError as exc:
+                return HealthStatus(
+                    status="unreachable",
+                    version=self._version,
+                    checked_at=now,
+                    error=str(exc),
+                )
+
+        return HealthStatus(
+            status=cluster_status,
+            version=self._version,
+            checked_at=now,
+        )
+
+    def _enforce_min_version(self) -> None:
+        """Raise ``ValueError`` if the engine version is below the supported floor.
+
+        Caught by ``health_check`` and surfaced as ``HealthStatus(status='unreachable')``
+        so the registration service refuses to insert (AC-6).
+        """
+        if self._version is None:
+            return
+        parts = [int(p) for p in self._version.split(".")[:2] if p.isdigit()]
+        if len(parts) < 2:
+            return
+        version_pair = (parts[0], parts[1])
+        if self.engine_type == "elasticsearch" and version_pair < ES_MIN_VERSION:
+            raise ValueError(
+                f"engine version {self._version} is below minimum "
+                f"{ES_MIN_VERSION[0]}.{ES_MIN_VERSION[1]}"
+            )
+        if self.engine_type == "opensearch" and version_pair < OPENSEARCH_MIN_VERSION:
+            raise ValueError(
+                f"engine version {self._version} is below minimum "
+                f"{OPENSEARCH_MIN_VERSION[0]}.{OPENSEARCH_MIN_VERSION[1]}"
+            )
 
     async def list_targets(self, *, request_id: str | None = None) -> list[TargetInfo]:
         """Stub — implemented in Story 2.3."""
