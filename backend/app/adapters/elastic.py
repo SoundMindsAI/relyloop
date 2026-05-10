@@ -579,5 +579,40 @@ class ElasticAdapter:
         *,
         request_id: str | None = None,
     ) -> ExplainTree:
-        """Stub — implemented in Story 2.6."""
-        raise NotImplementedError("Story 2.6")
+        """Return the engine's scoring breakdown for ``(target, query, doc_id)``.
+
+        Maps engine errors:
+        * 404 → ``TargetNotFoundError`` (target doesn't exist).
+        * Auth / 5xx → ``ClusterUnreachableError`` (raised by ``_request``).
+        """
+        resp = await self._request(
+            "POST",
+            f"/{target}/_explain/{doc_id}",
+            json=query.body,
+            request_id=request_id,
+            translate_errors=False,
+        )
+        if resp.status_code == 404:
+            raise TargetNotFoundError(target)
+        if resp.status_code in (401, 403) or resp.status_code >= 500:
+            raise ClusterUnreachableError(
+                f"HTTP {resp.status_code} from /{target}/_explain/{doc_id}"
+            )
+        resp.raise_for_status()
+        payload = resp.json()
+        return _build_explain_tree(
+            payload.get("explanation", {}),
+            doc_id,
+            bool(payload.get("matched", False)),
+        )
+
+
+def _build_explain_tree(node: dict[str, Any], doc_id: str, matched: bool) -> ExplainTree:
+    """Recursively build an ``ExplainTree`` from the engine's nested explanation node."""
+    return ExplainTree(
+        doc_id=doc_id,
+        matched=matched,
+        value=float(node.get("value", 0.0)),
+        description=str(node.get("description", "")),
+        details=[_build_explain_tree(child, doc_id, matched) for child in node.get("details", [])],
+    )
