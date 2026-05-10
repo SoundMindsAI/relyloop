@@ -1,7 +1,7 @@
 # Feature Specification — infra_optuna_eval
 
-**Date:** 2026-05-09
-**Status:** Draft
+**Date:** 2026-05-09 (review-and-patch 2026-05-10 against shipped `infra_foundation` / `infra_adapter_elastic` / `feat_study_lifecycle` Phase 1)
+**Status:** Approved
 **Owners:** TBD
 **Related docs:**
 - [docs/02_product/mvp1-user-stories.md](../../mvp1-user-stories.md) — covers US-7, US-8
@@ -15,39 +15,43 @@
 
 ## 1) Purpose
 
-- **Problem:** RelyLoop tunes search relevance by running thousands of trials per study and picking the winner. Without (a) an optimizer that suggests good parameter combinations from prior trials and (b) a metric scorer that evaluates each trial against ground-truth judgments, the loop has no engine. The `feat_study_lifecycle` orchestrator depends on both.
-- **Outcome:** Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@10, MAP, P@K, recall@K, MRR, and ERR@K. The `run_trial` Arq job is the hot-path worker.
-- **Non-goal:** No multi-objective optimization (v2). No CMA-ES sampler (MVP2). No click-derived judgments (v1.5+). No intermediate-step pruning (MVP2 — MVP1 trials are single-step). The scorer evaluates whatever judgments the configured `judgment_list` provides; this feature does not generate judgments (that's `feat_llm_judgments`).
+- **Problem:** RelyLoop tunes search relevance by running thousands of trials per study and picking the winner. Without (a) an optimizer that suggests good parameter combinations from prior trials and (b) a metric scorer that evaluates each trial against ground-truth judgments, the loop has no engine. The `feat_study_lifecycle` Phase 2 orchestrator depends on both — Phase 1 (Schema, PR #18 merged 2026-05-10) shipped the `studies` + `trials` tables this feature reads/writes; Phase 2 will dispatch this feature's `run_trial` job.
+- **Outcome:** Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR. The `run_trial` Arq job is the hot-path worker.
+- **Non-goal:** No multi-objective optimization (v2). No CMA-ES sampler (MVP2). No click-derived judgments (v1.5+). No intermediate-step pruning (MVP2 — MVP1 trials are single-step). **No ERR@k** — pytrec_eval doesn't ship it; deferred to MVP2 alongside any custom-metric expansion. The scorer evaluates whatever judgments the configured `judgment_list` provides; this feature does not generate judgments (that's `feat_llm_judgments`).
 
-## 2) Current state audit
+## 2) Current state audit (verified 2026-05-10)
 
-After `infra_foundation` ships:
-- Postgres exists with the `alembic_version` table; this feature adds Optuna's RDB schema (`optuna.*`) via Optuna's own migration mechanism.
-- Redis exists; this feature adds the `trials` Arq queue.
-- The worker process exists as a placeholder (`workers.all.WorkerSettings`); this feature adds the `run_trial` job to that worker pool.
-- No `studies` or `trials` tables yet — those are created by `feat_study_lifecycle` (which depends on this feature for the trial runner). This feature provides the worker; `feat_study_lifecycle` provides the schema and orchestrator.
+All upstream dependencies have shipped — this feature is unblocked:
+
+- **Postgres + Alembic** (`infra_foundation` / PR #4 merged 2026-05-09): the `alembic_version` table exists at head `0003_study_lifecycle_schema`. The `optuna` schema initializer is **already in place** at [`backend/app/db/optuna_schema.py`](../../../../backend/app/db/optuna_schema.py) and wired into `make migrate` (it issues `CREATE SCHEMA IF NOT EXISTS optuna`); Optuna's tables auto-create on first `RDBStorage` use via `create_study()`.
+- **Redis** (`infra_foundation`): exists; this feature adds the `trials` Arq queue.
+- **Worker process** (`infra_foundation` Story 4.3): exists as a placeholder at [`backend/workers/all.py`](../../../../backend/workers/all.py) with `functions=[]`; this feature adds the `run_trial` job to that list. The file's docstring already pre-declares the slot: "feat_study_lifecycle → run_trial".
+- **Engine adapter** (`infra_adapter_elastic` / PR #16 merged 2026-05-10): provides `SearchAdapter` Protocol + `ElasticAdapter.search_batch()` — the engine call this feature's `run_trial` makes.
+- **Schema** (`feat_study_lifecycle` Phase 1 / PR #18 merged 2026-05-10): `studies`, `trials`, `judgment_lists`, `query_*`, `proposals` tables exist on `0003`. This feature's `run_trial` job reads `studies` and writes `trials` — both shapes are documented in [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md). 15 minimal repo functions also shipped at [`backend/app/db/repo/`](../../../../backend/app/db/repo/) covering the read/write set this feature needs.
+- **Phase 2 of `feat_study_lifecycle`** (orchestrator + 12 endpoints + `start_study` Arq job) is **deferred** via [`phase2_idea.md`](../feat_study_lifecycle/phase2_idea.md). Phase 2 dispatches this feature's `run_trial`; this feature provides the trial runner that Phase 2 enqueues.
 
 ## 3) Scope
 
 ### In scope
 
-- `optuna` and `pytrec_eval` added to `pyproject.toml`.
-- `optuna.storages.RDBStorage` configured against the application Postgres with the `optuna.*` schema isolated via `options=-csearch_path=optuna` (per [`optimization.md` §"Optuna configuration"](../../../01_architecture/optimization.md)).
-- Optuna RDB schema initialization wired into `make migrate` (Optuna's own `optuna.storages._rdb.alembic` runs after RelyLoop's Alembic migrations).
+- `optuna` (≥ 3.6) and `pytrec_eval` (≥ 0.5) added to `pyproject.toml`.
+- `optuna.storages.RDBStorage` configured against the application Postgres with the `optuna.*` schema isolated via `options=-csearch_path=optuna` (per [`optimization.md` §"Optuna configuration"](../../../01_architecture/optimization.md)). The schema itself is already created idempotently by [`backend/app/db/optuna_schema.py:init_optuna_schema()`](../../../../backend/app/db/optuna_schema.py) (shipped with `infra_foundation` Story 2.2); Optuna's own tables are created lazily on first `optuna.create_study(storage=...)` call. **No call to a non-existent `RDBStorage(...).initialize()`** — the lazy auto-creation is Optuna's documented mechanism.
 - TPE sampler default; `MedianPruner(n_warmup_steps=10)` default; random sampler available as a baseline-comparison option (selectable via `studies.config.sampler`).
-- pytrec_eval evaluator helper in `backend/eval/scoring.py`:
+- Sampler/pruner/metric-set Literal types live at **`backend/app/eval/types.py`** (created by this feature). Phase 2 of `feat_study_lifecycle` reuses these Literals when validating `studies.config` / `studies.objective` payloads at the API layer.
+- pytrec_eval evaluator helper at **`backend/app/eval/scoring.py`**:
   - Input: `qrels` (dict of `{query_id: {doc_id: rating}}`) + `run` (dict of `{query_id: {doc_id: score}}`) + metric set
   - Output: per-query metric dict + aggregated metric values
-  - Supports nDCG@k, MAP, precision@k, recall@k, MRR, ERR@k
-- `run_trial` Arq job at `backend/worker/trials.py`:
+  - Supports nDCG@k, MAP, precision@k, recall@k, MRR (mapped to pytrec_eval's wire names `ndcg_cut_<k>`, `map_cut_<k>`, `P_<k>`, `recall_<k>`, `recip_rank` internally)
+  - **No ERR@k** — not in pytrec_eval; deferred to MVP2
+- `run_trial` Arq job at **`backend/workers/trials.py`**:
   - Loads the study + adapter + judgments + template
-  - Calls `study.ask()` for params
+  - Calls `study.ask()` for params (Optuna sync API; wrapped in `asyncio.to_thread()` from the async Arq context)
   - Renders + executes via the adapter (depends on `infra_adapter_elastic`)
   - Scores via pytrec_eval
-  - Writes a `trials` row (table created by `feat_study_lifecycle`)
+  - Writes a `trials` row (table created by `feat_study_lifecycle` Phase 1; `0003_study_lifecycle_schema`)
   - Calls `study.tell()`
   - Handles failure modes: `complete` / `failed` / `pruned` (pruned is reserved — not active in MVP1 single-step trials)
-- The worker process consumes the `trials` Arq queue (added to `WorkerSettings.functions`).
+- The worker process consumes the `trials` Arq queue (added to `WorkerSettings.functions` in [`backend/workers/all.py`](../../../../backend/workers/all.py)).
 
 ### Out of scope
 
@@ -58,6 +62,7 @@ After `infra_foundation` ships:
 - Multi-objective optimization — v2.
 - Click-derived judgments — v1.5+ (Fusion Signals dependency).
 - Intermediate-step pruning — MVP2 (requires multi-step trial design).
+- **ERR@k metric** — MVP2. Not provided by pytrec_eval; needs custom implementation. Deferred until the metric expansion alongside CMA-ES.
 
 ### API convention check
 
@@ -83,10 +88,12 @@ Single-phase. The MVP1 deliverable is "a `run_trial` job that successfully compl
 
 ## 5) Assumptions and dependencies
 
-- **Dependency: `infra_foundation` shipped** — provides Postgres, Alembic, Arq worker scaffolding, structlog.
-- **Dependency: `infra_adapter_elastic` shipped** — provides `SearchAdapter` Protocol + `ElasticAdapter` (the `search_batch` callee).
-- **Dependency: `feat_study_lifecycle` schema epic must ship first.** `studies`, `trials`, `judgment_lists`, `proposals`, `query_*` tables (full MVP1 shape) are created by `feat_study_lifecycle`'s schema epic. This feature's `run_trial` job reads `studies` and writes `trials`. Ordering: `feat_study_lifecycle` schema → `infra_optuna_eval` (this feature) → `feat_study_lifecycle` orchestrator epic.
-- **Optuna ≥ 3.6** — required for `RDBStorage` async-friendly behavior in 3.12.
+All cross-feature deps below are already merged on `main`; this feature is unblocked.
+
+- ✅ **`infra_foundation`** (PR #4 merged 2026-05-09) — provides Postgres, Alembic, Arq worker scaffolding, structlog, and the `optuna` schema initializer at `backend/app/db/optuna_schema.py`.
+- ✅ **`infra_adapter_elastic`** (PR #16 merged 2026-05-10) — provides `SearchAdapter` Protocol + `ElasticAdapter` (the `search_batch` callee that `run_trial` invokes).
+- ✅ **`feat_study_lifecycle` Phase 1 (Schema)** (PR #18 merged 2026-05-10) — Alembic head `0003_study_lifecycle_schema` shipped the `studies`, `trials`, `judgment_lists`, `proposals`, `query_*` tables (full MVP1 shape) and 15 minimal repo functions covering this feature's read/write set. Ordering achieved: Phase 1 schema → `infra_optuna_eval` (this feature) → `feat_study_lifecycle` Phase 2 (orchestrator + API).
+- **Optuna ≥ 3.6** — required for Postgres ≥ 14 + Python 3.12 wheel availability + the lifted `engine.connect()` deprecation. (Note: Optuna's `RDBStorage` is **synchronous**; this feature wraps blocking calls in `asyncio.to_thread()` from the async Arq job.)
 - **pytrec_eval ≥ 0.5** — Python 3.12 wheel availability.
 
 ## 6) Actors and roles
@@ -117,13 +124,14 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, `feat_study_lifecycle` will 
 - Notes: CMA-ES + intermediate-step pruning reserved for MVP2.
 
 ### FR-3: pytrec_eval evaluator helper
-- The system **MUST** provide `backend/eval/scoring.py:score(qrels, run, metrics)` returning `{aggregate: {metric: value}, per_query: {query_id: {metric: value}}}`.
-- The system **MUST** support metric set: `ndcg@k`, `map`, `precision@k`, `recall@k`, `mrr`, `err@k` for k ∈ {1, 3, 5, 10, 20, 50, 100}.
+- The system **MUST** provide `backend/app/eval/scoring.py:score(qrels, run, metrics)` returning `{aggregate: {metric: value}, per_query: {query_id: {metric: value}}}`.
+- The system **MUST** support metric set: `ndcg@k`, `map`, `precision@k`, `recall@k`, `mrr` for k ∈ {1, 3, 5, 10, 20, 50, 100}. ERR@k is **out of scope** (not in pytrec_eval; see §3 Out of scope).
+- The system **MUST** translate user-facing metric names to pytrec_eval's wire names before invoking pytrec_eval: `ndcg@<k>` → `ndcg_cut_<k>`, `map` → `map_cut_<top-k>` (or `map` for full-recall), `precision@<k>` → `P_<k>`, `recall@<k>` → `recall_<k>`, `mrr` → `recip_rank`. The user-facing names are what the API accepts and what `studies.objective.metric` stores; the wire names never leak past `score()`.
 - The system **MUST** handle both graded (0..3) and binary (0..1) judgment ratings.
-- The system **SHOULD** complete scoring in <100ms per query for a 50-query set with top_k=10 (verified by benchmark in `tests/benchmarks/test_scoring_perf.py`).
+- The system **SHOULD** complete scoring in <100ms per query for a 50-query set with top_k=10 (verified by benchmark in `backend/tests/benchmarks/test_scoring_perf.py`).
 
 ### FR-4: `run_trial` Arq job
-- The system **MUST** define `run_trial(ctx, study_id, optuna_trial_number)` as an Arq job in `backend/worker/trials.py`, registered with the `WorkerSettings.functions` list.
+- The system **MUST** define `run_trial(ctx, study_id, optuna_trial_number)` as an Arq job in `backend/workers/trials.py`, registered with the `WorkerSettings.functions` list at `backend/workers/all.py`.
 - The system **MUST** load the study, fetch the configured adapter via the `clusters` row, fetch the judgment list, fetch the template, render N native queries via `adapter.render(template, params, query_text)`, call `adapter.search_batch(target, native_queries, top_k)`, score via pytrec_eval, write a `trials` row, and call `study.tell()` — in that order.
 - The system **MUST** persist `trials.status = 'failed'` with the exception message in `trials.error` if any step raises (adapter, render, search, score). The job does NOT re-raise unless the failure is infra-level (DB unreachable).
 - The system **MUST** propagate the trial_id as structlog context for all log records emitted during the job.
@@ -142,13 +150,15 @@ N/A — no HTTP endpoints. This feature is worker-internal.
 
 ### 8.4 Enumerated value contracts
 
+This feature creates `backend/app/eval/types.py` with the `Literal[...]` types for sampler / pruner / metric / k. Phase 2 of `feat_study_lifecycle` imports these at the API layer when validating `studies.config` / `studies.objective` payloads, so the source-of-truth lives in a single file. `trials.status` is enforced at the DB CHECK level (already shipped in `0003_study_lifecycle_schema`); the matching Literal is also re-exported from `eval/types.py` for worker code use.
+
 | Field | Accepted values (exact) | Backend source of truth |
 |---|---|---|
-| `studies.config.sampler` | `tpe`, `random` | `backend/db/models/study.py` (`SamplerKind` `Literal[...]`) |
-| `studies.config.pruner` | `median`, `none` | `backend/db/models/study.py` (`PrunerKind` `Literal[...]`) |
-| `studies.objective.metric` | `ndcg`, `map`, `precision`, `recall`, `mrr`, `err` | `backend/eval/scoring.py` (`SUPPORTED_METRICS` frozenset) |
-| `studies.objective.k` | positive int ∈ {1, 3, 5, 10, 20, 50, 100} | `backend/eval/scoring.py` (`SUPPORTED_K_VALUES` frozenset) |
-| `trials.status` | `complete`, `failed`, `pruned` | `backend/db/models/trial.py` (`TrialStatus` `Literal[...]`) |
+| `studies.config.sampler` | `tpe`, `random` | `backend/app/eval/types.py` (`SamplerKind = Literal["tpe", "random"]`) |
+| `studies.config.pruner` | `median`, `none` | `backend/app/eval/types.py` (`PrunerKind = Literal["median", "none"]`) |
+| `studies.objective.metric` | `ndcg`, `map`, `precision`, `recall`, `mrr` | `backend/app/eval/scoring.py` (`SUPPORTED_METRICS: frozenset[str]`) |
+| `studies.objective.k` | positive int ∈ {1, 3, 5, 10, 20, 50, 100} | `backend/app/eval/scoring.py` (`SUPPORTED_K_VALUES: frozenset[int]`) |
+| `trials.status` | `complete`, `failed`, `pruned` | DB CHECK constraint `trials_status_check` in [`migrations/versions/0003_study_lifecycle_schema.py`](../../../../migrations/versions/0003_study_lifecycle_schema.py); re-exported as `TrialStatus = Literal["complete", "failed", "pruned"]` at `backend/app/eval/types.py` for worker code |
 
 ### 8.5 Error code catalog
 
@@ -200,11 +210,11 @@ N/A — worker-internal feature, no UI.
 ### AC-3: pytrec_eval matches a hand-computed baseline
 
 - Given a fixture: 5 queries × 10 docs/query, with hand-curated judgments and a known ranking.
-- When `score(qrels, run, {'ndcg_cut_10', 'map'})` is called.
+- When `score(qrels, run, {'ndcg@10', 'map'})` is called (the helper translates to pytrec_eval's `ndcg_cut_10` / `map_cut_10` internally per FR-3).
 - Then the returned `aggregate.ndcg@10` matches the hand-computed baseline within 1e-6, and the returned `aggregate.map` matches within 1e-6.
-- Example values:
+- Example shape (illustrative — exact values are pinned by the implementation's full fixture, not by this spec):
   - Input: `qrels = {"q1": {"d1": 3, "d2": 2}, ...}`, `run = {"q1": {"d2": 0.9, "d1": 0.7}, ...}`
-  - Expected: `aggregate.ndcg@10 = 0.789` (computed offline; pinned in the fixture)
+  - Expected: `aggregate.ndcg@10 ≈ 0.789` placeholder; the implementor computes the precise value from the full 5-query fixture and pins it in the test.
 
 ### AC-4: `run_trial` writes a complete trial
 
@@ -233,7 +243,7 @@ N/A — worker-internal feature, no UI.
 ## 13) Non-functional requirements
 
 - **Performance:** A 50-query trial against a 10K-doc local-es index completes in <500ms p99 (adapter call ~200ms, pytrec_eval scoring <50ms, Optuna ask/tell <100ms, DB write <100ms).
-- **Reliability:** Worker survives Postgres restart cleanly (Arq retries with backoff; in-flight trials re-enqueue).
+- **Reliability:** Worker survives Postgres restart cleanly. Arq's per-job visibility-timeout (default 300s) re-makes the job eligible for retry if the worker dies before `tell()` completes; Optuna's `study.ask()` is idempotent on `trial_number`, so a duplicate replay does not produce a duplicate `trials` row.
 - **Operability:** Every trial logs a single INFO record at completion with `study_id`, `trial_number`, `status`, `primary_metric`, `duration_ms`. Failures log at WARN with the exception trace.
 
 ## 14) Test strategy requirements
@@ -249,13 +259,13 @@ N/A — worker-internal feature, no UI.
   - `test_trial_row_shape.py` — written `trials` row matches the Pydantic `Trial` model exactly (no extra/missing columns).
 - **E2E tests:** N/A — no UI.
 - **Benchmarks** (`backend/tests/benchmarks/`):
-  - `test_scoring_perf.py` — pytrec_eval scoring completes in <100ms per query for a 50-query × top_k=10 fixture.
+  - `test_scoring_perf.py` — pytrec_eval scoring completes in <100ms per query for a 50-query × top_k=10 fixture. (Benchmark dir is new for this feature; create alongside.)
 
 ## 15) Documentation update requirements
 
 - `docs/01_architecture/optimization.md` already documents the patterns; update if implementation diverges from the spec.
 - `docs/03_runbooks/`: add `optuna-debugging.md` — how to inspect Optuna's RDB tables, replay a trial, diagnose pruner false-positives.
-- `docs/05_quality/testing.md`: add the cassette pattern for `run_trial` integration tests.
+- `docs/05_quality/testing.md`: extend the existing pytest-recording cassette guidance (already used in `infra_adapter_elastic`'s engine tests) with the `run_trial`-specific pattern (full job replay against a recorded `_msearch` cassette).
 - `docs/02_product/mvp1-user-stories.md`: mark US-7 / US-8 as "implemented" when this feature ships.
 
 ## 16) Rollout and migration readiness
@@ -269,21 +279,23 @@ N/A — worker-internal feature, no UI.
 
 ## 17) Traceability matrix
 
+All test paths use `backend/tests/...` (consistent with the project layout — there is no top-level `tests/`).
+
 | FR ID | AC IDs | Planned story IDs (TBD) | Test files | Docs to update |
 |---|---|---|---|---|
-| FR-1 (RDBStorage) | AC-1 | TBD | `tests/integration/test_optuna_rdb.py` | `docs/01_architecture/optimization.md` |
-| FR-2 (TPE + MedianPruner) | AC-2, AC-6 | TBD | `tests/integration/test_optuna_rdb.py`, `tests/unit/eval/test_metric_validation.py` | `docs/01_architecture/optimization.md` |
-| FR-3 (pytrec_eval helper) | AC-3 | TBD | `tests/unit/eval/test_scoring.py`, `tests/benchmarks/test_scoring_perf.py` | `docs/01_architecture/optimization.md` |
-| FR-4 (run_trial job) | AC-4, AC-5, AC-7 | TBD | `tests/integration/test_run_trial.py`, `tests/integration/test_run_trial_adapter_failure.py` | `docs/03_runbooks/optuna-debugging.md` |
-| FR-5 (trial metrics persisted) | AC-4 | TBD | `tests/contract/test_trial_row_shape.py` | — |
+| FR-1 (RDBStorage) | AC-1 | TBD | `backend/tests/integration/test_optuna_rdb.py` | `docs/01_architecture/optimization.md` |
+| FR-2 (TPE + MedianPruner) | AC-2, AC-6 | TBD | `backend/tests/integration/test_optuna_rdb.py`, `backend/tests/unit/eval/test_metric_validation.py` | `docs/01_architecture/optimization.md` |
+| FR-3 (pytrec_eval helper) | AC-3 | TBD | `backend/tests/unit/eval/test_scoring.py`, `backend/tests/benchmarks/test_scoring_perf.py` | `docs/01_architecture/optimization.md` |
+| FR-4 (run_trial job) | AC-4, AC-5, AC-7 | TBD | `backend/tests/integration/test_run_trial.py`, `backend/tests/integration/test_run_trial_adapter_failure.py` | `docs/03_runbooks/optuna-debugging.md` |
+| FR-5 (trial metrics persisted) | AC-4 | TBD | `backend/tests/contract/test_trial_row_shape.py` | — |
 
 ## 18) Definition of feature done
 
 - [ ] All AC-1 through AC-7 pass in CI.
-- [ ] All test layers green; ≥80% coverage on `backend/eval/scoring.py` and `backend/worker/trials.py`.
-- [ ] Benchmark `test_scoring_perf.py` passes (<100ms/query).
+- [ ] All test layers green; ≥80% coverage on `backend/app/eval/scoring.py` and `backend/workers/trials.py`.
+- [ ] Benchmark `backend/tests/benchmarks/test_scoring_perf.py` passes (<100ms/query).
 - [ ] `docs/03_runbooks/optuna-debugging.md` merged.
-- [ ] `feat_study_lifecycle` author confirms the `run_trial` interface meets their orchestrator's needs.
+- [ ] `feat_study_lifecycle` Phase 2 author confirms the `run_trial` interface meets the orchestrator's needs.
 - [ ] No open questions remain in §19.
 
 ## 19) Open questions and decision log
@@ -298,4 +310,20 @@ None — all resolved (see Decision log).
 - 2026-05-09 — Optuna co-tenants with app Postgres (separate schema) — per umbrella spec §13.
 - 2026-05-09 — Multi-objective deferred to v2; CMA-ES deferred to MVP2 — per [`optimization.md` §"Reserved for later releases"](../../../01_architecture/optimization.md).
 - 2026-05-09 — `studies.config.trial_timeout_s` default: **60s** (per `feat_study_lifecycle` decision-log).
-- 2026-05-09 — Optuna RDB Alembic: **invoke explicitly via `make migrate`** (resolves the §3 vs §19 contradiction in earlier draft). The Makefile target runs RelyLoop's Alembic first, then `python -c "import optuna; optuna.storages.RDBStorage(...).initialize()"` to bootstrap Optuna's tables on first run; subsequent runs are no-ops.
+- 2026-05-09 — Optuna RDB schema bootstrap: **invoke explicitly via `make migrate`**. Already implemented in `infra_foundation` Story 2.2 — the Makefile runs `alembic upgrade head` then `python -m backend.app.db.optuna_schema`, which idempotently issues `CREATE SCHEMA IF NOT EXISTS optuna`. Optuna's own tables auto-create lazily on the first `optuna.create_study(storage=RDBStorage(...))` call (Optuna's documented mechanism — there is no `RDBStorage.initialize()` method). Patched 2026-05-10: earlier draft incorrectly cited a `python -c "...RDBStorage(...).initialize()"` call that doesn't exist; the actual mechanism is the existing `python -m backend.app.db.optuna_schema` invocation.
+
+### Review log
+
+- **2026-05-10 — Review-and-patch pass against shipped upstream features.** Audit found:
+  - File-path corrections: `backend/eval/...` → `backend/app/eval/...`; `backend/worker/...` → `backend/workers/...` (multiple §3, §FR-3, §FR-4, §8.4, §17, §18 references).
+  - §8.4 enumerated-value source-of-truth relocated: `SamplerKind`/`PrunerKind`/`TrialStatus` Literals don't live on the ORM models (which use `Mapped[str]`); created at `backend/app/eval/types.py` for both this feature's worker and Phase 2 of `feat_study_lifecycle`'s API layer to import.
+  - ERR@k dropped from FR-3 (not in pytrec_eval); deferred to MVP2 alongside the metric expansion. §3 Out of scope updated.
+  - §FR-3 metric naming: added wire-name translation note (`ndcg@k` → `ndcg_cut_<k>`, `mrr` → `recip_rank`, etc.) so implementors don't pass user-facing names directly to pytrec_eval.
+  - §2 Current state audit rewritten in present tense with PR # citations (`infra_foundation` #4, `infra_adapter_elastic` #16, `feat_study_lifecycle` Phase 1 #18).
+  - §5 dependencies marked ✅ Done; Optuna ≥ 3.6 rationale corrected (`RDBStorage` is sync; async-friendliness is the caller's via `asyncio.to_thread`).
+  - §13 NFR Postgres-restart wording made precise around Arq's visibility-timeout retry mechanism.
+  - §AC-3 nDCG@10=0.789 reclassified as illustrative (not reproducible from the truncated example fixture).
+  - Decision log entry 5 corrected to match the actual `python -m backend.app.db.optuna_schema` mechanism.
+  - References to `feat_study_lifecycle` updated to distinguish Phase 1 (shipped) from Phase 2 (deferred — orchestrator + 12 endpoints + `start_study` job).
+  - Status: Draft → **Approved**.
+- **GPT-5.5 cross-model review: skipped — OpenAI returned 429 `insufficient_quota`.** Per CLAUDE.md cross-model review policy ("All feature specs ... MUST be reviewed by GPT-5.5 before being finalized"), this is a known gap. Rerun the review at `/spec-gen ... --review` once the OpenAI quota is restored, OR explicitly waive the policy in writing for this spec. The single-model (Opus) review's findings list is comprehensive against the shipped codebase, but a second-model pass typically catches blind spots a first model has by definition.
