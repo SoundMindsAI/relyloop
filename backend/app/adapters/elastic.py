@@ -436,8 +436,34 @@ class ElasticAdapter:
         params: dict[str, ParamValue],
         query_text: str,
     ) -> NativeQuery:
-        """Stub — implemented in Story 2.4."""
-        raise NotImplementedError("Story 2.4")
+        """Render a Jinja query template + params into an engine-native ``NativeQuery``.
+
+        Validates that every key in ``template.declared_params`` is supplied;
+        ``query_text`` is added to the render context as ``query_text`` so
+        templates can reference it directly.
+
+        Raises:
+            ValueError: when required template params are missing OR when the
+                Jinja render fails (StrictUndefined surfaces as
+                ``UndefinedError`` from Jinja; we wrap as ``ValueError`` so
+                the service layer / API translate to a single error code).
+        """
+        from jinja2 import UndefinedError
+
+        from backend.app.domain.query.render import render_template
+
+        missing = set(template.declared_params) - set(params.keys())
+        if missing:
+            raise ValueError(f"render: missing required template params: {sorted(missing)}")
+
+        context: dict[str, Any] = {**params, "query_text": query_text}
+        try:
+            body = render_template(template.body, context)
+        except UndefinedError as exc:
+            raise ValueError(f"render: undefined parameter — {exc}") from exc
+        # query_id defaults to the template name; search_batch lets callers
+        # override per-query for batch responses.
+        return NativeQuery(query_id=template.name, body=body)
 
     async def search_batch(
         self,
