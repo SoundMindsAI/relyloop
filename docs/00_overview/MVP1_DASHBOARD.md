@@ -6,8 +6,8 @@ _Reflects feature-folder state as of **2026-05-10** (latest mtime of any planned
 
 | Metric | Value |
 |---|---|
-| Features done | **2 / 12** (17%) |
-| Path to MVP1 | **15** items remaining (features + bugs + chores) |
+| Features done | **3 / 12** (25%) |
+| Path to MVP1 | **14** items remaining (features + bugs + chores) |
 | Open bugs | 2 |
 | Open chores | 3 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
@@ -15,12 +15,13 @@ _Reflects feature-folder state as of **2026-05-10** (latest mtime of any planned
 
 ## Pipeline
 
-### Done (2)
+### Done (3)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
+| [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
 
 ### Implementing (1)
 
@@ -28,11 +29,9 @@ _Reflects feature-folder state as of **2026-05-10** (latest mtime of any planned
 |---|---|---|---|---|
 | [feat_study_lifecycle](../02_product/planned_features/feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [infra_optuna_eval](../02_product/planned_features/infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
+_None._
 
 ### Spec (8)
 
@@ -88,12 +87,12 @@ graph LR
   class feat_studies_ui spec;
   feat_study_lifecycle["study lifecycle"]
   class feat_study_lifecycle implement;
-  infra_optuna_eval["optuna eval"]
-  class infra_optuna_eval plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   infra_adapter_elastic["adapter elastic"]
   class infra_adapter_elastic done;
+  infra_optuna_eval["optuna eval"]
+  class infra_optuna_eval done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_github_pr_worker

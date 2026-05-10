@@ -267,13 +267,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Features done</div>
-      <div class="value">2 / 12</div>
-      <div class="sub">17% of scoped MVP1 features</div>
-      <div class="bar"><span style="width:17%"></span></div>
+      <div class="value">3 / 12</div>
+      <div class="sub">25% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:25%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">15</div>
+      <div class="value">14</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -499,18 +499,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_optuna_eval/feature_spec.md">Optuna Eval</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/18">PR #18</a><span>merged 2026-05-10</span>
-  </div>
-  <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -531,7 +520,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">2</span></h3>
+  <h3>Done <span class="count">3</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md">Adapter Elastic</a></div>
@@ -552,6 +541,18 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a><span>merged 2026-05-09</span>
   </div>
   <div class="one-liner">A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in &lt;60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md">Optuna Eval</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/23">PR #23</a><span>merged 2026-05-10</span>
+  </div>
+  <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
 
 
 </div>
@@ -587,12 +588,12 @@ footer {
   class feat_studies_ui spec;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
   class feat_study_lifecycle implement;
-  infra_optuna_eval[&quot;optuna eval&quot;]
-  class infra_optuna_eval plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   infra_adapter_elastic[&quot;adapter elastic&quot;]
   class infra_adapter_elastic done;
+  infra_optuna_eval[&quot;optuna eval&quot;]
+  class infra_optuna_eval done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_github_pr_worker
@@ -636,12 +637,12 @@ footer {
   class feat_studies_ui spec;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
   class feat_study_lifecycle implement;
-  infra_optuna_eval[&quot;optuna eval&quot;]
-  class infra_optuna_eval plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   infra_adapter_elastic[&quot;adapter elastic&quot;]
   class infra_adapter_elastic done;
+  infra_optuna_eval[&quot;optuna eval&quot;]
+  class infra_optuna_eval done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_github_pr_worker
