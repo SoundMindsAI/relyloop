@@ -70,6 +70,51 @@ def test_ac1a_optuna_schema_exists_after_migrate():
         engine.dispose()
 
 
+async def test_concurrent_ask_tell_does_not_deadlock():
+    """Two concurrent ``study.ask()`` calls return distinct trial numbers
+    and ``study.tell()`` for both completes within 30s.
+
+    Verifies the Optuna RDB locking documented in
+    ``docs/01_architecture/optimization.md`` §"Optuna configuration"
+    ("Parallelism: N workers share one Optuna study via the RDB; each
+    worker calls ``study.ask()`` / ``study.tell()`` independently; RDB
+    locking handles concurrency"). Spec §13 expected throughput.
+    """
+    import asyncio
+
+    _ensure_schemas_initialized()
+    storage = build_storage(get_settings().database_url)
+    study_name = f"concurrent-{uuid.uuid4()}"
+    study = optuna.create_study(storage=storage, study_name=study_name, direction="maximize")
+
+    async def _ask_with_suggest() -> int:
+        def _sync():
+            t = study.ask()
+            t.suggest_float("x", 0.0, 1.0)
+            return t.number
+
+        return await asyncio.to_thread(_sync)
+
+    # 30s outer guard — Optuna RDB locking can serialize but must not deadlock.
+    t1_num, t2_num = await asyncio.wait_for(
+        asyncio.gather(_ask_with_suggest(), _ask_with_suggest()), timeout=30.0
+    )
+    assert t1_num != t2_num
+
+    await asyncio.wait_for(
+        asyncio.gather(
+            asyncio.to_thread(study.tell, t1_num, 0.5),
+            asyncio.to_thread(study.tell, t2_num, 0.7),
+        ),
+        timeout=30.0,
+    )
+
+    # Both trials are terminal.
+    reloaded = optuna.load_study(study_name=study_name, storage=storage)
+    states = {reloaded.trials[n].state for n in (t1_num, t2_num)}
+    assert states == {optuna.trial.TrialState.COMPLETE}
+
+
 def test_ac1b_optuna_creates_internal_tables_in_optuna_namespace():
     """AC-1b — first ``create_study`` lands tables in optuna.*, not public.*."""
     _ensure_schemas_initialized()

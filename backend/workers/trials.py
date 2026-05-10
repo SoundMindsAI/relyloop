@@ -103,6 +103,12 @@ def _snapshot_optuna_trial(study: optuna.Study, n: int) -> TrialSnapshot:
 
 _TERMINAL_STATUSES = ("complete", "failed", "pruned")
 
+# Default secondary metrics scored when ``studies.config.secondary_metrics``
+# is absent. Per the implementation plan Story 2.3 step I — gives every
+# trial row a comparable surface without requiring operators to enumerate
+# the canonical inventory in every study config.
+_DEFAULT_SECONDARY_METRICS: frozenset[str] = frozenset({"ndcg@10", "map@10", "mrr"})
+
 
 async def _existing_terminal_app_row(db: AsyncSession, study_id: str, n: int) -> Trial | None:
     """Look up an existing terminal ``trials`` row for ``(study_id, n)``.
@@ -266,6 +272,17 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
         optuna_trial_number=optuna_trial_number,
     )
 
+    # Pre-trial configuration check — fail loud and re-raise rather than
+    # masking a startup/CLI defect as a failed trial row. Spec §13 "infra-level
+    # failure" semantics: Arq treats this as a job-level error and retries.
+    # MUST happen outside the trial-level try/except so it doesn't get caught
+    # and converted into status='failed' on an unbound Optuna study.
+    if "optuna_storage" not in ctx:
+        raise RuntimeError(
+            "ctx['optuna_storage'] missing — Arq on_startup hook did not run; "
+            "tests/CLI invocations must seed ctx explicitly per the worker docstring"
+        )
+
     session_factory = get_session_factory()
     async with session_factory() as db:
         try:
@@ -285,11 +302,6 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
                 return
 
             # D. Build / load the Optuna study.
-            if "optuna_storage" not in ctx:
-                raise RuntimeError(
-                    "ctx['optuna_storage'] missing — Arq on_startup hook did not run; "
-                    "tests/CLI invocations must seed ctx explicitly per the worker docstring"
-                )
             storage = ctx["optuna_storage"]
             objective = study_row.objective
             config = study_row.config
@@ -353,10 +365,19 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
             top_k = top_k_raw if isinstance(top_k_raw, int) else 100
 
             # I. Metric set — primary + secondary metrics.
+            # When the operator hasn't declared `secondary_metrics` in
+            # `studies.config`, fall back to the plan's default inventory so
+            # every trial row carries a useful comparison surface (per FR-5
+            # "every metric the study's objective enumerated"). Explicit
+            # `secondary_metrics: []` is honored as "primary only" — operator
+            # override of the default.
             metrics_set: set[str] = {objective_key}
-            secondaries = config.get("secondary_metrics", [])
-            if isinstance(secondaries, list):
-                metrics_set.update(str(m) for m in secondaries)
+            if "secondary_metrics" in config:
+                secondaries = config["secondary_metrics"]
+                if isinstance(secondaries, list):
+                    metrics_set.update(str(m) for m in secondaries)
+            else:
+                metrics_set.update(_DEFAULT_SECONDARY_METRICS)
 
             # J. Execute search via the adapter.
             started_at = datetime.now(UTC)
