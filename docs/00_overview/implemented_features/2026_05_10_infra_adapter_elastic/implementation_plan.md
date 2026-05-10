@@ -1,7 +1,7 @@
 # Implementation Plan — infra_adapter_elastic
 
 **Date:** 2026-05-09
-**Status:** Implementation Complete (PR pending — branch `feature/infra-adapter-elastic`, 2026-05-09)
+**Status:** Complete (PR #16, merged 2026-05-10 — squash commit `43ab813`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):**
 - [CLAUDE.md](../../../../CLAUDE.md) — Absolute Rules #2 (mounted secrets), #4 (engine adapter Protocol), #5 (Alembic round-trip), #6 (`/healthz` unauth), #11 (200ms probe timeout)
