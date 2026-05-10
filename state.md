@@ -2,24 +2,27 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-10 (after `infra_optuna_eval` implementation — PR pending)
+**Last updated:** 2026-05-10 (after PR #23 — `infra_optuna_eval` merged)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `feature/infra-optuna-eval` (all 8 stories committed locally; PR not yet opened). `main` last advanced on 2026-05-10 with PR #18 (commit `d74e1be`).
-- **Active feature:** `infra_optuna_eval` — implementation complete; PR ceremony + Gemini adjudication + final review + finalize pending.
-- **Alembic head:** unchanged at `0003_study_lifecycle_schema` — this feature adds zero migrations (per spec §9 "this feature does NOT define new tables"). Optuna's own tables live in the `optuna.*` schema and are created lazily by `RDBStorage` on first use; not part of RelyLoop's Alembic chain.
-- **Coverage:** above the 80% gate. Backend additions are heavily unit-tested: 5 new modules under `backend/app/eval/` (38 unit tests) + `backend/workers/trials.py` (10 unit tests) + 8 integration tests + 1 contract test + 1 benchmark.
+- **Branch:** `main` is the canonical reference; PR #23 squash-merged 2026-05-10 (commit `c4f1aab`). A short-lived `docs/finalize-infra-optuna-eval` branch ships this status flip + folder move.
+- **Active feature:** none in flight. **Next up: `feat_study_lifecycle` Phase 2** (orchestrator + 12 endpoints + `start_study` Arq job) — unblocked now that `run_trial` exists. See [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md).
+- **Alembic head:** unchanged at `0003_study_lifecycle_schema` — `infra_optuna_eval` added zero migrations (per spec §9 "this feature does NOT define new tables"). Optuna's own tables live in the `optuna.*` schema and are created lazily by `RDBStorage` on first use; not part of RelyLoop's Alembic chain.
+- **Coverage:** above the 80% gate. `infra_optuna_eval` additions are heavily unit-tested: 5 new modules under `backend/app/eval/` (38 unit tests) + `backend/workers/trials.py` (10 unit tests) + 8 integration tests + 1 contract test + 1 benchmark.
 
 ## Most recent meaningful changes (newest first)
 
-- **2026-05-10 — `infra_optuna_eval` implementation committed on `feature/infra-optuna-eval`.** 8 stories across 3 epics. No new migration (the feature is purely additive against the `0003` schema):
+- **2026-05-10 — `infra_optuna_eval` merged into `main`** as PR #23 (squash commit `c4f1aab`). 8 stories across 3 epics. Zero migrations (purely additive against the `0003` schema):
   - **Epic 1 (eval helpers):** `backend/app/eval/` package — `types.py` (SamplerKind, PrunerKind, TrialStatus Literals per spec §8.4) + `scoring.py` (pytrec_eval scorer + objective_metric_key + SUPPORTED_METRICS/SUPPORTED_K_VALUES frozensets + user-facing → wire-name translation table per FR-3). 38 unit tests; AC-3 hand-computed nDCG@10/MAP@10 baselines verified within 1e-6.
   - **Epic 2 (runtime):** `optuna_runtime.py` (`_compose_storage_url`, `build_storage`, `build_sampler`, `build_pruner`, `get_or_create_study`); `qrels_loader.py` (MVP1 stub raising `JudgmentsTableMissing` until `feat_llm_judgments` ships the `judgments` child table); `backend/workers/trials.py` (run_trial Arq job — idempotency check + spec §11 clause 1b reconciliation + happy path + state-specific reconstruction for COMPLETE/FAIL/PRUNED). `WorkerSettings.on_startup` boots Optuna `RDBStorage` once per worker (spec FR-1). `services.cluster._build_adapter` renamed to public `build_adapter`. Stale `optuna_trial_number` docstring on `trial.py:48` fixed.
-  - **Epic 3 (tests/contract/benchmark/docs):** 6 integration tests covering AC-1a..AC-8b (including subprocess-driven partial-failure tests with env-var fault seams `after_trial_load_before_execute` and `after_tell_before_insert`); contract test for Trial row shape (FR-5 invariants); benchmark verifying score() < 100ms/query for 50q×top_k=10; `docs/03_runbooks/optuna-debugging.md` runbook.
+  - **Epic 3 (tests/contract/benchmark/docs):** 6 integration tests covering AC-1a..AC-8b (including subprocess-driven partial-failure tests with env-var fault seams `after_trial_load_before_execute` and `after_tell_before_insert`); contract test for Trial row shape (FR-5 invariants); benchmark verifying score() < 100ms/query for 50q×top_k=10; `docs/03_runbooks/optuna-debugging.md` runbook; added `test_concurrent_ask_tell_does_not_deadlock` (final-review accept) verifying parallel `study.ask`/`study.tell` against Optuna's RDB locking.
+  - **GPT-5.5 final review on merged diff (commit `3b112f9`):** 4 findings — 3 accepted (missing-ctx fail-loud check moved outside the trial-level try; default secondary metrics inventory `_DEFAULT_SECONDARY_METRICS = {"ndcg@10","map@10","mrr"}` when `config.secondary_metrics` is absent; concurrent ask/tell integration test); 1 rejected with cited counter-evidence (AC-7 covered at adapter+worker layer composition via `infra_adapter_elastic`'s `test_elastic_msearch.py`).
+  - **CI iterations:** 4 runs total — first was the initial push (caught test pollution + missing `gcc`); next two added test-setup migrations/cleanup_fixture and gcc/python3-dev for `pytrec_eval`'s C extension; final run was the final-review fixes.
   - **Tangential discovery filed:** `chore_infra_optuna_eval_spec_text_drift` (spec §14 vs §11 wording drift around partial-failure retry contract; the plan implements per §11, recommended spec patch is documented).
+  - Feature folder moved to [`docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/`](docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/).
 - **2026-05-10 — `feat_study_lifecycle` Phase 1 (Schema) merged into `main`**
   as PR #18 (squash commit `d74e1be`). All 3 stories shipped in a single
   epic:
@@ -135,11 +138,11 @@
 
 ## In flight
 
-- **`infra_optuna_eval`** — implementation complete on `feature/infra-optuna-eval`. Next steps: push, open PR, monitor CI, adjudicate Gemini review, final cross-model review, finalize. Alembic head stays at `0003_study_lifecycle_schema` (this feature adds zero migrations).
+- None. **Next up:** `feat_study_lifecycle` Phase 2 (orchestrator + 12 endpoints + `start_study` Arq job + resume-after-restart loop + state-transition guard). Unblocked now that `run_trial` exists. See [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md).
 
 ## Queued (priority-ordered by dependency)
 
-1. **`feat_study_lifecycle` Phase 2** ← **next up after `infra_optuna_eval` merges.** Orchestrator + API (12 endpoints + `start_study` Arq job + resume-after-restart loop + state-transition guard). Unblocked once this feature lands (the orchestrator has `run_trial` to enqueue). See [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md).
+1. **`feat_study_lifecycle` Phase 2** ← **next up.** Orchestrator + API (12 endpoints + `start_study` Arq job + resume-after-restart loop + state-transition guard).
 2. **`feat_llm_judgments`** — judgment-list LLM rubric runner; adds the `judgments` child table and replaces `backend/app/eval/qrels_loader.py`'s MVP1 stub with a real `SELECT`.
 3. **`feat_digest_proposal`** — study-end digest narrative.
 4. **`feat_github_pr_worker`** — GitHub PR creation Arq job.
