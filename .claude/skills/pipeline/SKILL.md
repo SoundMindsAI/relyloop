@@ -107,14 +107,17 @@ When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wi
    - **If they disagree:** present the dep-derived order (it's authoritative because it's machine-verifiable from the specs), and add a single line below the table flagging the disagreement: `**Note:** dep-derived order differs from mvp1-user-stories.md (X is at position N here vs. M in the doc) — review the spec's "Depends on" line or the doc to reconcile.`
 
 5. **Detect each feature's current stage** from artifacts in its directory:
+   - Folder exists in `implemented_features/` for this slug AND no `phase*_idea.md` remains in the planned-features folder (or the planned-features folder is gone) → **DONE**.
+   - `implementation_plan.md` exists with completed stories in execution tracker AND a `phase*_idea.md` file remains alongside it → **PARTIAL (Phase N done, Phase N+1 pending)**. The folder stays in `planned_features/` until every deferred phase ships, per `impl-execute` Step 8.6. The "Next action" for a partial feature is to run `/pipeline <feature>/phase<N+1>_idea.md` so a fresh spec/plan loop starts on the deferred phase.
    - `implementation_plan.md` exists with completed stories in execution tracker → **IMPLEMENT (in progress)**
    - `implementation_plan.md` exists, no completed stories → **PLAN complete, ready for IMPLEMENT**
    - `feature_spec.md` exists, no plan → **SPEC complete, ready for PLAN**
    - `idea.md` exists only → **IDEA complete, ready for SPEC**
    - Folder exists with no artifacts → **EMPTY**
-   - Also check `implemented_features/` for the same feature slug — if present, mark **DONE**.
 
-6. **Pick the "Next action."** The next feature is the first feature in priority order whose stage is not DONE. The next action is to advance that feature to its next stage. Quote the exact `/pipeline <path>` command.
+6. **Pick the "Next action."** The next feature is the first feature in priority order whose stage is not DONE. For PARTIAL features, the next action targets the deferred phase's `phase*_idea.md`, not the original feature folder. Quote the exact `/pipeline <path>` command.
+
+> **Canonical algorithm reference.** This algorithm is also implemented in [`scripts/build_mvp1_dashboard.py`](../../../scripts/build_mvp1_dashboard.py), which generates [`docs/00_overview/MVP1_DASHBOARD.md`](../../../docs/00_overview/MVP1_DASHBOARD.md) (GitHub-rendered) and `docs/00_overview/mvp1_dashboard.html` (rich local view). The dashboard is the durable artifact — `/pipeline status` is the live-conversation view that should match what the dashboard shows for the same working tree. If the two ever disagree on priority order or stage detection, the dashboard generator is the source of truth (it has explicit code paths for the deferred-phase / partial-completion case); update either this skill's prose or the script to converge, never let them drift.
 
 ### Required output format
 
