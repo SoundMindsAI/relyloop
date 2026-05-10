@@ -166,3 +166,80 @@ class TestProbeOpenaiState:
         """`untested` (i.e. cache populated but probe skipped) is not a fail."""
         cap = _make_cap(chat="untested", fc="untested", structured="untested")
         assert probe_openai_state("sk-test", cap) == "configured"
+
+
+# ---------------------------------------------------------------------------
+# probe_registered_clusters (Story 3.5 — Aggregate user-cluster health)
+# ---------------------------------------------------------------------------
+
+
+class TestProbeRegisteredClusters:
+    """Aggregate health of user-registered clusters from the Redis cache.
+
+    Reads-only — never live-probes — to stay inside the 200ms /healthz
+    budget per CLAUDE.md Rule #11.
+    """
+
+    async def test_zero_clusters_returns_zeros(self) -> None:
+        from backend.app.api.probes import probe_registered_clusters
+        from backend.app.db import repo as repo_module
+
+        async def _empty_list(*_args, **_kwargs):
+            return []
+
+        # Use monkeypatch via direct attribute swap on the module reference.
+        original = repo_module.list_clusters
+        repo_module.list_clusters = _empty_list
+        try:
+            db = MagicMock()
+            redis = MagicMock(spec=Redis)
+            agg = await probe_registered_clusters(db, redis)
+            assert agg.registered == 0
+            assert agg.healthy == 0
+            assert agg.unreachable == 0
+        finally:
+            repo_module.list_clusters = original
+
+    async def test_counts_by_cached_status(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from types import SimpleNamespace
+
+        from backend.app.adapters.protocol import HealthStatus
+        from backend.app.api.probes import probe_registered_clusters
+        from backend.app.db import repo as repo_module
+
+        clusters = [
+            SimpleNamespace(id="id-green"),
+            SimpleNamespace(id="id-yellow"),
+            SimpleNamespace(id="id-red"),
+            SimpleNamespace(id="id-unreachable"),
+            SimpleNamespace(id="id-missing"),  # cache miss → unreachable bucket
+        ]
+        cached: dict[str, HealthStatus] = {
+            "id-green": HealthStatus(status="green", checked_at="t"),
+            "id-yellow": HealthStatus(status="yellow", checked_at="t"),
+            "id-red": HealthStatus(status="red", checked_at="t"),
+            "id-unreachable": HealthStatus(status="unreachable", checked_at="t"),
+            # id-missing intentionally absent
+        }
+
+        async def _list(*_args, **_kwargs):
+            return clusters
+
+        async def _read(_redis, cluster_id: str) -> HealthStatus | None:
+            return cached.get(cluster_id)
+
+        monkeypatch.setattr(repo_module, "list_clusters", _list)
+        # Patch the imported name inside backend.app.api.probes (not the
+        # health_cache module — probe_registered_clusters imports the helper
+        # at module load and the module attribute is what monkeypatch must
+        # reach to take effect).
+        from backend.app.api import probes as probes_mod
+
+        monkeypatch.setattr(probes_mod, "read_cached_health", _read)
+
+        db = MagicMock()
+        redis = MagicMock(spec=Redis)
+        agg = await probe_registered_clusters(db, redis)
+        assert agg.registered == 5
+        assert agg.healthy == 2  # green + yellow
+        assert agg.unreachable == 3  # red + unreachable + missing
