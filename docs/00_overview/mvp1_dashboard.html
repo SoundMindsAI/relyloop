@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RelyLoop MVP1 Dashboard</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f6f7fb;
+  color: #1f2530;
+}
+header {
+  padding: 24px 32px 16px;
+  border-bottom: 1px solid #e2e6ee;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+header .meta {
+  margin-top: 4px;
+  color: #5b6477;
+  font-size: 13px;
+}
+main { padding: 24px 32px 64px; max-width: 1600px; margin: 0 auto; }
+section { margin-bottom: 32px; }
+section > h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7385;
+}
+
+/* KPI row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.kpi {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.kpi .label { color: #5b6477; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.kpi .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.kpi .sub { color: #6b7385; font-size: 12px; margin-top: 2px; }
+.kpi.complete .value { color: #15803d; }
+.kpi.warn .value { color: #b45309; }
+.kpi.bug .value { color: #b91c1c; }
+.kpi-secondary {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 12px;
+  color: #5b6477;
+}
+
+/* Progress bar */
+.bar {
+  margin-top: 8px;
+  height: 6px;
+  background: #eaecf2;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #14b8a6);
+}
+
+/* Kanban */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.col {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 200px;
+}
+.col h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.col h3 .count {
+  font-weight: 500;
+  color: #6b7385;
+  background: #eaecf2;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.col.idea       h3 { color: #475569; }
+.col.spec       h3 { color: #1d4ed8; }
+.col.plan       h3 { color: #b45309; }
+.col.implement  h3 { color: #c2410c; }
+.col.done       h3 { color: #15803d; }
+.col.idea       { border-top: 3px solid #94a3b8; }
+.col.spec       { border-top: 3px solid #3b82f6; }
+.col.plan       { border-top: 3px solid #eab308; }
+.col.implement  { border-top: 3px solid #f97316; }
+.col.done       { border-top: 3px solid #22c55e; }
+
+/* Cards */
+.card {
+  background: #fbfcfe;
+  border: 1px solid #e2e6ee;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  position: relative;
+}
+.card .name {
+  font-weight: 600;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.card .name a { color: inherit; text-decoration: none; }
+.card .name a:hover { text-decoration: underline; }
+.card .one-liner {
+  color: #4b5360;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.card .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+  font-size: 11px;
+  color: #6b7385;
+}
+.card .meta .badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.card .deps { font-size: 11px; color: #6b7385; margin-top: 4px; }
+.card .deps .dep-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-right: 3px;
+  margin-top: 2px;
+  border-radius: 10px;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 10px;
+}
+
+/* Type accents on the left edge */
+.card.feat   { border-left: 3px solid #6366f1; }
+.card.infra  { border-left: 3px solid #f59e0b; }
+.card.chore  { border-left: 3px solid #64748b; }
+.card.bug    { border-left: 3px solid #ef4444; }
+.card.epic   { border-left: 3px solid #0ea5e9; }
+.badge.feat  { background: #eef2ff; color: #4338ca; }
+.badge.infra { background: #fef3c7; color: #92400e; }
+.badge.chore { background: #f1f5f9; color: #475569; }
+.badge.bug   { background: #fee2e2; color: #991b1b; }
+.badge.epic  { background: #e0f2fe; color: #075985; }
+
+.card .pr {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #dcfce7;
+  color: #14532d;
+  font-weight: 600;
+}
+.card .deferred {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.filters span.label { color: #6b7385; font-size: 12px; margin-right: 6px; }
+.filters button {
+  font: inherit;
+  background: #fff;
+  border: 1px solid #d4d9e3;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #475569;
+}
+.filters button.active { background: #1f2530; color: #fff; border-color: #1f2530; }
+.filters button:hover { border-color: #1f2530; }
+
+/* Dependency graph */
+.mermaid-wrap {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 16px;
+  overflow-x: auto;
+}
+.mermaid-wrap pre { margin: 0; font-size: 12px; }
+
+footer {
+  text-align: center;
+  color: #6b7385;
+  font-size: 12px;
+  padding: 16px 0 32px;
+}
+
+/* Hidden via filter */
+.card[data-hidden="1"] { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>RelyLoop MVP1 Dashboard</h1>
+  <div class="meta">
+    Generated 2026-05-10 17:13 UTC from <code>docs/02_product/planned_features/</code> +
+    <code>docs/00_overview/implemented_features/</code>.
+    See <a href="../../state.md">state.md</a> for the active branch context,
+    <a href="../../CLAUDE.md">CLAUDE.md</a> for conventions, and
+    <a href="../02_product/mvp1-user-stories.md">mvp1-user-stories.md</a>
+    for the user-story narrative.
+  </div>
+</header>
+
+<main>
+
+<section>
+  <h2>MVP1 Progress</h2>
+  <div class="kpi-row">
+    <div class="kpi ">
+      <div class="label">Features done</div>
+      <div class="value">2 / 12</div>
+      <div class="sub">17% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:17%"></span></div>
+    </div>
+    <div class="kpi warn">
+      <div class="label">Path to MVP1</div>
+      <div class="value">14</div>
+      <div class="sub">items left = features + bugs + chores</div>
+    </div>
+    <div class="kpi bug">
+      <div class="label">Open bugs</div>
+      <div class="value">2</div>
+      <div class="sub">tracked bug_* idea files</div>
+    </div>
+    <div class="kpi warn">
+      <div class="label">Open chores</div>
+      <div class="value">2</div>
+      <div class="sub">idea-stage chore_* (debt)</div>
+    </div>
+  </div>
+  <div class="kpi-secondary">
+    <span>
+      <strong>Backlog ideas:</strong>
+      2 idea-only feat/infra folders (not yet scoped into MVP1)
+    </span>
+    <span>
+      <strong>In flight:</strong>
+      1 feature(s) actively shipping
+    </span>
+  </div>
+</section>
+
+<section>
+  <h2>Pipeline</h2>
+  <div class="filters">
+    <span class="label">Filter:</span>
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="feat">Features</button>
+    <button data-filter="infra">Infra</button>
+    <button data-filter="chore">Chores</button>
+    <button data-filter="bug">Bugs</button>
+  </div>
+  <div class="kanban">
+<div class="col idea">
+  <h3>Idea <span class="count">6</span></h3>
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_ci_smoke_makeup">Ci Smoke Makeup</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+  </div>
+  <div class="one-liner">CI runs `make test-unit &amp;&amp; make test-integration &amp;&amp; make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_frontend_stack_refresh">Frontend Stack Refresh</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+  </div>
+  <div class="one-liner">The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09):</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_starlette_422_deprecation">Starlette 422 Deprecation</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_test_both_engines">Test Both Engines</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">`backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_capability_check_test_isolation">Capability Check Test Isolation</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">Idea (deferred from `infra_adapter_elastic` Story 5.1)</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_env_file_corrupted_during_session">Env File Corrupted During Session</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">The user&#x27;s working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../../../CLAUDE.md) &quot;Cross-model review policy&quot;) was renamed to `.env.old` during the agent&#x27;s implementation sessio</div>
+
+
+</div>
+
+</div>
+
+<div class="col spec">
+  <h3>Spec <span class="count">9</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_chat_agent/feature_spec.md">Chat Agent</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_github_pr_worker/feature_spec.md">Github Pr Worker</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">`POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches </div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_digest_proposal</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_github_webhook/feature_spec.md">Github Webhook</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">feat_github_pr_worker</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_llm_judgments/feature_spec.md">Llm Judgments</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_proposals_ui/feature_spec.md">Proposals Ui</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + &quot;Open PR&quot; button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_studies_ui/feature_spec.md">Studies Ui</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §&quot;Routes (MVP1)&quot;](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">infra_adapter_elastic</span></div>
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_optuna_eval/feature_spec.md">Optuna Eval</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+  </div>
+  <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@10, MAP, P@K, recall@K, MRR, a</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po</div>
+
+
+</div>
+
+</div>
+
+<div class="col plan">
+  <h3>Plan <span class="count">0</span></h3>
+
+</div>
+
+<div class="col implement">
+  <h3>Implementing <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md">Study Lifecycle</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/16">PR #16</a><span>merged 2026-05-10</span>
+  </div>
+  <div class="one-liner">A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond</div>
+  <div class="deferred">deferred: Phase 2</div>
+
+</div>
+
+</div>
+
+<div class="col done">
+  <h3>Done <span class="count">2</span></h3>
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md">Adapter Elastic</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a><span>merged 2026-05-10</span>
+  </div>
+  <div class="one-liner">A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column.</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_09_infra_foundation/feature_spec.md">Foundation</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a><span>merged 2026-05-09</span>
+  </div>
+  <div class="one-liner">A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in &lt;60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag</div>
+
+
+</div>
+
+</div>
+</div>
+</section>
+
+<section>
+  <h2>Dependency graph (feat_ + infra_)</h2>
+  <div class="mermaid-wrap">
+    <div class="mermaid">graph LR
+  classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
+  classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
+  classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
+  classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_tutorial_polish[&quot;tutorial polish&quot;]
+  class chore_tutorial_polish spec;
+  feat_chat_agent[&quot;chat agent&quot;]
+  class feat_chat_agent spec;
+  feat_digest_proposal[&quot;digest proposal&quot;]
+  class feat_digest_proposal spec;
+  feat_github_pr_worker[&quot;github pr worker&quot;]
+  class feat_github_pr_worker spec;
+  feat_github_webhook[&quot;github webhook&quot;]
+  class feat_github_webhook spec;
+  feat_llm_judgments[&quot;llm judgments&quot;]
+  class feat_llm_judgments spec;
+  feat_proposals_ui[&quot;proposals ui&quot;]
+  class feat_proposals_ui spec;
+  feat_studies_ui[&quot;studies ui&quot;]
+  class feat_studies_ui spec;
+  feat_study_lifecycle[&quot;study lifecycle&quot;]
+  class feat_study_lifecycle implement;
+  infra_optuna_eval[&quot;optuna eval&quot;]
+  class infra_optuna_eval spec;
+  infra_foundation[&quot;foundation&quot;]
+  class infra_foundation done;
+  infra_adapter_elastic[&quot;adapter elastic&quot;]
+  class infra_adapter_elastic done;
+  feat_study_lifecycle --&gt; feat_digest_proposal
+  feat_llm_judgments --&gt; feat_digest_proposal
+  infra_foundation --&gt; feat_github_pr_worker
+  infra_adapter_elastic --&gt; feat_github_pr_worker
+  feat_digest_proposal --&gt; feat_github_pr_worker
+  infra_foundation --&gt; feat_github_webhook
+  feat_github_pr_worker --&gt; feat_github_webhook
+  infra_foundation --&gt; feat_llm_judgments
+  infra_adapter_elastic --&gt; feat_llm_judgments
+  feat_study_lifecycle --&gt; feat_llm_judgments
+  feat_studies_ui --&gt; feat_proposals_ui
+  feat_digest_proposal --&gt; feat_proposals_ui
+  feat_github_pr_worker --&gt; feat_proposals_ui
+  feat_github_webhook --&gt; feat_proposals_ui
+  infra_foundation --&gt; feat_studies_ui
+  feat_study_lifecycle --&gt; feat_studies_ui
+  feat_digest_proposal --&gt; feat_studies_ui
+  feat_llm_judgments --&gt; feat_studies_ui
+  infra_adapter_elastic --&gt; feat_studies_ui</div>
+    <noscript><pre>graph LR
+  classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
+  classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
+  classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
+  classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_tutorial_polish[&quot;tutorial polish&quot;]
+  class chore_tutorial_polish spec;
+  feat_chat_agent[&quot;chat agent&quot;]
+  class feat_chat_agent spec;
+  feat_digest_proposal[&quot;digest proposal&quot;]
+  class feat_digest_proposal spec;
+  feat_github_pr_worker[&quot;github pr worker&quot;]
+  class feat_github_pr_worker spec;
+  feat_github_webhook[&quot;github webhook&quot;]
+  class feat_github_webhook spec;
+  feat_llm_judgments[&quot;llm judgments&quot;]
+  class feat_llm_judgments spec;
+  feat_proposals_ui[&quot;proposals ui&quot;]
+  class feat_proposals_ui spec;
+  feat_studies_ui[&quot;studies ui&quot;]
+  class feat_studies_ui spec;
+  feat_study_lifecycle[&quot;study lifecycle&quot;]
+  class feat_study_lifecycle implement;
+  infra_optuna_eval[&quot;optuna eval&quot;]
+  class infra_optuna_eval spec;
+  infra_foundation[&quot;foundation&quot;]
+  class infra_foundation done;
+  infra_adapter_elastic[&quot;adapter elastic&quot;]
+  class infra_adapter_elastic done;
+  feat_study_lifecycle --&gt; feat_digest_proposal
+  feat_llm_judgments --&gt; feat_digest_proposal
+  infra_foundation --&gt; feat_github_pr_worker
+  infra_adapter_elastic --&gt; feat_github_pr_worker
+  feat_digest_proposal --&gt; feat_github_pr_worker
+  infra_foundation --&gt; feat_github_webhook
+  feat_github_pr_worker --&gt; feat_github_webhook
+  infra_foundation --&gt; feat_llm_judgments
+  infra_adapter_elastic --&gt; feat_llm_judgments
+  feat_study_lifecycle --&gt; feat_llm_judgments
+  feat_studies_ui --&gt; feat_proposals_ui
+  feat_digest_proposal --&gt; feat_proposals_ui
+  feat_github_pr_worker --&gt; feat_proposals_ui
+  feat_github_webhook --&gt; feat_proposals_ui
+  infra_foundation --&gt; feat_studies_ui
+  feat_study_lifecycle --&gt; feat_studies_ui
+  feat_digest_proposal --&gt; feat_studies_ui
+  feat_llm_judgments --&gt; feat_studies_ui
+  infra_adapter_elastic --&gt; feat_studies_ui</pre></noscript>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Single source of truth: the feature folder structure.
+  Regenerate after any spec/plan/pipeline_status change with
+  <code>make dashboard</code>.
+</footer>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose" });
+</script>
+<script>
+  // Filter chips
+  document.querySelectorAll(".filters button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const f = btn.dataset.filter;
+      document.querySelectorAll(".card").forEach(c => {
+        c.dataset.hidden = (f === "all" || c.dataset.prefix === f) ? "0" : "1";
+      });
+    });
+  });
+</script>
+</body>
+</html>
