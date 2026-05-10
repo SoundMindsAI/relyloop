@@ -2525,23 +2525,23 @@ For solo execution, sequential is fine — the parallelization notes are for mul
 - [x] Story 1.1 — `SearchAdapter` Protocol + types (commit `6bf565b`, 2026-05-09)
 - [x] Story 1.2 — ORM models for `clusters` + `config_repos` (commit `264b8d0`, 2026-05-09)
 - [x] Story 1.3 — Alembic migration `0002` (commit `1b80290`, 2026-05-09)
-- [ ] Story 1.4 — Repo functions
-- [ ] Epic 1 gate
-- [ ] Story 2.1 — `ElasticAdapter` skeleton + version detection
-- [ ] Story 2.2 — `health_check()` + 30s Redis cache
-- [ ] Story 2.3 — `list_targets`, `get_schema`, `list_query_parsers`
-- [ ] Story 2.4 — `render(template, params, query_text)`
-- [ ] Story 2.5 — `search_batch()` via `_msearch`
-- [ ] Story 2.6 — `explain()`
-- [ ] Story 2.7 — Engine-branch test
-- [ ] Epic 2 gate
-- [ ] Story 3.1 — Cluster service
-- [ ] Story 3.2 — Cluster CRUD router
-- [ ] Story 3.3 — Schema endpoint
-- [ ] Story 3.4 — Run-query endpoint
-- [ ] Story 3.5 — `/healthz` extension (or drop, post-review)
-- [ ] Epic 3 gate
-- [ ] Story 4.1 — Seed command
+- [x] Story 1.4 — Repo functions (commit `3d5f789`, 2026-05-09)
+- [x] Epic 1 gate (passed 2026-05-09)
+- [x] Story 2.1 — `ElasticAdapter` skeleton + version detection (commit `451d725`, 2026-05-09)
+- [x] Story 2.2 — `health_check()` + 30s Redis cache (commit `ecb2895`, 2026-05-09)
+- [x] Story 2.3 — `list_targets`, `get_schema`, `list_query_parsers` (commit `9251281`, 2026-05-09)
+- [x] Story 2.4 — `render(template, params, query_text)` (commit `1cc17a4`, 2026-05-09)
+- [x] Story 2.5 — `search_batch()` via `_msearch` (commit `abff542`, 2026-05-09)
+- [x] Story 2.6 — `explain()` (commit `bfd6328`, 2026-05-09)
+- [x] Story 2.7 — Engine-branch test (commit `bfd6328`, 2026-05-09)
+- [x] Epic 2 gate (passed 2026-05-09)
+- [x] Story 3.1 — Cluster service (commit `37ed558`, 2026-05-09)
+- [x] Story 3.2 — Cluster CRUD router (commit `37ed558`, 2026-05-09)
+- [x] Story 3.3 — Schema endpoint (commit `37ed558`, 2026-05-09)
+- [x] Story 3.4 — Run-query endpoint (commit `37ed558`, 2026-05-09)
+- [x] Story 3.5 — `/healthz` extension (commit `4c13b52`, 2026-05-09)
+- [x] Epic 3 gate (passed 2026-05-09)
+- [x] Story 4.1 — Seed command (commit `b157386`, 2026-05-09)
 - [ ] Story 4.2 — Docs + path patches
 - [ ] Epic 4 gate
 - [ ] Story 5.1 — Test coverage audit

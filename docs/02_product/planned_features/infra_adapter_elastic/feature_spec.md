@@ -26,15 +26,15 @@
 
 - `backend/app/api/health.py` exists with the `/healthz` endpoint that probes ES + OpenSearch reachability — this feature does not modify it but does add a new `subsystems.elasticsearch_clusters` field once clusters can be registered (the existing `elasticsearch` subsystem probes only the local Compose container; the new field probes user-registered clusters).
 - `backend/app/db/` exists with Alembic configured but only the empty `alembic_version` table — this feature adds the first business tables (`clusters`, `config_repos`) per [`data-model.md`](../../../01_architecture/data-model.md).
-- No prior adapter code. `backend/adapters/` directory is created by this feature, with the Protocol defined in [`adapters.md`](../../../01_architecture/adapters.md) §"The Protocol."
+- No prior adapter code. `backend/app/adapters/` directory is created by this feature, with the Protocol defined in [`adapters.md`](../../../01_architecture/adapters.md) §"The Protocol."
 - No prior `httpx` async-client usage; this feature establishes the convention per [`tech-stack.md` §"Backend"](../../../01_architecture/tech-stack.md).
 
 ## 3) Scope
 
 ### In scope
 
-- `SearchAdapter` Protocol per [`adapters.md` §"The Protocol"](../../../01_architecture/adapters.md), defined in `backend/adapters/protocol.py` with all six methods: `health_check`, `list_targets`, `get_schema`, `list_query_parsers`, `render`, `search_batch`, `explain`. Type-only `Protocol` with `@runtime_checkable`.
-- `ElasticAdapter` per [`adapters.md` §"ElasticAdapter (MVP1)"](../../../01_architecture/adapters.md), implementing the Protocol against ES/OpenSearch in `backend/adapters/elastic.py`. Single class, `engine_type` field selects between ES and OpenSearch behavior where it differs.
+- `SearchAdapter` Protocol per [`adapters.md` §"The Protocol"](../../../01_architecture/adapters.md), defined in `backend/app/adapters/protocol.py` with all six methods: `health_check`, `list_targets`, `get_schema`, `list_query_parsers`, `render`, `search_batch`, `explain`. Type-only `Protocol` with `@runtime_checkable`.
+- `ElasticAdapter` per [`adapters.md` §"ElasticAdapter (MVP1)"](../../../01_architecture/adapters.md), implementing the Protocol against ES/OpenSearch in `backend/app/adapters/elastic.py`. Single class, `engine_type` field selects between ES and OpenSearch behavior where it differs.
 - Auth flows per [`adapters.md` §"Authentication and credentials"](../../../01_architecture/adapters.md): `es_apikey`, `es_basic`, `opensearch_basic` active in MVP1. `opensearch_sigv4` reserved (raises `NotImplementedError`); deferred to MVP3.
 - `clusters` and `config_repos` tables per [`data-model.md`](../../../01_architecture/data-model.md). Both created in **full MVP1 shape** including `config_repos.webhook_registration_error` (which `feat_github_webhook` later writes to). Per the no-piecemeal-migrations rule in [`data-model.md` §"MVP1 table inventory + migration ownership"](../../../01_architecture/data-model.md), this feature owns these two tables outright; downstream features INSERT/UPDATE rows but do not ALTER the schemas.
 - API endpoints:
@@ -66,7 +66,7 @@ Single-phase. ES + OpenSearch ship together; the single-adapter design means the
 
 - **One adapter, two engines.** ES and OpenSearch share the Query DSL; one class handles both with engine_type-aware branches per [`adapters.md` §"ElasticAdapter (MVP1)"](../../../01_architecture/adapters.md). Splitting into two near-duplicate classes is rejected.
 - **Hot-path = `search_batch` only.** Every other method is define-time or debug-time. `search_batch` uses `_msearch` for batch efficiency; other methods can be straightforward request/response.
-- **Adapter is the engine boundary.** Calling code (study runner, judgment generator) uses unified parameter names from [`adapters.md` §"Cross-engine parameter naming"](../../../01_architecture/adapters.md); adapter pivots to native names. No engine-specific code outside `backend/adapters/`.
+- **Adapter is the engine boundary.** Calling code (study runner, judgment generator) uses unified parameter names from [`adapters.md` §"Cross-engine parameter naming"](../../../01_architecture/adapters.md); adapter pivots to native names. No engine-specific code outside `backend/app/adapters/`.
 - **Cassette-replay first.** Tests against ES/OpenSearch use `pytest-recording` cassettes per [`tech-stack.md` §"Backend"](../../../01_architecture/tech-stack.md). Integration tests against live containers are CI-only and not required for unit-test jobs.
 - **Auth via mounted secret refs**, not env vars per [`deployment.md` §"Secrets"](../../../01_architecture/deployment.md). `clusters.credentials_ref` is a key into a mounted secrets file.
 
@@ -108,12 +108,12 @@ Single-phase. ES + OpenSearch ship together; the single-adapter design means the
 ## 7) Functional requirements
 
 ### FR-1: SearchAdapter Protocol defined and documented
-- The system **MUST** define `SearchAdapter` as a `@runtime_checkable Protocol` in `backend/adapters/protocol.py` exactly matching the signature in [`adapters.md` §"The Protocol"](../../../01_architecture/adapters.md).
+- The system **MUST** define `SearchAdapter` as a `@runtime_checkable Protocol` in `backend/app/adapters/protocol.py` exactly matching the signature in [`adapters.md` §"The Protocol"](../../../01_architecture/adapters.md).
 - The system **MUST** export `HealthStatus`, `TargetInfo`, `Schema`, `NativeQuery`, `ScoredHit`, `ExplainTree`, `QueryTemplate`, `ParamValue` as Pydantic models in the same module.
 - Notes: protocol is the boundary; future adapters (Fusion, Solr) implement it.
 
 ### FR-2: ElasticAdapter handles ES and OpenSearch
-- The system **MUST** implement `ElasticAdapter` in `backend/adapters/elastic.py` satisfying `SearchAdapter`.
+- The system **MUST** implement `ElasticAdapter` in `backend/app/adapters/elastic.py` satisfying `SearchAdapter`.
 - The system **MUST** branch on `engine_type` ∈ {`elasticsearch`, `opensearch`} for the small set of behaviors that diverge (e.g., version detection endpoint shape).
 - The system **MUST** support auth kinds `es_apikey`, `es_basic`, `opensearch_basic`. `opensearch_sigv4` is a reserved enum value but raises `NotImplementedError("opensearch_sigv4 not supported in MVP1")` if used.
 - The system **MUST NOT** implement Fusion or Solr in this feature.
@@ -143,12 +143,12 @@ Single-phase. ES + OpenSearch ship together; the single-adapter design means the
 - Notes: covers US-6 and the agent's `run_query` tool (added in `feat_chat_agent`).
 
 ### FR-7: Seed command for local convenience
-- The system **MUST** ship `make seed-clusters` (delegating to `python -m backend.scripts.seed_clusters`) that registers the local ES + OpenSearch from `infra_foundation` Compose as cluster rows named `local-es` and `local-opensearch`.
+- The system **MUST** ship `make seed-clusters` (delegating to `python -m backend.app.scripts.seed_clusters`) that registers the local ES + OpenSearch from `infra_foundation` Compose as cluster rows named `local-es` and `local-opensearch`.
 - The command **MUST** be idempotent — re-running does not duplicate rows or fail.
 
 ## 8) API and data contract baseline
 
-### 7.1 Endpoint surface
+### 8.1 Endpoint surface
 
 | Method | Path | Purpose | Key error codes |
 |---|---|---|---|
@@ -159,13 +159,13 @@ Single-phase. ES + OpenSearch ship together; the single-adapter design means the
 | `GET` | `/api/v1/clusters/{id}/schema?target=<index>` | Schema introspection | `CLUSTER_NOT_FOUND`, `TARGET_NOT_FOUND`, `CLUSTER_UNREACHABLE` |
 | `POST` | `/api/v1/clusters/{id}/run_query` | Execute one query, return hits | `CLUSTER_NOT_FOUND`, `INVALID_QUERY_DSL`, `QUERY_TIMEOUT`, `CLUSTER_UNREACHABLE` |
 
-### 7.2 Contract rules
+### 8.2 Contract rules
 
 - All cluster-not-found responses use 404 with the same body shape as a soft-deleted cluster (anti-enumeration).
 - `CLUSTER_UNREACHABLE` is `retryable: true` (transient infra). Other errors are `retryable: false`.
 - `run_query` response includes the cluster's `_source` fields verbatim — no field whitelisting in MVP1 (single-tenant install; if the operator can read the cluster, they can see all fields).
 
-### 7.3 Response examples
+### 8.3 Response examples
 
 `POST /api/v1/clusters` success (201):
 ```json
@@ -205,16 +205,16 @@ Error (503 — cluster unreachable on registration):
 }
 ```
 
-### 7.4 Enumerated value contracts
+### 8.4 Enumerated value contracts
 
 | Field | Accepted values (exact) | Backend source of truth | Frontend call site |
 |---|---|---|---|
-| `engine_type` | `elasticsearch`, `opensearch` | `backend/adapters/protocol.py` (`EngineType` Literal) | cluster create form (`feat_studies_ui` later) |
-| `auth_kind` | `es_apikey`, `es_basic`, `opensearch_basic`, `opensearch_sigv4` | `backend/adapters/elastic.py` (`SUPPORTED_AUTH_KINDS` frozenset) | cluster create form |
+| `engine_type` | `elasticsearch`, `opensearch` | `backend/app/adapters/protocol.py` (`EngineType` Literal) | cluster create form (`feat_studies_ui` later) |
+| `auth_kind` | `es_apikey`, `es_basic`, `opensearch_basic`, `opensearch_sigv4` | `backend/app/adapters/elastic.py` (`SUPPORTED_AUTH_KINDS` frozenset) | cluster create form |
 | `environment` | `prod`, `staging`, `dev` | `backend/db/models/cluster.py` (`Environment` Literal) | cluster create form |
-| `health_check.status` | `green`, `yellow`, `red`, `unreachable` | `backend/adapters/elastic.py` (`HealthStatus.status` enum) | cluster detail page |
+| `health_check.status` | `green`, `yellow`, `red`, `unreachable` | `backend/app/adapters/elastic.py` (`HealthStatus.status` enum) | cluster detail page |
 
-### 7.5 Error code catalog
+### 8.5 Error code catalog
 
 | Code | HTTP Status | Meaning |
 |---|---|---|
@@ -374,7 +374,7 @@ The API is consumed by `feat_studies_ui` later; this feature has no UI. The inte
 ## 18) Definition of feature done
 
 - [ ] All AC-1 through AC-8 pass in CI.
-- [ ] All test layers green; ≥80% backend coverage on `backend/adapters/elastic.py` and `backend/api/clusters.py`.
+- [ ] All test layers green; ≥80% backend coverage on `backend/app/adapters/elastic.py` and `backend/api/clusters.py`.
 - [ ] `pytest-recording` cassettes committed for ES + OpenSearch interactions.
 - [ ] `docs/01_architecture/adapters.md` and `docs/03_runbooks/cluster-registration.md` merged.
 - [ ] `make seed-clusters` documented in root README quickstart.
