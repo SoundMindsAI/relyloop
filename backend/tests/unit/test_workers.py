@@ -31,16 +31,18 @@ def _settings_env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_worker_settings_importable(_settings_env: None) -> None:
-    """WorkerSettings should import without raising and register run_trial.
+    """WorkerSettings should import and register the expected Arq jobs.
 
-    Per infra_optuna_eval Story 2.3: functions list contains exactly
-    ``run_trial``. Additional jobs land in subsequent features
-    (``generate_digest``, ``open_pr``).
+    Phase 2 Stories 2.1 / 2.3 extend the registry from infra_optuna_eval's
+    sole ``run_trial`` to four jobs: ``run_trial``, ``start_study``,
+    ``resume_study``, ``generate_digest`` (stub). ``feat_digest_proposal``
+    later replaces ``generate_digest``; ``feat_github_pr_worker`` adds
+    ``open_pr``.
     """
     from backend.workers.all import WorkerSettings
 
-    assert len(WorkerSettings.functions) == 1
-    assert WorkerSettings.functions[0].__name__ == "run_trial"
+    names = {fn.__name__ for fn in WorkerSettings.functions}
+    assert names == {"run_trial", "start_study", "resume_study", "generate_digest"}
 
 
 def test_worker_settings_has_on_startup_hook(_settings_env: None) -> None:
