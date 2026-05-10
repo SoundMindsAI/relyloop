@@ -81,13 +81,26 @@ def _override_probes(
     def _probe_openai(_key, _cap):
         return openai_state
 
+    async def _probe_clusters(_db, _redis):
+        return probes.ClusterAggregateHealth(registered=0, healthy=0, unreachable=0)
+
     monkeypatch.setattr(probes, "probe_db", _probe_db)
     monkeypatch.setattr(probes, "probe_redis", _probe_redis)
     monkeypatch.setattr(probes, "probe_elasticsearch", _probe_es)
     monkeypatch.setattr(probes, "probe_opensearch", _probe_os)
     monkeypatch.setattr(probes, "probe_openai_state", _probe_openai)
+    monkeypatch.setattr(probes, "probe_registered_clusters", _probe_clusters)
     app.dependency_overrides[health.get_redis_client] = lambda: _mock_redis()
     app.dependency_overrides[health.get_es_client] = lambda: _mock_httpx_client()
+    # Story 3.5: /healthz now takes a db: AsyncSession dep. The
+    # probe_registered_clusters override above ignores its `db` argument so
+    # we can stub the dependency with a no-op generator.
+    from backend.app.db.session import get_db as _real_get_db
+
+    async def _stub_db():
+        yield None
+
+    app.dependency_overrides[_real_get_db] = _stub_db
 
 
 @pytest.fixture
@@ -140,13 +153,19 @@ class TestHealthOpenAPISchema:
             "uptime_seconds",
         }
         assert required.issubset(body.keys()), f"missing keys: {required - body.keys()}"
-        # subsystems shape matches spec §7.4
+        # subsystems shape matches spec §7.4 + Story 3.5 elasticsearch_clusters
         assert set(body["subsystems"].keys()) == {
             "db",
             "redis",
             "openai",
             "elasticsearch",
             "opensearch",
+            "elasticsearch_clusters",
+        }
+        assert set(body["subsystems"]["elasticsearch_clusters"].keys()) == {
+            "registered",
+            "healthy",
+            "unreachable",
         }
 
 

@@ -128,6 +128,13 @@ class Settings(BaseSettings):
         default="512m",
         description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",
     )
+    relyloop_allow_private_clusters: bool = Field(
+        default=True,
+        description="Permit cluster registration against private-range / loopback IPs. "
+        "Default True for MVP1 (laptop convenience) per spec §10 Threat 3; flips to "
+        "False at MVP3 hardening so production deployments can't accidentally point "
+        "at internal hosts.",
+    )
 
     @cached_property
     def database_url(self) -> str:

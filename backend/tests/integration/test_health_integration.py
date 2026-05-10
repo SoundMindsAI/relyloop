@@ -58,6 +58,12 @@ async def test_healthz_returns_documented_shape() -> None:
         "openai",
         "elasticsearch",
         "opensearch",
+        "elasticsearch_clusters",
+    }
+    assert set(body["subsystems"]["elasticsearch_clusters"].keys()) == {
+        "registered",
+        "healthy",
+        "unreachable",
     }
     # Per-subsystem enum sanity
     assert body["subsystems"]["db"] in {"ok", "down"}
