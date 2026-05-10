@@ -105,9 +105,17 @@ class TestClustersMigration:
             engine.dispose()
 
     def test_downgrade_removes_both_tables(self, restore_head: None) -> None:
-        """Downgrade -1 from 0002 lands at 0001; both new tables are dropped."""
+        """Downgrading to 0001 removes both clusters + config_repos.
+
+        Uses an explicit target revision (``0001``) rather than ``-1`` so the
+        test stays correct as later migrations (e.g. ``0003`` from
+        ``feat_study_lifecycle`` Phase 1) extend the chain. From any head ≥
+        ``0002``, ``alembic downgrade 0001`` walks back through every
+        intermediate migration and lands at ``0001``, where neither
+        ``clusters`` nor ``config_repos`` exists yet.
+        """
         _alembic("upgrade", "head")
-        _alembic("downgrade", "-1")
+        _alembic("downgrade", "0001")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
