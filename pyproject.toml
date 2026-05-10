@@ -165,6 +165,7 @@ addopts = [
 ]
 markers = [
     "integration: requires Docker / external services (Postgres, Redis, ES, OpenSearch)",
+    "benchmark: opt-in performance benchmarks; not part of the default test layer",
 ]
 
 # ---------------------------------------------------------------------------
