@@ -2,22 +2,58 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-10
+**Last updated:** 2026-05-10 (after PR #18 — `feat_study_lifecycle` Phase 1 merged)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `main` is now the canonical reference; PR #16 squash-merged 2026-05-10 (commit `43ab813`). A short-lived `docs/finalize-infra-adapter-elastic` branch ships the folder move + status flips.
-- **Active feature:** none in flight; **next up: `infra_optuna_eval`** (Optuna RDBStorage + pytrec_eval).
-- **Alembic head:** `0002_clusters_config_repos` (`clusters` + `config_repos`
-  tables created; round-trip verified locally + in CI).
-- **Coverage:** 90.85% backend (gate is 80%); `protocol.py` + `errors.py` +
-  `health_cache.py` + new `models/*` all at 100%; adapter at 95%+;
-  `services/cluster.py` at 82%.
+- **Branch:** `main` is now the canonical reference; PR #18 squash-merged 2026-05-10 (commit `d74e1be`). A short-lived `docs/finalize-feat-study-lifecycle-phase1` branch ships the doc updates + status flips. (`feat_study_lifecycle` folder stays in `planned_features/` because Phase 2 work remains queued via [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md).)
+- **Active feature:** none in flight; **next up: `infra_optuna_eval`** (Optuna RDBStorage + pytrec_eval) — now unblocked since the `studies` + `trials` tables ship in `0003`.
+- **Alembic head:** `0003_study_lifecycle_schema` (7 study-lifecycle tables
+  added on top of `0002`'s `clusters` + `config_repos`; round-trip verified
+  locally + in CI).
+- **Coverage:** 90.85% backend at PR #16 close; Phase 1 of feat_study_lifecycle is purely additive (7 ORM models + 1 migration + 7 repos + 25 integration tests) so the gate stays well above 80%.
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-10 — `feat_study_lifecycle` Phase 1 (Schema) merged into `main`**
+  as PR #18 (squash commit `d74e1be`). All 3 stories shipped in a single
+  epic:
+  - **Story 1.1** (`7bb9613`): 7 ORM models — `QueryTemplate`, `QuerySet`,
+    `Query`, `Study`, `Trial`, `JudgmentList`, `Proposal` — registered with
+    `Base.metadata`. The `Query` model uses Python attribute
+    `query_metadata` with explicit DB column name `"metadata"` to avoid
+    collision with SQLAlchemy's reserved `DeclarativeBase.metadata`.
+  - **Story 1.2** (`b3be589`): Alembic migration `0003_study_lifecycle_schema`
+    creating all 7 tables in FK-respecting order with 5 CHECK constraints
+    (4 status enums + `proposals.pr_state`), 4 UNIQUE constraints, 16 FK
+    targets (2 CASCADE on `queries`/`trials`, 14 NO ACTION elsewhere
+    including 2 self-FKs on `query_templates` + `studies`), and the
+    `trials_study_metric` index `(study_id, primary_metric DESC NULLS
+    LAST)`.
+  - **Story 1.3** (`7b4dd0a`): 15 minimal repo functions across 7 modules.
+    Phase 1 ships exactly what `infra_optuna_eval`'s `run_trial` consumes;
+    Phase 2 extends with cursor pagination + status filters + bulk CSV
+    upload.
+  - **Test fix** (`02bb382`): retarget `test_clusters_migration::
+    test_downgrade_removes_both_tables` to use explicit `downgrade 0001`
+    so it stays correct as the chain extends past `0002`.
+  - **GPT-5.5 phase-diff review** (`08b8b30`): 5 findings — 4 accepted +
+    landed (NOT NULL coverage via `information_schema.columns`, FK targets
+    via `referential_constraints + key_column_usage`, UNIQUE inventory via
+    `pg_constraint`, `judgment_lists.status` invalid-value `'archived' →
+    'cancelled'`); 1 rejected with cited counter-evidence (the
+    `test_clusters_migration` retarget — necessary forward-compat fix).
+  - **GPT-5.5 final review** (`f5d3302`): 1 finding — accepted, doc
+    straggler in spec phase-boundaries text (`11 → 12 endpoints`). Cycle 2
+    converged.
+  - 14 integration tests across 8 classes in
+    `test_study_lifecycle_migration.py` + 11 round-trip tests in
+    `test_study_repos.py`.
+  - **Phase 2 (Orchestrator + API) is deferred** via
+    [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md);
+    the feature folder stays in `planned_features/` until Phase 2 ships.
 - **2026-05-10 — `infra_adapter_elastic` merged into `main`** as PR #16
   (squash commit `43ab813`). All 20 stories across 5 epics shipped:
   - **Epic 1**: `SearchAdapter` Protocol + 8 Pydantic types + `clusters` /
@@ -97,13 +133,13 @@
 ## In flight
 
 - None. **Next up:** `infra_optuna_eval` (Optuna RDBStorage tables +
-  pytrec_eval wiring). Alembic head will advance from `0002` to
+  pytrec_eval wiring). Alembic head will advance from `0003` to
   whatever its first business-table migration ID is.
 
 ## Queued (priority-ordered by dependency)
 
-1. **`infra_optuna_eval`** ← **next up.** Optuna RDBStorage tables + pytrec_eval wiring.
-2. **`feat_study_lifecycle`** — 7-table study/trial/proposal schema.
+1. **`infra_optuna_eval`** ← **next up.** Optuna RDBStorage tables + pytrec_eval wiring. Now unblocked — the `studies` + `trials` tables ship in `0003`.
+2. **`feat_study_lifecycle` Phase 2** — Orchestrator + API (12 endpoints + `start_study` Arq job + resume-after-restart loop + state-transition guard). Gated on `infra_optuna_eval` shipping (so the orchestrator has `run_trial` to enqueue). See [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md).
 3. **`feat_llm_judgments`** — judgment-list LLM rubric runner.
 4. **`feat_digest_proposal`** — study-end digest narrative.
 5. **`feat_github_pr_worker`** — GitHub PR creation Arq job.
