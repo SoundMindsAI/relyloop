@@ -41,6 +41,18 @@ WORKDIR /app
 # ---------------------------------------------------------------------------
 FROM base AS deps
 
+# pytrec_eval (added by infra_optuna_eval) ships as a sdist that compiles a
+# C extension on install — it has no Python 3.12 wheel. We install gcc +
+# python-dev headers here, then this whole stage is discarded (the runtime
+# stage copies only /app/.venv, not the build toolchain), so the final image
+# stays slim.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        g++ \
+        python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy lockfile + project metadata first so dependency-only layer caches well.
 COPY pyproject.toml uv.lock README.md ./
 
