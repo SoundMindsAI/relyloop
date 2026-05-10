@@ -876,14 +876,14 @@ All other test files are unaffected (no router/middleware/settings changes).
 ## 9) Execution tracker
 
 ### Current sprint
-- [ ] Story 1.1 — deps + types
-- [ ] Story 1.2 — scoring helper + frozensets + objective_metric_key
-- [ ] Story 2.1 — optuna_runtime (sampler/pruner/storage builders)
-- [ ] Story 2.2 — qrels_loader stub
-- [ ] Story 2.3 — run_trial job + worker registration + trial.py comment fix
-- [ ] Story 3.1 — integration tests (6 files + cassette + handbuilt_qrels fixture)
-- [ ] Story 3.2 — contract test + benchmark
-- [ ] Story 3.3 — runbook + state.md + architecture.md + doc straggler patches
+- [x] Story 1.1 — deps + types (commit `be114ab`)
+- [x] Story 1.2 — scoring helper + frozensets + objective_metric_key (commit `e508366`)
+- [x] Story 2.1 — optuna_runtime (sampler/pruner/storage builders) (commit `e619fdc`)
+- [x] Story 2.2 — qrels_loader stub (commit `884c10e`)
+- [x] Story 2.3 — run_trial job + worker registration + trial.py comment fix (commit `135bac5`)
+- [x] Story 3.1 — integration tests (6 files + handbuilt_qrels fixture + stub_adapter + subprocess helper)
+- [x] Story 3.2 — contract test + benchmark (commit `d908a84`)
+- [x] Story 3.3 — runbook + state.md + architecture.md + doc straggler patches
 
 ### Blocked items
 - None at plan-write time. `feat_llm_judgments` non-blocking (interface stubbed; integration tests monkeypatch).

@@ -106,10 +106,20 @@ backend/
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
                  8 Pydantic types), elastic.py (ES + OpenSearch),
                  credentials.py, errors.py, health_cache.py
+    eval/        pytrec_eval scoring + Optuna runtime helpers (from
+                 infra_optuna_eval): types.py (SamplerKind/PrunerKind/
+                 TrialStatus Literals), scoring.py (score, frozensets,
+                 objective_metric_key, wire-name translation),
+                 optuna_runtime.py (build_storage / build_sampler /
+                 build_pruner / get_or_create_study),
+                 qrels_loader.py (MVP1 stub raising JudgmentsTableMissing
+                 — real impl lands with feat_llm_judgments)
     scripts/     operator entrypoints — seed_clusters.py
     llm/         OpenAI-compatible client + capability check
     git/         Git provider clients (lands with feat_github_pr_worker)
-  workers/       Arq WorkerSettings (functions=[] in MVP1)
+  workers/       Arq WorkerSettings + run_trial Arq job (trials.py from
+                 infra_optuna_eval) + on_startup/on_shutdown hooks that
+                 build/dispose Optuna RDBStorage once per worker
   tests/         unit / integration / contract layers
 ui/              Next.js 14 App Router (placeholder page in MVP1)
 migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters

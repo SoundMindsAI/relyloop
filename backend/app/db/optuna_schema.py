@@ -9,9 +9,10 @@ This module provides ``init_optuna_schema()`` — invoked by ``make migrate`` af
 exists. Optuna's ``create_study(storage=...)`` then creates its tables on first
 use (no-op on subsequent runs).
 
-In MVP1 this is effectively a no-op stub since ``infra_optuna_eval`` hasn't
-shipped yet. Becomes load-bearing the moment the trial worker calls
-``optuna.create_study(storage="postgresql://.../optuna")`` for the first time.
+In MVP1 this prepares the schema namespace; ``infra_optuna_eval``'s worker
+boot triggers Optuna's lazy table creation on first ``RDBStorage`` use.
+``WorkerSettings.on_startup`` constructs the ``RDBStorage`` once per worker
+(spec FR-1); the schema must already exist at that point.
 """
 
 import logging
