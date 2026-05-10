@@ -93,8 +93,12 @@ backend/
                  webhooks/*)
     core/        settings, logging, request-id middleware, error envelope
     db/          base, session,
-                 models/ (Cluster, ConfigRepo from infra_adapter_elastic),
-                 repo/ (cluster.py + config_repo.py)
+                 models/ (Cluster, ConfigRepo from infra_adapter_elastic;
+                  QueryTemplate, QuerySet, Query, Study, Trial,
+                  JudgmentList, Proposal from feat_study_lifecycle Phase 1),
+                 repo/ (cluster.py + config_repo.py +
+                  query_template.py, query_set.py, query.py, study.py,
+                  trial.py, judgment_list.py, proposal.py from Phase 1)
     services/    use-case orchestrators — cluster.py from infra_adapter_elastic;
                  future ones arrive with their owning features
     domain/      pure business logic — query/render.py from
@@ -108,7 +112,8 @@ backend/
   workers/       Arq WorkerSettings (functions=[] in MVP1)
   tests/         unit / integration / contract layers
 ui/              Next.js 14 App Router (placeholder page in MVP1)
-migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters)
+migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters
+                 + 0003 study_lifecycle_schema)
 docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
                  05_quality / 08_guides
 ```

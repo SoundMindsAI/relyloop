@@ -514,9 +514,9 @@ N/A — existing test-layer convention applies.
 
 ### Current sprint (Phase 1)
 
-- [ ] Story 1.1 — ORM models for the 7 tables
-- [ ] Story 1.2 — Alembic migration `0003_study_lifecycle_schema` (round-trip verified)
-- [ ] Story 1.3 — Minimal repo functions (~15 functions across 7 files)
+- [x] Story 1.1 — ORM models for the 7 tables (commit `7bb9613`, 2026-05-10)
+- [x] Story 1.2 — Alembic migration `0003_study_lifecycle_schema` (round-trip verified) (commit `b3be589`, 2026-05-10)
+- [x] Story 1.3 — Minimal repo functions (~15 functions across 7 files) (commit `7b4dd0a`, 2026-05-10)
 - [ ] Epic 1 gate
 
 ### Blocked items
