@@ -266,12 +266,17 @@ def _study_state_guard(
     flush_context: object,
     instances: object,
 ) -> None:
-    """Block any unauthorized ``Study.status`` change on ``before_flush``.
+    """Block any unauthorized ORM-attribute ``Study.status`` change on ``before_flush``.
 
     Module-scoped so its identity is stable across multiple
     :func:`_install_state_guard_listener` calls. SQLAlchemy's
     duplicate-listener short-circuit relies on callable identity, not
     equality — a nested closure would silently register N times.
+
+    Bulk ``session.execute(update(Study).values(status=...))`` statements
+    bypass ``session.dirty`` and would slip past this listener; those are
+    caught by :func:`_study_state_orm_execute_guard` below
+    (``do_orm_execute`` event).
     """
     del flush_context, instances  # not needed; listener signature requires them
     if session.info.get(_GUARD_KEY):
@@ -288,10 +293,44 @@ def _study_state_guard(
             )
 
 
+def _study_state_orm_execute_guard(orm_execute_state: object) -> None:
+    """Block bulk ORM UPDATE/DELETE on ``Study.status`` via ``do_orm_execute``.
+
+    Catches ``session.execute(update(Study).values(status=...))`` and
+    similar bulk statements that bypass ``session.dirty`` (and therefore
+    the ``before_flush`` listener). Cycle-2 GPT-5.5 review C2-F2 fix.
+
+    Whitelisted by the same ``_GUARD_KEY`` sentinel as the dirty-row
+    path, so service-layer mutators can still issue bulk updates if
+    they ever need to (none do in MVP1).
+    """
+    from sqlalchemy.sql.dml import Update
+
+    state = orm_execute_state  # untyped — SQLAlchemy passes ORMExecuteState
+    session = getattr(state, "session", None)
+    if session is None or session.info.get(_GUARD_KEY):
+        return
+    statement = getattr(state, "statement", None)
+    if statement is None or not isinstance(statement, Update):
+        return
+    # Inspect the entity being updated.
+    target = statement.entity_description or {}
+    if target.get("entity") is not Study:
+        return
+    # Bulk update of Study; reject if `status` is in the SET clause.
+    values = getattr(statement, "_values", None) or {}
+    if any(getattr(col, "name", None) == "status" for col in values):
+        raise StudyStateProtectionError(
+            "direct bulk UPDATE of studies.status outside the service layer "
+            "is forbidden; route through "
+            "backend.app.services.study_state"
+        )
+
+
 def _install_state_guard_listener(
     session_factory: async_sessionmaker[AsyncSession],
 ) -> None:
-    """Idempotently attach the state guard to ``Session.before_flush``.
+    """Idempotently attach the state guard to ``Session.before_flush`` + ``do_orm_execute``.
 
     Safe to call multiple times — ``event.contains`` short-circuits when
     the listener is already attached. The ``session_factory`` parameter
@@ -302,3 +341,5 @@ def _install_state_guard_listener(
     del session_factory  # listener target is `Session`, not the factory
     if not event.contains(Session, "before_flush", _study_state_guard):
         event.listen(Session, "before_flush", _study_state_guard)
+    if not event.contains(Session, "do_orm_execute", _study_state_orm_execute_guard):
+        event.listen(Session, "do_orm_execute", _study_state_orm_execute_guard)

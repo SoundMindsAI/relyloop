@@ -302,12 +302,33 @@ class BulkQueriesResponse(BaseModel):
 # --- Study ---------------------------------------------------------------
 
 
+_K_REQUIRED_METRICS: frozenset[str] = frozenset({"ndcg", "precision", "recall"})
+
+
 class ObjectiveSpec(BaseModel):
-    """Wire shape of ``studies.objective`` (write-side validated at create)."""
+    """Wire shape of ``studies.objective`` (write-side validated at create).
+
+    ``k`` is required for ``ndcg`` / ``precision`` / ``recall`` (per
+    pytrec_eval semantics: those metrics are computed at a cutoff
+    rank). ``map`` accepts ``k`` optionally; ``mrr`` / ``err`` ignore
+    it. The model_validator enforces this so a malformed objective
+    surfaces as 400 ``INVALID_SEARCH_SPACE`` / 422 ``VALIDATION_ERROR``
+    at study-create time rather than failing later inside ``run_trial``
+    when the worker computes the metric.
+    """
 
     metric: ObjectiveMetric
-    k: ObjectiveK | None = None  # required for ndcg/precision/recall; ignored for mrr/err
+    k: ObjectiveK | None = None
     direction: ObjectiveDirection = "maximize"
+
+    @model_validator(mode="after")
+    def _require_k_for_cutoff_metrics(self) -> ObjectiveSpec:
+        if self.metric in _K_REQUIRED_METRICS and self.k is None:
+            raise ValueError(
+                f"objective.k is required when metric is one of "
+                f"{sorted(_K_REQUIRED_METRICS)}; got metric={self.metric!r} k=None"
+            )
+        return self
 
 
 class StudyConfigSpec(BaseModel):

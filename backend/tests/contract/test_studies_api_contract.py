@@ -111,6 +111,22 @@ def test_objective_spec_rejects_invalid_k() -> None:
         ObjectiveSpec(metric="ndcg", k=7)
 
 
+def test_objective_spec_requires_k_for_ndcg() -> None:
+    """C2-F3 fix: ndcg / precision / recall require k at the cutoff."""
+    with pytest.raises(ValidationError, match="objective.k is required"):
+        ObjectiveSpec(metric="ndcg")
+    with pytest.raises(ValidationError, match="objective.k is required"):
+        ObjectiveSpec(metric="precision")
+    with pytest.raises(ValidationError, match="objective.k is required"):
+        ObjectiveSpec(metric="recall")
+
+
+def test_objective_spec_accepts_mrr_without_k() -> None:
+    """``mrr`` / ``err`` do NOT require k (per pytrec_eval semantics)."""
+    cfg = ObjectiveSpec(metric="mrr")
+    assert cfg.k is None
+
+
 def test_create_query_template_rejects_unknown_engine_type() -> None:
     with pytest.raises(ValidationError):
         CreateQueryTemplateRequest(
