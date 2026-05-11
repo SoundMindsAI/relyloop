@@ -8,7 +8,7 @@
 |---|---|---|
 | Docker | 24+ with Compose v2 | `services.depends_on: condition: service_healthy` requires Compose v2 |
 | Python | 3.13+ | `uv` install fails on older versions; `pyproject.toml` `requires-python = ">=3.13"` (bumped from 3.12 on 2026-05-12) |
-| Node | 20+ | Next.js 14 minimum |
+| Node | 20.18+ | Next.js 16 minimum (bumped from 18+ on 2026-05-12) |
 | pnpm | 9+ | Frontend package manager |
 | 16 GB RAM | — | ES + OpenSearch each consume ~1 GB heap (`-Xms512m -Xmx512m`) |
 
