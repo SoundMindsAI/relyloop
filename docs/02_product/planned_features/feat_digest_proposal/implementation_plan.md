@@ -1162,7 +1162,7 @@ Not in scope for this PR. UI lands with `feat_studies_ui` (digest panel on study
 ### Current sprint
 - [x] Story 1.1 — `digests` migration + ORM model
 - [x] Story 1.2 — repo extensions
-- [ ] Story 1.3 — prompt loader + files
+- [x] Story 1.3 — prompt loader + files
 - [ ] Story 2.1 — `generate_digest` worker + stub deletion
 - [ ] Story 2.2 — boot-scan extension
 - [ ] Story 3.1 — `GET /studies/{id}/digest`

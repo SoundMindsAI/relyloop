@@ -1,0 +1,39 @@
+<study>
+name: {{ study_name }}
+cluster: {{ cluster_name }}
+target: {{ target }}
+query_set: {{ query_set_name }} ({{ query_count }} queries)
+judgment_list: {{ judgment_list_name }}
+rubric_summary: {{ rubric_summary }}
+</study>
+
+<baseline_vs_achieved>
+baseline_metric: {{ baseline_metric if baseline_metric is not none else 'N/A (no baseline trial)' }}
+achieved_metric: {{ achieved_metric }}
+</baseline_vs_achieved>
+
+<top_trials>
+{% for t in top_trials %}trial #{{ t.number }} — primary_metric={{ t.primary_metric }}, params={{ t.params }}
+{% endfor %}</top_trials>
+
+<parameter_importance>
+{% for param, score in parameter_importance.items() %}{{ param }}: {{ '%.4f'|format(score) }}
+{% endfor %}</parameter_importance>
+
+{% if include_recommendation %}<recommended_config>
+{% for param, value in recommended_config.items() %}{{ param }}: {{ value }}
+{% endfor %}</recommended_config>
+
+{% if dropped_template_params %}<dropped_template_params>
+{% for p in dropped_template_params %}- {{ p }}
+{% endfor %}These params were used in the best trial but are no longer declared on the
+current template version. The shipping config excludes them. Mention this drift
+as the FIRST entry in `suggested_followups` so the operator can reconcile.
+</dropped_template_params>
+
+{% endif %}Author the digest narrative + suggest up to 5 follow-up actions.{% else %}<degraded_mode>
+The operator's OpenAI endpoint failed the structured-output capability probe.
+Return a free-form prose narrative ONLY — no JSON beyond the wrapper, no
+recommendations, no follow-ups. Describe the study outcome at a high level
+in 1–2 paragraphs.
+</degraded_mode>{% endif %}
