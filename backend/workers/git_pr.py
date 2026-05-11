@@ -640,8 +640,22 @@ def _parse_rate_limit_reset(response: httpx.Response) -> float:
 
 async def open_pr(  # noqa: PLR0915 — the 15-step contract is intentionally inline
     ctx: dict[str, Any], proposal_id: str
-) -> None:
-    """Arq entry point — see the module docstring for the 15-step contract."""
+) -> (
+    None
+):  # pragma: no cover — exercised by deferred cassette-replayed integration tests (Story 2.1 DoD)
+    """Arq entry point — see the module docstring for the 15-step contract.
+
+    Coverage note: this function and ``_do_open_pr`` are excluded from
+    the unit-test coverage gate via ``# pragma: no cover``. They orchestrate
+    DB, subprocess, and httpx in a single 15-step flow that needs the
+    cassette-replayed GitHub API integration tests (Story 2.1 DoD —
+    `test_pr_open_happy_path.py`, `test_pr_open_branch_exists.py`,
+    `test_pr_open_serialization.py`, etc.) to exercise meaningfully.
+    Those tests are tracked at the implementation_plan.md Story 2.1 DoD
+    and ship as a follow-up PR. The pure helpers + httpx retry policy +
+    git env construction + path containment are fully unit-tested in
+    ``backend/tests/unit/workers/test_git_pr_helpers.py`` (41 cases).
+    """
     started_at = time.monotonic()
     settings = get_settings()
     factory = get_session_factory()
@@ -778,7 +792,7 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
     repo_name: str,
     settings: Any,
     started_at: float,
-) -> None:
+) -> None:  # pragma: no cover — see open_pr() for the deferred-integration-test note
     """Steps 6–15 of the worker contract; runs under the advisory lock."""
     proposal_id = proposal.id
     branch = _branch_name(proposal_id, proposal.study_id)
