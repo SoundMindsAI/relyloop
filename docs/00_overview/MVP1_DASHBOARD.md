@@ -28,11 +28,13 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
+| [feat_llm_judgments](../02_product/planned_features/feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #25](https://github.com/SoundMindsAI/relyloop/pull/25) |
 
-### Spec (8)
+### Spec (7)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -40,7 +42,6 @@ _None._
 | [feat_digest_proposal](../02_product/planned_features/feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | Draft |
 | [feat_github_pr_worker](../02_product/planned_features/feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_digest_proposal` | Draft |
 | [feat_github_webhook](../02_product/planned_features/feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `feat_github_pr_worker` | Draft |
-| [feat_llm_judgments](../02_product/planned_features/feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #25](https://github.com/SoundMindsAI/relyloop/pull/25) |
 | [feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | Draft |
 | [feat_studies_ui](../02_product/planned_features/feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | Draft |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | — | Draft |
@@ -85,7 +86,7 @@ graph LR
   feat_github_webhook["github webhook"]
   class feat_github_webhook spec;
   feat_llm_judgments["llm judgments"]
-  class feat_llm_judgments spec;
+  class feat_llm_judgments plan;
   feat_proposals_ui["proposals ui"]
   class feat_proposals_ui spec;
   feat_studies_ui["studies ui"]

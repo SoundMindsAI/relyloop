@@ -471,7 +471,7 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">8</span></h3>
+  <h3>Spec <span class="count">7</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -522,18 +522,6 @@ footer {
 
 
 <div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_llm_judgments/feature_spec.md">Llm Judgments</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/25">PR #25</a>
-  </div>
-  <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
-
-  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span></div>
-</div>
-
-
-<div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_proposals_ui/feature_spec.md">Proposals Ui</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
@@ -571,7 +559,18 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_llm_judgments/feature_spec.md">Llm Judgments</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/25">PR #25</a>
+  </div>
+  <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span></div>
+</div>
 
 </div>
 
@@ -654,7 +653,7 @@ footer {
   feat_github_webhook[&quot;github webhook&quot;]
   class feat_github_webhook spec;
   feat_llm_judgments[&quot;llm judgments&quot;]
-  class feat_llm_judgments spec;
+  class feat_llm_judgments plan;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
   feat_studies_ui[&quot;studies ui&quot;]
@@ -703,7 +702,7 @@ footer {
   feat_github_webhook[&quot;github webhook&quot;]
   class feat_github_webhook spec;
   feat_llm_judgments[&quot;llm judgments&quot;]
-  class feat_llm_judgments spec;
+  class feat_llm_judgments plan;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
   feat_studies_ui[&quot;studies ui&quot;]

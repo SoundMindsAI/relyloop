@@ -13,10 +13,22 @@ Single-phase feature (per spec §3 "Phase boundaries"). LLM-as-judge pipeline + 
 - Phases: 1 (single-phase; no deferred work).
 
 ## Plan
-- Status: Not started.
+- Status: **Approved** — 2026-05-11
+- File: [implementation_plan.md](implementation_plan.md)
+- Cross-model review: GPT-5.5 (`gpt-5.5`) — 2 cycles, **20 findings total**, 19 accepted + applied, 1 rejected with cited counter-evidence (cycle-1 F11 — `SearchAdapter.render(...)` does exist at `backend/app/adapters/protocol.py:143` + `backend/workers/trials.py:385` already calls it).
+- Stories: 16 stories across 4 epics (Foundations 7 / Worker 1 / API 5 / Docs 3).
+- Endpoints: 7 (spec §8.1 lists 6; the 7th is the import endpoint described in FR-3b — spec drift captured for follow-up).
+- Error codes: 13 covered (11 from spec §8.5 + 2 from spec body text — `QUERY_NOT_IN_SET` from FR-3b and `LIST_NOT_READY` from §11 — plus `UNKNOWN_MODEL_PRICING` introduced by GPT-5.5 cycle 2 F4 for budget-gate integrity, captured as spec drift).
+- Test files: 4 unit + 10 integration + 1 contract = **15 test files**.
+- Spec drifts captured (4 follow-up idea files to file during execution):
+  - `chore_spec_llm_judgments_endpoint_drift` — §8.1 missing import endpoint
+  - `chore_spec_llm_judgments_error_drift` — §8.5 missing `QUERY_NOT_IN_SET` + `LIST_NOT_READY`
+  - `chore_spec_llm_judgments_pricing_drift` — §8.5 missing `UNKNOWN_MODEL_PRICING` + FR-5 missing "run calibration before overrides" guidance
+  - `chore_judgments_periodic_resume_sweep` — in-worker periodic resume sweeper (boot-time sweep + CLI handle MVP1)
+- Phases covered: 1 (single-phase per spec §3).
 
 ## Implementation
-- Status: Not started.
+- Status: Not started. Next: `/impl-execute docs/02_product/planned_features/feat_llm_judgments/implementation_plan.md --all`.
 
 ## Dependencies (all satisfied)
 
@@ -33,10 +45,10 @@ Single-phase feature (per spec §3 "Phase boundaries"). LLM-as-judge pipeline + 
 
 ## Next action
 
-Run `/pipeline` against the approved spec to advance to plan generation:
+Run `/impl-execute` against the approved plan to ship the feature:
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_llm_judgments/
+/impl-execute docs/02_product/planned_features/feat_llm_judgments/implementation_plan.md --all
 ```
 
-The plan generator will produce `implementation_plan.md` covering FR-1 through FR-6 + AC-1 through AC-7. Single-phase feature — no phase split expected.
+16 stories across 4 epics. Execution surfaces 4 spec-drift idea files (listed above) that the operator captures during the standard `/impl-execute` post-implementation workflow.
