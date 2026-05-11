@@ -54,15 +54,15 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 | Layer | Choice | Notes |
 |---|---|---|
 | Language | TypeScript (`--strict` + `noUncheckedIndexedAccess`) | |
-| Framework | Next.js 14+ (App Router) | Server components; mature SSR/SSG. |
+| Framework | Next.js 16 (App Router, Turbopack) | Bumped from 14 on 2026-05-12 (`infra_frontend_stack_refresh`); React 19 as a peer. |
 | UI components | shadcn/ui | Components copied into the repo, not an npm dependency — fully customizable. |
-| Styling | Tailwind CSS | Pairs natively with shadcn/ui. |
+| Styling | Tailwind CSS 4 (CSS-first config via `@import "tailwindcss"`) | Bumped from 3 on 2026-05-12; legacy `tailwind.config.ts` deleted, source paths auto-detected. |
 | Server state | TanStack Query | Caching, retries, optimistic updates, mutations. |
 | Forms | React Hook Form + Zod | Zod schemas can be reused for API request validation. |
 | Charts | Recharts | Sufficient for parameter-importance bars, scatter plots, trial-progress lines. |
 | Streaming | `fetch()` with `ReadableStream` (SSE-framed body over POST) | Native `EventSource` is GET-only; the chat surface POSTs the user message in the body so we use `fetch()` streaming. See [`ui-architecture.md` §"Streaming chat"](ui-architecture.md). |
-| Testing | vitest + msw | msw mocks HTTP at the network layer. |
-| Linter | eslint (Next.js + security plugins) | |
+| Testing | Vitest 4 + msw | msw mocks HTTP at the network layer. Vitest bumped from 2 on 2026-05-12. |
+| Linter | ESLint 9 (flat config, `eslint.config.mjs`) + Next + security plugins | ESLint 10 was attempted but hit an `eslint-plugin-react` 7.37 vs ESLint-10 API incompat; backed off to 9 (matches `eslint-config-next` 16's tested baseline). |
 | Formatter | prettier | |
 | Type checker | `tsc --noEmit --strict` | Runs in CI. |
 | Dependency mgmt | pnpm | Lockfile-based. |

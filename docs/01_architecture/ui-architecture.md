@@ -1,6 +1,6 @@
 # UI Architecture
 
-**Status:** Adopted for MVP1. Next.js 14 App Router + shadcn/ui + Tailwind + TanStack Query. Per-screen feature specs (`feat_studies_ui`, `feat_proposals_ui`, `feat_chat_agent`) implement the patterns documented here.
+**Status:** Adopted for MVP1. Next.js 16 App Router (React 19, Turbopack) + shadcn/ui + Tailwind 4 (CSS-first) + TanStack Query + Vitest 4. Per-screen feature specs (`feat_studies_ui`, `feat_proposals_ui`, `feat_chat_agent`) implement the patterns documented here. Stack bumped from Next 14 / React 18 / Tailwind 3 / Vitest 2 on 2026-05-12 via `infra_frontend_stack_refresh` (the placeholder UI was the optimal upgrade window before `feat_studies_ui` adds component volume).
 **Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §22](../00_overview/product/relevance-copilot-spec.md) ("UI screens") and §28 ("Frontend stack").
 
 ---
@@ -11,16 +11,16 @@ Per [`tech-stack.md` §"Frontend"](tech-stack.md):
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 14+ (App Router) |
-| Language | TypeScript (`--strict` + `noUncheckedIndexedAccess`) |
+| Framework | Next.js 16 (App Router, Turbopack) — React 19 peer |
+| Language | TypeScript 6 (`--strict` + `noUncheckedIndexedAccess`) |
 | UI components | shadcn/ui (copied into repo, not npm dep) |
-| Styling | Tailwind CSS |
+| Styling | Tailwind CSS 4 (CSS-first via `@import "tailwindcss"` in `globals.css`; no `tailwind.config.ts`) |
 | Server state | TanStack Query (caching, retries, optimistic updates) |
 | Forms | React Hook Form + Zod |
 | Charts | Recharts |
 | Streaming | `fetch()` with `ReadableStream` (SSE-framed body over POST). Native `EventSource` is GET-only and unsuitable for the chat surface where the user message is in the request body. |
-| Testing | vitest + msw |
-| Lint | eslint (Next.js + security plugins) |
+| Testing | Vitest 4 + msw + jsdom 29 |
+| Lint | ESLint 9 (flat config, `eslint.config.mjs`) + Next + security plugins |
 
 ## Routes (MVP1)
 

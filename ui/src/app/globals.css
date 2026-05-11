@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind 4 CSS-first import — replaces the v3 @tailwind base/components/
+ * utilities trio. Project source paths are auto-detected; the v3
+ * tailwind.config.ts `content` array is no longer needed (deleted on
+ * 2026-05-12, see infra_frontend_stack_refresh). Custom design tokens
+ * go here via @theme {} when the design system materializes. */
+@import 'tailwindcss';
 
 :root {
   color-scheme: light dark;
