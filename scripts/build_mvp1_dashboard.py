@@ -139,16 +139,50 @@ def _extract_idea_problem(text: str) -> str:
     return para
 
 
+_TRANSITIVE_DEP_PHRASES = (
+    "all prior backend features",
+    "all prior mvp1 features",
+    "all backend",
+    "all prior features",
+)
+"""Prose phrases that resolve to "depends on every sibling feature".
+
+Per :doc:`.claude/skills/pipeline/SKILL.md` "Project-wide status mode":
+treat these as a transitive dependency on every other feature whose
+folder name starts with ``infra_`` or ``feat_``. Used by feat_chat_agent
+("ALL prior backend features") and chore_tutorial_polish ("ALL prior
+MVP1 features") — these features genuinely depend on every backend
+feature shipping first.
+
+Sentinel values rather than folder names; the caller resolves them
+against the live planned/implemented feature set.
+"""
+
+DEPS_ALL_BACKEND = "__ALL_BACKEND__"
+
+
 def _extract_depends_on(text: str) -> list[str]:
-    """Parse `- Depends on: ...` line into a list of folder names."""
+    """Parse `- Depends on: ...` line into a list of folder names.
+
+    Recognizes both:
+    * Explicit `[`folder`]` references (the common case).
+    * Prose phrases like "ALL prior backend features" → returns the
+      sentinel :data:`DEPS_ALL_BACKEND` for the loader to expand against
+      the live feature set (matches the algorithm in
+      :doc:`.claude/skills/pipeline/SKILL.md`).
+    """
     m = re.search(r"^-\s+Depends on:\s*(.+)$", text, flags=re.MULTILINE)
     if not m:
         return []
     line = m.group(1)
-    # Match `[`name`]` or bare backticked names; strip out punctuation.
+    line_lower = line.lower()
+    # Backticked folder names (must contain underscore + recognized prefix).
     folders = re.findall(r"`([a-z0-9_]+)`", line)
-    # Filter to folder-like patterns (must contain underscore + recognized prefix).
-    return [f for f in folders if any(f.startswith(p + "_") for p in PREFIX_LABELS)]
+    folders = [f for f in folders if any(f.startswith(p + "_") for p in PREFIX_LABELS)]
+    # Transitive-prose marker → sentinel; the loader expands later.
+    if any(phrase in line_lower for phrase in _TRANSITIVE_DEP_PHRASES):
+        folders.append(DEPS_ALL_BACKEND)
+    return folders
 
 
 def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
@@ -352,6 +386,18 @@ def load_all() -> list[Feature]:
             f = _load_implemented(child)
             if f:
                 features.append(f)
+    # Expand the DEPS_ALL_BACKEND sentinel against the live feature set
+    # (per the pipeline-skill algorithm). Resolved AFTER both planned +
+    # implemented are loaded so transitive deps see every backend
+    # sibling regardless of which folder they live in.
+    backend_folders = sorted(f.folder for f in features if f.prefix in ("infra", "feat"))
+    for f in features:
+        if DEPS_ALL_BACKEND not in f.depends_on:
+            continue
+        explicit = [d for d in f.depends_on if d != DEPS_ALL_BACKEND]
+        # Self-deps don't make sense; drop f.folder if it slipped in.
+        merged = sorted(set(explicit) | set(backend_folders) - {f.folder})
+        f.depends_on = merged
     return features
 
 
@@ -396,6 +442,56 @@ section > h2 {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #6b7385;
+}
+
+/* "Next up" callout — top-of-page recommendation. */
+.next-up {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.18);
+}
+.next-up .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6px;
+}
+.next-up .title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.next-up .title a { color: #fff; text-decoration: none; }
+.next-up .title a:hover { text-decoration: underline; }
+.next-up .one-liner {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  margin-bottom: 12px;
+  max-width: 900px;
+}
+.next-up .stage-hint {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.next-up .cmd {
+  display: block;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+  user-select: all;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.next-up.done {
+  background: linear-gradient(135deg, #15803d 0%, #14b8a6 100%);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2);
 }
 
 /* KPI row */
@@ -604,6 +700,105 @@ footer {
 """
 
 
+def _priority_order(features: list[Feature]) -> list[Feature]:
+    """Return scoped MVP1 features in dependency-derived priority order.
+
+    Topological sort over the ``depends_on`` DAG. Tiebreaker among
+    same-tier features mirrors the kanban sort (feat → infra → epic →
+    chore, then alphabetical). Idea-stage backlog and bug_* items are
+    excluded — they're not part of the dependency DAG.
+
+    Mirrors the algorithm in :doc:`.claude/skills/pipeline/SKILL.md`
+    "Project-wide status mode" so the dashboard's "Next up" callout
+    converges on the same answer ``/pipeline status`` would give.
+    """
+    type_order = {"feat": 0, "infra": 1, "epic": 2, "chore": 3}
+    scoped = {
+        f.folder: f
+        for f in features
+        if f.prefix in ("feat", "infra", "epic", "chore") and f.stage != "idea"
+    }
+    # Edges: dep -> [features that depend on dep]. Ignore deps outside the
+    # scoped set (idea-only ancestors, retired features).
+    incoming: dict[str, set[str]] = {name: set() for name in scoped}
+    for name, f in scoped.items():
+        for dep in f.depends_on:
+            if dep in scoped:
+                incoming[name].add(dep)
+
+    ordered: list[Feature] = []
+    placed: set[str] = set()
+    # Kahn's: repeatedly pull all roots (features whose unmet-dep set is
+    # empty), sort by tiebreaker, append, remove from incoming sets.
+    while len(placed) < len(scoped):
+        ready = [
+            scoped[name] for name, deps in incoming.items() if name not in placed and deps <= placed
+        ]
+        if not ready:
+            # Cycle in the dep DAG — pull remaining in tiebreaker order
+            # so we still produce SOME ordering rather than infinite-looping.
+            ready = [scoped[name] for name in scoped if name not in placed]
+        ready.sort(key=lambda f: (type_order.get(f.prefix, 99), f.short_name))
+        # Append the highest-priority ready feature; loop again so each
+        # iteration picks one node (preserves Kahn's per-tier emission).
+        for f in ready:
+            ordered.append(f)
+            placed.add(f.folder)
+    return ordered
+
+
+def _next_action(features: list[Feature]) -> tuple[Feature | None, str | None]:
+    """Pick the next scoped MVP1 feature to work on.
+
+    Returns ``(feature, suggested_command)`` where ``feature`` is the
+    first non-done feature in priority order, and the command is the
+    exact ``/pipeline ...`` invocation an operator should run next. The
+    command varies by stage (start the pipeline / advance the spec /
+    advance the plan / continue implementation). Returns ``(None, None)``
+    when everything scoped has shipped.
+    """
+    ordered = _priority_order(features)
+    for f in ordered:
+        if f.stage == "done":
+            continue
+        # Spot a deferred phase too: if the feature is "implement" with a
+        # phase*_idea.md, the operator's next move is to start that phase.
+        if f.deferred_phase and f.stage in ("implement", "done"):
+            phase_idea = sorted(f.path.glob("phase*_idea.md"))
+            if phase_idea:
+                cmd = f"/pipeline docs/02_product/planned_features/{f.folder}/{phase_idea[0].name}"
+                return (f, cmd)
+        if f.stage == "idea":
+            cmd = f"/pipeline docs/02_product/planned_features/{f.folder} --auto"
+        elif f.stage == "spec":
+            cmd = f"/pipeline docs/02_product/planned_features/{f.folder} --auto"
+        elif f.stage == "plan":
+            cmd = (
+                f"/impl-execute docs/02_product/planned_features/"
+                f"{f.folder}/implementation_plan.md --all"
+            )
+        elif f.stage == "implement":
+            cmd = (
+                f"/impl-execute docs/02_product/planned_features/{f.folder}/"
+                "implementation_plan.md --all  # resume in-progress"
+            )
+        else:
+            cmd = f"/pipeline docs/02_product/planned_features/{f.folder}"
+        return (f, cmd)
+    return (None, None)
+
+
+def _next_action_label(stage: str) -> str:
+    """Human-readable description of the next stage transition."""
+    return {
+        "idea": "Generate spec → run /pipeline (will draft feature_spec.md, then plan, then ship)",
+        "spec": "Spec exists; run /pipeline to generate the implementation plan + ship",
+        "plan": "Plan approved; run /impl-execute to ship",
+        "implement": "Implementation in progress — resume to finish",
+        "done": "Already shipped — pick the next item",
+    }.get(stage, "Run /pipeline to advance")
+
+
 def _classify_kpi(features: list[Feature]) -> dict[str, int]:
     """Distinguish *scoped* MVP1 work (anything past the idea stage in
     feat_/infra_/chore_/epic_) from idea-only backlog items and from open
@@ -725,6 +920,55 @@ def _mermaid_graph(features: list[Feature]) -> str:
     return "\n".join(lines)
 
 
+def _next_up_html(features: list[Feature]) -> str:
+    """Render the 'Next up' callout — the prominent banner above the KPIs.
+
+    Tells the operator EXACTLY what feature to start next + the runnable
+    command. Uses the dependency-derived priority order from
+    ``_priority_order`` so it matches what ``/pipeline status`` would say.
+    """
+    next_feature, cmd = _next_action(features)
+    if next_feature is None:
+        return """
+<section>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
+  </div>
+</section>
+"""
+    spec_path = next_feature.path / "feature_spec.md"
+    target = (
+        spec_path.relative_to(REPO_ROOT)
+        if spec_path.exists()
+        else next_feature.path.relative_to(REPO_ROOT)
+    )
+    href = f"../../{target}"
+    one_liner = next_feature.one_liner or next_feature.status_line or ""
+    stage_hint = _next_action_label(next_feature.stage)
+    type_label = PREFIX_LABELS.get(next_feature.prefix, next_feature.prefix)
+    stage_label = STAGE_LABELS[next_feature.stage]
+    eyebrow = (
+        f"Next up — {html.escape(type_label)}, currently in "
+        f"<strong>{html.escape(stage_label)}</strong>"
+    )
+    title_html = f'<a href="{html.escape(href)}">{html.escape(next_feature.display_name)}</a>'
+    return f"""
+<section>
+  <div class="next-up">
+    <div class="eyebrow">{eyebrow}</div>
+    <div class="title">{title_html}</div>
+    <div class="one-liner">{html.escape(one_liner[:240])}</div>
+    <div class="stage-hint">{html.escape(stage_hint)}</div>
+    <code class="cmd">{html.escape(cmd or "")}</code>
+  </div>
+</section>
+"""
+
+
 def render_html(features: list[Feature]) -> str:
     kpi = _classify_kpi(features)
     pct = (
@@ -741,6 +985,7 @@ def render_html(features: list[Feature]) -> str:
 
     columns = "".join(_column_html(s, by_stage[s]) for s in STAGES)
     mermaid = _mermaid_graph(features)
+    next_up = _next_up_html(features)
     # Use the most-recent mtime of any feature-folder file (or this script
     # itself) instead of `now()` — keeps regeneration idempotent so the
     # pre-commit hook doesn't churn the dashboard on every unrelated commit.
@@ -768,6 +1013,7 @@ def render_html(features: list[Feature]) -> str:
 </header>
 
 <main>
+{next_up}
 
 <section>
   <h2>MVP1 Progress</h2>
@@ -966,6 +1212,34 @@ def render_markdown(features: list[Feature]) -> str:
         "[`mvp1_dashboard.html`](mvp1_dashboard.html) in a browser._"
     )
     lines.append("")
+
+    # "Next up" callout — same algorithm as the HTML banner / /pipeline status.
+    next_feature, cmd = _next_action(features)
+    lines.append("## Next up")
+    lines.append("")
+    if next_feature is None:
+        lines.append("All scoped MVP1 features shipped 🎉")
+        lines.append("")
+        lines.append("Pull from the Idea backlog or capture a new feature spec.")
+    else:
+        type_label = PREFIX_LABELS.get(next_feature.prefix, next_feature.prefix)
+        feature_link = _md_feature_link(next_feature)
+        one_liner = next_feature.one_liner or next_feature.status_line or ""
+        lines.append(
+            f"**{feature_link}** — {type_label}, currently in "
+            f"**{STAGE_LABELS[next_feature.stage]}**"
+        )
+        lines.append("")
+        if one_liner:
+            lines.append(f"> {_md_escape_cell(one_liner[:240])}")
+            lines.append("")
+        lines.append(_next_action_label(next_feature.stage))
+        lines.append("")
+        lines.append("```bash")
+        lines.append(cmd or "")
+        lines.append("```")
+    lines.append("")
+
     lines.append("## MVP1 Progress")
     lines.append("")
     lines.append("| Metric | Value |")
