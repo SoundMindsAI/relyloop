@@ -459,7 +459,7 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">7</span></h3>
+  <h3>Spec <span class="count">6</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -470,18 +470,6 @@ footer {
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
 
 
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/25">PR #25</a><span>merged 2026-05-11</span>
-  </div>
-  <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
-
-  <div class="deps">depends on: <span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span></div>
 </div>
 
 
@@ -547,7 +535,18 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/25">PR #25</a><span>merged 2026-05-11</span>
+  </div>
+  <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span></div>
+</div>
 
 </div>
 
@@ -636,7 +635,7 @@ footer {
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
   feat_digest_proposal[&quot;digest proposal&quot;]
-  class feat_digest_proposal spec;
+  class feat_digest_proposal plan;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker spec;
   feat_github_webhook[&quot;github webhook&quot;]
@@ -685,7 +684,7 @@ footer {
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
   feat_digest_proposal[&quot;digest proposal&quot;]
-  class feat_digest_proposal spec;
+  class feat_digest_proposal plan;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker spec;
   feat_github_webhook[&quot;github webhook&quot;]
