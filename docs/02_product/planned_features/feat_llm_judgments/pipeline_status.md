@@ -28,7 +28,14 @@ Single-phase feature (per spec §3 "Phase boundaries"). LLM-as-judge pipeline + 
 - Phases covered: 1 (single-phase per spec §3).
 
 ## Implementation
-- Status: Not started. Next: `/impl-execute docs/02_product/planned_features/feat_llm_judgments/implementation_plan.md --all`.
+- Status: **PR created — awaiting merge** — 2026-05-11
+- PR: [#35](https://github.com/SoundMindsAI/relyloop/pull/35) — `feat(judgments): LLM-as-judge worker + 7 API endpoints (feat_llm_judgments)`
+- CI: green (final run after cycle-9 fixes, then cycle-10 convergence pass)
+- Stories: 16 / 16 complete (all 4 epics shipped; Story 1.1 + 1.2 committed pre-PR-open, remaining 14 in this PR)
+- Cross-model review: **10 cycles of GPT-5.5** on the cumulative diff. 19 findings raised total; 18 accepted + applied, 1 rejected with cited counter-evidence (C7-F1 — uuid_utils dep declared at `pyproject.toml:37`). Cycle 10 returned `{"findings":[]}` — convergence.
+- Gemini Code Assist: not installed on the repo (PRs #25 / #23 / #18 / #16 / #4 all had 0 line comments).
+- Follow-up idea files captured during execution: 4 spec-drift / strategic-followup chores (see Plan section above).
+- After merge: separate finalize PR moves the folder to `docs/00_overview/implemented_features/` + updates `state.md` with the merged-SHA-bearing summary.
 
 ## Dependencies (all satisfied)
 

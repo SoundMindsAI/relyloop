@@ -1,7 +1,7 @@
 # Implementation Plan — feat_llm_judgments
 
 **Date:** 2026-05-11
-**Status:** Draft
+**Status:** PR created — PR #35 awaiting merge (2026-05-11). Final cross-model review converged at cycle 10 ({"findings":[]}). After merge, a separate finalize PR moves the folder to `implemented_features/` and updates `state.md`.
 **Primary spec:** [feature_spec.md](feature_spec.md) (Approved 2026-05-11)
 **Policy source(s):**
 - [docs/01_architecture/llm-orchestration.md](../../../01_architecture/llm-orchestration.md) — prompt directory layout, capability check, cost guardrail
@@ -1387,22 +1387,22 @@ If the hoist is judged distracting at execution time, **defer** it to a follow-u
 
 ### Current sprint
 
-- [ ] Story 1.1 — `judgments` migration (FR-1)
-- [ ] Story 1.2 — Judgment ORM model + repo functions
-- [ ] Story 1.3 — Prompt files + Jinja loader
-- [ ] Story 1.4 — OpenAI judge client
-- [ ] Story 1.5 — Calibration helper
-- [ ] Story 1.6 — Replace qrels_loader stub
-- [ ] Story 1.7 — Redis budget gate
-- [ ] Story 2.1 — `generate_judgments_llm` Arq job
-- [ ] Story 3.1 — `POST /api/v1/judgments/generate`
-- [ ] Story 3.2 — `POST /api/v1/judgment-lists/import`
-- [ ] Story 3.3 — List + detail + paginated-judgments endpoints
-- [ ] Story 3.4 — `PATCH /…/judgments/{judgment_id}` override
-- [ ] Story 3.5 — `POST /…/calibration`
-- [ ] Story 4.1 — `docs/04_security/llm-data-flow.md`
-- [ ] Story 4.2 — `docs/03_runbooks/judgment-generation-debugging.md`
-- [ ] Story 4.3 — Flip US-13/14/15 to implemented
+- [x] Story 1.1 — `judgments` migration (FR-1) — `6b7d8bf`
+- [x] Story 1.2 — Judgment ORM model + repo functions — `63708ab`
+- [x] Story 1.3 — Prompt files + Jinja loader — `6090934`
+- [x] Story 1.4 — OpenAI judge client — `a6b8c91`
+- [x] Story 1.5 — Calibration helper — `e324373`
+- [x] Story 1.6 — Replace qrels_loader stub — `eb02604`
+- [x] Story 1.7 — Redis budget gate — `815cef5`
+- [x] Story 2.1 — `generate_judgments_llm` Arq job — `3e68738`
+- [x] Story 3.1 — `POST /api/v1/judgments/generate` — `be769ba`
+- [x] Story 3.2 — `POST /api/v1/judgment-lists/import` — `be769ba`
+- [x] Story 3.3 — List + detail + paginated-judgments endpoints — `be769ba`
+- [x] Story 3.4 — `PATCH /…/judgments/{judgment_id}` override — `be769ba`
+- [x] Story 3.5 — `POST /…/calibration` — `be769ba`
+- [x] Story 4.1 — `docs/04_security/llm-data-flow.md` — `8113d17`
+- [x] Story 4.2 — `docs/03_runbooks/judgment-generation-debugging.md` — `8113d17`
+- [x] Story 4.3 — Flip US-13/14/15 to implemented — `8113d17`
 
 ### Blocked items
 
