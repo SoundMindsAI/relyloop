@@ -1,7 +1,7 @@
 # Implementation Plan — feat_study_lifecycle (Phase 2 — Orchestrator + API)
 
 **Date:** 2026-05-10
-**Status:** Ready for Execution — 3 GPT-5.5 cycles complete. 21 findings total (19 accepted + applied, 1 rejected with cited counter-evidence, 1 second-pass discovery applied in-cycle). Plan is converged.
+**Status:** Implementation Complete — PR #25 open (pending human merge). All 14 stories shipped. **4 GPT-5.5 implementation-review cycles to convergence** (cycle 1: 10 findings, 5 applied + 5 deferred to idea files; cycle 2: 3 findings, all applied; cycle 3: 2 findings, all applied; cycle 4: `{"findings": []}` clean pass). See PR #25 adjudication summary comment for the full verdict table.
 **Primary spec:** [feature_spec.md](feature_spec.md) (Phase 2 scope per §3 "Phase boundaries")
 **Source idea:** [phase2_idea.md](phase2_idea.md) — defers FR-1..FR-7 from the 2026-05-10 Phase 1 split
 **Companion plan:** [implementation_plan.md](implementation_plan.md) (Phase 1 — Schema, Complete via PR #18, merged 2026-05-10 as `d74e1be`)
@@ -2084,24 +2084,24 @@ N/A — existing test-layer convention applies.
 
 ### Current sprint (Phase 2)
 
-- [ ] Story 1.1 — Search-space validator + apply mapping
-- [ ] Story 1.2 — Template validator + sandbox refactor
-- [ ] Story 1.3 — Study state machine + protection listener (FR-7 / AC-6)
-- [ ] Story 1.4 — Repo extensions (pagination, filters, counts, trials_summary, sort, bulk insert)
-- [ ] Story 1.5 — Settings additions (parallelism, timeout defaults)
-- [ ] Epic 1 phase gate
-- [ ] Story 2.1 — `start_study` Arq job (FR-4 / AC-1, AC-2, AC-5, AC-10)
-- [ ] Story 2.2 — Cancel path (AC-3)
-- [ ] Story 2.3 — Resume-after-restart (FR-5 / AC-4)
-- [ ] Epic 2 phase gate
-- [ ] Story 3.1 — Query-template endpoints (FR-2 / AC-7)
-- [ ] Story 3.2 — Query-set + bulk queries endpoints (FR-3 / AC-8)
-- [ ] Story 3.3 — Study endpoints (FR-1 / AC-9)
-- [ ] Story 3.4 — Trials list endpoint (FR-6)
-- [ ] Story 3.5 — Contract + error-code tests
-- [ ] Epic 3 phase gate
-- [ ] Story 4.1 — Runbook + state.md/architecture.md/CLAUDE.md updates
-- [ ] Epic 4 phase gate
+- [x] Story 1.1 — Search-space validator + apply mapping
+- [x] Story 1.2 — Template validator + sandbox refactor
+- [x] Story 1.3 — Study state machine + protection listener (FR-7 / AC-6)
+- [x] Story 1.4 — Repo extensions (pagination, filters, counts, trials_summary, sort, bulk insert)
+- [x] Story 1.5 — Settings additions (parallelism, timeout defaults)
+- [x] Epic 1 phase gate
+- [x] Story 2.1 — `start_study` Arq job (FR-4 / AC-1, AC-2, AC-5, AC-10)
+- [x] Story 2.2 — Cancel path (AC-3)
+- [x] Story 2.3 — Resume-after-restart (FR-5 / AC-4)
+- [x] Epic 2 phase gate
+- [x] Story 3.1 — Query-template endpoints (FR-2 / AC-7)
+- [x] Story 3.2 — Query-set + bulk queries endpoints (FR-3 / AC-8)
+- [x] Story 3.3 — Study endpoints (FR-1 / AC-9)
+- [x] Story 3.4 — Trials list endpoint (FR-6)
+- [x] Story 3.5 — Contract + error-code tests
+- [x] Epic 3 phase gate
+- [x] Story 4.1 — Runbook + state.md/architecture.md/CLAUDE.md updates
+- [x] Epic 4 phase gate
 
 ### Blocked items
 

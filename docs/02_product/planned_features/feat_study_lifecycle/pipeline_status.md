@@ -44,20 +44,35 @@ Multi-phase feature. Phase 1 = Schema (this PR scope); Phase 2 = Orchestrator + 
 - Phase 2 error codes: 12 (all in spec §7.5) + 1 add-on (judgment/query-set mismatch → VALIDATION_ERROR)
 - Test files: 4 new unit + 6 new integration + 2 new contract = 12 new test files; estimated +75 new test methods across all files
 
+## Implement (Phase 2 — Orchestrator + API)
+- Status: **PR open** — 2026-05-10
+- PR: [#25](https://github.com/SoundMindsAI/relyloop/pull/25) (open, awaiting human merge)
+- CI: green on latest commit (`923096a`)
+- Stories: 14/14 across 4 epics
+- Cross-model review: GPT-5.5 final-review — **4 cycles to convergence** (cycle 1: 10 findings → 5 applied + 5 deferred to idea files; cycle 2: 3 findings, all applied; cycle 3: 2 findings, all applied; cycle 4: `{"findings": []}` clean pass). See PR #25 adjudication summary comment for the full verdict table.
+- Gemini Code Assist: N/A (not configured on `SoundMindsAI/relyloop`)
+- Tangential idea files captured: `infra_per_trial_timeout`, `chore_openapi_contract_validation`, `infra_arq_subprocess_test` (Phase 2 cycle); `chore_trial_summary_single_query`, `chore_spec_trial_created_at_drift`, `chore_spec_query_set_cluster_id_drift` (Phase 1/Phase 2 plan-review cycle).
+
 ## Done
 - Phase 1: **Complete (PR #18, merged 2026-05-10)**
-- Phase 2: in flight — Plan approved 2026-05-10; implementation pending via `/impl-execute`
+- Phase 2: **PR #25 open** — awaiting human merge. After merge, the feature folder moves to `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_study_lifecycle/` (impl-execute Step 8 finalization).
 
 ## Open items requiring user input
 
-- None. Phase 2 plan is execution-ready.
+- Human review + merge of PR #25.
 
 ## Next action
 
-Run `/impl-execute` against the approved Phase 2 plan:
+After PR #25 merges, run the finalization commit on a fresh branch from
+main (sibling worktree at `/private/tmp/relyloop-release-main` may own
+main locally; create `docs/finalize-feat-study-lifecycle` from
+`origin/main` per impl-execute Step 8.0):
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_study_lifecycle/phase2_implementation_plan.md --all
+git fetch origin main
+git checkout -b docs/finalize-feat-study-lifecycle origin/main
+mv docs/02_product/planned_features/feat_study_lifecycle \
+   docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle
+git add -A && git commit -m "docs: archive feat_study_lifecycle Phase 2 (PR #25)"
+git push -u origin docs/finalize-feat-study-lifecycle
 ```
-
-The plan has 4 epics with phase gates between them. Each epic's gate includes a GPT-5.5 phase-diff review per the impl-execute Step 4 contract. Final review + Gemini adjudication run at PR time.
