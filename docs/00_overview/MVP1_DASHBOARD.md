@@ -6,7 +6,7 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 
 **[feat_github_pr_worker](../02_product/planned_features/feat_github_pr_worker/feature_spec.md)** — Feature, currently in **Spec**
 
-> `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches a parameter-importance chart as a commen
+> `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches a parameter-importance chart by committi
 
 Spec exists; run /pipeline to generate the implementation plan + ship
 
@@ -19,9 +19,9 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 | Metric | Value |
 |---|---|
 | Features done | **6 / 12** (50%) |
-| Path to MVP1 | **15** items remaining (features + bugs + chores) |
+| Path to MVP1 | **16** items remaining (features + bugs + chores) |
 | Open bugs | 3 |
-| Open chores | 6 (idea-stage debt) |
+| Open chores | 7 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -51,13 +51,13 @@ _None._
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
-| [feat_github_pr_worker](../02_product/planned_features/feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_digest_proposal` | Draft |
+| [feat_github_pr_worker](../02_product/planned_features/feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) |
 | [feat_github_webhook](../02_product/planned_features/feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `feat_github_pr_worker` | Draft |
 | [feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | Draft |
 | [feat_studies_ui](../02_product/planned_features/feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | Draft |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
 
-### Idea (13)
+### Idea (14)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -65,6 +65,7 @@ _None._
 | [infra_ci_smoke_makeup](../02_product/planned_features/infra_ci_smoke_makeup/idea.md) | Infra | CI runs `make test-unit && make test-integration && make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure | — | Idea — captured during `infra_foundation` PR #4 first-run testing |
 | [infra_frontend_stack_refresh](../02_product/planned_features/infra_frontend_stack_refresh/idea.md) | Infra | The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09): | — | Idea — surfaced during dependency audit on `feature/infra-foundation` |
 | [infra_per_trial_timeout](../02_product/planned_features/infra_per_trial_timeout/idea.md) | Infra | `Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 GPT-5.5 review cycle 2) |
+| [chore_infra_foundation_github_token_file_retirement](../02_product/planned_features/chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is: | — | Idea (deferred from `feat_github_pr_worker` spec patch — captured because the cleanup spans `infra_foundation`'s shipped config and isn't in the PR-worker scope) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
 | [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [chore_spec_trial_created_at_drift](../02_product/planned_features/chore_spec_trial_created_at_drift/idea.md) | Chore | `feat_study_lifecycle/feature_spec.md` §7.4 defines wire values for the trials list `?sort=` query parameter: | — | — |
@@ -133,6 +134,7 @@ graph LR
   infra_optuna_eval --> feat_chat_agent
   infra_foundation --> feat_github_pr_worker
   infra_adapter_elastic --> feat_github_pr_worker
+  feat_study_lifecycle --> feat_github_pr_worker
   feat_digest_proposal --> feat_github_pr_worker
   infra_foundation --> feat_github_webhook
   feat_github_pr_worker --> feat_github_webhook
