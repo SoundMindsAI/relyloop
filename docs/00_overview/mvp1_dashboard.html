@@ -267,13 +267,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Features done</div>
-      <div class="value">4 / 12</div>
-      <div class="sub">33% of scoped MVP1 features</div>
-      <div class="bar"><span style="width:33%"></span></div>
+      <div class="value">5 / 12</div>
+      <div class="sub">42% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:42%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">21</div>
+      <div class="value">20</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -607,18 +607,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_llm_judgments/feature_spec.md">Llm Judgments</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/35">PR #35</a>
-  </div>
-  <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
-
-  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span></div>
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -628,7 +617,19 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">4</span></h3>
+  <h3>Done <span class="count">5</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md">Llm Judgments</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/35">PR #35</a><span>merged 2026-05-11</span>
+  </div>
+  <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span></div>
+</div>
+
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md">Study Lifecycle</a></div>
@@ -700,8 +701,6 @@ footer {
   class feat_github_pr_worker spec;
   feat_github_webhook[&quot;github webhook&quot;]
   class feat_github_webhook spec;
-  feat_llm_judgments[&quot;llm judgments&quot;]
-  class feat_llm_judgments plan;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
   feat_studies_ui[&quot;studies ui&quot;]
@@ -714,6 +713,8 @@ footer {
   class infra_adapter_elastic done;
   infra_optuna_eval[&quot;optuna eval&quot;]
   class infra_optuna_eval done;
+  feat_llm_judgments[&quot;llm judgments&quot;]
+  class feat_llm_judgments done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_github_pr_worker
@@ -721,9 +722,6 @@ footer {
   feat_digest_proposal --&gt; feat_github_pr_worker
   infra_foundation --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
-  infra_foundation --&gt; feat_llm_judgments
-  infra_adapter_elastic --&gt; feat_llm_judgments
-  feat_study_lifecycle --&gt; feat_llm_judgments
   feat_studies_ui --&gt; feat_proposals_ui
   feat_digest_proposal --&gt; feat_proposals_ui
   feat_github_pr_worker --&gt; feat_proposals_ui
@@ -732,7 +730,10 @@ footer {
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui
   feat_llm_judgments --&gt; feat_studies_ui
-  infra_adapter_elastic --&gt; feat_studies_ui</div>
+  infra_adapter_elastic --&gt; feat_studies_ui
+  infra_foundation --&gt; feat_llm_judgments
+  infra_adapter_elastic --&gt; feat_llm_judgments
+  feat_study_lifecycle --&gt; feat_llm_judgments</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
   classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
@@ -749,8 +750,6 @@ footer {
   class feat_github_pr_worker spec;
   feat_github_webhook[&quot;github webhook&quot;]
   class feat_github_webhook spec;
-  feat_llm_judgments[&quot;llm judgments&quot;]
-  class feat_llm_judgments plan;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
   feat_studies_ui[&quot;studies ui&quot;]
@@ -763,6 +762,8 @@ footer {
   class infra_adapter_elastic done;
   infra_optuna_eval[&quot;optuna eval&quot;]
   class infra_optuna_eval done;
+  feat_llm_judgments[&quot;llm judgments&quot;]
+  class feat_llm_judgments done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_github_pr_worker
@@ -770,9 +771,6 @@ footer {
   feat_digest_proposal --&gt; feat_github_pr_worker
   infra_foundation --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
-  infra_foundation --&gt; feat_llm_judgments
-  infra_adapter_elastic --&gt; feat_llm_judgments
-  feat_study_lifecycle --&gt; feat_llm_judgments
   feat_studies_ui --&gt; feat_proposals_ui
   feat_digest_proposal --&gt; feat_proposals_ui
   feat_github_pr_worker --&gt; feat_proposals_ui
@@ -781,7 +779,10 @@ footer {
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui
   feat_llm_judgments --&gt; feat_studies_ui
-  infra_adapter_elastic --&gt; feat_studies_ui</pre></noscript>
+  infra_adapter_elastic --&gt; feat_studies_ui
+  infra_foundation --&gt; feat_llm_judgments
+  infra_adapter_elastic --&gt; feat_llm_judgments
+  feat_study_lifecycle --&gt; feat_llm_judgments</pre></noscript>
   </div>
 </section>
 

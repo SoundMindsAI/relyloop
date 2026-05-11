@@ -6,8 +6,8 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 
 | Metric | Value |
 |---|---|
-| Features done | **4 / 12** (33%) |
-| Path to MVP1 | **21** items remaining (features + bugs + chores) |
+| Features done | **5 / 12** (42%) |
+| Path to MVP1 | **20** items remaining (features + bugs + chores) |
 | Open bugs | 2 |
 | Open chores | 11 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
@@ -15,10 +15,11 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 
 ## Pipeline
 
-### Done (4)
+### Done (5)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
+| [feat_llm_judgments](implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) merged 2026-05-11 |
 | [feat_study_lifecycle](implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
@@ -28,11 +29,9 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_llm_judgments](../02_product/planned_features/feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) |
+_None._
 
 ### Spec (7)
 
@@ -89,8 +88,6 @@ graph LR
   class feat_github_pr_worker spec;
   feat_github_webhook["github webhook"]
   class feat_github_webhook spec;
-  feat_llm_judgments["llm judgments"]
-  class feat_llm_judgments plan;
   feat_proposals_ui["proposals ui"]
   class feat_proposals_ui spec;
   feat_studies_ui["studies ui"]
@@ -103,6 +100,8 @@ graph LR
   class infra_adapter_elastic done;
   infra_optuna_eval["optuna eval"]
   class infra_optuna_eval done;
+  feat_llm_judgments["llm judgments"]
+  class feat_llm_judgments done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_github_pr_worker
@@ -110,9 +109,6 @@ graph LR
   feat_digest_proposal --> feat_github_pr_worker
   infra_foundation --> feat_github_webhook
   feat_github_pr_worker --> feat_github_webhook
-  infra_foundation --> feat_llm_judgments
-  infra_adapter_elastic --> feat_llm_judgments
-  feat_study_lifecycle --> feat_llm_judgments
   feat_studies_ui --> feat_proposals_ui
   feat_digest_proposal --> feat_proposals_ui
   feat_github_pr_worker --> feat_proposals_ui
@@ -122,6 +118,9 @@ graph LR
   feat_digest_proposal --> feat_studies_ui
   feat_llm_judgments --> feat_studies_ui
   infra_adapter_elastic --> feat_studies_ui
+  infra_foundation --> feat_llm_judgments
+  infra_adapter_elastic --> feat_llm_judgments
+  feat_study_lifecycle --> feat_llm_judgments
 ```
 
 ---
