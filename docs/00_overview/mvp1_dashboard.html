@@ -267,13 +267,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Features done</div>
-      <div class="value">5 / 12</div>
-      <div class="sub">42% of scoped MVP1 features</div>
-      <div class="bar"><span style="width:42%"></span></div>
+      <div class="value">6 / 12</div>
+      <div class="sub">50% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:50%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">16</div>
+      <div class="value">15</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -547,18 +547,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/25">PR #25</a><span>merged 2026-05-11</span>
-  </div>
-  <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
-
-  <div class="deps">depends on: <span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span></div>
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -568,7 +557,19 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">5</span></h3>
+  <h3>Done <span class="count">6</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/41">PR #41</a><span>merged 2026-05-11</span>
+  </div>
+  <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span></div>
+</div>
+
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md">Llm Judgments</a></div>
@@ -646,8 +647,6 @@ footer {
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
-  feat_digest_proposal[&quot;digest proposal&quot;]
-  class feat_digest_proposal plan;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker spec;
   feat_github_webhook[&quot;github webhook&quot;]
@@ -664,10 +663,10 @@ footer {
   class infra_adapter_elastic done;
   infra_optuna_eval[&quot;optuna eval&quot;]
   class infra_optuna_eval done;
+  feat_digest_proposal[&quot;digest proposal&quot;]
+  class feat_digest_proposal done;
   feat_llm_judgments[&quot;llm judgments&quot;]
   class feat_llm_judgments done;
-  feat_study_lifecycle --&gt; feat_digest_proposal
-  feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_digest_proposal --&gt; feat_github_pr_worker
@@ -682,6 +681,8 @@ footer {
   feat_digest_proposal --&gt; feat_studies_ui
   feat_llm_judgments --&gt; feat_studies_ui
   infra_adapter_elastic --&gt; feat_studies_ui
+  feat_study_lifecycle --&gt; feat_digest_proposal
+  feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
   infra_adapter_elastic --&gt; feat_llm_judgments
   feat_study_lifecycle --&gt; feat_llm_judgments</div>
@@ -695,8 +696,6 @@ footer {
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
-  feat_digest_proposal[&quot;digest proposal&quot;]
-  class feat_digest_proposal plan;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker spec;
   feat_github_webhook[&quot;github webhook&quot;]
@@ -713,10 +712,10 @@ footer {
   class infra_adapter_elastic done;
   infra_optuna_eval[&quot;optuna eval&quot;]
   class infra_optuna_eval done;
+  feat_digest_proposal[&quot;digest proposal&quot;]
+  class feat_digest_proposal done;
   feat_llm_judgments[&quot;llm judgments&quot;]
   class feat_llm_judgments done;
-  feat_study_lifecycle --&gt; feat_digest_proposal
-  feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_digest_proposal --&gt; feat_github_pr_worker
@@ -731,6 +730,8 @@ footer {
   feat_digest_proposal --&gt; feat_studies_ui
   feat_llm_judgments --&gt; feat_studies_ui
   infra_adapter_elastic --&gt; feat_studies_ui
+  feat_study_lifecycle --&gt; feat_digest_proposal
+  feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
   infra_adapter_elastic --&gt; feat_llm_judgments
   feat_study_lifecycle --&gt; feat_llm_judgments</pre></noscript>
