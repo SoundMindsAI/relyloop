@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Open-source automated relevance tuning for enterprise search platforms"
 readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 authors = [
     { name = "soundminds.ai", email = "engineering@soundminds.ai" },
 ]
@@ -12,8 +12,8 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Internet :: WWW/HTTP",
 ]
 
@@ -79,7 +79,7 @@ package = true
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py313"
 extend-exclude = [
     "migrations/versions",  # Alembic-generated; let the tool's defaults stand
 ]
@@ -124,7 +124,7 @@ docstring-code-format = true
 
 [tool.mypy]
 strict = true
-python_version = "3.12"
+python_version = "3.13"
 plugins = ["pydantic.mypy"]
 files = ["backend"]
 warn_unused_configs = true

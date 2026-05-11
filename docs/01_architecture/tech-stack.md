@@ -27,7 +27,7 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Language | Python 3.12+ (async) | Type hints required; `mypy --strict` is enforced. |
+| Language | Python 3.13+ (async) | Type hints required; `mypy --strict` is enforced. Bumped from 3.12 → 3.13 on 2026-05-12 (current stable; 3.12 still works since `requires-python = ">=3.13"` is the new floor — 3.12 callers must upgrade). |
 | Web framework | FastAPI | Auto-generates OpenAPI from Pydantic models. |
 | ORM | SQLAlchemy 2.0 (async) | All queries through the ORM; no raw SQL except in migrations. |
 | DB driver | asyncpg | Required by SQLAlchemy async. |
