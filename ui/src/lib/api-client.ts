@@ -106,7 +106,12 @@ function makeNetworkError(): ApiError {
 
 export function createApiClient(options: ApiClientOptions = {}): ApiClient {
   const baseUrl = options.baseUrl ?? DEFAULT_BASE_URL;
-  const fetchImpl = options.fetchImpl ?? globalThis.fetch.bind(globalThis);
+  // Read `globalThis.fetch` at call time, NOT at construction time. msw and
+  // similar request interceptors replace `globalThis.fetch` during their
+  // `beforeAll` setup, which runs AFTER this module is first imported. Capturing
+  // a bound reference here would silently bypass the interceptor.
+  const fetchImpl: typeof fetch =
+    options.fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const perAttemptTimeoutMs = options.perAttemptTimeoutMs ?? PER_ATTEMPT_TIMEOUT_MS;
   const retryWaits = options.retryWaitsMs ?? RETRY_WAITS_MS;
   const maxAttempts = retryWaits.length + 1;
