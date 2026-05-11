@@ -1,0 +1,13 @@
+<rubric>
+{{ rubric_text }}
+</rubric>
+
+<query>
+{{ query_text }}
+</query>
+
+<candidates>
+{% for d in docs %}<doc id="{{ d.doc_id }}">
+{{ d.body }}
+</doc>
+{% endfor %}</candidates>
