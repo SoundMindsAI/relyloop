@@ -785,3 +785,74 @@ class ProposalsListResponse(BaseModel):
     data: list[ProposalSummary]
     next_cursor: str | None
     has_more: bool
+
+
+# ---------------------------------------------------------------------------
+# feat_github_pr_worker schemas (Story 1.2)
+# ---------------------------------------------------------------------------
+
+
+ConfigRepoProviderWire = Literal["github"]
+"""Wire values for ``config_repos.provider``.
+
+Values must match backend/app/db/models/config_repo.py CHECK
+config_repos_provider_check (MVP1: 'github' only; MVP3 extends to
+'gitlab' / 'bitbucket').
+"""
+
+
+class OpenPrResponse(BaseModel):
+    """Body of ``POST /api/v1/proposals/{id}/open_pr`` (FR-1).
+
+    Returned with HTTP 202 on successful enqueue. Status is always
+    ``'pending'`` at enqueue time; the worker flips it to ``'pr_opened'``
+    after the PR is open.
+    """
+
+    proposal_id: str
+    status: Literal["pending"]
+    message: str
+
+
+class CreateConfigRepoRequest(BaseModel):
+    """Body of ``POST /api/v1/config-repos`` (FR-3).
+
+    ``provider`` is server-derived from ``repo_url`` (cycle-2 F4 from
+    spec review) — NOT in the payload. The validator enforces a strict
+    GitHub URL pattern; non-GitHub URLs surface as 400
+    ``UNSUPPORTED_PROVIDER`` at the router layer.
+    """
+
+    name: str = Field(min_length=1, max_length=128, pattern=r"^[a-z0-9][a-z0-9-]*$")
+    repo_url: str = Field(min_length=1, max_length=512)
+    default_branch: str = Field(default="main", min_length=1, max_length=128)
+    pr_base_branch: str = Field(default="main", min_length=1, max_length=128)
+    auth_ref: str = Field(min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_-]+$")
+    webhook_secret_ref: str | None = Field(
+        default=None,
+        max_length=128,
+        pattern=r"^[a-zA-Z0-9_-]+$",
+    )
+
+
+class ConfigRepoDetail(BaseModel):
+    """``GET /api/v1/config-repos/{id}`` response + ``POST`` 201 body."""
+
+    id: str
+    name: str
+    provider: ConfigRepoProviderWire
+    repo_url: str
+    default_branch: str
+    pr_base_branch: str
+    auth_ref: str
+    webhook_secret_ref: str | None
+    webhook_registration_error: str | None
+    created_at: datetime
+
+
+class ConfigReposListResponse(BaseModel):
+    """``GET /api/v1/config-repos`` response."""
+
+    data: list[ConfigRepoDetail]
+    next_cursor: str | None
+    has_more: bool

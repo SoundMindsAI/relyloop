@@ -126,6 +126,36 @@ class Settings(BaseSettings):
         default="dev",
         description="Build-time git SHA injected via Docker ARG; surfaced in /healthz.version",
     )
+    # feat_github_pr_worker Story 1.3 — operator-configured URL used to
+    # construct study-detail links in PR bodies. None → links omitted.
+    relyloop_base_url: str | None = Field(
+        default=None,
+        description=(
+            "Base URL of the operator's RelyLoop install. "
+            "Used to construct study-detail links in PR bodies (e.g. "
+            "https://relyloop.internal.acme.com/studies/{id}). "
+            "None → study link omitted from PR body."
+        ),
+    )
+    # feat_github_pr_worker Story 1.3 + cycle-2 F3 — bot identity for
+    # commits opened by the PR worker. Operator MUST override the email
+    # in production via env var; the default is a safe placeholder so
+    # dev installs don't ship a real-looking address.
+    relyloop_git_author_name: str = Field(
+        default="relyloop-bot",
+        description=(
+            "Commit author + committer NAME used by the PR worker when "
+            "creating commits in operator config repos."
+        ),
+    )
+    relyloop_git_author_email: str = Field(
+        default="relyloop-bot@example.com",
+        description=(
+            "Commit author + committer EMAIL used by the PR worker. "
+            "Operator MUST override this in production via env var to "
+            "the install-domain bot address."
+        ),
+    )
     es_heap_size: str = Field(
         default="512m",
         description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",

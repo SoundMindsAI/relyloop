@@ -14,10 +14,14 @@ Operational procedures: deployment, upgrades, restores, incident handling, recur
   state-machine + orchestrator playbook (`feat_study_lifecycle` Phase 2)
 - [`judgment-generation-debugging.md`](judgment-generation-debugging.md) —
   LLM-as-judge worker playbook + calibration / overrides (`feat_llm_judgments`)
+- [`digest-debugging.md`](digest-debugging.md) — digest worker playbook +
+  proposal lifecycle (`feat_digest_proposal`)
+- [`pr-open-debugging.md`](pr-open-debugging.md) — `open_pr` worker
+  playbook + per-repo PAT rotation + closing orphan branches
+  (`feat_github_pr_worker`)
 
 ## Coming with later features
 
-- `pr-worker-pat-rotation.md` — rotating the GitHub PAT (lands with `feat_github_pr_worker`)
 - `webhook-replay.md` — replaying a missed GitHub webhook (lands with `feat_github_webhook`)
 - `db-revision-mismatch.md` — recovering when API startup detects pending migrations (lands at MVP2 when the startup guard activates)
 - `staging-deploy.md` — staging deploy procedure (lands at MVP3)

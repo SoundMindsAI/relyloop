@@ -16,10 +16,18 @@ GitHub PR creation worker — turns a `pending` proposal into a real GitHub PR w
 - Phases: 1 (single-phase; no deferred work).
 
 ## Plan
-- Status: Not started. Next: `/pipeline` → `impl-plan-gen` against this spec.
+- Status: **Approved** — 2026-05-12.
+- File: [implementation_plan.md](implementation_plan.md)
+- Cross-model review: GPT-5.5 ran 3 cycles to the configured cap.
+  - Cycle 1 (6 findings, all accepted): matplotlib dep, arq.Retry on lock contention, issues/{N}/comments endpoint correction, GIT_CONFIG_COUNT env-var token passthrough, AC-7 9-surface enumeration, GitHub rate-limit retry policy.
+  - Cycle 2 (5 NEW findings, all accepted): clean-base reset before branch creation, validate_config_path call + containment, commit-author Settings, raw URL slash-safe `refs/heads/{branch}` form, QUEUE_UNAVAILABLE 503 + spec patch.
+  - Cycle 3 (4 NEW findings, all accepted): explicit `arq.func(max_tries=30, timeout=180)`, broadened token regex (`github_pat_*` fine-grained PATs), `git reset --hard` between fetch + checkout, manual-proposal `study_id=NULL` handling.
+- Stories: 13 stories across 4 epics (Foundations / Worker / API / Docs+tests).
+- Phases covered: all (single-phase feature).
+- Tests planned: 8 unit + 22 integration + 2 contract + 1 release-gate = 33 test files.
 
 ## Implementation
-- Status: Not started.
+- Status: Not started. Next: `/impl-execute docs/02_product/planned_features/feat_github_pr_worker/implementation_plan.md --all`.
 
 ## Dependencies (all satisfied)
 

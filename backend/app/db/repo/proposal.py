@@ -181,6 +181,83 @@ async def reject_proposal(
     return row
 
 
+async def mark_proposal_pr_opened(
+    db: AsyncSession,
+    proposal_id: str,
+    *,
+    pr_url: str,
+) -> Proposal | None:
+    """Conditional UPDATE: pending → pr_opened + populate pr_url + pr_state='open'.
+
+    feat_github_pr_worker Story 1.1 — the worker's final write after a
+    successful GitHub PR open. The conditional ``WHERE status='pending'``
+    guard mirrors :func:`update_proposal_for_digest`'s cycle-3 F4 pattern:
+    if the operator rejected the proposal mid-flight (between the
+    worker's preflight and this final UPDATE), zero rows match and we
+    return ``None``. The worker then logs
+    ``pr_open_proposal_no_longer_pending`` and skips the update — the
+    rejection persists, and the operator manually closes the orphan PR
+    on GitHub.
+
+    Returns the updated row, or ``None`` if zero rows matched. Caller
+    commits. Also clears any prior ``pr_open_error`` so a successful
+    retry blanks the stale failure message (per spec FR-4).
+
+    ``pr_url`` MUST be GitHub's ``html_url`` (e.g.
+    ``https://github.com/{owner}/{repo}/pull/N``), NOT the API URL or
+    the tokenized clone URL (spec FR-5 / AC-7).
+    """
+    stmt = (
+        update(Proposal)
+        .where(Proposal.id == proposal_id, Proposal.status == "pending")
+        .values(
+            pr_url=pr_url,
+            pr_state="open",
+            status="pr_opened",
+            pr_open_error=None,
+        )
+        .returning(Proposal)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is not None:
+        await db.flush()
+    return row
+
+
+async def set_proposal_pr_open_error(
+    db: AsyncSession,
+    proposal_id: str,
+    *,
+    error: str,
+) -> Proposal | None:
+    """Conditional UPDATE: populate ``pr_open_error`` WHERE status='pending'.
+
+    feat_github_pr_worker Story 1.1 — the worker's failure-path write.
+    Same conditional-pending guard as :func:`mark_proposal_pr_opened`:
+    if the operator rejected mid-flight, the rejection rationale stays
+    in ``rejected_reason`` and we don't overwrite it.
+
+    Returns the updated row, or ``None`` if zero rows matched (the
+    proposal is no longer pending). Caller commits.
+
+    The ``error`` string MUST already be token-redacted by the caller —
+    this repo function does no redaction (the worker owns the
+    redaction filter; this is a pure data path).
+    """
+    stmt = (
+        update(Proposal)
+        .where(Proposal.id == proposal_id, Proposal.status == "pending")
+        .values(pr_open_error=error)
+        .returning(Proposal)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is not None:
+        await db.flush()
+    return row
+
+
 async def list_pending_proposals_for_boot_scan(db: AsyncSession) -> list[str]:
     """Return study_ids of pending proposals lacking a digest (FR-2b).
 

@@ -1,6 +1,6 @@
 """Digest fetch + proposal CRUD endpoints (feat_digest_proposal Epic 3).
 
-Five endpoints under ``/api/v1``:
+Six endpoints under ``/api/v1``:
 
 * ``GET /studies/{id}/digest`` — Story 3.1; fetch the digest for a
   completed study; 404 ``DIGEST_NOT_READY`` if the worker hasn't run yet.
@@ -12,6 +12,12 @@ Five endpoints under ``/api/v1``:
   + digest (saves the UI a fan-out query).
 * ``POST /proposals/{id}/reject`` — Story 3.4; ``pending → rejected``
   transition.
+* ``POST /proposals/{id}/open_pr`` — feat_github_pr_worker Story 3.1;
+  preflight validates the cluster has a config_repo + the per-repo PAT
+  is readable, then enqueues the ``open_pr`` worker job (deterministic
+  ``_job_id`` for dedup per AC-12). 503 ``QUEUE_UNAVAILABLE`` (cycle-2
+  F5) when the Arq pool is missing or enqueue raises — NOT best-effort,
+  because this feature has no boot-scan recovery path.
 
 The handlers share three private helpers (``_err``, ``_encode_cursor``,
 ``_decode_cursor``) copied from :mod:`backend.app.api.v1.judgments` /
@@ -23,17 +29,19 @@ the feat_llm_judgments deferral note.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from datetime import datetime
 from typing import Annotated
 
 import uuid_utils
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1.schemas import (
     CreateProposalRequest,
     DigestResponse,
+    OpenPrResponse,
     ProposalDetail,
     ProposalsListResponse,
     ProposalStatusWire,
@@ -404,6 +412,157 @@ async def reject_proposal_endpoint(
             404, "PROPOSAL_NOT_FOUND", f"proposal {proposal_id} disappeared mid-update", False
         )
     return await _assemble_proposal_detail(db, refreshed)
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/proposals/{id}/open_pr  (feat_github_pr_worker Story 3.1, FR-1)
+# ---------------------------------------------------------------------------
+
+
+def _read_auth_secret(auth_ref: str) -> str | None:
+    """Read the per-repo PAT from the mounted-secrets bundle.
+
+    Mirrors the worker's :func:`backend.workers.git_pr._read_pat`
+    containment check. Returns ``None`` when the file is missing or
+    empty (handler maps to ``GITHUB_NOT_CONFIGURED`` 503 per AC-2).
+    """
+    import os
+    from pathlib import Path
+
+    if not auth_ref:
+        return None
+    override = os.environ.get("RELYLOOP_SECRETS_DIR")
+    secrets_root = Path(override).resolve() if override else Path("./secrets").resolve()
+    candidate = (secrets_root / auth_ref).resolve()
+    try:
+        candidate.relative_to(secrets_root)
+    except ValueError:
+        return None
+    # GPT-5.5 final-review F4 — require an actual file (not a directory or
+    # symlink-to-directory) AND tolerate OSError on read so a malformed
+    # secret path returns clean GITHUB_NOT_CONFIGURED instead of crashing.
+    if not candidate.is_file():
+        return None
+    try:
+        content = candidate.read_text().strip()
+    except OSError:
+        return None
+    return content or None
+
+
+@router.post(
+    "/proposals/{proposal_id}/open_pr",
+    response_model=OpenPrResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["proposals"],
+)
+async def open_pr_endpoint(
+    proposal_id: str,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> OpenPrResponse:
+    """Enqueue the ``open_pr`` worker for an operator-approved proposal.
+
+    Preflight order matches spec FR-1:
+
+    1. Proposal exists → else 404 ``PROPOSAL_NOT_FOUND``.
+    2. Proposal status is ``pending`` → else 409 ``INVALID_STATE_TRANSITION``
+       (AC-6).
+    3. Cluster has a ``config_repo_id`` → else 422 ``CLUSTER_HAS_NO_CONFIG_REPO``.
+    4. Per-repo PAT readable from ``./secrets/{auth_ref}`` → else 503
+       ``GITHUB_NOT_CONFIGURED`` (AC-2).
+    5. Enqueue with deterministic ``_job_id=f"open_pr:{proposal_id}"``
+       for dedup (AC-12). On enqueue failure (Arq pool absent or raise)
+       return 503 ``QUEUE_UNAVAILABLE`` per cycle-2 F5 — there is NO
+       boot-scan recovery for this worker, so a silent enqueue drop
+       would leave the proposal pending forever with no ``pr_open_error``.
+    """
+    proposal = await repo.get_proposal(db, proposal_id)
+    if proposal is None:
+        raise _err(404, "PROPOSAL_NOT_FOUND", f"proposal {proposal_id} not found", False)
+    if proposal.status != "pending":
+        raise _err(
+            409,
+            "INVALID_STATE_TRANSITION",
+            f"proposal {proposal_id} is in status {proposal.status!r}; "
+            "only 'pending' proposals can have a PR opened",
+            False,
+        )
+    cluster = await repo.get_cluster(db, proposal.cluster_id)
+    if cluster is None or cluster.config_repo_id is None:
+        raise _err(
+            422,
+            "CLUSTER_HAS_NO_CONFIG_REPO",
+            f"cluster {proposal.cluster_id} has no config_repo wired in; "
+            "register one via POST /api/v1/config-repos and update the cluster",
+            False,
+        )
+    config_repo = await repo.get_config_repo(db, cluster.config_repo_id)
+    if config_repo is None:
+        raise _err(
+            422,
+            "CLUSTER_HAS_NO_CONFIG_REPO",
+            f"config_repo {cluster.config_repo_id} not found",
+            False,
+        )
+    if _read_auth_secret(config_repo.auth_ref) is None:
+        raise _err(
+            503,
+            "GITHUB_NOT_CONFIGURED",
+            f"GitHub PAT for auth_ref={config_repo.auth_ref!r} is missing or empty; "
+            "populate ./secrets/<auth_ref> and retry",
+            True,
+        )
+    arq_pool = getattr(request.app.state, "arq_pool", None)
+    if arq_pool is None:
+        raise _err(
+            503,
+            "QUEUE_UNAVAILABLE",
+            "Arq pool is not initialized; ensure the worker is running and retry",
+            True,
+        )
+    # GPT-5.5 final-review C3-F1 — Arq's enqueue_job is idempotent on
+    # _job_id, AND keeps job results in Redis for ~1h after completion by
+    # default. With a static `_job_id="open_pr:{proposal_id}"`, an operator
+    # retry after a worker-side failure (pr_open_error populated, status
+    # still 'pending') would silently no-op for the entire retention
+    # window. Salt the _job_id with a hash of the prior error so each
+    # retry-after-failure gets a fresh dedup key. In-flight dedup is
+    # preserved (no pr_open_error yet → static key), and post-success
+    # retries are caught by the INVALID_STATE_TRANSITION preflight above.
+    job_id = f"open_pr:{proposal_id}"
+    if proposal.pr_open_error:
+        suffix = hashlib.blake2b(proposal.pr_open_error.encode("utf-8"), digest_size=4).hexdigest()
+        job_id = f"open_pr:{proposal_id}:retry-{suffix}"
+    try:
+        job = await arq_pool.enqueue_job("open_pr", proposal_id, _job_id=job_id)
+    except Exception as exc:  # noqa: BLE001 — single-purpose: surface as 503
+        logger.warning(
+            "POST /proposals/{id}/open_pr: arq enqueue raised; returning 503",
+            proposal_id=proposal_id,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        raise _err(
+            503,
+            "QUEUE_UNAVAILABLE",
+            f"Arq enqueue failed: {type(exc).__name__}; retry after the worker recovers",
+            True,
+        ) from exc
+    if job is None:
+        # Defense-in-depth — Arq dedup'd against an in-flight job with the
+        # same key. Surface this so an operator who hits "Open PR" twice
+        # in 100ms knows the second click was deduped, not lost.
+        logger.info(
+            "POST /proposals/{id}/open_pr: arq dedup'd against in-flight job",
+            proposal_id=proposal_id,
+            job_id=job_id,
+        )
+    return OpenPrResponse(
+        proposal_id=proposal_id,
+        status="pending",
+        message="PR creation queued",
+    )
 
 
 __all__ = ["router"]

@@ -18,6 +18,12 @@ Registered jobs:
   study-end digest narrative + populates the pending proposal's
   ``config_diff`` + ``metric_delta``. Replaced the Phase 2 stub at
   ``digest_stub.py`` (deleted) under the same Arq job name.
+* ``open_pr`` — feat_github_pr_worker Story 2.1; opens a GitHub PR for
+  an operator-approved proposal. Wrapped in ``func(timeout=180,
+  max_tries=30)`` so the per-config-repo serialization (advisory lock +
+  ``arq.Retry(defer=5)`` on contention) has a ~150s window for the
+  leading worker to complete before the trailing worker runs out of
+  retries (cycle-3 F1).
 
 The ``on_startup`` hook:
 
@@ -54,6 +60,7 @@ from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
 from backend.workers.digest import generate_digest
+from backend.workers.git_pr import open_pr
 from backend.workers.judgments import generate_judgments_llm
 from backend.workers.orchestrator import resume_study, start_study
 from backend.workers.trials import run_trial
@@ -70,6 +77,14 @@ _ORCHESTRATOR_JOB_TIMEOUT_S = 86_400
 # default (5 min) sits right at the boundary; this gives the worker room
 # to finish without an arbitrary kill.
 _JUDGMENTS_JOB_TIMEOUT_S = 900
+
+# feat_github_pr_worker Story 2.2 / cycle-3 F1: PR-open includes an
+# httpx round-trip + git push; the per-config_repo advisory lock can defer
+# concurrent jobs via arq.Retry(defer=5). max_tries=30 × ~5s defer = ~150s
+# window for the leading worker (spec §13 NFR <60s p99 PR-open) before the
+# trailing worker exhausts retries.
+_OPEN_PR_JOB_TIMEOUT_S = 180
+_OPEN_PR_MAX_TRIES = 30
 
 
 def _build_redis_settings() -> RedisSettings:
@@ -191,6 +206,7 @@ class WorkerSettings:
         func(resume_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
         generate_digest,
         func(generate_judgments_llm, timeout=_JUDGMENTS_JOB_TIMEOUT_S),
+        func(open_pr, timeout=_OPEN_PR_JOB_TIMEOUT_S, max_tries=_OPEN_PR_MAX_TRIES),
     ]
     redis_settings = _build_redis_settings()
     on_startup = on_startup
