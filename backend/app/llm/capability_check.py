@@ -369,6 +369,38 @@ async def check_capabilities(
             await client.aclose()
 
 
+async def read_capability_result(redis_client: Redis, base_url: str) -> CapabilityResult | None:
+    """Return the cached :class:`CapabilityResult` for ``base_url``, or None.
+
+    Reverse of the cache-write at the end of :func:`check_capabilities`.
+    Consumed by :mod:`backend.app.api.v1.judgments` to refuse
+    ``POST /judgments/generate`` when ``structured_output != "ok"`` (per
+    spec FR-3 + GPT-5.5 cycle 1 F7 strict cache-miss interpretation).
+    """
+    try:
+        raw = await redis_client.get(cache_key(base_url))
+    except Exception as exc:  # noqa: BLE001 — cache read failure is non-fatal
+        logger.warning(
+            "OpenAI capability cache read failed; treating as miss",
+            base_url=base_url,
+            error=str(exc),
+        )
+        return None
+    if raw is None:
+        return None
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8")
+    try:
+        return CapabilityResult.model_validate_json(raw)
+    except Exception as exc:  # noqa: BLE001 — corrupt cache → miss
+        logger.warning(
+            "OpenAI capability cache row corrupt; treating as miss",
+            base_url=base_url,
+            error=str(exc),
+        )
+        return None
+
+
 async def run_capability_check_background(
     base_url: str,
     api_key: str | None,
