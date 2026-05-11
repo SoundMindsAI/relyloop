@@ -49,12 +49,24 @@ def get_engine() -> AsyncEngine:
 
 @lru_cache
 def get_session_factory() -> async_sessionmaker[AsyncSession]:
-    """Construct the singleton ``async_sessionmaker`` bound to the engine."""
-    return async_sessionmaker(
+    """Construct the singleton ``async_sessionmaker`` bound to the engine.
+
+    Also installs the ``studies.status`` protection listener
+    (``services.study_state._install_state_guard_listener``) — idempotent
+    via ``event.contains(...)`` so repeated factory rebuilds in tests
+    don't accumulate duplicate listeners (Phase 2 Story 1.3, FR-7).
+    """
+    # Local import — services/study_state.py imports from db.models, which
+    # transitively imports this module; a top-level import would form a cycle.
+    from backend.app.services.study_state import _install_state_guard_listener
+
+    factory = async_sessionmaker(
         bind=get_engine(),
         expire_on_commit=False,
         class_=AsyncSession,
     )
+    _install_state_guard_listener(factory)
+    return factory
 
 
 async def get_db() -> AsyncIterator[AsyncSession]:

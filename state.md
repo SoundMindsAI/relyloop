@@ -2,19 +2,27 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-10 (after PR #23 — `infra_optuna_eval` merged)
+**Last updated:** 2026-05-10 (after Phase 2 implementation — `feat_study_lifecycle` Phase 2)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `main` is the canonical reference; PR #23 squash-merged 2026-05-10 (commit `c4f1aab`). A short-lived `docs/finalize-infra-optuna-eval` branch ships this status flip + folder move.
-- **Active feature:** none in flight. **Next up: `feat_study_lifecycle` Phase 2** (orchestrator + 12 endpoints + `start_study` Arq job) — unblocked now that `run_trial` exists. See [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md).
-- **Alembic head:** unchanged at `0003_study_lifecycle_schema` — `infra_optuna_eval` added zero migrations (per spec §9 "this feature does NOT define new tables"). Optuna's own tables live in the `optuna.*` schema and are created lazily by `RDBStorage` on first use; not part of RelyLoop's Alembic chain.
-- **Coverage:** above the 80% gate. `infra_optuna_eval` additions are heavily unit-tested: 5 new modules under `backend/app/eval/` (38 unit tests) + `backend/workers/trials.py` (10 unit tests) + 8 integration tests + 1 contract test + 1 benchmark.
+- **Branch:** `feature/feat-study-lifecycle-phase2` — Phase 2 implementation complete; pending push + PR. 14 stories shipped across 4 epics covering FR-1..FR-7 + AC-1..AC-10.
+- **Active feature:** `feat_study_lifecycle` Phase 2 (Orchestrator + API). Plan: [`phase2_implementation_plan.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_implementation_plan.md). All 14 stories complete; ready for PR.
+- **Alembic head:** unchanged at `0003_study_lifecycle_schema` — Phase 2 adds zero migrations (per spec §9 "phase 2 adds NO new tables; the 7-table schema landed in Phase 1").
+- **Coverage:** above the 80% gate. Phase 2 additions: orchestrator (`backend/workers/orchestrator.py`), digest stub (`backend/workers/digest_stub.py`), 3 routers (`api/v1/{query_templates,query_sets,studies}.py`), 2 domain modules (`domain/study/{search_space,template_validator,csv_parser}.py`), state machine (`services/study_state.py`). 299 unit tests pass (up from 292); contract layer adds Phase 2 schema + error-code tests.
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-10 — `feat_study_lifecycle` Phase 2 implementation complete.** 14 stories shipped across 4 epics on branch `feature/feat-study-lifecycle-phase2` ([`phase2_implementation_plan.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_implementation_plan.md)):
+  - **Epic 1 (foundations):** SearchSpace Pydantic validator + Optuna sampler mapping (`domain/study/search_space.py`); Jinja2 SandboxedEnvironment template validator + AST walk for AC-7 (`domain/study/template_validator.py` + render.py sandbox swap); service-layer state machine + `before_flush` `StudyStateProtectionError` listener (`services/study_state.py`, FR-7 / AC-6); Phase 2 repo extensions — `list_studies` / `count_studies` / `list_running_study_ids` + `aggregate_trials_summary` / `list_trials_paginated` / `count_trials` + `bulk_create_queries` + pagination on every aggregate; Settings additions `STUDIES_DEFAULT_PARALLELISM=4` + `STUDIES_DEFAULT_TIMEOUT_S=60`.
+  - **Epic 2 (orchestrator):** `backend/workers/orchestrator.py` — `start_study` Arq job with short-lived sessions per tick (C3-F2), `pg_try_advisory_xact_lock` keyed by study_id for replenishment serialization (C3-F2 xact-scoped), atomic durable digest handoff via pending proposal INSERT inside `complete_study` transaction (C3-F1), cancel-race tolerance via try/except `InvalidStateTransition`, consecutive-failure detection (AC-5), 30s `_drain_in_flight` on cancel; `resume_study` thin wrapper + `WorkerSettings.on_startup` sweep enqueuing resume for every running study (FR-5 / AC-4); `digest_stub.generate_digest` idempotent acknowledger replaced wholesale by `feat_digest_proposal` later; `WorkerSettings.functions` extended to 4 jobs with `job_timeout=86400`.
+  - **Epic 3 (API):** 3 routers + 12 endpoints — `/api/v1/query-templates` (POST/GET/GET, FR-2 + AC-7); `/api/v1/query-sets` (POST/GET/GET + bulk JSON/CSV upload, FR-3 + AC-8); `/api/v1/studies` (POST with key-omission `model_dump(exclude_none=True, exclude_unset=True)` per C3-F1 + judgment_list↔query_set consistency check, GET list with status filter, GET detail with embedded trials_summary, POST cancel; FR-1 + AC-1/AC-3/AC-9); `/api/v1/studies/{id}/trials` (cursor + 5 sort variants + since, FR-6 + AC-10). All 12 spec §7.5 error codes covered.
+  - **Epic 4 (docs):** `docs/03_runbooks/study-lifecycle-debugging.md` operator runbook; state.md / architecture.md / CLAUDE.md updates.
+  - **Tests:** 7 new unit tests (csv_parser) + 5 new integration test files (`test_study_lifecycle.py` covering AC-1/2/5/6/10 + cancel-race; `test_study_cancel.py` for AC-3 service half; `test_study_resume.py` for FR-5 sweep + idempotent resume; `test_query_templates_api.py` + `test_csv_upload.py` + `test_studies_api.py`) + 2 new contract test files (`test_studies_api_contract.py` + `test_studies_error_codes.py`). All 299 unit tests pass locally; integration + contract suites run in CI service containers.
+  - Pending: GPT-5.5 final review on merged diff + PR creation + Gemini adjudication.
+- **2026-05-10 — `feat_study_lifecycle` Phase 2 plan approved.** [`phase2_implementation_plan.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_implementation_plan.md) generated and reviewed via `/pipeline ... --auto`. 14 stories across 4 epics (foundations → orchestrator → API → docs). Covers FR-1..FR-7 + AC-1..AC-10 + all 12 spec endpoints + all 12 spec error codes. **3 GPT-5.5 review cycles**: 21 findings total — 19 accepted + applied (key design decisions: `pg_try_advisory_xact_lock` for orchestrator replenishment atomicity, durable digest handoff via atomic `proposals` INSERT inside `complete_study` transaction, Jinja2 AST walk catching `Call`/`Getattr`/dunder-name references before meta-vars cross-check for AC-7 sandbox, short-lived per-tick DB sessions in the orchestrator polling loop, model-level event listener with `event.contains(...)` idempotency); 1 rejected with cited counter-evidence (cycle-1 F2 — spec FR-3 says `cluster_id?` but Phase 1's schema is NOT NULL; captured as [`chore_spec_query_set_cluster_id_drift`](docs/02_product/planned_features/chore_spec_query_set_cluster_id_drift/idea.md) for spec patch). Pending: `/impl-execute` invocation.
 - **2026-05-10 — `infra_optuna_eval` merged into `main`** as PR #23 (squash commit `c4f1aab`). 8 stories across 3 epics. Zero migrations (purely additive against the `0003` schema):
   - **Epic 1 (eval helpers):** `backend/app/eval/` package — `types.py` (SamplerKind, PrunerKind, TrialStatus Literals per spec §8.4) + `scoring.py` (pytrec_eval scorer + objective_metric_key + SUPPORTED_METRICS/SUPPORTED_K_VALUES frozensets + user-facing → wire-name translation table per FR-3). 38 unit tests; AC-3 hand-computed nDCG@10/MAP@10 baselines verified within 1e-6.
   - **Epic 2 (runtime):** `optuna_runtime.py` (`_compose_storage_url`, `build_storage`, `build_sampler`, `build_pruner`, `get_or_create_study`); `qrels_loader.py` (MVP1 stub raising `JudgmentsTableMissing` until `feat_llm_judgments` ships the `judgments` child table); `backend/workers/trials.py` (run_trial Arq job — idempotency check + spec §11 clause 1b reconciliation + happy path + state-specific reconstruction for COMPLETE/FAIL/PRUNED). `WorkerSettings.on_startup` boots Optuna `RDBStorage` once per worker (spec FR-1). `services.cluster._build_adapter` renamed to public `build_adapter`. Stale `optuna_trial_number` docstring on `trial.py:48` fixed.
@@ -138,19 +146,19 @@
 
 ## In flight
 
-- None. **Next up:** `feat_study_lifecycle` Phase 2 (orchestrator + 12 endpoints + `start_study` Arq job + resume-after-restart loop + state-transition guard). Unblocked now that `run_trial` exists. See [`phase2_idea.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_idea.md).
+- **`feat_study_lifecycle` Phase 2** — implementation complete on branch `feature/feat-study-lifecycle-phase2`. Pending push + PR + Gemini adjudication. Plan: [`phase2_implementation_plan.md`](docs/02_product/planned_features/feat_study_lifecycle/phase2_implementation_plan.md).
 
 ## Queued (priority-ordered by dependency)
 
-1. **`feat_study_lifecycle` Phase 2** ← **next up.** Orchestrator + API (12 endpoints + `start_study` Arq job + resume-after-restart loop + state-transition guard).
-2. **`feat_llm_judgments`** — judgment-list LLM rubric runner; adds the `judgments` child table and replaces `backend/app/eval/qrels_loader.py`'s MVP1 stub with a real `SELECT`.
-3. **`feat_digest_proposal`** — study-end digest narrative.
-4. **`feat_github_pr_worker`** — GitHub PR creation Arq job.
-5. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified).
-6. **`feat_studies_ui`** — UI shell + `/studies` + `/studies/[id]`.
-7. **`feat_chat_agent`** — streaming chat orchestrator.
-8. **`feat_proposals_ui`** — `/proposals` review surface.
-9. **`chore_tutorial_polish`** — sample data + walkthrough.
+1. **`feat_llm_judgments`** — judgment-list LLM rubric runner; adds the `judgments` child table and replaces `backend/app/eval/qrels_loader.py`'s MVP1 stub with a real `SELECT`.
+2. **`feat_digest_proposal`** — study-end digest narrative. **Must scan pre-existing `proposals WHERE status='pending'`** at boot — Phase 2's orchestrator pre-creates pending proposal rows (per the C2-F3/C3-F3 durable handoff design).
+3. **`feat_github_pr_worker`** — GitHub PR creation Arq job.
+4. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified).
+5. **`feat_studies_ui`** — UI shell + `/studies` + `/studies/[id]`.
+6. **`feat_chat_agent`** — streaming chat orchestrator.
+7. **`feat_proposals_ui`** — `/proposals` review surface.
+8. **`chore_tutorial_polish`** — sample data + walkthrough.
+9. **`chore_spec_query_set_cluster_id_drift`** — one-line spec patch for FR-3 wording (captured 2026-05-10 from GPT-5.5 cycle-1 F2 adjudication).
 
 Run `/pipeline status` for the live view from spec dependencies.
 

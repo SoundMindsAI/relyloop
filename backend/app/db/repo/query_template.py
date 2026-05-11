@@ -1,14 +1,15 @@
-"""Query-template repository (feat_study_lifecycle Phase 1, Story 1.3).
+"""Query-template repository (Phase 1 Story 1.3 + Phase 2 Story 1.4).
 
-Phase 1 ships only the read/write functions needed by `infra_optuna_eval`'s
-`run_trial` (which loads a template by id) plus enough seeding helpers for
-the migration tests. Phase 2 extends with cursor pagination + the
-``POST /query-templates`` create-and-validate flow.
+Phase 1 shipped create + get + get-by-name-version. Phase 2 adds
+cursor-paginated list + count for the X-Total-Count header.
 """
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from collections.abc import Sequence
+from datetime import datetime
+
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import QueryTemplate
@@ -35,3 +36,40 @@ async def get_query_template_by_name_version(
     """Fetch a query template by the composite UNIQUE ``(name, version)``."""
     stmt = select(QueryTemplate).where(QueryTemplate.name == name, QueryTemplate.version == version)
     return (await db.execute(stmt)).scalar_one_or_none()
+
+
+async def list_query_templates(
+    db: AsyncSession,
+    *,
+    cursor: tuple[datetime, str] | None = None,
+    limit: int = 50,
+    since: datetime | None = None,
+) -> Sequence[QueryTemplate]:
+    """Cursor-paginated list, newest first. Mirror of repo.cluster.list_clusters."""
+    stmt = select(QueryTemplate)
+    if since is not None:
+        stmt = stmt.where(QueryTemplate.created_at >= since)
+    if cursor is not None:
+        cursor_at, cursor_id = cursor
+        stmt = stmt.where(
+            or_(
+                QueryTemplate.created_at < cursor_at,
+                and_(QueryTemplate.created_at == cursor_at, QueryTemplate.id < cursor_id),
+            )
+        )
+    stmt = stmt.order_by(QueryTemplate.created_at.desc(), QueryTemplate.id.desc()).limit(
+        min(limit, 200)
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
+async def count_query_templates(
+    db: AsyncSession,
+    *,
+    since: datetime | None = None,
+) -> int:
+    """COUNT(*) templates for the X-Total-Count header."""
+    stmt = select(func.count(QueryTemplate.id))
+    if since is not None:
+        stmt = stmt.where(QueryTemplate.created_at >= since)
+    return int((await db.execute(stmt)).scalar_one())
