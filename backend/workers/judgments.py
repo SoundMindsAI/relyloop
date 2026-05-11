@@ -39,6 +39,7 @@ import time
 from collections.abc import Sequence
 from typing import Any, cast
 
+import openai
 import structlog
 import uuid_utils
 from openai import AsyncOpenAI
@@ -143,6 +144,28 @@ def _build_doc_inputs(
             body = body[:_DOC_BODY_CHAR_LIMIT]
         out.append({"doc_id": str(hit.doc_id), "body": body})
     return out
+
+
+async def _safe_record_cost(redis: Redis, cost_usd: float) -> float | None:
+    """Record cost, catching transient Redis failures.
+
+    Per GPT-5.5 cycle-2 C2-F3: a Redis hiccup AFTER a paid LLM call must
+    not propagate up and abort the worker — the judgments have already been
+    persisted (the caller orders persist-first now). Under-counting daily
+    spend during a Redis outage is recoverable on rollover; losing the
+    paid-for ratings is not. Returns ``None`` on failure.
+    """
+    try:
+        return await record_cost(redis, cost_usd)
+    except Exception as exc:  # noqa: BLE001 — defensive
+        logger.warning(
+            "judgment worker: record_cost failed (budget telemetry only)",
+            event_type="judgment_record_cost_failed",
+            cost_usd=cost_usd,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        return None
 
 
 async def _process_query(
@@ -254,7 +277,23 @@ async def _process_query(
             user_prompt=user_prompt,
             expected_doc_ids=expected_doc_ids,
         )
+    except (
+        openai.AuthenticationError,
+        openai.PermissionDeniedError,
+        openai.BadRequestError,
+        openai.NotFoundError,
+    ):
+        # Persistent provider misconfiguration (bad key, model id, endpoint,
+        # ZDR enrollment denied, etc.). No subsequent query will succeed —
+        # propagate so the outer handler marks the list failed with
+        # ``failed_reason='UNEXPECTED:<ErrorType>'`` rather than silently
+        # producing a `complete` list with zero judgments. Per GPT-5.5
+        # cycle-2 C2-F1.
+        raise
     except Exception as exc:
+        # Per-query operational failure (rate-limit exhaustion after retries,
+        # 5xx after retries, malformed JSON after retries). Subsequent queries
+        # may still succeed; isolate this one.
         logger.warning(
             "judgment worker: LLM call failed for query, skipping",
             event_type="judgment_llm_failed",
@@ -265,8 +304,26 @@ async def _process_query(
         )
         return
 
-    # Post-call: record actual cost.
-    new_total = await record_cost(redis, result.cost_usd)
+    # All-or-nothing persistence: if the LLM dropped any expected doc_id
+    # (a missing rating in the structured response), do NOT persist the
+    # partial batch. The resume-skip-on-any-existing policy means a
+    # partial commit would permanently strand the unrated docs (per
+    # GPT-5.5 cycle-2 C2-F2). Let the next worker pass re-try the whole
+    # query — the OpenAI call cost is already recorded below for honest
+    # budget accounting.
+    if len(result.ratings) < len(expected_doc_ids):
+        logger.warning(
+            "judgment worker: LLM dropped docs; skipping partial persist for retry",
+            event_type="judgment_partial_response",
+            judgment_list_id=judgment_list_id,
+            query_id=query.id,
+            expected=len(expected_doc_ids),
+            returned=len(result.ratings),
+        )
+        # Still record the cost — we paid for the call. The retry pays again,
+        # but the alternative (permanent partial state) is worse.
+        await _safe_record_cost(redis, result.cost_usd)
+        return
 
     rater_ref = f"openai:{result.model}"
     rows = [
@@ -282,9 +339,16 @@ async def _process_query(
         }
         for r in result.ratings
     ]
+    # Persist FIRST, then record cost. If Redis is transiently unavailable
+    # at the record_cost step we'd otherwise drop the already-paid-for
+    # ratings (per GPT-5.5 cycle-2 C2-F3). Order swap means we may
+    # under-count daily spend if Redis flaps, which is recoverable on
+    # rollover; losing paid-for judgments is not.
     if rows:
         await repo.bulk_create_judgments(db, rows)
         await db.commit()
+
+    new_total = await _safe_record_cost(redis, result.cost_usd)
 
     logger.info(
         "judgment query processed",
