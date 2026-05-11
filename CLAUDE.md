@@ -423,7 +423,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 2 | [`infra_adapter_elastic`](docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/) | **Complete (PR #16, merged 2026-05-10)** |
 | 3 | [`infra_optuna_eval`](docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/) | **Complete (PR #23, merged 2026-05-10)** |
 | 4 | [`feat_study_lifecycle`](docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle/) | **Complete — Phase 1 (Schema) PR #18 + Phase 2 (Orchestrator + API) PR #25, both merged 2026-05-10/11** |
-| 5 | [`feat_llm_judgments`](docs/02_product/planned_features/feat_llm_judgments/) | Spec approved, plan pending |
+| 5 | `feat_llm_judgments` | **Complete (PR pending, branch `feature/llm-judgments`)** — folder moves to `implemented_features/` after merge |
 | 6 | [`feat_digest_proposal`](docs/02_product/planned_features/feat_digest_proposal/) | Spec approved, plan pending |
 | 7 | [`feat_github_pr_worker`](docs/02_product/planned_features/feat_github_pr_worker/) | Spec approved, plan pending |
 | 8 | [`feat_github_webhook`](docs/02_product/planned_features/feat_github_webhook/) | Spec approved, plan pending |
@@ -443,3 +443,5 @@ Run `/pipeline status` for the live view from spec dependencies.
 | DB revision mismatch | TBA — lands when `feat_study_lifecycle` ships its first business-table migration |
 | GitHub webhook setup | TBA — lands with `feat_github_webhook` |
 | Local LLM (Ollama / LM Studio / vLLM / TGI) configuration | [`docs/01_architecture/llm-orchestration.md` §"OpenAI-compatible endpoints"](docs/01_architecture/llm-orchestration.md); operator-facing runbook lands with `chore_tutorial_polish` |
+| LLM-as-judge worker debugging + calibration / overrides | [`docs/03_runbooks/judgment-generation-debugging.md`](docs/03_runbooks/judgment-generation-debugging.md) (`feat_llm_judgments`) |
+| What data leaves the cluster on each judgment-generation call | [`docs/04_security/llm-data-flow.md`](docs/04_security/llm-data-flow.md) (`feat_llm_judgments` §15) |
