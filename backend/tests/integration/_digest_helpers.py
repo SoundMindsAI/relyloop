@@ -97,22 +97,8 @@ async def seed_completed_study(
         )
         study_id = str(uuid.uuid4())
         trial_id: str | None = None
-        if best_metric is not None:
-            # Need a winning trial row that study.best_trial_id can point at.
-            trial = await repo.create_trial(
-                db,
-                id=str(uuid.uuid4()),
-                study_id=study_id,
-                optuna_trial_number=0,
-                status="complete",
-                params=best_trial_params,
-                metrics={},
-                primary_metric=best_metric,
-                started_at=datetime.now(UTC),
-                ended_at=datetime.now(UTC),
-                duration_ms=100,
-            )
-            trial_id = trial.id
+        # Create the study FIRST so the trial's study_id FK target exists.
+        # We pass best_trial_id=None initially and patch it post-trial-create.
         await repo.create_study(
             db,
             id=study_id,
@@ -130,8 +116,30 @@ async def seed_completed_study(
             optuna_study_name=study_id,
             baseline_metric=baseline_metric,
             best_metric=best_metric,
-            best_trial_id=trial_id,
+            best_trial_id=None,
         )
+        if best_metric is not None:
+            trial = await repo.create_trial(
+                db,
+                id=str(uuid.uuid4()),
+                study_id=study_id,
+                optuna_trial_number=0,
+                status="complete",
+                params=best_trial_params,
+                metrics={},
+                primary_metric=best_metric,
+                started_at=datetime.now(UTC),
+                ended_at=datetime.now(UTC),
+                duration_ms=100,
+            )
+            trial_id = trial.id
+            # Patch study.best_trial_id now that the trial row exists.
+            from backend.app.db.models import Study as _Study
+
+            study_row = await db.get(_Study, study_id)
+            if study_row is not None:
+                study_row.best_trial_id = trial_id
+                await db.flush()
         proposal_id: str | None = None
         if add_pending_proposal:
             proposal = await repo.create_proposal(
