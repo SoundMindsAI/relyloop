@@ -1,8 +1,8 @@
 # Feature Specification — feat_llm_judgments
 
-**Date:** 2026-05-09
-**Status:** Draft
-**Owners:** TBD
+**Date:** 2026-05-09 (path drifts patched + Status flipped after `feat_study_lifecycle` Phase 2 shipped, 2026-05-11)
+**Status:** Approved
+**Owners:** soundminds.ai (initial maintainer per umbrella spec §29)
 **Related docs:**
 - [docs/02_product/mvp1-user-stories.md](../../mvp1-user-stories.md) — covers US-13, US-14, US-15
 - [docs/01_architecture/llm-orchestration.md](../../../01_architecture/llm-orchestration.md) — OpenAI SDK + function calling pattern
@@ -20,10 +20,12 @@
 
 ## 2) Current state audit
 
-After dependencies ship:
-- `query_sets`, `queries`, `clusters` tables exist (per `feat_study_lifecycle` + `infra_adapter_elastic`).
-- `judgment_lists` exists with the **full MVP1 shape** per [`data-model.md`](../../../01_architecture/data-model.md) — created by `feat_study_lifecycle`. This feature creates ONLY the `judgments` child table and writes rows + status updates into the existing `judgment_lists`.
-- `openai` Python SDK is installed (per `infra_foundation`) but no LLM calls are made yet.
+All hard dependencies have shipped (Phase 2 of `feat_study_lifecycle` merged via PR #25, commit `25bb5c9`, 2026-05-11):
+
+- `query_sets`, `queries`, `clusters` tables exist (per `feat_study_lifecycle` Phase 1 + `infra_adapter_elastic`).
+- `judgment_lists` exists with the **full MVP1 shape** per [`data-model.md`](../../../01_architecture/data-model.md) — created by `feat_study_lifecycle` (verified at [`backend/app/db/models/judgment_list.py`](../../../../backend/app/db/models/judgment_list.py): `id`, `name UNIQUE`, `description`, `query_set_id`, `cluster_id`, `target`, `current_template_id` nullable, `rubric`, `status` CHECK ∈ {generating, complete, failed}, `failed_reason`, `calibration` JSONB, `created_at`). This feature creates ONLY the `judgments` child table and writes rows + status/calibration updates into the existing `judgment_lists`.
+- `openai` Python SDK is installed (per `infra_foundation`); the capability check at startup writes `subsystems.openai.structured_output` to the Redis cache that this feature's `POST /generate` reads via the `LLM_PROVIDER_INCAPABLE` 503 path.
+- `backend/app/eval/qrels_loader.py` is the MVP1 stub that this feature replaces — it currently raises `JudgmentsTableMissing` because the `judgments` child table doesn't exist yet. When this feature lands, `load_qrels` becomes a real `SELECT` against the new table.
 - No `prompts/` directory exists yet — this feature creates `prompts/judgment_generation.system.md` + `prompts/judgment_generation.user.jinja` + `prompts/judgment_generation.rubric_v1.md` per [`llm-orchestration.md` §"Prompt directory layout"](../../../01_architecture/llm-orchestration.md).
 
 ## 3) Scope
@@ -39,12 +41,12 @@ After dependencies ship:
   - `GET /api/v1/judgment-lists/{id}/judgments` (paginated, filterable by `source`)
   - `PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}` — override a single rating (creates a new judgment row with `source='human'` and the same `(query_id, doc_id)` — UNIQUE constraint enforced via UPSERT)
   - `POST /api/v1/judgment-lists/{id}/calibration` — accepts a list of human-labeled (query_id, doc_id, rating) tuples; computes Cohen's kappa vs. the LLM ratings and writes to `judgment_lists.calibration` JSONB
-- Worker job: `generate_judgments_llm(query_set_id, cluster_id, target, current_template_id, rubric_text)` in `backend/worker/judgments.py`:
+- Worker job: `generate_judgments_llm(query_set_id, cluster_id, target, current_template_id, rubric_text)` in `backend/workers/judgments.py`:
   - For each query in the query set: render the current template with default params, call `adapter.search_batch` for top-K (default 50) hits, ask OpenAI to rate each (query, doc) pair on a 0–3 scale with rationale (one batched call per query — `n_queries` total LLM calls)
   - Persist judgments with `source='llm'`, `rater_ref='openai:gpt-4o-2024-08-06'`
   - Stamp the parent `judgment_lists` row with `status='complete'` (or `failed` with error)
 - Prompts in `prompts/judgment_generation.*` per [`llm-orchestration.md` §"Prompt directory layout"](../../../01_architecture/llm-orchestration.md). Default rubric (`rubric_v1.md`) is a 0–3 scale: 0=irrelevant, 1=marginally relevant, 2=relevant, 3=highly relevant — generic e-commerce-ish wording suitable for the tutorial.
-- Cohen's kappa helper in `backend/eval/calibration.py` (also computes weighted kappa and per-rating-class agreement breakdown).
+- Cohen's kappa helper in `backend/app/eval/calibration.py` (also computes weighted kappa and per-rating-class agreement breakdown). Mirrors the existing `backend/app/eval/scoring.py` neighbour.
 
 ### Out of scope
 
@@ -104,7 +106,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `judgment_lis
 - The system **MUST NOT** extend `judgment_lists` (full MVP1 shape owned by `feat_study_lifecycle`). This feature only writes rows + status/calibration updates.
 
 ### FR-2: Generate-judgments worker job
-- The system **MUST** define `generate_judgments_llm(ctx, judgment_list_id)` as an Arq job in `backend/worker/judgments.py`.
+- The system **MUST** define `generate_judgments_llm(ctx, judgment_list_id)` as an Arq job in `backend/workers/judgments.py` and register it in `backend/workers/all.py:WorkerSettings.functions` alongside the existing `run_trial` / `start_study` / `resume_study` / `generate_digest` registrations.
 - The job **MUST** load the `judgment_lists` row to get `cluster_id`, `target`, `current_template_id`, `query_set_id`, `rubric` — these are persisted on the row by the `POST /generate` endpoint so the worker is fully self-contained on a `judgment_list_id`.
 - The job **MUST** for each query in the set: render the current template (default params), `adapter.search_batch(target, [query], top_k=50)`, batched LLM call asking for ratings + rationales for all returned docs, persist `judgments` rows with `source='llm'` and `rater_ref='openai:gpt-4o-2024-08-06'`, `notes` populated with the rationale.
 - The job **MUST** mark the parent `judgment_lists.status = 'complete'` on success or `'failed'` with an error reason on infra-level failure.
@@ -158,7 +160,7 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 ### FR-5: Calibration endpoint
 - `POST /api/v1/judgment-lists/{id}/calibration` accepts `{human_samples: [{query_id, doc_id, rating}]}` (30–50 typical) and:
   - For each sample, fetches the LLM rating from `judgments`
-  - Computes Cohen's kappa, weighted kappa (linear weights), per-rating-class agreement breakdown via `backend/eval/calibration.py`
+  - Computes Cohen's kappa, weighted kappa (linear weights), per-rating-class agreement breakdown via `backend/app/eval/calibration.py`
   - Persists to `judgment_lists.calibration` JSONB (overwrites prior calibration)
   - Returns HTTP 200 with the computed metrics
 - Notes: covers US-15.
@@ -170,7 +172,7 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 
 ## 8) API and data contract baseline
 
-### 7.1 Endpoint surface
+### 8.1 Endpoint surface
 
 | Method | Path | Purpose | Key error codes |
 |---|---|---|---|
@@ -181,16 +183,16 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 | `PATCH` | `/api/v1/judgment-lists/{id}/judgments/{judgment_id}` | Human override | `JUDGMENT_LIST_NOT_FOUND`, `JUDGMENT_NOT_FOUND`, `INVALID_RATING` |
 | `POST` | `/api/v1/judgment-lists/{id}/calibration` | Compute kappa from human samples | `JUDGMENT_LIST_NOT_FOUND`, `INSUFFICIENT_SAMPLES` |
 
-### 7.4 Enumerated value contracts
+### 8.4 Enumerated value contracts
 
 | Field | Accepted values | Backend source of truth |
 |---|---|---|
-| `judgment_lists.status` | `generating`, `complete`, `failed` | `backend/db/models/judgment_list.py` |
-| `judgments.source` | `llm`, `human`, `click` | `backend/db/models/judgment.py` (`click` reserved for v1.5+) |
-| `judgments.rating` | `0`, `1`, `2`, `3` | `backend/db/models/judgment.py` (CHECK constraint) |
-| `?source` (filter on judgments list) | `llm`, `human` | `backend/api/judgments.py` |
+| `judgment_lists.status` | `generating`, `complete`, `failed` | `backend/app/db/models/judgment_list.py` (CHECK constraint `judgment_lists_status_check`, already shipped by `feat_study_lifecycle`) |
+| `judgments.source` | `llm`, `human`, `click` | `backend/app/db/models/judgment.py` (this feature creates it; `click` reserved for v1.5+) |
+| `judgments.rating` | `0`, `1`, `2`, `3` | `backend/app/db/models/judgment.py` (CHECK constraint, created by this feature's migration) |
+| `?source` (filter on judgments list) | `llm`, `human` | `backend/app/api/v1/judgments.py` (this feature creates it) |
 
-### 7.5 Error code catalog
+### 8.5 Error code catalog
 
 | Code | HTTP Status | Meaning |
 |---|---|---|
@@ -291,7 +293,7 @@ This feature has no UI surface; the review/override UI is owned by `feat_studies
 
 - **Unit tests** (`backend/tests/unit/`):
   - `eval/test_calibration.py` — Cohen's kappa + weighted kappa against hand-computed baselines (sklearn-equivalent expected values).
-  - `worker/test_judgment_prompt_render.py` — Jinja2 prompt rendering produces expected output for canonical (query, [docs], rubric) inputs.
+  - `workers/test_judgment_prompt_render.py` — Jinja2 prompt rendering produces expected output for canonical (query, [docs], rubric) inputs. (Lives alongside the existing `backend/tests/unit/workers/test_trials_unit.py`.)
 - **Integration tests** (`backend/tests/integration/`):
   - `test_judgment_generate.py` — full generation against cassette-replayed local-es + recorded OpenAI cassette; asserts AC-1 (smaller scale: 5 queries × 5 docs).
   - `test_judgment_override.py` — AC-2.
@@ -330,7 +332,7 @@ This feature has no UI surface; the review/override UI is owned by `feat_studies
 ## 18) Definition of feature done
 
 - [ ] AC-1 through AC-7 pass.
-- [ ] All test layers green; ≥80% coverage on `backend/worker/judgments.py`, `backend/eval/calibration.py`, `backend/api/judgments.py`.
+- [ ] All test layers green; ≥80% coverage on `backend/workers/judgments.py`, `backend/app/eval/calibration.py`, `backend/app/api/v1/judgments.py`.
 - [ ] Tutorial generation completes in <5 min for <$1 (recorded as a benchmark assertion).
 - [ ] `docs/04_security/llm-data-flow.md` merged.
 - [ ] No open questions remain in §19.
