@@ -179,7 +179,15 @@ class TestListStudies:
         template_id = await _seed_template(db_session)
         qs_id = await _seed_query_set(db_session, cluster_id)
         jl_id = await _seed_judgment_list(db_session, cluster_id, qs_id)
-        await _seed_study(
+        # PostgreSQL's ``now()`` returns transaction-start time, so two
+        # inserts in the same savepoint share a ``created_at``. To
+        # exercise the ``?since=`` filter deterministically, we patch
+        # ``created_at`` to explicit values via UPDATE.
+        from sqlalchemy import update
+
+        from backend.app.db.models import Study
+
+        early_id = await _seed_study(
             db_session,
             cluster_id=cluster_id,
             template_id=template_id,
@@ -187,11 +195,9 @@ class TestListStudies:
             judgment_list_id=jl_id,
             name_suffix="early",
         )
-        await db_session.commit()
-        # T0 captured AFTER the early row commits.
-        t0 = datetime.now(UTC) + timedelta(seconds=1)
-        await asyncio.sleep(1.1)
-        await _seed_study(
+        t_early = datetime.now(UTC) - timedelta(seconds=10)
+        t0 = datetime.now(UTC)
+        late_id = await _seed_study(
             db_session,
             cluster_id=cluster_id,
             template_id=template_id,
@@ -199,6 +205,11 @@ class TestListStudies:
             judgment_list_id=jl_id,
             name_suffix="late",
         )
+        t_late = t0 + timedelta(seconds=10)
+        await db_session.execute(
+            update(Study).where(Study.id == early_id).values(created_at=t_early)
+        )
+        await db_session.execute(update(Study).where(Study.id == late_id).values(created_at=t_late))
         await db_session.commit()
 
         recent = await repo.list_studies(db_session, since=t0)
