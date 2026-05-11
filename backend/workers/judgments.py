@@ -1,0 +1,460 @@
+"""``generate_judgments_llm`` Arq job (feat_llm_judgments Story 2.1 / FR-2).
+
+Single-list LLM-as-judge pipeline:
+
+1. Load the ``judgment_lists`` row + its generation context (cluster,
+   template, query_set, rubric). Bail early if the row vanished or is no
+   longer ``status='generating'`` (idempotent re-entry).
+2. For each query in the query_set:
+
+   a. **Resume-skip check** — if ``count_judgments_for_list_and_query``
+      already ``>= TOP_K``, the query was completed by a prior pass; skip
+      it so a resumed worker doesn't re-spend OpenAI dollars on
+      already-judged rows (per GPT-5.5 cycle 2 F5).
+   b. **Pre-call budget peek** — if ``current + estimated_max > budget``
+      and the budget is enabled, abort the loop with ``BudgetExceededError``
+      (per spec FR-2 + GPT-5.5 cycle 1 F8).
+   c. Render the query template + run ``adapter.search_batch``.
+   d. Render the user prompt; call ``rate_query_batch`` with the doc-id
+      allowlist (the hits' ``doc_id`` set).
+   e. **Post-call record** — ``record_cost`` with the actual measured cost.
+   f. ``bulk_create_judgments`` with ``source='llm'``,
+      ``rater_ref='openai:{model}'``. Idempotent against re-runs by way of
+      the UNIQUE ``(judgment_list_id, query_id, doc_id)`` ON CONFLICT
+      DO NOTHING semantics.
+
+3. Terminal status: ``status='complete'`` on a clean loop;
+   ``status='failed'`` + a structured ``failed_reason`` on
+   ``BudgetExceededError`` / ``UnknownModelPricingError`` /
+   unexpected exception.
+
+Per-query failures (e.g., OpenAI rate-limit exhaustion for one query,
+cluster unreachable for one query) are isolated: they log WARN and the
+loop moves on to the next query.
+"""
+
+from __future__ import annotations
+
+import time
+from collections.abc import Sequence
+from typing import Any, cast
+
+import structlog
+import uuid_utils
+from openai import AsyncOpenAI
+from redis.asyncio import Redis
+
+from backend.app.adapters.protocol import NativeQuery, QueryTemplate
+from backend.app.core.settings import get_settings
+from backend.app.db import repo
+from backend.app.db.session import get_session_factory
+from backend.app.llm.budget_gate import (
+    BudgetExceededError,
+    peek_daily_total,
+    record_cost,
+)
+from backend.app.llm.cost_model import UnknownModelPricingError, estimated_max_call_cost
+from backend.app.llm.openai_judge import rate_query_batch
+from backend.app.llm.prompt_loader import load_judgment_prompts, render_user_prompt
+from backend.app.services.cluster import build_adapter
+
+logger = structlog.get_logger(__name__)
+
+
+TOP_K = 50
+"""Retrieval depth per query (per spec §13 cost guardrail).
+
+50 is the design target: enough docs to give the LLM useful relevance
+contrast across the rubric scale, low enough that one call per query keeps
+the tutorial cost under $1."""
+
+_DOC_BODY_CHAR_LIMIT = 500
+"""Per-doc body truncation length (per spec §13).
+
+Bounds the input token count; the worker passes only the first 500 chars of
+each doc body to the LLM. The doc body is just for the rubric judgment, not
+for retrieval — full-text retention isn't needed."""
+
+
+def _compute_default_params(template_row: Any) -> dict[str, Any]:
+    """Pick safe default values for a template's declared params.
+
+    Per GPT-5.5 cycle 2 F2: the spec says "default params" but doesn't
+    enumerate the policy. We use midpoint for numeric ranges, the first
+    listed option for categoricals, ``False`` for booleans, and otherwise
+    leave the param absent (so the template's own ``{% if ... %}``
+    fallback kicks in).
+
+    ``template_row.declared_params`` is the JSONB column populated at
+    template-create time by :mod:`backend.app.domain.study.search_space`.
+    Each entry is shaped like:
+
+    .. code-block:: json
+
+        {"bm25_k1": {"type": "float", "min": 0.5, "max": 2.5},
+         "use_phrase": {"type": "bool"},
+         "operator": {"type": "categorical", "values": ["AND", "OR"]}}
+    """
+    declared: dict[str, Any] = cast(dict[str, Any], template_row.declared_params) or {}
+    params: dict[str, Any] = {}
+    for name, schema in declared.items():
+        if not isinstance(schema, dict):
+            continue
+        kind = schema.get("type")
+        if kind == "int":
+            lo = schema.get("min")
+            hi = schema.get("max")
+            if isinstance(lo, int) and isinstance(hi, int):
+                params[name] = (lo + hi) // 2
+        elif kind == "float":
+            lo = schema.get("min")
+            hi = schema.get("max")
+            if isinstance(lo, (int, float)) and isinstance(hi, (int, float)):
+                params[name] = (float(lo) + float(hi)) / 2.0
+        elif kind == "bool":
+            params[name] = False
+        elif kind == "categorical":
+            values = schema.get("values")
+            if isinstance(values, list) and values:
+                params[name] = values[0]
+    return params
+
+
+def _build_doc_inputs(
+    hits: Sequence[Any],
+) -> list[dict[str, str]]:
+    """Translate ``ScoredHit`` rows into ``[{doc_id, body}, ...]`` for the prompt.
+
+    Body extraction prefers ``hit.source.body`` (the canonical text field);
+    falls back to a JSON-dumped ``hit.source`` when absent. The result is
+    trimmed to :data:`_DOC_BODY_CHAR_LIMIT` characters per doc.
+    """
+    out: list[dict[str, str]] = []
+    for hit in hits:
+        source = getattr(hit, "source", None) or {}
+        body_raw = source.get("body") if isinstance(source, dict) else None
+        if not body_raw:
+            # Fall back to a stable string form of the source.
+            import json as _json
+
+            body_raw = _json.dumps(source, ensure_ascii=False)
+        body = str(body_raw)
+        if len(body) > _DOC_BODY_CHAR_LIMIT:
+            body = body[:_DOC_BODY_CHAR_LIMIT]
+        out.append({"doc_id": str(hit.doc_id), "body": body})
+    return out
+
+
+async def _process_query(
+    *,
+    db: Any,
+    redis: Redis,
+    openai_client: AsyncOpenAI,
+    judgment_list_id: str,
+    judgment_list: Any,
+    template: QueryTemplate,
+    template_row: Any,
+    query: Any,
+    adapter: Any,
+    bundle_system: str,
+    rubric_text: str,
+    model: str,
+    budget_usd: float,
+) -> None:
+    """Inner per-query routine.
+
+    Raises on budget / pricing failures so the outer loop can mark the
+    list ``failed``. Per-query operational failures (rate-limit exhaustion,
+    cluster unreachable, malformed JSON after retry) are caught here and
+    logged WARN so the outer loop continues.
+    """
+    # Resume-skip: if this query already has TOP_K judgments, the worker
+    # already processed it on a prior pass — don't re-spend OpenAI dollars.
+    existing = await repo.count_judgments_for_list_and_query(db, judgment_list_id, query.id)
+    if existing >= TOP_K:
+        logger.info(
+            "query already complete, skipping",
+            event_type="judgment_skip_resume",
+            judgment_list_id=judgment_list_id,
+            query_id=query.id,
+            existing_count=existing,
+        )
+        return
+
+    # Pre-call budget peek (spec FR-2 + GPT-5.5 cycle 1 F8).
+    if budget_usd > 0:
+        current = await peek_daily_total(redis)
+        est_max = estimated_max_call_cost(model)
+        if current + est_max > budget_usd:
+            raise BudgetExceededError(
+                f"current ${current:.4f} + estimated ${est_max:.4f} > budget ${budget_usd:.4f}"
+            )
+
+    # Render template + execute search.
+    default_params = _compute_default_params(template_row)
+    try:
+        native = adapter.render(template, default_params, query.query_text)
+        # Override the adapter-generated query_id with our own so the
+        # search_batch response key matches what we expect.
+        native = NativeQuery(query_id=str(query.id), body=native.body)
+        hits_by_qid = await adapter.search_batch(
+            target=judgment_list.target,
+            queries=[native],
+            top_k=TOP_K,
+            strict_errors=False,
+        )
+    except Exception as exc:
+        logger.warning(
+            "judgment worker: search failed for query, skipping",
+            event_type="judgment_search_failed",
+            judgment_list_id=judgment_list_id,
+            query_id=query.id,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        return
+
+    hits = hits_by_qid.get(str(query.id), [])
+    if not hits:
+        logger.info(
+            "judgment worker: no hits for query, skipping LLM call",
+            event_type="judgment_no_hits",
+            judgment_list_id=judgment_list_id,
+            query_id=query.id,
+        )
+        return
+
+    docs = _build_doc_inputs(hits)
+    expected_doc_ids = {d["doc_id"] for d in docs}
+
+    user_prompt = render_user_prompt(
+        rubric_text=rubric_text,
+        query_text=query.query_text,
+        docs=docs,
+    )
+
+    try:
+        result = await rate_query_batch(
+            client=openai_client,
+            model=model,
+            system_prompt=bundle_system,
+            user_prompt=user_prompt,
+            expected_doc_ids=expected_doc_ids,
+        )
+    except Exception as exc:
+        logger.warning(
+            "judgment worker: LLM call failed for query, skipping",
+            event_type="judgment_llm_failed",
+            judgment_list_id=judgment_list_id,
+            query_id=query.id,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        return
+
+    # Post-call: record actual cost.
+    new_total = await record_cost(redis, result.cost_usd)
+
+    rater_ref = f"openai:{result.model}"
+    rows = [
+        {
+            "id": str(uuid_utils.uuid7()),
+            "judgment_list_id": judgment_list_id,
+            "query_id": str(query.id),
+            "doc_id": r.doc_id,
+            "rating": r.rating,
+            "source": "llm",
+            "rater_ref": rater_ref,
+            "notes": r.rationale,
+        }
+        for r in result.ratings
+    ]
+    if rows:
+        await repo.bulk_create_judgments(db, rows)
+        await db.commit()
+
+    logger.info(
+        "judgment query processed",
+        event_type="judgment_query_complete",
+        judgment_list_id=judgment_list_id,
+        query_id=query.id,
+        ratings_count=len(result.ratings),
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        cost_usd=result.cost_usd,
+        running_total_usd=new_total,
+        duration_ms=result.duration_ms,
+    )
+
+
+async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> None:
+    """Arq entry point — run the LLM judge pipeline for one judgment list.
+
+    Contract (per FR-2 + the cycle-1 + cycle-2 review):
+
+    1. Load row → bail if missing or already-terminal.
+    2. Build engine adapter + OpenAI client (lazy — operator may enable
+       OPENAI_API_KEY after the API service booted).
+    3. Loop queries; per-query budget / search / LLM / persist.
+    4. Terminal-status flip on the parent row.
+    """
+    settings = get_settings()
+    started_at = time.monotonic()
+    factory = get_session_factory()
+    redis_client = Redis.from_url(settings.redis_url, decode_responses=False)
+    openai_client: AsyncOpenAI | None = None
+
+    try:
+        async with factory() as db:
+            judgment_list = await repo.get_judgment_list(db, judgment_list_id)
+            if judgment_list is None:
+                logger.info(
+                    "judgment worker: list vanished, returning",
+                    event_type="judgment_list_missing",
+                    judgment_list_id=judgment_list_id,
+                )
+                return
+            if judgment_list.status != "generating":
+                logger.info(
+                    "judgment worker: list already terminal, returning",
+                    event_type="judgment_list_already_terminal",
+                    judgment_list_id=judgment_list_id,
+                    status=judgment_list.status,
+                )
+                return
+
+            cluster = await repo.get_cluster(db, judgment_list.cluster_id)
+            if cluster is None:
+                await _fail_list(
+                    db,
+                    judgment_list_id,
+                    "CLUSTER_NOT_FOUND",
+                )
+                return
+
+            template_row = None
+            if judgment_list.current_template_id is not None:
+                template_row = await repo.get_query_template(db, judgment_list.current_template_id)
+            if template_row is None:
+                await _fail_list(db, judgment_list_id, "TEMPLATE_NOT_FOUND")
+                return
+
+            queries = await repo.list_queries_for_set(db, judgment_list.query_set_id)
+            if not queries:
+                # No queries → nothing to judge → mark complete (degenerate but valid).
+                await repo.update_judgment_list_status(db, judgment_list_id, status="complete")
+                await db.commit()
+                return
+
+        # Resolve OpenAI config + build the AsyncOpenAI client.
+        api_key = settings.openai_api_key
+        if not api_key:
+            async with factory() as db:
+                await _fail_list(db, judgment_list_id, "OPENAI_NOT_CONFIGURED")
+            return
+        model = settings.openai_model
+        # Pricing must be known so the budget gate can fire honestly.
+        try:
+            estimated_max_call_cost(model)
+        except UnknownModelPricingError:
+            async with factory() as db:
+                await _fail_list(db, judgment_list_id, "UNKNOWN_MODEL_PRICING")
+            return
+
+        openai_client = AsyncOpenAI(api_key=api_key, base_url=settings.openai_base_url)
+        bundle = load_judgment_prompts()
+        adapter = build_adapter(cluster)
+
+        # Re-use a long-lived session for the per-query loop so each commit
+        # only flushes that query's bulk insert. Mirrors the trials.py
+        # short-lived-session pattern but pivoted around the query loop.
+        template = QueryTemplate(
+            name=template_row.name,
+            engine_type=cast(Any, template_row.engine_type),
+            body=template_row.body,
+            declared_params=cast(dict[str, str], template_row.declared_params),
+        )
+
+        for query in queries:
+            async with factory() as db:
+                try:
+                    await _process_query(
+                        db=db,
+                        redis=redis_client,
+                        openai_client=openai_client,
+                        judgment_list_id=judgment_list_id,
+                        judgment_list=judgment_list,
+                        template=template,
+                        template_row=template_row,
+                        query=query,
+                        adapter=adapter,
+                        bundle_system=bundle.system_prompt,
+                        rubric_text=judgment_list.rubric,
+                        model=model,
+                        budget_usd=settings.openai_daily_budget_usd,
+                    )
+                except BudgetExceededError as exc:
+                    logger.warning(
+                        "judgment worker: budget exceeded — aborting loop",
+                        event_type="judgment_budget_exceeded",
+                        judgment_list_id=judgment_list_id,
+                        error=str(exc),
+                    )
+                    async with factory() as db2:
+                        await _fail_list(db2, judgment_list_id, "OPENAI_BUDGET_EXCEEDED")
+                    return
+                except UnknownModelPricingError as exc:
+                    logger.warning(
+                        "judgment worker: unknown model pricing — aborting loop",
+                        event_type="judgment_unknown_pricing",
+                        judgment_list_id=judgment_list_id,
+                        error=str(exc),
+                    )
+                    async with factory() as db2:
+                        await _fail_list(db2, judgment_list_id, "UNKNOWN_MODEL_PRICING")
+                    return
+
+        # All queries processed — mark complete.
+        async with factory() as db:
+            await repo.update_judgment_list_status(db, judgment_list_id, status="complete")
+            await db.commit()
+        logger.info(
+            "judgment worker: list complete",
+            event_type="judgment_list_complete",
+            judgment_list_id=judgment_list_id,
+            duration_ms=int((time.monotonic() - started_at) * 1000),
+        )
+    except Exception as exc:  # noqa: BLE001 — any unexpected failure → mark failed
+        logger.warning(
+            "judgment worker: unhandled exception — marking list failed",
+            event_type="judgment_unhandled_failure",
+            judgment_list_id=judgment_list_id,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        try:
+            async with factory() as db:
+                await _fail_list(db, judgment_list_id, f"UNEXPECTED:{type(exc).__name__}")
+        except Exception:  # noqa: BLE001 — defensive; nothing left to do
+            logger.exception(
+                "judgment worker: failed to record terminal status",
+                judgment_list_id=judgment_list_id,
+            )
+    finally:
+        if openai_client is not None:
+            try:
+                await openai_client.close()
+            except Exception:  # noqa: BLE001  — defensive
+                logger.debug("openai client close raised", exc_info=True)
+        try:
+            await redis_client.aclose()
+        except Exception:  # noqa: BLE001 — defensive
+            logger.debug("redis close raised", exc_info=True)
+
+
+async def _fail_list(db: Any, judgment_list_id: str, failed_reason: str) -> None:
+    """Helper: flip a list to ``status='failed'`` with a structured reason."""
+    await repo.update_judgment_list_status(
+        db, judgment_list_id, status="failed", failed_reason=failed_reason
+    )
+    await db.commit()

@@ -47,6 +47,7 @@ from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
 from backend.workers.digest_stub import generate_digest
+from backend.workers.judgments import generate_judgments_llm
 from backend.workers.orchestrator import resume_study, start_study
 from backend.workers.trials import run_trial
 
@@ -56,6 +57,12 @@ logger = structlog.get_logger(__name__)
 # upper bound in MVP1 beyond reasonableness). 24h covers the worst-case
 # operator-set budget.
 _ORCHESTRATOR_JOB_TIMEOUT_S = 86_400
+
+# Spec FR-2: judgment generation runs one LLM call per query. ~50 queries
+# × ~6s per call + retry headroom = comfortable 15-minute ceiling. The Arq
+# default (5 min) sits right at the boundary; this gives the worker room
+# to finish without an arbitrary kill.
+_JUDGMENTS_JOB_TIMEOUT_S = 900
 
 
 def _build_redis_settings() -> RedisSettings:
@@ -89,6 +96,11 @@ async def on_startup(ctx: dict[str, Any]) -> None:
         # failed to enqueue (e.g., Arq pool unreachable at API request
         # time). Without this sweep, a queued study would sit forever.
         queued_ids = await repo.list_queued_study_ids(db)
+        # feat_llm_judgments Story 2.1: equivalent sweep for judgment
+        # generation. Per GPT-5.5 cycle 1 F14 / cycle 2 F1 — covers the
+        # case where POST /judgments/generate committed the
+        # judgment_lists row but enqueue_job raised (Redis transient).
+        generating_judgment_ids = await repo.list_generating_judgment_list_ids(db)
     for sid in running_ids:
         await arq_pool.enqueue_job("resume_study", sid)
         logger.info(
@@ -102,6 +114,13 @@ async def on_startup(ctx: dict[str, Any]) -> None:
             "queued study dispatched at worker boot",
             event_type="queued_dispatch_at_boot",
             study_id=sid,
+        )
+    for jid in generating_judgment_ids:
+        await arq_pool.enqueue_job("generate_judgments_llm", jid)
+        logger.info(
+            "judgment generation dispatched at worker boot",
+            event_type="judgment_resume_enqueued",
+            judgment_list_id=jid,
         )
 
 
@@ -136,6 +155,7 @@ class WorkerSettings:
         func(start_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
         func(resume_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
         generate_digest,
+        func(generate_judgments_llm, timeout=_JUDGMENTS_JOB_TIMEOUT_S),
     ]
     redis_settings = _build_redis_settings()
     on_startup = on_startup
