@@ -28,30 +28,45 @@ import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 
-from backend.app.db.session import get_session_factory
 from backend.tests.conftest import postgres_reachable
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def _clean_phase2_tables() -> AsyncIterator[None]:
-    """Wipe Phase 2 tables after each test (FK-safe order)."""
+    """Wipe Phase 2 tables after each test (FK-safe order).
+
+    Uses a **one-shot engine** that we dispose at the end of the fixture
+    so the asyncpg connections don't get pooled and re-issued to the next
+    test (which runs on a fresh event loop and would hit
+    ``MissingGreenlet`` when asyncpg tries to close the prior-loop
+    connection).
+    """
     yield
     if not postgres_reachable():
         return
-    factory = get_session_factory()
-    async with factory() as db:
-        for table in (
-            "proposals",
-            "trials",
-            "studies",
-            "judgment_lists",
-            "queries",
-            "query_sets",
-            "query_templates",
-            "clusters",
-        ):
-            await db.execute(text(f"DELETE FROM {table}"))
-        await db.commit()
+
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from backend.app.core.settings import get_settings
+
+    engine = create_async_engine(get_settings().database_url, future=True)
+    try:
+        factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+        async with factory() as db:
+            for table in (
+                "proposals",
+                "trials",
+                "studies",
+                "judgment_lists",
+                "queries",
+                "query_sets",
+                "query_templates",
+                "clusters",
+            ):
+                await db.execute(text(f"DELETE FROM {table}"))
+            await db.commit()
+    finally:
+        await engine.dispose()
 
 
 @pytest_asyncio.fixture
