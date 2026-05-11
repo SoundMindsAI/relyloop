@@ -6,17 +6,24 @@ Study-end digest narrative + proposal-population pipeline. Replaces the `digest_
 - Skipped — spec authored directly (the digest design was nailed down in umbrella spec §15 + the data-model doc + `feat_study_lifecycle` Phase 2's durable-handoff design).
 
 ## Spec
-- Status: **Approved** — 2026-05-11 (review-and-patched after `feat_study_lifecycle` Phase 2 + `feat_llm_judgments` shipped; original draft 2026-05-09).
+- Status: **Approved** — 2026-05-11 (review-and-patched after `feat_study_lifecycle` Phase 2 + `feat_llm_judgments` shipped; original draft 2026-05-09; further patched 2026-05-11 during plan-gen cycle-2 review per F1).
 - File: [feature_spec.md](feature_spec.md)
-- Audit + patch pass (2026-05-11): inverted FR-2 worker contract from CREATE-proposal to POPULATE-existing-pending-proposal per Phase 2's C3-F1 atomicity fix at `backend/workers/orchestrator.py:346-356`. Acknowledged `digest_stub.py` replacement. Added FR-2b boot-time scan. Added FR-6 repo functions list. Pinned model via `Settings.openai_model`. Mirrored `feat_llm_judgments` preflight order (capability + pricing + budget peek). Fixed path drifts. Added §8.5 codes (`LLM_PROVIDER_INCAPABLE`, `UNKNOWN_MODEL_PRICING`, `OPENAI_BUDGET_EXCEEDED`, `OPENAI_NOT_CONFIGURED`) as worker-side terminal reasons. Added AC-9 / AC-10 / AC-11 covering boot scan + deferral + degraded-capability paths.
-- Cross-model review: not yet run on the patched spec — Opus internal audit only. Recommended to run a GPT-5.5 cycle when `/pipeline` advances to plan generation.
+- Cross-model review history: spec went through plan-gen cycle 2 to patch FR-5 + AC-1 + Decision Log entries — `recommended_config` is now formally documented as worker-computed (deterministic), not LLM-generated. The LLM's contract is `{narrative, suggested_followups}` only.
 - Phases: 1 (single-phase; no deferred work).
 
 ## Plan
-- Status: Not started. Next: `/pipeline` → `impl-plan-gen` against this spec.
+- Status: **Approved** — 2026-05-11.
+- File: [implementation_plan.md](implementation_plan.md)
+- Cross-model review: GPT-5.5 ran 3 cycles to the configured cap.
+  - Cycle 1 (9 findings, all accepted): suggested_followups NOT NULL with default; worker-side error code grep; SQL example fix; `DIGEST_RESPONSE_FORMAT` constant + maxItems=5 wired; **recommended_config is deterministic from best-trial params, not LLM-generated** (structural); pre-LLM idempotency guard; AC-7 sum-to-1.0 test; benchmark reads `Settings.openai_model`; deterministic template-drift handling.
+  - Cycle 2 (7 findings, all accepted): spec FR-5 + AC-1 + Decision Log patched for cycle-1 F5; prompt loader receives `recommended_config` + `dropped_template_params` as inputs; risk row rewritten; contract-test grep split (router vs worker); zero-trials path moved BEFORE OpenAI preflights; `pg_try_advisory_xact_lock` added; all-dropped template-drift sub-case defined.
+  - Cycle 3 (4 findings, all accepted): stale gate/DoD text aligned with the split-grep design; capability fallback no longer bypasses pricing + budget (made into a mode flag); `render_digest_user_prompt(include_recommendation: bool)` added with degraded-mode jinja branch; `update_proposal_for_digest` made conditional on `status='pending'` to handle the operator-reject mid-LLM race.
+- Stories: 12 stories across 4 epics (Foundations / Worker / API / Docs+tests+cleanup).
+- Phases covered: all (single-phase feature).
+- Tests planned: 3 unit + 26 integration + 1 contract + 1 benchmark = 31 test files.
 
 ## Implementation
-- Status: Not started.
+- Status: Not started. Next: `/impl-execute docs/02_product/planned_features/feat_digest_proposal/implementation_plan.md --all`.
 
 ## Dependencies (all satisfied)
 
@@ -30,16 +37,10 @@ Study-end digest narrative + proposal-population pipeline. Replaces the `digest_
 
 ## Open items requiring user input
 
-None — all spec drifts resolved during the 2026-05-11 review-and-patch pass.
+None — all spec drifts and plan-review findings resolved across 3 GPT-5.5 cycles.
 
 ## Next action
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_digest_proposal/
-```
-
-Or, if the operator wants to skip the orchestration layer and call directly:
-
-```bash
-/impl-plan-gen docs/02_product/planned_features/feat_digest_proposal/feature_spec.md
+/impl-execute docs/02_product/planned_features/feat_digest_proposal/implementation_plan.md --all
 ```

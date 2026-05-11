@@ -20,6 +20,10 @@ from backend.app.db.repo.config_repo import (
     get_config_repo,
     get_config_repo_by_name,
 )
+from backend.app.db.repo.digest import (
+    create_digest,
+    get_digest_for_study,
+)
 from backend.app.db.repo.judgment import (
     bulk_create_judgments,
     count_judgments_for_list,
@@ -40,8 +44,15 @@ from backend.app.db.repo.judgment_list import (
     update_judgment_list_status,
 )
 from backend.app.db.repo.proposal import (
+    InvalidStateTransition,
+    ProposalStatusFilter,
+    count_proposals,
     create_proposal,
     get_proposal,
+    list_pending_proposals_for_boot_scan,
+    list_proposals_paginated,
+    reject_proposal,
+    update_proposal_for_digest,
 )
 from backend.app.db.repo.query import (
     bulk_create_queries,
@@ -137,4 +148,14 @@ __all__ = [
     "update_judgment_list_calibration",
     "update_judgment_list_status",
     "upsert_judgment_human_override",
+    # feat_digest_proposal Story 1.2 (digest repo + proposal repo extensions)
+    "InvalidStateTransition",
+    "ProposalStatusFilter",
+    "count_proposals",
+    "create_digest",
+    "get_digest_for_study",
+    "list_pending_proposals_for_boot_scan",
+    "list_proposals_paginated",
+    "reject_proposal",
+    "update_proposal_for_digest",
 ]

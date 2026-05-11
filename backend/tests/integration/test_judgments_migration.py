@@ -178,7 +178,12 @@ class TestSchemaCreation:
 
     def test_downgrade_drops_judgments_table(self, restore_head: None) -> None:
         _alembic("upgrade", "head")
-        _alembic("downgrade", "-1")
+        # Head is now 0005 (digests). To drop the judgments table we must
+        # downgrade past 0004 to 0003 — analogous to the
+        # test_clusters_migration.py pattern that retargets to an explicit
+        # revision so the test stays correct as the migration chain extends
+        # (ref: feat_study_lifecycle Phase 1 Story 1.3 commit 02bb382).
+        _alembic("downgrade", "0003")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
@@ -188,7 +193,7 @@ class TestSchemaCreation:
                         "WHERE table_schema = 'public' AND table_name = 'judgments'"
                     )
                 ).fetchone()
-                assert row is None, "judgments table should be dropped by downgrade -1"
+                assert row is None, "judgments table should be dropped by downgrade to 0003"
         finally:
             engine.dispose()
 

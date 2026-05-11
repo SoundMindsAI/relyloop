@@ -650,3 +650,138 @@ class CalibrationResponse(BaseModel):
     per_class: dict[str, float]
     n_samples: int
     warning: str | None
+
+
+# ---------------------------------------------------------------------------
+# feat_digest_proposal Epic 3 schemas (Stories 3.1-3.4)
+# ---------------------------------------------------------------------------
+
+ProposalStatusWire = Literal["pending", "pr_opened", "pr_merged", "rejected"]
+"""Wire values for ``proposals.status`` filter on ``GET /api/v1/proposals``.
+
+Values must match backend/app/db/models/proposal.py CHECK
+proposals_status_check (cycle-2 F4 / cycle-3 F1).
+"""
+
+ProposalPrStateWire = Literal["open", "closed", "merged"]
+"""Wire values for ``proposals.pr_state``.
+
+Values must match backend/app/db/models/proposal.py CHECK
+proposals_pr_state_check.
+"""
+
+
+class DigestResponse(BaseModel):
+    """Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3)."""
+
+    id: str
+    study_id: str
+    narrative: str
+    parameter_importance: dict[str, float]
+    recommended_config: dict[str, Any]
+    suggested_followups: list[str]
+    generated_by: str
+    generated_at: datetime
+
+
+class CreateProposalRequest(BaseModel):
+    """Body of ``POST /api/v1/proposals`` (manual proposal creation, FR-4 / AC-6)."""
+
+    cluster_id: str = Field(min_length=1, max_length=36)
+    template_id: str = Field(min_length=1, max_length=36)
+    config_diff: dict[str, Any]
+    metric_delta: dict[str, Any] | None = None
+
+
+class RejectProposalRequest(BaseModel):
+    """Body of ``POST /api/v1/proposals/{id}/reject`` (FR-4 / AC-5)."""
+
+    reason: str | None = Field(default=None, max_length=500)
+
+
+class _ClusterEmbed(BaseModel):
+    """Inline cluster summary on proposal responses."""
+
+    id: str
+    name: str
+    engine_type: str
+    environment: str | None = None
+
+
+class _TemplateEmbed(BaseModel):
+    """Inline template summary on proposal responses."""
+
+    id: str
+    name: str
+    version: int
+    engine_type: str | None = None
+
+
+class _StudySummary(BaseModel):
+    """Inline study summary on the proposal-detail response."""
+
+    id: str
+    name: str
+    status: str
+    best_metric: float | None
+    best_trial_id: str | None
+    query_set: dict[str, Any]
+    judgment_list: dict[str, Any]
+
+
+class _DigestEmbed(BaseModel):
+    """Inline digest summary on the proposal-detail response."""
+
+    id: str
+    narrative: str
+    parameter_importance: dict[str, float]
+    recommended_config: dict[str, Any]
+    suggested_followups: list[str]
+    generated_at: datetime
+
+
+class ProposalSummary(BaseModel):
+    """Row in the ``GET /api/v1/proposals`` list response."""
+
+    id: str
+    study_id: str | None
+    cluster: _ClusterEmbed
+    template: _TemplateEmbed
+    status: ProposalStatusWire
+    pr_state: ProposalPrStateWire | None
+    pr_url: str | None
+    metric_delta: dict[str, Any] | None
+    created_at: datetime
+
+
+class ProposalDetail(BaseModel):
+    """Body of the proposal detail endpoints.
+
+    Used by ``GET /api/v1/proposals/{id}``, ``POST /api/v1/proposals``,
+    and ``POST /api/v1/proposals/{id}/reject``.
+    """
+
+    id: str
+    study_id: str | None
+    study_summary: _StudySummary | None
+    study_trial_id: str | None
+    cluster: _ClusterEmbed
+    template: _TemplateEmbed
+    config_diff: dict[str, Any]
+    metric_delta: dict[str, Any] | None
+    status: ProposalStatusWire
+    pr_url: str | None
+    pr_state: ProposalPrStateWire | None
+    pr_merged_at: datetime | None
+    pr_open_error: str | None
+    rejected_reason: str | None
+    digest: _DigestEmbed | None
+    created_at: datetime
+
+
+class ProposalsListResponse(BaseModel):
+    """Body of ``GET /api/v1/proposals``."""
+
+    data: list[ProposalSummary]
+    next_cursor: str | None
+    has_more: bool

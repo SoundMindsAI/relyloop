@@ -2,19 +2,26 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-11 (after `feat_llm_judgments` merged via PR #35)
+**Last updated:** 2026-05-11 (after `feat_digest_proposal` implementation complete, PR pending)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `main` — clean. `feat_llm_judgments` merged via PR #35 (squash commit `de0ecf8`).
-- **Active feature:** none in flight. Next-up: `feat_digest_proposal` (study-end digest narrative) per the Queued list below.
-- **Alembic head:** `0004_judgments` (bumped by Story 1.1 of `feat_llm_judgments`).
-- **Coverage:** above the 80% gate. 338 unit tests + 2 xpassed (pre-existing capability-check flake) + 60+ integration + 5 contract + new judgments + worker + repo layers.
+- **Branch:** `feature/feat-digest-proposal` — 12 stories complete + Epic 4 docs/tests; PR not yet opened.
+- **Active feature:** `feat_digest_proposal` in flight (study-end digest narrative + populates the pending proposal row).
+- **Alembic head:** `0005_digests` (bumped by Story 1.1 of `feat_digest_proposal`).
+- **Coverage:** above the 80% gate. 350 unit tests + 2 xpassed + 80+ integration (including 26 new for digest worker + API) + 6 contract (including 1 new for digest+proposals API).
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-11 — `feat_digest_proposal` implementation complete (PR pending)** on `feature/feat-digest-proposal`. 12 stories across 4 epics covering FR-1..FR-6 + FR-2b + AC-1..AC-11. **One migration (`0005_digests`).** Plan went through **3 GPT-5.5 review cycles** (20 findings, all accepted + applied) before execution.
+  - **Epic 1 (foundations, 3 stories):** `0005_digests` migration creating the `digests` table per data-model.md (`id`, `study_id UNIQUE`, `narrative`, `parameter_importance JSONB`, `recommended_config JSONB`, `suggested_followups TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]` per cycle-1 F1, `generated_by`, `generated_at`); `Digest` ORM model exported via `db/models/__init__.py`; new `db/repo/digest.py` (`create_digest`, `get_digest_for_study`) + 5 proposal repo extensions per FR-6 (`update_proposal_for_digest` conditional on `WHERE status='pending'` per cycle-3 F4, `list_proposals_paginated`, `count_proposals`, `reject_proposal` raises `InvalidStateTransition`, `list_pending_proposals_for_boot_scan`); `prompts/digest_narrative.system.md` + `digest_narrative.user.jinja` with `include_recommendation` toggle for the degraded path (cycle-3 F3); `backend/app/llm/digest_prompt.py` with `lru_cache`-cached `DigestPromptBundle` + `SandboxedEnvironment(autoescape=True)` mirroring `prompt_loader.py`.
+  - **Epic 2 (worker, 2 stories):** `backend/workers/digest.py:generate_digest` (15-step contract) REPLACES `backend/workers/digest_stub.py` (file deleted) under the same Arq job name so the orchestrator's enqueue at `orchestrator.py:370` keeps firing. Key cycle revisions: pre-LLM idempotency guard via `get_digest_for_study` (cycle-1 F6); `pg_try_advisory_xact_lock` keyed on `blake2b("digest:{sid}")` held across LLM call + persist tx (cycle-2 F6 — prefix disjoint from orchestrator's replenish lock); zero-trials short-circuit moved BEFORE OpenAI preflights (cycle-2 F5 — AC-2 fires regardless of config); capability fallback as a mode flag, NOT short-circuit (cycle-3 F2 — pricing + budget still gate); deterministic `recommended_config` (cycle-1 F5 / cycle-2 F1 — best-trial params filtered to currently-declared template params; all-dropped sub-case persists empty-recommendation digest + DELETEs the pending proposal per cycle-2 F7); persist FIRST then `_safe_record_cost` (cycle-2 C2-F3 from feat_llm_judgments); conditional UPDATE on the pending proposal handles operator-reject-mid-LLM race (cycle-3 F4 — benign no-op). `WorkerSettings.on_startup` extended with the FR-2b boot scan (list_pending_proposals_for_boot_scan + deterministic `_job_id="generate_digest:{sid}"`).
+  - **Epic 3 (API, 4 stories, 5 endpoints):** `backend/app/api/v1/proposals.py` (new router; registered in `main.py` alongside the existing v1 routers): `GET /studies/{id}/digest` (FR-3 / AC-3 / AC-4 — 404 STUDY_NOT_FOUND vs DIGEST_NOT_READY); `POST /proposals` (FR-4 / AC-6 — manual creation, study_id NULL); `GET /proposals` (cursor + status Literal + cluster_id filter + X-Total-Count); `GET /proposals/{id}` (detail with inline `study_summary` + `digest` to spare UI a fan-out query); `POST /proposals/{id}/reject` (FR-4 / AC-5 — pending → rejected; 409 INVALID_STATE_TRANSITION via repo's `InvalidStateTransition`). `ProposalStatusWire` and `ProposalPrStateWire` Literals carry source-of-truth comments per cycle-2 F4 / cycle-3 F1.
+  - **Epic 4 (docs/tests/cleanup, 3 stories):** `docs/03_runbooks/digest-debugging.md` (operator playbook covering all 8 worker `event_type` markers + re-running deferred digests + force-regeneration + concurrency model + worker-side error code catalog); `docs/04_security/llm-data-flow.md` extended with "Digest path" section enumerating the smaller surface (no doc IDs / bodies / query text / rubric text); `docs/02_product/mvp1-user-stories.md` US-16 + US-17 → Implemented. **Lean refactor (inline during Story 2.1):** `_compute_default_params` lifted from `backend/workers/judgments.py` to `backend/app/domain/study/template_defaults.py` (consumed by both workers; eliminates duplication). Contract test `test_digest_proposal_api_contract.py` performs the cycle-2 F4 / cycle-3 F1 split static-grep audit (7 endpoint codes in router source; 5 internal codes in worker source; negative assertion that worker codes are NOT raised by the router). AC-8 token-budget benchmark uses `compute_call_cost(get_settings().openai_model, ...)` per cycle-1 F8.
+  - **Tests:** 3 unit (`test_digest_prompt_render.py` 8 cases, `test_digest_response_format.py` 4 cases, `test_template_defaults.py` migrated from `test_judgment_default_params.py`) + 23 integration covering every AC + every cycle-N finding + 1 contract + 1 benchmark. Pre-existing tests patched: `test_migrations.py` Alembic-head expectation `0004 → 0005`; `judgments.py` now imports `compute_default_params` from the shared domain module.
+  - **GPT-5.5 plan review:** 3 cycles to cap; 20 findings raised; all 20 accepted + applied (`/tmp/gpt55_review_cycle{1,2,3}.out`).
 - **2026-05-11 — `feat_llm_judgments` merged into `main`** as PR #35 (squash commit `de0ecf8`). 16 stories across 4 epics covering FR-1..FR-6 + AC-1..AC-7. **One migration (`0004_judgments`).** GPT-5.5 final review converged in **10 cycles** (4 + 3 + 2 + 2 + 2 + 2 + 1 + 2 + 2 + 0 findings = 19 total; 18 applied + 1 rejected with cited counter-evidence on uuid_utils pre-existing dep).
   - **Epic 1 (foundations, 7 stories):** `0004_judgments` migration with UNIQUE `(judgment_list_id, query_id, doc_id)` + CHECK constraints + CASCADE FK; `Judgment` ORM model + `judgment` repo (bulk_create with ON CONFLICT DO NOTHING, upsert with `populate_existing=True` for identity-map correctness, source-breakdown folding `click` into `human` per cycle-2 F6); 4 `judgment_list` repo extensions including `list_generating_judgment_list_ids` for boot sweep; prompts/ directory at repo root with sandboxed Jinja2 renderer (`SandboxedEnvironment(autoescape=True)` per cycle-5 C5-F2) + FR-3c starter rubric verbatim; OpenAI judge client (`rate_query_batch`) with `response_format=json_schema strict=True`, `max_completion_tokens=2000`, exponential-backoff retry on RateLimitError/APITimeoutError/APIConnectionError/5xx (per cycle-6 C6-F2), per-item required-rationale validation (cycle-4 C4-F2), schema validation before iteration (cycle-3 C3-F2); cost model with `UnknownModelPricingError` fail-closed (cycle-2 C2-F4); Cohen's + linear-weighted kappa calibration helper (pure-Python, no NumPy); real `qrels_loader.py` SELECT replacing the MVP1 stub; Redis daily budget gate (`peek_daily_total` + `record_cost` with 26h TTL).
   - **Epic 2 (worker, 1 story):** `backend/workers/judgments.py:generate_judgments_llm` Arq job — short-lived per-query DB sessions; resume-skip on ANY existing judgments (cycle-1 F2); pre-call budget peek + post-call `_safe_record_cost` ordering (cycle-2 C2-F3 — persist judgments FIRST); ordinal prompt-IDs (`item-N`) to decouple LLM round-trip from XML-sensitive engine doc_ids (cycle-6 C6-F1); set-equality all-or-nothing per-query persistence (cycle-3 C3-F1 catches duplicate doc_ids); persistent-OpenAI-error propagation (cycle-2 C2-F1); `PARTIAL_LLM_FAILURE` terminal status when any query is skipped (cycle-8 C8-F1). `WorkerSettings.functions` registers `generate_judgments_llm` with 900s timeout; `on_startup` sweeps every `generating` row with deterministic `_job_id` for dedup (cycle-4 C4-F1).
@@ -159,18 +166,17 @@
 
 ## In flight
 
-- None. Next feature pulled from the Queued list below.
+- **`feat_digest_proposal`** on `feature/feat-digest-proposal` — 12 stories complete; PR pending. After merge, the queued list collapses to start with `feat_github_pr_worker`.
 
 ## Queued (priority-ordered by dependency)
 
-1. **`feat_digest_proposal`** — study-end digest narrative. **Must scan pre-existing `proposals WHERE status='pending'`** at boot — Phase 2's orchestrator pre-creates pending proposal rows (per the C2-F3/C3-F3 durable handoff design).
-2. **`feat_github_pr_worker`** — GitHub PR creation Arq job.
-3. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified).
-4. **`feat_studies_ui`** — UI shell + `/studies` + `/studies/[id]`. Also lands the operator-facing review surface for the judgment-list overrides + calibration display that `feat_llm_judgments`'s API now backs.
-5. **`feat_chat_agent`** — streaming chat orchestrator.
-6. **`feat_proposals_ui`** — `/proposals` review surface.
-7. **`chore_tutorial_polish`** — sample data + walkthrough. Tutorial flow now has the `POST /judgment-lists/import` path it expects (FR-3b).
-8. **`chore_judgments_periodic_resume_sweep`** — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
+1. **`feat_github_pr_worker`** — GitHub PR creation Arq job. (Now consumes the `proposals` shape that `feat_digest_proposal` populates.)
+2. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified).
+3. **`feat_studies_ui`** — UI shell + `/studies` + `/studies/[id]`. Also lands the digest panel that consumes `GET /api/v1/studies/{id}/digest` shipped by `feat_digest_proposal`.
+4. **`feat_chat_agent`** — streaming chat orchestrator.
+5. **`feat_proposals_ui`** — `/proposals` review surface. Consumes the proposal CRUD endpoints `feat_digest_proposal` shipped (`GET /proposals`, `GET /proposals/{id}`, `POST /proposals`, `POST /proposals/{id}/reject`).
+6. **`chore_tutorial_polish`** — sample data + walkthrough. Tutorial flow now has the `POST /judgment-lists/import` path it expects (FR-3b).
+7. **`chore_judgments_periodic_resume_sweep`** — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
 
 Run `/pipeline status` for the live view from spec dependencies.
 
