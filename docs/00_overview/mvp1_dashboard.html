@@ -316,7 +316,7 @@ footer {
   <div class="next-up">
     <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
     <div class="title"><a href="../../docs/02_product/planned_features/feat_github_pr_worker/feature_spec.md">Github Pr Worker</a></div>
-    <div class="one-liner">`POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches a parameter-importance chart as a commen</div>
+    <div class="one-liner">`POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches a parameter-importance chart by committi</div>
     <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
     <code class="cmd">/pipeline docs/02_product/planned_features/feat_github_pr_worker --auto</code>
   </div>
@@ -334,7 +334,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">15</div>
+      <div class="value">16</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -344,7 +344,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">6</div>
+      <div class="value">7</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">13</span></h3>
+  <h3>Idea <span class="count">14</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -417,6 +417,18 @@ footer {
 
   </div>
   <div class="one-liner">`Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the </div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_infra_foundation_github_token_file_retirement">Infra Foundation Github Token File Retirement</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is:</div>
 
 
 </div>
@@ -550,11 +562,11 @@ footer {
   <div class="name"><a href="../../docs/02_product/planned_features/feat_github_pr_worker/feature_spec.md">Github Pr Worker</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
-
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a>
   </div>
   <div class="one-liner">`POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches </div>
 
-  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_digest_proposal</span></div>
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_digest_proposal</span></div>
 </div>
 
 
@@ -751,6 +763,7 @@ footer {
   infra_optuna_eval --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
+  feat_study_lifecycle --&gt; feat_github_pr_worker
   feat_digest_proposal --&gt; feat_github_pr_worker
   infra_foundation --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
@@ -821,6 +834,7 @@ footer {
   infra_optuna_eval --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
+  feat_study_lifecycle --&gt; feat_github_pr_worker
   feat_digest_proposal --&gt; feat_github_pr_worker
   infra_foundation --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
