@@ -19,9 +19,9 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Features done | **8 / 13** (62%) |
-| Path to MVP1 | **17** items remaining (features + bugs + chores) |
+| Path to MVP1 | **18** items remaining (features + bugs + chores) |
 | Open bugs | 3 |
-| Open chores | 9 (idea-stage debt) |
+| Open chores | 10 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -59,7 +59,7 @@ _None._
 | [feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | Draft |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
 
-### Idea (16)
+### Idea (17)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -74,6 +74,7 @@ _None._
 | [chore_query_inline_edit_delete](../02_product/planned_features/chore_query_inline_edit_delete/idea.md) | Chore | The `feat_studies_ui` plan ships a **view-only** queries table on the query-set detail page (Story 2.2). Operators can bulk-add via CSV/JSON but cannot edit or delete an individual query through the U | — | — |
 | [chore_spec_trial_created_at_drift](../02_product/planned_features/chore_spec_trial_created_at_drift/idea.md) | Chore | `feat_study_lifecycle/feature_spec.md` §7.4 defines wire values for the trials list `?sort=` query parameter: | — | — |
 | [chore_starlette_422_deprecation](../02_product/planned_features/chore_starlette_422_deprecation/idea.md) | Chore | Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name: | — | Idea — captured during `infra_foundation` Story 5.1 test backfill |
+| [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
 | [chore_test_both_engines](../02_product/planned_features/chore_test_both_engines/idea.md) | Chore | `backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test: | — | Idea (deferred from `infra_adapter_elastic` — refactor sweep, 2026-05-09) |
 | [chore_trial_summary_single_query](../02_product/planned_features/chore_trial_summary_single_query/idea.md) | Chore | [`backend/app/db/repo/trial.py:aggregate_trials_summary`](../../../../backend/app/db/repo/trial.py) currently issues two SQL statements: | — | — |
 | [bug_capability_check_test_isolation](../02_product/planned_features/bug_capability_check_test_isolation/idea.md) | Bug | Idea (deferred from `infra_adapter_elastic` Story 5.1) | — | Idea (deferred from `infra_adapter_elastic` Story 5.1) |

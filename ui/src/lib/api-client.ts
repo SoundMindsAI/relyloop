@@ -114,26 +114,31 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
   async function attempt(
     url: string,
     init: RequestInit,
-  ): Promise<{ kind: 'ok'; response: Response } | { kind: 'network-error' }> {
+  ): Promise<
+    { kind: 'ok'; response: Response } | { kind: 'network-error' } | { kind: 'user-aborted' }
+  > {
     const timeoutController = new AbortController();
     const timeoutId = setTimeout(() => timeoutController.abort(), perAttemptTimeoutMs);
-    // Compose: user-provided signal (if any) + our timeout signal.
+    // Compose: user-provided signal (if any) + our timeout signal. We use
+    // AbortSignal.any() when available; fall back to timeout-only otherwise.
     const userSignal = init.signal ?? null;
-    const composedSignal = userSignal
-      ? (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any
-        ? (AbortSignal as unknown as { any: (signals: AbortSignal[]) => AbortSignal }).any([
-            userSignal,
-            timeoutController.signal,
-          ])
-        : timeoutController.signal
-      : timeoutController.signal;
+    const anyFn = (AbortSignal as unknown as { any?: (signals: AbortSignal[]) => AbortSignal }).any;
+    const composedSignal =
+      userSignal && anyFn
+        ? anyFn([userSignal, timeoutController.signal])
+        : timeoutController.signal;
     try {
       const response = await fetchImpl(url, { ...init, signal: composedSignal });
       return { kind: 'ok', response };
     } catch (err) {
       // fetch() rejects with TypeError on network failures (DNS, connection refused),
-      // and with AbortError when the timeout fires.
+      // and with AbortError when EITHER the timeout fires OR the caller aborted.
+      // We distinguish: if the caller's signal aborted, the request was user-cancelled
+      // and must NOT retry. If the timeout fired (or no caller signal exists), retry.
       if (err instanceof DOMException && err.name === 'AbortError') {
+        if (userSignal?.aborted) {
+          return { kind: 'user-aborted' };
+        }
         return { kind: 'network-error' };
       }
       if (err instanceof TypeError) {
@@ -166,6 +171,18 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
     let lastApiError: ApiError | null = null;
     for (let attemptIdx = 0; attemptIdx < maxAttempts; attemptIdx++) {
       const result = await attempt(url, init);
+
+      if (result.kind === 'user-aborted') {
+        // Caller explicitly cancelled. Do NOT retry — surface immediately as an
+        // AbortError-shaped ApiError so callers can branch on errorCode if needed.
+        throw new ApiError({
+          status: 0,
+          errorCode: 'REQUEST_ABORTED',
+          message: 'Request aborted by caller',
+          retryable: false,
+          requestId: null,
+        });
+      }
 
       if (result.kind === 'network-error') {
         lastApiError = makeNetworkError();

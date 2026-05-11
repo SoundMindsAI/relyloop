@@ -182,6 +182,76 @@ describe('apiClient retry policy', () => {
     expect(attempts).toBe(4);
   });
 
+  it('default retry waits are exactly 1000/2000/4000 ms (F6)', async () => {
+    // This test uses the default client (no retryWaitsMs override) to verify
+    // the public contract from FR-10. We advance fake timers by exactly the
+    // documented backoff intervals and confirm each advance unblocks the next attempt.
+    let attempts = 0;
+    server.use(
+      http.get(`${BASE}/default-waits`, () => {
+        attempts++;
+        return HttpResponse.json(
+          { detail: { error_code: 'SERVICE_UNAVAILABLE', message: 'down', retryable: true } },
+          { status: 503 },
+        );
+      }),
+    );
+    // Use a client with default retry waits + short per-attempt timeout so the
+    // fetch itself doesn't time out before backoff fires.
+    const c = createApiClient({ baseUrl: BASE, perAttemptTimeoutMs: 100 });
+    const promise = c.get('/default-waits').catch((err) => err);
+    // Initial attempt fires synchronously. Then we advance through the 3 backoffs.
+    await vi.advanceTimersByTimeAsync(0); // let initial attempt resolve
+    expect(attempts).toBe(1);
+    await vi.advanceTimersByTimeAsync(1000); // unlock retry #1
+    expect(attempts).toBe(2);
+    await vi.advanceTimersByTimeAsync(2000); // unlock retry #2
+    expect(attempts).toBe(3);
+    await vi.advanceTimersByTimeAsync(4000); // unlock retry #3
+    expect(attempts).toBe(4);
+    await vi.advanceTimersByTimeAsync(8000); // no more retries — would be #4 if we ran them
+    expect(attempts).toBe(4);
+    const result = await promise;
+    expect(isApiError(result)).toBe(true);
+  });
+
+  it('user-issued abort does NOT retry (F7)', async () => {
+    // Inject a fetchImpl that observes the caller's signal and rejects
+    // with AbortError. The client must surface REQUEST_ABORTED on the
+    // first attempt — never retry.
+    vi.useRealTimers(); // bypass the suite's fake-timers for this single test
+    let attempts = 0;
+    const fakeFetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      attempts++;
+      // Reject immediately as if the caller had already aborted.
+      if (init?.signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      // Otherwise wait for the abort signal to fire.
+      return await new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () =>
+          reject(new DOMException('Aborted', 'AbortError')),
+        );
+      });
+    });
+    const c = createApiClient({
+      baseUrl: BASE,
+      fetchImpl: fakeFetch as unknown as typeof fetch,
+      retryWaitsMs: [1, 2, 4],
+    });
+    const controller = new AbortController();
+    const promise = c.get('/cancellable', { signal: controller.signal }).catch((err) => err);
+    // Microtask + abort.
+    await Promise.resolve();
+    controller.abort();
+    const result = await promise;
+    expect(isApiError(result)).toBe(true);
+    if (isApiError(result)) {
+      expect(result.errorCode).toBe('REQUEST_ABORTED');
+    }
+    expect(attempts).toBe(1);
+  });
+
   it('first retryable, then success, returns success without throwing', async () => {
     let attempts = 0;
     server.use(
@@ -206,6 +276,40 @@ describe('apiClient retry policy', () => {
 });
 
 describe('apiClient methods', () => {
+  it('patch sends Content-Type: application/json with JSON-encoded body', async () => {
+    let receivedContentType: string | null = null;
+    let receivedBody: string | null = null;
+    server.use(
+      http.patch(`${BASE}/x/1`, async ({ request }) => {
+        receivedContentType = request.headers.get('Content-Type');
+        receivedBody = await request.text();
+        return HttpResponse.json({ id: '1', updated: true });
+      }),
+    );
+    const c = client();
+    const r = await c.patch<{ id: string; updated: boolean }>('/x/1', { name: 'new' });
+    expect(receivedContentType).toBe('application/json');
+    expect(receivedBody).toBe(JSON.stringify({ name: 'new' }));
+    expect(r.data.updated).toBe(true);
+  });
+
+  it('delete sends DELETE method with no body', async () => {
+    let receivedBody: string | null = null;
+    let receivedMethod: string | null = null;
+    server.use(
+      http.delete(`${BASE}/x/1`, async ({ request }) => {
+        receivedMethod = request.method;
+        receivedBody = await request.text();
+        return HttpResponse.json({ deleted: true });
+      }),
+    );
+    const c = client();
+    const r = await c.delete<{ deleted: boolean }>('/x/1');
+    expect(receivedMethod).toBe('DELETE');
+    expect(receivedBody).toBe('');
+    expect(r.data.deleted).toBe(true);
+  });
+
   it('postCsv sends Content-Type: text/csv with the raw body', async () => {
     let receivedContentType: string | null = null;
     let receivedBody: string | null = null;
