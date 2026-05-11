@@ -424,7 +424,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 3 | [`infra_optuna_eval`](docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/) | **Complete (PR #23, merged 2026-05-10)** |
 | 4 | [`feat_study_lifecycle`](docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle/) | **Complete — Phase 1 (Schema) PR #18 + Phase 2 (Orchestrator + API) PR #25, both merged 2026-05-10/11** |
 | 5 | [`feat_llm_judgments`](docs/00_overview/implemented_features/2026_05_11_feat_llm_judgments/) | **Complete (PR #35, merged 2026-05-11)** |
-| 6 | [`feat_digest_proposal`](docs/02_product/planned_features/feat_digest_proposal/) | Implementation complete on `feature/feat-digest-proposal`; PR pending |
+| 6 | [`feat_digest_proposal`](docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/) | **Complete (PR #41, merged 2026-05-11)** |
 | 7 | [`feat_github_pr_worker`](docs/02_product/planned_features/feat_github_pr_worker/) | Spec approved, plan pending |
 | 8 | [`feat_github_webhook`](docs/02_product/planned_features/feat_github_webhook/) | Spec approved, plan pending |
 | 9 | [`feat_studies_ui`](docs/02_product/planned_features/feat_studies_ui/) | Spec approved, plan pending |

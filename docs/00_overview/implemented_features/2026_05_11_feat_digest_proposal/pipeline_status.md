@@ -23,7 +23,18 @@ Study-end digest narrative + proposal-population pipeline. Replaces the `digest_
 - Tests planned: 3 unit + 26 integration + 1 contract + 1 benchmark = 31 test files.
 
 ## Implementation
-- Status: Not started. Next: `/impl-execute docs/02_product/planned_features/feat_digest_proposal/implementation_plan.md --all`.
+- Status: **Complete** — merged 2026-05-11.
+- PR: [#41](https://github.com/SoundMindsAI/relyloop/pull/41) (squash commit `3753894`).
+- CI: green (4 cycles — initial fail on test seed/setting/migration order, AC-11 fix, final-review fix, all green).
+- Stories completed: 12 of 12 across 4 epics.
+- Test counts: 350 unit + 26 integration + 1 contract + 1 benchmark.
+- Final cross-model review: GPT-5.5 raised 6 findings; 5 accepted + applied, 1 rejected with cited counter-evidence (full adjudication on PR #41).
+- Gemini Code Assist: N/A on this repo.
+
+## Done
+- Status: **Deployed** (no remote staging in MVP1; merge to main IS the deploy event).
+- Date: 2026-05-11
+- Follow-up tracked: [`bug_digest_param_importance_seam`](../bug_digest_param_importance_seam/idea.md) — AC-7 test fixture seam (xfail in this PR).
 
 ## Dependencies (all satisfied)
 
