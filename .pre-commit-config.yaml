@@ -52,26 +52,31 @@ repos:
       - id: prettier-ui
         name: prettier (ui/ entire tree)
         # Run prettier from the ui/ dir against ALL relevant files (not just
-        # src/) so package.json, tsconfig.json, .prettierrc.json, and any
-        # root-level docs land formatted too. pass_filenames: false because
+        # src/) so package.json, tsconfig.json, eslint.config.mjs, and the
+        # .prettierrc.json land formatted too. pass_filenames: false because
         # pre-commit passes ui/-prefixed paths from the repo root but
         # `pnpm --dir ui` flips cwd to ui/.
+        # 2026-05-12: `eslint.config.mjs` replaces the deleted legacy
+        # `.eslintrc.json` (ESLint 9 flat config); checked here so the
+        # config file itself stays prettier-formatted.
         entry: pnpm --dir ui exec prettier --check
           src
           package.json
           tsconfig.json
-          .eslintrc.json
+          eslint.config.mjs
           .prettierrc.json
         language: system
-        files: ^ui/.*\.(ts|tsx|js|jsx|css|md|json)$
+        files: ^ui/.*\.(ts|tsx|js|jsx|mjs|css|md|json)$
         exclude: ^(ui/node_modules/|ui/\.next/|ui/pnpm-lock\.yaml)
         pass_filenames: false
 
       - id: eslint-ui
-        name: eslint (ui/, via next lint)
+        name: eslint (ui/, flat config)
+        # 2026-05-12: Next 16 removed `next lint`; the `pnpm lint` script now
+        # runs `eslint .` directly against the flat config in eslint.config.mjs.
         entry: pnpm --dir ui lint
         language: system
-        files: ^ui/src/.*\.(ts|tsx|js|jsx)$
+        files: ^ui/src/.*\.(ts|tsx|js|jsx|mjs)$
         pass_filenames: false
 
   # ---------------------------------------------------------------------------

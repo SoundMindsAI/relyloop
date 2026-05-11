@@ -1,9 +1,38 @@
 # Frontend Stack Refresh — Next 16 / React 19 / Tailwind 4 / Vitest 4
 
-**Date:** 2026-05-09
-**Status:** Idea — surfaced during dependency audit on `feature/infra-foundation`
+**Date:** 2026-05-09 (idea), shipped 2026-05-12
+**Status:** **Implemented** — shipped as a single-PR refresh on 2026-05-12 just before `feat_studies_ui` kicked off (the optimal moment the idea predicted).
 **Origin:** Conversation 2026-05-09: dependency-currency audit comparing `ui/pnpm-lock.yaml` to npm registry latest. Backend (`uv.lock`) is fully current except `redis` (capped by `arq<6` constraint, tracked separately). Frontend is materially behind on every direct dep with a major-version delta.
-**Depends on:** [`infra_foundation`](../infra_foundation/feature_spec.md) — must be merged so the placeholder UI shell exists to refresh against.
+**Depends on:** [`infra_foundation`](../2026_05_09_infra_foundation/) — merged via PR #4 (2026-05-09).
+
+## Shipped (2026-05-12)
+
+All planned bumps landed in a single coordinated PR (commit `<TBD post-merge>`):
+
+* Next 14 → 16 (App Router, Turbopack — auto-modified `tsconfig.json`'s `jsx` setting from `preserve` to `react-jsx` for the React 19 automatic runtime)
+* React 18 → 19 (peer of Next 16; placeholder page needed no JSX changes)
+* Tailwind 3 → 4 (deleted `tailwind.config.ts`; replaced `@tailwind base/components/utilities` with the single `@import "tailwindcss"` CSS-first directive in `globals.css`; postcss plugin shape changed to `@tailwindcss/postcss`)
+* Vitest 2 → 4 (zero test changes needed)
+* TypeScript 5.9 → 6.0 (already arrived via dependabot earlier in the week)
+* `@types/react` + `@types/react-dom` 18 → 19
+* `@vitejs/plugin-react` 4 → 6
+* `jsdom` 25 → 29
+* `eslint-plugin-security` 3 → 4
+* `.eslintrc.json` (legacy) → `eslint.config.mjs` (flat config — required by ESLint 9+)
+* `next lint` → `eslint .` (Next 16 removed the `next lint` wrapper)
+* Node engine `>=18.17` → `>=20.18` (Next 16 minimum)
+
+**Deviation from the original plan (with reason):**
+
+* **ESLint stayed at 9.39.4 instead of bumping to 10.3.0.** ESLint 10 hits a `eslint-plugin-react@7.37.5` API-incompat (`contextOrFilename.getFilename is not a function`) — the React plugin (transitive via `eslint-config-next` 16) hasn't been updated for ESLint 10's removed legacy context API yet. `eslint-config-next` 16's peerDep is `eslint >=9.0.0`, so 9 is supported and tested. Per the user's "back up only if required" rule, this is required. Track ESLint 10 readiness as a future chore once `eslint-plugin-react` ships an ESLint-10-compatible release.
+
+**Verification gate passed locally on Node 22.22.2:**
+
+* `pnpm install` clean
+* `pnpm lint` (eslint flat config) — 0 errors
+* `pnpm typecheck` (tsc 6.0.3, `--noEmit --strict`) — clean
+* `pnpm test` (vitest 4.1.6) — 2 tests passing
+* `pnpm build` (next 16.2.6 + Turbopack) — successful production build, 3 static pages generated
 
 ## Problem
 
