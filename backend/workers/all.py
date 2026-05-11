@@ -14,8 +14,10 @@ Registered jobs:
   loop.
 * ``resume_study`` — feat_study_lifecycle Phase 2 Story 2.3; thin wrapper
   around ``start_study`` enqueued by the on_startup sweep below (FR-5).
-* ``generate_digest`` — feat_study_lifecycle Phase 2 Story 2.1; idempotent
-  digest-handoff stub replaced by ``feat_digest_proposal`` later.
+* ``generate_digest`` — feat_digest_proposal Story 2.1; produces the
+  study-end digest narrative + populates the pending proposal's
+  ``config_diff`` + ``metric_delta``. Replaced the Phase 2 stub at
+  ``digest_stub.py`` (deleted) under the same Arq job name.
 
 The ``on_startup`` hook:
 
@@ -27,6 +29,11 @@ The ``on_startup`` hook:
 3. Sweeps ``SELECT id FROM studies WHERE status = 'running'`` and
    enqueues ``resume_study(study_id)`` for each — restart safety per
    FR-5 / AC-4.
+4. Sweeps queued studies + generating judgment lists for re-enqueue.
+5. **feat_digest_proposal Story 2.2 / FR-2b** — sweeps
+   ``proposals WHERE status='pending'`` lacking a digest and enqueues
+   ``generate_digest`` for each, with deterministic ``_job_id`` so the
+   sweep doesn't double-fire against an already-in-flight job.
 
 Long-running orchestrator jobs are given ``job_timeout=86400`` (24h) on
 WorkerSettings so a long ``time_budget_min`` doesn't trigger Arq's
@@ -46,7 +53,7 @@ from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
-from backend.workers.digest_stub import generate_digest
+from backend.workers.digest import generate_digest
 from backend.workers.judgments import generate_judgments_llm
 from backend.workers.orchestrator import resume_study, start_study
 from backend.workers.trials import run_trial
@@ -101,6 +108,12 @@ async def on_startup(ctx: dict[str, Any]) -> None:
         # case where POST /judgments/generate committed the
         # judgment_lists row but enqueue_job raised (Redis transient).
         generating_judgment_ids = await repo.list_generating_judgment_list_ids(db)
+        # feat_digest_proposal Story 2.2 / FR-2b: pending proposals
+        # without a digest. The orchestrator's `_stop` enqueue at
+        # orchestrator.py:370 is best-effort; this sweep covers the case
+        # where the worker was down between the orchestrator's commit
+        # and its fast-path enqueue.
+        pending_digest_study_ids = await repo.list_pending_proposals_for_boot_scan(db)
     for sid in running_ids:
         await arq_pool.enqueue_job("resume_study", sid)
         logger.info(
@@ -128,6 +141,21 @@ async def on_startup(ctx: dict[str, Any]) -> None:
             "judgment generation dispatched at worker boot",
             event_type="judgment_resume_enqueued",
             judgment_list_id=jid,
+        )
+    for sid in pending_digest_study_ids:
+        # Deterministic ``_job_id`` mirrors the judgments sweep pattern —
+        # if the orchestrator's fast-path enqueue at orchestrator.py:370
+        # was already accepted, the boot-scan enqueue is a no-op (per
+        # FR-2b dedup contract).
+        await arq_pool.enqueue_job(
+            "generate_digest",
+            sid,
+            _job_id=f"generate_digest:{sid}",
+        )
+        logger.info(
+            "digest dispatched at worker boot",
+            event_type="digest_resume_enqueued",
+            study_id=sid,
         )
 
 

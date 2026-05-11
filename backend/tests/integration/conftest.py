@@ -1,10 +1,20 @@
 """Integration-test conftest (Phase 2).
 
-Two autouse fixtures:
+Three autouse fixtures:
 
 * :func:`_clean_phase2_tables` — wipes Phase 2 tables after every test so
   TestClient-driven commits (which bypass the savepoint-scoped
   ``db_session`` fixture) don't leak rows into the next test.
+
+* :func:`_restore_settings_mutations` — feat_digest_proposal Story 2.1
+  helpers mutate ``settings.__dict__["openai_api_key"]`` /
+  ``["openai_model"]`` to exercise the OPENAI_NOT_CONFIGURED /
+  UNKNOWN_MODEL_PRICING preflight paths. The lru_cache'd Settings
+  instance survives across tests, so without explicit restoration the
+  mutation pollutes subsequent tests (the digest_openai_deferral test
+  setting key=None caused the judgments-worker happy-path test to bail
+  on the OPENAI_NOT_CONFIGURED preflight). This fixture snapshots the
+  mutated keys before each test and restores them after.
 
 * :func:`async_client` — an ``httpx.AsyncClient`` mounted on the
   FastAPI app via ``LifespanManager``. The lifespan-driven Arq pool
@@ -54,6 +64,11 @@ async def _clean_phase2_tables() -> AsyncIterator[None]:
         factory = async_sessionmaker(bind=engine, expire_on_commit=False)
         async with factory() as db:
             for table in (
+                # feat_digest_proposal: digests has FK to studies — delete BEFORE
+                # proposals so we don't have to think about the proposals → studies
+                # → digests dependency direction (digests is a sibling of proposals
+                # under studies, not a parent).
+                "digests",
                 "proposals",
                 "trials",
                 "studies",
@@ -71,6 +86,35 @@ async def _clean_phase2_tables() -> AsyncIterator[None]:
             await db.commit()
     finally:
         await engine.dispose()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _restore_settings_mutations() -> AsyncIterator[None]:
+    """Snapshot + restore Settings mutations made by digest tests.
+
+    The digest helpers in :mod:`backend.tests.integration._digest_helpers`
+    mutate ``settings.__dict__["openai_api_key"]`` and
+    ``["openai_model"]`` directly to exercise the OPENAI_NOT_CONFIGURED /
+    UNKNOWN_MODEL_PRICING preflight branches. The lru_cache'd Settings
+    instance is shared across tests, so without restoration these
+    mutations leak — the judgments worker happy-path test (which expects
+    a configured key) bails on the polluted None.
+    """
+    from backend.app.core.settings import get_settings
+
+    settings = get_settings()
+    snapshot = {
+        key: settings.__dict__.get(key, _MISSING) for key in ("openai_api_key", "openai_model")
+    }
+    yield
+    for key, value in snapshot.items():
+        if value is _MISSING:
+            settings.__dict__.pop(key, None)
+        else:
+            settings.__dict__[key] = value
+
+
+_MISSING: object = object()
 
 
 @pytest_asyncio.fixture

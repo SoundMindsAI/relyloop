@@ -55,8 +55,8 @@
 
 ### `feat_digest_proposal` — summarize a completed study
 
-- **US-16: Get a digest after the study completes.** *As a Relevance Engineer*, when a study finishes I get a digest page with a narrative summary, the recommended parameter values, parameter importance bar chart, and metric delta vs. baseline, so I can decide in 60 seconds whether to open a PR. *(Source: §15 lines 762–1003, §22 `/studies/{id}` digest panel.)*
-- **US-17: Create a proposal from the digest.** *As a Relevance Engineer*, I click "Create proposal" on a digest and a proposal row is created with the recommended config snapshot, so the recommendation is captured as a reviewable artifact even before I open a PR. *(Source: §16, §19 `create_proposal_from_study`.)*
+- **US-16: Get a digest after the study completes.** *(Implemented — `feat_digest_proposal`)* *As a Relevance Engineer*, when a study finishes I get a digest page with a narrative summary, the recommended parameter values, parameter importance bar chart, and metric delta vs. baseline, so I can decide in 60 seconds whether to open a PR. *(Source: §15 lines 762–1003, §22 `/studies/{id}` digest panel. API surface is `GET /api/v1/studies/{id}/digest`; UI lands with `feat_studies_ui`.)*
+- **US-17: Create a proposal from the digest.** *(Implemented — `feat_digest_proposal`)* *As a Relevance Engineer*, I click "Create proposal" on a digest and a proposal row is created with the recommended config snapshot, so the recommendation is captured as a reviewable artifact even before I open a PR. *(Source: §16, §19 `create_proposal_from_study`. The digest worker UPDATEs the orchestrator-inserted pending `proposals` row in place with the deterministically computed `config_diff` + `metric_delta`; the manual-proposal endpoint `POST /api/v1/proposals` ships the hand-crafted flow.)*
 
 ### `feat_github_pr_worker` — open a GitHub PR with the new config
 
