@@ -1171,7 +1171,7 @@ Not in scope for this PR. UI lands with `feat_studies_ui` (digest panel on study
 - [x] Story 3.4 — `POST /proposals/{id}/reject`
 - [x] Story 4.1 — runbook + security doc + user-stories flip
 - [x] Story 4.2 — contract test + benchmark + lean refactor
-- [ ] Story 4.3 — finalization (state.md + architecture.md + CLAUDE.md)
+- [x] Story 4.3 — finalization (state.md + architecture.md + CLAUDE.md)
 
 ### Blocked items
 - (none)
