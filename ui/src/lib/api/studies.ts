@@ -43,8 +43,16 @@ export function useStudies(filter: StudiesFilter = {}): UseQueryResult<StudyList
   });
 }
 
+// Caller-driven polling per spec §4: callers pass either a fixed interval, a
+// function form `(query) => number | false` (TanStack v5 contract), or omit
+// for no polling.
+type RefetchInterval<TData> =
+  | number
+  | false
+  | ((query: { state: { data: TData | undefined } }) => number | false);
+
 export interface UseStudyOptions {
-  refetchInterval?: number | false;
+  refetchInterval?: RefetchInterval<StudyDetail>;
 }
 
 export function useStudy(
@@ -66,7 +74,7 @@ export interface StudyTrialsFilter {
   cursor?: string | undefined;
   limit?: number | undefined;
   since?: string | undefined;
-  refetchInterval?: number | false;
+  refetchInterval?: RefetchInterval<TrialListPage>;
 }
 
 export function useStudyTrials(
