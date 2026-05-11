@@ -148,12 +148,22 @@ def _judgment_row(row: Judgment) -> JudgmentRow:
 
 
 async def _enqueue_generate(request: Request, judgment_list_id: str) -> None:
-    """Best-effort Arq enqueue. Pool absent → boot-time resume sweep recovers."""
+    """Best-effort Arq enqueue. Pool absent → boot-time resume sweep recovers.
+
+    Uses a deterministic ``_job_id`` keyed on the judgment list id so Arq
+    rejects duplicate enqueues for the same list — guards against double-
+    spending OpenAI dollars when the API enqueue + boot sweep + manual REPL
+    enqueue overlap (per GPT-5.5 cycle-4 C4-F1).
+    """
     arq_pool = getattr(request.app.state, "arq_pool", None)
     if arq_pool is None:
         return
     try:
-        await arq_pool.enqueue_job("generate_judgments_llm", judgment_list_id)
+        await arq_pool.enqueue_job(
+            "generate_judgments_llm",
+            judgment_list_id,
+            _job_id=f"generate_judgments_llm:{judgment_list_id}",
+        )
     except Exception as exc:  # noqa: BLE001 — durable row + sweep covers this
         logger.warning(
             "POST /judgments/generate: arq enqueue raised — relying on worker boot sweep",

@@ -230,10 +230,21 @@ async def rate_query_batch(
                 continue
             doc_id = item.get("doc_id")
             rating = item.get("rating")
-            rationale = item.get("rationale", "")
+            rationale = item.get("rationale")
             if doc_id not in expected_doc_ids:
                 logger.warning(
                     "OpenAI judge: dropping spurious doc_id not in expected set",
+                    doc_id=doc_id,
+                )
+                continue
+            # ``rationale`` is a required field per RATING_RESPONSE_SCHEMA.
+            # Local OpenAI-compatible endpoints may ignore strict=True; reject
+            # items missing rationale rather than silently substituting "" so
+            # the worker's all-or-nothing set-equality check causes a retry
+            # (per GPT-5.5 cycle-4 C4-F2).
+            if not isinstance(rationale, str):
+                logger.warning(
+                    "OpenAI judge: dropping item missing required rationale",
                     doc_id=doc_id,
                 )
                 continue

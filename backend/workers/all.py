@@ -116,7 +116,14 @@ async def on_startup(ctx: dict[str, Any]) -> None:
             study_id=sid,
         )
     for jid in generating_judgment_ids:
-        await arq_pool.enqueue_job("generate_judgments_llm", jid)
+        # Deterministic ``_job_id`` so the boot sweep doesn't enqueue a
+        # duplicate when a job from the API is already in-flight (per
+        # GPT-5.5 cycle-4 C4-F1).
+        await arq_pool.enqueue_job(
+            "generate_judgments_llm",
+            jid,
+            _job_id=f"generate_judgments_llm:{jid}",
+        )
         logger.info(
             "judgment generation dispatched at worker boot",
             event_type="judgment_resume_enqueued",
