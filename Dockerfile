@@ -12,7 +12,7 @@
 # Per docs/01_architecture/deployment.md §"MVP1 deployment shape" + the
 # implementation_plan.md Story 4.1 "Decision rationale".
 
-ARG PYTHON_VERSION=3.12
+ARG PYTHON_VERSION=3.13
 
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
@@ -41,11 +41,11 @@ WORKDIR /app
 # ---------------------------------------------------------------------------
 FROM base AS deps
 
-# pytrec_eval (added by infra_optuna_eval) ships as a sdist that compiles a
-# C extension on install — it has no Python 3.12 wheel. We install gcc +
-# python-dev headers here, then this whole stage is discarded (the runtime
-# stage copies only /app/.venv, not the build toolchain), so the final image
-# stays slim.
+# pytrec_eval (added by infra_optuna_eval) ships as a sdist with NO prebuilt
+# wheels for any Python version — every install compiles its C extension on
+# the fly. We install gcc + python-dev headers here, then this whole stage is
+# discarded (the runtime stage copies only /app/.venv, not the build toolchain),
+# so the final image stays slim.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \
