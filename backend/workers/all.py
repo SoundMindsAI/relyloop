@@ -14,8 +14,10 @@ Registered jobs:
   loop.
 * ``resume_study`` — feat_study_lifecycle Phase 2 Story 2.3; thin wrapper
   around ``start_study`` enqueued by the on_startup sweep below (FR-5).
-* ``generate_digest`` — feat_study_lifecycle Phase 2 Story 2.1; idempotent
-  digest-handoff stub replaced by ``feat_digest_proposal`` later.
+* ``generate_digest`` — feat_digest_proposal Story 2.1; produces the
+  study-end digest narrative + populates the pending proposal's
+  ``config_diff`` + ``metric_delta``. Replaced the Phase 2 stub at
+  ``digest_stub.py`` (deleted) under the same Arq job name.
 
 The ``on_startup`` hook:
 
@@ -46,7 +48,7 @@ from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
-from backend.workers.digest_stub import generate_digest
+from backend.workers.digest import generate_digest
 from backend.workers.judgments import generate_judgments_llm
 from backend.workers.orchestrator import resume_study, start_study
 from backend.workers.trials import run_trial

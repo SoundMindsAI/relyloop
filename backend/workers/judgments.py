@@ -49,6 +49,7 @@ from backend.app.adapters.protocol import NativeQuery, QueryTemplate
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
+from backend.app.domain.study.template_defaults import compute_default_params
 from backend.app.llm.budget_gate import (
     BudgetExceededError,
     peek_daily_total,
@@ -75,50 +76,6 @@ _DOC_BODY_CHAR_LIMIT = 500
 Bounds the input token count; the worker passes only the first 500 chars of
 each doc body to the LLM. The doc body is just for the rubric judgment, not
 for retrieval — full-text retention isn't needed."""
-
-
-def _compute_default_params(template_row: Any) -> dict[str, Any]:
-    """Pick safe default values for a template's declared params.
-
-    Per GPT-5.5 cycle 2 F2: the spec says "default params" but doesn't
-    enumerate the policy. We use midpoint for numeric ranges, the first
-    listed option for categoricals, ``False`` for booleans, and otherwise
-    leave the param absent (so the template's own ``{% if ... %}``
-    fallback kicks in).
-
-    ``template_row.declared_params`` is the JSONB column populated at
-    template-create time by :mod:`backend.app.domain.study.search_space`.
-    Each entry is shaped like:
-
-    .. code-block:: json
-
-        {"bm25_k1": {"type": "float", "min": 0.5, "max": 2.5},
-         "use_phrase": {"type": "bool"},
-         "operator": {"type": "categorical", "values": ["AND", "OR"]}}
-    """
-    declared: dict[str, Any] = cast(dict[str, Any], template_row.declared_params) or {}
-    params: dict[str, Any] = {}
-    for name, schema in declared.items():
-        if not isinstance(schema, dict):
-            continue
-        kind = schema.get("type")
-        if kind == "int":
-            lo = schema.get("min")
-            hi = schema.get("max")
-            if isinstance(lo, int) and isinstance(hi, int):
-                params[name] = (lo + hi) // 2
-        elif kind == "float":
-            lo = schema.get("min")
-            hi = schema.get("max")
-            if isinstance(lo, (int, float)) and isinstance(hi, (int, float)):
-                params[name] = (float(lo) + float(hi)) / 2.0
-        elif kind == "bool":
-            params[name] = False
-        elif kind == "categorical":
-            values = schema.get("values")
-            if isinstance(values, list) and values:
-                params[name] = values[0]
-    return params
 
 
 def _build_doc_inputs(
@@ -229,7 +186,7 @@ async def _process_query(
             )
 
     # Render template + execute search.
-    default_params = _compute_default_params(template_row)
+    default_params = compute_default_params(template_row)
     try:
         native = adapter.render(template, default_params, query.query_text)
         # Override the adapter-generated query_id with our own so the
