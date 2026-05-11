@@ -1165,10 +1165,10 @@ Not in scope for this PR. UI lands with `feat_studies_ui` (digest panel on study
 - [x] Story 1.3 — prompt loader + files
 - [x] Story 2.1 — `generate_digest` worker + stub deletion
 - [x] Story 2.2 — boot-scan extension
-- [ ] Story 3.1 — `GET /studies/{id}/digest`
-- [ ] Story 3.2 — `POST /proposals` (manual)
-- [ ] Story 3.3 — list + detail
-- [ ] Story 3.4 — `POST /proposals/{id}/reject`
+- [x] Story 3.1 — `GET /studies/{id}/digest`
+- [x] Story 3.2 — `POST /proposals` (manual)
+- [x] Story 3.3 — list + detail
+- [x] Story 3.4 — `POST /proposals/{id}/reject`
 - [ ] Story 4.1 — runbook + security doc + user-stories flip
 - [ ] Story 4.2 — contract test + benchmark + lean refactor
 - [ ] Story 4.3 — finalization (state.md + architecture.md + CLAUDE.md)
