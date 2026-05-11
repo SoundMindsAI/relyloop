@@ -155,6 +155,11 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
     parallelism: int = study.config.get("parallelism", settings.studies_default_parallelism)
     max_trials: int | None = study.config.get("max_trials")
     time_budget_min: float | None = study.config.get("time_budget_min")
+    # Per-trial timeout fallback (Story 1.5): use studies.config.trial_timeout_s
+    # when present, else the env-driven Settings default. Passed to Arq as
+    # the per-job ``_job_timeout`` when enqueueing ``run_trial`` so a
+    # hung trial doesn't block the orchestrator past its budget.
+    trial_timeout_s: int = study.config.get("trial_timeout_s", settings.studies_default_timeout_s)
     started_at_floor = study.started_at or datetime.now(UTC)
 
     while True:
@@ -223,7 +228,12 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
                     for _ in range(max(0, slots_open)):
                         trial = await asyncio.to_thread(optuna_study.ask)
                         await asyncio.to_thread(apply_search_space, trial, space)
-                        await arq_pool.enqueue_job("run_trial", study_id, trial.number)
+                        await arq_pool.enqueue_job(
+                            "run_trial",
+                            study_id,
+                            trial.number,
+                            _job_timeout=trial_timeout_s,
+                        )
                         logger.info(
                             "trial replenished",
                             event_type="trial_replenished",

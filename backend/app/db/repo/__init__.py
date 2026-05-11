@@ -51,6 +51,7 @@ from backend.app.db.repo.study import (
     count_studies,
     create_study,
     get_study,
+    list_queued_study_ids,
     list_running_study_ids,
     list_studies,
 )
@@ -103,6 +104,7 @@ __all__ = [
     "count_trials",
     "list_query_sets",
     "list_query_templates",
+    "list_queued_study_ids",
     "list_running_study_ids",
     "list_studies",
     "list_trials_paginated",

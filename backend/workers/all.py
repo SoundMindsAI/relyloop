@@ -39,6 +39,7 @@ import asyncio
 from typing import Any
 
 import structlog
+from arq import func
 from arq.connections import ArqRedis, RedisSettings, create_pool
 
 from backend.app.core.settings import get_settings
@@ -84,11 +85,22 @@ async def on_startup(ctx: dict[str, Any]) -> None:
     factory = get_session_factory()
     async with factory() as db:
         running_ids = await repo.list_running_study_ids(db)
+        # Also pick up studies whose POST /studies committed the row but
+        # failed to enqueue (e.g., Arq pool unreachable at API request
+        # time). Without this sweep, a queued study would sit forever.
+        queued_ids = await repo.list_queued_study_ids(db)
     for sid in running_ids:
         await arq_pool.enqueue_job("resume_study", sid)
         logger.info(
             "study queued for resume",
             event_type="resume_enqueued",
+            study_id=sid,
+        )
+    for sid in queued_ids:
+        await arq_pool.enqueue_job("start_study", sid)
+        logger.info(
+            "queued study dispatched at worker boot",
+            event_type="queued_dispatch_at_boot",
             study_id=sid,
         )
 
@@ -110,20 +122,21 @@ async def on_shutdown(ctx: dict[str, Any]) -> None:
 
 
 class WorkerSettings:
-    """Arq worker configuration."""
+    """Arq worker configuration.
+
+    Per-function timeouts: ``start_study`` / ``resume_study`` wrap an
+    indefinite polling loop and get a 24h timeout (worst-case
+    ``time_budget_min``). ``run_trial`` keeps Arq's default per-job
+    timeout (~5 min — fits ~200ms–2s per trial with margin).
+    ``generate_digest`` keeps default; the stub returns instantly.
+    """
 
     functions: list[Any] = [
         run_trial,
-        start_study,
-        resume_study,
+        func(start_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
+        func(resume_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
         generate_digest,
     ]
     redis_settings = _build_redis_settings()
     on_startup = on_startup
     on_shutdown = on_shutdown
-    # Arq supports per-function timeouts via a (function, options) tuple
-    # in newer versions, but the MVP1 pinned version uses a single
-    # ``job_timeout`` floor. 24h covers the worst-case study budget;
-    # ``run_trial`` completes well below this so the wider timeout
-    # doesn't change its retry semantics.
-    job_timeout = _ORCHESTRATOR_JOB_TIMEOUT_S

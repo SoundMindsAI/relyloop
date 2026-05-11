@@ -256,3 +256,101 @@ async def test_list_trials_unknown_study_returns_404(
     resp = await async_client.get(f"/api/v1/studies/{fake_id}/trials")
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "STUDY_NOT_FOUND"
+
+
+# ---------------------------------------------------------------------------
+# Story 3.5 error-code coverage (post-impl GPT-5.5 review F7)
+# ---------------------------------------------------------------------------
+
+
+async def test_post_study_unknown_judgment_list_returns_404(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """Unknown judgment_list_id → 404 JUDGMENT_LIST_NOT_FOUND."""
+    ids = await _seed_minimum_for_post_studies()
+    body = {
+        "name": "missing-jl",
+        "cluster_id": ids["cluster_id"],
+        "target": "stub-index",
+        "template_id": ids["template_id"],
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": "00000000-0000-0000-0000-000000000000",
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 5},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["error_code"] == "JUDGMENT_LIST_NOT_FOUND"
+
+
+async def test_post_study_unknown_template_returns_404(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """Unknown template_id → 404 TEMPLATE_NOT_FOUND."""
+    ids = await _seed_minimum_for_post_studies()
+    body = {
+        "name": "missing-tmpl",
+        "cluster_id": ids["cluster_id"],
+        "target": "stub-index",
+        "template_id": "00000000-0000-0000-0000-000000000000",
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 5},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["error_code"] == "TEMPLATE_NOT_FOUND"
+
+
+async def test_post_study_unknown_query_set_returns_404(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """Unknown query_set_id → 404 QUERY_SET_NOT_FOUND."""
+    ids = await _seed_minimum_for_post_studies()
+    body = {
+        "name": "missing-qs",
+        "cluster_id": ids["cluster_id"],
+        "target": "stub-index",
+        "template_id": ids["template_id"],
+        "query_set_id": "00000000-0000-0000-0000-000000000000",
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 5},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["error_code"] == "QUERY_SET_NOT_FOUND"
+
+
+async def test_post_study_unknown_cluster_returns_404(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """Unknown cluster_id → 404 CLUSTER_NOT_FOUND."""
+    ids = await _seed_minimum_for_post_studies()
+    body = {
+        "name": "missing-cluster",
+        "cluster_id": "00000000-0000-0000-0000-000000000000",
+        "target": "stub-index",
+        "template_id": ids["template_id"],
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 5},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["error_code"] == "CLUSTER_NOT_FOUND"
+
+
+async def test_get_study_unknown_id_returns_404(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """GET /studies/{id} with unknown id → 404 STUDY_NOT_FOUND."""
+    resp = await async_client.get("/api/v1/studies/00000000-0000-0000-0000-000000000000")
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["error_code"] == "STUDY_NOT_FOUND"

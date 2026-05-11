@@ -103,3 +103,16 @@ async def list_running_study_ids(db: AsyncSession) -> list[str]:
     """
     stmt = select(Study.id).where(Study.status == "running")
     return list((await db.execute(stmt)).scalars().all())
+
+
+async def list_queued_study_ids(db: AsyncSession) -> list[str]:
+    """Return ids of every study currently in ``status='queued'``.
+
+    Consumed by the worker's ``on_startup`` sweep to pick up studies whose
+    ``POST /studies`` enqueue was lost (e.g., the API committed the row
+    but the Arq pool was unreachable at the time). Without this, a study
+    that the API failed to enqueue would sit at ``queued`` forever — the
+    ``running``-only sweep wouldn't re-dispatch it.
+    """
+    stmt = select(Study.id).where(Study.status == "queued")
+    return list((await db.execute(stmt)).scalars().all())

@@ -41,7 +41,14 @@ def test_worker_settings_importable(_settings_env: None) -> None:
     """
     from backend.workers.all import WorkerSettings
 
-    names = {fn.__name__ for fn in WorkerSettings.functions}
+    # Mix of raw coroutines and arq.func-wrapped Function objects (the
+    # orchestrator jobs carry per-function timeouts via arq.func).
+    names: set[str] = set()
+    for fn in WorkerSettings.functions:
+        # arq.func wraps as Function with .name; plain coroutines have __name__.
+        name = getattr(fn, "name", None) or getattr(fn, "__name__", None)
+        assert name is not None
+        names.add(name)
     assert names == {"run_trial", "start_study", "resume_study", "generate_digest"}
 
 

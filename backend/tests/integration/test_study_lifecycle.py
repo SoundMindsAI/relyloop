@@ -16,6 +16,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock
 
+import httpx
 import pytest
 
 from backend.app.adapters.errors import ClusterUnreachableError
@@ -309,6 +310,42 @@ async def test_ac10_trials_sort_by_primary_metric_descending(
             metrics = [t.primary_metric for t in top]
             non_null = [m for m in metrics if m is not None]
             assert non_null == sorted(non_null, reverse=True)
+    finally:
+        await cleanup_study(fixture)
+
+
+async def test_ac10_trials_endpoint_returns_sorted_by_primary_metric_desc(
+    monkeypatch: pytest.MonkeyPatch,
+    async_client: httpx.AsyncClient,
+) -> None:
+    """AC-10 HTTP-level: ``GET /api/v1/studies/{id}/trials?sort=primary_metric_desc``
+    returns trials in descending primary_metric order after a happy-path
+    study completes. The repo-layer assertion lives in
+    :func:`test_ac10_trials_sort_by_primary_metric_descending`; this test
+    additionally exercises the FastAPI router + response serialization
+    layer (Story 3.4 / FR-6 endpoint contract)."""
+    fixture = await seed_study(max_trials=5, parallelism=2)
+    try:
+        install_stub_adapter(monkeypatch, fixture.query_ids)
+        monkeypatch_qrels(monkeypatch, fixture.query_ids)
+
+        storage = build_storage(get_settings().database_url)
+        pool = _InProcessPool(storage)
+        async with _running_orchestrator(fixture, pool):
+            await asyncio.wait_for(
+                _wait_for_status(fixture.study_id, "completed", timeout=60.0),
+                timeout=60.0,
+            )
+
+        resp = await async_client.get(
+            f"/api/v1/studies/{fixture.study_id}/trials?sort=primary_metric_desc&limit=10"
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert len(data) >= 1
+        metrics = [t["primary_metric"] for t in data]
+        non_null = [m for m in metrics if m is not None]
+        assert non_null == sorted(non_null, reverse=True)
     finally:
         await cleanup_study(fixture)
 

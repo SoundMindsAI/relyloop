@@ -115,3 +115,70 @@ async def test_query_set_create_missing_cluster_returns_404(
     )
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "CLUSTER_NOT_FOUND"
+
+
+# ---------------------------------------------------------------------------
+# Story 3.5 error-code coverage (post-impl GPT-5.5 review F7)
+# ---------------------------------------------------------------------------
+
+
+async def test_query_set_name_taken_returns_409(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """Duplicate query-set name → 409 QUERY_SET_NAME_TAKEN."""
+    cluster_id = await _create_cluster()
+    name = f"qs-dupe-{uuid.uuid4().hex[:8]}"
+    r1 = await async_client.post(
+        "/api/v1/query-sets",
+        json={"name": name, "cluster_id": cluster_id},
+    )
+    assert r1.status_code == 201, r1.text
+    r2 = await async_client.post(
+        "/api/v1/query-sets",
+        json={"name": name, "cluster_id": cluster_id},
+    )
+    assert r2.status_code == 409
+    assert r2.json()["detail"]["error_code"] == "QUERY_SET_NAME_TAKEN"
+
+
+async def test_csv_upload_missing_query_text_column_returns_400(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """CSV without ``query_text`` column → 400 INVALID_CSV."""
+    cluster_id = await _create_cluster()
+    create_resp = await async_client.post(
+        "/api/v1/query-sets",
+        json={"name": f"qs-bad-csv-{uuid.uuid4().hex[:8]}", "cluster_id": cluster_id},
+    )
+    assert create_resp.status_code == 201
+    query_set_id = create_resp.json()["id"]
+
+    bad_csv = "reference_answer\nanswer 1\n"
+    resp = await async_client.post(
+        f"/api/v1/query-sets/{query_set_id}/queries",
+        content=bad_csv.encode("utf-8"),
+        headers={"Content-Type": "text/csv"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"]["error_code"] == "INVALID_CSV"
+
+
+async def test_csv_upload_unsupported_content_type_returns_400(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """Unsupported Content-Type → 400 INVALID_CSV."""
+    cluster_id = await _create_cluster()
+    create_resp = await async_client.post(
+        "/api/v1/query-sets",
+        json={"name": f"qs-bad-ct-{uuid.uuid4().hex[:8]}", "cluster_id": cluster_id},
+    )
+    assert create_resp.status_code == 201
+    query_set_id = create_resp.json()["id"]
+
+    resp = await async_client.post(
+        f"/api/v1/query-sets/{query_set_id}/queries",
+        content=b"<xml/>",
+        headers={"Content-Type": "text/xml"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["detail"]["error_code"] == "INVALID_CSV"
