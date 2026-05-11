@@ -54,7 +54,7 @@ def app() -> FastAPI:
 
 
 @pytest.fixture
-async def client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def client(app: FastAPI) -> AsyncGenerator[AsyncClient]:
     """httpx AsyncClient bound to the test app via the in-process ASGI transport.
 
     raise_app_exceptions=False so unhandled exceptions caught by our generic

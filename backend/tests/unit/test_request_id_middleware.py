@@ -46,7 +46,7 @@ def app_with_middleware() -> FastAPI:
 
 
 @pytest.fixture
-async def client(app_with_middleware: FastAPI) -> AsyncGenerator[AsyncClient, None]:
+async def client(app_with_middleware: FastAPI) -> AsyncGenerator[AsyncClient]:
     transport = ASGITransport(app=app_with_middleware)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
