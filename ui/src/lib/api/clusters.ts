@@ -1,0 +1,84 @@
+'use client';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from '@tanstack/react-query';
+
+import { apiClient } from '@/lib/api-client';
+import type { ApiError } from '@/lib/api-errors';
+import type { components } from '@/lib/types';
+
+export type ClusterSummary = components['schemas']['ClusterSummary'];
+export type ClusterDetail = components['schemas']['ClusterDetail'];
+export type ClusterListResponse = components['schemas']['ClusterListResponse'];
+export type CreateClusterRequest = components['schemas']['CreateClusterRequest'];
+export type Schema = components['schemas']['Schema'];
+
+export type ClusterListPage = ClusterListResponse & { totalCount: number };
+
+export interface ClustersFilter {
+  cursor?: string | undefined;
+  limit?: number | undefined;
+  since?: string | undefined;
+}
+
+export function useClusters(
+  filter: ClustersFilter = {},
+): UseQueryResult<ClusterListPage, ApiError> {
+  const { cursor, limit, since } = filter;
+  return useQuery<ClusterListPage, ApiError>({
+    queryKey: ['clusters', { cursor, limit, since }],
+    queryFn: async () => {
+      const { data, headers } = await apiClient.get<ClusterListResponse>('/api/v1/clusters', {
+        params: { cursor, limit, since },
+      });
+      return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
+    },
+  });
+}
+
+export function useCluster(id: string): UseQueryResult<ClusterDetail, ApiError> {
+  return useQuery<ClusterDetail, ApiError>({
+    queryKey: ['clusters', id],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ClusterDetail>(`/api/v1/clusters/${id}`);
+      return data;
+    },
+  });
+}
+
+export function useRegisterCluster(): UseMutationResult<
+  ClusterDetail,
+  ApiError,
+  CreateClusterRequest
+> {
+  const qc = useQueryClient();
+  return useMutation<ClusterDetail, ApiError, CreateClusterRequest>({
+    mutationFn: async (body) => {
+      const { data } = await apiClient.post<ClusterDetail>('/api/v1/clusters', body);
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clusters'] });
+    },
+  });
+}
+
+export function useClusterSchema(
+  id: string,
+  target: string | undefined,
+): UseQueryResult<Schema, ApiError> {
+  return useQuery<Schema, ApiError>({
+    queryKey: ['clusters', id, 'schema', target],
+    enabled: Boolean(id && target),
+    queryFn: async () => {
+      const { data } = await apiClient.get<Schema>(`/api/v1/clusters/${id}/schema`, {
+        params: { target: target ?? '' },
+      });
+      return data;
+    },
+  });
+}

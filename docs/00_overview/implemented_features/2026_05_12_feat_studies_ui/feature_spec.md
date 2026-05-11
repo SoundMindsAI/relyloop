@@ -20,16 +20,17 @@
 ## 2) Current state audit
 
 After dependencies ship:
-- The Next.js skeleton from `infra_foundation` exists with a placeholder `app/page.tsx` ("RelyLoop is running").
-- `ui/` directory has `app/`, `components/ui/` (shadcn primitives can be added on demand via `npx shadcn-ui add`), `lib/`, `tests/`.
-- All MVP1 backend APIs (clusters, query-sets, query-templates, studies, judgment-lists, digests) exist via the listed dependencies.
+- The Next.js 16 skeleton from `infra_foundation` (refreshed by `infra_frontend_stack_refresh` 2026-05-12: Next 16 + React 19 + Tailwind 4 + Vitest 4 + ESLint 9 flat config + Turbopack) exists with a placeholder `ui/src/app/page.tsx` ("RelyLoop is running").
+- The `ui/` directory uses the `src/` layout — `ui/src/app/`, `ui/src/__tests__/`. There is no `ui/src/components/` or `ui/src/lib/` yet; this feature creates them. shadcn primitives can be added on demand via `npx shadcn@latest add` into `ui/src/components/ui/` (the `shadcn-ui` CLI name was retired upstream).
+- Tailwind 4 is **CSS-first**: there is no `tailwind.config.ts`. Design tokens, theme variables, and `@theme` directives live in `ui/src/app/globals.css`. PostCSS uses `@tailwindcss/postcss` (configured in `ui/postcss.config.mjs`).
+- All MVP1 backend APIs (clusters, query-sets, query-templates, studies, judgment-lists, digests, proposals) exist via the listed dependencies.
 - No production UI screens yet. This feature creates them.
 
 ## 3) Scope
 
 ### In scope
 
-- **Layout shell** (`app/layout.tsx`): shadcn theme provider, TanStack Query provider with default `staleTime: 30s` + `refetchOnWindowFocus: true`, Toaster for error/success notifications, top-nav with links to Dashboard / Clusters / Query Sets / Templates / Studies / Proposals (link out to `feat_proposals_ui`'s routes) / Chat (link out to `feat_chat_agent`'s routes).
+- **Layout shell** (`ui/src/app/layout.tsx`): shadcn theme provider, TanStack Query provider with default `staleTime: 30s` + `refetchOnWindowFocus: true`, Toaster for error/success notifications, top-nav with links to Dashboard / Clusters / Query Sets / Templates / Studies / Proposals (link out to `feat_proposals_ui`'s routes) / Chat (link out to `feat_chat_agent`'s routes).
 - **Dashboard** (`/`): Recent studies (top 5 by `created_at desc`), open proposals count, total studies-completed count. Compact cards with click-throughs to detail.
 - **Clusters list** (`/clusters`): table with name / engine_type / environment / health_check.status; "Register cluster" button → modal form.
 - **Cluster detail** (`/clusters/{id}`): summary card + studies-by-this-cluster table + recent run-query history (if any).
@@ -40,10 +41,10 @@ After dependencies ship:
 - **Template detail** (`/templates/{id}`): view-only of body + declared_params (editing in MVP1 means creating a NEW version via the "Fork to v+1" button — preserves immutability per `feat_study_lifecycle` semantics).
 - **Studies list** (`/studies`): cursor-paginated table with name / cluster / status badge / best_metric / created_at; status filter chips; "Create study" button → multi-step form modal.
 - **Study detail** (`/studies/{id}`): live (3s polling while `running`) trials table sortable by primary_metric_desc; status badge; cancel button (when running); digest panel (when completed) with narrative + Recharts horizontal bar chart for parameter_importance + top-10 trials table + "Open PR" button (links into `feat_proposals_ui` for the action — this feature renders the button but the action lives in the proposals module).
-- **TanStack Query hooks** in `ui/lib/api/` for every consumed endpoint: studies, trials, query-sets, queries, query-templates, judgment-lists, judgments, clusters, digests.
-- **Cross-cutting components** in `ui/components/common/`: `<StatusBadge>`, `<MetricDelta>`, `<ParameterImportanceChart>`, `<TrialsTable>`, `<CursorPaginator>`.
-- **API client** at `ui/lib/api-client.ts` injecting `X-Request-ID` (UUIDv7 generated client-side); intercepting 4xx/5xx responses and toasting structured `error_code` + `message`.
-- **Type generation**: `openapi-typescript` script in `package.json` consumes the FastAPI-generated OpenAPI schema to produce `ui/lib/types.ts`. Generation is committed (no runtime fetch).
+- **TanStack Query hooks** in `ui/src/lib/api/` for every consumed endpoint: studies, trials, query-sets, queries, query-templates, judgment-lists, judgments, clusters, digests, proposals.
+- **Cross-cutting components** in `ui/src/components/common/`: `<StatusBadge>`, `<MetricDelta>`, `<ParameterImportanceChart>`, `<TrialsTable>`, `<CursorPaginator>`.
+- **API client** at `ui/src/lib/api-client.ts` injecting `X-Request-ID` (UUIDv7 generated client-side); intercepting 4xx/5xx responses and toasting structured `error_code` + `message`.
+- **Type generation**: `openapi-typescript` script in `ui/package.json` consumes the FastAPI-generated OpenAPI schema to produce `ui/src/lib/types.ts`. Generation is committed (no runtime fetch).
 
 ### Out of scope
 
@@ -70,7 +71,7 @@ Single-phase. The MVP1 deliverable: "an engineer can complete the tutorial flow 
 - **Server state only via TanStack Query.** No `useState` for server data. Local state (form values, modal open/closed, sort selection) goes through `useState` / `useReducer`.
 - **Polling is bounded.** Running studies poll at 3s. Completed/cancelled/failed studies poll once on mount (no refetchInterval). The `useStudy(id)` hook accepts a `refetchInterval` arg; pages decide based on `data.status`.
 - **No optimistic updates in MVP1.** Mutations show a loading state, then refetch. Optimistic updates risk inconsistent UI on rollback; reserved for MVP2+ if needed.
-- **shadcn primitives copied, not imported.** `npx shadcn-ui add button card dialog ...` brings them into `ui/components/ui/`. Customizations happen in our copies; we control upgrades.
+- **shadcn primitives copied, not imported.** `npx shadcn@latest add button card dialog ...` brings them into `ui/src/components/ui/`. Customizations happen in our copies; we control upgrades.
 - **Cursor pagination, not page-numbers.** Per `api-conventions.md`. The `<CursorPaginator>` component handles next/prev.
 - **No client-side filtering of large lists.** If the user filters studies by status, the UI re-fetches with `?status=...`. Don't pull 1000 studies and filter in JS.
 - **Responsive but desktop-first.** Tested at 1280px+ widths. Mobile/tablet may render but isn't gated.
@@ -78,11 +79,11 @@ Single-phase. The MVP1 deliverable: "an engineer can complete the tutorial flow 
 ### Anti-patterns
 
 - **Do not** poll completed studies. Wasteful.
-- **Do not** import shadcn from npm. Copy via `npx shadcn-ui add`.
-- **Do not** call `fetch` directly. Use the `apiClient` from `ui/lib/api-client.ts` so `X-Request-ID` injection + error toasts are uniform.
+- **Do not** import shadcn from npm. Copy via `npx shadcn@latest add` (the legacy `shadcn-ui` CLI was retired upstream).
+- **Do not** call `fetch` directly. Use the `apiClient` from `ui/src/lib/api-client.ts` so `X-Request-ID` injection + error toasts are uniform.
 - **Do not** use page-number pagination. Cursor-only.
 - **Do not** persist server state in the URL beyond simple filters (`?status=running`). Don't try to round-trip a cursor through the URL — cursors live in state.
-- **Do not** invent Tailwind classes that don't exist (e.g., `text-primary-mid`). Use the design tokens from `tailwind.config.ts`.
+- **Do not** invent Tailwind classes that don't exist (e.g., `text-primary-mid`). Tailwind 4 is **CSS-first** — there is no `tailwind.config.ts`. Design tokens live in `ui/src/app/globals.css` under `@theme { ... }`; extend that file rather than inlining magic numbers.
 
 ## 5) Assumptions and dependencies
 
@@ -108,7 +109,7 @@ N/A — `audit_log` is MVP2.
 ## 7) Functional requirements
 
 ### FR-1: Layout + navigation
-- The system **MUST** ship `app/layout.tsx` with: shadcn `ThemeProvider` (light theme default; dark theme available), TanStack Query `QueryClientProvider`, `<Toaster>`, top navigation with links to `/`, `/clusters`, `/query-sets`, `/templates`, `/studies`, `/proposals`, `/chat`. Active link highlighted.
+- The system **MUST** ship `ui/src/app/layout.tsx` with: shadcn `ThemeProvider` (light theme default; dark theme available), TanStack Query `QueryClientProvider`, `<Toaster>`, top navigation with links to `/`, `/clusters`, `/query-sets`, `/templates`, `/studies`, `/proposals`, `/chat`. Active link highlighted.
 
 ### FR-2: Dashboard
 - The dashboard at `/` **MUST** show: 5 most recent studies (cards: name, cluster, status, best_metric or progress); "Open proposals" count card linking to `/proposals?status=pr_opened`; "Studies completed in last 7 days" count.
@@ -156,7 +157,8 @@ N/A — `audit_log` is MVP2.
 
 ### FR-7: Query sets + queries + CSV upload
 - `/query-sets` table; "Create query set" modal accepts JSON body OR CSV file (drag-and-drop).
-- `/query-sets/{id}` detail: list of queries with inline edit/delete; bulk-add CSV upload accessible via "Add queries" button.
+- `/query-sets/{id}` detail: **view-only list of queries** + bulk-add CSV upload accessible via "Add queries" button + Associated judgment lists section + Generate-judgments dialog.
+- Per-query inline edit/delete is **deferred to a follow-up** (`chore_query_inline_edit_delete` idea file) because the backend exposes only `POST /query-sets/{id}/queries` for bulk add — no per-query PATCH/DELETE endpoints exist in MVP1. See Decision log entry 2026-05-12.
 - CSV parsing happens server-side per `feat_study_lifecycle` FR-3; the UI just submits the file with `Content-Type: text/csv`.
 
 ### FR-8: Templates list + detail (view-only + fork-to-new-version)
@@ -171,32 +173,33 @@ N/A — `audit_log` is MVP2.
 - Notes: covers US-14, US-15.
 
 ### FR-10: API client + error handling
-- `ui/lib/api-client.ts` **MUST** inject `X-Request-ID: <UUIDv7>` on every request.
+- `ui/src/lib/api-client.ts` **MUST** inject `X-Request-ID: <UUIDv7>` on every request.
 - The client **MUST** convert `error_code` + `message` from 4xx/5xx responses into a toast notification via the `<Toaster>`.
 - The client **MUST** retry on 503 with `retryable: true` per [`api-conventions.md` §"Error envelope"](../../../01_architecture/api-conventions.md), up to 3 attempts with exponential backoff (1s, 2s, 4s).
 
 ## 8) API and data contract baseline
 
-This feature does NOT add any backend endpoints. It consumes the documented endpoints from its dependencies. The OpenAPI schema generated by FastAPI is the source of truth; `ui/lib/types.ts` is generated from it.
+This feature does NOT add any backend endpoints. It consumes the documented endpoints from its dependencies. The OpenAPI schema generated by FastAPI is the source of truth; `ui/src/lib/types.ts` is generated from it.
 
-### 7.4 Enumerated value contracts
+### 8.1 Enumerated value contracts
 
 The UI's filter chips, status badges, and dropdown options **MUST** match the backend allowlists exactly:
 
 | UI surface | Backend source of truth |
 |---|---|
-| Studies status filter chips | `backend/db/models/study.py` (`StudyStatus` `Literal[...]`) |
-| Trials sort dropdown | `backend/api/studies.py` (`TrialSortKey` `Literal[...]`) |
+| Studies status filter chips | `backend/app/api/v1/schemas.py` (`StudyStatusWire` `Literal[...]`) |
+| Trials sort dropdown | `backend/app/api/v1/schemas.py` (`TrialSortKey` `Literal[...]`; ultimately mirrors `backend/app/db/repo/trial.py`) |
 | Cluster engine_type select | `backend/app/adapters/protocol.py` (`EngineType` `Literal[...]`) |
 | Cluster auth_kind select | `backend/app/adapters/elastic.py` (`SUPPORTED_AUTH_KINDS` frozenset) |
-| Study sampler select | `backend/db/models/study.py` (`SamplerKind`) |
-| Study pruner select | `backend/db/models/study.py` (`PrunerKind`) |
-| Objective metric select | `backend/eval/scoring.py` (`SUPPORTED_METRICS`) |
-| Objective k select | `backend/eval/scoring.py` (`SUPPORTED_K_VALUES`) |
-| Judgment source filter | `backend/db/models/judgment.py` |
-| Proposal status badge | `backend/db/models/proposal.py` |
+| Study sampler select | `backend/app/eval/types.py` (`SamplerKind` `Literal[...]`) |
+| Study pruner select | `backend/app/eval/types.py` (`PrunerKind` `Literal[...]`) |
+| Objective metric select | `backend/app/eval/scoring.py` (`SUPPORTED_METRICS` frozenset) |
+| Objective k select | `backend/app/eval/scoring.py` (`SUPPORTED_K_VALUES` frozenset) |
+| Judgment source filter (`?source=`) | `backend/app/api/v1/schemas.py` (`JudgmentSourceFilterWire` — `llm` / `human` only; `click` is read-only and rejected at the filter layer) |
+| Judgment source badge (rendered value) | `backend/app/api/v1/schemas.py` (`JudgmentSourceWire` — `llm` / `human` / `click`) |
+| Proposal status badge | `backend/app/api/v1/schemas.py` (`ProposalStatusWire` `Literal[...]`) |
 
-The UI **MUST** add a source-of-truth comment above every option array (e.g., `// Values must match backend/db/models/study.py StudyStatus`).
+The UI **MUST** add a source-of-truth comment above every option array (e.g., `// Values must match backend/app/api/v1/schemas.py StudyStatusWire`).
 
 ## 9) Data model and state transitions
 
@@ -260,9 +263,9 @@ This feature has no backend schema. UI-side state lives in TanStack Query cache 
 
 ### AC-6: Source-of-truth comments verified
 
-- Given the developer adds a new value to `backend/db/models/study.py StudyStatus` (e.g., `'paused'`).
+- Given the developer adds a new value to `backend/app/api/v1/schemas.py StudyStatusWire` (e.g., `'paused'`).
 - When CI runs.
-- Then a CI step (or pre-commit hook) flags any `.tsx` files with `// Values must match backend/db/models/study.py StudyStatus` whose adjacent option array does NOT include the new value. Build fails.
+- Then a CI step (or pre-commit hook) flags any `.tsx` files with `// Values must match backend/app/api/v1/schemas.py StudyStatusWire` whose adjacent option array does NOT include the new value. Build fails.
 - Notes: this CI step is part of `infra_foundation` `pr.yml` extension OR added by this feature.
 
 ### AC-7: Cursor pagination on studies list
@@ -292,18 +295,18 @@ This feature has no backend schema. UI-side state lives in TanStack Query cache 
 
 ## 14) Test strategy requirements
 
-- **Unit tests** (`ui/tests/unit/`):
+- **Unit tests** (`ui/src/__tests__/`):
   - `components/StatusBadge.spec.tsx` — every status enum renders the documented color
   - `components/ParameterImportanceChart.spec.tsx` — given canonical input, renders expected bars
   - `lib/api-client.spec.ts` — `X-Request-ID` injected; error responses toast; retry on 503-retryable
   - `lib/api/studies.spec.ts` — TanStack Query hook contracts (mocked via msw)
-- **Component tests** (`ui/tests/unit/`):
+- **Component tests** (`ui/src/__tests__/`):
   - `app/studies/[id]/page.spec.tsx` — renders running state, transitions to completed, shows digest
   - `app/judgments/[id]/page.spec.tsx` — override flow
   - `app/studies/page.spec.tsx` — filter chips trigger refetch
 - **E2E tests:** N/A in MVP1 (Playwright lands at `chore_tutorial_polish` or MVP3+).
 
-vitest + msw for everything in MVP1. Tests run in CI under `pnpm test`.
+Vitest 4 + msw for everything in MVP1. Tests run in CI under `pnpm test` (the refreshed stack invokes Vitest 4 directly; ESLint 9 flat config in `ui/eslint.config.mjs` is exercised by `pnpm lint`).
 
 ## 15) Documentation update requirements
 
@@ -322,16 +325,16 @@ vitest + msw for everything in MVP1. Tests run in CI under `pnpm test`.
 
 | FR ID | AC IDs | Stories (TBD) | Test files | Docs |
 |---|---|---|---|---|
-| FR-1 (layout) | AC-1 | TBD | `ui/tests/unit/app/layout.spec.tsx` | runbook |
-| FR-2 (dashboard) | AC-1 | TBD | `ui/tests/unit/app/page.spec.tsx` | — |
-| FR-3 (studies list) | AC-7 | TBD | `ui/tests/unit/app/studies/page.spec.tsx` | — |
-| FR-4 (create modal) | AC-1 | TBD | `ui/tests/unit/app/studies/create-modal.spec.tsx` | — |
-| FR-5 (study detail) | AC-2, AC-3 | TBD | `ui/tests/unit/app/studies/[id]/page.spec.tsx` | — |
-| FR-6 (clusters) | AC-1 | TBD | `ui/tests/unit/app/clusters/*` | — |
-| FR-7 (query-sets) | AC-1 | TBD | `ui/tests/unit/app/query-sets/*` | — |
-| FR-8 (templates) | AC-1 | TBD | `ui/tests/unit/app/templates/*` | — |
-| FR-9 (judgment review) | AC-4, AC-5 | TBD | `ui/tests/unit/app/judgments/[id]/page.spec.tsx` | — |
-| FR-10 (api-client) | AC-8 | TBD | `ui/tests/unit/lib/api-client.spec.ts` | — |
+| FR-1 (layout) | AC-1 | TBD | `ui/src/__tests__/app/layout.spec.tsx` | runbook |
+| FR-2 (dashboard) | AC-1 | TBD | `ui/src/__tests__/app/page.spec.tsx` | — |
+| FR-3 (studies list) | AC-7 | TBD | `ui/src/__tests__/app/studies/page.spec.tsx` | — |
+| FR-4 (create modal) | AC-1 | TBD | `ui/src/__tests__/app/studies/create-modal.spec.tsx` | — |
+| FR-5 (study detail) | AC-2, AC-3 | TBD | `ui/src/__tests__/app/studies/[id]/page.spec.tsx` | — |
+| FR-6 (clusters) | AC-1 | TBD | `ui/src/__tests__/app/clusters/*` | — |
+| FR-7 (query-sets) | AC-1 | TBD | `ui/src/__tests__/app/query-sets/*` | — |
+| FR-8 (templates) | AC-1 | TBD | `ui/src/__tests__/app/templates/*` | — |
+| FR-9 (judgment review) | AC-4, AC-5 | TBD | `ui/src/__tests__/app/judgments/[id]/page.spec.tsx` | — |
+| FR-10 (api-client) | AC-8 | TBD | `ui/src/__tests__/lib/api-client.spec.ts` | — |
 | (CI gate) | AC-6, AC-9 | TBD | (GitHub Actions step) | `pr.yml` |
 
 ## 18) Definition of feature done
@@ -359,3 +362,4 @@ None — all resolved (see Decision log).
 - 2026-05-09 — Markdown sanitizer: **`react-markdown` + `remark-gfm`**; no raw HTML allowed.
 - 2026-05-09 — CSV size cap: **10MB on the UI** (rejects before submitting); backend has its own quota.
 - 2026-05-09 — Source-of-truth-comment CI gate: **shell script in `pr.yml`** that greps `// Values must match <path> <symbol>` comments and verifies the cited Literal contains the option list. Simpler than an eslint rule.
+- 2026-05-12 — **Per-query inline edit/delete deferred to a follow-up.** Spec originally described `/query-sets/{id}` detail as "list of queries with inline edit/delete." During implementation-plan generation (GPT-5.5 cycle-3 finding), it surfaced that the backend exposes only `POST /api/v1/query-sets/{id}/queries` (bulk add) — no per-query PATCH/DELETE endpoints. Rather than expand the feature scope to backend changes (out of scope for `feat_studies_ui`), the inline edit/delete UX is deferred to `chore_query_inline_edit_delete`. The MVP1 queries table is view-only with bulk-add as the only mutation path.

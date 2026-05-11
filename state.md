@@ -2,21 +2,38 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-12 (after `infra_python_313_backend_refresh` PR #48 merged + `infra_frontend_stack_refresh` in flight on `infra/frontend-stack-refresh`)
+**Last updated:** 2026-05-12 (after `feat_studies_ui` implementation complete; pending push + CI + merge on `feature/feat-studies-ui`)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `infra/frontend-stack-refresh` — Next 14→16, React 18→19, Tailwind 3→4, Vitest 2→4 coordinated upgrade per `infra_frontend_stack_refresh` idea (now-implemented). Pending push + CI + merge.
-- **Active feature:** none in flight (post `infra_frontend_stack_refresh`, the next feature is `feat_studies_ui` per the dashboard).
-- **Alembic head:** `0005_digests` (unchanged).
-- **Python:** 3.13 (bumped from 3.12 in PR #48 merged 2026-05-12; `pyproject.toml` `requires-python = ">=3.13"`).
+- **Branch:** `feature/feat-studies-ui` — Next 16 UI shell + 7 surfaces (Dashboard, Clusters, Query Sets, Templates, Studies list + detail, Judgments detail). 13 stories across 4 epics shipped via `/impl-execute --all`. Pending push + CI + merge.
+- **Active feature:** none in flight (post `feat_studies_ui`, next per the dashboard is `feat_github_webhook`).
+- **Alembic head:** `0005_digests` (unchanged — UI-only feature).
+- **Python:** 3.13.
 - **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat config), TypeScript 6, jsdom 29, Node engine `>=20.18`.
-- **Coverage:** above the 80% gate. 453 unit tests passing locally on Python 3.13 + 2 xpassed (pre-existing capability_check flake).
+- **Coverage:** UI tests at 122 passing (Vitest + jsdom + msw). Backend coverage unchanged (no backend code paths touched; one new contract test file for the source-of-truth helper).
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-12 — `feat_studies_ui` implementation complete** on `feature/feat-studies-ui`. 13 stories across 4 epics shipped end-to-end via `/impl-execute --all`. Zero migrations (UI-only). Stories breakdown:
+  - **Epic 1 (foundations):** Story 1.1 (api-client.ts with X-Request-ID + 503-retryable backoff + 4-attempt retry contract + UUIDv7 + openapi-typescript-generated `lib/types.ts`); Story 1.2 (layout shell with QueryProvider + ThemeProvider + Toaster + TopNav, central error-toast wiring via QueryCache + MutationCache); Story 1.3 (StatusBadge / MetricDelta / CursorPaginator / EmptyState + canonical `lib/enums.ts` with 19 wire-value allowlists carrying source-of-truth comments).
+  - **Epic 2 (clusters / query-sets / templates / judgments):** Story 2.1 (clusters list + register modal + detail w/ studies-by-cluster), 2.2 (query sets list + create + detail + associated-judgment-lists section + generate-judgments dialog), 2.3 (templates list + view-only detail + Fork-to-v+1 via parent_id round-trip; Prism-overlaid `TemplateBodyEditor`), 2.4 (judgment review header + paginated table + source filter chips + override `<Popover>` + calibration modal with CSV/JSON parse + kappa display).
+  - **Epic 3 (dashboard + studies):** Story 3.2 (studies list with URL-backed status filter chips + cursor pagination + `studies.ts` hook surface), 3.3 (5-step create-study modal with per-step Zod-shaped validation + key-omission to let backend Settings defaults apply), 3.4 (study detail with caller-driven 3s polling via TanStack `refetchInterval` function form + cancel via `<AlertDialog>` + digest panel with Recharts ParameterImportanceChart + Open-PR link to `/proposals/{id}?action=open_pr`), 3.1 (dashboard with three parallel queries + X-Total-Count count cards + backend-unreachable empty state).
+  - **Epic 4 (docs + CI):** Story 4.1 (`docs/03_runbooks/ui-debugging.md` + ui-architecture.md directory-layout refresh + US-22/23/24 marked Implemented), 4.2 (`scripts/ci/verify_enum_source_of_truth.sh` + backend helper module + pr.yml step). The Story 4.2 gate caught a real drift on first run — `TrialSortKey` was `optuna_trial_number_asc` on the backend but `trial_number_asc` in `enums.ts`; fixed both sides.
+  - **Key technical decisions during execution:**
+    - **api-client.ts captured globalThis.fetch at module-load → bypassed msw.** Fixed by reading `globalThis.fetch` at call time so msw interceptors (installed in `beforeAll`) patch the singleton's network surface. Pre-existing latent bug that would have surfaced in every future hook test against the singleton.
+    - **Test target URL pinned to `http://api.test` via `vitest.config.ts` env override.** Default `NEXT_PUBLIC_API_BASE_URL` is `http://localhost:8000`; pinning to a non-resolvable host lets msw mock cleanly even when the dev stack is running.
+    - **Radix Select + jsdom polyfills:** `Element.scrollIntoView` / `hasPointerCapture` / `releasePointerCapture` stubs added to `__tests__/setup.ts`. Required by radix Select / Popover / AlertDialog under React 19 + jsdom 29.
+    - **5-step modal test mocks `@/components/ui/select` with a thin native `<select>` shim.** Radix's portal handling recurses in jsdom for this many-Select modal; the contract under test is the POSTed `CreateStudyRequest` shape, which the shim preserves.
+    - **Caller-driven polling via TanStack `refetchInterval` function form**, not `useEffect` + `setState`. The eslint `react-hooks/set-state-in-effect` rule rejects the latter; the function form derives the interval from the latest query state on each tick and flips off automatically when the study completes.
+    - **`@hookform/resolvers` 3.10 + zod 3.24 + zod 4 transitive:** when zod 4 lives anywhere in the lockfile (transitive), TypeScript narrows the `zodResolver` parameter against zod 4's `ZodType<...>`. Worked around with a single `as unknown as never` cast at the `zodResolver(schema)` call site in `create-template-modal.tsx`. Runtime is fine; only typecheck was affected.
+  - **Tangential drift caught and either fixed inline or captured for follow-up:**
+    - **`TrialSortKey` drift** between backend and frontend → fixed in Story 4.2 commit; gate would have failed CI on this PR if not for the same-PR fix.
+    - **No backend `GET /api/v1/query-sets/{id}/queries` endpoint** to support a real queries table — `chore_query_inline_edit_delete` updated to include the listing endpoint as a prerequisite of the inline edit/delete UX.
+    - **`BulkQueriesJsonRequest` not in generated OpenAPI types** because the bulk-add endpoint parses Content-Type manually. Inlined the TS shape; spec drift noted in Story 2.2 commit.
+  - **Tests:** 122 frontend Vitest cases (24 files) across `lib/api/`, `lib/`, `components/`, `app/` layers; 4 new backend pytest cases for the enum-helper module. Typecheck / lint / `next build` clean.
 - **2026-05-12 — `infra_frontend_stack_refresh` shipped** on `infra/frontend-stack-refresh` (single coordinated PR, pending merge). Realizes the `infra_frontend_stack_refresh/idea.md` plan from 2026-05-09 in the optimal upgrade window — placeholder UI volume is still ~0 right before `feat_studies_ui` starts. Bumps: Next 14.2→16.2 (App Router + Turbopack; Next 16 auto-modified `tsconfig.json` `jsx: preserve → react-jsx` for the React 19 automatic runtime), React 18→19, Tailwind 3→4 (deleted `tailwind.config.ts`; CSS-first `@import "tailwindcss"` in `globals.css`; postcss plugin shape `tailwindcss → @tailwindcss/postcss`), Vitest 2→4, `@types/react` + `react-dom` 18→19, `@vitejs/plugin-react` 4→6, `jsdom` 25→29, `eslint-plugin-security` 3→4. ESLint stayed at 9.39.4 (planned for 10 but `eslint-plugin-react@7.37.5` — transitive via `eslint-config-next` 16 — hits a removed-legacy-context API in ESLint 10; eslint-config-next's peerDep is `>=9.0.0`). `next lint` removed in Next 16 → `lint` script changed to `eslint .` (flat config in `eslint.config.mjs`, replaces legacy `.eslintrc.json`). Node engine bumped `>=18.17 → >=20.18` (Next 16 minimum). Verified locally on Node 22.22.2: lint, typecheck, vitest 4 (2 tests), and next 16 production build all clean.
 - **2026-05-12 — Python 3.12 → 3.13 + backend deps refresh** merged as PR #48 (squash commit `ed658d1`). `pyproject.toml` `requires-python = ">=3.13"`, `target-version = "py313"`, `mypy python_version = "3.13"`, classifiers refreshed (3.12 → 3.13 + 3.14). CI workflow + Dockerfile `ARG PYTHON_VERSION` updated to 3.13. `uv lock --upgrade` pulled patches: `coverage` 7.13.5→7.14.0, `mypy` 2.0→2.1, `uuid-utils` 0.14.1→0.15.0, plus 4 transitive bumps. Every other direct backend dep was already on PyPI's latest (`fastapi` 0.136.1, `pydantic` 2.13.4, `sqlalchemy` 2.0.49, `asyncpg` 0.31.0, `httpx` 0.28.1, `openai` 2.36.0, `arq` 0.28.0, `optuna` 4.8.0, `matplotlib` 3.10.9, `pytrec-eval` 0.5, etc.). `redis` stayed at 5.3.1 (capped by `arq[hiredis]<6` upstream constraint — real upstream block, not a refresh candidate). 4 ruff UP043 auto-fixes (`AsyncGenerator[X, None]` → `AsyncGenerator[X]` under py313 stdlib generics). All gates green; CI verified docker image built against `python:3.13-slim`.
 - **2026-05-12 — `feat_github_pr_worker` merged into `main`** as PR #45 (squash commit `a80433b`). 13 stories across 4 epics covering FR-1..FR-5 + AC-1..AC-12. **Zero migrations** (additive on existing `proposals` + `config_repos` columns). Plan went through **3 GPT-5.5 plan-review cycles** before execution (15 findings applied) AND **3 GPT-5.5 final-review cycles** on the merged-branch diff (8 NEW findings, all accepted + applied — see PR #45 review summary comment).
@@ -191,19 +208,20 @@
 
 ## In flight
 
-- None. Next feature pulled from the Queued list below.
+- `feat_studies_ui` pending push + CI + merge on `feature/feat-studies-ui`.
 
 ## Queued (priority-ordered by dashboard / dep graph)
 
 **Source of truth:** [`docs/00_overview/MVP1_DASHBOARD.md`](docs/00_overview/MVP1_DASHBOARD.md) (regenerated by the `mvp1-dashboard-regen` pre-commit hook). Run `/pipeline status` for the live view.
 
-1. **`feat_studies_ui`** — Next.js app shipping 9 of the 11 MVP1 routes (dashboard, clusters list/detail, query sets list/detail, judgment review, templates list/editor, studies). Unlocks `feat_proposals_ui` + `feat_chat_agent` + the digest panel that consumes `GET /api/v1/studies/{id}/digest` shipped by `feat_digest_proposal`.
-2. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified). Will mirror the per-repo `webhook_secret_ref` pattern that `feat_github_pr_worker` established for `auth_ref` (one HMAC secret per registered repo).
-3. **`feat_chat_agent`** — streaming chat orchestrator. Will consume `POST /api/v1/proposals/{id}/open_pr` for the agent-tool "open this PR" path. Depends on `feat_studies_ui` for the chat surface UI.
-4. **`feat_proposals_ui`** — `/proposals` review surface. Consumes the proposal CRUD endpoints `feat_digest_proposal` shipped + the `POST /proposals/{id}/open_pr` endpoint shipped by `feat_github_pr_worker`. Depends on `feat_studies_ui` shell + `feat_github_webhook` for PR-state mirroring.
-5. **`chore_tutorial_polish`** — sample data + walkthrough. Tutorial flow now has the `POST /judgment-lists/import` path it expects (FR-3b).
-6. **`chore_judgments_periodic_resume_sweep`** — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
-7. **`chore_infra_foundation_github_token_file_retirement`** — deprecate the legacy `GITHUB_TOKEN_FILE` env var now that per-repo `auth_ref` ships in `feat_github_pr_worker`.
+1. **`feat_github_webhook`** — `/webhooks/github` (idempotent, signature-verified). Will mirror the per-repo `webhook_secret_ref` pattern that `feat_github_pr_worker` established for `auth_ref` (one HMAC secret per registered repo).
+2. **`feat_chat_agent`** — streaming chat orchestrator. Will consume `POST /api/v1/proposals/{id}/open_pr` for the agent-tool "open this PR" path. Depends on `feat_studies_ui` for the chat surface UI.
+3. **`feat_proposals_ui`** — `/proposals` review surface. Consumes the proposal CRUD endpoints `feat_digest_proposal` shipped + the `POST /proposals/{id}/open_pr` endpoint shipped by `feat_github_pr_worker`. Depends on `feat_studies_ui` shell + `feat_github_webhook` for PR-state mirroring.
+4. **`chore_tutorial_polish`** — sample data + walkthrough. Tutorial flow now has the `POST /judgment-lists/import` path it expects (FR-3b).
+5. **`chore_studies_ui_shadcn_polish`** — migrate TopNav + CursorPaginator page-size to `<NavigationMenu>` / `<Select>` shadcn primitives (deferred from `feat_studies_ui` Epic 1 phase gate; native equivalents shipped).
+6. **`chore_query_inline_edit_delete`** — backend GET / PATCH / DELETE endpoints for individual queries + UI for inline edit/delete on query-set detail. Listing endpoint is a prerequisite (current detail page only shows count + bulk add).
+7. **`chore_judgments_periodic_resume_sweep`** — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
+8. **`chore_infra_foundation_github_token_file_retirement`** — deprecate the legacy `GITHUB_TOKEN_FILE` env var now that per-repo `auth_ref` ships in `feat_github_pr_worker`.
 
 ## Known debt / fragility
 

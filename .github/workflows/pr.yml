@@ -144,6 +144,13 @@ jobs:
           path: coverage.xml
           if-no-files-found: warn
 
+      - name: Verify source-of-truth enum comments (feat_studies_ui Story 4.2)
+        # Fails when a backend Literal / frozenset gains or loses a value but
+        # the corresponding ui/src/lib/enums.ts array isn't updated. Runs in
+        # the backend job because the helper imports backend.app.api.v1.schemas
+        # via the project venv that uv-sync set up above.
+        run: bash scripts/ci/verify_enum_source_of_truth.sh
+
   frontend:
     name: frontend (lint + typecheck + tests + build)
     runs-on: ubuntu-latest
