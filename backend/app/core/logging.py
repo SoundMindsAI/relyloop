@@ -26,6 +26,8 @@ from typing import Any
 import structlog
 from structlog.types import EventDict, Processor
 
+from backend.app.domain.git.redaction import RedactTokensProcessor
+
 SERVICE_NAME = "relyloop-api"
 
 
@@ -47,6 +49,11 @@ def configure_logging(*, level: int = logging.INFO, json_output: bool = True) ->
     can call this with custom args.
     """
     # Shared processors that run for both structlog-native and stdlib-routed records.
+    # RedactTokensProcessor sits AFTER format_exc_info so tracebacks (which
+    # commonly leak tokens via subprocess argv / shell output) are scrubbed
+    # too — and BEFORE the renderer so it's the last semantic transform on
+    # the record before serialization (feat_github_pr_worker FR-5,
+    # defense-in-depth for every log line system-wide).
     shared_processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_log_level,
@@ -54,6 +61,7 @@ def configure_logging(*, level: int = logging.INFO, json_output: bool = True) ->
         structlog.processors.TimeStamper(fmt="iso", utc=True, key="ts"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
+        RedactTokensProcessor(),
     ]
 
     # The final renderer differs between JSON (production) and console (dev).
