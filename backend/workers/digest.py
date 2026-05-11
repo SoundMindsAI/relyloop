@@ -608,14 +608,34 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     )
 
                 # Step 12 — Render + LLM call.
+                # Fetch the human-readable names + query_count + rubric so
+                # the operator-facing narrative renders names instead of
+                # raw UUIDs (final-review F2 from GPT-5.5).
+                cluster_row = await repo.get_cluster(db, study.cluster_id)
+                query_set_row = await repo.get_query_set(db, study.query_set_id)
+                jl_row = await repo.get_judgment_list(db, study.judgment_list_id)
+                qs_count = (
+                    await repo.count_queries_in_set(db, study.query_set_id)
+                    if query_set_row is not None
+                    else 0
+                )
+                cluster_name = cluster_row.name if cluster_row else study.cluster_id
+                query_set_name = query_set_row.name if query_set_row else study.query_set_id
+                judgment_list_name = jl_row.name if jl_row else study.judgment_list_id
+                rubric_text = (jl_row.rubric or "") if jl_row else ""
+                # Truncate rubric for the prompt (operators may set a
+                # long rubric; we want a summary line, not the whole body).
+                rubric_summary = rubric_text[:280] + ("..." if len(rubric_text) > 280 else "")
+                if not rubric_summary:
+                    rubric_summary = "(see judgment list rubric)"
                 user_prompt = render_digest_user_prompt(
                     study_name=study.name,
-                    cluster_name=str(study.cluster_id),  # name lookup deferred to follow-up
+                    cluster_name=cluster_name,
                     target=study.target,
-                    query_set_name=str(study.query_set_id),
-                    query_count=0,  # not load-bearing; populated by future enrichment
-                    judgment_list_name=str(study.judgment_list_id),
-                    rubric_summary="(see judgment list rubric)",
+                    query_set_name=query_set_name,
+                    query_count=qs_count,
+                    judgment_list_name=judgment_list_name,
+                    rubric_summary=rubric_summary,
                     baseline_metric=study.baseline_metric,
                     achieved_metric=study.best_metric,
                     top_trials=_compute_top_trials(top_trials),
@@ -729,13 +749,18 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     )
                     return
 
-                if all_dropped:
+                if not structured_output_enabled:
+                    # Capability-fallback (degraded) path per spec AC-11:
+                    # pending proposal stays untouched. This branch wins
+                    # over the all_dropped DELETE — capability failure is
+                    # a SYSTEM concern (LLM endpoint), not a TEMPLATE
+                    # concern, so the proposal should still be available
+                    # to retry once the operator fixes the upstream
+                    # capability (final-review F1 from GPT-5.5).
+                    pass
+                elif all_dropped:
                     # All-dropped: DELETE the pending proposal — non-actionable.
                     await db.execute(delete(Proposal).where(Proposal.id == proposal.id))
-                elif not structured_output_enabled:
-                    # Capability-fallback (degraded) path per spec AC-11:
-                    # pending proposal stays untouched. Skip the UPDATE.
-                    pass
                 else:
                     # Standard / partial-drift: conditional UPDATE on the
                     # pending proposal (cycle-3 F4 — benign no-op when the

@@ -49,16 +49,20 @@ pytestmark = [
     # computing get_param_importances. In CI's hermetic service-container
     # Postgres + freshly-built Optuna RDB, the importance call returns
     # {} (the worker's try/except defense-in-depth fallback catches the
-    # underlying ValueError "No trials are completed yet."). The path is
-    # exercised at a smaller granularity by test_digest_generate.py
-    # (asserts parameter_importance is non-null) — that's the AC-7 cover.
-    # Tracking the test-fixture refinement at
-    # docs/02_product/planned_features/bug_digest_param_importance_seam/idea.md.
+    # underlying ValueError "No trials are completed yet.").
+    #
+    # **AC-7 is genuinely under-covered by this PR.** test_digest_generate.py
+    # only asserts `parameter_importance is not None` (which `{}` satisfies);
+    # the full key-set + sum-to-1.0 assertion lives only here. The
+    # fixture-seam fix is tracked at
+    # docs/02_product/planned_features/bug_digest_param_importance_seam/idea.md
+    # for the next iteration.
     pytest.mark.xfail(
         reason=(
-            "Test fixture's Optuna trial seeding doesn't survive the worker's "
-            "separate optuna_runtime.get_or_create_study handle in CI. AC-7 "
-            "asserted at a smaller granularity in test_digest_generate.py."
+            "AC-7 cover incomplete: test fixture's Optuna trial seeding "
+            "doesn't survive the worker's separate "
+            "optuna_runtime.get_or_create_study handle in CI. Tracked at "
+            "bug_digest_param_importance_seam/idea.md."
         ),
         strict=False,
     ),

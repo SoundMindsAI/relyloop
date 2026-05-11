@@ -18,7 +18,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, func, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -49,7 +49,12 @@ class Digest(Base):
     suggested_followups: Mapped[list[str]] = mapped_column(
         ARRAY(Text),
         nullable=False,
-        server_default=func.text("ARRAY[]::TEXT[]"),
+        # Use sqlalchemy.text() (a TextClause), not func.text() (a SQL
+        # function call). The migration uses sa.text("ARRAY[]::TEXT[]")
+        # so this matches; ORM server_default is only consumed by
+        # Base.metadata.create_all (we use Alembic), but keep the two
+        # in sync for correctness (final-review F5 from GPT-5.5).
+        server_default=text("ARRAY[]::TEXT[]"),
     )
     """List of LLM-suggested next-steps; max 5 entries (enforced in worker
     via the structured-output schema's ``maxItems: 5``). NOT NULL with empty

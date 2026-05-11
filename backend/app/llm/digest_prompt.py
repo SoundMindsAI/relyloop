@@ -128,3 +128,15 @@ def render_digest_user_prompt(
         dropped_template_params=dropped_template_params,
         include_recommendation=include_recommendation,
     )
+
+
+def render_digest_system_prompt(*, include_recommendation: bool = True) -> str:
+    """Return the bundle's system prompt verbatim.
+
+    For MVP1 the same system prompt is used for both the structured and
+    degraded paths — the user prompt's ``{% if not include_recommendation %}``
+    branch carries the degraded-mode framing. The ``include_recommendation``
+    parameter is reserved for a future split-prompt design.
+    """
+    del include_recommendation  # reserved hook
+    return load_digest_prompts().system_prompt
