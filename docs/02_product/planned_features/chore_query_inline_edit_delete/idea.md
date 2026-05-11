@@ -5,9 +5,9 @@
 
 ## Problem
 
-The `feat_studies_ui` plan ships a **view-only** queries table on the query-set detail page (Story 2.2). Operators can bulk-add via CSV/JSON but cannot edit or delete an individual query through the UI. The spec language ("list of queries with edit/delete") suggests this was intended but the backend never received the supporting endpoints.
+The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries either** — the backend exposes only `POST /api/v1/query-sets/{id}/queries` (bulk add). Story 2.2 therefore shipped a count + bulk-add UX on the detail page; per-query inspection is unavailable.
 
-This is a **scoping omission**, not a regression: nothing was lost (the endpoints never existed). But the spec/plan now diverge, and operators may expect the inline UX.
+This is a **scoping omission**, not a regression: nothing was lost (the endpoints never existed). But the spec language assumes both listing and edit/delete, so the spec/plan diverge from the backend.
 
 ## Why deferred
 
@@ -15,9 +15,10 @@ Backend doesn't expose the surface — implementing the UI without endpoints wou
 
 ## Proposed scope (when this idea graduates to a spec)
 
-1. **Backend:** add `PATCH /api/v1/query-sets/{id}/queries/{query_id}` (update `query_text`, `doc_id`, `metadata`) and `DELETE /api/v1/query-sets/{id}/queries/{query_id}` (soft or hard delete — TBD per data model). Both validate that the parent query-set is not referenced by any active or completed study (FK consistency; deletion of a query that produced trials would orphan their `qrels` rows).
-2. **Frontend:** add inline edit (`<Popover>` or row-level form) and delete (with `<AlertDialog>` confirm) to `ui/src/components/query-sets/queries-table.tsx`.
-3. **Tests:** integration for backend FK guards; component test for the inline UI.
+1. **Backend listing endpoint** (prerequisite): add `GET /api/v1/query-sets/{id}/queries?cursor&limit` returning per-query rows. Until this lands, the UI cannot render a real queries table — only a count.
+2. **Backend mutations:** add `PATCH /api/v1/query-sets/{id}/queries/{query_id}` (update `query_text`, `doc_id`, `metadata`) and `DELETE /api/v1/query-sets/{id}/queries/{query_id}` (soft or hard delete — TBD per data model). Both validate that the parent query-set is not referenced by any active or completed study (FK consistency; deletion of a query that produced trials would orphan their `qrels` rows).
+3. **Frontend:** ship a real `queries-table.tsx` reading from the new listing endpoint + add inline edit (`<Popover>` or row-level form) and delete (with `<AlertDialog>` confirm).
+4. **Tests:** integration for backend FK guards; component test for the inline UI.
 
 ## Dependencies
 
