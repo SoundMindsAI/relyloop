@@ -29,6 +29,11 @@ The ``on_startup`` hook:
 3. Sweeps ``SELECT id FROM studies WHERE status = 'running'`` and
    enqueues ``resume_study(study_id)`` for each — restart safety per
    FR-5 / AC-4.
+4. Sweeps queued studies + generating judgment lists for re-enqueue.
+5. **feat_digest_proposal Story 2.2 / FR-2b** — sweeps
+   ``proposals WHERE status='pending'`` lacking a digest and enqueues
+   ``generate_digest`` for each, with deterministic ``_job_id`` so the
+   sweep doesn't double-fire against an already-in-flight job.
 
 Long-running orchestrator jobs are given ``job_timeout=86400`` (24h) on
 WorkerSettings so a long ``time_budget_min`` doesn't trigger Arq's
@@ -103,6 +108,12 @@ async def on_startup(ctx: dict[str, Any]) -> None:
         # case where POST /judgments/generate committed the
         # judgment_lists row but enqueue_job raised (Redis transient).
         generating_judgment_ids = await repo.list_generating_judgment_list_ids(db)
+        # feat_digest_proposal Story 2.2 / FR-2b: pending proposals
+        # without a digest. The orchestrator's `_stop` enqueue at
+        # orchestrator.py:370 is best-effort; this sweep covers the case
+        # where the worker was down between the orchestrator's commit
+        # and its fast-path enqueue.
+        pending_digest_study_ids = await repo.list_pending_proposals_for_boot_scan(db)
     for sid in running_ids:
         await arq_pool.enqueue_job("resume_study", sid)
         logger.info(
@@ -130,6 +141,21 @@ async def on_startup(ctx: dict[str, Any]) -> None:
             "judgment generation dispatched at worker boot",
             event_type="judgment_resume_enqueued",
             judgment_list_id=jid,
+        )
+    for sid in pending_digest_study_ids:
+        # Deterministic ``_job_id`` mirrors the judgments sweep pattern —
+        # if the orchestrator's fast-path enqueue at orchestrator.py:370
+        # was already accepted, the boot-scan enqueue is a no-op (per
+        # FR-2b dedup contract).
+        await arq_pool.enqueue_job(
+            "generate_digest",
+            sid,
+            _job_id=f"generate_digest:{sid}",
+        )
+        logger.info(
+            "digest dispatched at worker boot",
+            event_type="digest_resume_enqueued",
+            study_id=sid,
         )
 
 

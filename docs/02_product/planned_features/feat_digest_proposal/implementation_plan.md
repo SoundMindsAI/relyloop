@@ -1164,7 +1164,7 @@ Not in scope for this PR. UI lands with `feat_studies_ui` (digest panel on study
 - [x] Story 1.2 — repo extensions
 - [x] Story 1.3 — prompt loader + files
 - [x] Story 2.1 — `generate_digest` worker + stub deletion
-- [ ] Story 2.2 — boot-scan extension
+- [x] Story 2.2 — boot-scan extension
 - [ ] Story 3.1 — `GET /studies/{id}/digest`
 - [ ] Story 3.2 — `POST /proposals` (manual)
 - [ ] Story 3.3 — list + detail
