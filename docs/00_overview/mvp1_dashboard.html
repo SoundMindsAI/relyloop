@@ -314,11 +314,11 @@ footer {
 
 <section>
   <div class="next-up">
-    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/feat_studies_ui/feature_spec.md">Studies Ui</a></div>
-    <div class="one-liner">A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §&quot;Routes (MVP1)&quot;](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgment review, templates list/editor, studi</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_studies_ui/implementation_plan.md --all</code>
+    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_github_webhook/feature_spec.md">Github Webhook</a></div>
+    <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/feat_github_webhook --auto</code>
   </div>
 </section>
 
@@ -328,13 +328,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Features done</div>
-      <div class="value">8 / 13</div>
-      <div class="sub">62% of scoped MVP1 features</div>
-      <div class="bar"><span style="width:62%"></span></div>
+      <div class="value">9 / 13</div>
+      <div class="sub">69% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:69%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">18</div>
+      <div class="value">17</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -632,18 +632,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_studies_ui/feature_spec.md">Studies Ui</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/25">PR #25</a>
-  </div>
-  <div class="one-liner">A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §&quot;Routes (MVP1)&quot;](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm</div>
-
-  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">infra_adapter_elastic</span></div>
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -653,7 +642,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">8</span></h3>
+  <h3>Done <span class="count">9</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
@@ -688,6 +677,18 @@ footer {
   <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
 
   <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/feature_spec.md">Studies Ui</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/50">PR #50</a><span>merged 2026-05-12</span>
+  </div>
+  <div class="one-liner">A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §&quot;Routes (MVP1)&quot;](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">infra_adapter_elastic</span></div>
 </div>
 
 
@@ -771,8 +772,6 @@ footer {
   class feat_github_webhook spec;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
-  feat_studies_ui[&quot;studies ui&quot;]
-  class feat_studies_ui plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -787,6 +786,8 @@ footer {
   class feat_llm_judgments done;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker done;
+  feat_studies_ui[&quot;studies ui&quot;]
+  class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
   feat_chat_agent --&gt; chore_tutorial_polish
@@ -818,11 +819,6 @@ footer {
   feat_digest_proposal --&gt; feat_proposals_ui
   feat_github_pr_worker --&gt; feat_proposals_ui
   feat_github_webhook --&gt; feat_proposals_ui
-  infra_foundation --&gt; feat_studies_ui
-  feat_study_lifecycle --&gt; feat_studies_ui
-  feat_digest_proposal --&gt; feat_studies_ui
-  feat_llm_judgments --&gt; feat_studies_ui
-  infra_adapter_elastic --&gt; feat_studies_ui
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -831,7 +827,12 @@ footer {
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
-  feat_digest_proposal --&gt; feat_github_pr_worker</div>
+  feat_digest_proposal --&gt; feat_github_pr_worker
+  infra_foundation --&gt; feat_studies_ui
+  feat_study_lifecycle --&gt; feat_studies_ui
+  feat_digest_proposal --&gt; feat_studies_ui
+  feat_llm_judgments --&gt; feat_studies_ui
+  infra_adapter_elastic --&gt; feat_studies_ui</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
   classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
@@ -846,8 +847,6 @@ footer {
   class feat_github_webhook spec;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
-  feat_studies_ui[&quot;studies ui&quot;]
-  class feat_studies_ui plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -862,6 +861,8 @@ footer {
   class feat_llm_judgments done;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker done;
+  feat_studies_ui[&quot;studies ui&quot;]
+  class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
   feat_chat_agent --&gt; chore_tutorial_polish
@@ -893,11 +894,6 @@ footer {
   feat_digest_proposal --&gt; feat_proposals_ui
   feat_github_pr_worker --&gt; feat_proposals_ui
   feat_github_webhook --&gt; feat_proposals_ui
-  infra_foundation --&gt; feat_studies_ui
-  feat_study_lifecycle --&gt; feat_studies_ui
-  feat_digest_proposal --&gt; feat_studies_ui
-  feat_llm_judgments --&gt; feat_studies_ui
-  infra_adapter_elastic --&gt; feat_studies_ui
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -906,7 +902,12 @@ footer {
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
-  feat_digest_proposal --&gt; feat_github_pr_worker</pre></noscript>
+  feat_digest_proposal --&gt; feat_github_pr_worker
+  infra_foundation --&gt; feat_studies_ui
+  feat_study_lifecycle --&gt; feat_studies_ui
+  feat_digest_proposal --&gt; feat_studies_ui
+  feat_llm_judgments --&gt; feat_studies_ui
+  infra_adapter_elastic --&gt; feat_studies_ui</pre></noscript>
   </div>
 </section>
 

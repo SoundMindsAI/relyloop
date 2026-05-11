@@ -4,22 +4,22 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 
 ## Next up
 
-**[feat_studies_ui](../02_product/planned_features/feat_studies_ui/feature_spec.md)** — Feature, currently in **Plan**
+**[feat_github_webhook](../02_product/planned_features/feat_github_webhook/feature_spec.md)** — Feature, currently in **Spec**
 
-> A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgment review, templates list/editor, studi
+> GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.
 
-Plan approved; run /impl-execute to ship
+Spec exists; run /pipeline to generate the implementation plan + ship
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_studies_ui/implementation_plan.md --all
+/pipeline docs/02_product/planned_features/feat_github_webhook --auto
 ```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Features done | **8 / 13** (62%) |
-| Path to MVP1 | **18** items remaining (features + bugs + chores) |
+| Features done | **9 / 13** (69%) |
+| Path to MVP1 | **17** items remaining (features + bugs + chores) |
 | Open bugs | 3 |
 | Open chores | 10 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
@@ -27,13 +27,14 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (8)
+### Done (9)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
 | [feat_llm_judgments](implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) merged 2026-05-11 |
+| [feat_studies_ui](implemented_features/2026_05_12_feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | [PR #50](https://github.com/SoundMindsAI/relyloop/pull/50) merged 2026-05-12 |
 | [feat_study_lifecycle](implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
@@ -44,11 +45,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_studies_ui](../02_product/planned_features/feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | [PR #25](https://github.com/SoundMindsAI/relyloop/pull/25) |
+_None._
 
 ### Spec (4)
 
@@ -100,8 +99,6 @@ graph LR
   class feat_github_webhook spec;
   feat_proposals_ui["proposals ui"]
   class feat_proposals_ui spec;
-  feat_studies_ui["studies ui"]
-  class feat_studies_ui plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -116,6 +113,8 @@ graph LR
   class feat_llm_judgments done;
   feat_github_pr_worker["github pr worker"]
   class feat_github_pr_worker done;
+  feat_studies_ui["studies ui"]
+  class feat_studies_ui done;
   infra_frontend_stack_refresh["frontend stack refresh"]
   class infra_frontend_stack_refresh done;
   feat_chat_agent --> chore_tutorial_polish
@@ -147,11 +146,6 @@ graph LR
   feat_digest_proposal --> feat_proposals_ui
   feat_github_pr_worker --> feat_proposals_ui
   feat_github_webhook --> feat_proposals_ui
-  infra_foundation --> feat_studies_ui
-  feat_study_lifecycle --> feat_studies_ui
-  feat_digest_proposal --> feat_studies_ui
-  feat_llm_judgments --> feat_studies_ui
-  infra_adapter_elastic --> feat_studies_ui
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -161,6 +155,11 @@ graph LR
   infra_adapter_elastic --> feat_github_pr_worker
   feat_study_lifecycle --> feat_github_pr_worker
   feat_digest_proposal --> feat_github_pr_worker
+  infra_foundation --> feat_studies_ui
+  feat_study_lifecycle --> feat_studies_ui
+  feat_digest_proposal --> feat_studies_ui
+  feat_llm_judgments --> feat_studies_ui
+  infra_adapter_elastic --> feat_studies_ui
 ```
 
 ---

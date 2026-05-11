@@ -1,7 +1,7 @@
 # Implementation Plan — feat_studies_ui
 
 **Date:** 2026-05-12
-**Status:** Ready for Execution (3 GPT-5.5 review cycles complete; 32 of 33 findings accepted + applied, 1 rejected with cited counter-evidence)
+**Status:** Complete (PR #50, pending merge 2026-05-12). 13 of 13 stories shipped via `/impl-execute --all`. 3 GPT-5.5 plan-review cycles pre-execution; 32 of 33 findings accepted + applied, 1 rejected with cited counter-evidence.
 **Primary spec:** [feature_spec.md](feature_spec.md) (drift-patched 2026-05-12 in this session)
 **Policy sources:**
 - [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md) — Next 16 + TanStack Query + shadcn patterns (the architecture doc's directory-layout block is stale — `ui/src/` is canonical per the 2026-05-12 frontend refresh; the plan follows the actual `ui/src/` layout)

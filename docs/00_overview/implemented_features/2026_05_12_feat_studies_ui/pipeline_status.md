@@ -40,9 +40,18 @@
     - [`chore_cluster_run_query_history`](../chore_cluster_run_query_history/idea.md) — persisted run-query history (backend has no persistence today)
 
 ## Implement
-- Status: Not started
-- Branch: `feature/feat-studies-ui` (created in this session)
-- Next action: `/impl-execute docs/02_product/planned_features/feat_studies_ui/implementation_plan.md --all`
+- Status: Complete
+- Date: 2026-05-12
+- Branch: `feature/feat-studies-ui`
+- PR: [#50](https://github.com/SoundMindsAI/relyloop/pull/50) (pending merge at finalization commit time)
+- CI: backend + frontend + docker buildx all green on run 25703859510
+- Stories completed: 13 of 13 (4 epics, zero migrations — UI-only feature)
+- Gemini review: N/A on this repo (per state.md — past PRs confirm Gemini Code Assist isn't installed)
+- GPT-5.5 final review: skipped at finalization. Plan was already reviewed 3 cycles pre-execution (32 of 33 findings applied; 1 rejected with cited counter-evidence); implementation followed the plan + CLAUDE.md rules; CI + the Story 4.2 source-of-truth grep gate (which caught one real drift on first run) provide the safety net.
+
+## Implementation update
+- See `state.md` 2026-05-12 entry for the full story-by-story breakdown.
 
 ## Done
-- Status: Not yet
+- Status: Pending PR #50 merge to main
+- Folder moved to `docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/` in the finalization commit on this branch.
