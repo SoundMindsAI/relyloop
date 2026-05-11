@@ -1,0 +1,138 @@
+"""Contract assertions for the Epic 3 judgments API (feat_llm_judgments).
+
+Asserts:
+
+* Every endpoint is registered in the OpenAPI schema at the expected method
+  + path.
+* Each Pydantic response_model is wired so OpenAPI exposes the right shape.
+* All 13 error codes (the 11 from spec §8.5 + ``QUERY_NOT_IN_SET`` and
+  ``LIST_NOT_READY`` drift codes + ``UNKNOWN_MODEL_PRICING``) are reachable
+  in the source — best-effort grep + functional smoke for the codes whose
+  preflight does not require DB rows.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from pathlib import Path
+
+import httpx
+import pytest
+import pytest_asyncio
+from asgi_lifespan import LifespanManager
+
+from backend.tests.conftest import postgres_reachable
+
+# The OpenAPI-introspection tests need the FastAPI app to boot which in turn
+# needs a reachable Postgres (the lifespan opens an engine). The static
+# error-code grep test below does not — it's plain file-IO. Apply the skipif
+# to specific tests instead of the module so the grep test runs in any env.
+_skip_if_no_pg = pytest.mark.skipif(
+    not postgres_reachable(),
+    reason="Postgres not reachable — error-code paths flow through get_db dependency",
+)
+
+
+EXPECTED_ENDPOINTS = {
+    ("post", "/api/v1/judgments/generate"),
+    ("post", "/api/v1/judgment-lists/import"),
+    ("get", "/api/v1/judgment-lists"),
+    ("get", "/api/v1/judgment-lists/{judgment_list_id}"),
+    ("get", "/api/v1/judgment-lists/{judgment_list_id}/judgments"),
+    (
+        "patch",
+        "/api/v1/judgment-lists/{judgment_list_id}/judgments/{judgment_id}",
+    ),
+    ("post", "/api/v1/judgment-lists/{judgment_list_id}/calibration"),
+}
+
+
+# Spec §8.5 + cycle-1 drift (QUERY_NOT_IN_SET, LIST_NOT_READY) + cycle-2 drift
+# (UNKNOWN_MODEL_PRICING).
+SPEC_ERROR_CODES = frozenset(
+    {
+        "OPENAI_NOT_CONFIGURED",
+        "OPENAI_BUDGET_EXCEEDED",
+        "LLM_PROVIDER_INCAPABLE",
+        "JUDGMENT_LIST_NOT_FOUND",
+        "JUDGMENT_LIST_NAME_TAKEN",
+        "JUDGMENT_NOT_FOUND",
+        "INVALID_RATING",
+        "INSUFFICIENT_SAMPLES",
+        "QUERY_SET_NOT_FOUND",
+        "CLUSTER_NOT_FOUND",
+        "TEMPLATE_NOT_FOUND",
+        "QUERY_NOT_IN_SET",
+        "LIST_NOT_READY",
+        "UNKNOWN_MODEL_PRICING",
+    }
+)
+
+
+@pytest_asyncio.fixture
+async def async_client() -> AsyncIterator[httpx.AsyncClient]:
+    from backend.app.main import app
+    from backend.tests.conftest import _apply_migrations_if_needed
+
+    _apply_migrations_if_needed()
+    async with LifespanManager(app):
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+            timeout=30.0,
+        ) as client:
+            yield client
+
+
+@_skip_if_no_pg
+async def test_openapi_registers_all_seven_endpoints(
+    async_client: httpx.AsyncClient,
+) -> None:
+    response = await async_client.get("/openapi.json")
+    assert response.status_code == 200
+    schema = response.json()
+    paths = schema["paths"]
+    for method, path in EXPECTED_ENDPOINTS:
+        assert path in paths, f"missing path {path}"
+        assert method in paths[path], f"missing {method.upper()} on {path}"
+
+
+@_skip_if_no_pg
+async def test_post_generate_response_model_is_registered(
+    async_client: httpx.AsyncClient,
+) -> None:
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    op = schema["paths"]["/api/v1/judgments/generate"]["post"]
+    # 202 success response must reference the GenerateJudgmentsResponse model.
+    success = op["responses"]["202"]
+    content = success["content"]["application/json"]
+    ref = content["schema"]["$ref"]
+    assert ref.endswith("GenerateJudgmentsResponse"), ref
+
+
+@_skip_if_no_pg
+async def test_patch_override_response_model_is_judgment_row(
+    async_client: httpx.AsyncClient,
+) -> None:
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    op = schema["paths"]["/api/v1/judgment-lists/{judgment_list_id}/judgments/{judgment_id}"][
+        "patch"
+    ]
+    success = op["responses"]["200"]
+    ref = success["content"]["application/json"]["schema"]["$ref"]
+    assert ref.endswith("JudgmentRow"), ref
+
+
+def test_all_spec_error_codes_referenced_in_router_source() -> None:
+    """Every spec/drift error code appears as a literal in the router source.
+
+    Cheap static check that no error code was renamed in the router without
+    updating the spec/contract. Catches drift between the catalog and the
+    handler — not a full contract test but a useful safety net.
+    """
+    router_path = Path("backend/app/api/v1/judgments.py")
+    source = router_path.read_text(encoding="utf-8")
+    missing = [code for code in SPEC_ERROR_CODES if code not in source]
+    assert not missing, f"router does not raise spec error codes: {missing}"

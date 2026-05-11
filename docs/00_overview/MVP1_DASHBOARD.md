@@ -7,9 +7,9 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 | Metric | Value |
 |---|---|
 | Features done | **4 / 12** (33%) |
-| Path to MVP1 | **17** items remaining (features + bugs + chores) |
+| Path to MVP1 | **21** items remaining (features + bugs + chores) |
 | Open bugs | 2 |
-| Open chores | 7 (idea-stage debt) |
+| Open chores | 11 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -28,11 +28,13 @@ _Reflects feature-folder state as of **2026-05-11** (latest mtime of any planned
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
+| [feat_llm_judgments](../02_product/planned_features/feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) |
 
-### Spec (8)
+### Spec (7)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -40,12 +42,11 @@ _None._
 | [feat_digest_proposal](../02_product/planned_features/feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | Draft |
 | [feat_github_pr_worker](../02_product/planned_features/feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_digest_proposal` | Draft |
 | [feat_github_webhook](../02_product/planned_features/feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `feat_github_pr_worker` | Draft |
-| [feat_llm_judgments](../02_product/planned_features/feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #25](https://github.com/SoundMindsAI/relyloop/pull/25) |
 | [feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | Draft |
 | [feat_studies_ui](../02_product/planned_features/feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | Draft |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | — | Draft |
 
-### Idea (13)
+### Idea (17)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -54,7 +55,11 @@ _None._
 | [infra_frontend_stack_refresh](../02_product/planned_features/infra_frontend_stack_refresh/idea.md) | Infra | The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09): | — | Idea — surfaced during dependency audit on `feature/infra-foundation` |
 | [infra_per_trial_timeout](../02_product/planned_features/infra_per_trial_timeout/idea.md) | Infra | `Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 GPT-5.5 review cycle 2) |
 | [chore_infra_optuna_eval_spec_text_drift](../02_product/planned_features/chore_infra_optuna_eval_spec_text_drift/idea.md) | Chore | The `infra_optuna_eval` feature spec at [`feature_spec.md`](../infra_optuna_eval/feature_spec.md) has internal drift between §11 and §14 about the partial-failure retry contract: | — | — |
+| [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
 | [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
+| [chore_spec_llm_judgments_endpoint_drift](../02_product/planned_features/chore_spec_llm_judgments_endpoint_drift/idea.md) | Chore | The implemented_features-archived `feat_llm_judgments/feature_spec.md` enumerates **6 endpoints** in §8.1 but the spec body's FR-3b describes a **7th** endpoint (`POST /api/v1/judgment-lists/import`)  | — | Idea — spec drift surfaced during plan generation |
+| [chore_spec_llm_judgments_error_drift](../02_product/planned_features/chore_spec_llm_judgments_error_drift/idea.md) | Chore | The implemented `feat_llm_judgments/feature_spec.md` §8.5 error-code catalog lists **11 codes** but the spec body references two additional codes that the implementation correctly raises: | — | Idea — spec drift surfaced during plan generation |
+| [chore_spec_llm_judgments_pricing_drift](../02_product/planned_features/chore_spec_llm_judgments_pricing_drift/idea.md) | Chore | Two corrections to the merged `feat_llm_judgments/feature_spec.md` that surfaced during plan review: | — | Idea — spec drift surfaced during GPT-5.5 cycle 2 review |
 | [chore_spec_query_set_cluster_id_drift](../02_product/planned_features/chore_spec_query_set_cluster_id_drift/idea.md) | Chore | `docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md` §7 FR-3 says: | — | — |
 | [chore_spec_trial_created_at_drift](../02_product/planned_features/chore_spec_trial_created_at_drift/idea.md) | Chore | `feat_study_lifecycle/feature_spec.md` §7.4 defines wire values for the trials list `?sort=` query parameter: | — | — |
 | [chore_starlette_422_deprecation](../02_product/planned_features/chore_starlette_422_deprecation/idea.md) | Chore | Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name: | — | Idea — captured during `infra_foundation` Story 5.1 test backfill |
@@ -85,7 +90,7 @@ graph LR
   feat_github_webhook["github webhook"]
   class feat_github_webhook spec;
   feat_llm_judgments["llm judgments"]
-  class feat_llm_judgments spec;
+  class feat_llm_judgments plan;
   feat_proposals_ui["proposals ui"]
   class feat_proposals_ui spec;
   feat_studies_ui["studies ui"]

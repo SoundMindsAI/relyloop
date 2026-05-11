@@ -465,3 +465,188 @@ class TrialListResponse(BaseModel):
     data: list[TrialDetail]
     next_cursor: str | None
     has_more: bool
+
+
+# --------------------------------------------------------------------------
+# feat_llm_judgments — Epic 3 schemas (Stories 3.1 – 3.5)
+# --------------------------------------------------------------------------
+
+# Values must match backend/app/db/models/judgment_list.py CHECK constraint
+# judgment_lists_status_check.
+JudgmentListStatusWire = Literal["generating", "complete", "failed"]
+
+# Values must match backend/app/db/models/judgment.py CHECK constraint
+# judgments_source_check. `click` is reserved for v1.5+ click-derived
+# judgments — emitted on read paths but never accepted on the source filter
+# (see JudgmentSourceFilterWire below).
+JudgmentSourceWire = Literal["llm", "human", "click"]
+
+# Subset of JudgmentSourceWire used as the ?source= filter on
+# GET /judgment-lists/{id}/judgments. Spec §8.4 enumerates only `llm` and
+# `human` for this filter — `click` is rejected at the API boundary
+# (GPT-5.5 cycle 1 F1).
+JudgmentSourceFilterWire = Literal["llm", "human"]
+
+# Values must match backend/app/db/models/judgment.py CHECK constraint
+# judgments_rating_check.
+RatingWire = Literal[0, 1, 2, 3]
+
+
+class CreateJudgmentListGenerateRequest(BaseModel):
+    """Body for ``POST /api/v1/judgments/generate`` (Story 3.1)."""
+
+    name: str = Field(min_length=1, max_length=256)
+    description: str | None = Field(default=None, max_length=2000)
+    query_set_id: str = Field(min_length=1, max_length=36)
+    cluster_id: str = Field(min_length=1, max_length=36)
+    target: str = Field(min_length=1, max_length=256)
+    current_template_id: str = Field(min_length=1, max_length=36)
+    rubric: str = Field(min_length=1)
+
+
+class GenerateJudgmentsResponse(BaseModel):
+    """Response of ``POST /api/v1/judgments/generate``.
+
+    Per GPT-5.5 cycle 1 F5 — the endpoint registers a typed
+    ``response_model`` so OpenAPI introspection + contract tests can verify
+    the wire shape.
+    """
+
+    judgment_list_id: str
+    status: Literal["generating"]
+
+
+class _SourceBreakdown(BaseModel):
+    """Source-breakdown sub-shape on :class:`JudgmentListDetail`.
+
+    Per spec FR-6 the response names only ``llm`` and ``human`` (GPT-5.5
+    cycle 1 F6). Reserved ``click`` rows fold into ``human`` per the cycle 2
+    F6 invariant ``llm + human == judgment_count``.
+    """
+
+    llm: int
+    human: int
+
+
+class JudgmentListSummary(BaseModel):
+    """List-view row on ``GET /api/v1/judgment-lists``."""
+
+    id: str
+    name: str
+    description: str | None
+    query_set_id: str
+    cluster_id: str
+    status: JudgmentListStatusWire
+    created_at: datetime
+
+
+class JudgmentListDetail(BaseModel):
+    """``GET /api/v1/judgment-lists/{id}`` response."""
+
+    id: str
+    name: str
+    description: str | None
+    query_set_id: str
+    cluster_id: str
+    target: str
+    current_template_id: str | None
+    rubric: str
+    status: JudgmentListStatusWire
+    failed_reason: str | None
+    judgment_count: int
+    source_breakdown: _SourceBreakdown
+    calibration: dict[str, Any] | None
+    created_at: datetime
+
+
+class JudgmentListListResponse(BaseModel):
+    """``GET /api/v1/judgment-lists`` response."""
+
+    data: list[JudgmentListSummary]
+    next_cursor: str | None
+    has_more: bool
+
+
+class JudgmentRow(BaseModel):
+    """``GET /api/v1/judgment-lists/{id}/judgments`` row + PATCH response."""
+
+    id: str
+    judgment_list_id: str
+    query_id: str
+    doc_id: str
+    rating: RatingWire
+    source: JudgmentSourceWire
+    rater_ref: str | None
+    confidence: float | None
+    notes: str | None
+    created_at: datetime
+
+
+class JudgmentListJudgmentsResponse(BaseModel):
+    """``GET /api/v1/judgment-lists/{id}/judgments`` response."""
+
+    data: list[JudgmentRow]
+    next_cursor: str | None
+    has_more: bool
+
+
+class ImportJudgmentItem(BaseModel):
+    """One row in :class:`ImportJudgmentListRequest`."""
+
+    query_id: str = Field(min_length=1, max_length=36)
+    doc_id: str = Field(min_length=1, max_length=512)
+    rating: RatingWire
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class ImportJudgmentListRequest(BaseModel):
+    """Body for ``POST /api/v1/judgment-lists/import`` (Story 3.2)."""
+
+    name: str = Field(min_length=1, max_length=256)
+    description: str | None = Field(default=None, max_length=2000)
+    query_set_id: str = Field(min_length=1, max_length=36)
+    cluster_id: str = Field(min_length=1, max_length=36)
+    target: str = Field(min_length=1, max_length=256)
+    rubric: str = Field(min_length=1)
+    judgments: list[ImportJudgmentItem] = Field(min_length=1, max_length=100_000)
+
+
+class OverrideJudgmentRequest(BaseModel):
+    """Body for ``PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}``.
+
+    ``rating`` is INTENTIONALLY unbounded at the Pydantic layer — spec §8.5
+    requires out-of-range failures to surface as 400 ``INVALID_RATING`` (not
+    Pydantic's default 422 ``VALIDATION_ERROR``). The handler validates the
+    value manually and raises the domain code (per GPT-5.5 cycle 1 F4).
+    """
+
+    rating: int
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class CalibrationSample(BaseModel):
+    """One row in :class:`CalibrationSamplesRequest`."""
+
+    query_id: str = Field(min_length=1, max_length=36)
+    doc_id: str = Field(min_length=1, max_length=512)
+    rating: RatingWire
+
+
+class CalibrationSamplesRequest(BaseModel):
+    """Body for ``POST /api/v1/judgment-lists/{id}/calibration`` (Story 3.5)."""
+
+    human_samples: list[CalibrationSample] = Field(min_length=1)
+
+
+class CalibrationResponse(BaseModel):
+    """Calibration endpoint response.
+
+    Mirrors :class:`backend.app.eval.calibration.CalibrationResult` —
+    persisted as ``judgment_lists.calibration`` JSONB.
+    """
+
+    cohens_kappa: float | None
+    weighted_kappa: float | None
+    per_class: dict[str, float]
+    n_samples: int
+    warning: str | None

@@ -121,9 +121,9 @@ class TestBaselineMigration:
                 row = result.fetchone()
                 assert row is not None, "alembic_version table empty after upgrade head"
                 # Baseline is "0001" per migrations/versions/0001_baseline.py.
-                # Head is "0003" once feat_study_lifecycle Phase 1 Story 1.2 lands the
-                # study_lifecycle_schema migration.
-                assert row[0] == "0003"
+                # Head is "0004" once feat_llm_judgments Story 1.1 lands the
+                # judgments migration on top of 0003_study_lifecycle_schema.
+                assert row[0] == "0004"
         finally:
             engine.dispose()
 
@@ -138,17 +138,17 @@ class TestBaselineMigration:
         """Downgrade by one revision and re-upgrade returns cleanly to head."""
         _alembic("upgrade", "head")
         _alembic("downgrade", "-1")
-        # After downgrade -1 from 0003 we land at 0002 (clusters + config_repos).
-        # Re-upgrade re-applies 0003 cleanly per CLAUDE.md Absolute Rule #5.
+        # After downgrade -1 from 0004 we land at 0003 (study_lifecycle_schema).
+        # Re-upgrade re-applies 0004 cleanly per CLAUDE.md Absolute Rule #5.
         _alembic("upgrade", "head")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
                 row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 assert row is not None
-                # Head is "0003" once feat_study_lifecycle Phase 1 Story 1.2 lands the
-                # study_lifecycle_schema migration.
-                assert row[0] == "0003"
+                # Head is "0004" once feat_llm_judgments Story 1.1 lands the
+                # judgments migration on top of 0003_study_lifecycle_schema.
+                assert row[0] == "0004"
         finally:
             engine.dispose()
 

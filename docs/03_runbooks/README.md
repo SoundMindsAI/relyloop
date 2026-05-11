@@ -6,6 +6,14 @@ Operational procedures: deployment, upgrades, restores, incident handling, recur
 
 - [`local-dev.md`](local-dev.md) — boot, restart, debug, reset the local
   Compose stack (`infra_foundation` Story 5.2)
+- [`cluster-registration.md`](cluster-registration.md) — registering an
+  Elasticsearch / OpenSearch cluster (`infra_adapter_elastic`)
+- [`optuna-debugging.md`](optuna-debugging.md) — investigating Optuna
+  trial failures (`infra_optuna_eval`)
+- [`study-lifecycle-debugging.md`](study-lifecycle-debugging.md) — study
+  state-machine + orchestrator playbook (`feat_study_lifecycle` Phase 2)
+- [`judgment-generation-debugging.md`](judgment-generation-debugging.md) —
+  LLM-as-judge worker playbook + calibration / overrides (`feat_llm_judgments`)
 
 ## Coming with later features
 

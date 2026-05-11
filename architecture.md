@@ -91,15 +91,18 @@ backend/
   app/
     api/         routers (health.py with /healthz + v1/clusters.py +
                  v1/{query_templates,query_sets,studies}.py from
-                 feat_study_lifecycle Phase 2 + future webhooks/*)
+                 feat_study_lifecycle Phase 2 + v1/judgments.py from
+                 feat_llm_judgments + future webhooks/*)
     core/        settings, logging, request-id middleware, error envelope
     db/          base, session,
                  models/ (Cluster, ConfigRepo from infra_adapter_elastic;
                   QueryTemplate, QuerySet, Query, Study, Trial,
-                  JudgmentList, Proposal from feat_study_lifecycle Phase 1),
+                  JudgmentList, Proposal from feat_study_lifecycle Phase 1;
+                  Judgment from feat_llm_judgments),
                  repo/ (cluster.py + config_repo.py +
                   query_template.py, query_set.py, query.py, study.py,
-                  trial.py, judgment_list.py, proposal.py from Phase 1)
+                  trial.py, judgment_list.py, proposal.py from Phase 1;
+                  judgment.py from feat_llm_judgments)
     services/    use-case orchestrators — cluster.py from infra_adapter_elastic;
                  study_state.py (state machine + FR-7 protection listener,
                  feat_study_lifecycle Phase 2)
@@ -115,24 +118,33 @@ backend/
                  objective_metric_key, wire-name translation),
                  optuna_runtime.py (build_storage / build_sampler /
                  build_pruner / get_or_create_study),
-                 qrels_loader.py (MVP1 stub raising JudgmentsTableMissing
-                 — real impl lands with feat_llm_judgments)
+                 qrels_loader.py (real SELECT against judgments —
+                 replaced the MVP1 stub when feat_llm_judgments landed),
+                 calibration.py (Cohen's + linear-weighted kappa,
+                 feat_llm_judgments Story 1.5)
     scripts/     operator entrypoints — seed_clusters.py
     llm/         OpenAI-compatible client + capability check
+                 (capability_check.py / capability_models.py from
+                 infra_foundation; openai_judge.py + cost_model.py +
+                 budget_gate.py + prompt_loader.py from feat_llm_judgments)
     git/         Git provider clients (lands with feat_github_pr_worker)
   workers/       Arq WorkerSettings + run_trial Arq job (trials.py from
                  infra_optuna_eval) + orchestrator.py (start_study /
                  resume_study, feat_study_lifecycle Phase 2) +
                  digest_stub.py (idempotent generate_digest stub) +
+                 judgments.py (generate_judgments_llm, feat_llm_judgments) +
                  on_startup/on_shutdown hooks that build/dispose Optuna
                  RDBStorage once per worker AND sweep running studies
-                 for resume_study enqueue (FR-5 / AC-4)
+                 for resume_study enqueue (FR-5 / AC-4) AND sweep
+                 generating judgment lists for re-enqueue (cycle 2 F1)
   tests/         unit / integration / contract layers
+prompts/         Jinja2 templates for LLM calls (feat_llm_judgments —
+                 judgment_generation.system.md / .user.jinja / .rubric_v1.md)
 ui/              Next.js 14 App Router (placeholder page in MVP1)
 migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters
-                 + 0003 study_lifecycle_schema)
+                 + 0003 study_lifecycle_schema + 0004_judgments)
 docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
-                 05_quality / 08_guides
+                 04_security / 05_quality / 08_guides
 ```
 
 ## Where this file fits

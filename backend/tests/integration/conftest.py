@@ -57,6 +57,10 @@ async def _clean_phase2_tables() -> AsyncIterator[None]:
                 "proposals",
                 "trials",
                 "studies",
+                # feat_llm_judgments: judgments cascades on judgment_lists DELETE,
+                # but explicit DELETE keeps cleanup deterministic + matches the
+                # existing FK-safe order convention.
+                "judgments",
                 "judgment_lists",
                 "queries",
                 "query_sets",
