@@ -29,6 +29,7 @@ the feat_llm_judgments deferral note.
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 from datetime import datetime
 from typing import Annotated
@@ -520,12 +521,21 @@ async def open_pr_endpoint(
             "Arq pool is not initialized; ensure the worker is running and retry",
             True,
         )
+    # GPT-5.5 final-review C3-F1 — Arq's enqueue_job is idempotent on
+    # _job_id, AND keeps job results in Redis for ~1h after completion by
+    # default. With a static `_job_id="open_pr:{proposal_id}"`, an operator
+    # retry after a worker-side failure (pr_open_error populated, status
+    # still 'pending') would silently no-op for the entire retention
+    # window. Salt the _job_id with a hash of the prior error so each
+    # retry-after-failure gets a fresh dedup key. In-flight dedup is
+    # preserved (no pr_open_error yet → static key), and post-success
+    # retries are caught by the INVALID_STATE_TRANSITION preflight above.
+    job_id = f"open_pr:{proposal_id}"
+    if proposal.pr_open_error:
+        suffix = hashlib.blake2b(proposal.pr_open_error.encode("utf-8"), digest_size=4).hexdigest()
+        job_id = f"open_pr:{proposal_id}:retry-{suffix}"
     try:
-        await arq_pool.enqueue_job(
-            "open_pr",
-            proposal_id,
-            _job_id=f"open_pr:{proposal_id}",
-        )
+        job = await arq_pool.enqueue_job("open_pr", proposal_id, _job_id=job_id)
     except Exception as exc:  # noqa: BLE001 — single-purpose: surface as 503
         logger.warning(
             "POST /proposals/{id}/open_pr: arq enqueue raised; returning 503",
@@ -539,6 +549,15 @@ async def open_pr_endpoint(
             f"Arq enqueue failed: {type(exc).__name__}; retry after the worker recovers",
             True,
         ) from exc
+    if job is None:
+        # Defense-in-depth — Arq dedup'd against an in-flight job with the
+        # same key. Surface this so an operator who hits "Open PR" twice
+        # in 100ms knows the second click was deduped, not lost.
+        logger.info(
+            "POST /proposals/{id}/open_pr: arq dedup'd against in-flight job",
+            proposal_id=proposal_id,
+            job_id=job_id,
+        )
     return OpenPrResponse(
         proposal_id=proposal_id,
         status="pending",
