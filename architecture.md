@@ -93,8 +93,10 @@ backend/
                  v1/{query_templates,query_sets,studies}.py from
                  feat_study_lifecycle Phase 2 + v1/judgments.py from
                  feat_llm_judgments + v1/proposals.py from
-                 feat_digest_proposal (digest fetch + proposal CRUD) +
-                 future webhooks/*)
+                 feat_digest_proposal (digest fetch + proposal CRUD;
+                 feat_github_pr_worker adds POST /proposals/{id}/open_pr) +
+                 v1/config_repos.py from feat_github_pr_worker (GitHub
+                 config-repo CRUD) + future webhooks/*)
     core/        settings, logging, request-id middleware, error envelope
     db/          base, session,
                  models/ (Cluster, ConfigRepo from infra_adapter_elastic;
@@ -110,7 +112,9 @@ backend/
                  feat_study_lifecycle Phase 2)
     domain/      pure business logic — query/render.py from
                  infra_adapter_elastic; study/{search_space,template_validator,
-                 csv_parser}.py from feat_study_lifecycle Phase 2
+                 csv_parser}.py from feat_study_lifecycle Phase 2;
+                 git/{redaction,validation}.py from feat_github_pr_worker
+                 (GitHub PAT redaction + repo_url + config_path validators)
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
                  8 Pydantic types), elastic.py (ES + OpenSearch),
                  credentials.py, errors.py, health_cache.py
@@ -130,13 +134,20 @@ backend/
                  infra_foundation; openai_judge.py + cost_model.py +
                  budget_gate.py + prompt_loader.py from feat_llm_judgments;
                  digest_prompt.py from feat_digest_proposal)
-    git/         Git provider clients (lands with feat_github_pr_worker)
+    git/         Git provider clients (placeholder — feat_github_pr_worker
+                 ships its git invocations inline in workers/git_pr.py
+                 via the GIT_CONFIG_* env-var auth pattern; a thin
+                 client wrapper lands here when feat_github_webhook
+                 needs a shared GitHub REST client)
   workers/       Arq WorkerSettings + run_trial Arq job (trials.py from
                  infra_optuna_eval) + orchestrator.py (start_study /
                  resume_study, feat_study_lifecycle Phase 2) +
                  digest.py (generate_digest, feat_digest_proposal —
                  replaces the prior digest_stub.py) +
                  judgments.py (generate_judgments_llm, feat_llm_judgments) +
+                 git_pr.py (open_pr, feat_github_pr_worker — token-safe
+                 git via GIT_CONFIG_* env vars + per-config-repo
+                 advisory lock + GitHub REST PR creation) +
                  on_startup/on_shutdown hooks that build/dispose Optuna
                  RDBStorage once per worker AND sweep running studies
                  for resume_study enqueue (FR-5 / AC-4) AND sweep
