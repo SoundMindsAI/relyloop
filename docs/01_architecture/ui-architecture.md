@@ -46,62 +46,76 @@ Audit log (`/audit`) per §22 line 1621 is reserved for MVP4+ (when audit_log + 
 
 ## Directory layout
 
+The `ui/` workspace uses the **`src/` layout** — the `@/*` TypeScript alias
+resolves to `ui/src/*`. Tailwind 4 is **CSS-first** (no `tailwind.config.ts`);
+design tokens live in `ui/src/app/globals.css` under `@theme {}`.
+
 ```
 ui/
-  app/                                # Next.js App Router pages
-    layout.tsx                        # Root layout: shadcn theme provider, TanStack Query provider
-    page.tsx                          # Dashboard
-    chat/
-      [conversation_id]/
+  src/
+    app/                              # Next.js 16 App Router pages
+      layout.tsx                      # Root layout: ThemeProvider, QueryProvider, Toaster, TopNav
+      page.tsx                        # Dashboard (Story 3.1)
+      globals.css                     # Tailwind 4 base + `@theme {}` tokens
+      clusters/
+        page.tsx                      # List
+        [id]/
+          page.tsx                    # Detail (cluster summary + studies-by-cluster)
+      studies/
+        page.tsx                      # List
+        [id]/
+          page.tsx                    # Detail (header + trials + digest panel)
+      query-sets/
         page.tsx
-    clusters/
-      page.tsx                        # List
-      [id]/
-        page.tsx                      # Detail
-    studies/
-      page.tsx
-      [id]/
+        [id]/
+          page.tsx
+      templates/
         page.tsx
-        digest/
-          page.tsx                    # Optional dedicated digest view
-    proposals/
-      page.tsx
-      [id]/
-        page.tsx
-    query-sets/
-      page.tsx
-      [id]/
-        page.tsx
-    judgments/
-      [id]/
-        page.tsx
-    templates/
-      page.tsx
-      [id]/
-        page.tsx
+        [id]/
+          page.tsx                    # Read-only detail + Fork-to-v+1 button
+      judgments/
+        [id]/
+          page.tsx
+      # `proposals/` and `chat/` ship later (`feat_proposals_ui` + `feat_chat_agent`).
 
-  components/
-    ui/                               # shadcn-generated primitives (Button, Card, Dialog, ...)
-    studies/                          # study-specific compositions
-    proposals/
-    chat/
-    common/                           # cross-cutting (StatusBadge, MetricDelta, ParameterImportanceChart)
+    components/
+      ui/                             # shadcn primitives (Button, Card, Dialog, Select, ...)
+      common/                         # StatusBadge, MetricDelta, CursorPaginator, EmptyState, ParameterImportanceChart
+      layout/                         # TopNav
+      providers/                      # ThemeProvider, QueryProvider
+      dashboard/                      # CountCard, RecentStudiesCards
+      studies/                        # StudiesTable, StudyHeader, TrialsTable, DigestPanel, CreateStudyModal, ...
+      clusters/                       # ClustersTable, RegisterClusterModal, ClusterDetailSummary, StudiesByClusterTable
+      query-sets/                     # QuerySetsTable, CreateQuerySetModal, AddQueriesDialog, AssociatedJudgmentLists, GenerateJudgmentsDialog
+      templates/                      # TemplatesTable, CreateTemplateModal, ForkTemplateModal, TemplateBodyEditor (Prism), TemplateDetailView
+      judgments/                      # JudgmentListHeader, JudgmentsTable, OverridePopover, CalibrationModal
 
-  lib/
-    api/                              # TanStack Query hooks per resource
-      studies.ts                      # useStudies(), useStudy(id), useCreateStudy(), useCancelStudy()
-      proposals.ts
-      clusters.ts
-      ...
-    api-client.ts                     # base axios/fetch client with X-Request-ID injection
-    types.ts                          # generated TS types from backend OpenAPI (via openapi-typescript)
+    lib/
+      api/                            # TanStack Query hooks per resource
+        studies.ts                    # useStudies / useStudy / useStudyTrials / useCreateStudy / useCancelStudy
+        clusters.ts                   # useClusters / useCluster / useRegisterCluster / useClusterSchema
+        config-repos.ts               # useConfigRepos / useCreateConfigRepo
+        query-sets.ts                 # useQuerySets / useQuerySet / useCreateQuerySet / useAddQueries
+        query-templates.ts            # useTemplates / useTemplate / useCreateTemplate
+        judgments.ts                  # useJudgmentLists / useJudgmentList / useJudgments / useOverrideJudgment / useCalibrate / useGenerateJudgments / useImportJudgmentList
+        digests.ts                    # useStudyDigest
+        proposals.ts                  # useProposals / useProposalForStudy
+      api-client.ts                   # fetch wrapper with X-Request-ID, error-envelope translation, 503-retryable backoff
+      api-errors.ts                   # ApiError class + isApiError + toToastMessage
+      uuid.ts                         # UUIDv7 generator (RFC 9562 §5.7)
+      types.ts                        # GENERATED from backend OpenAPI via `pnpm types:gen`
+      enums.ts                        # CANONICAL wire-value allowlists (single source of truth comments live here)
+      csv-validate.ts                 # UI-side CSV pre-submit guard
+      utils.ts                        # shadcn-conventional cn() helper
 
-  styles/
-    globals.css                       # Tailwind base + theme overrides
+    __tests__/                        # Vitest specs (glob: src/**/*.test.{ts,tsx})
+      setup.ts                        # msw server + jsdom polyfills (matchMedia, scrollIntoView, pointer capture)
+      lib/api/...                     # hook contract tests
+      components/...                  # component tests with msw
+      app/...                         # page-level component tests
 
   tests/
     e2e/                              # Playwright (MVP3+; MVP1 has no e2e)
-    unit/                             # vitest specs co-located with components
 ```
 
 ## Server state pattern (TanStack Query)
@@ -213,9 +227,9 @@ The same SSE wire format (`event: <type>\ndata: <json>\n\n`) is used; only the t
 
 ## Component composition
 
-**shadcn primitives** are copied into `ui/components/ui/` via `npx shadcn-ui add <component>`. Customizations happen in the copied source. We do NOT depend on `@shadcn-ui/<package>` from npm.
+**shadcn primitives** are copied into `ui/src/components/ui/` via `npx shadcn@latest add <component>`. Customizations happen in the copied source. We do NOT depend on `@shadcn/ui` from npm.
 
-**Studies / Proposals / Chat compositions** live in `ui/components/<feature>/`. Each composition imports from `ui/components/ui/` for primitives and from `ui/components/common/` for cross-cutting (StatusBadge, MetricDelta, ParameterImportanceChart).
+**Studies / Proposals / Chat compositions** live in `ui/src/components/<feature>/`. Each composition imports from `ui/src/components/ui/` for primitives and from `ui/src/components/common/` for cross-cutting (StatusBadge, MetricDelta, ParameterImportanceChart).
 
 **Cross-cutting components** (used by 2+ features):
 - `<StatusBadge status={...} />` — colored chip for `studies.status`, `proposals.status`, `pr_state`, etc.
