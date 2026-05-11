@@ -16,9 +16,11 @@ from backend.app.db.repo.cluster import (
     soft_delete_cluster,
 )
 from backend.app.db.repo.config_repo import (
+    count_config_repos,
     create_config_repo,
     get_config_repo,
     get_config_repo_by_name,
+    list_config_repos,
 )
 from backend.app.db.repo.digest import (
     create_digest,
@@ -51,7 +53,9 @@ from backend.app.db.repo.proposal import (
     get_proposal,
     list_pending_proposals_for_boot_scan,
     list_proposals_paginated,
+    mark_proposal_pr_opened,
     reject_proposal,
+    set_proposal_pr_open_error,
     update_proposal_for_digest,
 )
 from backend.app.db.repo.query import (
@@ -158,4 +162,9 @@ __all__ = [
     "list_proposals_paginated",
     "reject_proposal",
     "update_proposal_for_digest",
+    # feat_github_pr_worker Story 1.1 (config_repo list/count + proposal pr-transition helpers)
+    "count_config_repos",
+    "list_config_repos",
+    "mark_proposal_pr_opened",
+    "set_proposal_pr_open_error",
 ]

@@ -425,7 +425,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 4 | [`feat_study_lifecycle`](docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle/) | **Complete — Phase 1 (Schema) PR #18 + Phase 2 (Orchestrator + API) PR #25, both merged 2026-05-10/11** |
 | 5 | [`feat_llm_judgments`](docs/00_overview/implemented_features/2026_05_11_feat_llm_judgments/) | **Complete (PR #35, merged 2026-05-11)** |
 | 6 | [`feat_digest_proposal`](docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/) | **Complete (PR #41, merged 2026-05-11)** |
-| 7 | [`feat_github_pr_worker`](docs/02_product/planned_features/feat_github_pr_worker/) | Spec approved, plan pending |
+| 7 | [`feat_github_pr_worker`](docs/02_product/planned_features/feat_github_pr_worker/) | **Implementation complete on `feature/feat-github-pr-worker` — pending push + CI + final review + merge** |
 | 8 | [`feat_github_webhook`](docs/02_product/planned_features/feat_github_webhook/) | Spec approved, plan pending |
 | 9 | [`feat_studies_ui`](docs/02_product/planned_features/feat_studies_ui/) | Spec approved, plan pending |
 | 10 | [`feat_chat_agent`](docs/02_product/planned_features/feat_chat_agent/) | Spec approved, plan pending |
@@ -442,6 +442,8 @@ Run `/pipeline status` for the live view from spec dependencies.
 | Test layer convention + 80% coverage gate | [`docs/05_quality/testing.md`](docs/05_quality/testing.md) (lands in `infra_foundation` Story 5.2) |
 | DB revision mismatch | TBA — lands when `feat_study_lifecycle` ships its first business-table migration |
 | GitHub webhook setup | TBA — lands with `feat_github_webhook` |
+| `open_pr` worker debugging + per-repo PAT rotation + closing orphan branches | [`docs/03_runbooks/pr-open-debugging.md`](docs/03_runbooks/pr-open-debugging.md) (`feat_github_pr_worker`) |
+| GitHub PAT storage / rotation / leak prevention | [`docs/04_security/github-token-handling.md`](docs/04_security/github-token-handling.md) (`feat_github_pr_worker`) |
 | Local LLM (Ollama / LM Studio / vLLM / TGI) configuration | [`docs/01_architecture/llm-orchestration.md` §"OpenAI-compatible endpoints"](docs/01_architecture/llm-orchestration.md); operator-facing runbook lands with `chore_tutorial_polish` |
 | LLM-as-judge worker debugging + calibration / overrides | [`docs/03_runbooks/judgment-generation-debugging.md`](docs/03_runbooks/judgment-generation-debugging.md) (`feat_llm_judgments`) |
 | What data leaves the cluster on each judgment-generation call | [`docs/04_security/llm-data-flow.md`](docs/04_security/llm-data-flow.md) (`feat_llm_judgments` §15) |

@@ -177,7 +177,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `proposal.pr_
 
 | Method | Path | Purpose | Key error codes |
 |---|---|---|---|
-| `POST` | `/api/v1/proposals/{id}/open_pr` | Enqueue PR creation | `PROPOSAL_NOT_FOUND` (404), `INVALID_STATE_TRANSITION` (409), `CLUSTER_HAS_NO_CONFIG_REPO` (422), `GITHUB_NOT_CONFIGURED` (503) |
+| `POST` | `/api/v1/proposals/{id}/open_pr` | Enqueue PR creation | `PROPOSAL_NOT_FOUND` (404), `INVALID_STATE_TRANSITION` (409), `CLUSTER_HAS_NO_CONFIG_REPO` (422), `GITHUB_NOT_CONFIGURED` (503), `QUEUE_UNAVAILABLE` (503; plan-cycle-2 F5) |
 | `POST` | `/api/v1/config-repos` | Register a config repo | `VALIDATION_ERROR` (422), `UNSUPPORTED_PROVIDER` (400), `CONFIG_REPO_NAME_TAKEN` (409), `AUTH_REF_NOT_FOUND` (400) |
 | `GET` | `/api/v1/config-repos` | Cursor-paginated list (`X-Total-Count`) | `VALIDATION_ERROR` (422; bad cursor) |
 | `GET` | `/api/v1/config-repos/{id}` | Detail | `CONFIG_REPO_NOT_FOUND` (404) |
@@ -241,6 +241,7 @@ Per CLAUDE.md "Enumerated Value Contract Discipline" — every wire value cites 
 | Code | HTTP Status | Meaning | Retryable |
 |---|---|---|---|
 | `GITHUB_NOT_CONFIGURED` | 503 | Per-repo PAT secret file at `./secrets/{auth_ref}` is missing or empty | true |
+| `QUEUE_UNAVAILABLE` | 503 | Arq enqueue failed (Redis unreachable, pool not built). Operator retries after `make up` confirms queue health. (Plan-cycle-2 F5: this feature has no boot-scan fallback so silent enqueue failure must surface as a loud 503 rather than always-202.) | true |
 | `PROPOSAL_NOT_FOUND` | 404 | Proposal ID not found | false |
 | `INVALID_STATE_TRANSITION` | 409 | `open_pr` on a `pr_opened` / `pr_merged` / `rejected` proposal | false |
 | `CLUSTER_HAS_NO_CONFIG_REPO` | 422 | Cluster's `config_repo_id` is NULL — operator must register a config_repo first via `POST /api/v1/config-repos` and update the cluster | false |
@@ -465,3 +466,5 @@ None — all resolved (see Decision log).
 - **2026-05-12 — `.git/config` remote URL reset post-clone** to the tokenless form. Subsequent fetches/pushes use `-c http.extraheader="AUTHORIZATION: Bearer ${TOKEN}"` so the PAT never lands on disk in the local clone. AC-7 verifies this explicitly.
 - **2026-05-12 — Clone path uses `{config_repo_id}` (UUID), not `{config_repo.name}`,** to avoid filesystem-unsafe characters in operator-supplied repo names.
 - **2026-05-12 — `provider` server-derived from `repo_url`,** not part of the create payload. The CHECK constraint already restricts to `'github'` for MVP1; adding `provider` to the API would be redundant validation surface.
+- **2026-05-12 — `QUEUE_UNAVAILABLE` (503) added** during plan-gen cycle-2 review (plan F5). Unlike the digest worker, this feature has no boot-scan fallback for missed enqueues — a silent best-effort enqueue would leave the proposal `pending` indefinitely with no `pr_open_error` to surface the failure. Better to fail loud at the API: 503 retryable=true; operator retries after confirming queue health.
+- **2026-05-12 — Commit author identity via Settings** (plan F3): `Settings.relyloop_git_author_name` (default `"relyloop-bot"`) + `Settings.relyloop_git_author_email` (default placeholder; operator overrides per FR-2 "commit author is `relyloop-bot@<install-domain>`"). Worker passes via `GIT_AUTHOR_*` / `GIT_COMMITTER_*` env vars to the commit subprocess so commits carry the bot identity, not the worker host's global git config.
