@@ -56,7 +56,32 @@ def test_worker_settings_importable(_settings_env: None) -> None:
         "resume_study",
         "generate_digest",
         "generate_judgments_llm",
+        "open_pr",
     }
+
+
+def test_open_pr_registered_with_retry_budget(_settings_env: None) -> None:
+    """feat_github_pr_worker Story 2.2 / cycle-3 F1.
+
+    open_pr is registered as ``func(open_pr, timeout=180, max_tries=30)``.
+    The 30-try ceiling × 5s defer between retries gives the leading
+    worker a ~150s window to release the per-config_repo advisory lock
+    before the trailing worker exhausts retries.
+    """
+    from backend.workers.all import WorkerSettings
+
+    open_pr_fn = next(
+        (
+            f
+            for f in WorkerSettings.functions
+            if (getattr(f, "name", None) or getattr(f, "__name__", "")) == "open_pr"
+        ),
+        None,
+    )
+    assert open_pr_fn is not None, "open_pr not registered in WorkerSettings.functions"
+    # arq.func wraps as Function with .max_tries / .timeout_s attributes.
+    assert getattr(open_pr_fn, "max_tries", None) == 30
+    assert getattr(open_pr_fn, "timeout_s", None) == 180
 
 
 def test_worker_settings_has_on_startup_hook(_settings_env: None) -> None:
