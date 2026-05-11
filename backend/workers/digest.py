@@ -661,33 +661,48 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                 cost_usd = compute_call_cost(model, input_tokens, output_tokens)
 
                 # Step 13 — Merge follow-ups.
+                # The capability-fallback (degraded) path persists no
+                # follow-ups per spec AC-11 — the LLM didn't generate
+                # any, and the deterministic drift-followup is moot
+                # because we're also dropping the recommended_config in
+                # that path (see Step 14/15).
                 followups: list[str] = []
-                if all_dropped:
-                    followups.append(
-                        f"Best trial used {len(dropped)} params no longer declared on the "
-                        f"template ({', '.join(dropped[:5])}{'...' if len(dropped) > 5 else ''}). "
-                        "The recommendation is empty. Re-add the dropped params to the template "
-                        "or treat this study as stale."
-                    )
-                elif dropped:
-                    followups.append(
-                        f"Best trial used params no longer declared on the template: {dropped}. "
-                        "Re-establish them or accept the filtered config."
-                    )
-                followups.extend(parsed.get("suggested_followups", []) or [])
-                followups = followups[:5]
+                if structured_output_enabled:
+                    if all_dropped:
+                        sample = ", ".join(dropped[:5])
+                        ellipsis = "..." if len(dropped) > 5 else ""
+                        followups.append(
+                            f"Best trial used {len(dropped)} params no longer declared "
+                            f"on the template ({sample}{ellipsis}). The recommendation is "
+                            "empty. Re-add the dropped params to the template or treat "
+                            "this study as stale."
+                        )
+                    elif dropped:
+                        followups.append(
+                            f"Best trial used params no longer declared on the "
+                            f"template: {dropped}. Re-establish them or accept the "
+                            "filtered config."
+                        )
+                    followups.extend(parsed.get("suggested_followups", []) or [])
+                    followups = followups[:5]
 
-                # Step 14 — metric_delta + config_diff.
+                # Step 14 — Persisted recommended_config + config_diff.
+                # Per spec AC-11, the capability-fallback path persists
+                # recommended_config={} (and consequently config_diff={})
+                # AND leaves the pending proposal untouched. The
+                # all-dropped sub-case (cycle-2 F7) likewise persists
+                # recommended_config={} but DELETEs the proposal.
                 metric_delta = _compute_metric_delta(study)
                 template_defaults = compute_default_params(template_row)
-                config_diff = (
-                    {
+                if structured_output_enabled and not all_dropped:
+                    persisted_recommended_config = recommended_config
+                    config_diff = {
                         p: {"from": template_defaults.get(p), "to": v}
                         for p, v in recommended_config.items()
                     }
-                    if not all_dropped
-                    else {}
-                )
+                else:
+                    persisted_recommended_config = {}
+                    config_diff = {}
 
                 # Step 15 — persist FIRST (cycle-2 C2-F3), then record cost.
                 digest_id = str(uuid_utils.uuid7())
@@ -698,7 +713,7 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                         study_id=study_id,
                         narrative=parsed["narrative"],
                         parameter_importance=parameter_importance,
-                        recommended_config=recommended_config,
+                        recommended_config=persisted_recommended_config,
                         suggested_followups=followups,
                         generated_by=f"openai:{model}",
                     )
@@ -717,6 +732,10 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                 if all_dropped:
                     # All-dropped: DELETE the pending proposal — non-actionable.
                     await db.execute(delete(Proposal).where(Proposal.id == proposal.id))
+                elif not structured_output_enabled:
+                    # Capability-fallback (degraded) path per spec AC-11:
+                    # pending proposal stays untouched. Skip the UPDATE.
+                    pass
                 else:
                     # Standard / partial-drift: conditional UPDATE on the
                     # pending proposal (cycle-3 F4 — benign no-op when the

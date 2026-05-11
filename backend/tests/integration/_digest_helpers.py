@@ -35,6 +35,7 @@ async def seed_completed_study(
     best_trial_params: dict[str, Any] | None = None,
     declared_params: dict[str, Any] | None = None,
     add_pending_proposal: bool = True,
+    study_status: str = "completed",
 ) -> dict[str, str]:
     """Insert a completed study + winning trial + (optionally) pending proposal.
 
@@ -111,7 +112,7 @@ async def seed_completed_study(
             search_space={},
             objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
             config={"max_trials": 100, "parallelism": 4, "sampler": "tpe"},
-            status="completed",
+            status=study_status,
             failed_reason=None,
             optuna_study_name=study_id,
             baseline_metric=baseline_metric,

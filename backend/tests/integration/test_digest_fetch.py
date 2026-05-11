@@ -50,14 +50,21 @@ async def test_fetch_existing_digest_returns_200(async_client: httpx.AsyncClient
 async def test_fetch_on_running_study_returns_404_digest_not_ready(
     async_client: httpx.AsyncClient,
 ) -> None:
-    """AC-4: study not yet completed → 404 DIGEST_NOT_READY (retryable)."""
-    seeded = await seed_completed_study()
+    """AC-4: study not yet completed → 404 DIGEST_NOT_READY (retryable).
+
+    Phase 2 wires a SQLAlchemy event listener that raises
+    ``StudyStateProtectionError`` on direct status UPDATEs outside the
+    service layer (FR-7), so we seed the study in ``running`` state via
+    the helper's ``study_status`` parameter rather than mutating after
+    create.
+    """
+    seeded = await seed_completed_study(study_status="running", best_metric=None)
     factory = get_session_factory()
     async with factory() as db:
         study = await repo.get_study(db, seeded["study_id"])
         assert study is not None
-        study.status = "running"
-        await db.commit()
+        assert study.status == "running"
+    del factory  # only here to satisfy the cleanup audit
 
     response = await async_client.get(f"/api/v1/studies/{seeded['study_id']}/digest")
     assert response.status_code == 404

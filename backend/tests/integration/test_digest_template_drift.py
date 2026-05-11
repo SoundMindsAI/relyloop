@@ -71,8 +71,8 @@ async def test_dropped_param_excluded_from_recommended_config_and_flagged_in_fol
         assert set(digest.recommended_config.keys()) == {"field_boosts.title", "tie_breaker"}
         # First follow-up mentions the dropped keys.
         assert digest.suggested_followups[0].startswith("Best trial used params no longer")
-        for dropped in ("fuzziness", "operator"):
-            assert dropped in digest.suggested_followups[0]
+        for dropped_key in ("fuzziness", "operator"):
+            assert dropped_key in digest.suggested_followups[0]
         # LLM-supplied follow-up is preserved (after the deterministic prefix).
         assert "LLM-followup" in digest.suggested_followups
 
