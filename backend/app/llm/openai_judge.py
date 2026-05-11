@@ -151,7 +151,15 @@ async def rate_query_batch(
                 },
                 max_completion_tokens=_MAX_COMPLETION_TOKENS,
             )
-        except (openai.RateLimitError, openai.APITimeoutError) as exc:
+        except (
+            openai.RateLimitError,
+            openai.APITimeoutError,
+            openai.APIConnectionError,
+        ) as exc:
+            # APIConnectionError covers transport-level failures (DNS,
+            # TLS handshake, refused connection, ECONNRESET mid-stream).
+            # These are transient and worth retrying with the same backoff
+            # policy as rate-limits and timeouts. Per GPT-5.5 cycle-6 C6-F2.
             last_exc = exc
             if attempt >= max_retries:
                 break

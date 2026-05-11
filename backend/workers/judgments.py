@@ -253,13 +253,22 @@ async def _process_query(
         )
         return
 
-    docs = _build_doc_inputs(hits)
-    expected_doc_ids = {d["doc_id"] for d in docs}
+    # Ordinal prompt-ids decouple engine-supplied doc_ids (which may contain
+    # XML-sensitive chars like ``<``, ``&``, ``"``) from the LLM's
+    # round-trippable identifier. Autoescape on the Jinja sandbox would
+    # otherwise render ``<doc id="a&b">`` as ``<doc id="a&amp;b">`` — the
+    # LLM would echo back ``a&amp;b`` and the worker's allowlist
+    # (which has ``a&b``) would drop it as spurious, producing a permanent
+    # zero-judgments outcome. Per GPT-5.5 cycle-6 C6-F1.
+    raw_docs = _build_doc_inputs(hits)
+    prompt_docs = [{"doc_id": f"item-{i}", "body": d["body"]} for i, d in enumerate(raw_docs)]
+    prompt_id_to_real = {f"item-{i}": d["doc_id"] for i, d in enumerate(raw_docs)}
+    expected_doc_ids = set(prompt_id_to_real.keys())
 
     user_prompt = render_user_prompt(
         rubric_text=rubric_text,
         query_text=query.query_text,
-        docs=docs,
+        docs=prompt_docs,
     )
 
     # Spec FR-3c: "The actual prompt sent to OpenAI MUST include this rubric
@@ -335,7 +344,9 @@ async def _process_query(
             "id": str(uuid_utils.uuid7()),
             "judgment_list_id": judgment_list_id,
             "query_id": str(query.id),
-            "doc_id": r.doc_id,
+            # Map prompt-only ordinal id (``item-N``) back to the real
+            # engine-supplied doc_id for DB persistence (C6-F1).
+            "doc_id": prompt_id_to_real[r.doc_id],
             "rating": r.rating,
             "source": "llm",
             "rater_ref": rater_ref,
