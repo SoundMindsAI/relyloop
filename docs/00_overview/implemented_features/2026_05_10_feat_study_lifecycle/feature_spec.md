@@ -158,7 +158,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `start_study`
 - The system **MUST** validate `declared_params` is a JSONB object whose keys are referenced in `body` (fail with `UNDECLARED_PARAM_USED` or `DECLARED_PARAM_UNUSED`).
 
 ### FR-3: Query-set CRUD
-- `POST /api/v1/query-sets` accepts `{name, description?, cluster_id?}`.
+- `POST /api/v1/query-sets` accepts `{name, description?, cluster_id}`. (Required; Phase 1's schema has `query_sets.cluster_id NOT NULL`.)
 - `POST /api/v1/query-sets/{id}/queries` accepts either JSON (`{queries: [{query_text, reference_answer?, metadata?}]}`) or CSV (`Content-Type: text/csv` with columns `query_text`, optional `reference_answer`, optional metadata as additional columns).
 - `GET /api/v1/query-sets` (paginated) and `GET /api/v1/query-sets/{id}` (includes query count).
 

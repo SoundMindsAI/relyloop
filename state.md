@@ -170,16 +170,13 @@
 5. **`feat_chat_agent`** — streaming chat orchestrator.
 6. **`feat_proposals_ui`** — `/proposals` review surface.
 7. **`chore_tutorial_polish`** — sample data + walkthrough. Tutorial flow now has the `POST /judgment-lists/import` path it expects (FR-3b).
-8. **`chore_spec_query_set_cluster_id_drift`** — one-line spec patch for FR-3 wording (captured 2026-05-10 from GPT-5.5 cycle-1 F2 adjudication).
-9. **`chore_spec_llm_judgments_endpoint_drift`** + **`chore_spec_llm_judgments_error_drift`** + **`chore_spec_llm_judgments_pricing_drift`** — three mechanical spec patches captured during PR #35 (§8.1 missing import endpoint; §8.5 missing QUERY_NOT_IN_SET + LIST_NOT_READY + UNKNOWN_MODEL_PRICING; FR-5 missing calibration-before-overrides note). Can land in one infra-sweep PR.
-10. **`chore_judgments_periodic_resume_sweep`** — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
+8. **`chore_judgments_periodic_resume_sweep`** — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
 
 Run `/pipeline status` for the live view from spec dependencies.
 
 ## Known debt / fragility
 
 - ~~**`backend/app/eval/qrels_loader.py` is an MVP1 stub.**~~ — **Resolved.** PR #35 replaced the stub with a real `SELECT query_id, doc_id, rating FROM judgments WHERE judgment_list_id = :id`. The legacy `JudgmentsTableMissing` symbol is retained as a no-op compat shim for any imported reference in older tests. Integration tests now seed real `judgments` rows; `run_trial` consumes the loader directly.
-- **`chore_infra_optuna_eval_spec_text_drift`** — spec §14 vs §11 wording drift around partial-failure retry; this feature implements per §11. Tracked at [`docs/02_product/planned_features/chore_infra_optuna_eval_spec_text_drift/idea.md`](docs/02_product/planned_features/chore_infra_optuna_eval_spec_text_drift/idea.md).
 - **`infra_optuna_orphan_reaper`** — Phase 2 orchestrator can die between `study.ask()` and the enqueue commit, leaving orphan Optuna RUNNING trials. Operationally tolerated for MVP1 per spec §11 "Operational tolerance"; periodic reaper deferred.
 - **CI lacks a `make up` smoke job.** All 5 first-run bugs in the
   `infra_foundation` PR surfaced after CI was green. Captured at
