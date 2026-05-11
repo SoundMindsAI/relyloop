@@ -120,17 +120,26 @@ async def upsert_judgment_human_override(
         notes=notes,
         created_at=now,
     )
-    upsert_stmt = insert_stmt.on_conflict_do_update(
-        index_elements=["judgment_list_id", "query_id", "doc_id"],
-        set_={
-            "rating": insert_stmt.excluded.rating,
-            "source": insert_stmt.excluded.source,
-            "rater_ref": insert_stmt.excluded.rater_ref,
-            "confidence": insert_stmt.excluded.confidence,
-            "notes": insert_stmt.excluded.notes,
-            "created_at": insert_stmt.excluded.created_at,
-        },
-    ).returning(Judgment)
+    upsert_stmt = (
+        insert_stmt.on_conflict_do_update(
+            index_elements=["judgment_list_id", "query_id", "doc_id"],
+            set_={
+                "rating": insert_stmt.excluded.rating,
+                "source": insert_stmt.excluded.source,
+                "rater_ref": insert_stmt.excluded.rater_ref,
+                "confidence": insert_stmt.excluded.confidence,
+                "notes": insert_stmt.excluded.notes,
+                "created_at": insert_stmt.excluded.created_at,
+            },
+        )
+        .returning(Judgment)
+        # ``populate_existing=True`` forces SQLAlchemy to overwrite any
+        # existing identity-map entry with the columns returned by RETURNING.
+        # Without it the caller would see the cached (pre-update) values
+        # when the DO UPDATE branch fires on an already-loaded row — bug
+        # surfaced in CI on the override-replace tests.
+        .execution_options(populate_existing=True)
+    )
 
     row = (await db.execute(upsert_stmt)).scalar_one()
     await db.flush()

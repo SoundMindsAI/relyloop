@@ -252,10 +252,13 @@ async def test_generate_returns_503_on_budget_already_exceeded(
 
     settings = get_settings()
     monkeypatch.setattr(type(settings), "openai_api_key", property(lambda self: "sk-test"))
+    # openai_daily_budget_usd is a Pydantic Field — not a class-level
+    # descriptor — so monkeypatch with raising=False to install a property.
     monkeypatch.setattr(
         type(settings),
         "openai_daily_budget_usd",
         property(lambda self: 1.0),
+        raising=False,
     )
     await _seed_capability_ok(settings.openai_base_url, ok=True)
     # Pre-seed counter ABOVE the 1.0 budget so the peek trips.
