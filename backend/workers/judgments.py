@@ -168,12 +168,18 @@ async def _process_query(
     cluster unreachable, malformed JSON after retry) are caught here and
     logged WARN so the outer loop continues.
     """
-    # Resume-skip: if this query already has TOP_K judgments, the worker
-    # already processed it on a prior pass — don't re-spend OpenAI dollars.
+    # Resume-skip: if this query already has ANY judgments, the prior worker
+    # pass either completed it OR was atomically rolled back. Because
+    # bulk_create_judgments + commit happens in one transaction after the
+    # LLM call, the only post-crash states are "0 rows" or "the full batch
+    # returned by the LLM". A hardcoded ``existing >= TOP_K`` would fail for
+    # queries that legitimately returned fewer than TOP_K hits (sparse
+    # indices, tutorial-scale datasets) and would re-spend OpenAI dollars.
+    # Per GPT-5.5 final review F2.
     existing = await repo.count_judgments_for_list_and_query(db, judgment_list_id, query.id)
-    if existing >= TOP_K:
+    if existing > 0:
         logger.info(
-            "query already complete, skipping",
+            "query already judged, skipping",
             event_type="judgment_skip_resume",
             judgment_list_id=judgment_list_id,
             query_id=query.id,
@@ -233,11 +239,18 @@ async def _process_query(
         docs=docs,
     )
 
+    # Spec FR-3c: "The actual prompt sent to OpenAI MUST include this rubric
+    # in full as part of the system prompt." We append the per-list rubric
+    # to the operator-fixed system message so the rubric appears at the
+    # top of the instruction hierarchy AND inside the user message's
+    # <rubric> delimiter block (defense in depth).
+    system_prompt = f"{bundle_system}\n\n<rubric>\n{rubric_text}\n</rubric>"
+
     try:
         result = await rate_query_batch(
             client=openai_client,
             model=model,
-            system_prompt=bundle_system,
+            system_prompt=system_prompt,
             user_prompt=user_prompt,
             expected_doc_ids=expected_doc_ids,
         )

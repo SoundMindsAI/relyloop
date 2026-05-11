@@ -340,6 +340,7 @@ async def import_judgment_list(
 
     queries = await repo.list_queries_for_set(db, body.query_set_id)
     valid_query_ids = {q.id for q in queries}
+    seen_pairs: set[tuple[str, str]] = set()
     for item in body.judgments:
         if item.query_id not in valid_query_ids:
             raise _err(
@@ -348,6 +349,20 @@ async def import_judgment_list(
                 f"query_id {item.query_id!r} not in query_set {body.query_set_id!r}",
                 False,
             )
+        # Reject duplicate (query_id, doc_id) pairs in the payload — without
+        # this pre-check, bulk_create_judgments would silently drop them via
+        # ON CONFLICT DO NOTHING and the 201 response would lie about the
+        # imported count (per GPT-5.5 final review F3).
+        pair = (item.query_id, item.doc_id)
+        if pair in seen_pairs:
+            raise _err(
+                400,
+                "VALIDATION_ERROR",
+                f"duplicate (query_id, doc_id) pair in import payload: "
+                f"({item.query_id!r}, {item.doc_id!r})",
+                False,
+            )
+        seen_pairs.add(pair)
 
     judgment_list_id = str(uuid.uuid4())
     try:
