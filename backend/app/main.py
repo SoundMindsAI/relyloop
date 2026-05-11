@@ -33,6 +33,7 @@ from backend.app.api import health
 from backend.app.api.errors import install_exception_handlers
 from backend.app.api.middleware import RequestIDMiddleware
 from backend.app.api.v1 import clusters as clusters_router
+from backend.app.api.v1 import config_repos as config_repos_router
 from backend.app.api.v1 import judgments as judgments_router
 from backend.app.api.v1 import proposals as proposals_router
 from backend.app.api.v1 import query_sets as query_sets_router
@@ -131,3 +132,4 @@ app.include_router(query_sets_router.router, prefix="/api/v1")  # Phase 2 Story 
 app.include_router(studies_router.router, prefix="/api/v1")  # Phase 2 Stories 3.3 + 3.4
 app.include_router(judgments_router.router, prefix="/api/v1")  # feat_llm_judgments Epic 3
 app.include_router(proposals_router.router, prefix="/api/v1")  # feat_digest_proposal Epic 3
+app.include_router(config_repos_router.router, prefix="/api/v1")  # feat_github_pr_worker Epic 3

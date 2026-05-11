@@ -789,10 +789,11 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
         await asyncio.to_thread(_ensure_clone, clone_dir, config_repo.repo_url, token)
     except subprocess.CalledProcessError as exc:
         message = _redact_subprocess_error(exc)
-        await _safe_set_pr_open_error(proposal_id, f"git clone failed: {message}")
+        await _safe_set_pr_open_error(proposal_id, f"CLONE_FAILED: {message}")
         logger.warning(
             "open_pr worker: git clone failed",
             event_type="pr_open_failed",
+            error_code="CLONE_FAILED",
             proposal_id=proposal_id,
             error=message,
         )
@@ -824,6 +825,7 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
         logger.warning(
             "open_pr worker: branch already exists on remote",
             event_type="pr_open_failed",
+            error_code="BRANCH_EXISTS",
             proposal_id=proposal_id,
             branch=branch,
         )
@@ -862,6 +864,7 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
         logger.warning(
             "open_pr worker: param not in template",
             event_type="pr_open_failed",
+            error_code="PARAM_NOT_IN_TEMPLATE",
             proposal_id=proposal_id,
             error=str(exc),
         )
@@ -871,6 +874,7 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
         logger.warning(
             "open_pr worker: params file missing",
             event_type="pr_open_failed",
+            error_code="PARAMS_FILE_NOT_FOUND",
             proposal_id=proposal_id,
             error=str(exc),
         )
@@ -961,11 +965,13 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
             )
         except httpx.RequestError as exc:
             await _safe_set_pr_open_error(
-                proposal_id, f"GitHub API unreachable: {redact_token(str(exc))}"
+                proposal_id,
+                f"GITHUB_API_FAILED: unreachable: {redact_token(str(exc))}",
             )
             logger.warning(
                 "open_pr worker: GitHub API unreachable after retries",
                 event_type="pr_open_failed",
+                error_code="GITHUB_API_FAILED",
                 proposal_id=proposal_id,
                 error_type=type(exc).__name__,
             )
@@ -974,11 +980,12 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
             error_text = redact_token(response.text)
             await _safe_set_pr_open_error(
                 proposal_id,
-                f"GitHub API {response.status_code}: {error_text}",
+                f"GITHUB_API_FAILED: {response.status_code}: {error_text}",
             )
             logger.warning(
                 "open_pr worker: GitHub PR-open returned error",
                 event_type="pr_open_failed",
+                error_code="GITHUB_API_FAILED",
                 proposal_id=proposal_id,
                 status_code=response.status_code,
             )
