@@ -21,6 +21,26 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
   });
 }
 
+// jsdom doesn't ship Element.scrollIntoView / PointerEvent / hasPointerCapture.
+// Radix-UI primitives (Select, Popover) call these on focus/keydown when
+// scrolling items into view; without the stubs they throw inside an effect
+// that React 19 surfaces as an unhandled error in vitest.
+if (typeof Element !== 'undefined') {
+  if (!Element.prototype.scrollIntoView) {
+    Element.prototype.scrollIntoView = () => {};
+  }
+  if (!(Element.prototype as unknown as { hasPointerCapture?: unknown }).hasPointerCapture) {
+    (Element.prototype as unknown as { hasPointerCapture: () => boolean }).hasPointerCapture = () =>
+      false;
+  }
+  if (
+    !(Element.prototype as unknown as { releasePointerCapture?: unknown }).releasePointerCapture
+  ) {
+    (Element.prototype as unknown as { releasePointerCapture: () => void }).releasePointerCapture =
+      () => {};
+  }
+}
+
 /**
  * msw server shared across the test suite. Individual tests register
  * handlers via `server.use(http.get(...))` and the global `afterEach`
