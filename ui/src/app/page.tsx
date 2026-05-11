@@ -1,38 +1,99 @@
-/**
- * Welcome stub home page.
- *
- * This is the transitional shell after `infra_foundation`'s placeholder and
- * before Story 3.1's real dashboard. It exists so `/` doesn't 404 between
- * Stories 1.2 and 3.1.
- */
-import Link from 'next/link';
+'use client';
+import { useQuery } from '@tanstack/react-query';
 
-import { Button } from '@/components/ui/button';
+import { CountCard } from '@/components/dashboard/count-card';
+import { RecentStudiesCards } from '@/components/dashboard/recent-studies-cards';
+import { EmptyState } from '@/components/common/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { apiClient } from '@/lib/api-client';
+import type { StudyListResponse } from '@/lib/api/studies';
+import type { ProposalsListResponse } from '@/lib/api/proposals';
 
-export default function HomePage() {
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function sevenDaysAgoIso(): string {
+  return new Date(Date.now() - SEVEN_DAYS_MS).toISOString();
+}
+
+export default function DashboardPage() {
+  const recent = useQuery({
+    queryKey: ['studies', { limit: 5 }, 'recent'],
+    queryFn: async () => {
+      const { data, headers } = await apiClient.get<StudyListResponse>('/api/v1/studies', {
+        params: { limit: 5 },
+      });
+      return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
+    },
+  });
+  const openProposals = useQuery({
+    queryKey: ['proposals', { status: 'pr_opened', limit: 1 }, 'count'],
+    queryFn: async () => {
+      const { data, headers } = await apiClient.get<ProposalsListResponse>('/api/v1/proposals', {
+        params: { status: 'pr_opened', limit: 1 },
+      });
+      return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
+    },
+  });
+  const completedRecently = useQuery({
+    queryKey: ['studies', { status: 'completed', since: 'last-7-days', limit: 1 }, 'count'],
+    queryFn: async () => {
+      const since = sevenDaysAgoIso();
+      const { data, headers } = await apiClient.get<StudyListResponse>('/api/v1/studies', {
+        params: { status: 'completed', since, limit: 1 },
+      });
+      return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
+    },
+  });
+
+  const allFailed = recent.isError && openProposals.isError && completedRecently.isError;
+
   return (
-    <main className="mx-auto max-w-3xl space-y-6 p-8">
-      <h1 className="text-3xl font-semibold tracking-tight">Welcome to RelyLoop</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle>Jump to a section</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3 pt-0">
-          <Button asChild>
-            <Link href="/studies">Studies</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/clusters">Clusters</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link href="/query-sets">Query Sets</Link>
-          </Button>
-        </CardContent>
-      </Card>
-      <p className="text-sm text-gray-600">
-        Open-source automated relevance tuning for enterprise search platforms.
-      </p>
+    <main className="mx-auto max-w-7xl space-y-6 p-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">
+          Recent activity across studies, proposals, and judgments.
+        </p>
+      </div>
+      {allFailed ? (
+        <EmptyState
+          title="Backend unreachable"
+          message="Check `make logs` and confirm the API container is healthy."
+        />
+      ) : (
+        <>
+          <section className="grid gap-3 sm:grid-cols-2">
+            <CountCard
+              label="Open proposals"
+              count={openProposals.isError ? null : (openProposals.data?.totalCount ?? null)}
+              href="/proposals"
+              testid="card-open-proposals"
+            />
+            <CountCard
+              label="Studies completed (last 7 days)"
+              count={
+                completedRecently.isError ? null : (completedRecently.data?.totalCount ?? null)
+              }
+              href="/studies?status=completed"
+              testid="card-completed-recent"
+            />
+          </section>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Recent studies</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recent.isPending ? (
+                <p className="text-sm text-muted-foreground">Loading…</p>
+              ) : recent.isError ? (
+                <p className="text-sm text-destructive">Could not load recent studies.</p>
+              ) : (
+                <RecentStudiesCards rows={recent.data?.data ?? []} />
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
     </main>
   );
 }
