@@ -69,9 +69,16 @@ def load_judgment_prompts() -> JudgmentPromptBundle:
     )
 
 
-_SANDBOX_ENV = SandboxedEnvironment(keep_trailing_newline=True)
+_SANDBOX_ENV = SandboxedEnvironment(keep_trailing_newline=True, autoescape=True)
 """Module-level sandbox. :class:`SandboxedEnvironment` is thread-safe per the
-Jinja2 docs; one shared instance avoids per-render setup cost."""
+Jinja2 docs; one shared instance avoids per-render setup cost.
+
+``autoescape=True`` HTML-escapes every variable substitution. The XML-style
+``<rubric>`` / ``<query>`` / ``<doc id="...">`` delimiters in the template
+become injection-resistant: a doc body containing literal ``</doc>`` is
+rendered as ``&lt;/doc&gt;`` and cannot break the candidate boundary.
+Template literals (the delimiter tags themselves) are not escaped — only the
+substituted ``{{ ... }}`` values. Per GPT-5.5 cycle-5 C5-F2."""
 
 
 def render_user_prompt(

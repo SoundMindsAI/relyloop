@@ -30,6 +30,13 @@ from openai import AsyncOpenAI
 from backend.app.core.logging import get_logger
 from backend.app.llm.cost_model import compute_call_cost
 
+# Hard ceiling on completion tokens per call — matches the
+# ``_OUTPUT_TOKEN_CEILING`` constant in :mod:`backend.app.llm.cost_model`
+# so the daily-budget pre-check is a real upper bound on output spend.
+# Without this the gate could under-estimate by an unbounded factor if the
+# model returned a runaway rationale. Per GPT-5.5 cycle-5 C5-F1.
+_MAX_COMPLETION_TOKENS = 2_000
+
 logger = get_logger(__name__)
 
 
@@ -142,6 +149,7 @@ async def rate_query_batch(
                         "strict": True,
                     },
                 },
+                max_completion_tokens=_MAX_COMPLETION_TOKENS,
             )
         except (openai.RateLimitError, openai.APITimeoutError) as exc:
             last_exc = exc
