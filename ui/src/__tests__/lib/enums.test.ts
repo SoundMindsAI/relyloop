@@ -44,7 +44,7 @@ describe('wire-value arrays match documented spec table', () => {
         'primary_metric_asc',
         'created_at_desc',
         'created_at_asc',
-        'trial_number_asc',
+        'optuna_trial_number_asc',
       ],
     ],
     ['ENGINE_TYPE_VALUES', ENGINE_TYPE_VALUES, ['elasticsearch', 'opensearch']],
