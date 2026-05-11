@@ -54,6 +54,11 @@ async def _clean_phase2_tables() -> AsyncIterator[None]:
         factory = async_sessionmaker(bind=engine, expire_on_commit=False)
         async with factory() as db:
             for table in (
+                # feat_digest_proposal: digests has FK to studies — delete BEFORE
+                # proposals so we don't have to think about the proposals → studies
+                # → digests dependency direction (digests is a sibling of proposals
+                # under studies, not a parent).
+                "digests",
                 "proposals",
                 "trials",
                 "studies",
