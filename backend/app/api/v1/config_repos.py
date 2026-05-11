@@ -83,7 +83,10 @@ def _auth_ref_exists(auth_ref: str) -> bool:
         candidate.relative_to(secrets_root)
     except ValueError:
         return False
-    return candidate.exists()
+    # GPT-5.5 final-review F4 — `is_file()` instead of `exists()` so
+    # AUTH_REF_NOT_FOUND fires for a directory at that path (which would
+    # later crash the worker's read_text() with IsADirectoryError).
+    return candidate.is_file()
 
 
 def _to_detail(row: object) -> ConfigRepoDetail:

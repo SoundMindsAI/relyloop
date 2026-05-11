@@ -63,13 +63,20 @@ _TOKEN = "ghp_" + "A1b2C3d4E5f6G7h8I9j0KlMnOpQrStUvWxYz"
 
 
 def test_repo_clone_root_default() -> None:
+    """Default returns the resolved absolute form of ``./data/repo-clones``.
+
+    GPT-5.5 final-review F1: returning an absolute path lets callers do
+    ``file_path.relative_to(clone_dir)`` without worrying about cwd.
+    """
     os.environ.pop("RELYLOOP_REPO_CLONE_ROOT", None)
-    assert git_pr._repo_clone_root() == Path("./data/repo-clones")
+    assert git_pr._repo_clone_root() == Path("./data/repo-clones").resolve()
+    assert git_pr._repo_clone_root().is_absolute()
 
 
 def test_repo_clone_root_override(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
     monkeypatch.setenv("RELYLOOP_REPO_CLONE_ROOT", str(tmp_path))
-    assert git_pr._repo_clone_root() == tmp_path
+    assert git_pr._repo_clone_root() == tmp_path.resolve()
+    assert git_pr._repo_clone_root().is_absolute()
 
 
 def test_secrets_dir_default() -> None:
@@ -118,6 +125,13 @@ def test_read_pat_refuses_path_escape(monkeypatch: pytest.MonkeyPatch, tmp_path:
     outside.write_text("should not be readable")
     relative = os.path.relpath(outside, tmp_path)
     assert git_pr._read_pat(relative) is None
+
+
+def test_read_pat_rejects_directory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """GPT-5.5 F4 — a directory at ``./secrets/{auth_ref}`` returns None instead of crashing."""
+    monkeypatch.setenv("RELYLOOP_SECRETS_DIR", str(tmp_path))
+    (tmp_path / "is-a-directory").mkdir()
+    assert git_pr._read_pat("is-a-directory") is None
 
 
 # ---------------------------------------------------------------------------
@@ -260,6 +274,24 @@ def test_is_secondary_rate_limit_false_when_remaining_nonzero() -> None:
 def test_is_secondary_rate_limit_false_when_missing_reset() -> None:
     response = httpx.Response(403, headers={"x-ratelimit-remaining": "0"})
     assert git_pr._is_secondary_rate_limit(response) is False
+
+
+def test_body_mentions_rate_limit_matches_secondary() -> None:
+    response = httpx.Response(
+        403,
+        text='{"message": "You have exceeded a secondary rate limit"}',
+    )
+    assert git_pr._body_mentions_rate_limit(response) is True
+
+
+def test_body_mentions_rate_limit_matches_abuse() -> None:
+    response = httpx.Response(403, text='{"message": "abuse detection triggered"}')
+    assert git_pr._body_mentions_rate_limit(response) is True
+
+
+def test_body_mentions_rate_limit_no_match() -> None:
+    response = httpx.Response(403, text='{"message": "Not Found"}')
+    assert git_pr._body_mentions_rate_limit(response) is False
 
 
 def test_parse_rate_limit_reset_future() -> None:
@@ -483,6 +515,54 @@ async def test_github_post_terminal_on_4xx(monkeypatch: pytest.MonkeyPatch) -> N
             client, "https://api.github.com/x", json_body={}, token=_TOKEN
         )
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_github_post_retries_on_403_with_retry_after(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GPT-5.5 F3 — 403 with Retry-After header is retryable."""
+    monkeypatch.setattr("backend.workers.git_pr.asyncio.sleep", _no_sleep)
+    call_count = {"n": 0}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        call_count["n"] += 1
+        if call_count["n"] < 2:
+            return httpx.Response(403, headers={"retry-after": "1"})
+        return httpx.Response(200, json={"ok": True})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        resp = await git_pr._github_post(
+            client, "https://api.github.com/x", json_body={}, token=_TOKEN
+        )
+    assert resp.status_code == 200
+    assert call_count["n"] == 2
+
+
+@pytest.mark.asyncio
+async def test_github_post_retries_on_403_with_rate_limit_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GPT-5.5 F3 — 403 with rate-limit body but no headers is also retryable."""
+    monkeypatch.setattr("backend.workers.git_pr.asyncio.sleep", _no_sleep)
+    call_count = {"n": 0}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        call_count["n"] += 1
+        if call_count["n"] < 2:
+            return httpx.Response(
+                403, text='{"message": "You have exceeded a secondary rate limit"}'
+            )
+        return httpx.Response(200, json={"ok": True})
+
+    transport = httpx.MockTransport(handler)
+    async with httpx.AsyncClient(transport=transport) as client:
+        resp = await git_pr._github_post(
+            client, "https://api.github.com/x", json_body={}, token=_TOKEN
+        )
+    assert resp.status_code == 200
+    assert call_count["n"] == 2
 
 
 async def _no_sleep(_seconds: float) -> None:

@@ -130,9 +130,15 @@ _RATE_LIMIT_CLAMP_S = 60.0
 
 
 def _repo_clone_root() -> Path:
-    """Resolved per-config-repo clone root (test-overridable)."""
+    """Resolved per-config-repo clone root (test-overridable).
+
+    Returns an ABSOLUTE path so callers can call ``file_path.relative_to(
+    clone_dir)`` even when the configured root is relative (e.g. the
+    default ``./data/repo-clones`` against an already-resolved
+    ``params_path``). GPT-5.5 final-review F1.
+    """
     override = os.environ.get("RELYLOOP_REPO_CLONE_ROOT")
-    return Path(override) if override else _REPO_CLONE_ROOT
+    return Path(override).resolve() if override else _REPO_CLONE_ROOT.resolve()
 
 
 def _secrets_dir() -> Path:
@@ -163,9 +169,16 @@ def _read_pat(auth_ref: str) -> str | None:
             auth_ref=auth_ref,
         )
         return None
-    if not candidate.exists():
+    # GPT-5.5 final-review F4 — require an actual file, not a directory or
+    # symlink-to-directory, AND tolerate OSError on read (permissions, EIO,
+    # etc.) so the worker returns a clean None instead of crashing into a
+    # 500-class error.
+    if not candidate.is_file():
         return None
-    content = candidate.read_text().strip()
+    try:
+        content = candidate.read_text().strip()
+    except OSError:
+        return None
     return content or None
 
 
@@ -598,10 +611,24 @@ async def _github_post(
             wait = _parse_retry_after(response)
             await asyncio.sleep(min(wait, _RATE_LIMIT_CLAMP_S))
             continue
-        if response.status_code == 403 and _is_secondary_rate_limit(response):
-            wait = _parse_rate_limit_reset(response)
-            await asyncio.sleep(min(wait, _RATE_LIMIT_CLAMP_S))
-            continue
+        if response.status_code == 403:
+            # GPT-5.5 final-review F3 — GitHub's secondary rate limit
+            # sometimes returns 403 with Retry-After but without the
+            # x-ratelimit-* headers (the abuse-detection path). Honor
+            # any 403 that carries a retry hint or whose body advertises
+            # the secondary-rate-limit; only fall through to terminal
+            # for 403s with no retry signal at all.
+            if "retry-after" in response.headers:
+                wait = _parse_retry_after(response)
+                await asyncio.sleep(min(wait, _RATE_LIMIT_CLAMP_S))
+                continue
+            if _is_secondary_rate_limit(response):
+                wait = _parse_rate_limit_reset(response)
+                await asyncio.sleep(min(wait, _RATE_LIMIT_CLAMP_S))
+                continue
+            if _body_mentions_rate_limit(response):
+                await asyncio.sleep(_HTTP_RETRY_BACKOFF_S[attempt])
+                continue
         # Other 4xx — terminal.
         return response
     if last_response is not None:
@@ -623,6 +650,21 @@ def _is_secondary_rate_limit(response: httpx.Response) -> bool:
         response.headers.get("x-ratelimit-remaining") == "0"
         and "x-ratelimit-reset" in response.headers
     )
+
+
+def _body_mentions_rate_limit(response: httpx.Response) -> bool:
+    """GPT-5.5 final-review F3 — match GitHub's abuse-detection 403 body.
+
+    Some secondary-rate-limit responses carry no headers — only a JSON
+    body like ``{"message": "You have exceeded a secondary rate limit"}``.
+    Conservative match on lowercase substring (no full body parse — we
+    don't want to crash on non-JSON 403s).
+    """
+    try:
+        text = response.text.lower()
+    except Exception:  # noqa: BLE001 — defensive against bytes/encoding edge
+        return False
+    return "rate limit" in text or "abuse" in text
 
 
 def _parse_rate_limit_reset(response: httpx.Response) -> float:
@@ -916,13 +958,16 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
                 )
 
     # ---- Step 12: commit + push (separate commits for params + PNG). -
+    # GPT-5.5 final-review F2 — cluster.name / template.name are operator-
+    # controlled strings; pass through redact_token before they land in
+    # commit messages that will sit forever on GitHub.
     try:
-        commit_msg = (
+        commit_msg = redact_token(
             f"RelyLoop proposal {proposal_id}\n\ncluster={cluster.name} template={template.name}"
         )
         await asyncio.to_thread(_git_commit_file, clone_dir, params_path, commit_msg, token)
         if chart_path is not None and chart_path.exists():
-            chart_msg = f"RelyLoop chart for proposal {proposal_id}"
+            chart_msg = redact_token(f"RelyLoop chart for proposal {proposal_id}")
             await asyncio.to_thread(_git_commit_file, clone_dir, chart_path, chart_msg, token)
         await asyncio.to_thread(
             _git_subprocess,
@@ -961,6 +1006,14 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
         )
         study_name = study.name if study is not None else proposal.study_id
         title = f"RelyLoop: {study_name}"
+
+    # GPT-5.5 final-review F2 — defense-in-depth: redact any token-shaped
+    # string that might have ridden into a DB-derived field (study.name,
+    # config_diff value, suggested_followup, etc.) BEFORE sending it to
+    # GitHub. The structlog processor backstops logs; PR title / body /
+    # commit messages are NOT logs and need their own redact pass.
+    title = redact_token(title)
+    body = redact_token(body)
 
     pr_url: str | None = None
     pr_number: int | None = None

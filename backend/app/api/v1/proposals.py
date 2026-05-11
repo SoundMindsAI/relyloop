@@ -437,9 +437,15 @@ def _read_auth_secret(auth_ref: str) -> str | None:
         candidate.relative_to(secrets_root)
     except ValueError:
         return None
-    if not candidate.exists():
+    # GPT-5.5 final-review F4 — require an actual file (not a directory or
+    # symlink-to-directory) AND tolerate OSError on read so a malformed
+    # secret path returns clean GITHUB_NOT_CONFIGURED instead of crashing.
+    if not candidate.is_file():
         return None
-    content = candidate.read_text().strip()
+    try:
+        content = candidate.read_text().strip()
+    except OSError:
+        return None
     return content or None
 
 
