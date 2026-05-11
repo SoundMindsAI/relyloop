@@ -70,9 +70,9 @@
 
 ### `feat_studies_ui` — manage studies in the browser
 
-- **US-22: List my studies with filters.** *As a Relevance Engineer*, I see a list of all studies filterable by status (queued, running, completed, cancelled), cluster, and date, so I can find the study I ran last Tuesday without searching by ID. *(Source: §22 `/studies`.)*
-- **US-23: See the trials table for a study.** *As a Relevance Engineer*, on the study detail page I see all trials with their parameters, metric, and runtime, sortable by metric so the best trial is at the top, so I can investigate why a particular parameter combo won. *(Source: §22 `/studies/{id}`.)*
-- **US-24: View a parameter importance chart.** *As a Relevance Engineer*, the digest panel shows a bar chart (rendered with recharts) of parameter importance computed by `optuna.importance`, so I can see at a glance which parameters drove the win. *(Source: §15, §22.)*
+- **US-22: List my studies with filters.** *(Implemented — `feat_studies_ui`)* *As a Relevance Engineer*, I see a list of all studies filterable by status (queued, running, completed, cancelled), cluster, and date, so I can find the study I ran last Tuesday without searching by ID. *(Source: §22 `/studies`.)*
+- **US-23: See the trials table for a study.** *(Implemented — `feat_studies_ui`)* *As a Relevance Engineer*, on the study detail page I see all trials with their parameters, metric, and runtime, sortable by metric so the best trial is at the top, so I can investigate why a particular parameter combo won. *(Source: §22 `/studies/{id}`.)*
+- **US-24: View a parameter importance chart.** *(Implemented — `feat_studies_ui`)* *As a Relevance Engineer*, the digest panel shows a bar chart (rendered with recharts) of parameter importance computed by `optuna.importance`, so I can see at a glance which parameters drove the win. *(Source: §15, §22.)*
 
 ### `feat_chat_agent` — natural-language access to the loop
 

@@ -10,6 +10,13 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    // Pin the api-client base URL to a non-resolvable host so msw can
+    // intercept requests safely. Without this, `apiClient` defaults to
+    // http://localhost:8000 and (when the dev stack is running) tests
+    // hit the real backend instead of the msw mock.
+    env: {
+      NEXT_PUBLIC_API_BASE_URL: 'http://api.test',
+    },
   },
   resolve: {
     alias: {
