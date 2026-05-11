@@ -159,10 +159,11 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 
 ### FR-5: Calibration endpoint
 - `POST /api/v1/judgment-lists/{id}/calibration` accepts `{human_samples: [{query_id, doc_id, rating}]}` (30–50 typical) and:
-  - For each sample, fetches the LLM rating from `judgments`
+  - For each sample, fetches the matching judgment **filtered to `source='llm'`** (so human-override rows from FR-4 don't pollute the pairs — operators would otherwise be comparing humans to humans)
   - Computes Cohen's kappa, weighted kappa (linear weights), per-rating-class agreement breakdown via `backend/app/eval/calibration.py`
   - Persists to `judgment_lists.calibration` JSONB (overwrites prior calibration)
   - Returns HTTP 200 with the computed metrics
+- **Run calibration BEFORE any significant volume of human overrides.** The `source='llm'` filter means that on a heavily-overridden list, the post-match recheck can fall below the 10-sample threshold and return `INSUFFICIENT_SAMPLES` even when ≥10 samples were submitted.
 - Notes: covers US-15.
 
 ### FR-6: List + detail + paginated judgments
@@ -176,11 +177,12 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 
 | Method | Path | Purpose | Key error codes |
 |---|---|---|---|
-| `POST` | `/api/v1/judgments/generate` | Kick off LLM generation (async) | `OPENAI_NOT_CONFIGURED`, `OPENAI_BUDGET_EXCEEDED`, `QUERY_SET_NOT_FOUND`, `CLUSTER_NOT_FOUND`, `TEMPLATE_NOT_FOUND`, `JUDGMENT_LIST_NAME_TAKEN` |
+| `POST` | `/api/v1/judgments/generate` | Kick off LLM generation (async) | `OPENAI_NOT_CONFIGURED`, `OPENAI_BUDGET_EXCEEDED`, `LLM_PROVIDER_INCAPABLE`, `UNKNOWN_MODEL_PRICING`, `QUERY_SET_NOT_FOUND`, `CLUSTER_NOT_FOUND`, `TEMPLATE_NOT_FOUND`, `JUDGMENT_LIST_NAME_TAKEN` |
+| `POST` | `/api/v1/judgment-lists/import` | Import pre-baked judgments (tutorial path; no OpenAI) — per FR-3b | `QUERY_SET_NOT_FOUND`, `CLUSTER_NOT_FOUND`, `QUERY_NOT_IN_SET`, `JUDGMENT_LIST_NAME_TAKEN` |
 | `GET` | `/api/v1/judgment-lists` | List judgment lists | (none) |
 | `GET` | `/api/v1/judgment-lists/{id}` | Detail with counts + calibration | `JUDGMENT_LIST_NOT_FOUND` |
 | `GET` | `/api/v1/judgment-lists/{id}/judgments` | Paginated judgment rows | `JUDGMENT_LIST_NOT_FOUND` |
-| `PATCH` | `/api/v1/judgment-lists/{id}/judgments/{judgment_id}` | Human override | `JUDGMENT_LIST_NOT_FOUND`, `JUDGMENT_NOT_FOUND`, `INVALID_RATING` |
+| `PATCH` | `/api/v1/judgment-lists/{id}/judgments/{judgment_id}` | Human override | `JUDGMENT_LIST_NOT_FOUND`, `JUDGMENT_NOT_FOUND`, `INVALID_RATING`, `LIST_NOT_READY` |
 | `POST` | `/api/v1/judgment-lists/{id}/calibration` | Compute kappa from human samples | `JUDGMENT_LIST_NOT_FOUND`, `INSUFFICIENT_SAMPLES` |
 
 ### 8.4 Enumerated value contracts
@@ -203,8 +205,11 @@ The actual prompt sent to OpenAI **MUST** include this rubric in full as part of
 | `JUDGMENT_LIST_NAME_TAKEN` | 409 | Name already in use |
 | `JUDGMENT_NOT_FOUND` | 404 | Judgment row not found within the list |
 | `INVALID_RATING` | 400 | Rating not in 0..3 |
-| `INSUFFICIENT_SAMPLES` | 400 | Calibration needs ≥10 human samples to compute meaningful kappa |
+| `LIST_NOT_READY` | 409 | `PATCH override`: parent list is still `status='generating'`; `retryable: true` |
+| `INSUFFICIENT_SAMPLES` | 400 | Calibration needs ≥10 human samples to compute meaningful kappa (counted **after** filtering to `source='llm'` matches per FR-5) |
+| `QUERY_NOT_IN_SET` | 400 | Import payload contains a `query_id` not in the supplied `query_set_id` |
 | `QUERY_SET_NOT_FOUND`, `CLUSTER_NOT_FOUND`, `TEMPLATE_NOT_FOUND` | 404 | Referenced entity missing |
+| `UNKNOWN_MODEL_PRICING` | 503 | `OPENAI_MODEL` has no entry in `backend/app/llm/cost_model.py`; the daily budget gate cannot be enforced. `retryable: false` — operator pins a known model or adds pricing |
 
 ## 9) Data model and state transitions
 
