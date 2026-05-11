@@ -1160,7 +1160,7 @@ Not in scope for this PR. UI lands with `feat_studies_ui` (digest panel on study
 ## 9) Execution tracker (copy/paste section)
 
 ### Current sprint
-- [ ] Story 1.1 — `digests` migration + ORM model
+- [x] Story 1.1 — `digests` migration + ORM model
 - [ ] Story 1.2 — repo extensions
 - [ ] Story 1.3 — prompt loader + files
 - [ ] Story 2.1 — `generate_digest` worker + stub deletion
