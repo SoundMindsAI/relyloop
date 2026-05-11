@@ -196,11 +196,38 @@ async def rate_query_batch(
             await asyncio.sleep(wait)
             continue
 
+        # Schema validation BEFORE iterating. OpenAI's strict=True enforces
+        # the schema at the API level, but local OpenAI-compatible endpoints
+        # (Ollama / LM Studio / vLLM / TGI) may not honor it. A payload like
+        # ``{"ratings": {"doc_id":"d1"}}`` (object instead of array) would
+        # crash the iteration with AttributeError otherwise (per GPT-5.5
+        # cycle-3 C3-F2). Treat schema violations the same as malformed JSON
+        # — retryable.
+        if not isinstance(parsed, dict) or not isinstance(parsed.get("ratings"), list):
+            last_exc = ValueError("response does not match RATING_RESPONSE_SCHEMA")
+            if attempt >= max_retries:
+                break
+            wait = _backoff_seconds(attempt)
+            logger.warning(
+                "OpenAI judge: response shape violates schema, retrying",
+                attempt=attempt,
+                max_retries=max_retries,
+                wait_seconds=wait,
+            )
+            await asyncio.sleep(wait)
+            continue
+
         # Validate + filter ratings against the doc-id allowlist.
-        raw_ratings = parsed.get("ratings") or []
+        raw_ratings = parsed["ratings"]
         validated: list[DocRating] = []
         returned_ids: set[str] = set()
         for item in raw_ratings:
+            if not isinstance(item, dict):
+                logger.warning(
+                    "OpenAI judge: dropping non-dict ratings item",
+                    item_type=type(item).__name__,
+                )
+                continue
             doc_id = item.get("doc_id")
             rating = item.get("rating")
             rationale = item.get("rationale", "")

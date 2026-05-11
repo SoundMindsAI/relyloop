@@ -304,21 +304,25 @@ async def _process_query(
         )
         return
 
-    # All-or-nothing persistence: if the LLM dropped any expected doc_id
-    # (a missing rating in the structured response), do NOT persist the
-    # partial batch. The resume-skip-on-any-existing policy means a
-    # partial commit would permanently strand the unrated docs (per
-    # GPT-5.5 cycle-2 C2-F2). Let the next worker pass re-try the whole
-    # query — the OpenAI call cost is already recorded below for honest
-    # budget accounting.
-    if len(result.ratings) < len(expected_doc_ids):
+    # All-or-nothing persistence: confirm the response is a *set-equal*
+    # match for the expected doc_ids. A simple ``len(ratings) <
+    # len(expected_doc_ids)`` check would still admit duplicates like
+    # ``[d1, d1]`` when expected was ``{d1, d2}`` — the UNIQUE constraint
+    # would then admit only the first row and resume-skip would strand d2
+    # forever (per GPT-5.5 cycle-3 C3-F1). Require exact set equality
+    # AND that the LLM did not repeat any doc_id (no duplicates).
+    returned_ids = [r.doc_id for r in result.ratings]
+    returned_set = set(returned_ids)
+    if returned_set != expected_doc_ids or len(returned_ids) != len(returned_set):
         logger.warning(
-            "judgment worker: LLM dropped docs; skipping partial persist for retry",
+            "judgment worker: LLM response not set-equal to expected docs; "
+            "skipping partial persist for retry",
             event_type="judgment_partial_response",
             judgment_list_id=judgment_list_id,
             query_id=query.id,
             expected=len(expected_doc_ids),
-            returned=len(result.ratings),
+            returned_unique=len(returned_set),
+            returned_total=len(returned_ids),
         )
         # Still record the cost — we paid for the call. The retry pays again,
         # but the alternative (permanent partial state) is worse.
