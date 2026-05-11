@@ -1,7 +1,7 @@
 # Implementation Plan — feat_digest_proposal
 
 **Date:** 2026-05-11
-**Status:** Approved (3 GPT-5.5 review cycles to the cap; 20 findings accepted + applied; ready for `/impl-execute`)
+**Status:** Complete (PR #41, merged 2026-05-11 squash commit `3753894`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../CLAUDE.md), [docs/01_architecture/data-model.md](../../../01_architecture/data-model.md), [docs/01_architecture/llm-orchestration.md](../../../01_architecture/llm-orchestration.md), [docs/01_architecture/api-conventions.md](../../../01_architecture/api-conventions.md)
 

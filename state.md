@@ -2,20 +2,21 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-11 (after `feat_digest_proposal` implementation complete, PR pending)
+**Last updated:** 2026-05-11 (after `feat_digest_proposal` merged via PR #41)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `feature/feat-digest-proposal` — 12 stories complete + Epic 4 docs/tests; PR not yet opened.
-- **Active feature:** `feat_digest_proposal` in flight (study-end digest narrative + populates the pending proposal row).
+- **Branch:** `main` — `feat_digest_proposal` merged via PR #41 (squash commit `3753894`); finalization happening on `docs/finalize-digest-proposal`.
+- **Active feature:** none in flight. Next-up: `feat_github_pr_worker` (now consumes the `proposals` shape that `feat_digest_proposal` populates).
 - **Alembic head:** `0005_digests` (bumped by Story 1.1 of `feat_digest_proposal`).
 - **Coverage:** above the 80% gate. 350 unit tests + 2 xpassed + 80+ integration (including 26 new for digest worker + API) + 6 contract (including 1 new for digest+proposals API).
 
 ## Most recent meaningful changes (newest first)
 
-- **2026-05-11 — `feat_digest_proposal` implementation complete (PR pending)** on `feature/feat-digest-proposal`. 12 stories across 4 epics covering FR-1..FR-6 + FR-2b + AC-1..AC-11. **One migration (`0005_digests`).** Plan went through **3 GPT-5.5 review cycles** (20 findings, all accepted + applied) before execution.
+- **2026-05-11 — `feat_digest_proposal` merged into `main`** as PR #41 (squash commit `3753894`). 12 stories across 4 epics covering FR-1..FR-6 + FR-2b + AC-1..AC-11. **One migration (`0005_digests`).** Plan went through **3 GPT-5.5 review cycles** (20 findings, all accepted + applied) before execution. Final GPT-5.5 review raised 6 findings on the merged PR diff; 5 accepted + applied (commit `6267cc8`), 1 rejected with cited counter-evidence (`git diff main..HEAD --stat` showed the docs WERE in the diff — false positive caused by code-only diff slice).
+  - **CI cycles:** 4 total — initial push (FK ordering in seed helper + settings pollution between tests + post-0005 downgrade-target wrong on `test_judgments_migration.py`) → fix-1 (commit `81d512e`) → still failing on AC-11 capability fallback persisting wrong recommended_config → fix-2 (commit `83fd8c6`) → final-review fixes (commit `6267cc8`) → green.
   - **Epic 1 (foundations, 3 stories):** `0005_digests` migration creating the `digests` table per data-model.md (`id`, `study_id UNIQUE`, `narrative`, `parameter_importance JSONB`, `recommended_config JSONB`, `suggested_followups TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[]` per cycle-1 F1, `generated_by`, `generated_at`); `Digest` ORM model exported via `db/models/__init__.py`; new `db/repo/digest.py` (`create_digest`, `get_digest_for_study`) + 5 proposal repo extensions per FR-6 (`update_proposal_for_digest` conditional on `WHERE status='pending'` per cycle-3 F4, `list_proposals_paginated`, `count_proposals`, `reject_proposal` raises `InvalidStateTransition`, `list_pending_proposals_for_boot_scan`); `prompts/digest_narrative.system.md` + `digest_narrative.user.jinja` with `include_recommendation` toggle for the degraded path (cycle-3 F3); `backend/app/llm/digest_prompt.py` with `lru_cache`-cached `DigestPromptBundle` + `SandboxedEnvironment(autoescape=True)` mirroring `prompt_loader.py`.
   - **Epic 2 (worker, 2 stories):** `backend/workers/digest.py:generate_digest` (15-step contract) REPLACES `backend/workers/digest_stub.py` (file deleted) under the same Arq job name so the orchestrator's enqueue at `orchestrator.py:370` keeps firing. Key cycle revisions: pre-LLM idempotency guard via `get_digest_for_study` (cycle-1 F6); `pg_try_advisory_xact_lock` keyed on `blake2b("digest:{sid}")` held across LLM call + persist tx (cycle-2 F6 — prefix disjoint from orchestrator's replenish lock); zero-trials short-circuit moved BEFORE OpenAI preflights (cycle-2 F5 — AC-2 fires regardless of config); capability fallback as a mode flag, NOT short-circuit (cycle-3 F2 — pricing + budget still gate); deterministic `recommended_config` (cycle-1 F5 / cycle-2 F1 — best-trial params filtered to currently-declared template params; all-dropped sub-case persists empty-recommendation digest + DELETEs the pending proposal per cycle-2 F7); persist FIRST then `_safe_record_cost` (cycle-2 C2-F3 from feat_llm_judgments); conditional UPDATE on the pending proposal handles operator-reject-mid-LLM race (cycle-3 F4 — benign no-op). `WorkerSettings.on_startup` extended with the FR-2b boot scan (list_pending_proposals_for_boot_scan + deterministic `_job_id="generate_digest:{sid}"`).
   - **Epic 3 (API, 4 stories, 5 endpoints):** `backend/app/api/v1/proposals.py` (new router; registered in `main.py` alongside the existing v1 routers): `GET /studies/{id}/digest` (FR-3 / AC-3 / AC-4 — 404 STUDY_NOT_FOUND vs DIGEST_NOT_READY); `POST /proposals` (FR-4 / AC-6 — manual creation, study_id NULL); `GET /proposals` (cursor + status Literal + cluster_id filter + X-Total-Count); `GET /proposals/{id}` (detail with inline `study_summary` + `digest` to spare UI a fan-out query); `POST /proposals/{id}/reject` (FR-4 / AC-5 — pending → rejected; 409 INVALID_STATE_TRANSITION via repo's `InvalidStateTransition`). `ProposalStatusWire` and `ProposalPrStateWire` Literals carry source-of-truth comments per cycle-2 F4 / cycle-3 F1.
@@ -166,7 +167,7 @@
 
 ## In flight
 
-- **`feat_digest_proposal`** on `feature/feat-digest-proposal` — 12 stories complete; PR pending. After merge, the queued list collapses to start with `feat_github_pr_worker`.
+- None. Next feature pulled from the Queued list below.
 
 ## Queued (priority-ordered by dependency)
 
