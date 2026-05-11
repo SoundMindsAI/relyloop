@@ -46,6 +46,7 @@ from backend.app.api.v1.schemas import (
     CreateStudyRequest,
     StudyDetail,
     StudyListResponse,
+    StudyStatusWire,
     StudySummary,
     TrialDetail,
     TrialListResponse,
@@ -264,9 +265,14 @@ async def list_studies(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
-    study_status: Annotated[str | None, Query(alias="status")] = None,
+    study_status: Annotated[StudyStatusWire | None, Query(alias="status")] = None,
 ) -> StudyListResponse:
-    """List studies with cursor pagination + X-Total-Count."""
+    """List studies with cursor pagination + X-Total-Count.
+
+    ``?status=`` is typed as :data:`StudyStatusWire` so FastAPI returns
+    422 ``VALIDATION_ERROR`` for unsupported values rather than silently
+    returning an empty list (C3-F2 GPT-5.5 cycle-3 fix).
+    """
     parsed_cursor = _decode_cursor(cursor) if cursor else None
     status_filter: Any = study_status if study_status else None
     rows = await repo.list_studies(

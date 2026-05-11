@@ -184,17 +184,12 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
             summary = await aggregate_trials_summary(db, study_id)
             terminal = summary.complete + summary.failed + summary.pruned
 
-            # 3. Stop conditions — each evaluated only when its key is set.
-            if max_trials is not None and terminal >= max_trials:
-                await _stop(db, arq_pool, study_id, summary, reason="max_trials_reached")
-                return
-            if time_budget_min is not None:
-                elapsed = datetime.now(UTC) - started_at_floor
-                if elapsed >= timedelta(minutes=time_budget_min):
-                    await _stop(db, arq_pool, study_id, summary, reason="time_budget_exceeded")
-                    return
-
-            # 4. Consecutive-failure detection (AC-5).
+            # 3. Consecutive-failure detection (AC-5) FIRST. If the most
+            # recent N trials all failed, the study is `failed` — even
+            # if max_trials would also fire on this tick (e.g.,
+            # max_trials=5 with all 5 failed: ``failed`` is the correct
+            # terminal, not ``completed`` with best_metric=None). C3-F1
+            # GPT-5.5 cycle-3 fix.
             if await _last_n_all_failed(db, study_id, n=_CONSECUTIVE_FAILURE_THRESHOLD):
                 try:
                     await study_state.fail_study(
@@ -218,6 +213,16 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
                         study_id=study_id,
                     )
                 return
+
+            # 4. Stop conditions — each evaluated only when its key is set.
+            if max_trials is not None and terminal >= max_trials:
+                await _stop(db, arq_pool, study_id, summary, reason="max_trials_reached")
+                return
+            if time_budget_min is not None:
+                elapsed = datetime.now(UTC) - started_at_floor
+                if elapsed >= timedelta(minutes=time_budget_min):
+                    await _stop(db, arq_pool, study_id, summary, reason="time_budget_exceeded")
+                    return
 
         # 5. Replenishment — short session, xact-scoped advisory lock.
         async with session_factory() as db:
