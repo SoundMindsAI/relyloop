@@ -180,6 +180,22 @@ def test_apply_config_diff_missing_to_raises(tmp_path: Path) -> None:
         git_pr._apply_config_diff(params, diff, declared)
 
 
+def test_apply_config_diff_directory_at_path_raises_terminal(tmp_path: Path) -> None:
+    """GPT-5.5 C2-F3 — a directory at the params path becomes a terminal worker error."""
+    params = tmp_path / "is-a-directory.params.json"
+    params.mkdir()
+    with pytest.raises(git_pr._ParamsFileNotFoundError):
+        git_pr._apply_config_diff(params, {}, {})
+
+
+def test_apply_config_diff_malformed_json_raises_terminal(tmp_path: Path) -> None:
+    """GPT-5.5 C2-F3 — corrupt JSON becomes a terminal worker error, not bubbling."""
+    params = tmp_path / "broken.params.json"
+    params.write_text("{not: json")
+    with pytest.raises(git_pr._ParamsFileNotFoundError):
+        git_pr._apply_config_diff(params, {}, {})
+
+
 # ---------------------------------------------------------------------------
 # _validate_params_path: regex + containment
 # ---------------------------------------------------------------------------

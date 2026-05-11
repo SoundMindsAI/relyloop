@@ -26,6 +26,7 @@ from typing import Annotated
 
 import uuid_utils
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1.schemas import (
@@ -156,18 +157,32 @@ async def create_config_repo_endpoint(
         )
 
     new_id = str(uuid_utils.uuid7())
-    inserted = await repo.create_config_repo(
-        db,
-        id=new_id,
-        name=body.name,
-        provider="github",
-        repo_url=body.repo_url,
-        default_branch=body.default_branch,
-        pr_base_branch=body.pr_base_branch,
-        auth_ref=body.auth_ref,
-        webhook_secret_ref=body.webhook_secret_ref,
-    )
-    await db.commit()
+    # GPT-5.5 final-review C2-F2 — the pre-check above is a friendly UX
+    # signal but not authoritative under concurrent registers. Wrap the
+    # INSERT in IntegrityError catch so the loser of a concurrent race
+    # gets the documented 409 envelope instead of a 500 from the
+    # name-UNIQUE violation bubbling out.
+    try:
+        inserted = await repo.create_config_repo(
+            db,
+            id=new_id,
+            name=body.name,
+            provider="github",
+            repo_url=body.repo_url,
+            default_branch=body.default_branch,
+            pr_base_branch=body.pr_base_branch,
+            auth_ref=body.auth_ref,
+            webhook_secret_ref=body.webhook_secret_ref,
+        )
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        raise _err(
+            409,
+            "CONFIG_REPO_NAME_TAKEN",
+            f"config_repo name {body.name!r} is already registered (concurrent registration race)",
+            False,
+        ) from exc
     return _to_detail(inserted)
 
 

@@ -436,11 +436,26 @@ def _apply_config_diff(
         raise _ParamNotInTemplateError(
             f"config_diff contains params no longer declared on the template: {drifted}"
         )
-    if not params_path.exists():
+    # GPT-5.5 final-review C2-F3 — funnel every params-file failure (missing,
+    # is-a-directory, unreadable, malformed JSON) into _ParamsFileNotFoundError
+    # so the worker terminates with a token-redacted pr_open_error rather than
+    # bubbling an unhandled exception that leaves the proposal stuck pending.
+    if not params_path.is_file():
         raise _ParamsFileNotFoundError(
             f"params file {params_path.name} not found at {params_path.parent}"
         )
-    current = json.loads(params_path.read_text() or "{}")
+    try:
+        raw = params_path.read_text() or "{}"
+    except OSError as exc:
+        raise _ParamsFileNotFoundError(
+            f"params file {params_path.name} unreadable: {exc.__class__.__name__}"
+        ) from exc
+    try:
+        current = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise _ParamsFileNotFoundError(
+            f"params file {params_path.name} contains malformed JSON: {exc.msg}"
+        ) from exc
     if not isinstance(current, dict):
         raise _ParamsFileNotFoundError(f"params file {params_path.name} is not a JSON object")
     for key, change in config_diff.items():

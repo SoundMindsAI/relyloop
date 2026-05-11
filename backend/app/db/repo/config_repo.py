@@ -50,9 +50,10 @@ async def list_config_repos(
     """Cursor-paginated config-repo list, newest first.
 
     Order: ``created_at DESC, id DESC``. ``cursor=(created_at, id)``
-    returns rows strictly older than the cursor. Limit clamped at 200
-    per api-conventions.md. Mirrors
-    :func:`backend.app.db.repo.proposal.list_proposals_paginated` exactly.
+    returns rows strictly older than the cursor. Limit clamped at 201
+    so the API endpoint's ``limit + 1`` over-fetch (used to compute
+    ``has_more`` at ``MAX_PAGE_LIMIT=200``) survives the clamp — GPT-5.5
+    final-review C2-F1.
     """
     stmt = select(ConfigRepo)
     if cursor is not None:
@@ -63,7 +64,7 @@ async def list_config_repos(
                 and_(ConfigRepo.created_at == cursor_at, ConfigRepo.id < cursor_id),
             )
         )
-    stmt = stmt.order_by(ConfigRepo.created_at.desc(), ConfigRepo.id.desc()).limit(min(limit, 200))
+    stmt = stmt.order_by(ConfigRepo.created_at.desc(), ConfigRepo.id.desc()).limit(min(limit, 201))
     return list((await db.execute(stmt)).scalars().all())
 
 
