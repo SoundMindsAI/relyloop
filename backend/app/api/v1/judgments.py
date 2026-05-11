@@ -283,6 +283,28 @@ async def generate_judgments(
                 404, "QUERY_SET_NOT_FOUND", f"query set {body.query_set_id} not found", False
             )
 
+        # Preflight D.1 — consistency: query_set belongs to the same
+        # cluster, and the template's engine matches the cluster's engine.
+        # Without this, an operator can mix-and-match clusters and the
+        # worker will silently judge against a different backend than
+        # the query_set was associated with. Per GPT-5.5 cycle-9 C9-F1.
+        if query_set.cluster_id != body.cluster_id:
+            raise _err(
+                422,
+                "VALIDATION_ERROR",
+                f"query_set {body.query_set_id} belongs to cluster "
+                f"{query_set.cluster_id!r}, not {body.cluster_id!r}",
+                False,
+            )
+        if template.engine_type != cluster.engine_type:
+            raise _err(
+                422,
+                "VALIDATION_ERROR",
+                f"template engine_type {template.engine_type!r} does not match "
+                f"cluster engine_type {cluster.engine_type!r}",
+                False,
+            )
+
         # Preflight E — oversized query set (spec §10 threat 3 / GPT-5.5 cycle 1 F3).
         count = await repo.count_queries_in_set(db, body.query_set_id)
         if count > 10_000:
@@ -361,6 +383,15 @@ async def import_judgment_list(
     query_set = await repo.get_query_set(db, body.query_set_id)
     if query_set is None:
         raise _err(404, "QUERY_SET_NOT_FOUND", f"query set {body.query_set_id} not found", False)
+    # Consistency: query_set must belong to the supplied cluster (cycle-9 C9-F1).
+    if query_set.cluster_id != body.cluster_id:
+        raise _err(
+            422,
+            "VALIDATION_ERROR",
+            f"query_set {body.query_set_id} belongs to cluster "
+            f"{query_set.cluster_id!r}, not {body.cluster_id!r}",
+            False,
+        )
 
     queries = await repo.list_queries_for_set(db, body.query_set_id)
     valid_query_ids = {q.id for q in queries}
@@ -624,6 +655,23 @@ async def calibrate_judgment_list(
             f"judgment list {judgment_list_id} not found",
             False,
         )
+
+    # Reject duplicate (query_id, doc_id) submissions before counting.
+    # Without this, an operator could submit the same sample 10 times to
+    # satisfy the threshold and distort the kappa (per GPT-5.5 cycle-9
+    # C9-F2). Distinct pairs only.
+    seen_pairs: set[tuple[str, str]] = set()
+    for sample in body.human_samples:
+        pair = (sample.query_id, sample.doc_id)
+        if pair in seen_pairs:
+            raise _err(
+                400,
+                "VALIDATION_ERROR",
+                f"duplicate (query_id, doc_id) sample in calibration payload: "
+                f"({sample.query_id!r}, {sample.doc_id!r})",
+                False,
+            )
+        seen_pairs.add(pair)
 
     if len(body.human_samples) < 10:
         raise _err(
