@@ -13,8 +13,8 @@ behavior gates that Story 3.1's DoD calls out specifically:
 
 from __future__ import annotations
 
+import httpx
 import pytest
-from fastapi.testclient import TestClient
 
 from backend.tests.conftest import postgres_reachable
 
@@ -27,61 +27,54 @@ pytestmark = [
 ]
 
 
-@pytest.fixture
-def client() -> TestClient:
-    from backend.app.main import app
-
-    return TestClient(app)
-
-
-def test_post_query_template_happy_path(client: TestClient) -> None:
+async def test_post_query_template_happy_path(async_client: httpx.AsyncClient) -> None:
     """Round-trip: POST → 201 + GET-detail returns the same row."""
-    resp = client.post(
+    resp = await async_client.post(
         "/api/v1/query-templates",
         json={
-            "name": f"qt-happy-{id(client)}",
+            "name": "qt-happy",
             "engine_type": "elasticsearch",
             "body": '{"query": {"match": {"title": "{{ query_text }}"}}}',
             "declared_params": {},
         },
     )
-    assert resp.status_code == 201
+    assert resp.status_code == 201, resp.text
     payload = resp.json()
-    assert payload["name"].startswith("qt-happy-")
+    assert payload["name"] == "qt-happy"
     assert payload["engine_type"] == "elasticsearch"
     assert payload["version"] == 1
     template_id = payload["id"]
 
-    # GET-detail returns the same row.
-    detail = client.get(f"/api/v1/query-templates/{template_id}")
+    detail = await async_client.get(f"/api/v1/query-templates/{template_id}")
     assert detail.status_code == 200
     assert detail.json()["id"] == template_id
 
 
-def test_post_query_template_ac7_sandbox_call_rejected(client: TestClient) -> None:
+async def test_post_query_template_ac7_sandbox_call_rejected(
+    async_client: httpx.AsyncClient,
+) -> None:
     """AC-7: ``{{ os.system('rm -rf /') }}`` → 400 INVALID_TEMPLATE_SYNTAX."""
-    resp = client.post(
+    resp = await async_client.post(
         "/api/v1/query-templates",
         json={
-            "name": f"qt-ac7-{id(client)}",
+            "name": "qt-ac7",
             "engine_type": "elasticsearch",
-            "body": '{"query": {{ os.system("rm -rf /") }}}',
+            "body": "{{ os.system('rm -rf /') }}",
             "declared_params": {},
         },
     )
-    # Jinja2 may parse the inner expression and fail the syntax check OR
-    # the surrounding `{{ {{ ... }} }}` may yield a syntax-error. Either
-    # path produces 400 INVALID_TEMPLATE_SYNTAX per AC-7.
-    assert resp.status_code == 400
+    assert resp.status_code == 400, resp.text
     assert resp.json()["detail"]["error_code"] == "INVALID_TEMPLATE_SYNTAX"
 
 
-def test_post_query_template_attribute_access_rejected(client: TestClient) -> None:
+async def test_post_query_template_attribute_access_rejected(
+    async_client: httpx.AsyncClient,
+) -> None:
     """Sandbox: ``{{ "".__class__ }}`` → 400 INVALID_TEMPLATE_SYNTAX."""
-    resp = client.post(
+    resp = await async_client.post(
         "/api/v1/query-templates",
         json={
-            "name": f"qt-attr-{id(client)}",
+            "name": "qt-attr",
             "engine_type": "elasticsearch",
             "body": '{{ "".__class__ }}',
             "declared_params": {},
@@ -91,12 +84,14 @@ def test_post_query_template_attribute_access_rejected(client: TestClient) -> No
     assert resp.json()["detail"]["error_code"] == "INVALID_TEMPLATE_SYNTAX"
 
 
-def test_post_query_template_undeclared_param_rejected(client: TestClient) -> None:
+async def test_post_query_template_undeclared_param_rejected(
+    async_client: httpx.AsyncClient,
+) -> None:
     """Body uses ``{{ foo }}`` not in declared_params → 400 UNDECLARED_PARAM_USED."""
-    resp = client.post(
+    resp = await async_client.post(
         "/api/v1/query-templates",
         json={
-            "name": f"qt-undecl-{id(client)}",
+            "name": "qt-undecl",
             "engine_type": "elasticsearch",
             "body": '{"query": "{{ foo }}"}',
             "declared_params": {},
@@ -106,30 +101,34 @@ def test_post_query_template_undeclared_param_rejected(client: TestClient) -> No
     assert resp.json()["detail"]["error_code"] == "UNDECLARED_PARAM_USED"
 
 
-def test_get_query_template_not_found(client: TestClient) -> None:
+async def test_get_query_template_not_found(async_client: httpx.AsyncClient) -> None:
     """GET-detail with unknown id → 404 TEMPLATE_NOT_FOUND."""
-    resp = client.get("/api/v1/query-templates/00000000-0000-0000-0000-000000000000")
+    resp = await async_client.get("/api/v1/query-templates/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "TEMPLATE_NOT_FOUND"
 
 
-def test_list_query_templates_x_total_count_header(client: TestClient) -> None:
+async def test_list_query_templates_x_total_count_header(
+    async_client: httpx.AsyncClient,
+) -> None:
     """GET-list emits the X-Total-Count header."""
-    resp = client.get("/api/v1/query-templates")
+    resp = await async_client.get("/api/v1/query-templates")
     assert resp.status_code == 200
     assert "X-Total-Count" in resp.headers
 
 
-def test_post_query_template_name_taken_returns_409(client: TestClient) -> None:
+async def test_post_query_template_name_taken_returns_409(
+    async_client: httpx.AsyncClient,
+) -> None:
     """Duplicate (name, version=1) → 409 TEMPLATE_NAME_TAKEN."""
     body = {
-        "name": f"qt-dupe-{id(client)}",
+        "name": "qt-dupe",
         "engine_type": "elasticsearch",
         "body": '{"query": {"match_all": {}}}',
         "declared_params": {},
     }
-    r1 = client.post("/api/v1/query-templates", json=body)
-    assert r1.status_code == 201
-    r2 = client.post("/api/v1/query-templates", json=body)
+    r1 = await async_client.post("/api/v1/query-templates", json=body)
+    assert r1.status_code == 201, r1.text
+    r2 = await async_client.post("/api/v1/query-templates", json=body)
     assert r2.status_code == 409
     assert r2.json()["detail"]["error_code"] == "TEMPLATE_NAME_TAKEN"

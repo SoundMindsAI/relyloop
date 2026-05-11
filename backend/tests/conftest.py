@@ -38,9 +38,22 @@ def _clear_settings_caches() -> None:
 
     Runs before every test so a prior test's monkeypatched env doesn't leak
     a polluted ``Settings`` into the next test's ``get_settings()`` calls.
+
+    The engine cache is cleared but NOT awaited-disposed here (this is a
+    sync fixture). Tests that use ``TestClient`` and hit the engine
+    create their own session via ``get_session_factory()``; the
+    sync-side pool dispose happens automatically when the engine
+    instance is garbage-collected after the cache clear.
     """
     from backend.app.core.settings import get_settings
     from backend.app.db.session import get_engine, get_session_factory
+
+    if get_engine.cache_info().currsize > 0:
+        try:
+            engine = get_engine()
+            engine.sync_engine.dispose()
+        except Exception:  # noqa: BLE001 — best-effort cleanup
+            pass
 
     get_settings.cache_clear()
     get_engine.cache_clear()

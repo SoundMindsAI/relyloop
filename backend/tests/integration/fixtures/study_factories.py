@@ -236,10 +236,10 @@ async def cleanup_study(fixture: StudyFixture) -> None:
 
     factory = get_session_factory()
     async with factory() as db:
-        # Trials cascade from studies (FK 14 NO ACTION on study side, but
-        # the migration declares CASCADE on trials.study_id → studies.id).
-        await db.execute(delete(Trial).where(Trial.study_id == fixture.study_id))
+        # Proposals reference trials via study_trial_id (FK NO ACTION) — must
+        # be deleted before trials, regardless of study CASCADE chain.
         await db.execute(delete(Proposal).where(Proposal.study_id == fixture.study_id))
+        await db.execute(delete(Trial).where(Trial.study_id == fixture.study_id))
         await db.execute(delete(Study).where(Study.id == fixture.study_id))
         await db.execute(delete(JudgmentList).where(JudgmentList.id == fixture.judgment_list_id))
         await db.execute(delete(QuerySet).where(QuerySet.id == fixture.query_set_id))

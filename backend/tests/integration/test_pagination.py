@@ -1,25 +1,17 @@
 """AC-9 — pagination + since + X-Total-Count across the 4 list endpoints.
 
-The plan's Story 3.3 task 7 + Story 3.4 task 3 split the AC-9 coverage
-into 12 methods (4 endpoints × 3 behaviors). This file enumerates them
-so each list endpoint's cursor pagination, ``?since=<iso>`` filter, and
-``X-Total-Count`` header are explicitly asserted.
-
-Endpoints covered:
-
-* ``GET /api/v1/studies``        — cursor, since, X-Total-Count
-* ``GET /api/v1/query-sets``     — cursor, since, X-Total-Count
-* ``GET /api/v1/query-templates``— cursor, since, X-Total-Count
-* ``GET /api/v1/studies/{id}/trials`` — cursor, since, X-Total-Count
+12 methods (4 endpoints × 3 behaviors) called out by Story 3.3 task 7 +
+Story 3.4 task 3.
 """
 
 from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from urllib.parse import quote
 
+import httpx
 import pytest
-from fastapi.testclient import TestClient
 
 from backend.app.db import repo
 from backend.app.db.models import Study, Trial
@@ -35,20 +27,12 @@ pytestmark = [
 ]
 
 
-@pytest.fixture
-def client() -> TestClient:
-    from backend.app.main import app
-
-    return TestClient(app)
-
-
 # ---------------------------------------------------------------------------
-# /api/v1/studies — cursor / since / X-Total-Count
+# /api/v1/studies
 # ---------------------------------------------------------------------------
 
 
 async def _seed_studies(n: int) -> None:
-    """Insert N study rows with distinct created_at timestamps."""
     factory = get_session_factory()
     async with factory() as db:
         cluster = await repo.create_cluster(
@@ -109,49 +93,48 @@ async def _seed_studies(n: int) -> None:
         await db.commit()
 
 
-async def test_studies_list_cursor_pagination(client: TestClient) -> None:
+async def test_studies_list_cursor_pagination(async_client: httpx.AsyncClient) -> None:
     """AC-9 studies: 75 rows paginate as 50 + 25 with has_more correct."""
     await _seed_studies(75)
-    page1 = client.get("/api/v1/studies?limit=50")
+    page1 = await async_client.get("/api/v1/studies?limit=50")
     assert page1.status_code == 200
     p1 = page1.json()
     assert len(p1["data"]) == 50
     assert p1["has_more"] is True
     assert p1["next_cursor"] is not None
-    page2 = client.get(f"/api/v1/studies?limit=50&cursor={p1['next_cursor']}")
+    page2 = await async_client.get(f"/api/v1/studies?limit=50&cursor={p1['next_cursor']}")
     assert page2.status_code == 200
     p2 = page2.json()
-    assert len(p2["data"]) >= 25  # at least the 25 we just seeded
-    # Distinct ids across pages.
+    assert len(p2["data"]) >= 25
     ids1 = {s["id"] for s in p1["data"]}
     ids2 = {s["id"] for s in p2["data"]}
     assert ids1.isdisjoint(ids2)
 
 
-async def test_studies_list_since_filter(client: TestClient) -> None:
+async def test_studies_list_since_filter(async_client: httpx.AsyncClient) -> None:
     """AC-9 studies: ?since=<iso8601> filters out earlier rows."""
     await _seed_studies(3)
-    # Use a far-future since to assert filtering works.
-    future = (datetime.now(UTC) + timedelta(days=365)).isoformat()
-    resp = client.get(f"/api/v1/studies?since={future}")
-    assert resp.status_code == 200
+    future = quote((datetime.now(UTC) + timedelta(days=365)).isoformat())
+    resp = await async_client.get(f"/api/v1/studies?since={future}")
+    assert resp.status_code == 200, resp.text
     assert resp.json()["data"] == []
-    # X-Total-Count reflects the filter.
     assert resp.headers["X-Total-Count"] == "0"
 
 
-async def test_studies_list_x_total_count_header(client: TestClient) -> None:
+async def test_studies_list_x_total_count_header(
+    async_client: httpx.AsyncClient,
+) -> None:
     """AC-9 studies: X-Total-Count matches total ignoring pagination."""
     await _seed_studies(5)
-    resp = client.get("/api/v1/studies?limit=2")
+    resp = await async_client.get("/api/v1/studies?limit=2")
     assert resp.status_code == 200
     total = int(resp.headers["X-Total-Count"])
     assert total >= 5
-    assert len(resp.json()["data"]) == 2  # limit honored
+    assert len(resp.json()["data"]) == 2
 
 
 # ---------------------------------------------------------------------------
-# /api/v1/query-templates — cursor / since / X-Total-Count
+# /api/v1/query-templates
 # ---------------------------------------------------------------------------
 
 
@@ -171,40 +154,44 @@ async def _seed_query_templates(n: int) -> None:
         await db.commit()
 
 
-async def test_query_templates_list_cursor_pagination(client: TestClient) -> None:
-    """AC-9 query-templates: cursor pagination round-trip."""
+async def test_query_templates_list_cursor_pagination(
+    async_client: httpx.AsyncClient,
+) -> None:
     await _seed_query_templates(60)
-    page1 = client.get("/api/v1/query-templates?limit=50")
+    page1 = await async_client.get("/api/v1/query-templates?limit=50")
     assert page1.status_code == 200
     p1 = page1.json()
     assert len(p1["data"]) == 50
     assert p1["has_more"] is True
-    page2 = client.get(f"/api/v1/query-templates?limit=50&cursor={p1['next_cursor']}")
+    page2 = await async_client.get(f"/api/v1/query-templates?limit=50&cursor={p1['next_cursor']}")
     assert page2.status_code == 200
 
 
-async def test_query_templates_list_since_filter(client: TestClient) -> None:
-    future = (datetime.now(UTC) + timedelta(days=365)).isoformat()
-    resp = client.get(f"/api/v1/query-templates?since={future}")
-    assert resp.status_code == 200
+async def test_query_templates_list_since_filter(
+    async_client: httpx.AsyncClient,
+) -> None:
+    future = quote((datetime.now(UTC) + timedelta(days=365)).isoformat())
+    resp = await async_client.get(f"/api/v1/query-templates?since={future}")
+    assert resp.status_code == 200, resp.text
     assert resp.json()["data"] == []
     assert resp.headers["X-Total-Count"] == "0"
 
 
-async def test_query_templates_list_x_total_count_header(client: TestClient) -> None:
+async def test_query_templates_list_x_total_count_header(
+    async_client: httpx.AsyncClient,
+) -> None:
     await _seed_query_templates(3)
-    resp = client.get("/api/v1/query-templates?limit=1")
+    resp = await async_client.get("/api/v1/query-templates?limit=1")
     assert resp.status_code == 200
     assert int(resp.headers["X-Total-Count"]) >= 3
 
 
 # ---------------------------------------------------------------------------
-# /api/v1/query-sets — cursor / since / X-Total-Count
+# /api/v1/query-sets
 # ---------------------------------------------------------------------------
 
 
 async def _seed_query_sets(n: int) -> tuple[str, list[str]]:
-    """Returns (cluster_id, [query_set_ids])."""
     factory = get_session_factory()
     async with factory() as db:
         cluster = await repo.create_cluster(
@@ -230,33 +217,37 @@ async def _seed_query_sets(n: int) -> tuple[str, list[str]]:
         return cluster.id, ids
 
 
-async def test_query_sets_list_cursor_pagination(client: TestClient) -> None:
+async def test_query_sets_list_cursor_pagination(
+    async_client: httpx.AsyncClient,
+) -> None:
     await _seed_query_sets(60)
-    page1 = client.get("/api/v1/query-sets?limit=50")
+    page1 = await async_client.get("/api/v1/query-sets?limit=50")
     assert page1.status_code == 200
     p1 = page1.json()
     assert len(p1["data"]) == 50
-    page2 = client.get(f"/api/v1/query-sets?limit=50&cursor={p1['next_cursor']}")
+    page2 = await async_client.get(f"/api/v1/query-sets?limit=50&cursor={p1['next_cursor']}")
     assert page2.status_code == 200
 
 
-async def test_query_sets_list_since_filter(client: TestClient) -> None:
-    future = (datetime.now(UTC) + timedelta(days=365)).isoformat()
-    resp = client.get(f"/api/v1/query-sets?since={future}")
-    assert resp.status_code == 200
+async def test_query_sets_list_since_filter(async_client: httpx.AsyncClient) -> None:
+    future = quote((datetime.now(UTC) + timedelta(days=365)).isoformat())
+    resp = await async_client.get(f"/api/v1/query-sets?since={future}")
+    assert resp.status_code == 200, resp.text
     assert resp.json()["data"] == []
     assert resp.headers["X-Total-Count"] == "0"
 
 
-async def test_query_sets_list_x_total_count_header(client: TestClient) -> None:
+async def test_query_sets_list_x_total_count_header(
+    async_client: httpx.AsyncClient,
+) -> None:
     await _seed_query_sets(3)
-    resp = client.get("/api/v1/query-sets?limit=1")
+    resp = await async_client.get("/api/v1/query-sets?limit=1")
     assert resp.status_code == 200
     assert int(resp.headers["X-Total-Count"]) >= 3
 
 
 # ---------------------------------------------------------------------------
-# /api/v1/studies/{id}/trials — cursor / since / X-Total-Count
+# /api/v1/studies/{id}/trials
 # ---------------------------------------------------------------------------
 
 
@@ -275,7 +266,7 @@ async def _seed_trials(n: int) -> str:
                 study_id=study_id,
                 optuna_trial_number=i,
                 params={"k": 0.5},
-                primary_metric=float(n - i),  # descending so sort=desc orders by i asc-trial
+                primary_metric=float(n - i),
                 metrics={"ndcg@10": float(n - i)},
                 duration_ms=100,
                 status="complete",
@@ -288,34 +279,40 @@ async def _seed_trials(n: int) -> str:
         return study_id
 
 
-async def test_trials_list_cursor_pagination(client: TestClient) -> None:
+async def test_trials_list_cursor_pagination(async_client: httpx.AsyncClient) -> None:
     """AC-9 trials: cursor pagination round-trip."""
     study_id = await _seed_trials(60)
-    page1 = client.get(f"/api/v1/studies/{study_id}/trials?limit=50&sort=optuna_trial_number_asc")
+    page1 = await async_client.get(
+        f"/api/v1/studies/{study_id}/trials?limit=50&sort=optuna_trial_number_asc"
+    )
     assert page1.status_code == 200
     p1 = page1.json()
     assert len(p1["data"]) == 50
     assert p1["has_more"] is True
-    page2 = client.get(
+    page2 = await async_client.get(
         f"/api/v1/studies/{study_id}/trials?limit=50&sort=optuna_trial_number_asc"
         f"&cursor={p1['next_cursor']}"
     )
     assert page2.status_code == 200
 
 
-async def test_trials_list_since_filter(client: TestClient) -> None:
+async def test_trials_list_since_filter(async_client: httpx.AsyncClient) -> None:
     study_id = await _seed_trials(3)
-    future = (datetime.now(UTC) + timedelta(days=365)).isoformat()
-    resp = client.get(
+    future = quote((datetime.now(UTC) + timedelta(days=365)).isoformat())
+    resp = await async_client.get(
         f"/api/v1/studies/{study_id}/trials?since={future}&sort=optuna_trial_number_asc"
     )
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.text
     assert resp.json()["data"] == []
     assert resp.headers["X-Total-Count"] == "0"
 
 
-async def test_trials_list_x_total_count_header(client: TestClient) -> None:
+async def test_trials_list_x_total_count_header(
+    async_client: httpx.AsyncClient,
+) -> None:
     study_id = await _seed_trials(5)
-    resp = client.get(f"/api/v1/studies/{study_id}/trials?limit=2&sort=optuna_trial_number_asc")
+    resp = await async_client.get(
+        f"/api/v1/studies/{study_id}/trials?limit=2&sort=optuna_trial_number_asc"
+    )
     assert resp.status_code == 200
     assert int(resp.headers["X-Total-Count"]) == 5
