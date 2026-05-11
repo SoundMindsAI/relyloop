@@ -20,9 +20,24 @@ from backend.app.db.repo.config_repo import (
     get_config_repo,
     get_config_repo_by_name,
 )
+from backend.app.db.repo.judgment import (
+    bulk_create_judgments,
+    count_judgments_for_list,
+    count_judgments_for_list_and_query,
+    create_judgment,
+    get_judgment,
+    list_judgments_paginated,
+    source_breakdown_for_list,
+    upsert_judgment_human_override,
+)
 from backend.app.db.repo.judgment_list import (
+    count_judgment_lists,
     create_judgment_list,
     get_judgment_list,
+    list_generating_judgment_list_ids,
+    list_judgment_lists,
+    update_judgment_list_calibration,
+    update_judgment_list_status,
 )
 from backend.app.db.repo.proposal import (
     create_proposal,
@@ -108,4 +123,18 @@ __all__ = [
     "list_running_study_ids",
     "list_studies",
     "list_trials_paginated",
+    # feat_llm_judgments Story 1.2 (judgments child table + judgment_list extensions)
+    "bulk_create_judgments",
+    "count_judgment_lists",
+    "count_judgments_for_list",
+    "count_judgments_for_list_and_query",
+    "create_judgment",
+    "get_judgment",
+    "list_generating_judgment_list_ids",
+    "list_judgment_lists",
+    "list_judgments_paginated",
+    "source_breakdown_for_list",
+    "update_judgment_list_calibration",
+    "update_judgment_list_status",
+    "upsert_judgment_human_override",
 ]

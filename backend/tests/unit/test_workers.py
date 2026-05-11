@@ -35,21 +35,28 @@ def test_worker_settings_importable(_settings_env: None) -> None:
 
     Phase 2 Stories 2.1 / 2.3 extend the registry from infra_optuna_eval's
     sole ``run_trial`` to four jobs: ``run_trial``, ``start_study``,
-    ``resume_study``, ``generate_digest`` (stub). ``feat_digest_proposal``
+    ``resume_study``, ``generate_digest`` (stub). ``feat_llm_judgments``
+    Story 2.1 adds ``generate_judgments_llm``. ``feat_digest_proposal``
     later replaces ``generate_digest``; ``feat_github_pr_worker`` adds
     ``open_pr``.
     """
     from backend.workers.all import WorkerSettings
 
     # Mix of raw coroutines and arq.func-wrapped Function objects (the
-    # orchestrator jobs carry per-function timeouts via arq.func).
+    # orchestrator + judgments jobs carry per-function timeouts via arq.func).
     names: set[str] = set()
     for fn in WorkerSettings.functions:
         # arq.func wraps as Function with .name; plain coroutines have __name__.
         name = getattr(fn, "name", None) or getattr(fn, "__name__", None)
         assert name is not None
         names.add(name)
-    assert names == {"run_trial", "start_study", "resume_study", "generate_digest"}
+    assert names == {
+        "run_trial",
+        "start_study",
+        "resume_study",
+        "generate_digest",
+        "generate_judgments_llm",
+    }
 
 
 def test_worker_settings_has_on_startup_hook(_settings_env: None) -> None:

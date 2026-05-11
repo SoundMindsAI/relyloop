@@ -111,8 +111,14 @@ class TestSchemaCreation:
             engine.dispose()
 
     def test_downgrade_removes_seven_tables(self, restore_head: None) -> None:
+        # ``head`` is now ``0004_judgments`` so a bare ``downgrade -1`` only
+        # peels back the judgments child table; targeting ``0002`` explicitly
+        # peels back BOTH 0004 and 0003 so this test still asserts that
+        # 0003_study_lifecycle_schema's down path removes its 7 tables.
+        # Mirrors the test_clusters_migration retarget that landed when 0003
+        # extended the chain.
         _alembic("upgrade", "head")
-        _alembic("downgrade", "-1")
+        _alembic("downgrade", "0002")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
