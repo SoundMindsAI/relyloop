@@ -89,8 +89,9 @@ expected to honor them. The full text lives in [`CLAUDE.md`](CLAUDE.md):
 ```
 backend/
   app/
-    api/         routers (health.py with /healthz + v1/clusters.py + future
-                 webhooks/*)
+    api/         routers (health.py with /healthz + v1/clusters.py +
+                 v1/{query_templates,query_sets,studies}.py from
+                 feat_study_lifecycle Phase 2 + future webhooks/*)
     core/        settings, logging, request-id middleware, error envelope
     db/          base, session,
                  models/ (Cluster, ConfigRepo from infra_adapter_elastic;
@@ -100,9 +101,11 @@ backend/
                   query_template.py, query_set.py, query.py, study.py,
                   trial.py, judgment_list.py, proposal.py from Phase 1)
     services/    use-case orchestrators — cluster.py from infra_adapter_elastic;
-                 future ones arrive with their owning features
+                 study_state.py (state machine + FR-7 protection listener,
+                 feat_study_lifecycle Phase 2)
     domain/      pure business logic — query/render.py from
-                 infra_adapter_elastic
+                 infra_adapter_elastic; study/{search_space,template_validator,
+                 csv_parser}.py from feat_study_lifecycle Phase 2
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
                  8 Pydantic types), elastic.py (ES + OpenSearch),
                  credentials.py, errors.py, health_cache.py
@@ -118,8 +121,12 @@ backend/
     llm/         OpenAI-compatible client + capability check
     git/         Git provider clients (lands with feat_github_pr_worker)
   workers/       Arq WorkerSettings + run_trial Arq job (trials.py from
-                 infra_optuna_eval) + on_startup/on_shutdown hooks that
-                 build/dispose Optuna RDBStorage once per worker
+                 infra_optuna_eval) + orchestrator.py (start_study /
+                 resume_study, feat_study_lifecycle Phase 2) +
+                 digest_stub.py (idempotent generate_digest stub) +
+                 on_startup/on_shutdown hooks that build/dispose Optuna
+                 RDBStorage once per worker AND sweep running studies
+                 for resume_study enqueue (FR-5 / AC-4)
   tests/         unit / integration / contract layers
 ui/              Next.js 14 App Router (placeholder page in MVP1)
 migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters
