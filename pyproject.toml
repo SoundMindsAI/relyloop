@@ -39,6 +39,9 @@ dependencies = [
     "jinja2>=3.1",
     "optuna>=3.6",
     "pytrec-eval>=0.5",
+    # Headless plotting for the open_pr worker's parameter-importance chart.
+    # PNG only — Agg backend, no GUI. Bundled with the API+worker image.
+    "matplotlib>=3.9",
 ]
 
 [dependency-groups]
