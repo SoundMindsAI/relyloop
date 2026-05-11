@@ -422,7 +422,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 1 | [`infra_foundation`](docs/00_overview/implemented_features/2026_05_09_infra_foundation/) | **Complete (PR #4, merged 2026-05-09)** |
 | 2 | [`infra_adapter_elastic`](docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/) | **Complete (PR #16, merged 2026-05-10)** |
 | 3 | [`infra_optuna_eval`](docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/) | **Complete (PR #23, merged 2026-05-10)** |
-| 4 | [`feat_study_lifecycle`](docs/02_product/planned_features/feat_study_lifecycle/) | **Phase 1 (Schema) Complete (PR #18, merged 2026-05-10); Phase 2 (Orchestrator + API) implementation complete on `feature/feat-study-lifecycle-phase2`; pending PR** |
+| 4 | [`feat_study_lifecycle`](docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle/) | **Complete — Phase 1 (Schema) PR #18 + Phase 2 (Orchestrator + API) PR #25, both merged 2026-05-10/11** |
 | 5 | [`feat_llm_judgments`](docs/02_product/planned_features/feat_llm_judgments/) | Spec approved, plan pending |
 | 6 | [`feat_digest_proposal`](docs/02_product/planned_features/feat_digest_proposal/) | Spec approved, plan pending |
 | 7 | [`feat_github_pr_worker`](docs/02_product/planned_features/feat_github_pr_worker/) | Spec approved, plan pending |
