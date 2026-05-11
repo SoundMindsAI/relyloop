@@ -267,13 +267,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Features done</div>
-      <div class="value">3 / 12</div>
-      <div class="sub">25% of scoped MVP1 features</div>
-      <div class="bar"><span style="width:25%"></span></div>
+      <div class="value">4 / 12</div>
+      <div class="sub">33% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:33%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">18</div>
+      <div class="value">17</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -294,7 +294,7 @@ footer {
     </span>
     <span>
       <strong>In flight:</strong>
-      1 feature(s) actively shipping
+      0 feature(s) actively shipping
     </span>
   </div>
 </section>
@@ -576,23 +576,24 @@ footer {
 </div>
 
 <div class="col implement">
-  <h3>Implementing <span class="count">1</span></h3>
+  <h3>Implementing <span class="count">0</span></h3>
+
+</div>
+
+<div class="col done">
+  <h3>Done <span class="count">4</span></h3>
 
 <div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md">Study Lifecycle</a></div>
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md">Study Lifecycle</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/18">PR #18</a><span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond</div>
-  <div class="deferred">deferred: Phase 2</div>
+
 
 </div>
 
-</div>
-
-<div class="col done">
-  <h3>Done <span class="count">3</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md">Adapter Elastic</a></div>
@@ -658,10 +659,10 @@ footer {
   class feat_proposals_ui spec;
   feat_studies_ui[&quot;studies ui&quot;]
   class feat_studies_ui spec;
-  feat_study_lifecycle[&quot;study lifecycle&quot;]
-  class feat_study_lifecycle implement;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
+  feat_study_lifecycle[&quot;study lifecycle&quot;]
+  class feat_study_lifecycle done;
   infra_adapter_elastic[&quot;adapter elastic&quot;]
   class infra_adapter_elastic done;
   infra_optuna_eval[&quot;optuna eval&quot;]
@@ -707,10 +708,10 @@ footer {
   class feat_proposals_ui spec;
   feat_studies_ui[&quot;studies ui&quot;]
   class feat_studies_ui spec;
-  feat_study_lifecycle[&quot;study lifecycle&quot;]
-  class feat_study_lifecycle implement;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
+  feat_study_lifecycle[&quot;study lifecycle&quot;]
+  class feat_study_lifecycle done;
   infra_adapter_elastic[&quot;adapter elastic&quot;]
   class infra_adapter_elastic done;
   infra_optuna_eval[&quot;optuna eval&quot;]
