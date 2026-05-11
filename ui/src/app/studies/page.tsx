@@ -4,7 +4,9 @@ import { Suspense, useState } from 'react';
 
 import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { EmptyState } from '@/components/common/empty-state';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CreateStudyModal } from '@/components/studies/create-study-modal';
 import { StudiesTable } from '@/components/studies/studies-table';
 import { StudyStatusFilterChips } from '@/components/studies/study-status-filter-chips';
 import { useStudies } from '@/lib/api/studies';
@@ -16,6 +18,7 @@ function StudiesPageInner() {
 
   const [pageSize, setPageSize] = useState(50);
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
+  const [createOpen, setCreateOpen] = useState(false);
   const cursor = cursorStack[cursorStack.length - 1];
 
   const query = useStudies({
@@ -42,6 +45,9 @@ function StudiesPageInner() {
     <main className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Studies</h1>
+        <Button onClick={() => setCreateOpen(true)} data-testid="open-create-study">
+          Create study
+        </Button>
       </div>
       <Card>
         <CardHeader>
@@ -80,6 +86,7 @@ function StudiesPageInner() {
           )}
         </CardContent>
       </Card>
+      <CreateStudyModal open={createOpen} onOpenChange={setCreateOpen} />
     </main>
   );
 }
