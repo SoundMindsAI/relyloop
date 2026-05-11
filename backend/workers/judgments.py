@@ -183,13 +183,22 @@ async def _process_query(
     rubric_text: str,
     model: str,
     budget_usd: float,
-) -> None:
+) -> bool:
     """Inner per-query routine.
 
+    Returns:
+        ``True`` when judgments were persisted (success or already-judged
+        resume-skip) and ``False`` when the query was skipped for any
+        operational reason (search failed, LLM partial, empty hits).
+        The outer loop uses this to decide whether to mark the list
+        ``complete`` (all True) or ``failed`` with
+        ``failed_reason='PARTIAL_LLM_FAILURE'`` (any False). Per GPT-5.5
+        cycle-8 C8-F1 — without the tracking, a partial-LLM-response
+        skip would leave the list ``complete`` with missing qrels and
+        the resume sweep would never pick it back up.
+
     Raises on budget / pricing failures so the outer loop can mark the
-    list ``failed``. Per-query operational failures (rate-limit exhaustion,
-    cluster unreachable, malformed JSON after retry) are caught here and
-    logged WARN so the outer loop continues.
+    list ``failed`` with the specific reason.
     """
     # Resume-skip: if this query already has ANY judgments, the prior worker
     # pass either completed it OR was atomically rolled back. Because
@@ -208,7 +217,7 @@ async def _process_query(
             query_id=query.id,
             existing_count=existing,
         )
-        return
+        return True
 
     # Pre-call budget peek (spec FR-2 + GPT-5.5 cycle 1 F8).
     if budget_usd > 0:
@@ -241,17 +250,22 @@ async def _process_query(
             error_type=type(exc).__name__,
             error=str(exc),
         )
-        return
+        return False
 
     hits = hits_by_qid.get(str(query.id), [])
     if not hits:
+        # Zero hits: not a worker failure — there's genuinely nothing to
+        # judge. Count this as success so the outer loop can still mark
+        # the list complete. The downstream qrels_loader returns ``{}``
+        # for queries with no judgments, which run_trial handles
+        # gracefully.
         logger.info(
             "judgment worker: no hits for query, skipping LLM call",
             event_type="judgment_no_hits",
             judgment_list_id=judgment_list_id,
             query_id=query.id,
         )
-        return
+        return True
 
     # Ordinal prompt-ids decouple engine-supplied doc_ids (which may contain
     # XML-sensitive chars like ``<``, ``&``, ``"``) from the LLM's
@@ -311,7 +325,7 @@ async def _process_query(
             error_type=type(exc).__name__,
             error=str(exc),
         )
-        return
+        return False
 
     # All-or-nothing persistence: confirm the response is a *set-equal*
     # match for the expected doc_ids. A simple ``len(ratings) <
@@ -336,7 +350,7 @@ async def _process_query(
         # Still record the cost — we paid for the call. The retry pays again,
         # but the alternative (permanent partial state) is worse.
         await _safe_record_cost(redis, result.cost_usd)
-        return
+        return False
 
     rater_ref = f"openai:{result.model}"
     rows = [
@@ -377,6 +391,7 @@ async def _process_query(
         running_total_usd=new_total,
         duration_ms=result.duration_ms,
     )
+    return True
 
 
 async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> None:
@@ -467,10 +482,11 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
             declared_params=cast(dict[str, str], template_row.declared_params),
         )
 
+        skipped_query_ids: list[str] = []
         for query in queries:
             async with factory() as db:
                 try:
-                    await _process_query(
+                    ok = await _process_query(
                         db=db,
                         redis=redis_client,
                         openai_client=openai_client,
@@ -485,6 +501,8 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
                         model=model,
                         budget_usd=settings.openai_daily_budget_usd,
                     )
+                    if not ok:
+                        skipped_query_ids.append(str(query.id))
                 except BudgetExceededError as exc:
                     logger.warning(
                         "judgment worker: budget exceeded — aborting loop",
@@ -506,16 +524,40 @@ async def generate_judgments_llm(ctx: dict[str, Any], judgment_list_id: str) -> 
                         await _fail_list(db2, judgment_list_id, "UNKNOWN_MODEL_PRICING")
                     return
 
-        # All queries processed — mark complete.
+        # All queries processed. If any query was skipped (search failed,
+        # LLM call failed after retries, LLM returned a partial response,
+        # cost-recording flap), surface that as a terminal ``failed``
+        # state rather than silently completing with missing qrels. The
+        # resume sweep only re-enqueues ``generating`` lists, so a
+        # ``complete`` list with gaps would be permanently stuck. Per
+        # GPT-5.5 cycle-8 C8-F1.
         async with factory() as db:
-            await repo.update_judgment_list_status(db, judgment_list_id, status="complete")
-            await db.commit()
-        logger.info(
-            "judgment worker: list complete",
-            event_type="judgment_list_complete",
-            judgment_list_id=judgment_list_id,
-            duration_ms=int((time.monotonic() - started_at) * 1000),
-        )
+            if skipped_query_ids:
+                reason = f"PARTIAL_LLM_FAILURE: {len(skipped_query_ids)} queries unrated"
+                await repo.update_judgment_list_status(
+                    db,
+                    judgment_list_id,
+                    status="failed",
+                    failed_reason=reason,
+                )
+                await db.commit()
+                logger.warning(
+                    "judgment worker: list complete with skipped queries — marking failed",
+                    event_type="judgment_list_partial_failure",
+                    judgment_list_id=judgment_list_id,
+                    skipped_count=len(skipped_query_ids),
+                    skipped_sample=skipped_query_ids[:5],
+                    duration_ms=int((time.monotonic() - started_at) * 1000),
+                )
+            else:
+                await repo.update_judgment_list_status(db, judgment_list_id, status="complete")
+                await db.commit()
+                logger.info(
+                    "judgment worker: list complete",
+                    event_type="judgment_list_complete",
+                    judgment_list_id=judgment_list_id,
+                    duration_ms=int((time.monotonic() - started_at) * 1000),
+                )
     except Exception as exc:  # noqa: BLE001 — any unexpected failure → mark failed
         logger.warning(
             "judgment worker: unhandled exception — marking list failed",

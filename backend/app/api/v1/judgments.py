@@ -220,9 +220,23 @@ async def generate_judgments(
         redis_client = await _open_redis()
 
         # Preflight B — capability cache.
+        # The cached CapabilityResult is keyed on base_url alone, but it
+        # also records the MODEL that was probed. If the operator points
+        # ``Settings.openai_model`` at a different model between startup and
+        # the request, a stale cache row could pass preflight for a model
+        # that may not actually support structured output. Per GPT-5.5
+        # cycle-8 C8-F2 — treat a model mismatch as a cache miss.
         cap = await read_capability_result(redis_client, settings.openai_base_url)
-        if cap is None or cap.structured_output != "ok":
-            cause = "cache miss" if cap is None else f"structured_output={cap.structured_output!r}"
+        if cap is None or cap.structured_output != "ok" or cap.model != settings.openai_model:
+            if cap is None:
+                cause = "cache miss"
+            elif cap.model != settings.openai_model:
+                cause = (
+                    f"cached probe model {cap.model!r} != configured "
+                    f"OPENAI_MODEL {settings.openai_model!r}"
+                )
+            else:
+                cause = f"structured_output={cap.structured_output!r}"
             raise _err(
                 503,
                 "LLM_PROVIDER_INCAPABLE",
