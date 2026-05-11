@@ -1,7 +1,7 @@
 # Implementation Plan — feat_llm_judgments
 
 **Date:** 2026-05-11
-**Status:** PR created — PR #35 awaiting merge (2026-05-11). Final cross-model review converged at cycle 10 ({"findings":[]}). After merge, a separate finalize PR moves the folder to `implemented_features/` and updates `state.md`.
+**Status:** Complete (PR #35, merged 2026-05-11). Final cross-model review converged at cycle 10 ({"findings":[]}).
 **Primary spec:** [feature_spec.md](feature_spec.md) (Approved 2026-05-11)
 **Policy source(s):**
 - [docs/01_architecture/llm-orchestration.md](../../../01_architecture/llm-orchestration.md) — prompt directory layout, capability check, cost guardrail
