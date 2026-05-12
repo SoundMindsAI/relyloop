@@ -23,12 +23,22 @@ from backend.app.domain.git.validation import (
     validate_config_path,
     validate_repo_url,
 )
+from backend.app.domain.git.webhook_dispatch import (
+    HANDLED_EVENT_TYPES,
+    WEBHOOK_ACTION_VALUES,
+    WebhookDecision,
+    dispatch_event,
+)
 from backend.app.domain.git.webhook_signature import verify_webhook_signature
 
 __all__ = [
+    "HANDLED_EVENT_TYPES",
     "InvalidConfigPathError",
     "RedactTokensProcessor",
     "UnsupportedProviderError",
+    "WEBHOOK_ACTION_VALUES",
+    "WebhookDecision",
+    "dispatch_event",
     "parse_repository_full_name",
     "redact_token",
     "validate_config_path",
