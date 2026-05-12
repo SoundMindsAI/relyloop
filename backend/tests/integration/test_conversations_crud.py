@@ -97,19 +97,20 @@ async def test_cursor_pagination_walks_full_list(async_client: httpx.AsyncClient
 
 async def test_message_count_join_returns_correct_per_row_counts(
     async_client: httpx.AsyncClient,
-    db_session: object,
 ) -> None:
     """list endpoint's message_count column reflects the JOIN against messages.
 
     Exercises Story 1.3's ``list_conversations_with_message_counts`` JOIN +
     GROUP BY — without this assertion, a regression that returns 0 for every
-    row passes silently.
+    row passes silently. Seeds messages through a direct DB session that
+    commits (the ``db_session`` test fixture wraps everything in a SAVEPOINT
+    rolled back on teardown, but the HTTP client uses a different connection
+    so the savepoint isn't visible — we need a real commit).
     """
-    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-    from backend.app.db import repo
-
-    db: AsyncSession = db_session  # type: ignore[assignment]
+    from backend.app.core.settings import get_settings
+    from backend.app.db import repo as db_repo
 
     # Three conversations: A with 4 messages, B with 1, C with 0.
     ids: list[str] = []
@@ -117,26 +118,32 @@ async def test_message_count_join_returns_correct_per_row_counts(
         resp = await async_client.post("/api/v1/conversations", json={"title": f"count_{label}"})
         ids.append(resp.json()["id"])
 
-    # Seed messages directly via the repo (round-tripping through SSE would
-    # require a working OpenAI client; this is faster and tests the same JOIN).
-    for _ in range(4):
-        await repo.create_message(
-            db,
-            message_id=str(uuid_utils.uuid7()),
-            conversation_id=ids[0],
-            role="user",
-            content={"text": "hello"},
-        )
-    await repo.create_message(
-        db,
-        message_id=str(uuid_utils.uuid7()),
-        conversation_id=ids[1],
-        role="user",
-        content={"text": "hi"},
-    )
-    await db.commit()
+    # Seed messages via a fresh connection that commits — the test-fixture
+    # ``db_session`` is wrapped in a SAVEPOINT that the HTTP client can't see.
+    engine = create_async_engine(get_settings().database_url, future=True)
+    try:
+        factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+        async with factory() as session:
+            for _ in range(4):
+                await db_repo.create_message(
+                    session,
+                    message_id=str(uuid_utils.uuid7()),
+                    conversation_id=ids[0],
+                    role="user",
+                    content={"text": "hello"},
+                )
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=ids[1],
+                role="user",
+                content={"text": "hi"},
+            )
+            await session.commit()
+    finally:
+        await engine.dispose()
 
-    list_resp = await async_client.get("/api/v1/conversations")
+    list_resp = await async_client.get("/api/v1/conversations?limit=200")
     rows = {r["id"]: r["message_count"] for r in list_resp.json()["data"]}
     assert rows[ids[0]] == 4
     assert rows[ids[1]] == 1
