@@ -1952,10 +1952,10 @@ export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];
 - [x] **Story 2.6** — Agent chat service
 - [x] **Story 3.1** — REST endpoints (POST/GET/GET/DELETE conversations)
 - [x] **Story 3.2** — SSE messages endpoint
-- [ ] **Story 4.1** — Conversations API client + SSE consumer
-- [ ] **Story 4.2** — `/chat` list page
-- [ ] **Story 4.3** — `/chat/[id]` detail page
-- [ ] **Story 4.4** — Enums update + CI gate
+- [x] **Story 4.1** — Conversations API client + SSE consumer
+- [x] **Story 4.2** — `/chat` list page
+- [x] **Story 4.3** — `/chat/[id]` detail page
+- [x] **Story 4.4** — Enums update + CI gate
 - [ ] **Story 5.1** — Docs sweep + state.md + architecture.md + runbook
 
 ### Blocked items
