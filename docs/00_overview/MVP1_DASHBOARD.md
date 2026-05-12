@@ -4,14 +4,14 @@ _Reflects feature-folder state as of **2026-05-12** (latest mtime of any planned
 
 ## Next up
 
-**[feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md)** — Feature, currently in **Plan**
 
 > Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_proposals_ui --auto
+/impl-execute docs/02_product/planned_features/feat_proposals_ui/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -46,16 +46,17 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
+| [feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | [PR #50](https://github.com/SoundMindsAI/relyloop/pull/50) merged 2026-05-12 |
 
-### Spec (3)
+### Spec (2)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
-| [feat_proposals_ui](../02_product/planned_features/feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | [PR #50](https://github.com/SoundMindsAI/relyloop/pull/50) merged 2026-05-12 |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
 
 ### Idea (19)
@@ -98,7 +99,7 @@ graph LR
   feat_chat_agent["chat agent"]
   class feat_chat_agent spec;
   feat_proposals_ui["proposals ui"]
-  class feat_proposals_ui spec;
+  class feat_proposals_ui plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
