@@ -729,7 +729,7 @@ footer {
 
 
 <div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_proposals_ui/feature_spec.md">Proposals Ui</a></div>
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_proposals_ui/feature_spec.md">Proposals Ui</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/58">PR #58</a><span>merged 2026-05-12</span>
@@ -828,8 +828,6 @@ footer {
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
-  feat_proposals_ui[&quot;proposals ui&quot;]
-  class feat_proposals_ui done;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -846,6 +844,8 @@ footer {
   class feat_github_pr_worker done;
   feat_github_webhook[&quot;github webhook&quot;]
   class feat_github_webhook done;
+  feat_proposals_ui[&quot;proposals ui&quot;]
+  class feat_proposals_ui done;
   feat_studies_ui[&quot;studies ui&quot;]
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
@@ -873,10 +873,6 @@ footer {
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
-  feat_studies_ui --&gt; feat_proposals_ui
-  feat_digest_proposal --&gt; feat_proposals_ui
-  feat_github_pr_worker --&gt; feat_proposals_ui
-  feat_github_webhook --&gt; feat_proposals_ui
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -889,6 +885,10 @@ footer {
   infra_foundation --&gt; feat_github_webhook
   infra_adapter_elastic --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
+  feat_studies_ui --&gt; feat_proposals_ui
+  feat_digest_proposal --&gt; feat_proposals_ui
+  feat_github_pr_worker --&gt; feat_proposals_ui
+  feat_github_webhook --&gt; feat_proposals_ui
   infra_foundation --&gt; feat_studies_ui
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui
@@ -904,8 +904,6 @@ footer {
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
-  feat_proposals_ui[&quot;proposals ui&quot;]
-  class feat_proposals_ui done;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -922,6 +920,8 @@ footer {
   class feat_github_pr_worker done;
   feat_github_webhook[&quot;github webhook&quot;]
   class feat_github_webhook done;
+  feat_proposals_ui[&quot;proposals ui&quot;]
+  class feat_proposals_ui done;
   feat_studies_ui[&quot;studies ui&quot;]
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
@@ -949,10 +949,6 @@ footer {
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
-  feat_studies_ui --&gt; feat_proposals_ui
-  feat_digest_proposal --&gt; feat_proposals_ui
-  feat_github_pr_worker --&gt; feat_proposals_ui
-  feat_github_webhook --&gt; feat_proposals_ui
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -965,6 +961,10 @@ footer {
   infra_foundation --&gt; feat_github_webhook
   infra_adapter_elastic --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
+  feat_studies_ui --&gt; feat_proposals_ui
+  feat_digest_proposal --&gt; feat_proposals_ui
+  feat_github_pr_worker --&gt; feat_proposals_ui
+  feat_github_webhook --&gt; feat_proposals_ui
   infra_foundation --&gt; feat_studies_ui
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui

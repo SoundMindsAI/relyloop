@@ -429,7 +429,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 8 | [`feat_github_webhook`](docs/00_overview/implemented_features/2026_05_12_feat_github_webhook/) | **Complete (PR #56, merged 2026-05-12)** |
 | 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, pending merge)** |
 | 10 | [`feat_chat_agent`](docs/02_product/planned_features/feat_chat_agent/) | Spec approved, plan pending |
-| 11 | [`feat_proposals_ui`](docs/02_product/planned_features/feat_proposals_ui/) | Spec approved, plan pending |
+| 11 | [`feat_proposals_ui`](docs/00_overview/implemented_features/2026_05_12_feat_proposals_ui/) | **Complete (PR #58, merged 2026-05-12)** |
 | 12 | [`chore_tutorial_polish`](docs/02_product/planned_features/chore_tutorial_polish/) | Spec approved, plan pending |
 
 Run `/pipeline status` for the live view from spec dependencies.

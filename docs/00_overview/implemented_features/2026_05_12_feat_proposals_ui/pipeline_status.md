@@ -23,7 +23,7 @@
 - Test plan: unit only — 8 Vitest files (integration / contract / E2E N/A per spec §14)
 
 ## Implement
-- Status: **Complete on feature branch — awaiting merge of PR #58**
+- Status: **Complete (PR #58, squash commit `836a216`, merged 2026-05-12)**
 - Date implementation completed: 2026-05-12
 - PR: [#58](https://github.com/SoundMindsAI/relyloop/pull/58)
 - Branch: `feature/feat-proposals-ui`
@@ -43,10 +43,6 @@
 - Tests: **171 across 32 files** (was 122 pre-merge baseline — 49 new test cases across 8 new files for this feature)
 
 ## Done
-- Status: **Pending — awaiting merge of PR #58 + post-merge finalization commit**
-- Post-merge steps (will run when pipeline is re-invoked after merge):
-  - Move feature folder `planned_features/feat_proposals_ui/` → `implemented_features/<YYYY_MM_DD>_feat_proposals_ui/`
-  - Add `state.md` entry to "Most recent meaningful changes" with the squash-commit hash
-  - Flip `CLAUDE.md` Feature Status row from "Spec approved, plan pending" to "Complete (PR #58, merged YYYY-MM-DD)"
-  - Add `/proposals` + `/proposals/[id]` to `architecture.md` `ui/` "Where the code lives" listing
-  - Mark spec §18 DoD boxes
+- Status: **Merged to `main` 2026-05-12 as PR #58 (squash commit `836a216`)**
+- Finalization commit: lands the folder move + state.md entry + CLAUDE.md row flip + architecture.md listing on `docs/finalize-proposals-ui` branch.
+- Staging deploy: N/A — MVP1 has no remote staging (local-only). The squash to `main` is the ship.
