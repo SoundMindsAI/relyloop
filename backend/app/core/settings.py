@@ -29,7 +29,7 @@ instantiate ``Settings()`` directly.
 from functools import cached_property, lru_cache
 from pathlib import Path
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -162,11 +162,33 @@ class Settings(BaseSettings):
         le=1440,
         description=(
             "Cron cadence for the reconcile_pr_state worker (feat_github_webhook "
-            "FR-2). MVP1 default 15; operators can raise for low-PR-volume "
-            "installs to reduce GitHub API spend. Story 3.1 narrows the valid "
-            "range to a whitelist of cron-expressible values."
+            "FR-2). MVP1 default 15. Restricted to the whitelist of "
+            "cron-expressible values: divisors of 60 (1, 2, 3, 4, 5, 6, 10, 12, "
+            "15, 20, 30, 60) plus multiples of 60 that divide 1440 (120, 180, "
+            "240, 360, 720, 1440). Values outside this set raise at startup; "
+            "see backend.workers.pr_reconcile.SUPPORTED_POLL_MINUTES."
         ),
     )
+
+    @field_validator("relyloop_pr_poll_minutes")
+    @classmethod
+    def _validate_pr_poll_minutes(cls, value: int) -> int:
+        """Narrow ``relyloop_pr_poll_minutes`` to the cron-expressible whitelist.
+
+        Whitelist lives in :data:`backend.workers.pr_reconcile.SUPPORTED_POLL_MINUTES`
+        — keeping the validator here means a misconfigured operator sees the
+        error at boot rather than at the first cron tick.
+        """
+        from backend.workers.pr_reconcile import SUPPORTED_POLL_MINUTES
+
+        if value not in SUPPORTED_POLL_MINUTES:
+            raise ValueError(
+                f"RELYLOOP_PR_POLL_MINUTES={value} is not in the supported set "
+                f"{sorted(SUPPORTED_POLL_MINUTES)}. Pick a divisor of 60 (≤60) or a "
+                "multiple of 60 that divides 1440 (>60)."
+            )
+        return value
+
     es_heap_size: str = Field(
         default="512m",
         description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",
