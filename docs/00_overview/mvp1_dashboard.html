@@ -314,11 +314,11 @@ footer {
 
 <section>
   <div class="next-up">
-    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/feat_github_webhook/feature_spec.md">Github Webhook</a></div>
-    <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_github_webhook/implementation_plan.md --all</code>
+    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_proposals_ui/feature_spec.md">Proposals Ui</a></div>
+    <div class="one-liner">Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + &quot;Open PR&quot; button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app.</div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/feat_proposals_ui --auto</code>
   </div>
 </section>
 
@@ -328,13 +328,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Features done</div>
-      <div class="value">9 / 13</div>
-      <div class="sub">69% of scoped MVP1 features</div>
-      <div class="bar"><span style="width:69%"></span></div>
+      <div class="value">10 / 13</div>
+      <div class="sub">77% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:77%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">19</div>
+      <div class="value">18</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -644,18 +644,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_github_webhook/feature_spec.md">Github Webhook</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/50">PR #50</a>
-  </div>
-  <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
-
-  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_github_pr_worker</span></div>
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -665,7 +654,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">9</span></h3>
+  <h3>Done <span class="count">10</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
@@ -688,6 +677,18 @@ footer {
   <div class="one-liner">`POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches </div>
 
   <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_digest_proposal</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_github_webhook/feature_spec.md">Github Webhook</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a><span>merged 2026-05-12</span>
+  </div>
+  <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_github_pr_worker</span></div>
 </div>
 
 
@@ -791,8 +792,6 @@ footer {
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
-  feat_github_webhook[&quot;github webhook&quot;]
-  class feat_github_webhook plan;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
   infra_foundation[&quot;foundation&quot;]
@@ -809,6 +808,8 @@ footer {
   class feat_llm_judgments done;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker done;
+  feat_github_webhook[&quot;github webhook&quot;]
+  class feat_github_webhook done;
   feat_studies_ui[&quot;studies ui&quot;]
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
@@ -836,9 +837,6 @@ footer {
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
-  infra_foundation --&gt; feat_github_webhook
-  infra_adapter_elastic --&gt; feat_github_webhook
-  feat_github_pr_worker --&gt; feat_github_webhook
   feat_studies_ui --&gt; feat_proposals_ui
   feat_digest_proposal --&gt; feat_proposals_ui
   feat_github_pr_worker --&gt; feat_proposals_ui
@@ -852,6 +850,9 @@ footer {
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
   feat_digest_proposal --&gt; feat_github_pr_worker
+  infra_foundation --&gt; feat_github_webhook
+  infra_adapter_elastic --&gt; feat_github_webhook
+  feat_github_pr_worker --&gt; feat_github_webhook
   infra_foundation --&gt; feat_studies_ui
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui
@@ -867,8 +868,6 @@ footer {
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent spec;
-  feat_github_webhook[&quot;github webhook&quot;]
-  class feat_github_webhook plan;
   feat_proposals_ui[&quot;proposals ui&quot;]
   class feat_proposals_ui spec;
   infra_foundation[&quot;foundation&quot;]
@@ -885,6 +884,8 @@ footer {
   class feat_llm_judgments done;
   feat_github_pr_worker[&quot;github pr worker&quot;]
   class feat_github_pr_worker done;
+  feat_github_webhook[&quot;github webhook&quot;]
+  class feat_github_webhook done;
   feat_studies_ui[&quot;studies ui&quot;]
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
@@ -912,9 +913,6 @@ footer {
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
-  infra_foundation --&gt; feat_github_webhook
-  infra_adapter_elastic --&gt; feat_github_webhook
-  feat_github_pr_worker --&gt; feat_github_webhook
   feat_studies_ui --&gt; feat_proposals_ui
   feat_digest_proposal --&gt; feat_proposals_ui
   feat_github_pr_worker --&gt; feat_proposals_ui
@@ -928,6 +926,9 @@ footer {
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
   feat_digest_proposal --&gt; feat_github_pr_worker
+  infra_foundation --&gt; feat_github_webhook
+  infra_adapter_elastic --&gt; feat_github_webhook
+  feat_github_pr_worker --&gt; feat_github_webhook
   infra_foundation --&gt; feat_studies_ui
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui

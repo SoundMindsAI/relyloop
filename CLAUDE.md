@@ -426,7 +426,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 5 | [`feat_llm_judgments`](docs/00_overview/implemented_features/2026_05_11_feat_llm_judgments/) | **Complete (PR #35, merged 2026-05-11)** |
 | 6 | [`feat_digest_proposal`](docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/) | **Complete (PR #41, merged 2026-05-11)** |
 | 7 | [`feat_github_pr_worker`](docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker/) | **Complete (PR #45, merged 2026-05-12)** |
-| 8 | [`feat_github_webhook`](docs/02_product/planned_features/feat_github_webhook/) | Implementation complete (all 10 stories), pending push + CI + merge on `feature/feat-github-webhook` |
+| 8 | [`feat_github_webhook`](docs/00_overview/implemented_features/2026_05_12_feat_github_webhook/) | **Complete (PR #56, merged 2026-05-12)** |
 | 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, pending merge)** |
 | 10 | [`feat_chat_agent`](docs/02_product/planned_features/feat_chat_agent/) | Spec approved, plan pending |
 | 11 | [`feat_proposals_ui`](docs/02_product/planned_features/feat_proposals_ui/) | Spec approved, plan pending |
