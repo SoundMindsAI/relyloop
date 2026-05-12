@@ -261,7 +261,8 @@ CREATE TABLE proposals (
 CREATE TABLE conversations (
     id          UUID PRIMARY KEY,
     title       TEXT,                                  -- auto-generated from first message; nullable
-    started_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    deleted_at  TIMESTAMPTZ                            -- soft-delete per CLAUDE.md convention
 );
 
 CREATE TABLE messages (
@@ -273,6 +274,8 @@ CREATE TABLE messages (
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 ```
+
+Soft-delete on `conversations` filters the row out of `GET /api/v1/conversations` and `GET /api/v1/conversations/{id}` (`deleted_at IS NULL` predicate); messages remain joined via the FK so a future hard-purge runbook can drop both atomically. Hard delete cascades to messages via `ON DELETE CASCADE`.
 
 ## Forthcoming: `audit_log` (MVP2 + MVP4 evolution)
 

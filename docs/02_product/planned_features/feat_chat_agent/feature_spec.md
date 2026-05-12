@@ -15,42 +15,52 @@
 
 ## 1) Purpose
 
-- **Problem:** Without a chat surface, every operation requires the UI's structured forms. Chat lets the engineer describe the goal in plain language ("tune product_search overnight on staging-products-es") and let the agent translate that to API calls.
-- **Outcome:** A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. The agent has a tool registry covering the 18 MVP1 tools (per [`agent-tools.md`](../../../01_architecture/agent-tools.md)). Conversation state persists in `conversations` + `messages` tables; tool calls are visible in expandable panels.
+- **Problem:** Without a chat surface, every operation requires the UI's structured forms. Chat lets the engineer describe the goal in plain language ("tune product_search overnight on local-es") and let the agent translate that to API calls.
+- **Outcome:** A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. The agent has a tool registry covering the 19 MVP1 tools (per [`agent-tools.md`](../../../01_architecture/agent-tools.md) §"MVP1 tool inventory"). Conversation state persists in `conversations` + `messages` tables; tool calls are visible in expandable panels.
 - **Non-goal:** No `propose_search_space` LLM tool (deferred to MVP2 per Decision log). No LangGraph state graph or subagents (GA v1). No human-in-the-loop interrupts (GA v1). No Fusion-specific tools (MVP3). No `fork_study` (MVP2). No multi-conversation parallelism enforcement (MVP4 with multi-tenant).
 
 ## 2) Current state audit
 
-After all dependencies ship:
-- Every consumed API endpoint exists.
-- `conversations` and `messages` tables do NOT exist yet — this feature creates them in their full MVP1 shape per [`data-model.md`](../../../01_architecture/data-model.md). They are terminal (no other features depend on them).
-- The Next.js skeleton + layout + nav (per `infra_foundation` + `feat_studies_ui`) include a `/chat` link that goes nowhere yet.
-- `openai` Python SDK is installed; no LLM calls are being made yet beyond `feat_llm_judgments` and `feat_digest_proposal`.
+As of 2026-05-12, every dependency has shipped:
+
+- **Every consumed API endpoint exists** and is verified by contract tests:
+  - `GET /api/v1/clusters`, `GET /api/v1/clusters/{id}`, `GET /api/v1/clusters/{id}/schema`, `POST /api/v1/clusters/{id}/run_query` (all in `backend/app/api/v1/clusters.py` from `infra_adapter_elastic`).
+  - `GET /api/v1/query-templates`, `GET /api/v1/query-templates/{id}` (from `feat_study_lifecycle` Phase 2).
+  - `GET /api/v1/query-sets`, `POST /api/v1/query-sets`, `POST /api/v1/query-sets/{id}/queries` (from `feat_study_lifecycle` Phase 2).
+  - `POST /api/v1/judgments/generate`, `GET /api/v1/judgment-lists/{id}` (from `feat_llm_judgments`).
+  - `POST /api/v1/studies`, `GET /api/v1/studies/{id}`, `POST /api/v1/studies/{id}/cancel` (from `feat_study_lifecycle` Phase 2).
+  - `GET /api/v1/proposals`, `GET /api/v1/proposals/{id}`, `POST /api/v1/proposals`, `POST /api/v1/proposals/{id}/open_pr` (from `feat_digest_proposal` + `feat_github_pr_worker`).
+- `conversations` and `messages` tables do NOT exist yet — this feature creates them via Alembic revision `0007_conversations_messages` (the next sequential after `0006_proposals_pr_url_idx`), in the full MVP1 shape per [`data-model.md`](../../../01_architecture/data-model.md). They are terminal (no other features depend on them).
+- The Next.js shell + nav include a `/chat` link in `ui/src/components/layout/top-nav.tsx:14` that currently routes to a 404 — this feature fills it (mirroring the `/proposals` shipping pattern from `feat_proposals_ui`).
+- The OpenAI client + capability check (`backend/app/llm/openai_judge.py`, `backend/app/llm/capability_check.py`) and budget gate (`backend/app/llm/budget_gate.py`) are in place from `feat_llm_judgments`; this feature reuses them.
+- `prompts/` already contains the system + user templates for `feat_llm_judgments` and `feat_digest_proposal`; this feature adds `prompts/orchestrator.system.md`.
+- `backend/app/agent/` does NOT exist yet — this feature creates it.
 
 ## 3) Scope
 
 ### In scope
 
 - **Backend**:
-  - Tool registry at `backend/agent/tools/__init__.py` collecting the 18 MVP1 tools per [`agent-tools.md`](../../../01_architecture/agent-tools.md). Each tool is one Python module under `backend/agent/tools/<category>/<tool>.py`.
-  - Orchestrator at `backend/agent/orchestrator.py` running the OpenAI function-calling loop (per [`llm-orchestration.md`](../../../01_architecture/llm-orchestration.md)).
+  - Tool registry at `backend/app/agent/tools/__init__.py` collecting the 19 MVP1 tools per [`agent-tools.md` §"MVP1 tool inventory"](../../../01_architecture/agent-tools.md). Each tool is one Python module under `backend/app/agent/tools/<category>/<tool>.py`.
+  - Orchestrator at `backend/app/agent/orchestrator.py` running the OpenAI function-calling loop (per [`llm-orchestration.md`](../../../01_architecture/llm-orchestration.md)).
   - SSE endpoint `POST /api/v1/conversations/{id}/messages` accepting a user message and streaming the assistant turn (token + tool_call + tool_result + done events per [`agent-tools.md` §"Streaming + SSE"](../../../01_architecture/agent-tools.md)).
   - REST endpoints:
     - `POST /api/v1/conversations` — create new conversation (returns `conversation_id`)
-    - `GET /api/v1/conversations` — list (paginated)
+    - `GET /api/v1/conversations` — list (cursor-paginated, soft-deleted rows filtered out)
     - `GET /api/v1/conversations/{id}` — detail with full message history
-    - `DELETE /api/v1/conversations/{id}` — soft-delete
+    - `DELETE /api/v1/conversations/{id}` — soft-delete (sets `deleted_at`; messages preserved via FK CASCADE on hard purge only)
+  - Router file at `backend/app/api/v1/conversations.py` (matches the project's `backend/app/api/v1/<resource>.py` convention); registered in `backend/app/main.py` with `prefix="/api/v1"`.
   - System prompt at `prompts/orchestrator.system.md` framing the agent's role + the available tools.
   - Per-call validation (Pydantic args schema) before dispatch; validation failures appended as tool_result with error payload (LLM gets a retry).
 - **Frontend** (`/chat/{conversation_id}` route in `feat_studies_ui`'s Next.js app):
   - Conversation list at `/chat` (sidebar). "New conversation" button.
-  - Single-conversation view at `/chat/{conversation_id}`:
+  - Single-conversation view at `/chat/[id]/page.tsx`:
     - Message stream rendered in chronological order (user / assistant / tool messages).
     - Composer at the bottom (auto-grows; cmd+enter to send).
     - Tool calls rendered as collapsible `<Card>`s (default collapsed) showing `name` + `arguments` (JSON). Tool results render as a sibling `<Card>` (default collapsed) showing the JSON response.
     - Token streaming: assistant text appears character-by-character as the SSE delivers it.
-    - Errors (network, 4xx, 5xx) surface as toast + an inline `<Alert>` below the conversation.
-  - Streaming consumer in `ui/lib/api/conversations.ts` using `fetch()` with `ReadableStream` (per [`ui-architecture.md` §"Streaming chat"](../../../01_architecture/ui-architecture.md)). **Native `EventSource` is NOT used** — it's GET-only and the user message belongs in the POST body.
+    - Errors (network, 4xx, 5xx) surface as toast (via the central `MutationCache.onError` wiring shipped by `feat_studies_ui`) + an inline `<Alert>` below the conversation.
+  - Streaming consumer in `ui/src/lib/api/conversations.ts` using `fetch()` with `ReadableStream` (per [`ui-architecture.md` §"Streaming chat"](../../../01_architecture/ui-architecture.md), lines 186-226). **Native `EventSource` is NOT used** — it's GET-only and the user message belongs in the POST body.
 
 ### Out of scope
 
@@ -83,15 +93,23 @@ Single-phase. The MVP1 deliverable: "the operator opens chat, types 'tune produc
 
 - **Do not** allow the agent to mutate without confirmation (per system prompt). If the LLM tries to call `create_study` without the user's explicit "yes," dispatch returns an error appended as a tool_result; the LLM gets the message and asks for confirmation.
 - **Do not** use the same OpenAI model as judgment generation (`gpt-4o-2024-08-06`). Chat orchestration is cost-sensitive; use `gpt-4o-mini-2024-07-18`.
-- **Do not** invent tools. The 18 MVP1 tools per [`agent-tools.md`](../../../01_architecture/agent-tools.md) are the complete set. New tools require their own feature spec.
+- **Do not** invent tools. The 19 MVP1 tools per [`agent-tools.md` §"MVP1 tool inventory"](../../../01_architecture/agent-tools.md) are the complete set. New tools require their own feature spec.
 - **Do not** dispatch tool calls in parallel. Sequential dispatch keeps the conversation auditable; the agent rarely needs parallelism. (LangGraph at GA v1 introduces parallel subagents.)
 - **Do not** stream tool RESULTS to the client mid-execution. Wait for the tool to complete, then stream the result event. (This avoids partial-result races.)
 
 ## 5) Assumptions and dependencies
 
-- **Dependency: ALL backend features** — the tool registry dispatches into every feature's API. Any feature that ships late breaks tools.
-- **Dependency: `feat_studies_ui`** — provides the layout shell + nav + TanStack Query setup that the chat UI plugs into.
-- **OpenAI API key** — required at chat time (returns `OPENAI_NOT_CONFIGURED` otherwise per `feat_llm_judgments` precedent).
+All dependencies shipped between 2026-05-09 and 2026-05-12; this section captures what each one delivered that this feature consumes.
+
+- **`infra_foundation` (PR #4, merged 2026-05-09)** — `OPENAI_BASE_URL` + `openai_api_key_file` + `openai_model_chat` settings; capability cache infrastructure (`backend/app/llm/capability_check.py:read_capability_result(redis, base_url)`) populated at startup.
+- **`infra_adapter_elastic` (PR #16, merged 2026-05-10)** — backs `list_clusters`, `get_cluster`, `get_schema`, `run_query` tools via `backend/app/api/v1/clusters.py`.
+- **`feat_study_lifecycle` Phase 2 (PR #25, merged 2026-05-11)** — backs `list_templates`, `get_template`, `list_query_sets`, `create_query_set`, `import_queries_from_csv`, `create_study`, `get_study`, `cancel_study` via `backend/app/api/v1/query_templates.py`, `query_sets.py`, `studies.py`.
+- **`feat_llm_judgments` (PR #35, merged 2026-05-11)** — backs `generate_judgments_llm` + `get_calibration` via `backend/app/api/v1/judgments.py`. Also: the OpenAI client + budget gate + capability check are reused here; `OPENAI_NOT_CONFIGURED` (503) + `OPENAI_BUDGET_EXCEEDED` (503) error precedents apply.
+- **`feat_digest_proposal` (PR #41, merged 2026-05-11)** — backs `list_proposals`, `get_proposal`, `create_proposal_from_study`, `create_proposal_manual` via `backend/app/api/v1/proposals.py`.
+- **`feat_github_pr_worker` (PR #45, merged 2026-05-12)** — backs `open_pr` via `POST /api/v1/proposals/{id}/open_pr`. The tool surfaces all 5 error codes the endpoint can return (`PROPOSAL_NOT_FOUND`, `INVALID_STATE_TRANSITION`, `CLUSTER_HAS_NO_CONFIG_REPO`, `GITHUB_NOT_CONFIGURED`, `QUEUE_UNAVAILABLE`) to the LLM as tool_result payloads.
+- **`feat_studies_ui` (PR #50, merged 2026-05-12)** — provides the Next.js shell + nav (with the placeholder `/chat` link), TanStack Query setup, central `MutationCache.onError` toast wiring, and the `apiClient` singleton with `X-Request-ID` injection.
+- **`feat_proposals_ui` (PR #58, merged 2026-05-12)** — frontend siblings the chat UI links to via tool-result deep links (e.g., after the agent calls `create_proposal_from_study`, it can offer a `/proposals/{id}` link in plain text).
+- **OpenAI API key** — required at chat time (returns 503 `OPENAI_NOT_CONFIGURED` otherwise per the `feat_llm_judgments` precedent in `backend/app/api/v1/judgments.py:201`).
 
 ## 6) Actors and roles
 
@@ -121,8 +139,8 @@ N/A — `audit_log` is MVP2. When MVP2 ships, this feature's mutating tool dispa
 - Returns 503 `OPENAI_NOT_CONFIGURED` if `OPENAI_API_KEY_FILE` is missing.
 
 ### FR-3: Orchestrator loop
-- The orchestrator **MUST** call OpenAI's `chat.completions.create` with `model={settings.OPENAI_MODEL_CHAT}` (default `gpt-4o-mini-2024-07-18` for OpenAI; for local providers reuses `OPENAI_MODEL`), against the configured `OPENAI_BASE_URL`, with `tools=TOOLS`, `tool_choice='auto'`, `stream=True`.
-- The orchestrator **MUST** read the capability cache (per `infra_foundation` FR-7). If `function_calling != "ok"` for the configured endpoint, the orchestrator runs WITHOUT tools (passes `tools=[]`); the agent can still chat but cannot dispatch. The first assistant turn in such a session emits a system-level message (visible in the chat UI) explaining: "Tool dispatch is unavailable on this LLM provider (`{base_url}` lacks reliable function-calling). Use the UI to create studies / open PRs."
+- The orchestrator **MUST** call OpenAI's `chat.completions.create` with `model=settings.openai_model_chat` (default `gpt-4o-mini-2024-07-18` per `backend/app/core/settings.py:117`; for local providers operators can override to reuse `openai_model`), against the configured `openai_base_url`, with `tools=TOOLS`, `tool_choice='auto'`, `stream=True`.
+- The orchestrator **MUST** read the capability cache via `read_capability_result(redis_client, base_url)` from `backend/app/llm/capability_check.py:372`. If `function_calling != "ok"` for the configured endpoint, the orchestrator runs WITHOUT tools (passes `tools=[]`); the agent can still chat but cannot dispatch. The first assistant turn in such a session emits a system-level message (visible in the chat UI) explaining: "Tool dispatch is unavailable on this LLM provider (`{base_url}` lacks reliable function-calling). Use the UI to create studies / open PRs."
 - The orchestrator **MUST** stream tokens to the SSE connection as they arrive.
 - The orchestrator **MUST** detect tool_calls in the stream and, after the stream ends:
   - Persist the assistant message (with `tool_calls` JSONB)
@@ -133,15 +151,15 @@ N/A — `audit_log` is MVP2. When MVP2 ships, this feature's mutating tool dispa
 - Notes: covers US-25, US-26, US-27.
 
 ### FR-4: Tool registry
-- The system **MUST** ship 18 MVP1 tools per [`agent-tools.md` §"MVP1 tool inventory"](../../../01_architecture/agent-tools.md):
-  - `list_clusters`, `get_cluster`, `get_schema`
-  - `list_templates`, `get_template`
-  - `list_query_sets`, `create_query_set`, `import_queries_from_csv`, `generate_judgments_llm`, `get_calibration`
-  - `run_query`
-  - `create_study`, `get_study`, `cancel_study`
-  - `list_proposals`, `get_proposal`, `create_proposal_from_study`, `create_proposal_manual`, `open_pr`
-- Each tool is a separate module at `backend/agent/tools/<category>/<tool>.py` with a Pydantic args schema, an async impl function, and a `*_TOOL` constant.
-- The registry collector at `backend/agent/tools/__init__.py` exports `TOOLS: list[ChatCompletionToolParam]` and `TOOL_REGISTRY: dict[str, Callable]`.
+- The system **MUST** ship 19 MVP1 tools per [`agent-tools.md` §"MVP1 tool inventory"](../../../01_architecture/agent-tools.md) (counted across the 6 categories below: 3 + 2 + 5 + 1 + 3 + 5 = 19):
+  - **Cluster & schema (3):** `list_clusters`, `get_cluster`, `get_schema`
+  - **Templates (2):** `list_templates`, `get_template`
+  - **Query sets & judgments (5):** `list_query_sets`, `create_query_set`, `import_queries_from_csv`, `generate_judgments_llm`, `get_calibration`
+  - **Quick experiments (1):** `run_query`
+  - **Studies (3):** `create_study`, `get_study`, `cancel_study`
+  - **Proposals & PRs (5):** `list_proposals`, `get_proposal`, `create_proposal_from_study`, `create_proposal_manual`, `open_pr`
+- Each tool is a separate module at `backend/app/agent/tools/<category>/<tool>.py` with a Pydantic args schema, an async impl function, and a `*_TOOL` constant.
+- The registry collector at `backend/app/agent/tools/__init__.py` exports `TOOLS: list[ChatCompletionToolParam]` and `TOOL_REGISTRY: dict[str, Callable]`.
 
 ### FR-5: System prompt + confirmation rule
 - The system **MUST** load `prompts/orchestrator.system.md` at startup.
@@ -179,8 +197,10 @@ The SSE response body uses standard SSE framing per FR-2.
 
 | Field | Accepted values | Backend source of truth |
 |---|---|---|
-| `messages.role` | `user`, `assistant`, `tool` | `backend/db/models/message.py` |
-| SSE event types | `token`, `tool_call`, `tool_result`, `done` | `backend/api/conversations.py` (`SSEEventType` `Literal[...]`) |
+| `messages.role` | `user`, `assistant`, `tool` | `backend/app/db/models/message.py` (CHECK constraint on the `role` column) |
+| SSE event types | `token`, `tool_call`, `tool_result`, `done` | `backend/app/api/v1/conversations.py` (`SSEEventType = Literal["token", "tool_call", "tool_result", "done"]`) |
+
+Frontend tests + components consuming these values MUST add a `// Values must match backend/app/db/models/message.py …` source-of-truth comment in `ui/src/lib/enums.ts` (mirroring the 19 allowlists shipped by `feat_studies_ui`'s Story 4.2). The CI gate at `scripts/ci/verify_enum_source_of_truth.sh` enforces drift detection.
 
 ### 7.5 Error code catalog
 
@@ -192,7 +212,13 @@ The SSE response body uses standard SSE framing per FR-2.
 
 ## 9) Data model and state transitions
 
-This feature creates `conversations` and `messages` per [`data-model.md`](../../../01_architecture/data-model.md). Both are terminal tables (no other MVP1 feature depends on them). Migration adds full MVP1 shape; no other features ALTER these tables.
+This feature creates `conversations` and `messages` per [`data-model.md`](../../../01_architecture/data-model.md) via Alembic revision `0007_conversations_messages` (next sequential after `0006_proposals_pr_url_idx`). Both are terminal tables (no other MVP1 feature depends on them). Migration adds full MVP1 shape; no other features ALTER these tables.
+
+**Required columns** (per CLAUDE.md conventions):
+- `conversations`: `id UUID PK`, `title TEXT NULL`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`, `deleted_at TIMESTAMPTZ NULL` (soft-delete per CLAUDE.md "soft delete via `deleted_at` on user-facing tables").
+- `messages`: `id UUID PK`, `conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE`, `role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'tool'))`, `content JSONB NOT NULL`, `tool_calls JSONB NULL`, `created_at TIMESTAMPTZ NOT NULL DEFAULT now()`.
+
+Both `created_at` columns use `TIMESTAMPTZ` storing UTC (per `data-model.md` §"Conventions"). Migration MUST include `downgrade()` per CLAUDE.md Absolute Rule #5; round-trip verified via `alembic upgrade head && alembic downgrade -1 && alembic upgrade head`.
 
 ## 10) Security, privacy, and compliance
 
@@ -216,7 +242,7 @@ This feature creates `conversations` and `messages` per [`data-model.md`](../../
 - **Tool dispatch raises** (e.g., backend 500). Tool result event payload includes `{error: '<error_code>', message: '<human>'}`; LLM gets the message and either retries with corrections or surfaces to user.
 - **Tool loop limit hit (10 iterations).** Loop terminates with `done.error = 'tool_loop_limit_exceeded'`; conversation is in a recoverable state — user can retry their request.
 - **User reloads page mid-stream.** SSE connection drops; the assistant turn that was in flight is incomplete in the database (only the user message persisted). UI on reload shows the conversation up to the last completed turn; user can re-send the message.
-- **Multiple browser tabs open on the same conversation.** Both tabs receive `useConversation` polls; both attempt SSE on send; first one wins, second one gets a 409 `CONVERSATION_BUSY` (added — let me note this in §19 if needed). Recommend: simpler approach — both connections succeed; LLM messages interleave (rare in practice). Open question.
+- **Multiple browser tabs open on the same conversation.** Locked in §19 decision log (2026-05-09): **laissez-faire** — both connections succeed; LLM messages interleave (rare in practice). `CONVERSATION_BUSY` (409) deferred to MVP2 if real complaints emerge.
 
 ## 12) Given/When/Then acceptance criteria
 
@@ -277,17 +303,21 @@ This feature creates `conversations` and `messages` per [`data-model.md`](../../
 
 ## 14) Test strategy requirements
 
-- **Unit tests** (`backend/tests/unit/`):
-  - `agent/test_tool_registry.py` — every MVP1 tool is registered; each has a Pydantic args schema; each has a tool description.
-  - `agent/test_dispatch_validation.py` — invalid args produce a tool_result with `validation_failed`.
-  - `agent/test_tool_loop_limit.py` — 10-iteration cap is enforced.
+- **Unit tests** (`backend/tests/unit/agent/`):
+  - `test_tool_registry.py` — every MVP1 tool is registered; each has a Pydantic args schema; each has a tool description.
+  - `test_dispatch_validation.py` — invalid args produce a tool_result with `validation_failed`.
+  - `test_tool_loop_limit.py` — 10-iteration cap is enforced.
 - **Integration tests** (`backend/tests/integration/`):
   - `test_chat_simple.py` — single-turn conversation (read-only tool); asserts SSE framing.
   - `test_chat_create_study.py` — full flow: confirm + create_study; cassette-replayed OpenAI.
   - `test_chat_persistence.py` — conversation reconstructable across restart.
-- **Contract tests:**
-  - `test_conversations_api_contract.py` — REST endpoint shapes.
-  - `test_sse_event_shapes.py` — every SSE event type matches the documented body shape.
+  - `test_conversations_migration.py` — Alembic round-trip on `0007_conversations_messages` (mirror the `feat_llm_judgments` pattern at `backend/tests/integration/test_judgments_migration.py`).
+- **Contract tests** (`backend/tests/contract/`):
+  - `test_conversations_api_contract.py` — REST endpoint shapes + the 3 error codes (`CONVERSATION_NOT_FOUND`, `OPENAI_NOT_CONFIGURED`, `OPENAI_BUDGET_EXCEEDED`).
+  - `test_sse_event_shapes.py` — every SSE event type (`token`, `tool_call`, `tool_result`, `done`) matches the documented body shape.
+- **Frontend tests** (`ui/src/__tests__/`):
+  - `app/chat/page.test.tsx` — conversation list rendering.
+  - `app/chat/[id]/page.test.tsx` — message stream + composer + tool-call card expand/collapse + SSE consumer wiring.
 - **E2E tests:** N/A in MVP1.
 
 ## 15) Documentation update requirements
@@ -311,12 +341,12 @@ This feature creates `conversations` and `messages` per [`data-model.md`](../../
 | FR-3 (loop) | AC-1, AC-6, AC-8 | TBD | `tests/integration/test_chat_create_study.py`, `tests/unit/agent/test_tool_loop_limit.py` | — |
 | FR-4 (tool registry) | AC-3 | TBD | `tests/unit/agent/test_tool_registry.py` | agent-tools.md |
 | FR-5 (system prompt + confirmation) | AC-4 | TBD | `tests/integration/test_chat_create_study.py` | runbook |
-| FR-6 (frontend) | AC-1, AC-2, AC-3 | TBD | `ui/tests/unit/app/chat/[id]/page.spec.tsx` | — |
+| FR-6 (frontend) | AC-1, AC-2, AC-3 | TBD | `ui/src/__tests__/app/chat/[id]/page.test.tsx` | — |
 
 ## 18) Definition of feature done
 
 - [ ] AC-1 through AC-8 pass.
-- [ ] All test layers green; ≥80% coverage on `backend/agent/`.
+- [ ] All test layers green; ≥80% coverage on `backend/app/agent/`.
 - [ ] Tutorial chat flow demoable in <2 min.
 - [ ] No open questions remain in §19.
 
@@ -335,3 +365,4 @@ None — all resolved (see Decision log).
 - 2026-05-09 — Multi-tab handling: **laissez-faire** (allow concurrent tabs to both POST messages; LLM responses interleave; rare in practice). Add `CONVERSATION_BUSY` 409 at MVP2 if real complaints emerge.
 - 2026-05-09 — Confirmation list expanded to include `import_queries_from_csv` (large bulk add risk).
 - 2026-05-09 — Tool loop limit: **10** (per FR-3).
+- 2026-05-12 — `/idea-preflight` ground-truth pass against the codebase after all 8 backend + 2 frontend dependencies shipped: §2 + §5 rewritten past-tense with merge dates; backend paths corrected from `backend/<x>/` → `backend/app/<x>/` (4 occurrences in §3 + FR-4 + §7.4); frontend path corrected from `ui/lib/api/` → `ui/src/lib/api/` (2 occurrences); test paths corrected from `ui/tests/unit/...` → `ui/src/__tests__/...` (§14 + §17); tool count corrected from "18" to "19" (§1 + §3 + FR-4 — 3 + 2 + 5 + 1 + 3 + 5 = 19); `settings.OPENAI_MODEL_CHAT` → `settings.openai_model_chat` (FR-3); capability cache citation tightened to `read_capability_result(redis_client, base_url)` at `capability_check.py:372`; §9 expanded with the full column inventory + `0007_conversations_messages` migration revision number + soft-delete `deleted_at` column requirement (per CLAUDE.md "soft delete via deleted_at"); §11 multi-tab "Open question" cleaned up to point at the 2026-05-09 lock; §14 added `test_conversations_migration.py` for Alembic round-trip per the `feat_llm_judgments` precedent; §7.4 cited the `verify_enum_source_of_truth.sh` CI gate that `feat_studies_ui` Story 4.2 shipped. Tutorial-flow language in §1 aligned to `local-es` (was `staging-products-es`; MVP1 has no staging).
