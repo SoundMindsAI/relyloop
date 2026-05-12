@@ -4,10 +4,10 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
-        ui-lint ui-typecheck ui-test ui-build \
+        ui-lint ui-typecheck ui-test ui-build ui-dev \
         pre-commit pre-commit-install \
-        up down logs reset migrate migrate-create seed-clusters \
-        dashboard
+        up down restart logs reset migrate migrate-create seed-clusters \
+        dev dashboard
 
 help:  ## Show this help message
 	@echo ""
@@ -69,6 +69,18 @@ ui-test:  ## Run frontend tests (vitest run)
 ui-build:  ## Production build of the frontend (next build)
 	pnpm --dir ui build
 
+# `ui-dev` runs the Next.js dev server. Resolves Node via nvm when present —
+# the repo's `.nvmrc` pins Node 22 (Next 16 + Vitest 4 require >=20.18). If
+# nvm isn't installed we fall back to whatever `node` is on PATH; the dev
+# server will then surface its own version error if too old.
+NVM_GUARD = if [ -s "$$HOME/.nvm/nvm.sh" ]; then \
+	  . "$$HOME/.nvm/nvm.sh"; \
+	  nvm use --silent >/dev/null 2>&1 || nvm use --silent default; \
+	fi
+
+ui-dev:  ## Start the Next.js dev server (http://localhost:3000) — uses .nvmrc
+	@$(NVM_GUARD); pnpm --dir ui dev
+
 # ---------- Stack lifecycle (Story 4.4 fills install.sh) ----------
 
 up:  ## Generate secrets if missing, then docker compose up -d (auto-bootstrap)
@@ -76,6 +88,9 @@ up:  ## Generate secrets if missing, then docker compose up -d (auto-bootstrap)
 
 down:  ## docker compose stop (preserves data volumes)
 	docker compose stop
+
+restart:  ## docker compose restart api + worker (fast bounce when something wedges)
+	docker compose restart api worker
 
 logs:  ## Tail API + worker logs (docker compose logs -f api worker)
 	docker compose logs -f api worker
@@ -88,6 +103,16 @@ reset:  ## DESTRUCTIVE: docker compose down -v && rm -rf ./data (use FORCE=1 to 
 	fi
 	docker compose down -v
 	rm -rf ./data
+
+dev:  ## One-shot: ensure backend stack is up, then run the UI dev server in foreground
+	@if ! docker compose ps --status running --services 2>/dev/null | grep -q '^api$$'; then \
+	  echo "Backend not running — starting via 'make up'…"; \
+	  $(MAKE) up; \
+	else \
+	  echo "Backend already running on http://localhost:8000"; \
+	fi
+	@echo "Starting UI dev server on http://localhost:3000 (Ctrl-C to stop)…"
+	@$(MAKE) ui-dev
 
 # ---------- Migrations (Story 2.2 wires alembic) ----------
 
