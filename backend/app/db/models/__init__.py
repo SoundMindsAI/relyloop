@@ -8,9 +8,11 @@ import Cluster, ConfigRepo, Study, ...``-style imports.
 
 from backend.app.db.models.cluster import Cluster
 from backend.app.db.models.config_repo import ConfigRepo
+from backend.app.db.models.conversation import Conversation
 from backend.app.db.models.digest import Digest
 from backend.app.db.models.judgment import Judgment
 from backend.app.db.models.judgment_list import JudgmentList
+from backend.app.db.models.message import Message
 from backend.app.db.models.proposal import Proposal
 from backend.app.db.models.query import Query
 from backend.app.db.models.query_set import QuerySet
@@ -21,9 +23,11 @@ from backend.app.db.models.trial import Trial
 __all__ = [
     "Cluster",
     "ConfigRepo",
+    "Conversation",
     "Digest",
     "Judgment",
     "JudgmentList",
+    "Message",
     "Proposal",
     "Query",
     "QuerySet",
