@@ -121,9 +121,9 @@ class TestBaselineMigration:
                 row = result.fetchone()
                 assert row is not None, "alembic_version table empty after upgrade head"
                 # Baseline is "0001" per migrations/versions/0001_baseline.py.
-                # Head is "0006" once feat_github_webhook Story 1.1 lands the
-                # proposals_pr_url_idx migration on top of 0005_digests.
-                assert row[0] == "0006"
+                # Head is "0007" once feat_chat_agent Story 1.1 lands the
+                # conversations + messages migration on top of 0006.
+                assert row[0] == "0007"
         finally:
             engine.dispose()
 
@@ -138,17 +138,17 @@ class TestBaselineMigration:
         """Downgrade by one revision and re-upgrade returns cleanly to head."""
         _alembic("upgrade", "head")
         _alembic("downgrade", "-1")
-        # After downgrade -1 from 0006 we land at 0005 (digests).
-        # Re-upgrade re-applies 0006 cleanly per CLAUDE.md Absolute Rule #5.
+        # After downgrade -1 from 0007 we land at 0006 (proposals_pr_url_idx).
+        # Re-upgrade re-applies 0007 cleanly per CLAUDE.md Absolute Rule #5.
         _alembic("upgrade", "head")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
                 row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 assert row is not None
-                # Head is "0006" once feat_github_webhook Story 1.1 lands the
-                # proposals_pr_url_idx migration on top of 0005_digests.
-                assert row[0] == "0006"
+                # Head is "0007" once feat_chat_agent Story 1.1 lands the
+                # conversations + messages migration on top of 0006.
+                assert row[0] == "0007"
         finally:
             engine.dispose()
 

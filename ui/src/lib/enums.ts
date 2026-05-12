@@ -108,3 +108,11 @@ export type ProposalPrState = (typeof PROPOSAL_PR_STATE_VALUES)[number];
 // Values must match backend/app/api/v1/schemas.py ConfigRepoProviderWire.
 export const CONFIG_REPO_PROVIDER_VALUES = ['github'] as const;
 export type ConfigRepoProvider = (typeof CONFIG_REPO_PROVIDER_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py MessageRoleWire.
+export const MESSAGE_ROLE_VALUES = ['user', 'assistant', 'tool'] as const;
+export type MessageRole = (typeof MESSAGE_ROLE_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py SSEEventTypeWire.
+export const SSE_EVENT_TYPE_VALUES = ['token', 'tool_call', 'tool_result', 'done'] as const;
+export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];

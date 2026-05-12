@@ -314,11 +314,11 @@ footer {
 
 <section>
   <div class="next-up">
-    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
     <div class="title"><a href="../../docs/02_product/planned_features/feat_chat_agent/feature_spec.md">Chat Agent</a></div>
     <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
-    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
-    <code class="cmd">/pipeline docs/02_product/planned_features/feat_chat_agent --auto</code>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_chat_agent/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -334,17 +334,17 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">20</div>
+      <div class="value">23</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">4</div>
+      <div class="value">6</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">14</div>
+      <div class="value">15</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">22</span></h3>
+  <h3>Idea <span class="count">25</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -417,6 +417,18 @@ footer {
 
   </div>
   <div class="one-liner">`Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the </div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_chat_last_message_preview">Chat Last Message Preview</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + &quot;{N} messages&quot;`. There is no preview of the last message — operators with several simila</div>
 
 
 </div>
@@ -603,12 +615,36 @@ footer {
 
 
 <div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_chat_long_conversation_truncation">Chat Long Conversation Truncation</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">`backend/app/services/agent_chat.send_user_message` defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages and emits a `chat_history_truncated` WARN structlog lin</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_digest_param_importance_seam">Digest Param Importance Seam</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
 
   </div>
   <div class="one-liner">The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(.</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_dockerfile_missing_prompts">Dockerfile Missing Prompts</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module-</div>
 
 
 </div>
@@ -640,19 +676,7 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">2</span></h3>
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_chat_agent/feature_spec.md">Chat Agent</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
-
-  <div class="deps">depends on: <span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
-</div>
-
+  <h3>Spec <span class="count">1</span></h3>
 
 <div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
@@ -668,7 +692,18 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_chat_agent/feature_spec.md">Chat Agent</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a><span>merged 2026-05-09</span>
+  </div>
+  <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
+</div>
 
 </div>
 
@@ -827,7 +862,7 @@ footer {
   chore_tutorial_polish[&quot;tutorial polish&quot;]
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
-  class feat_chat_agent spec;
+  class feat_chat_agent plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -903,7 +938,7 @@ footer {
   chore_tutorial_polish[&quot;tutorial polish&quot;]
   class chore_tutorial_polish spec;
   feat_chat_agent[&quot;chat agent&quot;]
-  class feat_chat_agent spec;
+  class feat_chat_agent plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]

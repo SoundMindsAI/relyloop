@@ -151,13 +151,18 @@ async def test_config_repo_detail_response_model_is_config_repo_detail(
 def test_router_source_contains_every_endpoint_visible_code() -> None:
     """Cycle-2 F4 / cycle-3 F1: router sources contain the 9 endpoint-visible codes.
 
-    Codes may live in either ``proposals.py`` (open_pr handler) or
-    ``config_repos.py`` (CRUD). Concatenating both source files lets us
-    audit the full feature surface in one grep.
+    Codes may live in ``proposals.py`` (open_pr router shim), ``config_repos.py``
+    (CRUD), or ``backend/app/services/agent_proposals_dispatch.py`` (the open_pr
+    preflight lifted out by feat_chat_agent Story 2.4 so the chat-agent tool
+    reuses the same checks). Concatenating these source files lets us audit
+    the full feature surface in one grep.
     """
     proposals_src = Path("backend/app/api/v1/proposals.py").read_text(encoding="utf-8")
     config_repos_src = Path("backend/app/api/v1/config_repos.py").read_text(encoding="utf-8")
-    combined = proposals_src + "\n" + config_repos_src
+    dispatch_src = Path("backend/app/services/agent_proposals_dispatch.py").read_text(
+        encoding="utf-8"
+    )
+    combined = proposals_src + "\n" + config_repos_src + "\n" + dispatch_src
     missing = [code for code in ROUTER_VISIBLE_CODES if code not in combined]
     assert not missing, f"router sources do not raise endpoint-visible codes: {missing}"
 

@@ -126,13 +126,22 @@ async def test_patch_override_response_model_is_judgment_row(
 
 
 def test_all_spec_error_codes_referenced_in_router_source() -> None:
-    """Every spec/drift error code appears as a literal in the router source.
+    """Every spec/drift error code appears as a literal in the router OR its dispatch helper.
 
-    Cheap static check that no error code was renamed in the router without
-    updating the spec/contract. Catches drift between the catalog and the
-    handler — not a full contract test but a useful safety net.
+    Cheap static check that no error code was renamed without updating the
+    spec/contract. Catches drift between the catalog and the handler — not a
+    full contract test but a useful safety net. The preflight error codes
+    (OPENAI_*, LLM_PROVIDER_INCAPABLE, UNKNOWN_MODEL_PRICING, TEMPLATE_NOT_FOUND)
+    live in :mod:`backend.app.services.agent_judgments_dispatch` since
+    feat_chat_agent Story 2.2 lifted them out of the router so the chat-agent
+    ``generate_judgments_llm`` tool reuses the same checks.
     """
-    router_path = Path("backend/app/api/v1/judgments.py")
-    source = router_path.read_text(encoding="utf-8")
-    missing = [code for code in SPEC_ERROR_CODES if code not in source]
-    assert not missing, f"router does not raise spec error codes: {missing}"
+    sources = "\n".join(
+        Path(p).read_text(encoding="utf-8")
+        for p in (
+            "backend/app/api/v1/judgments.py",
+            "backend/app/services/agent_judgments_dispatch.py",
+        )
+    )
+    missing = [code for code in SPEC_ERROR_CODES if code not in sources]
+    assert not missing, f"neither router nor dispatch helper raises spec codes: {missing}"

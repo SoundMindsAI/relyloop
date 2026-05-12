@@ -86,6 +86,7 @@ COPY --from=deps --chown=relyloop:relyloop /app/.venv /app/.venv
 # needed by `uv sync` to install the project itself into the venv).
 COPY --chown=relyloop:relyloop backend/ /app/backend/
 COPY --chown=relyloop:relyloop migrations/ /app/migrations/
+COPY --chown=relyloop:relyloop prompts/ /app/prompts/
 COPY --chown=relyloop:relyloop alembic.ini /app/alembic.ini
 COPY --chown=relyloop:relyloop pyproject.toml uv.lock README.md LICENSE /app/
 
