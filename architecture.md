@@ -158,7 +158,20 @@ backend/
 prompts/         Jinja2 templates for LLM calls (feat_llm_judgments —
                  judgment_generation.system.md / .user.jinja / .rubric_v1.md;
                  feat_digest_proposal — digest_narrative.system.md / .user.jinja)
-ui/              Next.js 14 App Router (placeholder page in MVP1)
+ui/              Next.js 16 App Router (post infra_frontend_stack_refresh):
+                 src/app/clusters/ + studies/ + query-sets/ + templates/ +
+                 judgments/[id]/ + page.tsx (dashboard) from feat_studies_ui;
+                 src/app/proposals/ + proposals/[id]/ from feat_proposals_ui
+                 (list page with URL-backed status filter + 30s pulse-refetch
+                 + cursor pagination; detail page with config-diff +
+                 metric-delta + suggested-followups + PrPanel 4-state branch
+                 + RejectDialog + ?action=open_pr auto-trigger + 3s/30s
+                 polling ladder). Shared primitives in src/components/common/
+                 (StatusBadge / MetricDelta / CursorPaginator / EmptyState /
+                 ParameterImportanceChart); per-resource hooks in
+                 src/lib/api/ (clusters, config-repos, digests, judgments,
+                 proposals, query-sets, query-templates, studies); canonical
+                 wire-value allowlists in src/lib/enums.ts.
 migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters
                  + 0003 study_lifecycle_schema + 0004_judgments + 0005_digests)
 docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
