@@ -1,0 +1,28 @@
+{#-
+  product_search.j2 — canonical demo Jinja2 template for the RelyLoop tutorial.
+
+  Declared params (all surfaced in the Optuna search-space the tutorial defines):
+    field_boosts.title         float   range 0.5–10
+    field_boosts.description   float   range 0.5–10
+    field_boosts.bullet_points float   range 0.5–10
+    tie_breaker                float   range 0.0–1.0
+    fuzziness                  string  one of "AUTO" | "0" | "1" | "2"
+
+  Renders to an Elasticsearch `multi_match` query body against the `products`
+  index seeded by `make seed-es`.
+-#}
+{
+  "query": {
+    "multi_match": {
+      "query": "{{ query_text }}",
+      "type": "best_fields",
+      "tie_breaker": {{ tie_breaker | default(0.3) }},
+      "fuzziness": "{{ fuzziness | default('AUTO') }}",
+      "fields": [
+        "title^{{ field_boosts.title | default(2.0) }}",
+        "description^{{ field_boosts.description | default(1.0) }}",
+        "bullet_points^{{ field_boosts.bullet_points | default(1.0) }}"
+      ]
+    }
+  }
+}
