@@ -80,6 +80,11 @@ services:
       # production deployments; these overlays only matter in dev.
       - ./migrations:/app/migrations
       - ./alembic.ini:/app/alembic.ini:ro
+      # Bind-mount samples/ read-only so `make seed-es` (which exec's
+      # backend.app.scripts.seed_es inside this container) can read
+      # samples/products.json from the host repo without baking the operator
+      # data into the image. chore_tutorial_polish Story 2.1.
+      - ./samples:/app/samples:ro
     healthcheck:
       # `worker` waits for api healthy before starting (so it doesn't enqueue
       # against a not-yet-started API). `curl` is in the runtime image.
