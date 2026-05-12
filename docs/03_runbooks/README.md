@@ -19,13 +19,15 @@ Operational procedures: deployment, upgrades, restores, incident handling, recur
 - [`pr-open-debugging.md`](pr-open-debugging.md) — `open_pr` worker
   playbook + per-repo PAT rotation + closing orphan branches
   (`feat_github_pr_worker`)
+- [`webhook-debugging.md`](webhook-debugging.md) — GitHub webhook
+  receiver + polling reconciler + `register_webhook` worker playbook
+  (`feat_github_webhook`)
 - [`ui-debugging.md`](ui-debugging.md) — inspecting the TanStack Query
   cache, reproducing polling regressions, tracing UI errors back to
   backend logs via `X-Request-ID` (`feat_studies_ui`)
 
 ## Coming with later features
 
-- `webhook-replay.md` — replaying a missed GitHub webhook (lands with `feat_github_webhook`)
 - `db-revision-mismatch.md` — recovering when API startup detects pending migrations (lands at MVP2 when the startup guard activates)
 - `staging-deploy.md` — staging deploy procedure (lands at MVP3)
 - `incident-response.md` — on-call playbook (lands at GA v1)

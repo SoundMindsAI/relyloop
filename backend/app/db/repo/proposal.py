@@ -27,7 +27,7 @@ Downstream consumers:
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from sqlalchemy import and_, func, or_, select, update
@@ -256,6 +256,138 @@ async def set_proposal_pr_open_error(
     if row is not None:
         await db.flush()
     return row
+
+
+async def mark_proposal_pr_merged(
+    db: AsyncSession,
+    proposal_id: str,
+    *,
+    pr_merged_at: datetime,
+) -> Proposal | None:
+    """Conditional UPDATE: pr_opened+open → pr_merged + populate pr_merged_at.
+
+    feat_github_webhook Story 1.4 — webhook receiver + polling reconciler
+    transition on a successful PR merge. ``WHERE status='pr_opened' AND
+    pr_state='open'``: if the proposal was already merged via the other
+    delivery path (webhook arrived before polling, or vice versa), zero
+    rows match and we return ``None``. The caller logs benignly and
+    skips. Caller commits.
+    """
+    stmt = (
+        update(Proposal)
+        .where(
+            Proposal.id == proposal_id,
+            Proposal.status == "pr_opened",
+            Proposal.pr_state == "open",
+        )
+        .values(
+            status="pr_merged",
+            pr_state="merged",
+            pr_merged_at=pr_merged_at,
+        )
+        .returning(Proposal)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is not None:
+        await db.flush()
+    return row
+
+
+async def mark_proposal_pr_closed(
+    db: AsyncSession,
+    proposal_id: str,
+) -> Proposal | None:
+    """Conditional UPDATE: pr_opened+open → pr_opened+closed (status stays).
+
+    feat_github_webhook Story 1.4 — PR was closed without being merged.
+    Status STAYS ``pr_opened`` so the operator can re-``open_pr`` (spec §11
+    downstream-invariant audit). ``WHERE status='pr_opened' AND
+    pr_state='open'``: idempotent for repeated closed events; second
+    delivery matches zero rows and returns ``None``. Caller commits.
+    """
+    stmt = (
+        update(Proposal)
+        .where(
+            Proposal.id == proposal_id,
+            Proposal.status == "pr_opened",
+            Proposal.pr_state == "open",
+        )
+        .values(pr_state="closed")
+        .returning(Proposal)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is not None:
+        await db.flush()
+    return row
+
+
+async def mark_proposal_pr_reopened(
+    db: AsyncSession,
+    proposal_id: str,
+) -> Proposal | None:
+    """Conditional UPDATE: pr_opened+closed → pr_opened+open.
+
+    feat_github_webhook Story 1.4 — operator re-opened a previously
+    closed PR. ``WHERE status='pr_opened' AND pr_state='closed'``:
+    repeat ``reopened`` events match zero rows and return ``None``.
+    Caller commits.
+    """
+    stmt = (
+        update(Proposal)
+        .where(
+            Proposal.id == proposal_id,
+            Proposal.status == "pr_opened",
+            Proposal.pr_state == "closed",
+        )
+        .values(pr_state="open")
+        .returning(Proposal)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is not None:
+        await db.flush()
+    return row
+
+
+async def lookup_proposal_by_pr_url(
+    db: AsyncSession,
+    pr_url: str,
+) -> Proposal | None:
+    """Single-row SELECT keyed on ``pr_url``. Returns the row or ``None``.
+
+    feat_github_webhook Story 1.4 — webhook receiver maps GitHub's
+    ``pull_request.html_url`` back to the originating proposal. Uses the
+    partial index ``proposals_pr_url_idx`` (Story 1.1) so the lookup is
+    sub-millisecond even at 100K proposals.
+    """
+    stmt = select(Proposal).where(Proposal.pr_url == pr_url)
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+
+async def list_pr_opened_proposals_for_reconcile(
+    db: AsyncSession,
+) -> Sequence[Proposal]:
+    """Return ``pr_opened`` + ``open`` proposals newer than 90 days.
+
+    feat_github_webhook Story 1.4 — consumed by ``reconcile_pr_state``
+    (Story 3.1). The 90-day window caps polling growth per spec FR-2:
+    older stale-pr_opened rows are presumed permanently abandoned and
+    require operator triage.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=90)
+    stmt = (
+        select(Proposal)
+        .where(
+            Proposal.status == "pr_opened",
+            Proposal.pr_state == "open",
+            Proposal.pr_url.is_not(None),
+            Proposal.created_at > cutoff,
+        )
+        .order_by(Proposal.created_at.asc())
+    )
+    return list((await db.execute(stmt)).scalars().all())
 
 
 async def list_pending_proposals_for_boot_scan(db: AsyncSession) -> list[str]:

@@ -334,12 +334,12 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">18</div>
+      <div class="value">19</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">3</div>
+      <div class="value">4</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">18</span></h3>
+  <h3>Idea <span class="count">19</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -585,6 +585,18 @@ footer {
 
   </div>
   <div class="one-liner">The user&#x27;s working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../../../CLAUDE.md) &quot;Cross-model review policy&quot;) was renamed to `.env.old` during the agent&#x27;s implementation sessio</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_test_smoke_requires_env_vars">Test Smoke Requires Env Vars</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">`backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment:</div>
 
 
 </div>

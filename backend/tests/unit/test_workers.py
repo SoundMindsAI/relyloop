@@ -57,6 +57,7 @@ def test_worker_settings_importable(_settings_env: None) -> None:
         "generate_digest",
         "generate_judgments_llm",
         "open_pr",
+        "register_webhook",
     }
 
 
@@ -142,3 +143,18 @@ def test_worker_settings_redis_host_overridable(
     # Restore for other tests
     os.environ.pop("REDIS_URL", None)
     get_settings.cache_clear()
+
+
+def test_pr_reconcile_cron_registered(_settings_env: None) -> None:
+    """feat_github_webhook Story 3.1 — reconcile_pr_state registered via cron_jobs.
+
+    Asserts the cron job is wired with the default 15-minute cadence
+    (``minute={0, 15, 30, 45}``) at the default ``relyloop_pr_poll_minutes``.
+    """
+    from backend.workers.all import WorkerSettings
+
+    cron_jobs = getattr(WorkerSettings, "cron_jobs", [])
+    assert cron_jobs, "WorkerSettings.cron_jobs missing — reconcile_pr_state not wired"
+    # arq.CronJob exposes the registered coroutine; match by its __name__.
+    names = {getattr(job.coroutine, "__name__", None) for job in cron_jobs}
+    assert "reconcile_pr_state" in names

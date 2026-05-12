@@ -40,6 +40,7 @@ from backend.app.api.v1 import proposals as proposals_router
 from backend.app.api.v1 import query_sets as query_sets_router
 from backend.app.api.v1 import query_templates as query_templates_router
 from backend.app.api.v1 import studies as studies_router
+from backend.app.api.webhooks import github as webhook_github_router
 from backend.app.core.logging import configure_logging, get_logger
 from backend.app.core.settings import get_settings
 from backend.app.llm.capability_check import run_capability_check_background
@@ -153,3 +154,4 @@ app.include_router(studies_router.router, prefix="/api/v1")  # Phase 2 Stories 3
 app.include_router(judgments_router.router, prefix="/api/v1")  # feat_llm_judgments Epic 3
 app.include_router(proposals_router.router, prefix="/api/v1")  # feat_digest_proposal Epic 3
 app.include_router(config_repos_router.router, prefix="/api/v1")  # feat_github_pr_worker Epic 3
+app.include_router(webhook_github_router.router)  # feat_github_webhook /webhooks/github

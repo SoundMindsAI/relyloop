@@ -1027,16 +1027,16 @@ All dependencies merged. No external blockers.
 ## 9) Execution tracker
 
 ### Current sprint
-- [ ] Epic 1 — Story 1.1 (Migration `0006` + Settings field)
-- [ ] Epic 1 — Story 1.2 (Signature verifier + URL normalizer)
-- [ ] Epic 1 — Story 1.3 (Event dispatcher)
-- [ ] Epic 1 — Story 1.4 (New repo functions)
-- [ ] Epic 1 — Story 1.5 (Extract shared GitHub API client)
-- [ ] Epic 2 — Story 2.1 (Webhook router + handler + tests)
-- [ ] Epic 3 — Story 3.1 (`reconcile_pr_state` cron job + tests)
-- [ ] Epic 4 — Story 4.1 (`register_webhook` worker)
-- [ ] Epic 4 — Story 4.2 (Extend `POST /api/v1/config-repos`)
-- [ ] Epic 4 — Story 4.3 (Runbook + docs + state flips)
+- [x] Epic 1 — Story 1.1 (Migration `0006` + Settings field) — commit `c500a46`
+- [x] Epic 1 — Story 1.2 (Signature verifier + URL normalizer) — commit `2287d6f`
+- [x] Epic 1 — Story 1.3 (Event dispatcher) — commit `4f7ae9b`
+- [x] Epic 1 — Story 1.4 (New repo functions) — commit `c532305`
+- [x] Epic 1 — Story 1.5 (Extract shared GitHub API client) — commit `66ab068`
+- [x] Epic 2 — Story 2.1 (Webhook router + handler + tests) — commit `2842a7d`
+- [x] Epic 3 — Story 3.1 (`reconcile_pr_state` cron job + tests) — commit `4ec50ae`
+- [x] Epic 4 — Story 4.1 (`register_webhook` worker) — commit `9bea914`
+- [x] Epic 4 — Story 4.2 (Extend `POST /api/v1/config-repos`) — commit `1fcdf86`
+- [x] Epic 4 — Story 4.3 (Runbook + docs + state flips)
 
 ### Blocked items
 - None.

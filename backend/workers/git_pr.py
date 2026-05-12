@@ -85,6 +85,7 @@ from backend.app.domain.git import (
     validate_config_path,
     validate_repo_url,
 )
+from backend.app.git import HTTP_TIMEOUT_S, github_request
 
 logger = structlog.get_logger(__name__)
 
@@ -113,15 +114,9 @@ _SECRETS_DIR = Path("./secrets")
 """Mounted-secret bundle root. Per-repo PATs live at
 ``./secrets/{config_repo.auth_ref}``."""
 
-_HTTP_TIMEOUT_S = 30.0
-"""httpx timeout for every GitHub REST call."""
-
-_HTTP_RETRY_MAX = 3
-_HTTP_RETRY_BACKOFF_S = (1.0, 2.0, 4.0)
-"""Exponential backoff for transient GitHub failures (cycle-1 F6)."""
-
-_RATE_LIMIT_CLAMP_S = 60.0
-"""Cap honored Retry-After / X-RateLimit-Reset waits at 60s (sanity)."""
+# HTTP timeout + retry policy live in `backend.app.git.github_client`
+# (feat_github_webhook Story 1.5 extracted the helpers so the polling
+# reconciler + register-webhook worker share the retry contract).
 
 
 # ---------------------------------------------------------------------------
@@ -586,111 +581,6 @@ class _BranchExistsError(ValueError):
 
 
 # ---------------------------------------------------------------------------
-# GitHub REST helpers
-# ---------------------------------------------------------------------------
-
-
-async def _github_post(
-    client: httpx.AsyncClient,
-    url: str,
-    *,
-    json_body: dict[str, Any],
-    token: str,
-) -> httpx.Response:
-    """POST with the cycle-1 F6 retry policy.
-
-    Retries on RequestError + 5xx + 429 (Retry-After) + 403-with-rate-
-    limit-headers (GitHub's secondary signal). Terminal on other 4xx.
-    """
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-    last_response: httpx.Response | None = None
-    last_exc: Exception | None = None
-    for attempt in range(_HTTP_RETRY_MAX):
-        try:
-            response = await client.post(url, json=json_body, headers=headers)
-        except httpx.RequestError as exc:
-            last_exc = exc
-            await asyncio.sleep(_HTTP_RETRY_BACKOFF_S[attempt])
-            continue
-        last_response = response
-        if response.status_code < 400:
-            return response
-        if response.status_code >= 500:
-            await asyncio.sleep(_HTTP_RETRY_BACKOFF_S[attempt])
-            continue
-        if response.status_code == 429:
-            wait = _parse_retry_after(response)
-            await asyncio.sleep(min(wait, _RATE_LIMIT_CLAMP_S))
-            continue
-        if response.status_code == 403:
-            # GPT-5.5 final-review F3 — GitHub's secondary rate limit
-            # sometimes returns 403 with Retry-After but without the
-            # x-ratelimit-* headers (the abuse-detection path). Honor
-            # any 403 that carries a retry hint or whose body advertises
-            # the secondary-rate-limit; only fall through to terminal
-            # for 403s with no retry signal at all.
-            if "retry-after" in response.headers:
-                wait = _parse_retry_after(response)
-                await asyncio.sleep(min(wait, _RATE_LIMIT_CLAMP_S))
-                continue
-            if _is_secondary_rate_limit(response):
-                wait = _parse_rate_limit_reset(response)
-                await asyncio.sleep(min(wait, _RATE_LIMIT_CLAMP_S))
-                continue
-            if _body_mentions_rate_limit(response):
-                await asyncio.sleep(_HTTP_RETRY_BACKOFF_S[attempt])
-                continue
-        # Other 4xx — terminal.
-        return response
-    if last_response is not None:
-        return last_response
-    assert last_exc is not None  # noqa: S101 — invariant: at least one attempt
-    raise last_exc
-
-
-def _parse_retry_after(response: httpx.Response) -> float:
-    raw = response.headers.get("retry-after", "1")
-    try:
-        return max(0.0, float(raw))
-    except ValueError:
-        return 1.0
-
-
-def _is_secondary_rate_limit(response: httpx.Response) -> bool:
-    return (
-        response.headers.get("x-ratelimit-remaining") == "0"
-        and "x-ratelimit-reset" in response.headers
-    )
-
-
-def _body_mentions_rate_limit(response: httpx.Response) -> bool:
-    """GPT-5.5 final-review F3 — match GitHub's abuse-detection 403 body.
-
-    Some secondary-rate-limit responses carry no headers — only a JSON
-    body like ``{"message": "You have exceeded a secondary rate limit"}``.
-    Conservative match on lowercase substring (no full body parse — we
-    don't want to crash on non-JSON 403s).
-    """
-    try:
-        text = response.text.lower()
-    except Exception:  # noqa: BLE001 — defensive against bytes/encoding edge
-        return False
-    return "rate limit" in text or "abuse" in text
-
-
-def _parse_rate_limit_reset(response: httpx.Response) -> float:
-    raw = response.headers.get("x-ratelimit-reset", "0")
-    try:
-        return max(0.0, float(raw) - time.time())
-    except ValueError:
-        return 1.0
-
-
-# ---------------------------------------------------------------------------
 # Main entry
 # ---------------------------------------------------------------------------
 
@@ -1032,10 +922,11 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
 
     pr_url: str | None = None
     pr_number: int | None = None
-    async with httpx.AsyncClient(timeout=_HTTP_TIMEOUT_S) as client:
+    async with httpx.AsyncClient(timeout=HTTP_TIMEOUT_S) as client:
         try:
-            response = await _github_post(
+            response = await github_request(
                 client,
+                "POST",
                 f"https://api.github.com/repos/{owner}/{repo_name}/pulls",
                 json_body={
                     "title": title,
@@ -1092,8 +983,9 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
             chart_url = _chart_raw_url(owner, repo_name, branch, proposal.study_id)
             comment_body = f"![Parameter importance]({chart_url})"
             try:
-                comment_response = await _github_post(
+                comment_response = await github_request(
                     client,
+                    "POST",
                     (
                         f"https://api.github.com/repos/{owner}/{repo_name}"
                         f"/issues/{pr_number}/comments"

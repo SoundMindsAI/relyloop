@@ -7,8 +7,10 @@ Complements ``test_pr_body_render.py`` (PR body composition) by exercising:
 * ``_read_pat`` — mounted-secrets bundle read + containment check.
 * ``_repo_clone_root`` / ``_secrets_dir`` — env-override branches.
 * ``_redact_subprocess_error`` — argv-free CalledProcessError rendering.
-* ``_parse_retry_after`` / ``_is_secondary_rate_limit`` /
-  ``_parse_rate_limit_reset`` — httpx response header parsers.
+* ``backend.app.git.github_client`` header parsers — httpx response
+  parsers for ``Retry-After`` / ``X-RateLimit-Remaining`` /
+  ``X-RateLimit-Reset`` / abuse-body fallback (extracted from git_pr
+  by feat_github_webhook Story 1.5; the contract is unchanged).
 * ``_git_env`` / ``_commit_env`` — token-safe subprocess env construction
   (asserts the token NEVER lands in any field name; only in the
   Authorization header value).
@@ -32,6 +34,18 @@ import httpx
 import pytest
 
 from backend.app.domain.git import InvalidConfigPathError as _InvalidConfigPathError
+from backend.app.git.github_client import (
+    body_mentions_rate_limit as _body_mentions_rate_limit,
+)
+from backend.app.git.github_client import (
+    is_secondary_rate_limit as _is_secondary_rate_limit,
+)
+from backend.app.git.github_client import (
+    parse_rate_limit_reset as _parse_rate_limit_reset,
+)
+from backend.app.git.github_client import (
+    parse_retry_after as _parse_retry_after,
+)
 from backend.workers import git_pr
 
 
@@ -259,17 +273,17 @@ def test_redact_subprocess_error_with_no_streams() -> None:
 
 def test_parse_retry_after_numeric() -> None:
     response = httpx.Response(429, headers={"retry-after": "15"})
-    assert git_pr._parse_retry_after(response) == 15.0
+    assert _parse_retry_after(response) == 15.0
 
 
 def test_parse_retry_after_invalid_falls_back() -> None:
     response = httpx.Response(429, headers={"retry-after": "tomorrow"})
-    assert git_pr._parse_retry_after(response) == 1.0
+    assert _parse_retry_after(response) == 1.0
 
 
 def test_parse_retry_after_missing_falls_back() -> None:
     response = httpx.Response(429)
-    assert git_pr._parse_retry_after(response) == 1.0
+    assert _parse_retry_after(response) == 1.0
 
 
 def test_is_secondary_rate_limit_true() -> None:
@@ -277,19 +291,19 @@ def test_is_secondary_rate_limit_true() -> None:
         403,
         headers={"x-ratelimit-remaining": "0", "x-ratelimit-reset": "1700000000"},
     )
-    assert git_pr._is_secondary_rate_limit(response) is True
+    assert _is_secondary_rate_limit(response) is True
 
 
 def test_is_secondary_rate_limit_false_when_remaining_nonzero() -> None:
     response = httpx.Response(
         403, headers={"x-ratelimit-remaining": "10", "x-ratelimit-reset": "1700000000"}
     )
-    assert git_pr._is_secondary_rate_limit(response) is False
+    assert _is_secondary_rate_limit(response) is False
 
 
 def test_is_secondary_rate_limit_false_when_missing_reset() -> None:
     response = httpx.Response(403, headers={"x-ratelimit-remaining": "0"})
-    assert git_pr._is_secondary_rate_limit(response) is False
+    assert _is_secondary_rate_limit(response) is False
 
 
 def test_body_mentions_rate_limit_matches_secondary() -> None:
@@ -297,29 +311,29 @@ def test_body_mentions_rate_limit_matches_secondary() -> None:
         403,
         text='{"message": "You have exceeded a secondary rate limit"}',
     )
-    assert git_pr._body_mentions_rate_limit(response) is True
+    assert _body_mentions_rate_limit(response) is True
 
 
 def test_body_mentions_rate_limit_matches_abuse() -> None:
     response = httpx.Response(403, text='{"message": "abuse detection triggered"}')
-    assert git_pr._body_mentions_rate_limit(response) is True
+    assert _body_mentions_rate_limit(response) is True
 
 
 def test_body_mentions_rate_limit_no_match() -> None:
     response = httpx.Response(403, text='{"message": "Not Found"}')
-    assert git_pr._body_mentions_rate_limit(response) is False
+    assert _body_mentions_rate_limit(response) is False
 
 
 def test_parse_rate_limit_reset_future() -> None:
     future = time.time() + 30
     response = httpx.Response(403, headers={"x-ratelimit-reset": str(int(future))})
-    wait = git_pr._parse_rate_limit_reset(response)
+    wait = _parse_rate_limit_reset(response)
     assert 28 <= wait <= 32  # rounding tolerance
 
 
 def test_parse_rate_limit_reset_invalid_falls_back() -> None:
     response = httpx.Response(403, headers={"x-ratelimit-reset": "noop"})
-    assert git_pr._parse_rate_limit_reset(response) == 1.0
+    assert _parse_rate_limit_reset(response) == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -482,104 +496,6 @@ def test_git_commit_file_uses_file_message_and_relpath(
 
 
 # ---------------------------------------------------------------------------
-# _github_post: retry policy (httpx mocked)
+# github_request retry policy now lives in backend.tests.unit.git.test_github_client
+# (Story 1.5 extracted the helper; the new test file covers GET + POST).
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.asyncio
-async def test_github_post_returns_2xx_on_first_try() -> None:
-    transport = httpx.MockTransport(
-        lambda req: httpx.Response(201, json={"html_url": "https://x", "number": 1})
-    )
-    async with httpx.AsyncClient(transport=transport) as client:
-        resp = await git_pr._github_post(
-            client, "https://api.github.com/r/o/r/pulls", json_body={}, token=_TOKEN
-        )
-    assert resp.status_code == 201
-
-
-@pytest.mark.asyncio
-async def test_github_post_retries_on_5xx_then_succeeds(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    # Make backoff a no-op so the test runs quickly.
-    monkeypatch.setattr("backend.workers.git_pr.asyncio.sleep", _no_sleep)
-
-    call_count = {"n": 0}
-
-    def handler(req: httpx.Request) -> httpx.Response:
-        call_count["n"] += 1
-        if call_count["n"] < 2:
-            return httpx.Response(503)
-        return httpx.Response(200, json={"ok": True})
-
-    transport = httpx.MockTransport(handler)
-    async with httpx.AsyncClient(transport=transport) as client:
-        resp = await git_pr._github_post(
-            client, "https://api.github.com/x", json_body={}, token=_TOKEN
-        )
-    assert resp.status_code == 200
-    assert call_count["n"] == 2
-
-
-@pytest.mark.asyncio
-async def test_github_post_terminal_on_4xx(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("backend.workers.git_pr.asyncio.sleep", _no_sleep)
-    transport = httpx.MockTransport(lambda req: httpx.Response(404, text="not found"))
-    async with httpx.AsyncClient(transport=transport) as client:
-        resp = await git_pr._github_post(
-            client, "https://api.github.com/x", json_body={}, token=_TOKEN
-        )
-    assert resp.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_github_post_retries_on_403_with_retry_after(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """GPT-5.5 F3 — 403 with Retry-After header is retryable."""
-    monkeypatch.setattr("backend.workers.git_pr.asyncio.sleep", _no_sleep)
-    call_count = {"n": 0}
-
-    def handler(req: httpx.Request) -> httpx.Response:
-        call_count["n"] += 1
-        if call_count["n"] < 2:
-            return httpx.Response(403, headers={"retry-after": "1"})
-        return httpx.Response(200, json={"ok": True})
-
-    transport = httpx.MockTransport(handler)
-    async with httpx.AsyncClient(transport=transport) as client:
-        resp = await git_pr._github_post(
-            client, "https://api.github.com/x", json_body={}, token=_TOKEN
-        )
-    assert resp.status_code == 200
-    assert call_count["n"] == 2
-
-
-@pytest.mark.asyncio
-async def test_github_post_retries_on_403_with_rate_limit_body(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    """GPT-5.5 F3 — 403 with rate-limit body but no headers is also retryable."""
-    monkeypatch.setattr("backend.workers.git_pr.asyncio.sleep", _no_sleep)
-    call_count = {"n": 0}
-
-    def handler(req: httpx.Request) -> httpx.Response:
-        call_count["n"] += 1
-        if call_count["n"] < 2:
-            return httpx.Response(
-                403, text='{"message": "You have exceeded a secondary rate limit"}'
-            )
-        return httpx.Response(200, json={"ok": True})
-
-    transport = httpx.MockTransport(handler)
-    async with httpx.AsyncClient(transport=transport) as client:
-        resp = await git_pr._github_post(
-            client, "https://api.github.com/x", json_body={}, token=_TOKEN
-        )
-    assert resp.status_code == 200
-    assert call_count["n"] == 2
-
-
-async def _no_sleep(_seconds: float) -> None:
-    return None
