@@ -334,12 +334,12 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">22</div>
+      <div class="value">23</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">5</div>
+      <div class="value">6</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">24</span></h3>
+  <h3>Idea <span class="count">25</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -633,6 +633,18 @@ footer {
 
   </div>
   <div class="one-liner">The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(.</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_dockerfile_missing_prompts">Dockerfile Missing Prompts</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module-</div>
 
 
 </div>

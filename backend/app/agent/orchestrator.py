@@ -62,7 +62,10 @@ from backend.app.llm.cost_model import compute_call_cost
 logger = get_logger(__name__)
 
 MAX_LOOP_ITERATIONS = 10
-SYSTEM_PROMPT_PATH = Path("prompts/orchestrator.system.md")
+# Resolve relative to this module's path so the loader works regardless of CWD
+# (mirrors backend.app.llm.prompt_loader.PROMPTS_DIR — parents[3] is the repo
+# root locally, /app/ inside the Docker image).
+SYSTEM_PROMPT_PATH = Path(__file__).resolve().parents[3] / "prompts" / "orchestrator.system.md"
 
 DEGRADED_NOTICE_TEXT = (
     "Tool dispatch is unavailable on this LLM provider (capability probe failed "
