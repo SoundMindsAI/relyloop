@@ -1948,7 +1948,7 @@ export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];
 - [x] **Story 2.2** — 6 query-set / judgment / run_query tools
 - [x] **Story 2.3** — 3 study tools
 - [x] **Story 2.4** — 5 proposal/PR tools + `open_pr` preflight extraction
-- [ ] **Story 2.5** — System prompt + orchestrator loop
+- [x] **Story 2.5** — System prompt + orchestrator loop
 - [ ] **Story 2.6** — Agent chat service
 - [ ] **Story 3.1** — REST endpoints (POST/GET/GET/DELETE conversations)
 - [ ] **Story 3.2** — SSE messages endpoint
