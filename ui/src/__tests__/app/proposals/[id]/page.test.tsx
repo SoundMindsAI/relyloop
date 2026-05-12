@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 
@@ -8,10 +8,22 @@ import { server } from '../../../setup';
 
 const API_BASE = 'http://api.test';
 
+let mockedSearch = '';
+let lastReplace = '';
+
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
-  useRouter: () => ({ replace: () => {} }),
+  useSearchParams: () => new URLSearchParams(mockedSearch),
+  useRouter: () => ({
+    replace: (url: string) => {
+      lastReplace = url;
+    },
+  }),
 }));
+
+beforeEach(() => {
+  mockedSearch = '';
+  lastReplace = '';
+});
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
@@ -178,5 +190,133 @@ describe('Proposal detail page (Story 3.1 shell)', () => {
     await renderPage('p5');
     await waitFor(() => expect(screen.getByText('Proposal detail')).toBeInTheDocument());
     expect(screen.queryByTestId('suggested-followups-list')).not.toBeInTheDocument();
+  });
+});
+
+describe('Proposal detail page — Story 3.2 (PR panel + polling + auto-trigger)', () => {
+  it('AC-1: clicking Open PR enqueues, polls at 3s, then flips to pr_opened on next GET', async () => {
+    vi.useFakeTimers();
+    let proposalGetHits = 0;
+    let postHits = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () => {
+        proposalGetHits += 1;
+        // First GET: pending. After mutation, subsequent GETs: pr_opened+open.
+        if (proposalGetHits === 1) {
+          return HttpResponse.json(proposalDetailPayload({ status: 'pending' }));
+        }
+        return HttpResponse.json(
+          proposalDetailPayload({
+            status: 'pr_opened',
+            pr_state: 'open',
+            pr_url: 'https://github.com/foo/bar/pull/42',
+          }),
+        );
+      }),
+      http.post(`${API_BASE}/api/v1/proposals/p1/open_pr`, () => {
+        postHits += 1;
+        return HttpResponse.json(
+          { proposal_id: 'p1', status: 'pending', message: 'PR creation queued' },
+          { status: 202 },
+        );
+      }),
+    );
+    await renderPage('p1');
+    await vi.waitFor(() => expect(proposalGetHits).toBe(1));
+    await vi.waitFor(() => expect(screen.getByTestId('open-pr-button')).toBeInTheDocument());
+
+    await act(async () => {
+      screen.getByTestId('open-pr-button').click();
+    });
+    await vi.waitFor(() => expect(postHits).toBe(1));
+
+    // Advance 3.1s — the 3s poll should fire at least once.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3_100);
+    });
+    await vi.waitFor(() => expect(proposalGetHits).toBeGreaterThanOrEqual(2));
+    // Now status flipped to pr_opened → PR link should render, button gone.
+    await vi.waitFor(() => expect(screen.queryByTestId('open-pr-button')).not.toBeInTheDocument());
+    expect(screen.getByTestId('pr-link')).toHaveAttribute(
+      'href',
+      'https://github.com/foo/bar/pull/42',
+    );
+    vi.useRealTimers();
+  });
+
+  it('AC-3: 30s steady-state polling fires when status=pr_opened+pr_state=open', async () => {
+    vi.useFakeTimers();
+    let proposalGetHits = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () => {
+        proposalGetHits += 1;
+        return HttpResponse.json(
+          proposalDetailPayload({
+            status: 'pr_opened',
+            pr_state: 'open',
+            pr_url: 'https://github.com/foo/bar/pull/42',
+          }),
+        );
+      }),
+    );
+    await renderPage('p1');
+    await vi.waitFor(() => expect(proposalGetHits).toBe(1));
+    const first = proposalGetHits;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_100);
+    });
+    await vi.waitFor(() => expect(proposalGetHits).toBeGreaterThan(first));
+    vi.useRealTimers();
+  });
+
+  it('auto-trigger: ?action=open_pr + status=pending fires the mutation once and replaces the URL', async () => {
+    mockedSearch = 'action=open_pr';
+    let proposalGetHits = 0;
+    let postHits = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () => {
+        proposalGetHits += 1;
+        return HttpResponse.json(proposalDetailPayload({ status: 'pending' }));
+      }),
+      http.post(`${API_BASE}/api/v1/proposals/p1/open_pr`, () => {
+        postHits += 1;
+        return HttpResponse.json(
+          { proposal_id: 'p1', status: 'pending', message: 'PR creation queued' },
+          { status: 202 },
+        );
+      }),
+    );
+    await renderPage('p1');
+    await waitFor(() => expect(postHits).toBe(1));
+    expect(lastReplace).toBe('/proposals/p1');
+    // Sanity: not double-fired even after later renders.
+    await waitFor(() => expect(proposalGetHits).toBeGreaterThanOrEqual(1));
+    expect(postHits).toBe(1);
+  });
+
+  it('auto-trigger does NOT fire when status is already pr_opened', async () => {
+    mockedSearch = 'action=open_pr';
+    let postHits = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () =>
+        HttpResponse.json(
+          proposalDetailPayload({
+            status: 'pr_opened',
+            pr_state: 'open',
+            pr_url: 'https://github.com/foo/bar/pull/42',
+          }),
+        ),
+      ),
+      http.post(`${API_BASE}/api/v1/proposals/p1/open_pr`, () => {
+        postHits += 1;
+        return HttpResponse.json(
+          { proposal_id: 'p1', status: 'pending', message: 'noop' },
+          { status: 202 },
+        );
+      }),
+    );
+    await renderPage('p1');
+    await waitFor(() => expect(screen.getByTestId('pr-link')).toBeInTheDocument());
+    expect(postHits).toBe(0);
   });
 });
