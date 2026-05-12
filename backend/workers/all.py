@@ -64,6 +64,7 @@ from backend.workers.git_pr import open_pr
 from backend.workers.judgments import generate_judgments_llm
 from backend.workers.orchestrator import resume_study, start_study
 from backend.workers.pr_reconcile import _poll_cron_kwargs, reconcile_pr_state
+from backend.workers.register_webhook import register_webhook
 from backend.workers.trials import run_trial
 
 logger = structlog.get_logger(__name__)
@@ -208,6 +209,7 @@ class WorkerSettings:
         generate_digest,
         func(generate_judgments_llm, timeout=_JUDGMENTS_JOB_TIMEOUT_S),
         func(open_pr, timeout=_OPEN_PR_JOB_TIMEOUT_S, max_tries=_OPEN_PR_MAX_TRIES),
+        register_webhook,
     ]
     # feat_github_webhook Story 3.1: polling reconciler. The cron kwargs are
     # derived from `Settings.relyloop_pr_poll_minutes` (defaults to every 15

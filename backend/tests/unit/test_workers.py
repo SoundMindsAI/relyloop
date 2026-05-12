@@ -57,6 +57,7 @@ def test_worker_settings_importable(_settings_env: None) -> None:
         "generate_digest",
         "generate_judgments_llm",
         "open_pr",
+        "register_webhook",
     }
 
 
