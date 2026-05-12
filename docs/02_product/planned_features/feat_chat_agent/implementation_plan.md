@@ -1941,9 +1941,9 @@ export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];
 
 ### Current sprint
 
-- [ ] **Story 1.1** — Alembic migration `0007_conversations_messages`
-- [ ] **Story 1.2** — ORM models `Conversation` + `Message`
-- [ ] **Story 1.3** — Repo functions for conversations + messages
+- [x] **Story 1.1** — Alembic migration `0007_conversations_messages` (commit `3647cb5`)
+- [x] **Story 1.2** — ORM models `Conversation` + `Message` (commit `5d94b5b`)
+- [x] **Story 1.3** — Repo functions for conversations + messages (commit `54a39e3`)
 - [ ] **Story 2.1** — Tool registry skeleton + 5 cluster/template tools
 - [ ] **Story 2.2** — 6 query-set / judgment / run_query tools
 - [ ] **Story 2.3** — 3 study tools
@@ -2188,6 +2188,24 @@ Convergence pass. The cycle-3 prompt explicitly listed cycle-2 F7 as a "do-not-r
 | 4 | Medium | B | `AsyncOpenAI` ownership contradicted: `run_turn(...)` signature takes `openai_client: AsyncOpenAI` (DI) and Story 2.6 Step 4 constructs the client, but Story 2.5 Task 4 said "the orchestrator constructs `AsyncOpenAI(...)` directly". | Story 2.5 Task 4 rewritten to use the injected `openai_client` parameter; client construction explicitly attributed to `agent_chat.send_user_message` (Story 2.6 Step 4). The signature stands; tests patch `openai_client.chat.completions.create` on the injected mock. |
 
 All 4 cycle-3 findings accepted and applied. No spec changes required — every patch is plan-internal (pseudocode, test descriptions, task wording). No re-raises of cycle-1 or cycle-2 findings appeared; GPT-5.5 honored the rejection log. Convergence assessment: cycle 3 produced only implementation-clarity patches (no contract changes, no new error codes, no schema changes, no story scope changes); cycle 4 is unwarranted absent new product input.
+
+### Epic 1 phase-gate review (2026-05-12, post-Stories-1.1-+-1.2-+-1.3)
+
+After Stories 1.1, 1.2, 1.3 landed on `feature/feat_chat_agent` (commits `3647cb5`, `5d94b5b`, `54a39e3`), GPT-5.5 reviewed the cumulative Epic 1 diff (7 files, +744 LOC):
+
+| # | Severity | Pass | Finding (1-line) | Verdict |
+|---|---|---|---|---|
+| 1 | Medium | A | Migration test runs against the configured application DB instead of an isolated temp DB | **Rejected** — counter-evidence: 5 sibling migration tests (`test_judgments_migration.py`, `test_clusters_migration.py`, `test_study_lifecycle_migration.py`, `test_pr_url_index_migration.py`, `test_digests_migration.py`) all use the same app-DB-with-`restore_head`-fixture pattern. Story 1.1's New-files description explicitly mandates "Mirrors `backend/tests/integration/test_judgments_migration.py`". Adopting the temp-DB approach in one file would drift from the project's established pattern. |
+
+Convergence status: 1 of 1 finding rejected with cited counter-evidence; 0 accepted; 0 deferred. GPT-5.5 confirmed the schema, ORM models, and repo functions otherwise match the plan's interfaces and project conventions. Epic 1 gate **passed**.
+
+Verification gate results:
+- `make fmt` ✓ (auto-fixed test-file whitespace and a wrapped line)
+- `make lint` ✓ (all checks passed)
+- `make typecheck` ✓ (mypy: no issues found in 256 source files)
+- `make test-unit` — 564 pass, 1 pre-existing failure (`test_smoke.py::test_app_import` requires `DATABASE_URL_FILE`; tracked at `bug_test_smoke_requires_env_vars/idea.md` — not introduced by Epic 1)
+- `make test-contract` — 39 pass, 28 skip (DB-dependent; same pattern as existing migration tests — run in CI with Postgres on `localhost:5432`)
+- Alembic round-trip via `docker compose exec -T api alembic upgrade head/downgrade -1/upgrade head` ✓ (alembic head: `0007 (head)`)
 
 ---
 
