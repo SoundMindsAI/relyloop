@@ -4,22 +4,22 @@ _Reflects feature-folder state as of **2026-05-12** (latest mtime of any planned
 
 ## Next up
 
-**[feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md)** — Feature, currently in **Plan**
+**[chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md)** — Chore, currently in **Spec**
 
-> A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.
+> The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README polish, a containerized UI (`ui` Compose s
 
-Plan approved; run /impl-execute to ship
+Spec exists; run /pipeline to generate the implementation plan + ship
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_chat_agent/implementation_plan.md --all
+/pipeline docs/02_product/planned_features/chore_tutorial_polish --auto
 ```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Features done | **11 / 13** (85%) |
-| Path to MVP1 | **23** items remaining (features + bugs + chores) |
+| Features done | **12 / 13** (92%) |
+| Path to MVP1 | **22** items remaining (features + bugs + chores) |
 | Open bugs | 6 |
 | Open chores | 15 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
@@ -27,10 +27,11 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (11)
+### Done (12)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
+| [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
 | [feat_github_webhook](implemented_features/2026_05_12_feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `infra_adapter_elastic` `feat_github_pr_worker` | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
@@ -47,11 +48,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
+_None._
 
 ### Spec (1)
 
@@ -102,8 +101,6 @@ graph LR
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   chore_tutorial_polish["tutorial polish"]
   class chore_tutorial_polish spec;
-  feat_chat_agent["chat agent"]
-  class feat_chat_agent plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -116,6 +113,8 @@ graph LR
   class feat_digest_proposal done;
   feat_llm_judgments["llm judgments"]
   class feat_llm_judgments done;
+  feat_chat_agent["chat agent"]
+  class feat_chat_agent done;
   feat_github_pr_worker["github pr worker"]
   class feat_github_pr_worker done;
   feat_github_webhook["github webhook"]
@@ -138,6 +137,11 @@ graph LR
   infra_foundation --> chore_tutorial_polish
   infra_frontend_stack_refresh --> chore_tutorial_polish
   infra_optuna_eval --> chore_tutorial_polish
+  feat_study_lifecycle --> feat_digest_proposal
+  feat_llm_judgments --> feat_digest_proposal
+  infra_foundation --> feat_llm_judgments
+  infra_adapter_elastic --> feat_llm_judgments
+  feat_study_lifecycle --> feat_llm_judgments
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
   feat_github_webhook --> feat_chat_agent
@@ -149,11 +153,6 @@ graph LR
   infra_foundation --> feat_chat_agent
   infra_frontend_stack_refresh --> feat_chat_agent
   infra_optuna_eval --> feat_chat_agent
-  feat_study_lifecycle --> feat_digest_proposal
-  feat_llm_judgments --> feat_digest_proposal
-  infra_foundation --> feat_llm_judgments
-  infra_adapter_elastic --> feat_llm_judgments
-  feat_study_lifecycle --> feat_llm_judgments
   infra_foundation --> feat_github_pr_worker
   infra_adapter_elastic --> feat_github_pr_worker
   feat_study_lifecycle --> feat_github_pr_worker
