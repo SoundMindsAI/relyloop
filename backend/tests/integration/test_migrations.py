@@ -146,9 +146,9 @@ class TestBaselineMigration:
             with engine.connect() as conn:
                 row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 assert row is not None
-                # Head is "0005" once feat_digest_proposal Story 1.1 lands the
-                # digests migration on top of 0004_judgments.
-                assert row[0] == "0005"
+                # Head is "0006" once feat_github_webhook Story 1.1 lands the
+                # proposals_pr_url_idx migration on top of 0005_digests.
+                assert row[0] == "0006"
         finally:
             engine.dispose()
 
