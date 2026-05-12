@@ -21,6 +21,8 @@ from backend.app.db.repo.config_repo import (
     get_config_repo,
     get_config_repo_by_name,
     list_config_repos,
+    lookup_config_repo_by_owner_repo,
+    set_webhook_registration_error,
 )
 from backend.app.db.repo.digest import (
     create_digest,
@@ -52,8 +54,13 @@ from backend.app.db.repo.proposal import (
     create_proposal,
     get_proposal,
     list_pending_proposals_for_boot_scan,
+    list_pr_opened_proposals_for_reconcile,
     list_proposals_paginated,
+    lookup_proposal_by_pr_url,
+    mark_proposal_pr_closed,
+    mark_proposal_pr_merged,
     mark_proposal_pr_opened,
+    mark_proposal_pr_reopened,
     reject_proposal,
     set_proposal_pr_open_error,
     update_proposal_for_digest,
@@ -167,4 +174,12 @@ __all__ = [
     "list_config_repos",
     "mark_proposal_pr_opened",
     "set_proposal_pr_open_error",
+    # feat_github_webhook Story 1.4 (webhook receiver + polling reconciler + auto-register)
+    "list_pr_opened_proposals_for_reconcile",
+    "lookup_config_repo_by_owner_repo",
+    "lookup_proposal_by_pr_url",
+    "mark_proposal_pr_closed",
+    "mark_proposal_pr_merged",
+    "mark_proposal_pr_reopened",
+    "set_webhook_registration_error",
 ]
