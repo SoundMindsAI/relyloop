@@ -1,7 +1,7 @@
 # Implementation Plan — feat_chat_agent
 
 **Date:** 2026-05-12
-**Status:** Ready for Execution
+**Status:** Complete (PR #60, merged 2026-05-12)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy sources:**
 - [`docs/01_architecture/agent-tools.md`](../../../01_architecture/agent-tools.md) — tool definition + dispatch pattern + per-call validation contract

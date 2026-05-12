@@ -2,22 +2,22 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-12 (after `feat_chat_agent` Stories 1.1 → 5.1 implemented on `feature/feat_chat_agent`; PR pending)
+**Last updated:** 2026-05-12 (after `feat_chat_agent` merged via PR #60, squash commit `bc4656f`)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `feature/feat_chat_agent` (PR pending). 16 commits implementing Stories 1.1 → 5.1.
-- **Active feature:** `feat_chat_agent` (implementation complete; pre-push gate + PR + adjudication pending).
-- **Alembic head:** `0007_conversations_messages` (added in Story 1.1 of this branch).
+- **Branch:** `main` (post-merge); finalization docs land via `docs/finalize-chat-agent`. `feat_chat_agent` shipped end-to-end via PR #60 (squash commit `bc4656f`).
+- **Active feature:** none in flight (post `feat_chat_agent`, next per the dashboard is `chore_tutorial_polish`).
+- **Alembic head:** `0007_conversations_messages`.
 - **Python:** 3.13.
 - **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat config), TypeScript 6, jsdom 29, Node engine `>=20.18`.
 - **Coverage:** UI tests at **171 passing across 32 files** (was 122 pre-`feat_proposals_ui` — 49 new test cases across 8 new files). Backend coverage unchanged.
 
 ## Most recent meaningful changes (newest first)
 
-- **2026-05-12 — `feat_chat_agent` implemented end-to-end on `feature/feat_chat_agent`** (PR pending). 14 stories across 5 epics shipped via `/impl-execute --all` (this batch). New surface:
+- **2026-05-12 — `feat_chat_agent` merged into `main`** as PR #60 (squash commit `bc4656f`). 14 stories across 5 epics shipped via `/impl-execute --all`. **One migration (`0007_conversations_messages`).** GPT-5.5 final review converged in **1 cycle** (6 findings; 4 accepted + applied — replay-wrap, negation handling, delimiter escape, truncation safety; 2 rejected with cited counter-evidence). CI iterated 4 cycles before green: (1) initial push had stale `0006` migration assertions + non-committing integration test session + 79% coverage; (2) +27 dispatch unit tests fixed coverage; (3) +29 GPT-5.5 fix tests; (4) Dockerfile didn't COPY `prompts/` so the API container 404'd on every chat endpoint at startup — first-run testing surfaced this, fix landed as `0cb4ad9` (also captures `bug_dockerfile_missing_prompts/idea.md` documenting that `feat_llm_judgments` + `feat_digest_proposal` had the same latent regression since their merges, gated behind `OPENAI_API_KEY` so operators without a key never triggered). Gemini Code Assist N/A (not installed on this repo). New surface:
   - **Epic 1 (DB schema, 3 stories):** Story 1.1 — Alembic `0007_conversations_messages` (commit `3647cb5`); Story 1.2 — `Conversation` + `Message` ORM models (commit `5d94b5b`); Story 1.3 — repository functions (commit `54a39e3`). All shipped before this batch.
   - **Epic 2 (agent infrastructure, 6 stories):** Story 2.1 — `backend/app/agent/` package + `ToolContext` + 5 read-only cluster/template tools (commit `9875f37`); Story 2.2 — 6 query-set/judgment/run_query tools + `agent_judgments_dispatch.start_judgment_generation` lift (the `POST /judgments/generate` preflight extracts to a service helper so router + tool share the checks; commit `~13c1f19`); Story 2.3 — 3 study tools (commit `~9d4cd7d`); Story 2.4 — 5 proposal/PR tools + `agent_proposals_dispatch.open_pr` lift; canonical 19-tool inventory assertion in `test_tool_registry.py`; Story 2.5 — system prompt + pure-generator orchestrator (4 wire events + 2 persistence events; two-condition confirmation guard; `<tool_result>` prompt-injection wrapping; capability-cache degraded mode with first-turn `system_notice`); Story 2.6 — `agent_chat.send_user_message` (sole persistence owner; FR-1 title auto-generation; structlog `chat_turn_complete` per turn).
   - **Epic 3 (API layer, 2 stories):** Story 3.1 — 4 REST endpoints (`POST/GET/GET/DELETE /api/v1/conversations`); Story 3.2 — SSE messages endpoint with preflight (`CONVERSATION_NOT_FOUND` 404 / `OPENAI_NOT_CONFIGURED` 503 / `OPENAI_BUDGET_EXCEEDED` 503 as plain JSON before the stream opens).
