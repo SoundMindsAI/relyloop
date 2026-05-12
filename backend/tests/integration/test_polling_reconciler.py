@@ -37,10 +37,6 @@ pytestmark = [
 ]
 
 
-_OWNER = "octocat"
-_REPO = "configs"
-
-
 @pytest.fixture(autouse=True)
 def _fast_sleep(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Patch retry-loop sleeps so RequestError-after-budget paths are fast."""
@@ -56,21 +52,34 @@ def _fast_sleep(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 async def reconcile_env(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> AsyncIterator[dict[str, str]]:
-    """Seed config_repo + mounted PAT secret."""
+    """Seed config_repo + mounted PAT secret with a UNIQUE owner/repo per test.
+
+    ``config_repos`` is intentionally NOT cleaned by the integration
+    ``_clean_phase2_tables`` fixture (config_repo rows are operator-managed
+    and outlive individual tests). Two consecutive tests using the same
+    ``(owner, repo)`` would have multiple ``config_repos`` rows matching
+    ``lookup_config_repo_by_owner_repo``; the lookup returns the first one
+    found, whose ``auth_ref`` points at a previous test's ``tmp_path``
+    (now gone), surfacing as ``pr_reconcile_pat_missing`` errors.
+    """
     secrets_dir = tmp_path / "secrets"
     secrets_dir.mkdir()
     pat_ref = f"reconcile-pat-{uuid.uuid4().hex[:8]}"
     (secrets_dir / pat_ref).write_text("ghp_" + "A" * 40 + "\n")
     monkeypatch.setenv("RELYLOOP_SECRETS_DIR", str(secrets_dir))
 
+    suffix = uuid.uuid4().hex[:8]
+    owner = f"rc-owner-{suffix}"
+    repo_name = f"rc-repo-{suffix}"
+
     factory = get_session_factory()
     async with factory() as db:
         cr = await repo.create_config_repo(
             db,
             id=str(uuid.uuid4()),
-            name=f"cr-{uuid.uuid4().hex[:8]}",
+            name=f"cr-{suffix}",
             provider="github",
-            repo_url=f"https://github.com/{_OWNER}/{_REPO}",
+            repo_url=f"https://github.com/{owner}/{repo_name}",
             default_branch="main",
             pr_base_branch="main",
             auth_ref=pat_ref,
@@ -79,7 +88,12 @@ async def reconcile_env(
         await db.commit()
         cr_id = cr.id
 
-    yield {"config_repo_id": cr_id, "pat_ref": pat_ref}
+    yield {
+        "config_repo_id": cr_id,
+        "pat_ref": pat_ref,
+        "owner": owner,
+        "repo": repo_name,
+    }
 
 
 async def _seed_pr_opened_proposal(*, pr_url: str) -> str:
@@ -141,7 +155,10 @@ async def test_reconciler_merged_response_transitions_state(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """AC-3 — GitHub returns ``merged=true`` → proposal flips to pr_merged."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     def handler(_request: httpx.Request) -> httpx.Response:
@@ -170,7 +187,10 @@ async def test_reconciler_closed_unmerged_response(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """200 with state=closed + merged=false → proposal flips to pr_state=closed."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     def handler(_request: httpx.Request) -> httpx.Response:
@@ -196,7 +216,10 @@ async def test_reconciler_still_open_is_unchanged(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """200 with state=open → no mutation; counted as unchanged."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     def handler(_request: httpx.Request) -> httpx.Response:
@@ -224,7 +247,10 @@ async def test_reconciler_terminal_errors_log_and_skip(
     status: int,
 ) -> None:
     """4xx / 5xx after retries → WARN + skip + no mutation."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     def handler(_request: httpx.Request) -> httpx.Response:
@@ -250,7 +276,10 @@ async def test_reconciler_request_error_skips_proposal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """RequestError after retry budget → WARN + skip + no mutation."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     def handler(_request: httpx.Request) -> httpx.Response:
@@ -276,8 +305,8 @@ async def test_reconciler_429_short_circuits_tick(
 ) -> None:
     """Spec §10 — 429 skips the remaining proposals; next tick retries."""
     # Seed two proposals.
-    pr1 = f"https://github.com/{_OWNER}/{_REPO}/pull/1001"
-    pr2 = f"https://github.com/{_OWNER}/{_REPO}/pull/1002"
+    pr1 = f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}/pull/1001"
+    pr2 = f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}/pull/1002"
     pid1 = await _seed_pr_opened_proposal(pr_url=pr1)
     pid2 = await _seed_pr_opened_proposal(pr_url=pr2)
 
@@ -316,7 +345,9 @@ async def test_reconciler_handles_50_candidates_under_budget(
     """
     seeded_ids: list[str] = []
     for n in range(50):
-        pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{2000 + n}"
+        pr_url = (
+            f"https://github.com/{reconcile_env['owner']}/{reconcile_env['repo']}/pull/{2000 + n}"
+        )
         pid = await _seed_pr_opened_proposal(pr_url=pr_url)
         seeded_ids.append(pid)
 

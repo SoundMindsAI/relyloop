@@ -46,8 +46,6 @@ pytestmark = [
 
 
 _WEBHOOK_SECRET = "test-webhook-secret-do-not-leak"
-_OWNER = "octocat"
-_REPO = "hello-world"
 
 
 def _signature(body: bytes, secret: str = _WEBHOOK_SECRET) -> str:
@@ -59,12 +57,15 @@ def _signature(body: bytes, secret: str = _WEBHOOK_SECRET) -> str:
 async def webhook_env(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> AsyncIterator[dict[str, str]]:
-    """Seed a config_repo + mounted webhook secret. Yield setup metadata.
+    """Seed a config_repo + mounted webhook secret with a UNIQUE owner/repo per test.
 
-    Returns a dict with:
-      * ``config_repo_id``
-      * ``secret_ref``
-      * ``owner``, ``repo``  — the parsed full_name pair
+    ``config_repos`` is intentionally NOT cleaned by the integration
+    ``_clean_phase2_tables`` fixture. Two tests using the same ``(owner,
+    repo)`` would have multiple ``config_repos`` rows matching
+    ``lookup_config_repo_by_owner_repo``; the first match wins and its
+    ``webhook_secret_ref`` points at a previous test's now-gone
+    ``tmp_path``, surfacing as 403 INVALID_SIGNATURE for every test
+    after the first.
     """
     secrets_dir = tmp_path / "secrets"
     secrets_dir.mkdir()
@@ -72,17 +73,21 @@ async def webhook_env(
     (secrets_dir / secret_ref).write_text(_WEBHOOK_SECRET + "\n")
     monkeypatch.setenv("RELYLOOP_SECRETS_DIR", str(secrets_dir))
 
+    suffix = uuid.uuid4().hex[:8]
+    owner = f"wh-owner-{suffix}"
+    repo_name = f"wh-repo-{suffix}"
+
     factory = get_session_factory()
     async with factory() as db:
         cr = await repo.create_config_repo(
             db,
             id=str(uuid.uuid4()),
-            name=f"cr-{uuid.uuid4().hex[:8]}",
+            name=f"cr-{suffix}",
             provider="github",
-            repo_url=f"https://github.com/{_OWNER}/{_REPO}",
+            repo_url=f"https://github.com/{owner}/{repo_name}",
             default_branch="main",
             pr_base_branch="main",
-            auth_ref=f"pat-{uuid.uuid4().hex[:8]}",
+            auth_ref=f"pat-{suffix}",
             webhook_secret_ref=secret_ref,
         )
         await db.commit()
@@ -91,8 +96,8 @@ async def webhook_env(
     yield {
         "config_repo_id": config_repo_id,
         "secret_ref": secret_ref,
-        "owner": _OWNER,
-        "repo": _REPO,
+        "owner": owner,
+        "repo": repo_name,
     }
 
 
@@ -137,10 +142,12 @@ async def _seed_pr_opened_proposal(*, pr_url: str) -> str:
     return pid
 
 
-def _pull_request_body(action: str, *, merged: bool, pr_url: str) -> bytes:
+def _pull_request_body(
+    action: str, *, merged: bool, pr_url: str, owner: str, repo_name: str
+) -> bytes:
     payload: dict[str, object] = {
         "action": action,
-        "repository": {"full_name": f"{_OWNER}/{_REPO}"},
+        "repository": {"full_name": f"{owner}/{repo_name}"},
         "pull_request": {
             "html_url": pr_url,
             "merged": merged,
@@ -155,10 +162,19 @@ async def test_webhook_pr_merged_transitions_state(
     webhook_env: dict[str, str],
 ) -> None:
     """AC-1 — merged event flips status to pr_merged + populates pr_merged_at."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
-    body = _pull_request_body("closed", merged=True, pr_url=pr_url)
+    body = _pull_request_body(
+        "closed",
+        merged=True,
+        pr_url=pr_url,
+        owner=webhook_env["owner"],
+        repo_name=webhook_env["repo"],
+    )
     response = await async_client.post(
         "/webhooks/github",
         content=body,
@@ -186,10 +202,19 @@ async def test_webhook_pr_closed_unmerged_keeps_status(
     webhook_env: dict[str, str],
 ) -> None:
     """FR-1 closed+merged=false branch: pr_state='closed', status STAYS pr_opened."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
-    body = _pull_request_body("closed", merged=False, pr_url=pr_url)
+    body = _pull_request_body(
+        "closed",
+        merged=False,
+        pr_url=pr_url,
+        owner=webhook_env["owner"],
+        repo_name=webhook_env["repo"],
+    )
     response = await async_client.post(
         "/webhooks/github",
         content=body,
@@ -216,7 +241,10 @@ async def test_webhook_pr_reopened_returns_to_open(
     webhook_env: dict[str, str],
 ) -> None:
     """FR-1 reopened branch: closed → open."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     # Transition to closed first via direct repo call (mirror prior delivery).
@@ -227,7 +255,7 @@ async def test_webhook_pr_reopened_returns_to_open(
 
     payload = {
         "action": "reopened",
-        "repository": {"full_name": f"{_OWNER}/{_REPO}"},
+        "repository": {"full_name": f"{webhook_env['owner']}/{webhook_env['repo']}"},
         "pull_request": {"html_url": pr_url},
     }
     body = json.dumps(payload).encode("utf-8")
@@ -260,12 +288,15 @@ async def test_webhook_pr_noop_actions(
     action: str,
 ) -> None:
     """FR-1 noop branch: PR actions other than closed/reopened → action=noop."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     payload = {
         "action": action,
-        "repository": {"full_name": f"{_OWNER}/{_REPO}"},
+        "repository": {"full_name": f"{webhook_env['owner']}/{webhook_env['repo']}"},
         "pull_request": {"html_url": pr_url},
     }
     body = json.dumps(payload).encode("utf-8")
@@ -296,7 +327,7 @@ async def test_webhook_unknown_event_returns_noop(
     webhook_env: dict[str, str],
 ) -> None:
     """Unknown X-GitHub-Event types → 200 with action=noop (forward-compat)."""
-    payload = {"repository": {"full_name": f"{_OWNER}/{_REPO}"}}
+    payload = {"repository": {"full_name": f"{webhook_env['owner']}/{webhook_env['repo']}"}}
     body = json.dumps(payload).encode("utf-8")
     response = await async_client.post(
         "/webhooks/github",
@@ -318,7 +349,7 @@ async def test_webhook_ping_event(
 ) -> None:
     """AC-4 — X-GitHub-Event: ping → 200 with action=ping."""
     payload = {
-        "repository": {"full_name": f"{_OWNER}/{_REPO}"},
+        "repository": {"full_name": f"{webhook_env['owner']}/{webhook_env['repo']}"},
         "zen": "Non-blocking is better than blocking.",
     }
     body = json.dumps(payload).encode("utf-8")
@@ -341,8 +372,16 @@ async def test_webhook_unknown_pr_url(
     webhook_env: dict[str, str],
 ) -> None:
     """AC-5 — valid signature + valid repo + unmapped pr_url → action=unknown_pr."""
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/999999"  # not seeded
-    body = _pull_request_body("closed", merged=True, pr_url=pr_url)
+    pr_url = (
+        f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}/pull/999999"  # not seeded
+    )
+    body = _pull_request_body(
+        "closed",
+        merged=True,
+        pr_url=pr_url,
+        owner=webhook_env["owner"],
+        repo_name=webhook_env["repo"],
+    )
     response = await async_client.post(
         "/webhooks/github",
         content=body,
@@ -363,7 +402,11 @@ async def test_webhook_bad_signature_returns_403(
 ) -> None:
     """AC-2 path 1 — mismatched signature → 403 INVALID_SIGNATURE."""
     body = _pull_request_body(
-        "closed", merged=True, pr_url="https://github.com/octocat/hello-world/pull/1"
+        "closed",
+        merged=True,
+        pr_url=f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}/pull/1",
+        owner=webhook_env["owner"],
+        repo_name=webhook_env["repo"],
     )
     response = await async_client.post(
         "/webhooks/github",
@@ -385,7 +428,11 @@ async def test_webhook_missing_signature_returns_403(
 ) -> None:
     """AC-2 path 2 — no X-Hub-Signature-256 → 403 INVALID_SIGNATURE."""
     body = _pull_request_body(
-        "closed", merged=True, pr_url="https://github.com/octocat/hello-world/pull/1"
+        "closed",
+        merged=True,
+        pr_url=f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}/pull/1",
+        owner=webhook_env["owner"],
+        repo_name=webhook_env["repo"],
     )
     response = await async_client.post(
         "/webhooks/github",
@@ -465,12 +512,15 @@ async def test_webhook_pr_merged_with_missing_merged_at_does_not_500(
     the proposal to ``pr_state="closed"`` (status stays pr_opened) —
     the polling reconciler catches up on the merged_at value next tick.
     """
-    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pr_url = (
+        f"https://github.com/{webhook_env['owner']}/{webhook_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
     pid = await _seed_pr_opened_proposal(pr_url=pr_url)
 
     payload: dict[str, object] = {
         "action": "closed",
-        "repository": {"full_name": f"{_OWNER}/{_REPO}"},
+        "repository": {"full_name": f"{webhook_env['owner']}/{webhook_env['repo']}"},
         "pull_request": {
             "html_url": pr_url,
             "merged": True,
@@ -508,7 +558,7 @@ async def test_webhook_logs_structured_fields(
     """Spec §13 NFR-Operability — webhook_received emits delivery_id/event/action/result."""
     caplog.set_level(logging.INFO, logger="backend.app.api.webhooks.github")
     payload = {
-        "repository": {"full_name": f"{_OWNER}/{_REPO}"},
+        "repository": {"full_name": f"{webhook_env['owner']}/{webhook_env['repo']}"},
         "zen": "Anything added dilutes everything else.",
     }
     body = json.dumps(payload).encode("utf-8")
