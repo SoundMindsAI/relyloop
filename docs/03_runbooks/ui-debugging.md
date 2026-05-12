@@ -130,9 +130,70 @@ The UI surfaces backend `error_code` toasts verbatim. Common ones during the tut
 
 ---
 
+## Proposals routes (`/proposals` + `/proposals/{id}`)
+
+Shipped with `feat_proposals_ui`. Two pages consume already-shipped backend endpoints (`GET /api/v1/proposals`, `GET /api/v1/proposals/{id}`, `POST /api/v1/proposals/{id}/reject`, `POST /api/v1/proposals/{id}/open_pr`) — there's no new backend surface here, so most issues fall into one of the categories below.
+
+### Hook surface
+
+All proposal queries / mutations live in [`ui/src/lib/api/proposals.ts`](../../ui/src/lib/api/proposals.ts):
+
+| Hook | Purpose |
+|---|---|
+| `useProposals(filter, options?)` | List query. `filter.status` is narrowed to `ProposalStatus`. Optional `options.refetchInterval` (function form) for the list page's 30s pulse-refetch. |
+| `useProposalForStudy(studyId)` | Preserved verbatim from before this feature — consumed by `feat_studies_ui`'s study-detail Open-PR button. Touch only if you know what you're doing. |
+| `useProposal(id, options?)` | Detail query. `options.refetchInterval` (function form) drives the 3s / 30s / off cadence ladder on `/proposals/{id}`. |
+| `useOpenPR()` | Mutation. POSTs to `/open_pr`. `onSettled` invalidates `['proposal', id]` + `['proposals']`. |
+| `useRejectProposal()` | Mutation. POSTs `{ reason }` to `/reject`. Same invalidation set. |
+
+### Polling cadence ladder (`/proposals/{id}`)
+
+The detail page picks one of three rates per render based on the latest data + the page-state flag `postOpenPrPolling`:
+
+| Trigger | Cadence | Source of truth |
+|---|---|---|
+| `postOpenPrPolling===true` AND `status==='pending'` AND `!pr_open_error` | **3 s** | `fireOpenPR`'s `onSuccess` flips `postOpenPrPolling` true; the refetchInterval function reads it on every tick. Cleared when status changes OR pr_open_error appears OR the 60 s safety `setTimeout` fires OR the page unmounts. |
+| `status==='pr_opened'` AND `pr_state==='open'` | **30 s** | Steady-state webhook-fallback per FR-2. Inline check inside the refetchInterval function. |
+| All other states | **off** | Function returns `false`. |
+
+The 60 s safety cap is the only mechanism that flips `postOpenPrPolling` back to false. The cadence flips off inline inside the refetchInterval function when status changes, so the cap mostly matters for the "worker silently stuck" case.
+
+### `?action=open_pr` auto-trigger
+
+When the URL contains `?action=open_pr` AND the proposal is `pending`, the detail page calls `fireOpenPR()` once on mount and immediately runs `router.replace(\`/proposals/${id}\`)` to strip the param. A `useRef<boolean>` guards the in-mount Strict-Mode re-run. After firing, navigating away and back to the same proposal does NOT re-fire because the URL no longer carries the param.
+
+This is the wire `feat_studies_ui`'s study-detail DigestPanel "Open PR" button uses — clicking that button navigates to `/proposals/{id}?action=open_pr`.
+
+### Filter chips
+
+Status filter is URL-backed via `?status=`. Cluster and source filters live in React state only.
+
+- `?status=` is validated against `PROPOSAL_STATUS_VALUES` before being passed to `useProposals` — invalid values (e.g. `?status=invented`) are silently dropped client-side and the chip group falls back to "all" active. The chip won't 422 the backend.
+- The **source filter** (study / manual / all) is a **client-side post-filter** over the fetched page. Backend has no `?source=` param. This means filtering to `manual` while paginating through many study-sourced proposals will show partial pages. Acceptable for MVP1 (<50 proposals/page realistically) — the [`chore_proposals_source_filter_server_side`](../02_product/planned_features/chore_proposals_source_filter_server_side/idea.md) idea file tracks the server-side follow-up.
+
+### Common error codes surfaced as toasts
+
+The UI uses `feat_studies_ui`'s global `MutationCache.onError` toast wiring — no per-mutation `onError` handlers. If a backend error surfaces, expect:
+
+| error_code | Where it comes from | Fix |
+|---|---|---|
+| `PROPOSAL_NOT_FOUND` (404) | Detail page navigation to a deleted proposal | Empty state, no recovery needed |
+| `INVALID_STATE_TRANSITION` (409) | Reject after webhook merged the PR, OR Open-PR on already-pr_opened proposal | UI auto-refetches the detail query; operator sees the new state |
+| `CLUSTER_HAS_NO_CONFIG_REPO` (422) | Open PR on a cluster that has no `config_repo_id` | Operator must register a config_repo via `POST /api/v1/config-repos` first |
+| `GITHUB_NOT_CONFIGURED` (503) | Per-repo PAT missing from `./secrets/<auth_ref>` | Populate the secret per `docs/04_security/github-token-handling.md` |
+| `QUEUE_UNAVAILABLE` (503) | Arq pool absent OR enqueue raised | Check `docker compose logs worker`; verify Redis is reachable |
+
+### Reject dialog won't close
+
+The `AlertDialogAction` confirm button calls `event.preventDefault()` before invoking the mutation, so the dialog stays open during the in-flight POST. It closes only via the mutation's `onSuccess` callback. If the request 4xx/5xx errors, the dialog stays open AND the global toast fires. The detail query's invalidation refetches the proposal; if status flipped to a terminal value (e.g. `pr_merged` because the webhook beat the operator's click), the Reject dialog vanishes on the next render because `RejectDialog` early-returns when `proposal.status !== 'pending'`.
+
+---
+
 ## See also
 
 - [`docs/01_architecture/ui-architecture.md`](../01_architecture/ui-architecture.md) — design rationale
 - [`docs/01_architecture/api-conventions.md`](../01_architecture/api-conventions.md) — error envelope + cursor pagination contract
 - [`docs/03_runbooks/study-lifecycle-debugging.md`](study-lifecycle-debugging.md) — backend-side polling triage
 - [`docs/03_runbooks/optuna-debugging.md`](optuna-debugging.md) — orchestrator wedges that look like stuck polling
+- [`docs/03_runbooks/pr-open-debugging.md`](pr-open-debugging.md) — open_pr worker debugging when the UI surfaces `pr_open_error`
+- [`docs/03_runbooks/webhook-debugging.md`](webhook-debugging.md) — GitHub webhook receiver triage when `pr_state` updates lag
