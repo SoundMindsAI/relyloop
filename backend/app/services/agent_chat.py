@@ -71,15 +71,19 @@ def _row_to_openai_message(message: Message) -> dict[str, Any]:
     """Convert a persisted ``Message`` row into the OpenAI chat-history shape."""
     if message.role == "tool":
         # ``tool_calls`` field on a tool-role row carries the tool_call_id (we
-        # stored it via the ToolMessagePersistEvent flow).
-        # The orchestrator wraps the result for prompt-injection defense, but
-        # at history-replay time we don't re-wrap — the row's content is what
-        # the LLM saw last turn.
+        # stored it via the ToolMessagePersistEvent flow). Tool results are
+        # re-wrapped in <tool_result>...</tool_result> delimiters on every
+        # replay so the prompt-injection invariant holds across turns
+        # (per GPT-5.5 final-review F1 — without this, hostile content from
+        # a tool's first-turn output would influence the LLM in subsequent
+        # turns of the same conversation).
+        from backend.app.agent.orchestrator import _wrap_tool_result_for_llm
+
         content_field = message.content or {}
         return {
             "role": "tool",
             "tool_call_id": _extract_tool_call_id(message),
-            "content": _coerce_text(content_field),
+            "content": _wrap_tool_result_for_llm(content_field),
         }
     if message.role == "assistant" and message.tool_calls:
         return {
@@ -104,6 +108,33 @@ def _row_to_openai_message(message: Message) -> dict[str, Any]:
     }
 
 
+def _truncate_preserving_tool_groups(messages: list[Message], max_kept: int) -> list[Message]:
+    """Tail-truncate ``messages`` without cutting a tool-call group in half.
+
+    OpenAI's protocol requires every assistant-tool_calls message to be
+    immediately followed by its corresponding ``role="tool"`` results, AND
+    every ``role="tool"`` row to be preceded by an assistant-tool_calls
+    message that referenced the same tool_call_id. A naive ``messages[-N:]``
+    risks landing the cut mid-group → 400 from the next chat.completions.create.
+
+    Strategy: take the naive tail slice, then advance the cut point forward
+    until we land on a clean boundary — either a user message or a plain
+    assistant text message. This drops at most one extra group worth of rows
+    (per GPT-5.5 final-review F4).
+    """
+    if len(messages) <= max_kept:
+        return messages
+    cut = len(messages) - max_kept
+    while cut < len(messages):
+        m = messages[cut]
+        if m.role == "user":
+            break
+        if m.role == "assistant" and not m.tool_calls:
+            break
+        cut += 1
+    return messages[cut:]
+
+
 def _extract_tool_call_id(message: Message) -> str:
     """Pull the tool_call_id off a tool-role message.
 
@@ -118,13 +149,6 @@ def _extract_tool_call_id(message: Message) -> str:
         if isinstance(tc, dict) and "id" in tc:
             return str(tc["id"])
     return ""
-
-
-def _coerce_text(content: dict[str, Any]) -> str:
-    """Render a tool-result content dict back into a string for OpenAI history."""
-    import json
-
-    return json.dumps(content, default=str)
 
 
 async def send_user_message(
@@ -198,7 +222,7 @@ async def send_user_message(
             total_messages=len(all_messages),
             kept_messages=HISTORY_MAX_MESSAGES,
         )
-        all_messages = all_messages[-HISTORY_MAX_MESSAGES:]
+        all_messages = _truncate_preserving_tool_groups(all_messages, HISTORY_MAX_MESSAGES)
     history: list[dict[str, Any]] = [{"role": "system", "content": SYSTEM_PROMPT}]
     history.extend(_row_to_openai_message(m) for m in all_messages)
 

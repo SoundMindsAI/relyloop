@@ -48,19 +48,47 @@ _AFFIRMATIVE_PHRASES: tuple[str, ...] = (
 )
 
 
+# Negation tokens that, if present, disqualify the message from being
+# treated as affirmative — even if it also contains an affirmative token
+# (per GPT-5.5 final-review F2 — without this, "don't do it" or "no go"
+# matched the affirmative-phrase substring check and unlocked dispatch).
+_NEGATION_TOKENS: frozenset[str] = frozenset(
+    {
+        "no",
+        "not",
+        "don",  # don't (apostrophe stripped by the [a-z] regex)
+        "dont",
+        "doesn",
+        "doesnt",
+        "won",  # won't
+        "wont",
+        "cancel",
+        "stop",
+        "abort",
+        "wait",
+        "nope",
+        "never",
+    }
+)
+
+
 def is_affirmative(text: str) -> bool:
     """Return ``True`` if ``text`` reads as user affirmation of a mutating action.
 
     Heuristic — acceptable for MVP1; a strict state-machine confirmation can
     land at MVP2 if the heuristic misfires. Case-insensitive; whole-word
     matching on single-word tokens so "yes" matches "Yes!" but not "yesterday".
+    Rejects messages containing negation tokens before checking for
+    affirmation, so "don't do it", "no go", "stop, do it later" all return
+    False even though they contain affirmative phrases.
     """
     if not text:
         return False
     lowered = text.lower()
+    words = set(re.findall(r"[a-z]+", lowered))
+    if _NEGATION_TOKENS & words:
+        return False
     for phrase in _AFFIRMATIVE_PHRASES:
         if phrase in lowered:
             return True
-    # Whole-word check on single-token affirmatives.
-    words = set(re.findall(r"[a-z]+", lowered))
     return bool(_AFFIRMATIVE_TOKENS & words)
