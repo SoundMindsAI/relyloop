@@ -614,7 +614,7 @@ footer {
   </div>
   <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
 
-  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">feat_github_pr_worker</span></div>
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_github_pr_worker</span></div>
 </div>
 
 
@@ -826,6 +826,7 @@ footer {
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_webhook
+  infra_adapter_elastic --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
   feat_studies_ui --&gt; feat_proposals_ui
   feat_digest_proposal --&gt; feat_proposals_ui
@@ -901,6 +902,7 @@ footer {
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_webhook
+  infra_adapter_elastic --&gt; feat_github_webhook
   feat_github_pr_worker --&gt; feat_github_webhook
   feat_studies_ui --&gt; feat_proposals_ui
   feat_digest_proposal --&gt; feat_proposals_ui
