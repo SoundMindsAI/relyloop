@@ -1944,7 +1944,7 @@ export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];
 - [x] **Story 1.1** — Alembic migration `0007_conversations_messages` (commit `3647cb5`)
 - [x] **Story 1.2** — ORM models `Conversation` + `Message` (commit `5d94b5b`)
 - [x] **Story 1.3** — Repo functions for conversations + messages (commit `54a39e3`)
-- [ ] **Story 2.1** — Tool registry skeleton + 5 cluster/template tools
+- [x] **Story 2.1** — Tool registry skeleton + 5 cluster/template tools
 - [ ] **Story 2.2** — 6 query-set / judgment / run_query tools
 - [ ] **Story 2.3** — 3 study tools
 - [ ] **Story 2.4** — 5 proposal/PR tools + `open_pr` preflight extraction
