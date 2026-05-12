@@ -73,6 +73,21 @@ from backend.app.agent.tools.query_sets.list_query_sets import (
     ListQuerySetsArgs,
     list_query_sets_impl,
 )
+from backend.app.agent.tools.studies.cancel_study import (
+    CANCEL_STUDY_TOOL,
+    CancelStudyArgs,
+    cancel_study_impl,
+)
+from backend.app.agent.tools.studies.create_study import (
+    CREATE_STUDY_TOOL,
+    CreateStudyArgs,
+    create_study_impl,
+)
+from backend.app.agent.tools.studies.get_study import (
+    GET_STUDY_TOOL,
+    GetStudyArgs,
+    get_study_impl,
+)
 from backend.app.agent.tools.templates.get_template import (
     GET_TEMPLATE_TOOL,
     GetTemplateArgs,
@@ -113,7 +128,11 @@ TOOLS: list[ChatCompletionToolParam] = [
     GENERATE_JUDGMENTS_LLM_TOOL,
     GET_CALIBRATION_TOOL,
     RUN_QUERY_TOOL,
-    # Story 2.3 appends 3 more, Story 2.4 appends 5 more.
+    # Studies (Story 2.3)
+    CREATE_STUDY_TOOL,
+    GET_STUDY_TOOL,
+    CANCEL_STUDY_TOOL,
+    # Story 2.4 appends 5 more.
 ]
 
 TOOL_REGISTRY: dict[str, ToolImpl] = {
@@ -130,6 +149,10 @@ TOOL_REGISTRY: dict[str, ToolImpl] = {
     "generate_judgments_llm": generate_judgments_llm_impl,
     "get_calibration": get_calibration_impl,
     "run_query": run_query_impl,
+    # Story 2.3
+    "create_study": create_study_impl,
+    "get_study": get_study_impl,
+    "cancel_study": cancel_study_impl,
 }
 
 TOOL_ARG_MODELS: dict[str, type[BaseModel]] = {
@@ -146,6 +169,10 @@ TOOL_ARG_MODELS: dict[str, type[BaseModel]] = {
     "generate_judgments_llm": GenerateJudgmentsLLMArgs,
     "get_calibration": GetCalibrationArgs,
     "run_query": RunQueryArgs,
+    # Story 2.3
+    "create_study": CreateStudyArgs,
+    "get_study": GetStudyArgs,
+    "cancel_study": CancelStudyArgs,
 }
 
 
