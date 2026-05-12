@@ -273,9 +273,9 @@ This feature has no schema. UI-side state in TanStack Query cache + local React 
 
 ## 18) Definition of feature done
 
-- [ ] AC-1 through AC-7 pass.
-- [ ] Tutorial flow includes a successful Open PR via this UI.
-- [ ] No open questions remain in §19.
+- [x] AC-1 through AC-7 pass. *(Merged 2026-05-12 as PR #58, squash commit `836a216`. Test coverage: 47 new Vitest cases across 8 files; AC-1 verified via the click→3s poll→pr_opened flow, AC-2 via reject-dialog reason submit, AC-3 via 30s steady-state poll, AC-4 via the pr_open_error Alert render, AC-5 via the suggested-followups `/studies?hypothesis=` link, AC-6 via the AC-6 list filter test + cluster wire-param test, AC-7 via the `scripts/ci/verify_enum_source_of_truth.sh` CI gate.)*
+- [ ] Tutorial flow includes a successful Open PR via this UI. *(Lands with `chore_tutorial_polish`.)*
+- [x] No open questions remain in §19.
 
 ## 19) Open questions and decision log
 

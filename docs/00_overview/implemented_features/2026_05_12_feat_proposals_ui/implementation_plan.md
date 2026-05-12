@@ -1,7 +1,7 @@
 # Implementation Plan — feat_proposals_ui
 
 **Date:** 2026-05-12
-**Status:** Draft
+**Status:** Complete (PR #58, squash commit `836a216`, merged 2026-05-12)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy sources:**
 - [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md) — Next.js + shadcn + TanStack Query patterns
