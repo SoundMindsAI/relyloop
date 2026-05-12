@@ -334,17 +334,17 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">20</div>
+      <div class="value">22</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">4</div>
+      <div class="value">5</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">14</div>
+      <div class="value">15</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">22</span></h3>
+  <h3>Idea <span class="count">24</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -417,6 +417,18 @@ footer {
 
   </div>
   <div class="one-liner">`Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the </div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_chat_last_message_preview">Chat Last Message Preview</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + &quot;{N} messages&quot;`. There is no preview of the last message — operators with several simila</div>
 
 
 </div>
@@ -597,6 +609,18 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `infra_adapter_elastic` Story 5.1)</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_chat_long_conversation_truncation">Chat Long Conversation Truncation</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">`backend/app/services/agent_chat.send_user_message` defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages and emits a `chat_history_truncated` WARN structlog lin</div>
 
 
 </div>

@@ -428,7 +428,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 7 | [`feat_github_pr_worker`](docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker/) | **Complete (PR #45, merged 2026-05-12)** |
 | 8 | [`feat_github_webhook`](docs/00_overview/implemented_features/2026_05_12_feat_github_webhook/) | **Complete (PR #56, merged 2026-05-12)** |
 | 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, pending merge)** |
-| 10 | [`feat_chat_agent`](docs/02_product/planned_features/feat_chat_agent/) | Spec approved, plan pending |
+| 10 | [`feat_chat_agent`](docs/02_product/planned_features/feat_chat_agent/) | **Complete (PR pending merge)** |
 | 11 | [`feat_proposals_ui`](docs/00_overview/implemented_features/2026_05_12_feat_proposals_ui/) | **Complete (PR #58, merged 2026-05-12)** |
 | 12 | [`chore_tutorial_polish`](docs/02_product/planned_features/chore_tutorial_polish/) | Spec approved, plan pending |
 
@@ -447,3 +447,4 @@ Run `/pipeline status` for the live view from spec dependencies.
 | Local LLM (Ollama / LM Studio / vLLM / TGI) configuration | [`docs/01_architecture/llm-orchestration.md` §"OpenAI-compatible endpoints"](docs/01_architecture/llm-orchestration.md); operator-facing runbook lands with `chore_tutorial_polish` |
 | LLM-as-judge worker debugging + calibration / overrides | [`docs/03_runbooks/judgment-generation-debugging.md`](docs/03_runbooks/judgment-generation-debugging.md) (`feat_llm_judgments`) |
 | What data leaves the cluster on each judgment-generation call | [`docs/04_security/llm-data-flow.md`](docs/04_security/llm-data-flow.md) (`feat_llm_judgments` §15) |
+| Chat-agent debugging — replay a conversation, force a tool dispatch, inspect SSE events | [`docs/03_runbooks/agent-debugging.md`](docs/03_runbooks/agent-debugging.md) (`feat_chat_agent`) |

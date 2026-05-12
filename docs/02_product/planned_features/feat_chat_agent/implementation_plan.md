@@ -1956,7 +1956,7 @@ export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];
 - [x] **Story 4.2** — `/chat` list page
 - [x] **Story 4.3** — `/chat/[id]` detail page
 - [x] **Story 4.4** — Enums update + CI gate
-- [ ] **Story 5.1** — Docs sweep + state.md + architecture.md + runbook
+- [x] **Story 5.1** — Docs sweep + state.md + architecture.md + runbook
 
 ### Blocked items
 - none
