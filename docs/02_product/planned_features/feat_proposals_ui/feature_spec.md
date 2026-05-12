@@ -19,11 +19,20 @@
 
 ## 2) Current state audit
 
-After dependencies ship:
-- The Next.js shell + nav (per `feat_studies_ui`) include a `/proposals` link.
-- Backend APIs `GET /api/v1/proposals`, `GET /api/v1/proposals/{id}`, `POST /api/v1/proposals/{id}/reject`, `POST /api/v1/proposals/{id}/open_pr` exist.
-- TanStack Query hook patterns + `<StatusBadge>` + `<MetricDelta>` exist in `feat_studies_ui`'s shared components.
-- No proposals UI yet — this feature creates two routes.
+All dependencies have shipped (2026-05-12 preflight):
+
+- **Next.js shell + nav:** `/proposals` slot already in `ui/src/components/layout/top-nav.tsx:13` (currently routes to a 404 — this feature fills it).
+- **Backend APIs (all present in `backend/app/api/v1/proposals.py`):**
+  - `GET /api/v1/proposals` — cursor-paginated, `?status=` (Literal-narrowed) + `?cluster_id=` filters, `X-Total-Count` header.
+  - `GET /api/v1/proposals/{id}` — returns the **full `ProposalDetail` wire shape with inline `study_summary` AND inline `digest`** (`schemas.py:757`); UI does NOT need a second query for the digest.
+  - `POST /api/v1/proposals/{id}/reject` — `pending → rejected`; 409 `INVALID_STATE_TRANSITION` if not pending.
+  - `POST /api/v1/proposals/{id}/open_pr` — returns **202 Accepted** with deterministic `_job_id` dedup; error codes catalog `PROPOSAL_NOT_FOUND` / `INVALID_STATE_TRANSITION` / `CLUSTER_HAS_NO_CONFIG_REPO` / `GITHUB_NOT_CONFIGURED` / `QUEUE_UNAVAILABLE`.
+- **TanStack Query infra:** `<StatusBadge>` / `<MetricDelta>` / `<CursorPaginator>` ship from `feat_studies_ui`. The `apiClient` singleton (`ui/src/lib/api-client.ts`) handles `X-Request-ID` injection + 503-retryable backoff + the central error-toast wiring via QueryCache / MutationCache.
+- **Partial proposals hook surface already in `ui/src/lib/api/proposals.ts`:**
+  - `useProposals(filter)` exists — but `filter.status` is typed as plain `string`; FR-6 narrows to `ProposalStatus`.
+  - `useProposalForStudy(studyId)` exists — used by `feat_studies_ui`'s study-detail "Open PR" button to find any pending proposal for a study. **MUST be preserved** by this feature, not replaced.
+  - `useProposal(id, opts)`, `useOpenPR()`, `useRejectProposal()` do NOT yet exist — FR-6 adds them.
+- No `ui/src/app/proposals/` route folder exists yet — this feature creates two pages.
 
 ## 3) Scope
 
@@ -82,10 +91,12 @@ Single-phase. The MVP1 deliverable: "from a completed study's digest, the operat
 
 ## 5) Assumptions and dependencies
 
-- **Dependency: `feat_studies_ui`** — shell + nav + shared components (`<StatusBadge>`, `<MetricDelta>`, `<CursorPaginator>`).
-- **Dependency: `feat_digest_proposal`** — proposals exist; `digests.suggested_followups` populated.
-- **Dependency: `feat_github_pr_worker`** — `POST /api/v1/proposals/{id}/open_pr` works; `pr_url`, `pr_state`, `pr_open_error` columns populated.
-- **Dependency: `feat_github_webhook`** — `pr_state` updates within 30s of merge (or within 15min via polling reconciler).
+All dependencies shipped as of 2026-05-12; this section captures what each one delivered that this feature consumes.
+
+- **`feat_studies_ui` (PR #50, merged 2026-05-12)** — shell + nav + shared components (`<StatusBadge>`, `<MetricDelta>`, `<CursorPaginator>`, `<EmptyState>`); central error-toast wiring; `ui/src/lib/enums.ts` source-of-truth allowlists; partial `proposals.ts` hook surface (see §2).
+- **`feat_digest_proposal` (PR #41, merged 2026-05-11)** — proposals exist; `digests.suggested_followups TEXT[]` column populated; `GET /api/v1/proposals/{id}` returns inline `digest`.
+- **`feat_github_pr_worker` (PR #45, merged 2026-05-12)** — `POST /api/v1/proposals/{id}/open_pr` works; `pr_url`, `pr_state`, `pr_open_error` columns populated by the `open_pr` Arq worker.
+- **`feat_github_webhook` (PR #56, merged 2026-05-12)** — `pr_state` updates within 30s of GitHub merge via the `/webhooks/github` receiver, or within 15 min via the `reconcile_pr_state` cron tick (cadence configurable via `RELYLOOP_PR_POLL_MINUTES`, whitelist-validated).
 
 ## 6) Actors and roles
 
@@ -108,13 +119,14 @@ N/A — `audit_log` is MVP2.
 
 ### FR-2: `/proposals/{id}` detail
 - The page **MUST** render header + config diff + metric delta + PR panel + suggested followups (when present) per §3.
-- The page **MUST** poll the proposal at 30s while `status='pr_opened' AND pr_state='open'`.
+- The page **MUST** poll the proposal at **30s (steady-state, webhook-fallback cadence)** while `status='pr_opened' AND pr_state='open'`.
 - The page **MUST** show `pr_open_error` in a red `<Alert>` when present and proposal is `pending`.
 
 ### FR-3: Open PR action
 - The "Open PR" button **MUST** POST to `/api/v1/proposals/{id}/open_pr`.
-- On 202 response, the UI **MUST**: disable the button, show a spinner, poll the proposal at 3s until `status='pr_opened'` OR `pr_open_error` populated, then re-enable and show the result.
-- On `OPENAI_NOT_CONFIGURED` / `GITHUB_NOT_CONFIGURED` 503 responses, the UI **MUST** surface the toast with the actionable message (per FR-10 of `feat_studies_ui`).
+- On 202 response, the UI **MUST**: disable the button, show a spinner, poll the proposal at **3s (post-click cadence, runs only until the worker writes back)** until `status='pr_opened'` OR `pr_open_error` populated, then re-enable and show the result. The 3s cadence then yields to the FR-2 30s steady-state cadence.
+- On `GITHUB_NOT_CONFIGURED` (503) / `CLUSTER_HAS_NO_CONFIG_REPO` (422) / `QUEUE_UNAVAILABLE` (503) responses, the UI **MUST** surface the toast with the actionable message (per FR-10 of `feat_studies_ui`).
+- The "Open PR" button **MUST** be hidden (not just disabled) when `status != 'pending'` — re-issue on a non-pending proposal is impossible (the spec §11 retry-via-API path applies only when `pr_open_error` is populated AND status is still `pending`).
 
 ### FR-4: Reject action
 - The "Reject" button (only when `status='pending'`) **MUST** open a confirm dialog with a reason textarea (optional but recommended).
@@ -126,8 +138,18 @@ N/A — `audit_log` is MVP2.
 - Each follow-up **MUST** have a "Create study from this hypothesis" action that opens the create-study modal in `/studies` with `?hypothesis=<encoded>` query param (the modal's search-space step pre-fills based on the hypothesis text — best-effort; the agent may also offer this via chat).
 
 ### FR-6: TanStack Query hooks
-- `ui/lib/api/proposals.ts` **MUST** export `useProposals(filter)`, `useProposal(id, opts)`, `useOpenPR()`, `useRejectProposal()`.
-- `useProposal(id)` **MUST** accept `refetchInterval?: number` for polling.
+
+This feature **extends** the existing `ui/src/lib/api/proposals.ts` (not replaces it). After this feature ships, the module MUST export:
+
+| Symbol | Status | Contract |
+|---|---|---|
+| `useProposals(filter)` | Already shipped — **MUST narrow `filter.status` type from `string` to `ProposalStatus`** (the `Literal[...]` re-exported from `ui/src/lib/enums.ts:102`); behavior unchanged. |
+| `useProposalForStudy(studyId)` | Already shipped — **MUST be preserved verbatim** (consumed by `feat_studies_ui`'s study-detail Open-PR button). |
+| `useProposal(id, opts)` | NEW — `opts.refetchInterval?: number \| ((data) => number \| false)` for the 3s post-click poll AND the 30s steady-state poll (see FR-2 + FR-3 polling cadence note). |
+| `useOpenPR()` | NEW — mutation hook that POSTs to `/api/v1/proposals/{id}/open_pr`; invalidates `['proposals', { study_id }]` + `['proposal', id]` on settle. |
+| `useRejectProposal()` | NEW — mutation hook that POSTs to `/api/v1/proposals/{id}/reject`; same invalidation set. |
+
+`useProposal(id)` MUST accept `refetchInterval` in the TanStack Query "function form" (a function that returns the interval based on the latest query state) so the caller can flip polling off when `pr_state` becomes terminal — this is the pattern `feat_studies_ui` Story 3.4 already established for study-detail polling.
 
 ## 8) API and data contract baseline
 
@@ -137,11 +159,11 @@ This feature has no backend endpoints; consumes existing APIs.
 
 | UI surface | Backend source of truth |
 |---|---|
-| Proposals status filter chips | `backend/db/models/proposal.py` (`ProposalStatus` `Literal[...]`) |
-| `pr_state` badge color map | `backend/db/models/proposal.py` (`PRState` `Literal[...]`) |
-| Cluster filter dropdown | `backend/db/models/cluster.py` (consumed via `GET /api/v1/clusters`) |
+| Proposals status filter chips | `backend/app/api/v1/schemas.py` (`ProposalStatusWire = Literal["pending", "pr_opened", "pr_merged", "rejected"]`) |
+| `pr_state` badge color map | `backend/app/api/v1/schemas.py` (`ProposalPrStateWire = Literal["open", "closed", "merged"]`) |
+| Cluster filter dropdown | `backend/app/db/models/cluster.py` (consumed via `GET /api/v1/clusters`) |
 
-The UI **MUST** add source-of-truth comments per `feat_studies_ui` AC-6.
+Frontend canonical values already live in [`ui/src/lib/enums.ts`](../../../../ui/src/lib/enums.ts) as `PROPOSAL_STATUS_VALUES` (line 101) and `PROPOSAL_PR_STATE_VALUES` (line 105), each carrying the `// Values must match …` source-of-truth comment shipped by `feat_studies_ui`. This feature consumes them — it MUST NOT introduce a parallel option list. The CI gate `scripts/ci/verify_enum_source_of_truth.sh` (added in `feat_studies_ui` Story 4.2) enforces drift detection on every PR.
 
 ## 9) Data model and state transitions
 
@@ -167,6 +189,8 @@ This feature has no schema. UI-side state in TanStack Query cache + local React 
 - **Webhook delivers merge before user opens the page.** UI loads with `status='pr_merged'` already; no spinner shown; PR link + merged-at timestamp displayed.
 - **Webhook fails to deliver, polling reconciler updates.** UI's 30s poll picks up the change within 30s after the reconciler runs (15-min reconciler tick + 30s UI poll = up to 15.5 min lag; acceptable).
 - **Open PR while GitHub token missing.** API returns 503 `GITHUB_NOT_CONFIGURED`; UI surfaces toast pointing at the runbook.
+- **Duplicate Open-PR prevention.** When a `pr_opened` proposal already exists for a study, the study-detail Open-PR button shipped by `feat_studies_ui` is already disabled (via `useProposalForStudy(studyId)`). The proposal-detail button in this feature MUST mirror that — hidden when `status != 'pending'` per FR-3. The backend's `INVALID_STATE_TRANSITION` (409) on `/open_pr` is the last-line guard against a concurrent double-click race.
+- **Concurrent merge during reject confirm.** Operator opens reject dialog; webhook delivers merge meanwhile; operator confirms reject. Backend returns 409 `INVALID_STATE_TRANSITION` (proposal is now `pr_merged`, not `pending`). UI MUST refresh the detail query on that 409 so the operator sees the new state instead of a stale dialog.
 
 ## 12) Given/When/Then acceptance criteria
 
@@ -266,3 +290,4 @@ None — all resolved (see Decision log).
 - 2026-05-09 — No bulk operations in MVP1 — defer to MVP2 if real demand emerges.
 - 2026-05-09 — `GET /api/v1/proposals/{id}` returns inline `study_summary` and inline `digest` — locked in `feat_digest_proposal` FR-4 with full response shape. UI does NOT fan out additional queries.
 - 2026-05-09 — Hypothesis pre-fill on follow-up "Create study": **best-effort string interpolation into the search-space JSON textarea in MVP1**. Structured parsing via `propose_search_space` arrives at MVP2 (per `feat_chat_agent` decision-log).
+- 2026-05-12 — `/idea-preflight` ground-truth pass against the codebase after all four deps shipped: §7.4 Literal paths corrected (`backend/app/api/v1/schemas.py` not `db/models/proposal.py`); §2 + §5 rewritten past-tense; FR-6 extended to (a) preserve the existing `useProposalForStudy` helper and (b) narrow `useProposals.filter.status` from `string` to `ProposalStatus`; FR-2/FR-3 polling cadences disambiguated (3s post-click / 30s steady-state); §11 added duplicate-Open-PR + concurrent-merge-during-reject edge cases.

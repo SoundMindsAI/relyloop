@@ -1,26 +1,44 @@
 'use client';
-import { useQuery, type UseQueryResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 
 import { apiClient } from '@/lib/api-client';
 import type { ApiError } from '@/lib/api-errors';
+import type { ProposalStatus } from '@/lib/enums';
 import type { components } from '@/lib/types';
 
 export type ProposalSummary = components['schemas']['ProposalSummary'];
 export type ProposalDetail = components['schemas']['ProposalDetail'];
 export type ProposalsListResponse = components['schemas']['ProposalsListResponse'];
+export type OpenPrResponse = components['schemas']['OpenPrResponse'];
 
 export type ProposalsPage = ProposalsListResponse & { totalCount: number };
 
 export interface ProposalsFilter {
-  status?: string | undefined;
+  status?: ProposalStatus | undefined;
   cluster_id?: string | undefined;
   study_id?: string | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
 }
 
+type RefetchInterval<TData> =
+  | number
+  | false
+  | ((query: { state: { data: TData | undefined } }) => number | false);
+
+export interface UseProposalsOptions {
+  refetchInterval?: RefetchInterval<ProposalsPage>;
+}
+
 export function useProposals(
   filter: ProposalsFilter = {},
+  options: UseProposalsOptions = {},
 ): UseQueryResult<ProposalsPage, ApiError> {
   const { status, cluster_id, study_id, cursor, limit } = filter;
   return useQuery<ProposalsPage, ApiError>({
@@ -31,6 +49,7 @@ export function useProposals(
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },
+    refetchInterval: options.refetchInterval ?? false,
   });
 }
 
@@ -47,5 +66,66 @@ export function useProposalForStudy(
       return data.data[0] ?? null;
     },
     staleTime: 0,
+  });
+}
+
+export interface UseProposalOptions {
+  refetchInterval?: RefetchInterval<ProposalDetail>;
+}
+
+export function useProposal(
+  id: string,
+  options: UseProposalOptions = {},
+): UseQueryResult<ProposalDetail, ApiError> {
+  return useQuery<ProposalDetail, ApiError>({
+    queryKey: ['proposal', id],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ProposalDetail>(`/api/v1/proposals/${id}`);
+      return data;
+    },
+    refetchInterval: options.refetchInterval ?? false,
+  });
+}
+
+export function useOpenPR(): UseMutationResult<OpenPrResponse, ApiError, string> {
+  const qc = useQueryClient();
+  return useMutation<OpenPrResponse, ApiError, string>({
+    mutationFn: async (proposalId) => {
+      const { data } = await apiClient.post<OpenPrResponse>(
+        `/api/v1/proposals/${proposalId}/open_pr`,
+        {},
+      );
+      return data;
+    },
+    onSettled: (_data, _err, proposalId) => {
+      qc.invalidateQueries({ queryKey: ['proposal', proposalId] });
+      qc.invalidateQueries({ queryKey: ['proposals'] });
+    },
+  });
+}
+
+export interface RejectProposalVars {
+  proposalId: string;
+  reason: string | null;
+}
+
+export function useRejectProposal(): UseMutationResult<
+  ProposalDetail,
+  ApiError,
+  RejectProposalVars
+> {
+  const qc = useQueryClient();
+  return useMutation<ProposalDetail, ApiError, RejectProposalVars>({
+    mutationFn: async ({ proposalId, reason }) => {
+      const { data } = await apiClient.post<ProposalDetail>(
+        `/api/v1/proposals/${proposalId}/reject`,
+        { reason },
+      );
+      return data;
+    },
+    onSettled: (_data, _err, { proposalId }) => {
+      qc.invalidateQueries({ queryKey: ['proposal', proposalId] });
+      qc.invalidateQueries({ queryKey: ['proposals'] });
+    },
   });
 }
