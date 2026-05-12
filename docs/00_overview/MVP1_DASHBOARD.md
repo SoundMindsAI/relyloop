@@ -4,14 +4,14 @@ _Reflects feature-folder state as of **2026-05-12** (latest mtime of any planned
 
 ## Next up
 
-**[chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md)** — Chore, currently in **Spec**
+**[chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md)** — Chore, currently in **Plan**
 
-> The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README polish, a containerized UI (`ui` Compose s
+> The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README polish, a containerized UI (`ui` Compose
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/chore_tutorial_polish --auto
+/impl-execute docs/02_product/planned_features/chore_tutorial_polish/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -48,15 +48,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
+| [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (25)
 
@@ -100,7 +100,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   chore_tutorial_polish["tutorial polish"]
-  class chore_tutorial_polish spec;
+  class chore_tutorial_polish plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
