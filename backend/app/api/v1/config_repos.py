@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Annotated
 
 import uuid_utils
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -119,6 +119,7 @@ def _to_detail(row: object) -> ConfigRepoDetail:
 )
 async def create_config_repo_endpoint(
     body: CreateConfigRepoRequest,
+    request: Request,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ConfigRepoDetail:
     """Register a new config repo. ``provider`` is server-derived from ``repo_url``.
@@ -132,6 +133,11 @@ async def create_config_repo_endpoint(
        populate the file between registration and first PR-open.
     3. ``name`` uniqueness check → 409 ``CONFIG_REPO_NAME_TAKEN`` on collision.
     4. Insert with server-derived ``provider="github"``.
+    5. **feat_github_webhook Story 4.2** — when ``webhook_secret_ref`` is
+       populated, best-effort enqueue ``register_webhook`` against the
+       newly created config_repo id. Enqueue failure (Redis down, pool
+       absent, transient blip) does NOT break the 201 — it logs WARN
+       and the operator drives recovery via the runbook.
     """
     try:
         validate_repo_url(body.repo_url)
@@ -183,6 +189,32 @@ async def create_config_repo_endpoint(
             f"config_repo name {body.name!r} is already registered (concurrent registration race)",
             False,
         ) from exc
+
+    # feat_github_webhook Story 4.2 — best-effort enqueue of the
+    # register_webhook worker. Established pattern from proposals.py:516 /
+    # studies.py:167 — getattr(request.app.state, "arq_pool", None), not
+    # a Depends() factory (which doesn't exist in the codebase).
+    if inserted.webhook_secret_ref is not None:
+        arq_pool = getattr(request.app.state, "arq_pool", None)
+        if arq_pool is None:
+            logger.warning(
+                "register_webhook_enqueue_skipped_no_pool",
+                config_repo_id=inserted.id,
+            )
+        else:
+            try:
+                await arq_pool.enqueue_job(
+                    "register_webhook",
+                    inserted.id,
+                    _job_id=f"register_webhook:{inserted.id}",
+                )
+            except Exception as exc:  # noqa: BLE001 — best-effort enqueue
+                logger.warning(
+                    "register_webhook_enqueue_failed",
+                    config_repo_id=inserted.id,
+                    exc_type=type(exc).__name__,
+                )
+
     return _to_detail(inserted)
 
 
