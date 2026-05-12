@@ -27,6 +27,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
 from backend.app.api import health
@@ -124,6 +125,25 @@ app = FastAPI(
 )
 
 app.add_middleware(RequestIDMiddleware)
+
+# CORS: required for the browser UI on a separate dev origin (Next on :3000
+# calling the API on :8000). Origins are configurable via Settings.cors_allow_origins
+# (comma-separated). Empty string disables. MVP1 default covers the local Next
+# dev server; operators add production origins at MVP3.
+_cors_origins = [o.strip() for o in get_settings().cors_allow_origins.split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        # Browsers ALWAYS strip custom headers from the request preflight unless
+        # they're explicitly allowed. The UI's api-client.ts injects X-Request-ID
+        # on every request — must be allow-listed here or the preflight fails.
+        allow_headers=["Content-Type", "Accept", "X-Request-ID"],
+        expose_headers=["X-Request-ID", "X-Total-Count"],
+    )
+
 install_exception_handlers(app)
 app.include_router(health.router)  # /healthz unprefixed; operator endpoint per Rule #6
 app.include_router(clusters_router.router, prefix="/api/v1")  # Story 3.2 — cluster CRUD
