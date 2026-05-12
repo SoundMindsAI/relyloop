@@ -45,7 +45,7 @@ As of 2026-05-12, every dependency has shipped:
   - Orchestrator at `backend/app/agent/orchestrator.py` running the OpenAI function-calling loop (per [`llm-orchestration.md`](../../../01_architecture/llm-orchestration.md)).
   - SSE endpoint `POST /api/v1/conversations/{id}/messages` accepting a user message and streaming the assistant turn (token + tool_call + tool_result + done events per [`agent-tools.md` §"Streaming + SSE"](../../../01_architecture/agent-tools.md)).
   - REST endpoints:
-    - `POST /api/v1/conversations` — create new conversation (returns `conversation_id`)
+    - `POST /api/v1/conversations` — create new conversation; returns the full `ConversationSummary` (`id`, `title`, `created_at`, `message_count = 0`), matching the shape of rows returned by `GET /api/v1/conversations`. Clients read `id` from the response to navigate to `/chat/{id}`.
     - `GET /api/v1/conversations` — list (cursor-paginated, soft-deleted rows filtered out)
     - `GET /api/v1/conversations/{id}` — detail with full message history
     - `DELETE /api/v1/conversations/{id}` — soft-delete (sets `deleted_at`; messages preserved via FK CASCADE on hard purge only)
@@ -167,7 +167,7 @@ N/A — `audit_log` is MVP2. When MVP2 ships, this feature's mutating tool dispa
   - Confirm before calling `create_study`, `cancel_study`, `generate_judgments_llm`, `open_pr`, `create_proposal_*` (the mutating tools).
   - Use `gpt-4o-mini` for cost reasons.
   - Surface tool errors to the user (don't silently retry).
-  - Not invent tools beyond the 18 in the registry.
+  - Not invent tools beyond the 19 in the registry.
 
 ### FR-6: Frontend chat surface
 - `/chat` route shows the conversation list (sidebar) + "New conversation" button. Selecting a conversation routes to `/chat/{id}`.
@@ -195,12 +195,12 @@ The SSE response body uses standard SSE framing per FR-2.
 
 ### 7.4 Enumerated value contracts
 
-| Field | Accepted values | Backend source of truth |
-|---|---|---|
-| `messages.role` | `user`, `assistant`, `tool` | `backend/app/db/models/message.py` (CHECK constraint on the `role` column) |
-| SSE event types | `token`, `tool_call`, `tool_result`, `done` | `backend/app/api/v1/conversations.py` (`SSEEventType = Literal["token", "tool_call", "tool_result", "done"]`) |
+| Field | Accepted values | Backend wire-shape source of truth (gate-scanned) | DB-level source of truth (constraint) |
+|---|---|---|---|
+| `messages.role` | `user`, `assistant`, `tool` | `backend/app/api/v1/schemas.py` (`MessageRoleWire = Literal["user", "assistant", "tool"]`) | `backend/app/db/models/message.py` (CHECK constraint on the `role` column) |
+| SSE event types | `token`, `tool_call`, `tool_result`, `done` | `backend/app/api/v1/schemas.py` (`SSEEventTypeWire = Literal["token", "tool_call", "tool_result", "done"]`) | — (no DB persistence) |
 
-Frontend tests + components consuming these values MUST add a `// Values must match backend/app/db/models/message.py …` source-of-truth comment in `ui/src/lib/enums.ts` (mirroring the 19 allowlists shipped by `feat_studies_ui`'s Story 4.2). The CI gate at `scripts/ci/verify_enum_source_of_truth.sh` enforces drift detection.
+Frontend tests + components consuming these values MUST add `// Values must match backend/app/api/v1/schemas.py MessageRoleWire` and `// Values must match backend/app/api/v1/schemas.py SSEEventTypeWire` source-of-truth comments in `ui/src/lib/enums.ts` (mirroring the 19 allowlists shipped by `feat_studies_ui`'s Story 4.2). The CI gate at `scripts/ci/verify_enum_source_of_truth.sh` imports the cited module and validates that the enum array in `enums.ts` matches the Literal character-for-character. The wire-shape Literals live in `schemas.py` (where every other allowlist in the project lives, per the `feat_studies_ui` precedent — `STUDY_STATUS_VALUES`, `TRIAL_STATUS_VALUES`, etc.); the DB CHECK constraint on `messages.role` in `message.py` is a defense-in-depth duplicate that MUST agree with the schema Literal (drift between them would be a migration bug). Verified by visual inspection that both lists are identical (`user`, `assistant`, `tool`) at migration time.
 
 ### 7.5 Error code catalog
 
@@ -274,7 +274,7 @@ Both `created_at` columns use `TIMESTAMPTZ` storing UTC (per `data-model.md` §"
 
 - Given `./secrets/openai_key` is empty.
 - When the operator sends any chat message.
-- Then the SSE response immediately delivers `event: done` with `error: 'OPENAI_NOT_CONFIGURED'`; the UI surfaces toast.
+- Then `POST /api/v1/conversations/{id}/messages` returns **HTTP 503** with a standard JSON envelope `{"detail": {"error_code": "OPENAI_NOT_CONFIGURED", "message": "...", "retryable": false}}` — the SSE stream never opens. The frontend's `streamChatMessage` consumer catches the non-OK response, throws `ApiError`, and `toast.error(toToastMessage(err))` surfaces the toast. This matches the FR-2 wording, the `feat_llm_judgments` precedent (`OPENAI_NOT_CONFIGURED` always returns 503 JSON at `backend/app/api/v1/judgments.py:201`), and the global `MutationCache`/manual-toast pattern shipped by `feat_studies_ui`. Resolved 2026-05-12 during cross-model review of the implementation plan — original wording in this AC suggested an in-stream SSE `done.error` payload, which contradicted FR-2 and the codebase precedent.
 
 ### AC-6: Tool validation failure surfaces to LLM
 
@@ -366,3 +366,4 @@ None — all resolved (see Decision log).
 - 2026-05-09 — Confirmation list expanded to include `import_queries_from_csv` (large bulk add risk).
 - 2026-05-09 — Tool loop limit: **10** (per FR-3).
 - 2026-05-12 — `/idea-preflight` ground-truth pass against the codebase after all 8 backend + 2 frontend dependencies shipped: §2 + §5 rewritten past-tense with merge dates; backend paths corrected from `backend/<x>/` → `backend/app/<x>/` (4 occurrences in §3 + FR-4 + §7.4); frontend path corrected from `ui/lib/api/` → `ui/src/lib/api/` (2 occurrences); test paths corrected from `ui/tests/unit/...` → `ui/src/__tests__/...` (§14 + §17); tool count corrected from "18" to "19" (§1 + §3 + FR-4 — 3 + 2 + 5 + 1 + 3 + 5 = 19); `settings.OPENAI_MODEL_CHAT` → `settings.openai_model_chat` (FR-3); capability cache citation tightened to `read_capability_result(redis_client, base_url)` at `capability_check.py:372`; §9 expanded with the full column inventory + `0007_conversations_messages` migration revision number + soft-delete `deleted_at` column requirement (per CLAUDE.md "soft delete via deleted_at"); §11 multi-tab "Open question" cleaned up to point at the 2026-05-09 lock; §14 added `test_conversations_migration.py` for Alembic round-trip per the `feat_llm_judgments` precedent; §7.4 cited the `verify_enum_source_of_truth.sh` CI gate that `feat_studies_ui` Story 4.2 shipped. Tutorial-flow language in §1 aligned to `local-es` (was `staging-products-es`; MVP1 has no staging).
+- 2026-05-12 — Cross-model review of the `implementation_plan.md` (GPT-5.5, cycle 1) surfaced two spec patches: (a) FR-5 final straggler "18" → "19" (caught by Opus internal review before the GPT-5.5 call); (b) §3 `POST /conversations` return-shape prose tightened from "returns `conversation_id`" to "returns the full `ConversationSummary` (`id`, `title`, `created_at`, `message_count = 0`)" so the wire contract matches the GET-list row shape and the Pydantic schema in the plan; (c) AC-5 corrected from "SSE response immediately delivers `event: done` with `error: 'OPENAI_NOT_CONFIGURED'`" → "HTTP 503 JSON envelope" to match FR-2 and the `feat_llm_judgments` precedent at `backend/app/api/v1/judgments.py:201`. Both spec changes resolve in-spec contradictions that would have caused implementation drift.

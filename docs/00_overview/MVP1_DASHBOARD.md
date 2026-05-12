@@ -4,14 +4,14 @@ _Reflects feature-folder state as of **2026-05-12** (latest mtime of any planned
 
 ## Next up
 
-**[feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md)** — Feature, currently in **Plan**
 
 > A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_chat_agent --auto
+/impl-execute docs/02_product/planned_features/feat_chat_agent/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -47,15 +47,16 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (2)
+### Plan (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
+
+### Spec (1)
+
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
 
 ### Idea (22)
@@ -99,7 +100,7 @@ graph LR
   chore_tutorial_polish["tutorial polish"]
   class chore_tutorial_polish spec;
   feat_chat_agent["chat agent"]
-  class feat_chat_agent spec;
+  class feat_chat_agent plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
