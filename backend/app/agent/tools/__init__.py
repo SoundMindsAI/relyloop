@@ -53,6 +53,31 @@ from backend.app.agent.tools.judgments.get_calibration import (
     GetCalibrationArgs,
     get_calibration_impl,
 )
+from backend.app.agent.tools.proposals.create_proposal_from_study import (
+    CREATE_PROPOSAL_FROM_STUDY_TOOL,
+    CreateProposalFromStudyArgs,
+    create_proposal_from_study_impl,
+)
+from backend.app.agent.tools.proposals.create_proposal_manual import (
+    CREATE_PROPOSAL_MANUAL_TOOL,
+    CreateProposalManualArgs,
+    create_proposal_manual_impl,
+)
+from backend.app.agent.tools.proposals.get_proposal import (
+    GET_PROPOSAL_TOOL,
+    GetProposalArgs,
+    get_proposal_impl,
+)
+from backend.app.agent.tools.proposals.list_proposals import (
+    LIST_PROPOSALS_TOOL,
+    ListProposalsArgs,
+    list_proposals_impl,
+)
+from backend.app.agent.tools.proposals.open_pr import (
+    OPEN_PR_TOOL,
+    OpenPrArgs,
+    open_pr_impl,
+)
 from backend.app.agent.tools.queries.run_query import (
     RUN_QUERY_TOOL,
     RunQueryArgs,
@@ -132,7 +157,12 @@ TOOLS: list[ChatCompletionToolParam] = [
     CREATE_STUDY_TOOL,
     GET_STUDY_TOOL,
     CANCEL_STUDY_TOOL,
-    # Story 2.4 appends 5 more.
+    # Proposals + PRs (Story 2.4)
+    LIST_PROPOSALS_TOOL,
+    GET_PROPOSAL_TOOL,
+    CREATE_PROPOSAL_FROM_STUDY_TOOL,
+    CREATE_PROPOSAL_MANUAL_TOOL,
+    OPEN_PR_TOOL,
 ]
 
 TOOL_REGISTRY: dict[str, ToolImpl] = {
@@ -153,6 +183,12 @@ TOOL_REGISTRY: dict[str, ToolImpl] = {
     "create_study": create_study_impl,
     "get_study": get_study_impl,
     "cancel_study": cancel_study_impl,
+    # Story 2.4
+    "list_proposals": list_proposals_impl,
+    "get_proposal": get_proposal_impl,
+    "create_proposal_from_study": create_proposal_from_study_impl,
+    "create_proposal_manual": create_proposal_manual_impl,
+    "open_pr": open_pr_impl,
 }
 
 TOOL_ARG_MODELS: dict[str, type[BaseModel]] = {
@@ -173,6 +209,12 @@ TOOL_ARG_MODELS: dict[str, type[BaseModel]] = {
     "create_study": CreateStudyArgs,
     "get_study": GetStudyArgs,
     "cancel_study": CancelStudyArgs,
+    # Story 2.4
+    "list_proposals": ListProposalsArgs,
+    "get_proposal": GetProposalArgs,
+    "create_proposal_from_study": CreateProposalFromStudyArgs,
+    "create_proposal_manual": CreateProposalManualArgs,
+    "open_pr": OpenPrArgs,
 }
 
 
