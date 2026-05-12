@@ -24,6 +24,17 @@ from backend.app.db.repo.config_repo import (
     lookup_config_repo_by_owner_repo,
     set_webhook_registration_error,
 )
+from backend.app.db.repo.conversation import (
+    count_conversations,
+    create_conversation,
+    create_message,
+    get_conversation,
+    list_conversations,
+    list_conversations_with_message_counts,
+    list_messages,
+    soft_delete_conversation,
+    update_conversation_title,
+)
 from backend.app.db.repo.digest import (
     create_digest,
     get_digest_for_study,
@@ -182,4 +193,14 @@ __all__ = [
     "mark_proposal_pr_merged",
     "mark_proposal_pr_reopened",
     "set_webhook_registration_error",
+    # feat_chat_agent Story 1.3 (conversations + messages aggregate)
+    "count_conversations",
+    "create_conversation",
+    "create_message",
+    "get_conversation",
+    "list_conversations",
+    "list_conversations_with_message_counts",
+    "list_messages",
+    "soft_delete_conversation",
+    "update_conversation_title",
 ]
