@@ -1,7 +1,7 @@
 # Implementation Plan — feat_github_webhook
 
 **Date:** 2026-05-12 (Review & Patch cycle 2026-05-12 — see §11 patch log)
-**Status:** Draft (cross-model reviewed)
+**Status:** Complete (PR #56, merged 2026-05-12; squash commit `9805f3e`)
 **Primary spec:** [feature_spec.md](feature_spec.md) (Approved 2026-05-12 after Review & Patch cycle)
 **Policy sources:**
 - [`CLAUDE.md`](../../../../CLAUDE.md) — absolute rules, conventions, MVP1 stack
