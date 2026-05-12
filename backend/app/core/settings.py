@@ -156,6 +156,17 @@ class Settings(BaseSettings):
             "the install-domain bot address."
         ),
     )
+    relyloop_pr_poll_minutes: int = Field(
+        default=15,
+        ge=1,
+        le=1440,
+        description=(
+            "Cron cadence for the reconcile_pr_state worker (feat_github_webhook "
+            "FR-2). MVP1 default 15; operators can raise for low-PR-volume "
+            "installs to reduce GitHub API spend. Story 3.1 narrows the valid "
+            "range to a whitelist of cron-expressible values."
+        ),
+    )
     es_heap_size: str = Field(
         default="512m",
         description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",
