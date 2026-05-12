@@ -856,3 +856,73 @@ class ConfigReposListResponse(BaseModel):
     data: list[ConfigRepoDetail]
     next_cursor: str | None
     has_more: bool
+
+
+# ---------------------------------------------------------------------------
+# feat_chat_agent (Stories 3.1 + 3.2)
+# ---------------------------------------------------------------------------
+
+
+# Wire-value Literals also exported through the source-of-truth gate to
+# ui/src/lib/enums.ts (Story 4.4). Values must match
+# backend/app/db/models/message.py messages_role_check (CHECK constraint).
+MessageRoleWire = Literal["user", "assistant", "tool"]
+MESSAGE_ROLE_VALUES: tuple[str, ...] = ("user", "assistant", "tool")
+
+SSEEventTypeWire = Literal["token", "tool_call", "tool_result", "done"]
+SSE_EVENT_TYPE_VALUES: tuple[str, ...] = ("token", "tool_call", "tool_result", "done")
+
+
+class CreateConversationRequest(BaseModel):
+    """``POST /api/v1/conversations`` body."""
+
+    title: str | None = Field(default=None, max_length=200)
+
+
+class MessageWire(BaseModel):
+    """One row of ``GET /api/v1/conversations/{id}.messages``."""
+
+    id: str
+    role: MessageRoleWire
+    content: dict[str, Any]
+    tool_calls: list[dict[str, Any]] | None = None
+    created_at: datetime
+
+
+class ConversationSummary(BaseModel):
+    """``GET /api/v1/conversations`` row + ``POST`` 201 body."""
+
+    id: str
+    title: str | None
+    created_at: datetime
+    message_count: int
+
+
+class ConversationDetail(BaseModel):
+    """``GET /api/v1/conversations/{id}`` response."""
+
+    id: str
+    title: str | None
+    created_at: datetime
+    messages: list[MessageWire]
+
+
+class ConversationsListResponse(BaseModel):
+    """``GET /api/v1/conversations`` response."""
+
+    data: list[ConversationSummary]
+    next_cursor: str | None
+    has_more: bool
+
+
+class SendMessageRequestContent(BaseModel):
+    """Sub-shape inside :class:`SendMessageRequest`."""
+
+    text: str = Field(min_length=1, max_length=20_000)
+
+
+class SendMessageRequest(BaseModel):
+    """``POST /api/v1/conversations/{id}/messages`` body (Story 3.2)."""
+
+    role: Literal["user"] = "user"
+    content: SendMessageRequestContent

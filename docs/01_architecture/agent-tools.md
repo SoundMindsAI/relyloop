@@ -11,7 +11,7 @@
 
 ## MVP1 tool inventory
 
-The MVP1 agent ships these tools in `backend/agent/tools/`:
+The MVP1 agent ships these **19** tools in `backend/app/agent/tools/` (counted across the 6 categories below: 3 + 2 + 5 + 1 + 3 + 5 = 19):
 
 | Category | Tool | Description | Backing endpoint / function |
 |---|---|---|---|
@@ -38,7 +38,7 @@ The MVP1 agent ships these tools in `backend/agent/tools/`:
 ## Tool definition pattern
 
 ```python
-# backend/agent/tools/studies.py
+# backend/app/agent/tools/studies.py
 from pydantic import BaseModel
 from openai.types.chat import ChatCompletionToolParam
 
@@ -60,12 +60,12 @@ CANCEL_STUDY_TOOL: ChatCompletionToolParam = {
 }
 ```
 
-The tool registry at `backend/agent/tools/__init__.py` collects every tool's `*_TOOL` constant into a `TOOLS` list and every `*_impl` function into a `TOOL_REGISTRY: dict[str, Callable]` dispatcher.
+The tool registry at `backend/app/agent/tools/__init__.py` collects every tool's `*_TOOL` constant into a `TOOLS` list and every `*_impl` function into a `TOOL_REGISTRY: dict[str, Callable]` dispatcher.
 
 ## Tool dispatch loop (MVP1)
 
 ```python
-# backend/agent/orchestrator.py (sketch)
+# backend/app/agent/orchestrator.py (sketch)
 from openai import AsyncOpenAI
 from .tools import TOOLS, TOOL_REGISTRY
 
