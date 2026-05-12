@@ -24,6 +24,7 @@ from backend.app.git.github_client import (
     parse_rate_limit_reset,
     parse_retry_after,
 )
+from backend.app.git.secrets import read_mounted_secret, secrets_dir
 
 __all__ = [
     "HTTP_RETRY_BACKOFF_S",
@@ -35,4 +36,6 @@ __all__ = [
     "is_secondary_rate_limit",
     "parse_rate_limit_reset",
     "parse_retry_after",
+    "read_mounted_secret",
+    "secrets_dir",
 ]
