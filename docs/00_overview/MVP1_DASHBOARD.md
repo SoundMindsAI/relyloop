@@ -19,9 +19,9 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Features done | **10 / 13** (77%) |
-| Path to MVP1 | **20** items remaining (features + bugs + chores) |
+| Path to MVP1 | **21** items remaining (features + bugs + chores) |
 | Open bugs | 4 |
-| Open chores | 13 (idea-stage debt) |
+| Open chores | 14 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -59,7 +59,7 @@ _None._
 | [feat_chat_agent](../02_product/planned_features/feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
 | [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + pre-baked judgment list + sample ES index of ~1,000 docs), README po | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | Draft |
 
-### Idea (21)
+### Idea (22)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -72,6 +72,7 @@ _None._
 | [chore_infra_foundation_github_token_file_retirement](../02_product/planned_features/chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is: | — | Idea (deferred from `feat_github_pr_worker` spec patch — captured because the cleanup spans `infra_foundation`'s shipped config and isn't in the PR-worker scope) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
 | [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
+| [chore_proposals_list_wire_param_e2e_test](../02_product/planned_features/chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting: | — | Idea — deferred from `feat_proposals_ui` final GPT-5.5 review (finding #4) |
 | [chore_proposals_page_usememo_deps](../02_product/planned_features/chore_proposals_page_usememo_deps/idea.md) | Chore | `pnpm lint` emits one new warning on the proposals list page: | — | Idea — deferred from `feat_proposals_ui` tangential sweep |
 | [chore_proposals_source_filter_server_side](../02_product/planned_features/chore_proposals_source_filter_server_side/idea.md) | Chore | The proposals list page at `/proposals` ships with a three-state source filter chip group (`all` / `study` / `manual`) shipped in `feat_proposals_ui` Story 1.2. Because the backend `GET /api/v1/propos | — | Idea — deferred follow-up from `feat_proposals_ui` |
 | [chore_query_inline_edit_delete](../02_product/planned_features/chore_query_inline_edit_delete/idea.md) | Chore | The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries ei | — | — |

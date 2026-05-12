@@ -42,12 +42,21 @@ function ProposalsPageInner() {
       limit: pageSize,
     },
     {
-      // FR-1: auto-refetch every 30s if any visible row has
+      // FR-1: auto-refetch every 30s if any VISIBLE row has
       // status='pr_opened' AND pr_state='open' (catches webhook-driven updates
-      // without manual reload). Returns false otherwise so idle pages stop
-      // hitting the backend.
+      // without manual reload). The visibility check applies the same
+      // client-side source filter that's applied to rows on render, so a
+      // study-sourced pr_opened+open row hidden by sourceFilter='manual'
+      // doesn't keep the page polling for invisible state (per GPT-5.5
+      // final-review cycle finding #3). Returns false otherwise so idle
+      // pages stop hitting the backend.
       refetchInterval: (q) =>
-        q.state.data?.data?.some((p) => p.status === 'pr_opened' && p.pr_state === 'open')
+        q.state.data?.data?.some((p) => {
+          if (p.status !== 'pr_opened' || p.pr_state !== 'open') return false;
+          if (sourceFilter === 'all') return true;
+          if (sourceFilter === 'study') return p.study_id != null;
+          return p.study_id == null;
+        })
           ? 30_000
           : false,
     },

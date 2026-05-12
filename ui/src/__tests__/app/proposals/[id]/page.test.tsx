@@ -319,4 +319,132 @@ describe('Proposal detail page — Story 3.2 (PR panel + polling + auto-trigger)
     await waitFor(() => expect(screen.getByTestId('pr-link')).toBeInTheDocument());
     expect(postHits).toBe(0);
   });
+
+  it('60s safety cap: worker never writes back → polling stops, button re-enables for retry (Story 3.2 DoD)', async () => {
+    vi.useFakeTimers();
+    let proposalGetHits = 0;
+    let postHits = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () => {
+        proposalGetHits += 1;
+        // Always return pending — the simulated worker never writes back.
+        return HttpResponse.json(proposalDetailPayload({ status: 'pending' }));
+      }),
+      http.post(`${API_BASE}/api/v1/proposals/p1/open_pr`, () => {
+        postHits += 1;
+        return HttpResponse.json(
+          { proposal_id: 'p1', status: 'pending', message: 'PR creation queued' },
+          { status: 202 },
+        );
+      }),
+    );
+    await renderPage('p1');
+    await vi.waitFor(() => expect(proposalGetHits).toBe(1));
+    await vi.waitFor(() => expect(screen.getByTestId('open-pr-button')).toBeInTheDocument());
+
+    await act(async () => {
+      screen.getByTestId('open-pr-button').click();
+    });
+    await vi.waitFor(() => expect(postHits).toBe(1));
+
+    // 3s polling fires while the safety cap counts down.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(15_000);
+    });
+    const hitsAt15s = proposalGetHits;
+    expect(hitsAt15s).toBeGreaterThanOrEqual(5); // ~5 ticks within 15s
+
+    // Advance past the 60s cap. Polling continues briefly until the next
+    // 3s tick reads the now-flipped postOpenPrPolling=false. Round to 65s.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50_000);
+    });
+    const hitsAt65s = proposalGetHits;
+    // Cumulative ticks bounded at ~21 (60s / 3s + initial fetch). Allow some
+    // slop for timer queue ordering.
+    expect(hitsAt65s).toBeLessThan(30);
+
+    // Now advance another 30s and confirm polling has actually stopped.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_000);
+    });
+    expect(proposalGetHits).toBeLessThanOrEqual(hitsAt65s + 1);
+
+    // Button re-enables because effectivePollingFlag is false.
+    await vi.waitFor(() => expect(screen.getByTestId('open-pr-button')).not.toBeDisabled());
+    vi.useRealTimers();
+  });
+
+  it('Open-PR error-toast contract: 503 / 422 errors reach the global MutationCache.onError with the expected ApiError.errorCode (Story 3.2 DoD)', async () => {
+    // The page's useOpenPR mutation must NOT set meta.suppressGlobalErrorToast,
+    // so all three required backend errors land in the global handler. We
+    // assert against the ApiError.errorCode contract (not the formatted
+    // toast string) per GPT-5.5 cycle-1 B6.
+    const { MutationCache, QueryClient: QC } = await import('@tanstack/react-query');
+    const errorsSeen: Array<{ code: string }> = [];
+    const mc = new MutationCache({
+      onError: (err) => {
+        const e = err as { errorCode?: string };
+        errorsSeen.push({ code: e.errorCode ?? 'UNKNOWN' });
+      },
+    });
+    const qc = new QC({
+      defaultOptions: { queries: { retry: false } },
+      mutationCache: mc,
+    });
+
+    // Sequence: 3 sequential calls return GITHUB_NOT_CONFIGURED (503),
+    // CLUSTER_HAS_NO_CONFIG_REPO (422), QUEUE_UNAVAILABLE (503).
+    let call = 0;
+    // Marked retryable=false in this test so the api-client doesn't fire its
+    // 4-attempt 503+retryable backoff (1+2+4 s). The retry behavior itself is
+    // covered by __tests__/lib/api-client.test.ts; here we only assert the
+    // error code reaches the global MutationCache.onError handler.
+    const errors = [
+      { code: 'GITHUB_NOT_CONFIGURED', status: 503, retryable: false },
+      { code: 'CLUSTER_HAS_NO_CONFIG_REPO', status: 422, retryable: false },
+      { code: 'QUEUE_UNAVAILABLE', status: 503, retryable: false },
+    ];
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () =>
+        HttpResponse.json(proposalDetailPayload({ status: 'pending' })),
+      ),
+      http.post(`${API_BASE}/api/v1/proposals/p1/open_pr`, () => {
+        const e = errors[call] ?? errors[2];
+        call += 1;
+        if (!e) {
+          // Defensive: TS narrowing — shouldn't happen with our index guard.
+          return HttpResponse.json(errors[2], { status: 500 });
+        }
+        return HttpResponse.json(
+          { detail: { error_code: e.code, message: 'x', retryable: e.retryable } },
+          { status: e.status },
+        );
+      }),
+    );
+
+    const { ProposalDetailView } = await import('@/app/proposals/[id]/page');
+    const { QueryClientProvider } = await import('@tanstack/react-query');
+    render(
+      <QueryClientProvider client={qc}>
+        <ProposalDetailView proposalId="p1" />
+      </QueryClientProvider>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId('open-pr-button')).toBeInTheDocument());
+
+    // Click 3 times across 3 separate renders to exercise the 3 error paths.
+    for (const expected of errors) {
+      await act(async () => {
+        screen.getByTestId('open-pr-button').click();
+      });
+      await waitFor(() => expect(errorsSeen.some((e) => e.code === expected.code)).toBe(true));
+    }
+
+    expect(errorsSeen.map((e) => e.code)).toEqual([
+      'GITHUB_NOT_CONFIGURED',
+      'CLUSTER_HAS_NO_CONFIG_REPO',
+      'QUEUE_UNAVAILABLE',
+    ]);
+  });
 });
