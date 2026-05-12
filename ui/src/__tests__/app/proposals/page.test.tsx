@@ -1,0 +1,229 @@
+import { http, HttpResponse } from 'msw';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type ReactNode } from 'react';
+
+import { server } from '../../setup';
+
+const API_BASE = 'http://api.test';
+
+let lastReplace = '';
+let mockedSearch = '';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    replace: (url: string) => {
+      lastReplace = url;
+    },
+  }),
+  useSearchParams: () => new URLSearchParams(mockedSearch),
+}));
+
+vi.mock('next/link', () => ({
+  default: ({ children, href }: { children: ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
+async function renderPage() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const { default: ProposalsPage } = await import('@/app/proposals/page');
+  return render(
+    <QueryClientProvider client={qc}>
+      <ProposalsPage />
+    </QueryClientProvider>,
+  );
+}
+
+function proposalRow(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'p1',
+    study_id: 's1',
+    cluster: { id: 'c1', name: 'prod-es', engine_type: 'elasticsearch', environment: 'prod' },
+    template: { id: 't1', name: 'products', version: 1, engine_type: 'elasticsearch' },
+    status: 'pending',
+    pr_state: null,
+    pr_url: null,
+    metric_delta: null,
+    created_at: '2026-05-12T00:00:00Z',
+    ...overrides,
+  };
+}
+
+beforeEach(() => {
+  lastReplace = '';
+  mockedSearch = '';
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
+describe('ProposalsPage', () => {
+  it('renders rows from the API and shows total count', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals`, () =>
+        HttpResponse.json(
+          {
+            data: [proposalRow({ id: 'pA' }), proposalRow({ id: 'pB', study_id: null })],
+            next_cursor: null,
+            has_more: false,
+          },
+          { headers: { 'X-Total-Count': '2' } },
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('proposal-row-pA')).toBeInTheDocument();
+      expect(screen.getByTestId('proposal-row-pB')).toBeInTheDocument();
+    });
+    expect(screen.getByTestId('total-count')).toHaveTextContent('2');
+  });
+
+  it('AC-6: clicking a status chip updates the URL', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => expect(screen.getByTestId('empty-state')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('proposal-status-chip-pr_opened'));
+    expect(lastReplace).toBe('/proposals?status=pr_opened');
+  });
+
+  it('AC-6: status=all chip clears the URL param', async () => {
+    mockedSearch = 'status=pending';
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => expect(screen.getByTestId('empty-state')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('proposal-status-chip-all'));
+    expect(lastReplace).toBe('/proposals');
+  });
+
+  it('GPT-5.5 cycle-2 A2: invalid URL ?status= is silently ignored (not sent to backend)', async () => {
+    mockedSearch = 'status=invented';
+    let capturedStatusParam: string | null | undefined;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals`, ({ request }) => {
+        capturedStatusParam = new URL(request.url).searchParams.get('status');
+        return HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        );
+      }),
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => expect(screen.getByTestId('empty-state')).toBeInTheDocument());
+    // 'invented' is not in PROPOSAL_STATUS_VALUES → narrowed to undefined → no wire param.
+    expect(capturedStatusParam).toBeNull();
+    // The chip group falls back to 'all' active.
+    expect(screen.getByTestId('proposal-status-chip-all')).toHaveAttribute('data-active', 'true');
+  });
+
+  it('client-side source filter narrows visible rows without a network call', async () => {
+    let proposalHits = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals`, () => {
+        proposalHits += 1;
+        return HttpResponse.json(
+          {
+            data: [
+              proposalRow({ id: 'pStudy', study_id: 's1' }),
+              proposalRow({ id: 'pManual', study_id: null }),
+            ],
+            next_cursor: null,
+            has_more: false,
+          },
+          { headers: { 'X-Total-Count': '2' } },
+        );
+      }),
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('proposal-row-pStudy')).toBeInTheDocument();
+      expect(screen.getByTestId('proposal-row-pManual')).toBeInTheDocument();
+    });
+    expect(proposalHits).toBe(1);
+    fireEvent.click(screen.getByTestId('proposal-source-chip-manual'));
+    await waitFor(() => {
+      expect(screen.queryByTestId('proposal-row-pStudy')).not.toBeInTheDocument();
+      expect(screen.getByTestId('proposal-row-pManual')).toBeInTheDocument();
+    });
+    expect(proposalHits).toBe(1); // no extra wire call
+  });
+
+  it('FR-1: 30s pulse-refetch when a visible row is pr_opened+open', async () => {
+    vi.useFakeTimers();
+    let proposalHits = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals`, () => {
+        proposalHits += 1;
+        return HttpResponse.json(
+          {
+            data: [proposalRow({ id: 'pOpen', status: 'pr_opened', pr_state: 'open' })],
+            next_cursor: null,
+            has_more: false,
+          },
+          { headers: { 'X-Total-Count': '1' } },
+        );
+      }),
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await vi.waitFor(() => expect(proposalHits).toBeGreaterThanOrEqual(1));
+    const first = proposalHits;
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30_100);
+    });
+    await vi.waitFor(() => expect(proposalHits).toBeGreaterThan(first));
+    vi.useRealTimers();
+  });
+});
