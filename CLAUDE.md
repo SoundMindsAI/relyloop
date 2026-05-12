@@ -426,7 +426,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 5 | [`feat_llm_judgments`](docs/00_overview/implemented_features/2026_05_11_feat_llm_judgments/) | **Complete (PR #35, merged 2026-05-11)** |
 | 6 | [`feat_digest_proposal`](docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/) | **Complete (PR #41, merged 2026-05-11)** |
 | 7 | [`feat_github_pr_worker`](docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker/) | **Complete (PR #45, merged 2026-05-12)** |
-| 8 | [`feat_github_webhook`](docs/02_product/planned_features/feat_github_webhook/) | Spec approved, plan pending |
+| 8 | [`feat_github_webhook`](docs/02_product/planned_features/feat_github_webhook/) | Implementation complete (all 10 stories), pending push + CI + merge on `feature/feat-github-webhook` |
 | 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, pending merge)** |
 | 10 | [`feat_chat_agent`](docs/02_product/planned_features/feat_chat_agent/) | Spec approved, plan pending |
 | 11 | [`feat_proposals_ui`](docs/02_product/planned_features/feat_proposals_ui/) | Spec approved, plan pending |
@@ -441,7 +441,7 @@ Run `/pipeline status` for the live view from spec dependencies.
 | Local dev start/stop | [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) (lands in `infra_foundation` Story 5.2) |
 | Test layer convention + 80% coverage gate | [`docs/05_quality/testing.md`](docs/05_quality/testing.md) (lands in `infra_foundation` Story 5.2) |
 | DB revision mismatch | TBA — lands when `feat_study_lifecycle` ships its first business-table migration |
-| GitHub webhook setup | TBA — lands with `feat_github_webhook` |
+| GitHub webhook debugging + secret rotation + register_webhook triage | [`docs/03_runbooks/webhook-debugging.md`](docs/03_runbooks/webhook-debugging.md) (`feat_github_webhook`) |
 | `open_pr` worker debugging + per-repo PAT rotation + closing orphan branches | [`docs/03_runbooks/pr-open-debugging.md`](docs/03_runbooks/pr-open-debugging.md) (`feat_github_pr_worker`) |
 | GitHub PAT storage / rotation / leak prevention | [`docs/04_security/github-token-handling.md`](docs/04_security/github-token-handling.md) (`feat_github_pr_worker`) |
 | Local LLM (Ollama / LM Studio / vLLM / TGI) configuration | [`docs/01_architecture/llm-orchestration.md` §"OpenAI-compatible endpoints"](docs/01_architecture/llm-orchestration.md); operator-facing runbook lands with `chore_tutorial_polish` |

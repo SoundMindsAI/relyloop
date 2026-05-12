@@ -181,7 +181,10 @@ class TestSchemaCreation:
 
     def test_downgrade_drops_digests_table(self, restore_head: None) -> None:
         _alembic("upgrade", "head")
-        _alembic("downgrade", "-1")
+        # Explicitly target 0004 so this test stays correct as the chain
+        # extends past 0005 (e.g. feat_github_webhook's 0006 means
+        # ``downgrade -1`` from head no longer drops digests).
+        _alembic("downgrade", "0004")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:

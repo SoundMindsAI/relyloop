@@ -65,8 +65,8 @@
 
 ### `feat_github_webhook` — track PR state
 
-- **US-20: See the PR state in the proposal UI.** *As a Relevance Engineer*, the proposal page shows the PR's current state (pr_opened → pr_merged → deployed), updated within 30s of a state change in GitHub, so I don't have to switch to GitHub to know whether my proposal landed. *(Source: §16 lines 1123–1150, §22 `/proposals/{id}`.)*
-- **US-21: PR state survives webhook misses.** *As a Relevance Engineer*, even if a webhook delivery fails, a polling job reconciles PR state every 15 minutes, so the UI doesn't get permanently stuck on `pr_opened` for a PR that's already merged. *(Source: §16.)*
+- **US-20: See the PR state in the proposal UI.** *(Implemented — `feat_github_webhook`)* *As a Relevance Engineer*, the proposal page shows the PR's current state (pr_opened → pr_merged → deployed), updated within 30s of a state change in GitHub, so I don't have to switch to GitHub to know whether my proposal landed. *(Source: §16 lines 1123–1150, §22 `/proposals/{id}`.)*
+- **US-21: PR state survives webhook misses.** *(Implemented — `feat_github_webhook`)* *As a Relevance Engineer*, even if a webhook delivery fails, a polling job reconciles PR state every 15 minutes, so the UI doesn't get permanently stuck on `pr_opened` for a PR that's already merged. *(Source: §16.)*
 
 ### `feat_studies_ui` — manage studies in the browser
 

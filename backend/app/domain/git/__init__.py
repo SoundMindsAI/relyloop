@@ -16,18 +16,32 @@ API surface, and any future Git provider integrations:
 from __future__ import annotations
 
 from backend.app.domain.git.redaction import RedactTokensProcessor, redact_token
+from backend.app.domain.git.repository_name import parse_repository_full_name
 from backend.app.domain.git.validation import (
     InvalidConfigPathError,
     UnsupportedProviderError,
     validate_config_path,
     validate_repo_url,
 )
+from backend.app.domain.git.webhook_dispatch import (
+    HANDLED_EVENT_TYPES,
+    WEBHOOK_ACTION_VALUES,
+    WebhookDecision,
+    dispatch_event,
+)
+from backend.app.domain.git.webhook_signature import verify_webhook_signature
 
 __all__ = [
+    "HANDLED_EVENT_TYPES",
     "InvalidConfigPathError",
     "RedactTokensProcessor",
     "UnsupportedProviderError",
+    "WEBHOOK_ACTION_VALUES",
+    "WebhookDecision",
+    "dispatch_event",
+    "parse_repository_full_name",
     "redact_token",
     "validate_config_path",
     "validate_repo_url",
+    "verify_webhook_signature",
 ]
