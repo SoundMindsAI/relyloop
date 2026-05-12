@@ -82,8 +82,8 @@
 
 ### `feat_proposals_ui` — review and apply tuned configs
 
-- **US-28: List proposals with PR state.** *As a Relevance Engineer*, I see a proposals list filterable by status (pending, pr_opened, pr_merged, rejected) and cluster, so I can check at a glance which tuned configs are awaiting review. *(Source: §22 `/proposals`.)*
-- **US-29: See the config diff in the proposal detail.** *As a Relevance Engineer*, on the proposal detail page I see a side-by-side diff of the proposed `*.params.json` changes vs. current, plus the metric delta, plus a link to the originating study, so I can review the recommendation before clicking "Open PR". *(Source: §22 `/proposals/{id}`, §16.)*
+- **US-28: List proposals with PR state.** *(Implemented — `feat_proposals_ui`)* *As a Relevance Engineer*, I see a proposals list filterable by status (pending, pr_opened, pr_merged, rejected) and cluster, so I can check at a glance which tuned configs are awaiting review. *(Source: §22 `/proposals`.)*
+- **US-29: See the config diff in the proposal detail.** *(Implemented — `feat_proposals_ui`)* *As a Relevance Engineer*, on the proposal detail page I see a side-by-side diff of the proposed `*.params.json` changes vs. current, plus the metric delta, plus a link to the originating study, so I can review the recommendation before clicking "Open PR". *(Source: §22 `/proposals/{id}`, §16.)*
 
 ### `chore_tutorial_polish` — onboarding quality
 
