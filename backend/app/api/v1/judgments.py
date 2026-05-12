@@ -58,9 +58,10 @@ from backend.app.db import repo
 from backend.app.db.models import Judgment, JudgmentList
 from backend.app.db.session import get_db
 from backend.app.eval.calibration import compute_calibration
-from backend.app.llm.budget_gate import peek_daily_total
-from backend.app.llm.capability_check import read_capability_result
-from backend.app.llm.cost_model import known_models
+from backend.app.services.agent_judgments_dispatch import (
+    JudgmentGenerationRequest,
+    start_judgment_generation,
+)
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -147,32 +148,6 @@ def _judgment_row(row: Judgment) -> JudgmentRow:
     )
 
 
-async def _enqueue_generate(request: Request, judgment_list_id: str) -> None:
-    """Best-effort Arq enqueue. Pool absent → boot-time resume sweep recovers.
-
-    Uses a deterministic ``_job_id`` keyed on the judgment list id so Arq
-    rejects duplicate enqueues for the same list — guards against double-
-    spending OpenAI dollars when the API enqueue + boot sweep + manual REPL
-    enqueue overlap (per GPT-5.5 cycle-4 C4-F1).
-    """
-    arq_pool = getattr(request.app.state, "arq_pool", None)
-    if arq_pool is None:
-        return
-    try:
-        await arq_pool.enqueue_job(
-            "generate_judgments_llm",
-            judgment_list_id,
-            _job_id=f"generate_judgments_llm:{judgment_list_id}",
-        )
-    except Exception as exc:  # noqa: BLE001 — durable row + sweep covers this
-        logger.warning(
-            "POST /judgments/generate: arq enqueue raised — relying on worker boot sweep",
-            judgment_list_id=judgment_list_id,
-            error_type=type(exc).__name__,
-            error=str(exc),
-        )
-
-
 # ---------------------------------------------------------------------------
 # POST /api/v1/judgments/generate  (Story 3.1, FR-3 + AC-5 + AC-7)
 # ---------------------------------------------------------------------------
@@ -191,136 +166,24 @@ async def generate_judgments(
 ) -> GenerateJudgmentsResponse:
     """Create a judgment_lists row + enqueue the worker.
 
-    Preflight order (matches spec FR-3 + GPT-5.5 cycles 1/2):
-
-    A. ``OPENAI_NOT_CONFIGURED`` — key missing.
-    B. ``LLM_PROVIDER_INCAPABLE`` — capability cache miss OR
-       ``structured_output != ok`` (strict per spec FR-3).
-    B.1. ``UNKNOWN_MODEL_PRICING`` — :data:`Settings.openai_model` has no
-       cost_model entry (otherwise the budget gate is silently defeated).
-    C. ``OPENAI_BUDGET_EXCEEDED`` — pre-call peek already >= budget.
-    D. FK resolution (cluster / template / query_set).
-    E. Oversized query set (>10K) → 422 VALIDATION_ERROR.
-    F. INSERT; commit; best-effort enqueue.
+    Delegates the full preflight + INSERT + Arq enqueue to
+    :func:`backend.app.services.agent_judgments_dispatch.start_judgment_generation`
+    so the chat-agent ``generate_judgments_llm`` tool reuses the exact same
+    checks (no duplicated preflight). Wire behavior is identical — same error
+    codes, same status codes, same response shape.
     """
     settings = get_settings()
+    arq_pool = getattr(request.app.state, "arq_pool", None)
     redis_client: Redis | None = None
 
     try:
-        # Preflight A — OpenAI key configured.
-        api_key = settings.openai_api_key
-        if not api_key:
-            raise _err(
-                503,
-                "OPENAI_NOT_CONFIGURED",
-                "OPENAI_API_KEY_FILE is empty; cannot dispatch judgment generation",
-                False,
-            )
-
         redis_client = await _open_redis()
-
-        # Preflight B — capability cache.
-        # The cached CapabilityResult is keyed on base_url alone, but it
-        # also records the MODEL that was probed. If the operator points
-        # ``Settings.openai_model`` at a different model between startup and
-        # the request, a stale cache row could pass preflight for a model
-        # that may not actually support structured output. Per GPT-5.5
-        # cycle-8 C8-F2 — treat a model mismatch as a cache miss.
-        cap = await read_capability_result(redis_client, settings.openai_base_url)
-        if cap is None or cap.structured_output != "ok" or cap.model != settings.openai_model:
-            if cap is None:
-                cause = "cache miss"
-            elif cap.model != settings.openai_model:
-                cause = (
-                    f"cached probe model {cap.model!r} != configured "
-                    f"OPENAI_MODEL {settings.openai_model!r}"
-                )
-            else:
-                cause = f"structured_output={cap.structured_output!r}"
-            raise _err(
-                503,
-                "LLM_PROVIDER_INCAPABLE",
-                f"OpenAI capability check ({cause}); structured-output required",
-                False,
-            )
-
-        # Preflight B.1 — model pricing must be known (GPT-5.5 cycle 2 F4).
-        if settings.openai_model not in known_models():
-            raise _err(
-                503,
-                "UNKNOWN_MODEL_PRICING",
-                f"OPENAI_MODEL={settings.openai_model!r} has no entry in cost_model; "
-                "cannot enforce daily budget gate",
-                False,
-            )
-
-        # Preflight C — daily budget peek (GPT-5.5 cycle 1 F2 + cycle 2 F3).
-        if settings.openai_daily_budget_usd > 0:
-            current = await peek_daily_total(redis_client)
-            if current >= settings.openai_daily_budget_usd:
-                raise _err(
-                    503,
-                    "OPENAI_BUDGET_EXCEEDED",
-                    f"daily total ${current:.2f} >= budget ${settings.openai_daily_budget_usd:.2f}",
-                    True,
-                )
-
-        # Preflight D — FK resolution.
-        cluster = await repo.get_cluster(db, body.cluster_id)
-        if cluster is None:
-            raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {body.cluster_id} not found", False)
-        template = await repo.get_query_template(db, body.current_template_id)
-        if template is None:
-            raise _err(
-                404,
-                "TEMPLATE_NOT_FOUND",
-                f"template {body.current_template_id} not found",
-                False,
-            )
-        query_set = await repo.get_query_set(db, body.query_set_id)
-        if query_set is None:
-            raise _err(
-                404, "QUERY_SET_NOT_FOUND", f"query set {body.query_set_id} not found", False
-            )
-
-        # Preflight D.1 — consistency: query_set belongs to the same
-        # cluster, and the template's engine matches the cluster's engine.
-        # Without this, an operator can mix-and-match clusters and the
-        # worker will silently judge against a different backend than
-        # the query_set was associated with. Per GPT-5.5 cycle-9 C9-F1.
-        if query_set.cluster_id != body.cluster_id:
-            raise _err(
-                422,
-                "VALIDATION_ERROR",
-                f"query_set {body.query_set_id} belongs to cluster "
-                f"{query_set.cluster_id!r}, not {body.cluster_id!r}",
-                False,
-            )
-        if template.engine_type != cluster.engine_type:
-            raise _err(
-                422,
-                "VALIDATION_ERROR",
-                f"template engine_type {template.engine_type!r} does not match "
-                f"cluster engine_type {cluster.engine_type!r}",
-                False,
-            )
-
-        # Preflight E — oversized query set (spec §10 threat 3 / GPT-5.5 cycle 1 F3).
-        count = await repo.count_queries_in_set(db, body.query_set_id)
-        if count > 10_000:
-            raise _err(
-                422,
-                "VALIDATION_ERROR",
-                f"query set has {count} queries; max 10000 allowed for LLM generation",
-                False,
-            )
-
-        # F. INSERT — catch UNIQUE name collision.
-        judgment_list_id = str(uuid.uuid4())
-        try:
-            await repo.create_judgment_list(
-                db,
-                id=judgment_list_id,
+        result = await start_judgment_generation(
+            db=db,
+            redis=redis_client,
+            arq_pool=arq_pool,
+            settings=settings,
+            req=JudgmentGenerationRequest(
                 name=body.name,
                 description=body.description,
                 query_set_id=body.query_set_id,
@@ -328,25 +191,11 @@ async def generate_judgments(
                 target=body.target,
                 current_template_id=body.current_template_id,
                 rubric=body.rubric,
-                status="generating",
-                failed_reason=None,
-                calibration=None,
-            )
-            await db.commit()
-        except IntegrityError as exc:
-            await db.rollback()
-            raise _err(
-                409,
-                "JUDGMENT_LIST_NAME_TAKEN",
-                f"judgment list name {body.name!r} already exists",
-                False,
-            ) from exc
-
-        await _enqueue_generate(request, judgment_list_id)
-
+            ),
+        )
         return GenerateJudgmentsResponse(
-            judgment_list_id=judgment_list_id,
-            status="generating",
+            judgment_list_id=result.judgment_list_id,
+            status=result.status,
         )
     finally:
         if redis_client is not None:

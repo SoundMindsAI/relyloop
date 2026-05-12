@@ -43,6 +43,36 @@ from backend.app.agent.tools.clusters.list_clusters import (
     ListClustersArgs,
     list_clusters_impl,
 )
+from backend.app.agent.tools.judgments.generate_judgments_llm import (
+    GENERATE_JUDGMENTS_LLM_TOOL,
+    GenerateJudgmentsLLMArgs,
+    generate_judgments_llm_impl,
+)
+from backend.app.agent.tools.judgments.get_calibration import (
+    GET_CALIBRATION_TOOL,
+    GetCalibrationArgs,
+    get_calibration_impl,
+)
+from backend.app.agent.tools.queries.run_query import (
+    RUN_QUERY_TOOL,
+    RunQueryArgs,
+    run_query_impl,
+)
+from backend.app.agent.tools.query_sets.create_query_set import (
+    CREATE_QUERY_SET_TOOL,
+    CreateQuerySetArgs,
+    create_query_set_impl,
+)
+from backend.app.agent.tools.query_sets.import_queries_from_csv import (
+    IMPORT_QUERIES_FROM_CSV_TOOL,
+    ImportQueriesFromCsvArgs,
+    import_queries_from_csv_impl,
+)
+from backend.app.agent.tools.query_sets.list_query_sets import (
+    LIST_QUERY_SETS_TOOL,
+    ListQuerySetsArgs,
+    list_query_sets_impl,
+)
 from backend.app.agent.tools.templates.get_template import (
     GET_TEMPLATE_TOOL,
     GetTemplateArgs,
@@ -69,28 +99,53 @@ ToolImpl = Callable[[Any, ToolContext], Awaitable[dict[str, Any]]]
 
 
 TOOLS: list[ChatCompletionToolParam] = [
+    # Cluster + schema (Story 2.1)
     LIST_CLUSTERS_TOOL,
     GET_CLUSTER_TOOL,
     GET_SCHEMA_TOOL,
+    # Templates (Story 2.1)
     LIST_TEMPLATES_TOOL,
     GET_TEMPLATE_TOOL,
-    # Story 2.2 appends 6 more, Story 2.3 appends 3 more, Story 2.4 appends 5 more.
+    # Query sets + judgments + run_query (Story 2.2)
+    LIST_QUERY_SETS_TOOL,
+    CREATE_QUERY_SET_TOOL,
+    IMPORT_QUERIES_FROM_CSV_TOOL,
+    GENERATE_JUDGMENTS_LLM_TOOL,
+    GET_CALIBRATION_TOOL,
+    RUN_QUERY_TOOL,
+    # Story 2.3 appends 3 more, Story 2.4 appends 5 more.
 ]
 
 TOOL_REGISTRY: dict[str, ToolImpl] = {
+    # Story 2.1
     "list_clusters": list_clusters_impl,
     "get_cluster": get_cluster_impl,
     "get_schema": get_schema_impl,
     "list_templates": list_templates_impl,
     "get_template": get_template_impl,
+    # Story 2.2
+    "list_query_sets": list_query_sets_impl,
+    "create_query_set": create_query_set_impl,
+    "import_queries_from_csv": import_queries_from_csv_impl,
+    "generate_judgments_llm": generate_judgments_llm_impl,
+    "get_calibration": get_calibration_impl,
+    "run_query": run_query_impl,
 }
 
 TOOL_ARG_MODELS: dict[str, type[BaseModel]] = {
+    # Story 2.1
     "list_clusters": ListClustersArgs,
     "get_cluster": GetClusterArgs,
     "get_schema": GetSchemaArgs,
     "list_templates": ListTemplatesArgs,
     "get_template": GetTemplateArgs,
+    # Story 2.2
+    "list_query_sets": ListQuerySetsArgs,
+    "create_query_set": CreateQuerySetArgs,
+    "import_queries_from_csv": ImportQueriesFromCsvArgs,
+    "generate_judgments_llm": GenerateJudgmentsLLMArgs,
+    "get_calibration": GetCalibrationArgs,
+    "run_query": RunQueryArgs,
 }
 
 

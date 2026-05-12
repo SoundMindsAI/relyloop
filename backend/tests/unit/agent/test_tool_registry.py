@@ -20,14 +20,14 @@ from backend.app.agent.tools import (
     TOOLS,
 )
 
-EXPECTED_TOOL_COUNT_AFTER_STORY_2_1 = 5
+EXPECTED_TOOL_COUNT_AFTER_STORY_2_2 = 11
 
 
-def test_tool_registry_count_after_story_2_1() -> None:
-    """Story 2.1 ships exactly 5 tools (3 cluster + 2 template). Updated by 2.2-2.4."""
-    assert len(TOOLS) == EXPECTED_TOOL_COUNT_AFTER_STORY_2_1
-    assert len(TOOL_REGISTRY) == EXPECTED_TOOL_COUNT_AFTER_STORY_2_1
-    assert len(TOOL_ARG_MODELS) == EXPECTED_TOOL_COUNT_AFTER_STORY_2_1
+def test_tool_registry_count_after_story_2_2() -> None:
+    """Story 2.2 brings the registry to 11 tools (5 from 2.1 + 6 new). Updated by 2.3, 2.4."""
+    assert len(TOOLS) == EXPECTED_TOOL_COUNT_AFTER_STORY_2_2
+    assert len(TOOL_REGISTRY) == EXPECTED_TOOL_COUNT_AFTER_STORY_2_2
+    assert len(TOOL_ARG_MODELS) == EXPECTED_TOOL_COUNT_AFTER_STORY_2_2
 
 
 def test_tool_definitions_are_well_formed() -> None:
