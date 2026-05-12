@@ -167,6 +167,19 @@ class Settings(BaseSettings):
         "False at MVP3 hardening so production deployments can't accidentally point "
         "at internal hosts.",
     )
+    # Comma-separated list of allowed CORS origins for the browser UI.
+    # Default covers the Next dev server (localhost:3000) and the same host
+    # via LAN IP (Next prints both URLs on startup). Operators add their
+    # production origin when MVP3 staging lands. Empty string disables CORS.
+    cors_allow_origins: str = Field(
+        default="http://localhost:3000,http://127.0.0.1:3000",
+        description=(
+            "Comma-separated list of origins the API permits in the "
+            "Access-Control-Allow-Origin response header. MVP1 default "
+            "covers the local Next dev server. Set to empty string to "
+            "disable CORS entirely."
+        ),
+    )
     # feat_study_lifecycle Phase 2 fallbacks. The API layer does NOT
     # materialize these into the stored `studies.config` JSONB — the keys
     # stay omitted so `infra_optuna_eval`'s pruner key-presence contract
