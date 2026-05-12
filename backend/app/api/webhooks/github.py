@@ -102,7 +102,7 @@ async def github_webhook(
     body = await request.body()
 
     try:
-        payload: dict[str, Any] = json.loads(body) if body else {}
+        parsed_body: Any = json.loads(body) if body else {}
     except json.JSONDecodeError:
         # Malformed JSON from a verified-signature payload is unexpected —
         # treat as a signature failure (we can't validate intent without
@@ -111,10 +111,22 @@ async def github_webhook(
         logger.warning(
             "webhook_invalid_signature",
             delivery_id=delivery_id,
-            event=event_type,
+            gh_event=event_type,
             reason="malformed_payload",
         )
         raise _invalid_signature() from None
+    if not isinstance(parsed_body, dict):
+        # GPT-5.5 final-review F2 — a valid JSON non-object (e.g. ``[]``,
+        # ``"foo"``, ``null``) would crash payload.get(...) with
+        # AttributeError → 500. Treat as signature failure.
+        logger.warning(
+            "webhook_invalid_signature",
+            delivery_id=delivery_id,
+            gh_event=event_type,
+            reason="non_object_payload",
+        )
+        raise _invalid_signature()
+    payload: dict[str, Any] = parsed_body
 
     full_name = ""
     repository = payload.get("repository")
@@ -127,7 +139,7 @@ async def github_webhook(
         logger.warning(
             "webhook_invalid_signature",
             delivery_id=delivery_id,
-            event=event_type,
+            gh_event=event_type,
             reason="unparseable_repository",
         )
         raise _invalid_signature()
@@ -137,7 +149,7 @@ async def github_webhook(
         logger.warning(
             "webhook_invalid_signature",
             delivery_id=delivery_id,
-            event=event_type,
+            gh_event=event_type,
             reason="unknown_repo",
         )
         raise _invalid_signature()
@@ -147,7 +159,7 @@ async def github_webhook(
         logger.warning(
             "webhook_invalid_signature",
             delivery_id=delivery_id,
-            event=event_type,
+            gh_event=event_type,
             reason="bad_signature",
         )
         raise _invalid_signature()
@@ -167,10 +179,17 @@ async def github_webhook(
         else:
             proposal_id = proposal_row.id
             if decision.mutation == "merged":
-                assert decision.pr_merged_at is not None  # noqa: S101
-                await repo.mark_proposal_pr_merged(
-                    db, proposal_id, pr_merged_at=decision.pr_merged_at
-                )
+                # GPT-5.5 final-review F3 — GitHub eventual-consistency
+                # can yield merged=true with merged_at missing/null.
+                # Fall back to closed-state mutation (PR is no longer open)
+                # rather than crash the receiver; the polling reconciler
+                # will catch up on the merged_at value on the next tick.
+                if decision.pr_merged_at is None:
+                    await repo.mark_proposal_pr_closed(db, proposal_id)
+                else:
+                    await repo.mark_proposal_pr_merged(
+                        db, proposal_id, pr_merged_at=decision.pr_merged_at
+                    )
             elif decision.mutation == "closed":
                 await repo.mark_proposal_pr_closed(db, proposal_id)
             elif decision.mutation == "reopened":
@@ -180,7 +199,7 @@ async def github_webhook(
     logger.info(
         "webhook_received",
         delivery_id=delivery_id,
-        event=event_type,
+        gh_event=event_type,
         action=wire_action,
         proposal_id=proposal_id,
         result=wire_action,

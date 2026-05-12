@@ -430,6 +430,76 @@ async def test_webhook_unknown_repo_returns_403(
     assert response.json()["detail"]["error_code"] == "INVALID_SIGNATURE"
 
 
+async def test_webhook_non_object_json_returns_403(
+    async_client: httpx.AsyncClient,
+    webhook_env: dict[str, str],
+) -> None:
+    """GPT-5.5 final-review F2 — a JSON array / scalar payload returns 403, not 500.
+
+    Without the ``isinstance(parsed_body, dict)`` guard the handler hits
+    ``payload.get(...)`` on a list and raises ``AttributeError`` → 500.
+    """
+    body = b"[]"
+    response = await async_client.post(
+        "/webhooks/github",
+        content=body,
+        headers={
+            "X-GitHub-Event": "pull_request",
+            "X-GitHub-Delivery": "delivery-non-object",
+            "X-Hub-Signature-256": _signature(body),
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 403
+    assert response.json()["detail"]["error_code"] == "INVALID_SIGNATURE"
+
+
+async def test_webhook_pr_merged_with_missing_merged_at_does_not_500(
+    async_client: httpx.AsyncClient,
+    webhook_env: dict[str, str],
+) -> None:
+    """GPT-5.5 final-review F3 — merged=true with merged_at=null falls back to closed.
+
+    GitHub's eventual consistency can emit a closed+merged delivery with
+    ``merged_at: null``. The handler must NOT 500. It should transition
+    the proposal to ``pr_state="closed"`` (status stays pr_opened) —
+    the polling reconciler catches up on the merged_at value next tick.
+    """
+    pr_url = f"https://github.com/{_OWNER}/{_REPO}/pull/{uuid.uuid4().int % 10_000}"
+    pid = await _seed_pr_opened_proposal(pr_url=pr_url)
+
+    payload: dict[str, object] = {
+        "action": "closed",
+        "repository": {"full_name": f"{_OWNER}/{_REPO}"},
+        "pull_request": {
+            "html_url": pr_url,
+            "merged": True,
+            "merged_at": None,
+        },
+    }
+    body = json.dumps(payload).encode("utf-8")
+    response = await async_client.post(
+        "/webhooks/github",
+        content=body,
+        headers={
+            "X-GitHub-Event": "pull_request",
+            "X-GitHub-Delivery": "delivery-merged-no-timestamp",
+            "X-Hub-Signature-256": _signature(body),
+            "Content-Type": "application/json",
+        },
+    )
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok", "action": "applied"}
+
+    factory = get_session_factory()
+    async with factory() as db:
+        row = await repo.get_proposal(db, pid)
+    assert row is not None
+    # Fallback path: status stays pr_opened, pr_state flips to closed.
+    assert row.status == "pr_opened"
+    assert row.pr_state == "closed"
+
+
 async def test_webhook_logs_structured_fields(
     async_client: httpx.AsyncClient,
     webhook_env: dict[str, str],
