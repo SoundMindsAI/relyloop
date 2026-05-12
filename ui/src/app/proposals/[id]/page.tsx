@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/common/empty-state';
 import { ConfigDiffPanel } from '@/components/proposals/config-diff-panel';
 import { PrPanel } from '@/components/proposals/pr-panel';
 import { ProposalHeader } from '@/components/proposals/proposal-header';
+import { RejectDialog } from '@/components/proposals/reject-dialog';
 import { SuggestedFollowupsPanel } from '@/components/proposals/suggested-followups-panel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOpenPR, useProposal } from '@/lib/api/proposals';
@@ -175,12 +176,20 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
               })()}
             </CardContent>
           </Card>
-          <PrPanel
-            proposal={proposalQ.data}
-            onOpenPR={fireOpenPR}
-            openPrIsPending={openPrMutationPending || effectivePollingFlag}
-          />
-          {/* RejectDialog lands in Story 3.3 */}
+          <div className="flex items-start gap-3">
+            <div className="flex-1">
+              <PrPanel
+                proposal={proposalQ.data}
+                onOpenPR={fireOpenPR}
+                openPrIsPending={openPrMutationPending || effectivePollingFlag}
+              />
+            </div>
+            {proposalQ.data.status === 'pending' && (
+              <div className="pt-12">
+                <RejectDialog proposal={proposalQ.data} />
+              </div>
+            )}
+          </div>
           {proposalQ.data.digest?.suggested_followups &&
             proposalQ.data.digest.suggested_followups.length > 0 && (
               <SuggestedFollowupsPanel followups={proposalQ.data.digest.suggested_followups} />
