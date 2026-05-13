@@ -16,7 +16,9 @@ help:  ## Show this help message
 	@grep -hE '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@echo ""
-	@echo "Conventional flow: make up → make migrate → curl localhost:8000/healthz"
+	@echo "Conventional flow: make up → curl localhost:8000/healthz"
+	@echo "(make migrate is now run automatically by the migrate init container at boot;"
+	@echo " invoke manually only to apply a freshly-authored revision without bouncing.)"
 	@echo ""
 
 # ---------- Code quality ----------

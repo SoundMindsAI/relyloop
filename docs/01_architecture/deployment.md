@@ -33,11 +33,23 @@ services:
       interval: 5s
       retries: 10
 
+  migrate:
+    # Init container — bug_worker_optuna_init_race. Runs alembic + optuna_schema
+    # once at boot, then exits. api + worker block on its successful completion
+    # via `service_completed_successfully`.
+    image: relyloop/api:latest
+    command: ["sh", "-c", "alembic upgrade head && python -m backend.app.db.optuna_schema"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    secrets: [database_url, postgres_password]
+    restart: "no"
+
   api:
     image: relyloop/api:latest
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
     environment:
       # Pydantic Settings reads `*_FILE`-suffixed vars and substitutes the file content.
       DATABASE_URL_FILE: /run/secrets/database_url
@@ -59,6 +71,7 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
     environment:
       DATABASE_URL_FILE: /run/secrets/database_url
       REDIS_URL: redis://redis:6379/0
@@ -208,7 +221,7 @@ make up
 make up            # docker compose up -d (builds ui image on first run)
 make logs          # docker compose logs -f api worker
 make down          # docker compose stop
-make migrate       # alembic upgrade head (in api container)
+make migrate       # alembic upgrade head + optuna_schema — idempotent (also runs automatically via the migrate init container at boot)
 make seed-clusters # populate local-es + local-opensearch as cluster rows
 make seed-es       # seed local-es 'products' index from samples/products.json
 
