@@ -216,7 +216,10 @@ async def test_ac_25_since_lower_bound_inclusive(async_client: httpx.AsyncClient
     # Subtract 1ms so the ?since boundary is strictly before q[2].
     since_iso = datetime.fromtimestamp((ts_ms - 1) / 1000.0, tz=UTC).isoformat()
 
-    resp = await async_client.get(f"/api/v1/query-sets/{set_id}/queries?since={since_iso}")
+    resp = await async_client.get(
+        f"/api/v1/query-sets/{set_id}/queries",
+        params={"since": since_iso},
+    )
     assert resp.status_code == 200
     body = resp.json()
     returned_ids = [r["id"] for r in body["data"]]
@@ -237,7 +240,10 @@ async def test_ac_26_since_plus_cursor_compose(async_client: httpx.AsyncClient) 
     ts_ms = int(hex_no_dashes[:12], 16)
     since_iso = datetime.fromtimestamp(ts_ms / 1000.0, tz=UTC).isoformat()
 
-    resp1 = await async_client.get(f"/api/v1/query-sets/{set_id}/queries?since={since_iso}&limit=3")
+    resp1 = await async_client.get(
+        f"/api/v1/query-sets/{set_id}/queries",
+        params={"since": since_iso, "limit": 3},
+    )
     assert resp1.status_code == 200
     body1 = resp1.json()
     page1_ids = [r["id"] for r in body1["data"]]
@@ -246,7 +252,8 @@ async def test_ac_26_since_plus_cursor_compose(async_client: httpx.AsyncClient) 
     assert query_ids[0] not in page1_ids
 
     resp2 = await async_client.get(
-        f"/api/v1/query-sets/{set_id}/queries?since={since_iso}&limit=3&cursor={body1['next_cursor']}"
+        f"/api/v1/query-sets/{set_id}/queries",
+        params={"since": since_iso, "limit": 3, "cursor": body1["next_cursor"]},
     )
     assert resp2.status_code == 200
     body2 = resp2.json()
