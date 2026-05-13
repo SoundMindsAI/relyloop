@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Features done | **14 / 14** (100%) |
-| Path to MVP1 | **20** items remaining (features + bugs + chores) |
+| Features done | **16 / 16** (100%) |
+| Path to MVP1 | **19** items remaining (features + bugs + chores) |
 | Open bugs | 5 |
-| Open chores | 15 (idea-stage debt) |
-| Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
+| Open chores | 14 (idea-stage debt) |
+| Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (17)
+### Done (19)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -36,7 +36,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
+| [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
+| [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | Complete | — | Complete |
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
@@ -55,13 +57,12 @@ _None._
 
 _None._
 
-### Idea (24)
+### Idea (22)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [infra_ci_smoke_makeup](../02_product/planned_features/infra_ci_smoke_makeup/idea.md) | Infra | CI runs `make test-unit && make test-integration && make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure | — | Idea — captured during `infra_foundation` PR #4 first-run testing |
-| [infra_nvmrc](../02_product/planned_features/infra_nvmrc/idea.md) | Infra | - `ui/package.json` engines: `"node": ">=20.18"`, verified on Node 22.22.2 per `state.md`. - No `.nvmrc` file at repo root or under `ui/`. - Default shell may have an older nvm-active Node (Node 18 in | — | — |
 | [infra_per_trial_timeout](../02_product/planned_features/infra_per_trial_timeout/idea.md) | Infra | `Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 GPT-5.5 review cycle 2) |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_cluster_delete_ui](../02_product/planned_features/chore_cluster_delete_ui/idea.md) | Chore | The `/clusters` list page (Story 2.1) and `/clusters/{id}` detail page render registered clusters fine, but there is no Delete button. When an operator registers a cluster with stale credentials or a  | — | Idea — gap surfaced during `feat_studies_ui` first-run testing (2026-05-12 after PR #50 + the CORS fix landed). |
@@ -71,7 +72,6 @@ _None._
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
 | [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [chore_proposals_list_wire_param_e2e_test](../02_product/planned_features/chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting: | — | Idea — deferred from `feat_proposals_ui` final GPT-5.5 review (finding #4) |
-| [chore_proposals_page_usememo_deps](../02_product/planned_features/chore_proposals_page_usememo_deps/idea.md) | Chore | `pnpm lint` emits one new warning on the proposals list page: | — | Idea — deferred from `feat_proposals_ui` tangential sweep |
 | [chore_proposals_source_filter_server_side](../02_product/planned_features/chore_proposals_source_filter_server_side/idea.md) | Chore | The proposals list page at `/proposals` ships with a three-state source filter chip group (`all` / `study` / `manual`) shipped in `feat_proposals_ui` Story 1.2. Because the backend `GET /api/v1/propos | — | Idea — deferred follow-up from `feat_proposals_ui` |
 | [chore_query_inline_edit_delete](../02_product/planned_features/chore_query_inline_edit_delete/idea.md) | Chore | The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries ei | — | — |
 | [chore_spec_trial_created_at_drift](../02_product/planned_features/chore_spec_trial_created_at_drift/idea.md) | Chore | `feat_study_lifecycle/feature_spec.md` §7.4 defines wire values for the trials list `?sort=` query parameter: | — | — |
@@ -121,8 +121,12 @@ graph LR
   class feat_studies_ui done;
   infra_frontend_stack_refresh["frontend stack refresh"]
   class infra_frontend_stack_refresh done;
+  chore_proposals_page_usememo_deps["proposals page usememo deps"]
+  class chore_proposals_page_usememo_deps done;
   chore_starlette_422_deprecation["starlette 422 deprecation"]
   class chore_starlette_422_deprecation done;
+  infra_nvmrc["nvmrc"]
+  class infra_nvmrc done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -139,6 +143,7 @@ graph LR
   infra_adapter_elastic --> chore_tutorial_polish
   infra_foundation --> chore_tutorial_polish
   infra_frontend_stack_refresh --> chore_tutorial_polish
+  infra_nvmrc --> chore_tutorial_polish
   infra_optuna_eval --> chore_tutorial_polish
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
@@ -150,6 +155,7 @@ graph LR
   infra_adapter_elastic --> feat_chat_agent
   infra_foundation --> feat_chat_agent
   infra_frontend_stack_refresh --> feat_chat_agent
+  infra_nvmrc --> feat_chat_agent
   infra_optuna_eval --> feat_chat_agent
   infra_foundation --> feat_github_pr_worker
   infra_adapter_elastic --> feat_github_pr_worker

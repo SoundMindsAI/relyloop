@@ -85,16 +85,14 @@ function ProposalsPageInner() {
     setCursorStack([undefined]);
   }
 
-  const rows = query.data?.data ?? [];
-  const visibleRows = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (sourceFilter === 'all') return true;
-        if (sourceFilter === 'study') return r.study_id != null;
-        return r.study_id == null;
-      }),
-    [rows, sourceFilter],
-  );
+  const visibleRows = useMemo(() => {
+    const rows = query.data?.data ?? [];
+    return rows.filter((r) => {
+      if (sourceFilter === 'all') return true;
+      if (sourceFilter === 'study') return r.study_id != null;
+      return r.study_id == null;
+    });
+  }, [query.data, sourceFilter]);
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-6">
