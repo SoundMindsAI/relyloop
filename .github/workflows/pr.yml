@@ -44,6 +44,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  secrets-files-guard:
+    # bug_env_file_corrupted_during_session — defense-in-depth.
+    # Fails the PR if a `.env`-family file other than `.env.example` is
+    # added or modified. Catches the failure mode where .gitignore is
+    # regressed or `git add -f` is used. Runs in parallel with the heavy
+    # jobs and finishes in <30s.
+    name: secrets files guard (no .env* except .env.example)
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Need enough history for `git diff origin/<base>...HEAD` and
+          # `git diff HEAD~1 HEAD` to resolve.
+          fetch-depth: 50
+
+      - name: Self-test guard against canned inputs
+        run: bash scripts/ci/test_check_no_env_files.sh
+
+      - name: Verify no forbidden .env* files in diff
+        run: bash scripts/ci/check-no-env-files.sh
+
   backend:
     name: backend (lint + typecheck + tests + coverage)
     runs-on: ubuntu-latest
