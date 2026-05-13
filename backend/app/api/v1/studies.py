@@ -360,8 +360,8 @@ _ALLOWED_SORT_KEYS = frozenset(
     {
         "primary_metric_desc",
         "primary_metric_asc",
-        "created_at_desc",
-        "created_at_asc",
+        "ended_at_desc",
+        "ended_at_asc",
         "optuna_trial_number_asc",
     }
 )
@@ -384,7 +384,7 @@ async def list_study_trials(
     """List trials in a study (FR-6).
 
     Sort variants per spec §7.4: ``primary_metric_desc`` (default),
-    ``primary_metric_asc``, ``created_at_desc``, ``created_at_asc``,
+    ``primary_metric_asc``, ``ended_at_desc``, ``ended_at_asc``,
     ``optuna_trial_number_asc``.
     """
     if sort not in _ALLOWED_SORT_KEYS:

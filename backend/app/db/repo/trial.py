@@ -5,7 +5,7 @@ Phase 2 extends with:
 
 - :func:`list_trials_paginated` — cursor-paginated, sortable by 5 wire
   values per spec §7.4 (``primary_metric_desc | primary_metric_asc |
-  created_at_desc | created_at_asc | optuna_trial_number_asc``).
+  ended_at_desc | ended_at_asc | optuna_trial_number_asc``).
 - :func:`count_trials` — COUNT(*) for the X-Total-Count header (FR-6).
 - :func:`aggregate_trials_summary` — single-query aggregation for
   ``GET /studies/{id}.trials_summary`` per FR-1.
@@ -32,8 +32,8 @@ from backend.app.db.models import Trial
 TrialSortKey = Literal[
     "primary_metric_desc",
     "primary_metric_asc",
-    "created_at_desc",
-    "created_at_asc",
+    "ended_at_desc",
+    "ended_at_asc",
     "optuna_trial_number_asc",
 ]
 
@@ -140,9 +140,10 @@ async def list_trials_paginated(
                 )
             else:
                 stmt = stmt.where(and_(Trial.primary_metric.is_(None), Trial.id > cid))
-    elif sort_key == "created_at_desc":
-        # Trials don't have created_at; use ended_at as proxy for "when did
-        # the trial finish" (the user-meaningful timestamp).
+    elif sort_key == "ended_at_desc":
+        # Sort by ended_at (when the trial finished). Renamed from
+        # created_at_* to match the actual underlying column per
+        # chore_spec_trial_created_at_drift (no created_at column exists).
         order = (Trial.ended_at.desc().nulls_last(), Trial.id.desc())
         if cursor is not None:
             cval, cid = cursor
@@ -152,7 +153,7 @@ async def list_trials_paginated(
                     and_(Trial.ended_at == cval, Trial.id < cid),
                 )
             )
-    elif sort_key == "created_at_asc":
+    elif sort_key == "ended_at_asc":
         order = (Trial.ended_at.asc().nulls_last(), Trial.id.asc())
         if cursor is not None:
             cval, cid = cursor
