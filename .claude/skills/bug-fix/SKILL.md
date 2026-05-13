@@ -60,17 +60,50 @@ proceed if the current phase fails. The whole flow is meant to land in
 1. Read the bug folder's `idea.md` in full. List sibling files
    (`ls <folder>/`); if `bug_fix.md` already exists, this is a re-entry
    — read it and resume from whichever phase last completed.
-2. Read CLAUDE.md, architecture.md, state.md.
-3. Run the "When to use" table against the bug. If it doesn't sit in
+2. **Preflight freshness check.** The `idea.md` may have been written
+   weeks or months ago and quietly drifted from the current code.
+   Evaluate these signals **in order; the first match wins**:
+   - `git status <folder>/idea.md` — any uncommitted `M` → preflight is
+     already in flight (or someone just edited the file). **Skip.**
+   - `git log --since="2 weeks ago" -- <folder>/idea.md` — at least
+     one commit touching idea.md → recently refreshed. **Skip.**
+   - Idea frontmatter `**Date:**` ≤ 2 weeks old → too fresh to justify
+     ceremony. **Skip.**
+   - Idea frontmatter 2–4 weeks old AND no recent commits → **Ask
+     user** ("preflight first?"); recommend yes if anything in the idea
+     references file:line specifics that may have shifted.
+   - Idea frontmatter > 4 weeks old AND no recent commits → idea is
+     stale-by-default. **Recommend preflight**; if autonomous-mode is
+     on, default to "yes, run preflight."
+
+   If the decision is "run preflight," invoke `/idea-preflight` via the
+   `Skill` tool on the same folder, wait for completion, then resume at
+   step 3 below — the post-preflight idea.md is the working content.
+3. Read CLAUDE.md, architecture.md, state.md.
+4. Run the "When to use" table against the bug. If it doesn't sit in
    the **Medium** row, stop and recommend the right alternative.
-4. Confirm the prefix is `bug_`. If the folder is `chore_` or `infra_`
+5. **Release-window check.** Look for `pre-MVP<N>`, `MVP<N>+`, or
+   `deferred until <release>` markers in the idea's frontmatter, "Why
+   deferred" section, or `**Type:**` line. If present, compare against:
+   - current release: read from `state.md` "Last updated" + "Active
+     feature" lines
+   - canonical release matrix: `CLAUDE.md` § release matrix table
+     (pointer to `docs/01_architecture/tech-stack.md`)
+
+   If we haven't reached that window, stop and surface: "this bug is
+   tagged for MVP<N>; we're currently on MVP<N-1>. Pull forward, or
+   defer?" Don't pull MVP-N work into MVP-(N-1) without an explicit
+   user "yes."
+6. Confirm the prefix is `bug_`. If the folder is `chore_` or `infra_`
    but the work is actually a bug fix, surface and ask the user
    whether to rename via `git mv` before continuing.
 
 **Phase 1 gate:** the skill confirms with the user (or auto-detects
-from clear signals) that medium-bug scope applies before any code is
-touched. Trivial-scope or feature-scope detection terminates the skill
-with a redirect, not with `bug_fix.md`.
+from clear signals) that medium-bug scope applies, the idea is fresh
+enough to trust, AND the bug is in-window for the current release
+before any code is touched. Trivial-scope, feature-scope, stale-idea,
+or out-of-window detection terminates the skill with a redirect — not
+with `bug_fix.md`.
 
 ### Phase 2 — Reproduce first
 
@@ -157,7 +190,12 @@ artifact first then the code.
 1. **Write `bug_fix.md`** at `docs/02_product/planned_features/<bug_folder>/bug_fix.md`
    using the template below. Keep it tight — the target is ~80 lines.
    Anything that would push past 150 lines is a signal the bug should
-   have been a feature; escalate to /pipeline.
+   have been a feature; escalate to /pipeline. **The 150-line cap
+   applies to Default-mode final output** (Problem + Repro + Root cause
+   + locked Fix design + Regression test + Rollout). Investigation-mode
+   partials may approach 150 lines simply because TBD sections need
+   explanatory prose; that's expected and not a /pipeline-escalation
+   signal on its own.
 2. **Implement the fix** in the smallest scope that addresses the root
    cause. Don't refactor surrounding code, don't add features, don't
    harden unrelated paths (per CLAUDE.md "Don't add features beyond
