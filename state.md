@@ -2,14 +2,14 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-13 (after pre-MVP2 backlog sweep — 9 items resolved across 6 PRs; `/bug-fix` skill added)
+**Last updated:** 2026-05-13 (after pre-MVP2 backlog sweep Wave 2 — **14 items resolved across 9 PRs**; `/bug-fix` skill added)
 
 ---
 
 ## Current branch / execution context
 
 - **Branch:** `main` (post-merge). `v0.1.0` annotated tag pushed on commit `d099536` on 2026-05-13; GitHub Release published at https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0.
-- **Active feature:** none in flight. **MVP1 alpha shipped + 9 backlog items drained in the pre-MVP2 sweep.** Story 4.6 (demo screencast) deferred to MVP3 per [`chore_demo_recording_mvp3`](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md). Manual maintainer steps still pending from [`release-checklist.md`](docs/03_runbooks/release-checklist.md): §4 fresh-VM hosted-OpenAI walkthrough, §5 local-LLM walkthrough, §8 feedback Discussion + design-partner channel shares. **Remaining backlog (~16 actionable items):** 6 inline-fix chores (bug_judgment_template_default_params, chore_cluster_delete_ui, chore_infra_foundation_github_token_file_retirement (~80 LOC), chore_openapi_contract_validation, chore_proposals_list_wire_param_e2e_test, infra_per_trial_timeout); 3 `/bug-fix` candidates (bug_chat_long_conversation_truncation Investigation done — ready for Default mode, bug_worker_optuna_init_race, bug_digest_param_importance_seam); 7 items the Explore agent triaged as `/pipeline`-scope (need a second-pass — most are probably `/bug-fix` scope on closer reading). Plus 4 keep-deferred items by operator decision.
+- **Active feature:** none in flight. **MVP1 alpha shipped + 14 backlog items drained across two waves of the pre-MVP2 sweep.** Story 4.6 (demo screencast) deferred to MVP3 per [`chore_demo_recording_mvp3`](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md). Manual maintainer steps still pending from [`release-checklist.md`](docs/03_runbooks/release-checklist.md): §4 fresh-VM hosted-OpenAI walkthrough, §5 local-LLM walkthrough, §8 feedback Discussion + design-partner channel shares. **Remaining backlog after Wave 2 (~11 actionable items):** 4 inline-fix items (bug_judgment_template_default_params_contract, chore_cluster_delete_ui, chore_infra_foundation_github_token_file_retirement (~80 LOC, biggest), infra_per_trial_timeout); 5 `/bug-fix` candidates (bug_chat_long_conversation_truncation Investigation done — ready for Default mode, bug_worker_optuna_init_race, bug_digest_param_importance_seam, chore_chat_last_message_preview, chore_judgments_periodic_resume_sweep — moved here from inline after re-read found design surface); 2 `/pipeline` candidates (chore_cluster_run_query_history, chore_query_inline_edit_delete — both confirmed feature-scale: schema + endpoint + UI). Plus 4 keep-deferred items by operator decision.
 - **Alembic head:** `0007_conversations_messages`.
 - **Python:** 3.13.
 - **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat config), TypeScript 6, jsdom 29, Node engine `>=20.18`.
@@ -17,7 +17,12 @@
 
 ## Most recent meaningful changes (newest first)
 
-- **2026-05-13 — pre-MVP2 backlog sweep (9 items resolved, 6 PRs).** First session of draining the `docs/02_product/planned_features/` backlog before MVP2 starts. **Resolved:**
+- **2026-05-13 — pre-MVP2 backlog sweep Wave 2 (5 more items resolved, 3 PRs).** After Wave 1 (PRs #75-#80, 9 items), a second Explore-agent triage pass re-classified the 7 items originally routed to `/pipeline` — found that 5 of them were actually inline-fix / done-or-superseded scope. Wave 2 PRs:
+  - PR #82 — `chore_test_both_engines` (parametrize cluster integration tests over ES + OpenSearch; 21 → 35 tests) + `infra_ci_smoke_makeup` (already done by `chore_tutorial_polish` PR #64's smoke job; archive only).
+  - PR #83 — `chore_proposals_source_filter_server_side` (`?source=study|manual` server-side filter on `GET /api/v1/proposals`; drops client-side `matchesSourceFilter` + `visibleRows` useMemo). Test rewrite asserts the server-side contract.
+  - PR #84 — `chore_openapi_contract_validation` (new `backend/tests/contract/test_openapi_surface.py` with 83 cases over 41 endpoints; catches endpoint deletion, response_model bypass, orphan paths; lighter than the original idea's strict-jsonschema approach — Pydantic round-trip in integration tests already enforces shape contracts) + `chore_proposals_list_wire_param_e2e_test` (subscriber-based `useSearchParams` mock + new wire-param round-trip test).
+  - Gemini caught 2 substantive findings this wave: time.monotonic() vs time.time() on PR #79's smoke timeout (accepted), and (method, path)-pair orphan check on PR #84 (accepted).
+- **2026-05-13 — pre-MVP2 backlog sweep Wave 1 (9 items resolved, 6 PRs).** First session of draining the `docs/02_product/planned_features/` backlog before MVP2 starts. **Resolved:**
   - `bug_dockerfile_missing_prompts` (archived; fixed in PR #60) — PR #75
   - `bug_test_smoke_requires_env_vars` + `chore_starlette_422_deprecation` (backend hygiene) — PR #76
   - `infra_nvmrc` (complete: added `ui/.npmrc` `engine-strict=true`) + `chore_proposals_page_usememo_deps` — PR #77
