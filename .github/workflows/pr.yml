@@ -277,17 +277,12 @@ jobs:
           curl -s http://127.0.0.1:8000/healthz || true
           exit 1
 
-      - name: Apply migrations
+      # Migrations now run via the `migrate` init container at boot
+      # (bug_worker_optuna_init_race). This step is a no-op re-run that
+      # exercises the operator-facing `make migrate` target so it doesn't
+      # bit-rot. The worker comes up clean — no restart workaround needed.
+      - name: Apply migrations (no-op — init container already ran)
         run: make migrate
-
-      # The worker imports Optuna at startup, which tries to CREATE TYPE on
-      # the RDB. Before make migrate runs, that fails with InvalidSchemaName
-      # and the worker dies (no restart policy). Restart it now that the
-      # schema exists so it can consume the smoke test's queued jobs.
-      # TODO(bug_worker_optuna_init_race): tracked separately for a real fix
-      # — worker shouldn't crash at startup before migrations have run.
-      - name: Restart worker (post-migrate, so Optuna RDB schema exists)
-        run: docker compose restart worker
 
       # IMPORTANT order: seed-clusters BEFORE seed-es. seed_es.py reads
       # cluster.base_url via cluster_repo.get_active_cluster_by_name("local-es")
