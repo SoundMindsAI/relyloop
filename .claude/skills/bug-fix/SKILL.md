@@ -257,7 +257,9 @@ same way Phase 1 invokes `/idea-preflight` when the idea is stale.
    first (do NOT auto-ship a broken state).
 2. Invoke `/impl-execute --ad-hoc` via the Skill tool. Pass no arguments
    (ad-hoc mode infers everything from the current branch). The
-   invocation runs Steps 0a → 9 of the impl-execute ad-hoc flow:
+   invocation runs Steps 0a → 7 of the impl-execute ad-hoc flow
+   synchronously (Step 9 is post-merge and runs on a later invocation,
+   not as part of this one — see point 3 below):
    - **0a** Worktree pre-flight
    - **0b.1** Audit-event coverage audit (MVP2+; no-op in MVP1)
    - **2.5** Tangential observations sweep (BLOCKING — bug fixes
@@ -272,10 +274,13 @@ same way Phase 1 invokes `/idea-preflight` when the idea is stale.
    - **7** Optional GPT-5.5 final review (auto-triggered if diff
      crosses 30 LOC / 3 files OR touches studies / judgments / engine
      adapter / GitHub PR worker / migrations)
-   - **9** Post-merge cleanup (runs after the user merges)
 3. After the impl-execute invocation returns, surface the final outcome
-   to the user: PR URL, merge status, any deferred follow-up idea files
-   captured during review adjudication.
+   to the user: PR URL, CI status, review adjudication results, any
+   deferred follow-up idea files captured. Step 9 (post-merge cleanup —
+   delete local feature branch, fetch main, sweep agent worktrees) is
+   the post-merge handoff: tell the user "ping me after merge for Step
+   9 cleanup, or it'll run automatically on the next invocation in
+   this repo." Do NOT poll/sleep waiting for the merge.
 
 **`--ship`-mode gate:** the impl-execute invocation returns successfully
 (PR open + CI green + reviews adjudicated). Merge itself remains a
@@ -292,8 +297,10 @@ human action — the skill does NOT auto-merge.
   Phase 6 so a human can sanity-check the design before CI/Gemini
   spin cycles burn on a PR that may need a teardown.
 
-If the user invokes `--ship` for a bug that fits any of these, surface
-the concern and ask for explicit confirmation before proceeding.
+If the user invokes `--ship` for a bug that fits the second or third
+case above, surface the concern and ask for explicit confirmation
+before proceeding. (Investigation-mode handling is already covered by
+the silent-ignore rule — no confirmation needed.)
 
 ## `bug_fix.md` template
 
