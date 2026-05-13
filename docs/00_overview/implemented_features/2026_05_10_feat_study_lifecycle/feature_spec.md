@@ -177,7 +177,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `start_study`
 
 ### FR-6: Trials list endpoint
 - `GET /api/v1/studies/{id}/trials?cursor=<...>&limit=<...>&sort=<...>` returns paginated trials.
-- Supported `sort` values: `primary_metric_desc` (default), `primary_metric_asc`, `created_at_desc`, `created_at_asc`, `optuna_trial_number_asc`.
+- Supported `sort` values: `primary_metric_desc` (default), `primary_metric_asc`, `ended_at_desc`, `ended_at_asc`, `optuna_trial_number_asc`.
 
 ### FR-7: State-transition guard
 - The system **MUST** centralize all `studies.status` mutations in `backend/services/study_state.py`. Direct ORM writes are forbidden (enforced via a domain-layer SQLAlchemy event listener that raises `StudyStateProtectionError` on illegal direct UPDATEs).
@@ -211,7 +211,7 @@ N/A — `audit_log` lands at MVP2. When MVP2 ships, this feature's `start_study`
 | `studies.objective.metric` | `ndcg`, `map`, `precision`, `recall`, `mrr`, `err` | `backend/eval/scoring.py` (`SUPPORTED_METRICS`) |
 | `studies.objective.k` | `1`, `3`, `5`, `10`, `20`, `50`, `100` | `backend/eval/scoring.py` (`SUPPORTED_K_VALUES`) |
 | `studies.objective.direction` | `maximize`, `minimize` | `backend/db/models/study.py` (`ObjectiveDirection` `Literal[...]`) |
-| `?sort` (trials list) | `primary_metric_desc`, `primary_metric_asc`, `created_at_desc`, `created_at_asc`, `optuna_trial_number_asc` | `backend/api/studies.py` (`TrialSortKey` `Literal[...]`) |
+| `?sort` (trials list) | `primary_metric_desc`, `primary_metric_asc`, `ended_at_desc`, `ended_at_asc`, `optuna_trial_number_asc` | `backend/api/studies.py` (`TrialSortKey` `Literal[...]`) |
 
 ### 7.5 Error code catalog
 

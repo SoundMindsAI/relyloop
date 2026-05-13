@@ -26,8 +26,8 @@ export type TrialStatus = (typeof TRIAL_STATUS_VALUES)[number];
 export const TRIAL_SORT_VALUES = [
   'primary_metric_desc',
   'primary_metric_asc',
-  'created_at_desc',
-  'created_at_asc',
+  'ended_at_desc',
+  'ended_at_asc',
   'optuna_trial_number_asc',
 ] as const;
 export type TrialSort = (typeof TRIAL_SORT_VALUES)[number];
