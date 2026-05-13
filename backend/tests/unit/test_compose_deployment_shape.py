@@ -66,3 +66,25 @@ class TestApiAndWorkerDependOnMigrate:
             "will race the optuna schema (bug_worker_optuna_init_race)"
         )
         assert depends["migrate"]["condition"] == "service_completed_successfully"
+
+
+class TestLockedDesignDecisions:
+    def test_migrate_reuses_api_image(self, compose_spec: dict[str, Any]) -> None:
+        """bug_fix.md Decision #2: migrate reuses the api image — no new
+        Dockerfile, no separate build context. A future change that splits
+        migrate to its own image would silently drift past the design lock."""
+        services = compose_spec["services"]
+        assert services["migrate"]["image"] == services["api"]["image"]
+        assert services["migrate"]["build"]["context"] == services["api"]["build"]["context"]
+        assert services["migrate"]["build"]["dockerfile"] == services["api"]["build"]["dockerfile"]
+
+    def test_worker_has_no_restart_policy(self, compose_spec: dict[str, Any]) -> None:
+        """bug_fix.md Decision #5: explicitly rejected adding
+        `restart: unless-stopped` to the worker — defense-in-depth would
+        mask future genuine worker crashes. The init container removes the
+        original failure mode; any future worker crash is its own bug."""
+        worker = compose_spec["services"]["worker"]
+        assert "restart" not in worker, (
+            "worker gained a restart policy — bug_fix.md Decision #5 "
+            "explicitly rejected this to avoid masking future genuine crashes"
+        )
