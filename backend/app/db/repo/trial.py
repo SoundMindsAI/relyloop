@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
 
-from sqlalchemy import and_, case, func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Trial
@@ -206,10 +206,10 @@ async def aggregate_trials_summary(db: AsyncSession, study_id: str) -> TrialsSum
     summary = (
         select(
             func.count(Trial.id).label("total"),
-            func.count(case((Trial.status == "complete", 1))).label("complete"),
-            func.count(case((Trial.status == "failed", 1))).label("failed"),
-            func.count(case((Trial.status == "pruned", 1))).label("pruned"),
-            func.max(case((Trial.status == "complete", Trial.primary_metric))).label("best"),
+            func.count(Trial.id).filter(Trial.status == "complete").label("complete"),
+            func.count(Trial.id).filter(Trial.status == "failed").label("failed"),
+            func.count(Trial.id).filter(Trial.status == "pruned").label("pruned"),
+            func.max(Trial.primary_metric).filter(Trial.status == "complete").label("best"),
         )
         .where(Trial.study_id == study_id)
         .cte("summary")
