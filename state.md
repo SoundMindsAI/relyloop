@@ -2,7 +2,7 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-13 (after CI-speedup wave — PRs #94 / #96 / #97 cut total CI wall time from ~7m20s → ~5m55s and added a 25s unit-test fast lane; `bug_env_file_corrupted_during_session` finalized to `implemented_features/` after defense-in-depth `.env*` CI guard shipped)
+**Last updated:** 2026-05-13 (after CI-speedup + env-defense bundle wave — PRs #94 / #96 / #97 cut CI wall time ~7m20s → ~5m55s + unit-test fast lane; PR #99 bundled 3 env-defense chores: secrets-files-guard moved to its own workflow with no paths-ignore, gitleaks added to CI, deny regex broadened to non-dotted backup spellings)
 
 ---
 
@@ -17,6 +17,10 @@
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-13 — env-defense chore bundle (PR #99).** Three chores deferred from PR #94 adjudication shipped together as one PR:
+  - **`chore_ci_gitignore_paths_ignore_gap`** — `secrets-files-guard` was inheriting `pr.yml`'s `paths-ignore` and would silently skip on `.gitignore`-only or `docs/**`-only PRs. Split to a new `.github/workflows/secrets-defense.yml` with no path filter — always runs.
+  - **`chore_ci_gitleaks_workflow_step`** — gitleaks was configured in `.pre-commit-config.yaml` v8.21.2 locally but never invoked from CI. New `gitleaks` job in the same secrets-defense workflow; pinned to the same v8.21.2; uses the official binary release (not `gitleaks-action@v2`, which requires a paid `GITLEAKS_LICENSE` for private repos — confirmed `SoundMindsAI/relyloop` is private).
+  - **`chore_env_guard_extend_deny_pattern`** — broadened the env-guard deny regex to match `.env-<x>`, `.env_<x>`, `.env~<x>` (vim/emacs backup suffixes), plus parallel `.gitignore` updates. **Caught a silent regex-range trap mid-implementation:** `[._\-~]` parses as "literal `.`, `_`, then RANGE from `\` (92) to `~` (126)" — matches every letter but NOT a literal `-`. So `.env-old` slipped past while `.environment.yml` falsely matched. Fixed by moving `-` to the end of the bracket expression (`[._~-]`); documented inline. Gemini caught one Medium (Accepted: `.env~` → `.env~*` in `.gitignore` for parity with the broader regex). 23/23 regression cases green. Three folders moved to `implemented_features/`.
 - **2026-05-13 — CI-speedup wave (PRs #94, #96, #97) + `bug_env_file_corrupted_during_session` finalized.** Four PRs in one session:
   - **PR #94** — defense-in-depth `.env*` filename CI guard. New `secrets-files-guard` job in `pr.yml` + `scripts/ci/check-no-env-files.sh` (16 regression cases) rejects any PR adding/modifying a `.env`-family file except `.env.example`. Catches the failure mode where `.gitignore` is regressed or `git add -f` is used. Gemini caught 3 Medium findings (all accepted: ACMR diff filter for rename detection, `sed`-pipeline for space-in-filename robustness, +1 regression case). GPT-5.5 caught 1 High (accepted: explicit refspec for `origin/<base>` resolution) + 2 deferred (captured as `chore_ci_gitignore_paths_ignore_gap`, `chore_env_guard_extend_deny_pattern`).
   - **PR #95** — `--ship` flag on `/bug-fix` SKILL.md. Chains `/bug-fix` Phase 6 directly into `/impl-execute --ad-hoc` via the Skill tool for one-shot bug → merged PR; default behavior unchanged. Motivated by friction during PR #94 (two-skill flow when one was logical).
