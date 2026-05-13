@@ -36,7 +36,8 @@ ENV HOSTNAME=0.0.0.0
 RUN groupadd -r relyloop && useradd -r -g relyloop relyloop
 COPY --from=builder --chown=relyloop:relyloop /app/.next/standalone ./
 COPY --from=builder --chown=relyloop:relyloop /app/.next/static ./.next/static
-COPY --from=builder --chown=relyloop:relyloop /app/public ./public
+# (no `COPY ... /app/public ./public` — ui/ has no public assets; if any
+# are added later, re-add this line so they ship in the runtime image.)
 USER relyloop
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 \

@@ -48,25 +48,51 @@ def _wait_healthy(client: httpx.Client, timeout: float = 10.0) -> None:
     pytest.skip("API not healthy within 10s")
 
 
-def _create_smoke_template(c: httpx.Client) -> str:
-    """Create a unique smoke-product-search template; return its id."""
-    template_body = (SAMPLES / "templates" / "product_search.j2").read_text()
-    tmpl = c.post(
+def _create_judgment_template(c: httpx.Client) -> str:
+    """Minimal `{{ query_text }}`-only template for the judgment-generation path.
+
+    The judgment-generation worker needs a template it can render with NO params
+    (the existing integration tests use the same shape — see
+    backend/tests/integration/test_judgment_generate.py). Declaring params here
+    would trip ``render: missing required template params`` because the worker
+    calls ``compute_default_params`` against the API-stored simple-form schema
+    which can't produce defaults — a pre-existing platform contract gap.
+    """
+    resp = c.post(
         "/api/v1/query-templates",
         json={
-            "name": f"smoke-product-search-{int(time.time())}",
+            "name": f"smoke-judge-template-{int(time.time())}-{int(time.monotonic_ns())}",
+            "engine_type": "elasticsearch",
+            "body": '{"query": {"match": {"title": "{{ query_text }}"}}}',
+            "declared_params": {},
+        },
+    )
+    assert resp.status_code in (200, 201), (
+        f"create judge template failed: {resp.status_code} {resp.text[:300]}"
+    )
+    return str(resp.json()["id"])
+
+
+def _create_study_template(c: httpx.Client) -> str:
+    """Full multi_match template (samples/templates/product_search.j2) for the study."""
+    template_body = (SAMPLES / "templates" / "product_search.j2").read_text()
+    resp = c.post(
+        "/api/v1/query-templates",
+        json={
+            "name": f"smoke-study-template-{int(time.time())}-{int(time.monotonic_ns())}",
             "engine_type": "elasticsearch",
             "body": template_body,
             "declared_params": {
-                "field_boosts.title": "float",
-                "field_boosts.description": "float",
-                "field_boosts.bullet_points": "float",
-                "tie_breaker": "float",
-                "fuzziness": "string",
+                "title_boost": "float",
+                "description_boost": "float",
+                "bullet_points_boost": "float",
             },
         },
-    ).json()
-    return str(tmpl["id"])
+    )
+    assert resp.status_code in (200, 201), (
+        f"create study template failed: {resp.status_code} {resp.text[:300]}"
+    )
+    return str(resp.json()["id"])
 
 
 def test_smoke_generation_and_study_with_digest(api_base_url: str) -> None:
@@ -98,7 +124,12 @@ def test_smoke_generation_and_study_with_digest(api_base_url: str) -> None:
         )
 
         # 2. Generate judgments via LLM (requires OPENAI_API_KEY in CI).
-        template_id = _create_smoke_template(c)
+        # Use a minimal `{{ query_text }}`-only template — the judgment-gen
+        # worker calls render with no params, and a template with declared
+        # params would trip "missing required template params". The study
+        # below uses a separate, fully-parameterized template.
+        judge_template_id = _create_judgment_template(c)
+        study_template_id = _create_study_template(c)
         jg_resp = c.post(
             "/api/v1/judgments/generate",
             json={
@@ -106,7 +137,7 @@ def test_smoke_generation_and_study_with_digest(api_base_url: str) -> None:
                 "query_set_id": qs["id"],
                 "cluster_id": cluster_id,
                 "target": "products",
-                "current_template_id": template_id,
+                "current_template_id": judge_template_id,
                 "rubric": "Rate 0-3 by relevance to the query.",
             },
         )
@@ -130,30 +161,31 @@ def test_smoke_generation_and_study_with_digest(api_base_url: str) -> None:
         else:
             pytest.fail("judgment generation did not complete within 120s")
 
-        # 3. Reuse the smoke template + 4. Create a 10-trial study.
-        study = c.post(
+        # 3. Use the parameterized study template + 4. Create a 10-trial study.
+        study_resp = c.post(
             "/api/v1/studies",
             json={
                 "name": f"smoke-tutorial-study-{int(time.time())}",
                 "cluster_id": cluster_id,
                 "target": "products",
-                "template_id": template_id,
+                "template_id": study_template_id,
                 "query_set_id": qs["id"],
                 "judgment_list_id": jl_id,
                 "search_space": {
                     "params": {
-                        "field_boosts.title": {"type": "float", "low": 0.5, "high": 5.0},
-                        "field_boosts.description": {
-                            "type": "float",
-                            "low": 0.5,
-                            "high": 5.0,
-                        },
+                        "title_boost": {"type": "float", "low": 0.5, "high": 5.0},
+                        "description_boost": {"type": "float", "low": 0.5, "high": 5.0},
+                        "bullet_points_boost": {"type": "float", "low": 0.5, "high": 5.0},
                     }
                 },
                 "objective": {"metric": "ndcg", "k": 10},
                 "config": {"max_trials": 10},
             },
-        ).json()
+        )
+        assert study_resp.status_code in (200, 201, 202), (
+            f"create_study failed: {study_resp.status_code} {study_resp.text[:500]}"
+        )
+        study = study_resp.json()
         deadline = time.time() + 5 * 60
         while time.time() < deadline:
             row = c.get(f"/api/v1/studies/{study['id']}").json()

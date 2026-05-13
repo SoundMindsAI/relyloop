@@ -2,26 +2,29 @@
   product_search.j2 — canonical demo Jinja2 template for the RelyLoop tutorial.
 
   Declared params (all surfaced in the Optuna search-space the tutorial defines):
-    field_boosts.title         float   range 0.5–10
-    field_boosts.description   float   range 0.5–10
-    field_boosts.bullet_points float   range 0.5–10
-    tie_breaker                float   range 0.0–1.0
-    fuzziness                  string  one of "AUTO" | "0" | "1" | "2"
+    title_boost                  float   range 0.5–10
+    description_boost            float   range 0.5–10
+    bullet_points_boost          float   range 0.5–10
 
   Renders to an Elasticsearch `multi_match` query body against the `products`
-  index seeded by `make seed-es`.
+  index seeded by `make seed-es`. Param names are flat (no dots) because the
+  Jinja2 sandbox forbids attribute access — `field_boosts.title` would fail.
+
+  The space stays under the 10^6 cardinality cap with 3 floats × 100 buckets
+  each. `tie_breaker` and `fuzziness` are intentionally hard-coded — Optuna's
+  budget for a tutorial study (10 trials) doesn't justify the wider space.
 -#}
 {
   "query": {
     "multi_match": {
       "query": "{{ query_text }}",
       "type": "best_fields",
-      "tie_breaker": {{ tie_breaker | default(0.3) }},
-      "fuzziness": "{{ fuzziness | default('AUTO') }}",
+      "tie_breaker": 0.3,
+      "fuzziness": "AUTO",
       "fields": [
-        "title^{{ field_boosts.title | default(2.0) }}",
-        "description^{{ field_boosts.description | default(1.0) }}",
-        "bullet_points^{{ field_boosts.bullet_points | default(1.0) }}"
+        "title^{{ title_boost }}",
+        "description^{{ description_boost }}",
+        "bullet_points^{{ bullet_points_boost }}"
       ]
     }
   }

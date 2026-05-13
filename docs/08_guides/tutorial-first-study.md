@@ -239,15 +239,18 @@ open http://localhost:3000/templates/new
 
 Paste the contents of `samples/templates/product_search.j2` into the **Body**
 field. The template renders an Elasticsearch `multi_match` query with
-declared params:
+three declared params:
 
 | Param | Type | Range |
 |---|---|---|
-| `field_boosts.title` | float | 0.5 – 10 |
-| `field_boosts.description` | float | 0.5 – 10 |
-| `field_boosts.bullet_points` | float | 0.5 – 10 |
-| `tie_breaker` | float | 0.0 – 1.0 |
-| `fuzziness` | string | `"AUTO" \| "0" \| "1" \| "2"` |
+| `title_boost` | float | 0.5 – 10 |
+| `description_boost` | float | 0.5 – 10 |
+| `bullet_points_boost` | float | 0.5 – 10 |
+
+`tie_breaker` and `fuzziness` are intentionally hard-coded in the template so
+the search-space stays under the platform's `10^6` cardinality cap on a
+10-trial budget. To tune them too, switch to a 30-trial study and pull them
+into the search-space.
 
 Submit. Note the template ID for Step 8.
 
