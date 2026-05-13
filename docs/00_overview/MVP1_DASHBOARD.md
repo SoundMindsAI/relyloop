@@ -13,15 +13,15 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Features done | **13 / 13** (100%) |
-| Path to MVP1 | **24** items remaining (features + bugs + chores) |
-| Open bugs | 8 |
+| Path to MVP1 | **23** items remaining (features + bugs + chores) |
+| Open bugs | 7 |
 | Open chores | 16 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (13)
+### Done (14)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -38,6 +38,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
+| [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 
 ### Implementing (0)
 
@@ -51,7 +52,7 @@ _None._
 
 _None._
 
-### Idea (28)
+### Idea (27)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -75,7 +76,6 @@ _None._
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
 | [chore_test_both_engines](../02_product/planned_features/chore_test_both_engines/idea.md) | Chore | `backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test: | — | Idea (deferred from `infra_adapter_elastic` — refactor sweep, 2026-05-09) |
 | [chore_trial_summary_single_query](../02_product/planned_features/chore_trial_summary_single_query/idea.md) | Chore | [`backend/app/db/repo/trial.py:aggregate_trials_summary`](../../../../backend/app/db/repo/trial.py) currently issues two SQL statements: | — | — |
-| [bug_capability_check_test_isolation](../02_product/planned_features/bug_capability_check_test_isolation/idea.md) | Bug | Idea — deferred from `infra_adapter_elastic` Story 5.1; still applies to `main` as of `c6a46a3`. | — | Idea — deferred from `infra_adapter_elastic` Story 5.1; still applies to `main` as of `c6a46a3`. |
 | [bug_chat_long_conversation_truncation](../02_product/planned_features/bug_chat_long_conversation_truncation/idea.md) | Bug | `backend/app/services/agent_chat.send_user_message` defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages and emits a `chat_history_truncated` WARN structlog lin | — | — |
 | [bug_digest_param_importance_seam](../02_product/planned_features/bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Idea (deferred from `feat_digest_proposal` Story 4.2; tracked because the test was marked `xfail` rather than fixed inline) |
 | [bug_dockerfile_missing_prompts](../02_product/planned_features/bug_dockerfile_missing_prompts/idea.md) | Bug | The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module- | — | Fixed inline in PR #60 commit; left as a documentation artifact |
