@@ -23,6 +23,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import httpx
 import pytest
+import structlog
 from redis.asyncio import Redis
 
 from backend.app.llm.capability_check import (
@@ -181,30 +182,25 @@ class TestAllProbesOk:
 
 
 class TestModelsEndpointFailure:
-    @pytest.mark.xfail(
-        reason=(
-            "Pre-existing flake: structlog's cached PrintLogger writes to "
-            "the sys.stdout captured at configure_logging() time, not the "
-            "capsys-mocked stdout. Tracked at "
-            "docs/02_product/planned_features/bug_capability_check_test_isolation/idea.md"
-        ),
-        strict=False,
-    )
-    async def test_models_failure_marks_downstream_untested(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    async def test_models_failure_marks_downstream_untested(self) -> None:
         redis = _make_redis()
         transport = _build_handler(models_status=503)
-        async with httpx.AsyncClient(transport=transport) as http:
-            result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+        # `structlog.testing.capture_logs()` swaps the active processor chain
+        # for one that appends every event to a list — invariant under
+        # `cache_logger_on_first_use=True` and stdout/stderr re-binding.
+        # capsys couldn't capture these because the cached PrintLogger holds
+        # a stale stdout reference from before pytest's capture started.
+        # (bug_capability_check_test_isolation idea.)
+        with structlog.testing.capture_logs() as captured:
+            async with httpx.AsyncClient(transport=transport) as http:
+                result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
         assert result.models_endpoint == "fail"
         assert result.chat_completion == "untested"
         assert result.function_calling == "untested"
         assert result.structured_output == "untested"
-        # WARN log was emitted with the failing step name (structlog → stdout)
-        captured = capsys.readouterr()
-        assert "warning" in captured.out
-        assert "models_endpoint" in captured.out
+        # Verify the WARN was emitted with the structured `step` field.
+        warns = [e for e in captured if e.get("log_level") == "warning"]
+        assert any(e.get("step") == "models_endpoint" for e in warns), warns
 
 
 # ---------------------------------------------------------------------------
@@ -269,32 +265,23 @@ class TestPerProbeFailures:
 
 
 class TestNetworkErrors:
-    @pytest.mark.xfail(
-        reason=(
-            "Pre-existing flake: same root cause as "
-            "TestModelsEndpointFailure::test_models_failure_marks_downstream_untested. "
-            "Tracked at "
-            "docs/02_product/planned_features/bug_capability_check_test_isolation/idea.md"
-        ),
-        strict=False,
-    )
-    async def test_models_timeout_reported_as_fail(
-        self, capsys: pytest.CaptureFixture[str]
-    ) -> None:
+    async def test_models_timeout_reported_as_fail(self) -> None:
         redis = _make_redis()
 
         def _raise(_request: httpx.Request) -> httpx.Response:
             raise httpx.ConnectTimeout("simulated timeout")
 
         transport = httpx.MockTransport(_raise)
-        async with httpx.AsyncClient(transport=transport) as http:
-            result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+        with structlog.testing.capture_logs() as captured:
+            async with httpx.AsyncClient(transport=transport) as http:
+                result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
         assert result.models_endpoint == "fail"
         assert result.chat_completion == "untested"
-        captured = capsys.readouterr()
-        assert "warning" in captured.out
-        assert "models_endpoint" in captured.out
-        assert "simulated timeout" in captured.out
+        # Pin the WARN: same step + the simulated-timeout error text from the
+        # `error` kwarg passed to logger.warning(...).
+        warns = [e for e in captured if e.get("log_level") == "warning"]
+        assert any(e.get("step") == "models_endpoint" for e in warns), warns
+        assert any("simulated timeout" in str(e.get("error", "")) for e in warns), warns
 
     async def test_redis_set_failure_does_not_raise(self) -> None:
         redis = _make_redis()
