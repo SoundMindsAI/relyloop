@@ -402,8 +402,8 @@ This rule applies even if the issue feels minor. A 3-line idea file with the rig
 
 | Discovery shape | Action |
 |---|---|
-| Fix is ≤20 LOC AND in a file the current PR already touches AND no new tests needed | **Inline.** No new PR, no idea file. Just fix in the same commit (or an adjacent commit on the same branch) and note in the commit message. |
-| Fix is ≤50 LOC + bounded tests AND scope-compatible with the current PR's intent | **Inline OR same-branch adjacent commit.** Don't capture an idea file. Accept the scope blur — it's cheaper than the context-switch cost of a separate PR later. |
+| Fix is ≤20 LOC AND in a file the current PR already touches AND no new tests needed (e.g. docs typo, minor refactor — NOT a bug fix; bug fixes always need a regression test per the Bug Fix Protocol above) | **Inline.** No new PR, no idea file. Just fix in the same commit (or an adjacent commit on the same branch) and note in the commit message. |
+| Fix is ≤100 LOC + bounded tests AND scope-compatible with the current PR's intent | **Inline OR same-branch adjacent commit.** Don't capture an idea file. Accept the scope blur — it's cheaper than the context-switch cost of a separate PR later. |
 | Fix has design surface (multiple defensible approaches), or LOC >100, or touches a clearly separate concern | **Idea file.** Capture; pick up in a separate flow later. |
 | Fix would break a CI gate that's specifically valued on the current PR (e.g., docs-only paths-ignore filter) AND the fix is bounded | **Adjacent PR off `main`** — not inline (preserves the current PR's gate), not idea file (don't defer a bounded fix). Ship the two PRs in parallel. |
 | Fix requires changes to an unrelated subsystem (different ORM model, different service, different UI route) | **Idea file.** Cross-subsystem mixing in one PR breaks reviewability. |
