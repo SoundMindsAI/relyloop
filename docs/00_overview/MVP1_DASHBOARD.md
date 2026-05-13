@@ -13,15 +13,15 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **26 / 26** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **10** items remaining (features + bugs + chores) |
-| Open bugs | 4 |
+| Path to MVP1 | **9** items remaining (features + bugs + chores) |
+| Open bugs | 3 |
 | Open chores | 6 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (30)
+### Done (31)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -55,6 +55,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | Complete | — | Complete |
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | Complete | — | Complete |
+| [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Complete | — | Complete |
 
 ### Implementing (0)
 
@@ -68,7 +69,7 @@ _None._
 
 _None._
 
-### Idea (11)
+### Idea (10)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -82,7 +83,6 @@ _None._
 | [bug_chat_long_conversation_truncation](../02_product/planned_features/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | — |
 | [bug_digest_param_importance_seam](../02_product/planned_features/bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Idea (deferred from `feat_digest_proposal` Story 4.2; tracked because the test was marked `xfail` rather than fixed inline) |
 | [bug_env_file_corrupted_during_session](../02_product/planned_features/bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../../../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation sessio | — | Idea — captured during `infra_foundation` Story 4.4 implementation |
-| [bug_worker_optuna_init_race](../02_product/planned_features/bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | — |
 
 ## Dependency graph
 
