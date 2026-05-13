@@ -154,8 +154,10 @@ def test_smoke_generation_and_study_with_digest(api_base_url: str) -> None:
         # both passed on re-run). 240s keeps the smoke job comfortably
         # within its 15-minute total budget.
         jl: dict[str, object] = {}
-        deadline = time.time() + 240
-        while time.time() < deadline:
+        # Use monotonic clock for duration measurement so an NTP adjustment
+        # mid-test doesn't shift the deadline (per Gemini suggestion).
+        deadline = time.monotonic() + 240
+        while time.monotonic() < deadline:
             jl = c.get(f"/api/v1/judgment-lists/{jl_id}").json()
             status = jl.get("status")
             if status == "complete":
