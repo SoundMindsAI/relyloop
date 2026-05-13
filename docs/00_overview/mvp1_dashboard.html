@@ -328,23 +328,23 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Features done</div>
-      <div class="value">13 / 13</div>
+      <div class="value">14 / 14</div>
       <div class="sub">100% of scoped MVP1 features</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">22</div>
+      <div class="value">20</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">6</div>
+      <div class="value">5</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">16</div>
+      <div class="value">15</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">26</span></h3>
+  <h3>Idea <span class="count">24</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -567,18 +567,6 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_starlette_422_deprecation">Starlette 422 Deprecation</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_studies_ui_shadcn_polish">Studies Ui Shadcn Polish</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -663,18 +651,6 @@ footer {
 
 
 <div class="card bug" data-prefix="bug">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_test_smoke_requires_env_vars">Test Smoke Requires Env Vars</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-
-  </div>
-  <div class="one-liner">`backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment:</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_worker_optuna_init_race">Worker Optuna Init Race</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -703,7 +679,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">15</span></h3>
+  <h3>Done <span class="count">17</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -850,6 +826,18 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_starlette_422_deprecation">Starlette 422 Deprecation</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -875,6 +863,18 @@ footer {
 
 <div class="card bug" data-prefix="bug">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_dockerfile_missing_prompts">Dockerfile Missing Prompts</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_test_smoke_requires_env_vars">Test Smoke Requires Env Vars</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
     <span>merged 2026-05-13</span>
@@ -923,6 +923,8 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  chore_starlette_422_deprecation[&quot;starlette 422 deprecation&quot;]
+  class chore_starlette_422_deprecation done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -999,6 +1001,8 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  chore_starlette_422_deprecation[&quot;starlette 422 deprecation&quot;]
+  class chore_starlette_422_deprecation done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
