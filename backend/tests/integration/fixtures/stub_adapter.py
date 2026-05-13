@@ -85,7 +85,12 @@ class StubAdapter:
         timeout: float | None = None,
     ) -> dict[str, list[ScoredHit]]:
         self.search_batch_calls.append(
-            {"target": target, "n_queries": len(queries), "top_k": top_k}
+            {
+                "target": target,
+                "n_queries": len(queries),
+                "top_k": top_k,
+                "timeout": timeout,
+            }
         )
         if self.raise_on_search is not None:
             raise self.raise_on_search

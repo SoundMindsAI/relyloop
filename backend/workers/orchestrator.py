@@ -155,14 +155,9 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
     parallelism: int = study.config.get("parallelism", settings.studies_default_parallelism)
     max_trials: int | None = study.config.get("max_trials")
     time_budget_min: float | None = study.config.get("time_budget_min")
-    # Per-trial timeout fallback (Story 1.5): used by ``run_trial``'s
-    # adapter call to bound the engine query. Arq's `enqueue_job` doesn't
-    # accept a per-job timeout (the only supported control is the
-    # function-level `arq.func(timeout=...)` registered in WorkerSettings);
-    # so we don't pass it here. Wiring this into the adapter `search_batch`
-    # timeout is tracked at infra_per_trial_timeout/idea.md.
-    _trial_timeout_s: int = study.config.get("trial_timeout_s", settings.studies_default_timeout_s)
-    del _trial_timeout_s  # consumed by infra_per_trial_timeout follow-up
+    # Per-trial timeout is resolved inside ``run_trial`` against the same
+    # study.config / Settings fallback, then threaded into the adapter's
+    # ``search_batch(..., timeout=...)`` call (infra_per_trial_timeout).
     started_at_floor = study.started_at or datetime.now(UTC)
 
     while True:

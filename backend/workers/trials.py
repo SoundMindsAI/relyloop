@@ -50,6 +50,7 @@ from backend.app.adapters.errors import (
     QueryTimeoutError,
 )
 from backend.app.adapters.protocol import NativeQuery, QueryTemplate
+from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.models import Trial
 from backend.app.db.session import get_session_factory
@@ -380,6 +381,19 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
                 metrics_set.update(_DEFAULT_SECONDARY_METRICS)
 
             # J. Execute search via the adapter.
+            # Resolve per-trial timeout: study.config override OR the
+            # operator-tunable Settings default. Bounds the adapter's
+            # httpx call so a hung engine query can't monopolise a worker
+            # slot indefinitely (infra_per_trial_timeout). Explicit
+            # `is not None` (not `or`) so a falsy override like 0 is
+            # respected — the Pydantic schema bounds 5..3600 today, but
+            # the explicit form documents the intent.
+            configured_timeout = study_row.config.get("trial_timeout_s")
+            trial_timeout_s = float(
+                configured_timeout
+                if configured_timeout is not None
+                else get_settings().studies_default_timeout_s
+            )
             started_at = datetime.now(UTC)
             native_queries: list[NativeQuery] = [
                 adapter.render(template, snapshot.params, q.query_text) for q in queries
@@ -395,6 +409,7 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
                 queries=native_queries,
                 top_k=top_k,
                 strict_errors=False,
+                timeout=trial_timeout_s,
             )
 
             # K. Score and compute primary + duration.

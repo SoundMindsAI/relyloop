@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **25 / 25** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **11** items remaining (features + bugs + chores) |
-| Open bugs | 5 |
+| Scoped items done | **26 / 26** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **10** items remaining (features + bugs + chores) |
+| Open bugs | 4 |
 | Open chores | 6 (idea-stage debt) |
-| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (28)
+### Done (30)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -39,6 +39,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
+| [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | Complete | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
@@ -52,6 +53,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
+| [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | Complete | — | Complete |
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | Complete | — | Complete |
 
 ### Implementing (0)
@@ -66,12 +68,11 @@ _None._
 
 _None._
 
-### Idea (13)
+### Idea (11)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
-| [infra_per_trial_timeout](../02_product/planned_features/infra_per_trial_timeout/idea.md) | Infra | `Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 GPT-5.5 review cycle 2) |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_cluster_run_query_history](../02_product/planned_features/chore_cluster_run_query_history/idea.md) | Chore | The "recent run-query history" surface in spec §3 cannot be built without backend support. The `feat_studies_ui` plan (Story 2.1) drops this from the cluster detail page and renders only the summary + | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
@@ -81,7 +82,6 @@ _None._
 | [bug_chat_long_conversation_truncation](../02_product/planned_features/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | — |
 | [bug_digest_param_importance_seam](../02_product/planned_features/bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Idea (deferred from `feat_digest_proposal` Story 4.2; tracked because the test was marked `xfail` rather than fixed inline) |
 | [bug_env_file_corrupted_during_session](../02_product/planned_features/bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../../../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation sessio | — | Idea — captured during `infra_foundation` Story 4.4 implementation |
-| [bug_judgment_template_default_params_contract](../02_product/planned_features/bug_judgment_template_default_params_contract/idea.md) | Bug | The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] | — | — |
 | [bug_worker_optuna_init_race](../02_product/planned_features/bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | — |
 
 ## Dependency graph
@@ -145,6 +145,8 @@ graph LR
   class infra_ci_smoke_makeup done;
   infra_nvmrc["nvmrc"]
   class infra_nvmrc done;
+  infra_per_trial_timeout["per trial timeout"]
+  class infra_per_trial_timeout done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -164,6 +166,7 @@ graph LR
   infra_frontend_stack_refresh --> chore_tutorial_polish
   infra_nvmrc --> chore_tutorial_polish
   infra_optuna_eval --> chore_tutorial_polish
+  infra_per_trial_timeout --> chore_tutorial_polish
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
   feat_github_webhook --> feat_chat_agent
@@ -177,6 +180,7 @@ graph LR
   infra_frontend_stack_refresh --> feat_chat_agent
   infra_nvmrc --> feat_chat_agent
   infra_optuna_eval --> feat_chat_agent
+  infra_per_trial_timeout --> feat_chat_agent
   infra_foundation --> feat_github_pr_worker
   infra_adapter_elastic --> feat_github_pr_worker
   feat_study_lifecycle --> feat_github_pr_worker
