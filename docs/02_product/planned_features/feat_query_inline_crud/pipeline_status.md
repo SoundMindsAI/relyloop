@@ -13,7 +13,12 @@
 - Phases: 1 of 1 covered (single-phase feature)
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-13
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 ran 3 cycles (cycle 1: 10 findings, cycle 2: 7 findings, cycle 3: 6 findings — 21 accepted + applied, 2 rejected with cited counter-evidence). Cycle 3 hit the protocol cap.
+- Stories: 12 stories across 5 epics (Backend Epic 1 — list / Epic 2 — PATCH / Epic 3 — DELETE; Frontend Epic 4 — hooks + UI; Epic 5 — docs sweep)
+- Phases covered: single phase (no deferred phases)
 
 ## Implementation
 - Status: Not started

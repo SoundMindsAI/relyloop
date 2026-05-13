@@ -4,14 +4,14 @@ _Reflects feature-folder state as of **2026-05-13** (latest mtime of any planned
 
 ## Next up
 
-**[feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md)** — Feature, currently in **Plan**
 
 > A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_query_inline_crud --auto
+/impl-execute docs/02_product/planned_features/feat_query_inline_crud/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -72,15 +72,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #25](https://github.com/SoundMindsAI/relyloop/pull/25) |
+| [feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (8)
 
@@ -107,7 +107,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_query_inline_crud["query inline crud"]
-  class feat_query_inline_crud spec;
+  class feat_query_inline_crud plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
