@@ -6,15 +6,22 @@ import {
   type UseMutationResult,
   type UseQueryResult,
 } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import { apiClient } from '@/lib/api-client';
-import type { ApiError } from '@/lib/api-errors';
+import { isApiError, toToastMessage, type ApiError } from '@/lib/api-errors';
 import type { components } from '@/lib/types';
 
 export type QuerySetSummary = components['schemas']['QuerySetSummary'];
 export type QuerySetDetail = components['schemas']['QuerySetDetail'];
 export type QuerySetListResponse = components['schemas']['QuerySetListResponse'];
 export type CreateQuerySetRequest = components['schemas']['CreateQuerySetRequest'];
+export type QueryRow = components['schemas']['QueryRow'];
+export type QueryListResponse = components['schemas']['QueryListResponse'];
+export type UpdateQueryRequest = components['schemas']['UpdateQueryRequest'];
+export type JudgmentListRef = components['schemas']['JudgmentListRef'];
+export type QueryHasJudgmentsEnvelope = components['schemas']['QueryHasJudgmentsEnvelope'];
+export type QueryHasJudgmentsDetail = components['schemas']['QueryHasJudgmentsDetail'];
 // The backend's POST /query-sets/{id}/queries router consumes the raw request and
 // parses Content-Type manually, so the BulkQueriesJsonRequest pydantic class isn't
 // referenced in the OpenAPI schema. Inline the shape here.
@@ -103,6 +110,117 @@ export function useAddQueries(
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['query-sets', querySetId] });
+    },
+  });
+}
+
+// ---------------------------------------------------------------------------
+// feat_query_inline_crud — per-query CRUD hooks (Story 4.0)
+// ---------------------------------------------------------------------------
+
+export type QueriesPage = QueryListResponse & { totalCount: number };
+
+export interface QueriesFilter {
+  cursor?: string | undefined;
+  limit?: number | undefined;
+  since?: string | undefined; // ISO 8601
+}
+
+export function useQueries(
+  querySetId: string,
+  filter: QueriesFilter = {},
+): UseQueryResult<QueriesPage, ApiError> {
+  const { cursor, limit, since } = filter;
+  return useQuery<QueriesPage, ApiError>({
+    queryKey: ['query-sets', querySetId, 'queries', { cursor, limit, since }],
+    queryFn: async () => {
+      const { data, headers } = await apiClient.get<QueryListResponse>(
+        `/api/v1/query-sets/${querySetId}/queries`,
+        { params: { cursor, limit, since } },
+      );
+      return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
+    },
+  });
+}
+
+export function useUpdateQuery(
+  querySetId: string,
+): UseMutationResult<QueryRow, ApiError, { queryId: string; patch: UpdateQueryRequest }> {
+  const qc = useQueryClient();
+  return useMutation<QueryRow, ApiError, { queryId: string; patch: UpdateQueryRequest }>({
+    mutationFn: async ({ queryId, patch }) => {
+      const { data } = await apiClient.patch<QueryRow>(
+        `/api/v1/query-sets/${querySetId}/queries/${queryId}`,
+        patch,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['query-sets', querySetId, 'queries'] });
+      qc.invalidateQueries({ queryKey: ['query-sets', querySetId] });
+    },
+    // No local onError — global MutationCache.onError handles the toast.
+  });
+}
+
+export interface DeleteQueryOptions {
+  /** Called with the FIRST affected list's id when 409 QUERY_HAS_JUDGMENTS fires.
+   * Wired by the consuming `<DeleteQueryDialog>` to `router.push('/judgments/' + id)`. */
+  onOpenJudgmentList: (judgmentListId: string) => void;
+  onSuccess?: () => void;
+}
+
+/**
+ * Custom 409 toast with action link — the documented "modal mutation
+ * caller" carve-out per `query-provider.tsx:14-18`. Opts out of the
+ * global error toast via `meta.suppressGlobalErrorToast: true` because
+ * the QUERY_HAS_JUDGMENTS toast needs a Sonner `action` slot the
+ * generic global handler can't produce. Non-409 errors still get the
+ * canonical formatted toast via `toToastMessage(err)`.
+ */
+export function useDeleteQuery(
+  querySetId: string,
+  options: DeleteQueryOptions,
+): UseMutationResult<void, ApiError, string> {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, string>({
+    meta: { suppressGlobalErrorToast: true },
+    mutationFn: async (queryId) => {
+      await apiClient.delete(`/api/v1/query-sets/${querySetId}/queries/${queryId}`);
+    },
+    onSuccess: () => {
+      toast.success('Query deleted');
+      qc.invalidateQueries({ queryKey: ['query-sets', querySetId, 'queries'] });
+      qc.invalidateQueries({ queryKey: ['query-sets', querySetId] });
+      options.onSuccess?.();
+    },
+    onError: (err) => {
+      if (isApiError(err) && err.errorCode === 'QUERY_HAS_JUDGMENTS') {
+        const detail = (err.detail ?? {}) as QueryHasJudgmentsDetail;
+        const sample = detail.judgment_lists ?? [];
+        const overflow = detail.overflow_count ?? 0;
+        const totalLists = sample.length + overflow;
+        const noun = totalLists === 1 ? 'judgment list' : 'judgment lists';
+        const overflowSuffix = overflow > 0 ? ` (${overflow} more not shown.)` : '';
+        const message = `${totalLists} ${noun} reference this query.${overflowSuffix}`;
+        const first = sample[0];
+        toast.error(
+          message,
+          first
+            ? {
+                action: {
+                  label: `Open ${first.name} →`,
+                  onClick: () => options.onOpenJudgmentList(first.id),
+                },
+              }
+            : undefined,
+        );
+      } else if (isApiError(err)) {
+        // Non-409 errors fall through to the canonical formatting.
+        toast.error(toToastMessage(err));
+      } else {
+        toast.error('Unknown error');
+      }
     },
   });
 }

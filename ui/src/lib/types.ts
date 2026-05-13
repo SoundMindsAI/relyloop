@@ -228,7 +228,11 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * List Queries In Set
+     * @description List per-query rows under a query set, with derived ``judgment_count``.
+     */
+    get: operations['list_queries_in_set_api_v1_query_sets__query_set_id__queries_get'];
     put?: never;
     /**
      * Bulk Add Queries
@@ -247,6 +251,30 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/api/v1/query-sets/{query_set_id}/queries/{query_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Query Endpoint
+     * @description Hard-delete a query. FK-guarded — 409 if any judgment references it.
+     */
+    delete: operations['delete_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__delete'];
+    options?: never;
+    head?: never;
+    /**
+     * Update Query Endpoint
+     * @description Partial-update a query. Whole-object replace on ``query_metadata``.
+     */
+    patch: operations['update_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__patch'];
     trace?: never;
   };
   '/api/v1/studies': {
@@ -359,17 +387,11 @@ export interface paths {
      * Generate Judgments
      * @description Create a judgment_lists row + enqueue the worker.
      *
-     *     Preflight order (matches spec FR-3 + GPT-5.5 cycles 1/2):
-     *
-     *     A. ``OPENAI_NOT_CONFIGURED`` — key missing.
-     *     B. ``LLM_PROVIDER_INCAPABLE`` — capability cache miss OR
-     *        ``structured_output != ok`` (strict per spec FR-3).
-     *     B.1. ``UNKNOWN_MODEL_PRICING`` — :data:`Settings.openai_model` has no
-     *        cost_model entry (otherwise the budget gate is silently defeated).
-     *     C. ``OPENAI_BUDGET_EXCEEDED`` — pre-call peek already >= budget.
-     *     D. FK resolution (cluster / template / query_set).
-     *     E. Oversized query set (>10K) → 422 VALIDATION_ERROR.
-     *     F. INSERT; commit; best-effort enqueue.
+     *     Delegates the full preflight + INSERT + Arq enqueue to
+     *     :func:`backend.app.services.agent_judgments_dispatch.start_judgment_generation`
+     *     so the chat-agent ``generate_judgments_llm`` tool reuses the exact same
+     *     checks (no duplicated preflight). Wire behavior is identical — same error
+     *     codes, same status codes, same response shape.
      */
     post: operations['generate_judgments_api_v1_judgments_generate_post'];
     delete?: never;
@@ -535,7 +557,7 @@ export interface paths {
     };
     /**
      * List Proposals Endpoint
-     * @description List proposals with cursor pagination + status + cluster_id filters.
+     * @description List proposals with cursor pagination + status + cluster_id + source filters.
      */
     get: operations['list_proposals_endpoint_api_v1_proposals_get'];
     put?: never;
@@ -603,19 +625,10 @@ export interface paths {
      * Open Pr Endpoint
      * @description Enqueue the ``open_pr`` worker for an operator-approved proposal.
      *
-     *     Preflight order matches spec FR-1:
-     *
-     *     1. Proposal exists → else 404 ``PROPOSAL_NOT_FOUND``.
-     *     2. Proposal status is ``pending`` → else 409 ``INVALID_STATE_TRANSITION``
-     *        (AC-6).
-     *     3. Cluster has a ``config_repo_id`` → else 422 ``CLUSTER_HAS_NO_CONFIG_REPO``.
-     *     4. Per-repo PAT readable from ``./secrets/{auth_ref}`` → else 503
-     *        ``GITHUB_NOT_CONFIGURED`` (AC-2).
-     *     5. Enqueue with deterministic ``_job_id=f"open_pr:{proposal_id}"``
-     *        for dedup (AC-12). On enqueue failure (Arq pool absent or raise)
-     *        return 503 ``QUEUE_UNAVAILABLE`` per cycle-2 F5 — there is NO
-     *        boot-scan recovery for this worker, so a silent enqueue drop
-     *        would leave the proposal pending forever with no ``pr_open_error``.
+     *     Delegates the full preflight + Arq enqueue to
+     *     :func:`backend.app.services.agent_proposals_dispatch.open_pr` so the
+     *     chat-agent ``open_pr`` tool reuses the same checks. Wire behavior is
+     *     identical — same error codes, status codes, response shape.
      */
     post: operations['open_pr_endpoint_api_v1_proposals__proposal_id__open_pr_post'];
     delete?: never;
@@ -650,6 +663,11 @@ export interface paths {
      *        populate the file between registration and first PR-open.
      *     3. ``name`` uniqueness check → 409 ``CONFIG_REPO_NAME_TAKEN`` on collision.
      *     4. Insert with server-derived ``provider="github"``.
+     *     5. **feat_github_webhook Story 4.2** — when ``webhook_secret_ref`` is
+     *        populated, best-effort enqueue ``register_webhook`` against the
+     *        newly created config_repo id. Enqueue failure (Redis down, pool
+     *        absent, transient blip) does NOT break the 201 — it logs WARN
+     *        and the operator drives recovery via the runbook.
      */
     post: operations['create_config_repo_endpoint_api_v1_config_repos_post'];
     delete?: never;
@@ -672,6 +690,111 @@ export interface paths {
     get: operations['get_config_repo_endpoint_api_v1_config_repos__config_repo_id__get'];
     put?: never;
     post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/conversations': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Conversations Endpoint
+     * @description List conversations newest-first with per-row message_count + X-Total-Count header.
+     */
+    get: operations['list_conversations_endpoint_api_v1_conversations_get'];
+    put?: never;
+    /**
+     * Create Conversation Endpoint
+     * @description Create a new conversation. Title is optional (FR-1 auto-generates from first message).
+     */
+    post: operations['create_conversation_endpoint_api_v1_conversations_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/conversations/{conversation_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Conversation Endpoint
+     * @description Return the conversation's full message history.
+     */
+    get: operations['get_conversation_endpoint_api_v1_conversations__conversation_id__get'];
+    put?: never;
+    post?: never;
+    /**
+     * Delete Conversation Endpoint
+     * @description Soft-delete the conversation; subsequent reads return 404.
+     */
+    delete: operations['delete_conversation_endpoint_api_v1_conversations__conversation_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/conversations/{conversation_id}/messages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Post Message Endpoint
+     * @description Send a user message and stream the assistant turn as SSE.
+     *
+     *     Preflight (in order; returns plain JSON envelope, NOT a partial stream):
+     *       A. Conversation exists → else 404 ``CONVERSATION_NOT_FOUND``.
+     *       B. ``Settings.openai_api_key`` populated → else 503 ``OPENAI_NOT_CONFIGURED``.
+     *       C. Daily budget peek under cap → else 503 ``OPENAI_BUDGET_EXCEEDED``.
+     *
+     *     Successful preflight returns a ``StreamingResponse(text/event-stream)``
+     *     driven by :func:`agent_chat.send_user_message`.
+     */
+    post: operations['post_message_endpoint_api_v1_conversations__conversation_id__messages_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/webhooks/github': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Github Webhook
+     * @description Receive a single GitHub webhook delivery.
+     *
+     *     Returns ``{"status": "ok", "action": <wire_action>}`` where
+     *     ``wire_action`` is one of the four values in
+     *     :data:`WEBHOOK_ACTION_VALUES`.
+     *
+     *     Raises:
+     *         HTTPException(403, INVALID_SIGNATURE): bad signature or unknown
+     *             repository. Both share one error code so the receiver does
+     *             not reveal repo enumeration.
+     */
+    post: operations['github_webhook_webhooks_github_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -881,6 +1004,52 @@ export interface components {
       has_more: boolean;
     };
     /**
+     * ConversationDetail
+     * @description ``GET /api/v1/conversations/{id}`` response.
+     */
+    ConversationDetail: {
+      /** Id */
+      id: string;
+      /** Title */
+      title: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Messages */
+      messages: components['schemas']['MessageWire'][];
+    };
+    /**
+     * ConversationSummary
+     * @description ``GET /api/v1/conversations`` row + ``POST`` 201 body.
+     */
+    ConversationSummary: {
+      /** Id */
+      id: string;
+      /** Title */
+      title: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Message Count */
+      message_count: number;
+    };
+    /**
+     * ConversationsListResponse
+     * @description ``GET /api/v1/conversations`` response.
+     */
+    ConversationsListResponse: {
+      /** Data */
+      data: components['schemas']['ConversationSummary'][];
+      /** Next Cursor */
+      next_cursor: string | null;
+      /** Has More */
+      has_more: boolean;
+    };
+    /**
      * CreateClusterRequest
      * @description Request body for ``POST /api/v1/clusters``.
      *
@@ -937,6 +1106,14 @@ export interface components {
       auth_ref: string;
       /** Webhook Secret Ref */
       webhook_secret_ref?: string | null;
+    };
+    /**
+     * CreateConversationRequest
+     * @description ``POST /api/v1/conversations`` body.
+     */
+    CreateConversationRequest: {
+      /** Title */
+      title?: string | null;
     };
     /**
      * CreateJudgmentListGenerateRequest
@@ -1256,6 +1433,20 @@ export interface components {
       has_more: boolean;
     };
     /**
+     * JudgmentListRef
+     * @description One entry in the ``QUERY_HAS_JUDGMENTS`` 409 envelope.
+     *
+     *     Lives in ``detail.judgment_lists``. Maps from the repo-layer
+     *     :class:`backend.app.db.repo.judgment.JudgmentListRefRow` at the
+     *     router boundary.
+     */
+    JudgmentListRef: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+    };
+    /**
      * JudgmentListSummary
      * @description List-view row on ``GET /api/v1/judgment-lists``.
      */
@@ -1310,6 +1501,34 @@ export interface components {
       confidence: number | null;
       /** Notes */
       notes: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
+    /**
+     * MessageWire
+     * @description One row of ``GET /api/v1/conversations/{id}.messages``.
+     */
+    MessageWire: {
+      /** Id */
+      id: string;
+      /**
+       * Role
+       * @enum {string}
+       */
+      role: 'user' | 'assistant' | 'tool';
+      /** Content */
+      content: {
+        [key: string]: unknown;
+      };
+      /** Tool Calls */
+      tool_calls?:
+        | {
+            [key: string]: unknown;
+          }[]
+        | null;
       /**
        * Created At
        * Format: date-time
@@ -1491,6 +1710,76 @@ export interface components {
       has_more: boolean;
     };
     /**
+     * QueryHasJudgmentsDetail
+     * @description The ``detail`` object of a 409 ``QUERY_HAS_JUDGMENTS`` response.
+     *
+     *     Extends the canonical ``{error_code, message, retryable}`` envelope
+     *     with two structured fields the frontend consumes directly
+     *     (``judgment_lists`` + ``overflow_count``). Wired into the FastAPI
+     *     route's ``responses={409: {"model": QueryHasJudgmentsEnvelope}}`` so
+     *     the OpenAPI schema documents the contract.
+     */
+    QueryHasJudgmentsDetail: {
+      /**
+       * Error Code
+       * @constant
+       */
+      error_code: 'QUERY_HAS_JUDGMENTS';
+      /** Message */
+      message: string;
+      /**
+       * Retryable
+       * @constant
+       */
+      retryable: false;
+      /** Judgment Lists */
+      judgment_lists: components['schemas']['JudgmentListRef'][];
+      /** Overflow Count */
+      overflow_count: number;
+    };
+    /**
+     * QueryHasJudgmentsEnvelope
+     * @description Top-level 409 wrapper (FastAPI nests under ``detail`` for HTTPException).
+     */
+    QueryHasJudgmentsEnvelope: {
+      detail: components['schemas']['QueryHasJudgmentsDetail'];
+    };
+    /**
+     * QueryListResponse
+     * @description ``GET /api/v1/query-sets/{set_id}/queries`` response.
+     */
+    QueryListResponse: {
+      /** Data */
+      data: components['schemas']['QueryRow'][];
+      /** Next Cursor */
+      next_cursor: string | null;
+      /** Has More */
+      has_more: boolean;
+    };
+    /**
+     * QueryRow
+     * @description Wire row returned by the per-query GET + PATCH endpoints.
+     *
+     *     Used by both ``GET /api/v1/query-sets/{set_id}/queries`` and
+     *     ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}``.
+     *     ``judgment_count`` is a derived field — single batched GROUP BY in the
+     *     router via :func:`backend.app.db.repo.judgment.count_judgments_per_query`.
+     */
+    QueryRow: {
+      /** Id */
+      id: string;
+      /** Query Text */
+      query_text: string;
+      /** Reference Answer */
+      reference_answer: string | null;
+      /** Query Metadata */
+      query_metadata: {
+        [key: string]: unknown;
+      } | null;
+      /** Judgment Count */
+      judgment_count: number;
+    };
+    /**
      * QuerySetDetail
      * @description ``GET /api/v1/query-sets/{id}`` response.
      */
@@ -1660,6 +1949,27 @@ export interface components {
       name: string;
       /** Fields */
       fields: components['schemas']['FieldSpec'][];
+    };
+    /**
+     * SendMessageRequest
+     * @description ``POST /api/v1/conversations/{id}/messages`` body (Story 3.2).
+     */
+    SendMessageRequest: {
+      /**
+       * Role
+       * @default user
+       * @constant
+       */
+      role: 'user';
+      content: components['schemas']['SendMessageRequestContent'];
+    };
+    /**
+     * SendMessageRequestContent
+     * @description Sub-shape inside :class:`SendMessageRequest`.
+     */
+    SendMessageRequestContent: {
+      /** Text */
+      text: string;
     };
     /**
      * StudyConfigSpec
@@ -1889,6 +2199,28 @@ export interface components {
       pruned: number;
       /** Best Primary Metric */
       best_primary_metric: number | null;
+    };
+    /**
+     * UpdateQueryRequest
+     * @description ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}`` body.
+     *
+     *     Whole-object replace on ``query_metadata`` (NOT deep-merge); explicit
+     *     ``null`` removes a nullable field; omitted key = no change. Empty
+     *     body ``{}`` validates as a no-op (AC-28).
+     *
+     *     ``query_text`` is NOT NULL on the underlying table, so explicit-null
+     *     is rejected by the ``@model_validator`` below (a 422 surfaces sooner
+     *     than the SQL ``NotNullViolation``).
+     */
+    UpdateQueryRequest: {
+      /** Query Text */
+      query_text?: string | null;
+      /** Reference Answer */
+      reference_answer?: string | null;
+      /** Query Metadata */
+      query_metadata?: {
+        [key: string]: unknown;
+      } | null;
     };
     /** ValidationError */
     ValidationError: {
@@ -2422,6 +2754,41 @@ export interface operations {
       };
     };
   };
+  list_queries_in_set_api_v1_query_sets__query_set_id__queries_get: {
+    parameters: {
+      query?: {
+        cursor?: string | null;
+        limit?: number;
+        since?: string | null;
+      };
+      header?: never;
+      path: {
+        query_set_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QueryListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   bulk_add_queries_api_v1_query_sets__query_set_id__queries_post: {
     parameters: {
       query?: never;
@@ -2440,6 +2807,81 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['BulkQueriesResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        query_set_id: string;
+        query_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QueryHasJudgmentsEnvelope'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  update_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        query_set_id: string;
+        query_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateQueryRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QueryRow'];
         };
       };
       /** @description Validation Error */
@@ -2889,6 +3331,7 @@ export interface operations {
       query?: {
         status?: ('pending' | 'pr_opened' | 'pr_merged' | 'rejected') | null;
         cluster_id?: string | null;
+        source?: ('study' | 'manual') | null;
         cursor?: string | null;
         limit?: number;
       };
@@ -3140,6 +3583,188 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_conversations_endpoint_api_v1_conversations_get: {
+    parameters: {
+      query?: {
+        cursor?: string | null;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConversationsListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  create_conversation_endpoint_api_v1_conversations_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateConversationRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConversationSummary'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_conversation_endpoint_api_v1_conversations__conversation_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        conversation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConversationDetail'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_conversation_endpoint_api_v1_conversations__conversation_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        conversation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  post_message_endpoint_api_v1_conversations__conversation_id__messages_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        conversation_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SendMessageRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  github_webhook_webhooks_github_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': {
+            [key: string]: string;
+          };
         };
       };
     };
