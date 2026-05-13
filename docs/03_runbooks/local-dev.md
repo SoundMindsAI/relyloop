@@ -89,10 +89,10 @@ These are the manual handoffs `make up` does NOT do for you:
 | `make test-integration` (`/healthz` shape) | ✓ runs if `make up` first; skips cleanly otherwise | ✓ skips (API not booted in CI) |
 | `make test-integration` (Alembic round-trip) | ⚠ **skips** — Postgres is internal-only on the Compose network per CLAUDE.md "Ports". Migration tests can't reach `postgres:5432` from your shell. | ✓ runs (CI exposes Postgres on `localhost:5432` via service containers) |
 
-**To sanity-check migrations locally**, use `make migrate` instead — it runs `alembic upgrade head` against the live Compose Postgres from inside an Alembic process that uses the asyncpg driver and the secret URL:
+**Migrations run automatically at boot.** The `migrate` Compose init container (added by `bug_worker_optuna_init_race`) runs `alembic upgrade head && python -m backend.app.db.optuna_schema` once between Postgres healthy and api/worker startup. `make migrate` stays available for re-runs after authoring a new revision without bouncing the stack:
 
 ```bash
-make migrate           # alembic upgrade head + init optuna schema
+make migrate           # idempotent re-run (no-op if already at head)
 docker compose exec postgres psql -U relyloop -d relyloop -c '\dt'   # confirm alembic_version row
 ```
 
@@ -107,7 +107,7 @@ If you want the round-trip test to actually run from your shell, you'd need to e
 | `make up` | Generate secrets if missing → `docker compose up -d` |
 | `make down` | `docker compose stop` (preserves data volumes) |
 | `make logs` | `docker compose logs -f api worker` |
-| `make migrate` | `alembic upgrade head` + initialize Optuna RDB schema |
+| `make migrate` | `alembic upgrade head` + initialize Optuna RDB schema (idempotent — also runs automatically via the `migrate` init container at boot) |
 | `make migrate-create name=<slug>` | New Alembic revision (autogenerate) |
 | `make test-unit` | Backend unit tests (no Docker required) |
 | `make test-integration` | Backend integration tests (requires running stack) |

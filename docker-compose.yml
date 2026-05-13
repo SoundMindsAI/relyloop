@@ -1,13 +1,18 @@
 # RelyLoop MVP1 stack (infra_foundation Story 4.2 / FR-1).
 #
-# Six services per docs/01_architecture/deployment.md §"MVP1 deployment shape":
-#   postgres · redis · api · worker · elasticsearch · opensearch
+# Services per docs/01_architecture/deployment.md §"MVP1 deployment shape":
+#   postgres · redis · migrate (init) · api · worker · elasticsearch · opensearch · ui
 #
 # Conventions:
 #   - Host port binds use 127.0.0.1: only — never 0.0.0.0:.
 #   - Secrets are mounted from ./secrets/<name> via Docker secrets, NEVER as
 #     bare env vars (CLAUDE.md Absolute Rule #2).
 #   - Healthchecks gate dependents through `depends_on: condition: service_healthy`.
+#   - The ``migrate`` init container runs alembic + optuna_schema once at
+#     boot and exits; api + worker depend on it via
+#     ``service_completed_successfully`` so the worker never tries to
+#     CREATE TYPE in the (yet-uncreated) optuna schema
+#     (bug_worker_optuna_init_race).
 #
 # `make up` (scripts/install.sh, Story 4.4) auto-generates the required +
 # placeholder secret files before invoking `docker compose up -d`.
@@ -39,6 +44,39 @@ services:
       timeout: 5s
       retries: 10
 
+  # Init container — bug_worker_optuna_init_race. Runs alembic +
+  # optuna_schema once at boot, then exits. api + worker block on its
+  # successful completion via `service_completed_successfully` so the
+  # worker's on_startup hook never hits `InvalidSchemaName` from a
+  # CREATE TYPE in the (yet-uncreated) optuna schema. Reuses the api
+  # image — no separate Dockerfile.
+  migrate:
+    image: relyloop/api:${RELYLOOP_GIT_SHA:-dev}
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
+    command:
+      - sh
+      - -c
+      - "alembic upgrade head && python -m backend.app.db.optuna_schema"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL_FILE: /run/secrets/database_url
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+      - database_url
+    volumes:
+      # Same bind-mount overlays as api so dev-mode migration edits take
+      # effect without rebuild. Production images carry both via Dockerfile.
+      - ./migrations:/app/migrations
+      - ./alembic.ini:/app/alembic.ini:ro
+    restart: "no"
+
   api:
     image: relyloop/api:${RELYLOOP_GIT_SHA:-dev}
     build:
@@ -51,6 +89,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL_FILE: /run/secrets/database_url
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
@@ -107,6 +147,8 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL_FILE: /run/secrets/database_url
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
