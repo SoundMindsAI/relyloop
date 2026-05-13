@@ -23,6 +23,10 @@ export interface ProposalsFilter {
   status?: ProposalStatus | undefined;
   cluster_id?: string | undefined;
   study_id?: string | undefined;
+  // ``study`` → backend filters to proposals with a study_id;
+  // ``manual`` → study_id IS NULL. Omit for both. Matches the backend's
+  // ProposalSourceWire Literal — values must stay in sync.
+  source?: 'study' | 'manual' | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
 }
@@ -40,12 +44,12 @@ export function useProposals(
   filter: ProposalsFilter = {},
   options: UseProposalsOptions = {},
 ): UseQueryResult<ProposalsPage, ApiError> {
-  const { status, cluster_id, study_id, cursor, limit } = filter;
+  const { status, cluster_id, study_id, source, cursor, limit } = filter;
   return useQuery<ProposalsPage, ApiError>({
-    queryKey: ['proposals', { status, cluster_id, study_id, cursor, limit }],
+    queryKey: ['proposals', { status, cluster_id, study_id, source, cursor, limit }],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<ProposalsListResponse>('/api/v1/proposals', {
-        params: { status, cluster_id, study_id, cursor, limit },
+        params: { status, cluster_id, study_id, source, cursor, limit },
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },

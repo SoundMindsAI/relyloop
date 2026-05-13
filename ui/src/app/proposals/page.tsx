@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useMemo, useState } from 'react';
+import { Suspense, useState } from 'react';
 
 import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { EmptyState } from '@/components/common/empty-state';
@@ -34,40 +34,27 @@ function ProposalsPageInner() {
   const [clusterFilter, setClusterFilter] = useState<string | null>(null);
   const cursor = cursorStack[cursorStack.length - 1];
 
-  // Single source of truth for the post-fetch source filter; consumed both
-  // by visibleRows below AND by the refetchInterval predicate inside
-  // useProposals so a future change to the filter semantics lands in one
-  // place (per Gemini suggestion on PR #77).
-  const matchesSourceFilter = useCallback(
-    (p: { study_id: string | null }) => {
-      if (sourceFilter === 'all') return true;
-      if (sourceFilter === 'study') return p.study_id != null;
-      return p.study_id == null;
-    },
-    [sourceFilter],
-  );
-
   const query = useProposals(
     {
       status,
       cluster_id: clusterFilter ?? undefined,
+      // The chip group's `all` selection means "no filter"; map to
+      // undefined so the backend doesn't see ?source=all (which it
+      // would reject as invalid). Backend filters server-side per
+      // chore_proposals_source_filter_server_side; pagination + total
+      // count are now aware of the source filter.
+      source: sourceFilter !== 'all' ? sourceFilter : undefined,
       cursor,
       limit: pageSize,
     },
     {
-      // FR-1: auto-refetch every 30s if any VISIBLE row has
-      // status='pr_opened' AND pr_state='open' (catches webhook-driven updates
-      // without manual reload). The visibility check applies the same
-      // client-side source filter that's applied to rows on render, so a
-      // study-sourced pr_opened+open row hidden by sourceFilter='manual'
-      // doesn't keep the page polling for invisible state (per GPT-5.5
-      // final-review cycle finding #3). Returns false otherwise so idle
-      // pages stop hitting the backend.
+      // FR-1: auto-refetch every 30s if any row has status='pr_opened' AND
+      // pr_state='open' (catches webhook-driven updates without manual
+      // reload). Since the backend now applies the source filter, every
+      // row in query.data is already visible — no need for a separate
+      // visibility check.
       refetchInterval: (q) =>
-        q.state.data?.data?.some((p) => {
-          if (p.status !== 'pr_opened' || p.pr_state !== 'open') return false;
-          return matchesSourceFilter(p);
-        })
+        q.state.data?.data?.some((p) => p.status === 'pr_opened' && p.pr_state === 'open')
           ? 30_000
           : false,
     },
@@ -87,8 +74,9 @@ function ProposalsPageInner() {
 
   function setSource(next: ProposalSourceFilterValue) {
     setSourceFilter(next);
-    // No cursor reset here: source is a post-fetch filter; backend pagination
-    // is unaware of it (see chore_proposals_source_filter_server_side idea).
+    // Backend filters server-side now; reset cursor since the page
+    // composition changes.
+    setCursorStack([undefined]);
   }
 
   function setCluster(next: string | null) {
@@ -96,10 +84,7 @@ function ProposalsPageInner() {
     setCursorStack([undefined]);
   }
 
-  const visibleRows = useMemo(() => {
-    const rows = query.data?.data ?? [];
-    return rows.filter(matchesSourceFilter);
-  }, [query.data, matchesSourceFilter]);
+  const visibleRows = query.data?.data ?? [];
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-6">

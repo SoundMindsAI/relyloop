@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **20 / 20** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **16** items remaining (features + bugs + chores) |
+| Scoped items done | **21 / 21** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **15** items remaining (features + bugs + chores) |
 | Open bugs | 5 |
-| Open chores | 11 (idea-stage debt) |
+| Open chores | 10 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (23)
+### Done (24)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -40,6 +40,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
 | [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | Complete | — | Complete |
+| [chore_proposals_source_filter_server_side](implemented_features/2026_05_13_chore_proposals_source_filter_server_side/idea.md) | Chore | Complete | — | Complete |
 | [chore_spec_trial_created_at_drift](implemented_features/2026_05_13_chore_spec_trial_created_at_drift/idea.md) | Chore | Complete | — | Complete |
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
 | [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | Complete | — | Complete |
@@ -61,7 +62,7 @@ _None._
 
 _None._
 
-### Idea (18)
+### Idea (17)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -75,7 +76,6 @@ _None._
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
 | [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [chore_proposals_list_wire_param_e2e_test](../02_product/planned_features/chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting: | — | Idea — deferred from `feat_proposals_ui` final GPT-5.5 review (finding #4) |
-| [chore_proposals_source_filter_server_side](../02_product/planned_features/chore_proposals_source_filter_server_side/idea.md) | Chore | The proposals list page at `/proposals` ships with a three-state source filter chip group (`all` / `study` / `manual`) shipped in `feat_proposals_ui` Story 1.2. Because the backend `GET /api/v1/propos | — | Idea — deferred follow-up from `feat_proposals_ui` |
 | [chore_query_inline_edit_delete](../02_product/planned_features/chore_query_inline_edit_delete/idea.md) | Chore | The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries ei | — | — |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
 | [bug_chat_long_conversation_truncation](../02_product/planned_features/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | — |
@@ -123,6 +123,8 @@ graph LR
   class infra_frontend_stack_refresh done;
   chore_proposals_page_usememo_deps["proposals page usememo deps"]
   class chore_proposals_page_usememo_deps done;
+  chore_proposals_source_filter_server_side["proposals source filter server side"]
+  class chore_proposals_source_filter_server_side done;
   chore_spec_trial_created_at_drift["spec trial created at drift"]
   class chore_spec_trial_created_at_drift done;
   chore_starlette_422_deprecation["starlette 422 deprecation"]
