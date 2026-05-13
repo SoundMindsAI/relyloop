@@ -277,7 +277,6 @@ Remaining items split by sized work-flow per the inline-fix vs idea-file rubric:
 
 **`/bug-fix` candidates** (medium-sized bugs with design surface — run via `/bug-fix`):
 - `bug_chat_long_conversation_truncation_mvp2` — Investigation `bug_fix.md` exists at `docs/02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/`; **held for MVP2** (decided 2026-05-13 — folder renamed with `_mvp2` suffix for ls visibility; pullable forward technically but deferred for scope discipline + latency-of-impact is zero today). Resume `/bug-fix` Default mode when MVP2 starts.
-- `bug_worker_optuna_init_race` — worker's Optuna `CREATE TYPE` runs before `make migrate`, dies, no restart policy (surfaced during chore_tutorial_polish smoke iteration).
 - `bug_digest_param_importance_seam` — chart rendering gap surfaced during feat_digest_proposal final review.
 
 **Polish chores** (`/bug-fix`-shaped — medium scope, design surface):
