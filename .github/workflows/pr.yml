@@ -205,18 +205,36 @@ jobs:
       - name: Install project deps (frozen)
         run: uv sync --frozen
 
-      - name: Write OPENAI_API_KEY secret to mounted file
+      - name: Pre-generate secrets with container-readable perms
         env:
           OPENAI_API_KEY_TEST: ${{ secrets.OPENAI_API_KEY_TEST }}
+        # install.sh's secret-generation steps create files with chmod 600.
+        # Local Docker Desktop hides this via virtiofs UID mapping; on Linux
+        # runners the api container's non-root `relyloop` user can't read
+        # files owned by the runner UID with 0600 perms (api crashes at
+        # startup with PermissionError on /run/secrets/database_url). install.sh
+        # is idempotent — `[[ ! -s ]]` skips regen on existing files — so we
+        # pre-generate every secret here with 0644 perms.
         run: |
           mkdir -p ./secrets
-          # Strip any trailing newline so the empty-secret case produces an
-          # empty file (size 0) rather than a single-newline file (size 1)
-          # that would slip past the sanity check below. Don't chmod 600 —
-          # the api container runs as a non-root user (`relyloop`) and the
-          # bind-mounted file inherits the runner's UID; restrictive perms
-          # cause PermissionError at api startup.
+          openssl rand -base64 32 | tr -d '\n' > ./secrets/postgres_password
+          PG_PW="$(cat ./secrets/postgres_password)"
+          printf 'postgresql+asyncpg://relyloop:%s@postgres/relyloop' "$PG_PW" \
+            > ./secrets/database_url
+          # Strip trailing newline so the empty-secret case produces an empty
+          # file (size 0) instead of a one-newline file (which `[ -s ]` would
+          # accept). Sanity-check below uses grep for non-whitespace content.
           printf '%s' "$OPENAI_API_KEY_TEST" > ./secrets/openai_key
+          : > ./secrets/github_token
+          cat > ./secrets/cluster_credentials.yaml <<'EOY'
+          local-es:
+            username: elastic
+            password: changeme
+          local-opensearch:
+            username: admin
+            password: admin
+          EOY
+          chmod 644 ./secrets/*
 
       - name: Sanity-check OPENAI_API_KEY_TEST is populated
         run: |
