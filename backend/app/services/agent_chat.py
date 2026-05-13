@@ -47,7 +47,7 @@ HISTORY_MAX_MESSAGES = 100
 """Defensive cap on messages fed back to OpenAI per cycle-2 F14.
 
 A full context-window-management strategy (summarization, smart truncation) is
-deferred to MVP2 — see ``bug_chat_long_conversation_truncation`` idea file.
+deferred to MVP2 — see ``bug_chat_long_conversation_truncation_mvp2`` idea file.
 """
 
 

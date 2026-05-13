@@ -1,9 +1,10 @@
-# Bug fix — bug_chat_long_conversation_truncation
+# Bug fix — bug_chat_long_conversation_truncation_mvp2
 
 **Source idea:** [idea.md](./idea.md)
 **Branch:** (TBD — Investigation mode only; no branch yet)
 **Type:** bug fix — medium (latent, pre-MVP2)
 **Date:** 2026-05-13
+**Status:** **Held for MVP2** (decided 2026-05-13). Confirmed pullable forward (no hard dependency on Langfuse / audit_log / multi-tenant infra) but deferred for scope discipline — bug is latent (no operator hits the 100-message cap in MVP1 alpha) and summarization prompt calibration benefits from MVP2's trace tooling. Re-enter `/bug-fix` Default mode on this folder when MVP2 starts.
 **Mode:** Investigation — phases 1-3 complete; Fix design / Regression test / Rollout pending user decisions on the 3 open forks surfaced by `/idea-preflight`.
 
 ## Problem
@@ -144,6 +145,6 @@ idea files (already captured or out of scope):
 **Investigation-mode termination:** `bug_fix.md` has Problem /
 Reproduction / Root cause filled in; **Fix design / Regression test /
 Rollout marked TBD pending user decisions on the 3 open forks**. Re-run
-`/bug-fix docs/02_product/planned_features/bug_chat_long_conversation_truncation/`
+`/bug-fix docs/02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/`
 in Default mode once the forks are locked (or accept the recommended
 defaults inline and run `/bug-fix … --proceed`).
