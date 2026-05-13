@@ -88,15 +88,15 @@ async def list_trials_paginated(
     Cursor shape depends on ``sort_key``:
 
     - ``primary_metric_*`` → ``(primary_metric: float | None, id: str)``
-    - ``created_at_*``     → ``(created_at: datetime, id: str)``
+    - ``ended_at_*``       → ``(ended_at: datetime, id: str)``
     - ``optuna_trial_number_asc`` → ``(number: int, id: str)``
 
     The router encodes / decodes the cursor with the appropriate shape
     based on ``sort_key`` (Story 3.4 handler).
 
     ``since`` filters by ``trials.ended_at >= since`` when present; trials
-    have no separate ``created_at`` column — ``ended_at`` is the closest
-    "when did this trial finish" timestamp and is what the api-conventions
+    have no ``created_at`` column — ``ended_at`` is the only timestamp,
+    and ``ended_at_*`` is what the api-conventions
     ``?since=`` filter actually wants for accumulator queries.
     """
     from sqlalchemy.sql.elements import UnaryExpression
