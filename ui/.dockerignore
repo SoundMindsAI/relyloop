@@ -1,0 +1,11 @@
+node_modules
+.next
+.turbo
+coverage
+tests/e2e/playwright-report
+tests/e2e/.playwright-state
+*.log
+.env
+.env.local
+.env.*.local
+.DS_Store
