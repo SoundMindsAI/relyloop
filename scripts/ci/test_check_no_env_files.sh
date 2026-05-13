@@ -53,6 +53,14 @@ expect_exit 1 "nested .env" "secrets/.env"
 expect_exit 1 "nested .env.old" "backend/.env.old"
 expect_exit 1 "mixed legit + bad (.env.example + .env.old)" ".env.example" ".env.old"
 expect_exit 1 ".env.foo bar.bak (space in name)" ".env.foo bar.bak"
+# chore_env_guard_extend_deny_pattern — non-dotted backup/rotation spellings.
+expect_exit 1 ".env-old (dash separator)" ".env-old"
+expect_exit 1 ".env_bak (underscore separator)" ".env_bak"
+expect_exit 1 ".env~ (tilde — vim/emacs backup)" ".env~"
+expect_exit 1 "backend/.env-prod (nested dash variant)" "backend/.env-prod"
+# False-positive guards that must still PASS after broadening.
+expect_exit 0 ".envoy.conf (letter after .env)" ".envoy.conf"
+expect_exit 0 ".env3.yml (digit after .env, no separator)" ".env3.yml"
 
 echo
 echo "${PASS} passed, ${FAIL} failed"
