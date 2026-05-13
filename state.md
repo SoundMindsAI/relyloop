@@ -2,21 +2,24 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-13 (after pre-MVP2 backlog sweep Wave 2 — **14 items resolved across 9 PRs**; `/bug-fix` skill added)
+**Last updated:** 2026-05-13 (after pre-MVP2 backlog sweep Wave 3 — **18 items resolved across 11 PRs**; `/bug-fix` skill added)
 
 ---
 
 ## Current branch / execution context
 
 - **Branch:** `main` (post-merge). `v0.1.0` annotated tag pushed on commit `d099536` on 2026-05-13; GitHub Release published at https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0.
-- **Active feature:** none in flight. **MVP1 alpha shipped + 14 backlog items drained across two waves of the pre-MVP2 sweep.** Story 4.6 (demo screencast) deferred to MVP3 per [`chore_demo_recording_mvp3`](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md). Manual maintainer steps still pending from [`release-checklist.md`](docs/03_runbooks/release-checklist.md): §4 fresh-VM hosted-OpenAI walkthrough, §5 local-LLM walkthrough, §8 feedback Discussion + design-partner channel shares. **Remaining backlog after Wave 2 (~11 actionable items):** 4 inline-fix items (bug_judgment_template_default_params_contract, chore_cluster_delete_ui, chore_infra_foundation_github_token_file_retirement (~80 LOC, biggest), infra_per_trial_timeout); 5 `/bug-fix` candidates (bug_chat_long_conversation_truncation Investigation done — ready for Default mode, bug_worker_optuna_init_race, bug_digest_param_importance_seam, chore_chat_last_message_preview, chore_judgments_periodic_resume_sweep — moved here from inline after re-read found design surface); 2 `/pipeline` candidates (chore_cluster_run_query_history, chore_query_inline_edit_delete — both confirmed feature-scale: schema + endpoint + UI). Plus 4 keep-deferred items by operator decision.
+- **Active feature:** none in flight. **MVP1 alpha shipped + 18 backlog items drained across three waves of the pre-MVP2 sweep.** Story 4.6 (demo screencast) deferred to MVP3 per [`chore_demo_recording_mvp3`](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md). Manual maintainer steps still pending from [`release-checklist.md`](docs/03_runbooks/release-checklist.md): §4 fresh-VM hosted-OpenAI walkthrough, §5 local-LLM walkthrough, §8 feedback Discussion + design-partner channel shares. **Remaining backlog after Wave 3 (~7 actionable items):** 5 `/bug-fix` candidates (bug_chat_long_conversation_truncation Investigation done — ready for Default mode, bug_worker_optuna_init_race, bug_digest_param_importance_seam, chore_chat_last_message_preview, chore_judgments_periodic_resume_sweep); 2 `/pipeline` candidates (chore_cluster_run_query_history, chore_query_inline_edit_delete — both confirmed feature-scale: schema + endpoint + UI). Plus 4 keep-deferred items by operator decision.
 - **Alembic head:** `0007_conversations_messages`.
 - **Python:** 3.13.
 - **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat config), TypeScript 6, jsdom 29, Node engine `>=20.18`.
-- **Coverage:** UI tests at **171 passing across 32 files** (was 122 pre-`feat_proposals_ui` — 49 new test cases across 8 new files). Backend coverage unchanged.
+- **Coverage:** UI tests at **183 passing across 35 files** (was 171 pre-Wave-3 — 12 new cases across 3 new files including `cluster-action-bar.test.tsx`). Backend coverage unchanged.
 
 ## Most recent meaningful changes (newest first)
 
+- **2026-05-13 — pre-MVP2 backlog sweep Wave 3 (4 more items resolved, 2 PRs).** Final inline-fix items drained per the inline-fix vs idea-file rubric, bundled into two themed PRs. **Remaining backlog after this wave: 5 `/bug-fix` candidates + 2 `/pipeline` candidates.**
+  - PR #86 — **backend platform fixes**: `bug_judgment_template_default_params_contract` (`compute_default_params` now handles the API's simple-form `declared_params: dict[str, str]` schema with per-type fallbacks: int → 1, float → 1.0, bool → False, string → ""; rich form preserved verbatim; 6 regression unit tests) + `infra_per_trial_timeout` (`run_trial` resolves `trial_timeout_s` from study.config OR `Settings.studies_default_timeout_s` and threads it into `adapter.search_batch(timeout=...)`; orchestrator's dead `_trial_timeout_s` removed; 2 integration assertions). Inline bonus same as PR #76's pattern: module-scoped `_settings_env` autouse fixture added to `test_openapi_surface.py` for laptop-dev imports. Gemini caught one Medium finding (Accepted): `or` short-circuits on 0 → replaced with explicit `is not None`.
+  - PR #87 — **operator hygiene**: `chore_cluster_delete_ui` (new `<ClusterActionBar>` with type-name confirmation gate; `useDeleteCluster()` hook; 3 vitest cases — backend endpoint was already shipped by `infra_adapter_elastic`) + `chore_infra_foundation_github_token_file_retirement` (removed `github_token_file` Settings field + `github_token` cached_property; per-repo `config_repos.auth_ref` model from `feat_github_pr_worker` fully replaced it; startup WARN if env var still set on pre-retirement install; 13 files touched across settings.py, main.py, install.sh, docker-compose.yml, pr.yml, .env.example, CLAUDE.md, deployment.md, apply-path.md, github-token-handling.md, mvp1-user-stories.md, tutorial-first-study.md). Gemini caught one Medium finding (**Rejected** with cited counter-evidence): suggested adding local `onError` toast — `query-provider.tsx:16-18` documents the convention that callers must NOT add their own `onError: toast.error(...)` because the global `MutationCache.onError` already toasts via `toToastMessage(err)`.
 - **2026-05-13 — pre-MVP2 backlog sweep Wave 2 (5 more items resolved, 3 PRs).** After Wave 1 (PRs #75-#80, 9 items), a second Explore-agent triage pass re-classified the 7 items originally routed to `/pipeline` — found that 5 of them were actually inline-fix / done-or-superseded scope. Wave 2 PRs:
   - PR #82 — `chore_test_both_engines` (parametrize cluster integration tests over ES + OpenSearch; 21 → 35 tests) + `infra_ci_smoke_makeup` (already done by `chore_tutorial_polish` PR #64's smoke job; archive only).
   - PR #83 — `chore_proposals_source_filter_server_side` (`?source=study|manual` server-side filter on `GET /api/v1/proposals`; drops client-side `matchesSourceFilter` + `visibleRows` useMemo). Test rewrite asserts the server-side contract.
@@ -261,19 +264,28 @@
 
 ## In flight
 
-- `feat_studies_ui` pending push + CI + merge on `feature/feat-studies-ui`.
+- None. MVP1 alpha shipped; pre-MVP2 sweep drained 18 backlog items (Waves 1-3).
 
 ## Queued (priority-ordered by dashboard / dep graph)
 
 **Source of truth:** [`docs/00_overview/MVP1_DASHBOARD.md`](docs/00_overview/MVP1_DASHBOARD.md) (regenerated by the `mvp1-dashboard-regen` pre-commit hook). Run `/pipeline status` for the live view.
 
-1. **`feat_chat_agent`** — streaming chat orchestrator. Will consume `POST /api/v1/proposals/{id}/open_pr` for the agent-tool "open this PR" path. Depends on `feat_studies_ui` for the chat surface UI.
-2. **`feat_proposals_ui`** — `/proposals` review surface. Consumes the proposal CRUD endpoints `feat_digest_proposal` shipped + the `POST /proposals/{id}/open_pr` endpoint shipped by `feat_github_pr_worker` + the `pr_state` updates shipped by `feat_github_webhook`. Depends on `feat_studies_ui` shell.
-4. **`chore_tutorial_polish`** — sample data + walkthrough. Tutorial flow now has the `POST /judgment-lists/import` path it expects (FR-3b).
-5. **`chore_studies_ui_shadcn_polish`** — migrate TopNav + CursorPaginator page-size to `<NavigationMenu>` / `<Select>` shadcn primitives (deferred from `feat_studies_ui` Epic 1 phase gate; native equivalents shipped).
-6. **`chore_query_inline_edit_delete`** — backend GET / PATCH / DELETE endpoints for individual queries + UI for inline edit/delete on query-set detail. Listing endpoint is a prerequisite (current detail page only shows count + bulk add).
-7. **`chore_judgments_periodic_resume_sweep`** — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
-8. **`chore_infra_foundation_github_token_file_retirement`** — deprecate the legacy `GITHUB_TOKEN_FILE` env var now that per-repo `auth_ref` ships in `feat_github_pr_worker`.
+Remaining items split by sized work-flow per the inline-fix vs idea-file rubric:
+
+**`/bug-fix` candidates** (medium-sized bugs with design surface — run via `/bug-fix`):
+- `bug_chat_long_conversation_truncation` — Investigation `bug_fix.md` exists at `docs/02_product/planned_features/bug_chat_long_conversation_truncation/`; ready for `/bug-fix` Default mode once forks are picked.
+- `bug_worker_optuna_init_race` — worker's Optuna `CREATE TYPE` runs before `make migrate`, dies, no restart policy (surfaced during chore_tutorial_polish smoke iteration).
+- `bug_digest_param_importance_seam` — chart rendering gap surfaced during feat_digest_proposal final review.
+
+**Polish chores** (`/bug-fix`-shaped — medium scope, design surface):
+- `chore_chat_last_message_preview` — add `last_message_preview` + `last_message_at` on ConversationSummary (deferred from feat_chat_agent cycle-2 F15).
+- `chore_judgments_periodic_resume_sweep` — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
+
+**`/pipeline` candidates** (feature-scale — schema + endpoint + UI):
+- `chore_cluster_run_query_history` — persist run_query results for inspection (chore_cluster_delete_ui's deferred sibling).
+- `chore_query_inline_edit_delete` — backend GET / PATCH / DELETE endpoints for individual queries + UI for inline edit/delete on query-set detail. Listing endpoint is a prerequisite (current detail page only shows count + bulk add).
+
+**Operator-deferred:** `chore_studies_ui_shadcn_polish` (shadcn primitive migration), `chore_demo_recording_mvp3` (Story 4.6 deferred to MVP3), `infra_optuna_orphan_reaper` (operationally tolerated for MVP1), and the in-progress dogfood items pending design-partner feedback.
 
 ## Known debt / fragility
 
