@@ -83,17 +83,20 @@ tested matrix.
 
 ## 6. Demo recording linked from README — AC-6
 
-Per Story 4.6, a 5–7 minute screencast is the README's "What it looks like"
-section. Verify the link works in a fresh incognito window:
+**Deferred to MVP3 release polish** (decided 2026-05-12 post-merge of
+`chore_tutorial_polish` PR #64). Tracked at
+[`docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md`](../02_product/planned_features/chore_demo_recording_mvp3/idea.md).
 
-```bash
-# Pull the link out of the README's "What it looks like" section.
-grep -A 1 "What it looks like" README.md
-# Open the URL in incognito; confirm the video plays.
-```
+Reasoning: the demo's value depends on UX stability (won't rot in 4 weeks)
++ a credible "production" story to tell. MVP1 is alpha for technical
+evaluators who'll read code, not a video. MVP3 ships TLS install + Lucidworks
+Fusion adapter + multi-Git-provider — the first release polished enough to
+warrant a demo. MVP2 wouldn't change the demo content; MVP4 (multi-tenant
+auth) would invalidate any pre-MVP4 video.
 
-If the README still shows the placeholder URL, Story 4.6 hasn't completed —
-go back and finish it before proceeding.
+For `v0.1.0` specifically: the `What it looks like` placeholder has been
+removed from `README.md`; the quickstart + tutorial link is sufficient
+audience-fit for the alpha. Skip this section entirely when cutting `v0.1.0`.
 
 ## 7. Tag + Release procedure
 
