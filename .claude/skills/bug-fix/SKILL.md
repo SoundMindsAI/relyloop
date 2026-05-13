@@ -1,10 +1,10 @@
 ---
 name: bug-fix
 pipeline-stage: 1b
-pipeline-role: bug idea.md → bug_fix.md + branch with fix committed (handoff to /impl-execute --ad-hoc)
-description: "Drive a medium-sized bug through CLAUDE.md's Bug Fix Protocol — reproduce first, root-cause to the right layer, lock any design forks with recommended defaults, write a focused ~80-line bug_fix.md (Problem / Repro / Root cause / Fix design / Regression test / Rollout), and implement the fix on a feature branch. The skill thinks about the bug and produces an artifact + committed code; /impl-execute --ad-hoc ships it. Sized for bugs with non-trivial design surface but smaller than features: too much for direct ad-hoc execution, too little for /pipeline scaffolding. Use when: a bug folder under planned_features/ has design surface (open forks, new migration, new prompt, cross-layer ownership), or the user asks 'fix this bug', 'take this bug through the protocol', or invokes /bug-fix on a bug folder. Trigger phrases: fix this bug, take this bug through review, run bug-fix on, investigate and fix, bug-fix protocol."
-argument-hint: "[path to bug folder OR bug idea.md. If omitted, infer from the IDE-opened file]"
-allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Agent, TodoWrite
+pipeline-role: "bug idea.md → bug_fix.md + branch with fix committed (default — hand off to /impl-execute --ad-hoc; with --ship — chain through merge)"
+description: "Drive a medium-sized bug through CLAUDE.md's Bug Fix Protocol — reproduce first, root-cause to the right layer, lock any design forks with recommended defaults, write a focused ~80-line bug_fix.md (Problem / Repro / Root cause / Fix design / Regression test / Rollout), and implement the fix on a feature branch. The skill thinks about the bug and produces an artifact + committed code; by default it terminates at the handoff and /impl-execute --ad-hoc ships it. With the optional --ship flag, the skill chains directly into /impl-execute --ad-hoc (pre-push gate → push → PR → CI watch → Gemini adjudication → optional GPT-5.5 review → post-merge cleanup) for one-shot bug-to-merge. Sized for bugs with non-trivial design surface but smaller than features: too much for direct ad-hoc execution, too little for /pipeline scaffolding. Use when: a bug folder under planned_features/ has design surface (open forks, new migration, new prompt, cross-layer ownership), or the user asks 'fix this bug', 'take this bug through the protocol', or invokes /bug-fix on a bug folder. Trigger phrases: fix this bug, take this bug through review, run bug-fix on, investigate and fix, bug-fix protocol, ship this bug fix."
+argument-hint: "[path to bug folder OR bug idea.md. If omitted, infer from the IDE-opened file] [--ship for end-to-end bug → merged PR] [--investigate for root-cause-only mode]"
+allowed-tools: Read, Glob, Grep, Bash, Write, Edit, Agent, Skill, TodoWrite
 model: claude-opus-4-7
 user-invocable: true
 ---
@@ -227,7 +227,12 @@ artifact first then the code.
 regression test fails on `main` and passes on the branch, the test
 suite is green locally, tangential issues are captured.
 
-### Phase 6 — Handoff to /impl-execute --ad-hoc
+### Phase 6 — Handoff (default) OR auto-ship (--ship)
+
+This phase branches on whether `--ship` was passed in the skill's
+arguments:
+
+#### Default (no `--ship` flag)
 
 1. Verify the branch is ahead of `origin/main` by at least one commit.
 2. Surface the branch name + `bug_fix.md` path to the user.
@@ -235,8 +240,67 @@ suite is green locally, tangential issues are captured.
    the committed branch and ships through the standard ceremony
    (pre-push gate → push → PR → CI watch → Gemini adjudication →
    optional GPT-5.5 review → post-merge cleanup).
+4. **Also surface the `--ship` option** so the user knows next time:
+   "Next time, you can pass `--ship` to chain this automatically."
 
-**Phase 6 gate:** none — the skill terminates with a clean handoff.
+**Default-mode gate:** none — the skill terminates with a clean handoff.
+
+#### `--ship` mode
+
+When `--ship` was passed, do NOT terminate at the handoff. Instead,
+chain directly into `/impl-execute --ad-hoc` via the Skill tool — the
+same way Phase 1 invokes `/idea-preflight` when the idea is stale.
+
+1. Verify Phase 5 left the branch in a shippable state: a commit ahead
+   of `origin/main`, clean working tree, regression test green locally.
+   If not, abort with a clear error explaining what needs fixing
+   first (do NOT auto-ship a broken state).
+2. Invoke `/impl-execute --ad-hoc` via the Skill tool. Pass no arguments
+   (ad-hoc mode infers everything from the current branch). The
+   invocation runs Steps 0a → 7 of the impl-execute ad-hoc flow
+   synchronously (Step 9 is post-merge and runs on a later invocation,
+   not as part of this one — see point 3 below):
+   - **0a** Worktree pre-flight
+   - **0b.1** Audit-event coverage audit (MVP2+; no-op in MVP1)
+   - **2.5** Tangential observations sweep (BLOCKING — bug fixes
+     routinely surface adjacent bugs; the sweep catches anything
+     Phase 5 step 7 missed)
+   - **3** Guide impact assessment (gate; only fires if frontend was
+     touched)
+   - **4** Pre-push gate (`make fmt` + `make lint` + `make typecheck`
+     + `ruff format --check`) + push + open PR
+   - **5** CI watch
+   - **6** Gemini Code Assist adjudication with four-quadrant rubric
+   - **7** Optional GPT-5.5 final review (auto-triggered if diff
+     crosses 30 LOC / 3 files OR touches studies / judgments / engine
+     adapter / GitHub PR worker / migrations)
+3. After the impl-execute invocation returns, surface the final outcome
+   to the user: PR URL, CI status, review adjudication results, any
+   deferred follow-up idea files captured. Step 9 (post-merge cleanup —
+   delete local feature branch, fetch main, sweep agent worktrees) is
+   the post-merge handoff: tell the user "ping me after merge for Step
+   9 cleanup, or it'll run automatically on the next invocation in
+   this repo." Do NOT poll/sleep waiting for the merge.
+
+**`--ship`-mode gate:** the impl-execute invocation returns successfully
+(PR open + CI green + reviews adjudicated). Merge itself remains a
+human action — the skill does NOT auto-merge.
+
+#### When `--ship` should NOT be used
+
+- **Investigation mode** — there's no fix to ship. `--ship` is silently
+  ignored when `--investigate` is also passed.
+- **First time using `/bug-fix` on an unfamiliar codebase** — let
+  default mode pause at Phase 6 so you can read `bug_fix.md` and the
+  staged commits before they're pushed publicly.
+- **Bug touches a release-blocking surface** — pause at default
+  Phase 6 so a human can sanity-check the design before CI/Gemini
+  spin cycles burn on a PR that may need a teardown.
+
+If the user invokes `--ship` for a bug that fits the second or third
+case above, surface the concern and ask for explicit confirmation
+before proceeding. (Investigation-mode handling is already covered by
+the silent-ignore rule — no confirmation needed.)
 
 ## `bug_fix.md` template
 
@@ -308,20 +372,38 @@ empty, write "None.">
 
 ## Modes
 
-- **Default** — full 6-phase flow. Produces `bug_fix.md` + committed fix.
-- **Investigation** — phases 1–3 only. Produces a `bug_fix.md` with
-  Problem / Reproduction / Root cause sections filled in and Fix
-  design / Regression test / Rollout marked **TBD**. Use when the
-  fix scope is genuinely undecided and you want a human to weigh in
-  before committing to a design. Invoke as `/bug-fix … --investigate`.
+- **Default** — full 6-phase flow. Produces `bug_fix.md` + committed
+  fix on a feature branch. Terminates at Phase 6 with a handoff
+  recommending `/impl-execute --ad-hoc` to ship.
+- **`--ship`** — Default flow PLUS auto-chain into
+  `/impl-execute --ad-hoc` at Phase 6 (push + PR + CI watch + Gemini
+  adjudication + optional GPT-5.5 review + post-merge cleanup). One
+  invocation takes the bug from `idea.md` to a merged PR. The skill
+  does NOT auto-merge — the human still clicks the merge button.
+  Skipped if `--investigate` is also passed. Invoke as
+  `/bug-fix <path> --ship`.
+- **Investigation** (`--investigate`) — phases 1–3 only. Produces a
+  `bug_fix.md` with Problem / Reproduction / Root cause sections
+  filled in and Fix design / Regression test / Rollout marked **TBD**.
+  Use when the fix scope is genuinely undecided and you want a human
+  to weigh in before committing to a design. Invoke as
+  `/bug-fix … --investigate`. `--ship` has no effect here (nothing to
+  ship; investigation produces docs only).
 - **Resume** — re-entry on a folder that already has a partial
   `bug_fix.md`. Reads the existing artifact, identifies the
   highest-numbered completed phase, and continues from the next.
-  Auto-detected on invocation if `bug_fix.md` exists.
+  Auto-detected on invocation if `bug_fix.md` exists. Respects
+  `--ship` / `--investigate` on the re-entry invocation.
 
 ## What this skill does NOT do
 
-- **Open PRs / push branches** — that's `/impl-execute --ad-hoc`.
+- **Open PRs / push branches** in default mode — that's
+  `/impl-execute --ad-hoc`'s job. In `--ship` mode the skill delegates
+  push/PR work to `/impl-execute --ad-hoc` via the Skill tool; it does
+  not reimplement the ceremony.
+- **Auto-merge** — even in `--ship` mode, merging is a human action.
+  The skill stops at "PR open, CI green, reviews adjudicated" and
+  waits for the human to merge before running post-merge cleanup.
 - **Decide product or UX forks** — those go to "Open questions" with
   a recommended default and require user confirmation.
 - **Refactor adjacent code** — strictly minimal fix per CLAUDE.md.
@@ -367,7 +449,13 @@ End with one of:
 
 - **"Bug fix ready. `bug_fix.md` written, branch `<name>` has the
   fix + regression test committed. Run `/impl-execute --ad-hoc` to
-  ship."** — Default-mode success.
+  ship — or next time, pass `--ship` to chain automatically."** —
+  Default-mode success.
+- **"Bug shipped to PR #<N>. CI green, reviews adjudicated, awaiting
+  human merge. Run `/impl-execute --ad-hoc` after merge for Step 9
+  cleanup — or it'll happen automatically on the next invocation."** —
+  `--ship`-mode success (PR open + reviews resolved; merge is the
+  human's call).
 - **"Investigation complete. `bug_fix.md` has Problem / Reproduction /
   Root cause filled in; Fix design needs your call on N open
   questions before continuing. Re-run `/bug-fix … ` (Default mode)
