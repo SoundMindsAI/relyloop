@@ -4,22 +4,16 @@ _Reflects feature-folder state as of **2026-05-13** (latest mtime of any planned
 
 ## Next up
 
-**[chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md)** — Chore, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README polish, a containerized UI (`ui` Compose
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/chore_tutorial_polish/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Features done | **12 / 13** (92%) |
-| Path to MVP1 | **24** items remaining (features + bugs + chores) |
+| Features done | **13 / 13** (100%) |
+| Path to MVP1 | **23** items remaining (features + bugs + chores) |
 | Open bugs | 8 |
 | Open chores | 15 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
@@ -27,7 +21,7 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (12)
+### Done (13)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -43,16 +37,15 @@ Plan approved; run /impl-execute to ship
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
+| [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 
 ### Implementing (0)
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [chore_tutorial_polish](../02_product/planned_features/chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
+_None._
 
 ### Spec (0)
 
@@ -101,8 +94,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_tutorial_polish["tutorial polish"]
-  class chore_tutorial_polish plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -115,6 +106,8 @@ graph LR
   class feat_digest_proposal done;
   feat_llm_judgments["llm judgments"]
   class feat_llm_judgments done;
+  chore_tutorial_polish["tutorial polish"]
+  class chore_tutorial_polish done;
   feat_chat_agent["chat agent"]
   class feat_chat_agent done;
   feat_github_pr_worker["github pr worker"]
@@ -127,6 +120,11 @@ graph LR
   class feat_studies_ui done;
   infra_frontend_stack_refresh["frontend stack refresh"]
   class infra_frontend_stack_refresh done;
+  feat_study_lifecycle --> feat_digest_proposal
+  feat_llm_judgments --> feat_digest_proposal
+  infra_foundation --> feat_llm_judgments
+  infra_adapter_elastic --> feat_llm_judgments
+  feat_study_lifecycle --> feat_llm_judgments
   feat_chat_agent --> chore_tutorial_polish
   feat_digest_proposal --> chore_tutorial_polish
   feat_github_pr_worker --> chore_tutorial_polish
@@ -139,11 +137,6 @@ graph LR
   infra_foundation --> chore_tutorial_polish
   infra_frontend_stack_refresh --> chore_tutorial_polish
   infra_optuna_eval --> chore_tutorial_polish
-  feat_study_lifecycle --> feat_digest_proposal
-  feat_llm_judgments --> feat_digest_proposal
-  infra_foundation --> feat_llm_judgments
-  infra_adapter_elastic --> feat_llm_judgments
-  feat_study_lifecycle --> feat_llm_judgments
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
   feat_github_webhook --> feat_chat_agent

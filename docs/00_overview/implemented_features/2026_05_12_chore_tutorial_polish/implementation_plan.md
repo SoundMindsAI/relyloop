@@ -1,7 +1,7 @@
 # Implementation Plan — chore_tutorial_polish
 
 **Date:** 2026-05-12
-**Status:** Ready for Execution
+**Status:** Complete (PR #64 merged 2026-05-12 as `bb95e3f`); Stories 4.6 + 4.7 deferred to maintainer per release-checklist.md
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy sources:**
 - [`docs/01_architecture/deployment.md`](../../../01_architecture/deployment.md) — Compose layout + secrets pattern
@@ -1046,18 +1046,18 @@ Docs + release ──────┼─ Story 4.1 (tutorial — depends on all 1
 
 ### Current sprint
 
-- [ ] **Story 1.1** — `samples/` bootstrap (products + queries + template + LICENSE) **[manual prereq: ESCI curation]**
-- [ ] **Story 2.1** — `scripts/seed_es.py` + `make seed-es` + integration test
-- [ ] **Story 2.2** — `ui/Dockerfile` (Node 20 + pnpm 9 + multi-stage + build arg)
-- [ ] **Story 2.3** — `docker-compose.yml` `ui` service + verification
-- [ ] **Story 3.1** — `backend/tests/smoke/test_tutorial_path.py`
-- [ ] **Story 3.2** — `.github/workflows/pr.yml` `smoke-test` job **[manual prereq: OPENAI_API_KEY_TEST repo secret]**
-- [ ] **Story 4.1** — `docs/08_guides/tutorial-first-study.md` + screenshots + guides README
-- [ ] **Story 4.2** — README polish (status, quickstart, value prop, links)
-- [ ] **Story 4.3** — `docs/03_runbooks/release-checklist.md`
-- [ ] **Story 4.4** — `docs/01_architecture/deployment.md` UI service update
-- [ ] **Story 4.5** — `mvp1-user-stories.md` US-30 / US-31 / US-32 flips
-- [ ] **Story 4.6** — Demo recording (5–7 min) **[manual: blocking]**
+- [x] **Story 1.1** — `samples/` bootstrap (products + queries + template + LICENSE)
+- [x] **Story 2.1** — `scripts/seed_es.py` + `make seed-es` + integration test
+- [x] **Story 2.2** — `ui/Dockerfile` (Node **24** LTS + pnpm 9 + multi-stage + build arg)
+- [x] **Story 2.3** — `docker-compose.yml` `ui` service + verification
+- [x] **Story 3.1** — `backend/tests/smoke/test_tutorial_path.py`
+- [x] **Story 3.2** — `.github/workflows/pr.yml` `smoke-test` job (operator added `OPENAI_API_KEY_TEST` repo secret 2026-05-12)
+- [x] **Story 4.1** — `docs/08_guides/tutorial-first-study.md` + screenshots + guides README
+- [x] **Story 4.2** — README polish (status, quickstart, value prop, links)
+- [x] **Story 4.3** — `docs/03_runbooks/release-checklist.md`
+- [x] **Story 4.4** — `docs/01_architecture/deployment.md` UI service update
+- [x] **Story 4.5** — `mvp1-user-stories.md` US-30 / US-31 / US-32 flips
+- [ ] **Story 4.6** — Demo recording (5–7 min) **[manual: blocking — maintainer post-merge]**
 - [ ] **Story 4.7** — `v0.1.0` Git tag + GitHub Release **[manual: blocking; depends on Story 4.3 release-checklist completion]**
 
 ### Blocked items

@@ -313,12 +313,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Chore, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
-    <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README polish, a containerized UI (`ui` Compose</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/chore_tutorial_polish/implementation_plan.md --all</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -326,15 +326,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Features done</div>
-      <div class="value">12 / 13</div>
-      <div class="sub">92% of scoped MVP1 features</div>
-      <div class="bar"><span style="width:92%"></span></div>
+      <div class="value">13 / 13</div>
+      <div class="sub">100% of scoped MVP1 features</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">24</div>
+      <div class="value">23</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -705,18 +705,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/60">PR #60</a><span>merged 2026-05-12</span>
-  </div>
-  <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
-
-  <div class="deps">depends on: <span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -726,7 +715,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">12</span></h3>
+  <h3>Done <span class="count">13</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -871,6 +860,18 @@ footer {
 
 </div>
 
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/64">PR #64</a><span>merged 2026-05-12</span>
+  </div>
+  <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
+
+  <div class="deps">depends on: <span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
+</div>
+
 </div>
 </div>
 </section>
@@ -884,8 +885,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_tutorial_polish[&quot;tutorial polish&quot;]
-  class chore_tutorial_polish plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -898,6 +897,8 @@ footer {
   class feat_digest_proposal done;
   feat_llm_judgments[&quot;llm judgments&quot;]
   class feat_llm_judgments done;
+  chore_tutorial_polish[&quot;tutorial polish&quot;]
+  class chore_tutorial_polish done;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent done;
   feat_github_pr_worker[&quot;github pr worker&quot;]
@@ -910,6 +911,11 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  feat_study_lifecycle --&gt; feat_digest_proposal
+  feat_llm_judgments --&gt; feat_digest_proposal
+  infra_foundation --&gt; feat_llm_judgments
+  infra_adapter_elastic --&gt; feat_llm_judgments
+  feat_study_lifecycle --&gt; feat_llm_judgments
   feat_chat_agent --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
@@ -922,11 +928,6 @@ footer {
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
-  feat_study_lifecycle --&gt; feat_digest_proposal
-  feat_llm_judgments --&gt; feat_digest_proposal
-  infra_foundation --&gt; feat_llm_judgments
-  infra_adapter_elastic --&gt; feat_llm_judgments
-  feat_study_lifecycle --&gt; feat_llm_judgments
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
@@ -960,8 +961,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_tutorial_polish[&quot;tutorial polish&quot;]
-  class chore_tutorial_polish plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -974,6 +973,8 @@ footer {
   class feat_digest_proposal done;
   feat_llm_judgments[&quot;llm judgments&quot;]
   class feat_llm_judgments done;
+  chore_tutorial_polish[&quot;tutorial polish&quot;]
+  class chore_tutorial_polish done;
   feat_chat_agent[&quot;chat agent&quot;]
   class feat_chat_agent done;
   feat_github_pr_worker[&quot;github pr worker&quot;]
@@ -986,6 +987,11 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  feat_study_lifecycle --&gt; feat_digest_proposal
+  feat_llm_judgments --&gt; feat_digest_proposal
+  infra_foundation --&gt; feat_llm_judgments
+  infra_adapter_elastic --&gt; feat_llm_judgments
+  feat_study_lifecycle --&gt; feat_llm_judgments
   feat_chat_agent --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
@@ -998,11 +1004,6 @@ footer {
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
-  feat_study_lifecycle --&gt; feat_digest_proposal
-  feat_llm_judgments --&gt; feat_digest_proposal
-  infra_foundation --&gt; feat_llm_judgments
-  infra_adapter_elastic --&gt; feat_llm_judgments
-  feat_study_lifecycle --&gt; feat_llm_judgments
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
