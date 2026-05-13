@@ -66,6 +66,37 @@ jobs:
       - name: Verify no forbidden .env* files in diff
         run: bash scripts/ci/check-no-env-files.sh
 
+  backend-unit-fast:
+    # Fail-fast lane for the most common AI/human iteration failure mode:
+    # broken unit tests. Runs in parallel with the heavy `backend` job and
+    # surfaces unit-test regressions in ~50s vs the full job's ~6m. Unit
+    # tests are pure (no DB, Redis, ES, or OpenSearch needed) — 710 cases
+    # complete locally in ~5s. The full `backend` job below still runs the
+    # same unit tests as part of its coverage-gated run, so coverage logic
+    # is untouched; this lane is an early signal, not a replacement.
+    name: backend (unit tests — fast lane)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          version: "0.5.7"
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install project deps (frozen)
+        run: uv sync --frozen
+
+      - name: pytest backend/tests/unit/
+        run: uv run pytest backend/tests/unit/ --no-cov -q
+
   backend:
     name: backend (lint + typecheck + tests + coverage)
     runs-on: ubuntu-latest
