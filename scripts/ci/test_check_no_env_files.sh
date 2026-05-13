@@ -57,6 +57,7 @@ expect_exit 1 ".env.foo bar.bak (space in name)" ".env.foo bar.bak"
 expect_exit 1 ".env-old (dash separator)" ".env-old"
 expect_exit 1 ".env_bak (underscore separator)" ".env_bak"
 expect_exit 1 ".env~ (tilde — vim/emacs backup)" ".env~"
+expect_exit 1 ".env~bak (tilde + suffix variant)" ".env~bak"
 expect_exit 1 "backend/.env-prod (nested dash variant)" "backend/.env-prod"
 # False-positive guards that must still PASS after broadening.
 expect_exit 0 ".envoy.conf (letter after .env)" ".envoy.conf"

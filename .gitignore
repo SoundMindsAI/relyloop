@@ -160,7 +160,7 @@ activemq-data/
 .env.*
 .env-*
 .env_*
-.env~
+.env~*
 .env.old
 .env.bak
 .env.local
