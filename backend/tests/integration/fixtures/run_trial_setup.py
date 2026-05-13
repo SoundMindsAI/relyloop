@@ -57,6 +57,7 @@ async def setup_study_with_cluster(
     objective_k: int = 10,
     cluster_base_url: str = "http://stub:9200",
     n_queries: int = 3,
+    extra_config: dict[str, object] | None = None,
 ) -> TrialFixture:
     """Create cluster + template + query_set + queries + judgment_list + study.
 
@@ -86,6 +87,8 @@ async def setup_study_with_cluster(
     config: dict[str, object] = {"max_trials": max_trials, "sampler": sampler}
     if pruner is not None:
         config["pruner"] = pruner
+    if extra_config:
+        config.update(extra_config)
     objective: dict[str, object] = {
         "metric": objective_metric,
         "k": objective_k,

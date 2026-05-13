@@ -107,6 +107,10 @@ async def test_run_trial_writes_complete_trial_row_with_tpe_sampler(
     # AC-7: exactly one search_batch call (proxy for single _msearch, zero _search).
     assert len(stub.search_batch_calls) == 1
     assert stub.search_batch_calls[0]["n_queries"] == len(fixture.query_ids)
+    # infra_per_trial_timeout: when the study config omits trial_timeout_s
+    # the worker resolves the Settings default (60s) and passes it to
+    # adapter.search_batch as a float.
+    assert stub.search_batch_calls[0]["timeout"] == 60.0
     assert stub.aclose_called is True
 
     # AC-4: a 'complete' trials row exists with expected fields.
@@ -128,5 +132,42 @@ async def test_run_trial_writes_complete_trial_row_with_tpe_sampler(
     assert t.params  # populated by orchestrator simulation
     assert "bm25_k1" in t.params
     assert "bm25_b" in t.params
+
+    await cleanup_fixture(fixture)
+
+
+async def test_run_trial_threads_per_study_trial_timeout_into_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """infra_per_trial_timeout: when ``study.config.trial_timeout_s`` is set
+    it wins over ``Settings.studies_default_timeout_s`` and is forwarded
+    to ``adapter.search_batch(..., timeout=...)`` as a float."""
+    fixture = await setup_study_with_cluster(extra_config={"trial_timeout_s": 300})
+
+    storage = build_storage(get_settings().database_url)
+    optuna_trial_number = create_optuna_trial_for_study(
+        storage, optuna_study_name=fixture.optuna_study_name
+    )
+
+    stub = StubAdapter(
+        engine_type="elasticsearch",
+        search_batch_response=build_hits_response(fixture.query_ids),
+    )
+    monkeypatch.setattr("backend.workers.trials.build_adapter", lambda _cluster: stub)
+    monkeypatch.setattr(
+        "backend.workers.trials.load_qrels",
+        AsyncMock(return_value=build_qrels(fixture.query_ids)),
+    )
+
+    from backend.workers.trials import run_trial
+
+    await run_trial(
+        ctx={"optuna_storage": storage},
+        study_id=fixture.study_id,
+        optuna_trial_number=optuna_trial_number,
+    )
+
+    assert len(stub.search_batch_calls) == 1
+    assert stub.search_batch_calls[0]["timeout"] == 300.0
 
     await cleanup_fixture(fixture)
