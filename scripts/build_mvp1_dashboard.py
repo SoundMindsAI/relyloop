@@ -124,6 +124,52 @@ def _extract_one_liner(text: str) -> str:
     return ""
 
 
+def _strip_unclosed_markdown(text: str) -> str:
+    """Walk back to a position where [/]/(/) brackets and `-spans are balanced.
+
+    Drops trailing tokens (word at a time) until the result has matched
+    pairs. Returns "" if no balanced prefix exists. Used after a length
+    truncation to avoid emitting "[label" or "[label](url" or "`code".
+    """
+    while text and (
+        text.count("[") != text.count("]")
+        or text.count("(") != text.count(")")
+        or text.count("`") % 2 != 0
+    ):
+        last_space = text.rfind(" ")
+        if last_space <= 0:
+            return ""
+        text = text[:last_space].rstrip()
+    return text
+
+
+def _safe_truncate_markdown(text: str, max_len: int) -> str:
+    """Truncate ``text`` to ≤ ``max_len`` chars, markdown-aware.
+
+    Preference order for the cut point:
+      1. Sentence boundary (``. ``, ``! ``, ``? ``) within the last 50 chars.
+      2. Word boundary (last space) in the remaining window.
+      3. Hard cut at max_len-1 (last-resort; only when input has no spaces).
+
+    Then strip any unclosed markdown link / code-span via
+    :func:`_strip_unclosed_markdown` and append a single-char ellipsis (``…``).
+    """
+    if len(text) <= max_len:
+        return text
+    budget = max_len - 1  # 1 char reserved for the ellipsis
+    candidate = text[:budget]
+    window_start = max(0, len(candidate) - 50)
+    last_sentence = max(candidate.rfind(s, window_start) for s in (". ", "! ", "? "))
+    if last_sentence >= window_start:
+        candidate = candidate[: last_sentence + 1]
+    else:
+        last_space = candidate.rfind(" ")
+        if last_space > 0:
+            candidate = candidate[:last_space]
+    candidate = _strip_unclosed_markdown(candidate)
+    return candidate.rstrip() + "…"
+
+
 def _extract_idea_problem(text: str) -> str:
     """Pull the first paragraph under the `## Problem` heading."""
     m = re.search(r"^##\s+Problem\s*$", text, flags=re.MULTILINE)
@@ -133,10 +179,7 @@ def _extract_idea_problem(text: str) -> str:
     # First non-empty paragraph.
     para = next((p for p in rest.split("\n\n") if p.strip()), "")
     para = re.sub(r"\s+", " ", para).strip()
-    # Cap length.
-    if len(para) > 240:
-        para = para[:237] + "..."
-    return para
+    return _safe_truncate_markdown(para, 240)
 
 
 _TRANSITIVE_DEP_PHRASES = (
