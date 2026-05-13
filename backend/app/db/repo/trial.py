@@ -195,35 +195,52 @@ async def aggregate_trials_summary(db: AsyncSession, study_id: str) -> TrialsSum
     """Single-query aggregation for ``GET /studies/{id}.trials_summary``.
 
     Returns counts grouped by status + the best (max) primary_metric +
-    the trial id achieving it. One SELECT with FILTER clauses + a
-    correlated subquery for the winner id. Wall-clock target <100ms p99
-    per spec §13.
+    the trial id achieving it. A CTE-style single SELECT (per spec §13
+    contract for ``aggregate_trials_summary``): the summary aggregates
+    join a correlated scalar subquery that picks the winner id using
+    ``MAX(primary_metric) FILTER (...) `` from the outer aggregation.
+    Wall-clock target <100ms p99.
+
+    Replaces the previous 2-query implementation (chore_trial_summary_single_query).
     """
-    counts_stmt = select(
-        func.count(Trial.id).label("total"),
-        func.count(case((Trial.status == "complete", 1))).label("complete"),
-        func.count(case((Trial.status == "failed", 1))).label("failed"),
-        func.count(case((Trial.status == "pruned", 1))).label("pruned"),
-        func.max(case((Trial.status == "complete", Trial.primary_metric))).label("best"),
-    ).where(Trial.study_id == study_id)
-    counts_row = (await db.execute(counts_stmt)).one()
-    best = counts_row.best
-    best_trial_id: str | None = None
-    if best is not None:
-        winner_stmt = (
-            select(Trial.id)
-            .where(Trial.study_id == study_id)
-            .where(Trial.status == "complete")
-            .where(Trial.primary_metric == best)
-            .order_by(Trial.optuna_trial_number)  # deterministic tiebreak
-            .limit(1)
+    summary = (
+        select(
+            func.count(Trial.id).label("total"),
+            func.count(case((Trial.status == "complete", 1))).label("complete"),
+            func.count(case((Trial.status == "failed", 1))).label("failed"),
+            func.count(case((Trial.status == "pruned", 1))).label("pruned"),
+            func.max(case((Trial.status == "complete", Trial.primary_metric))).label("best"),
         )
-        best_trial_id = (await db.execute(winner_stmt)).scalar_one_or_none()
+        .where(Trial.study_id == study_id)
+        .cte("summary")
+    )
+
+    winner = (
+        select(Trial.id)
+        .where(Trial.study_id == study_id)
+        .where(Trial.status == "complete")
+        .where(Trial.primary_metric == summary.c.best)
+        .order_by(Trial.optuna_trial_number)  # deterministic tiebreak
+        .limit(1)
+        .correlate(summary)
+        .scalar_subquery()
+    )
+
+    stmt = select(
+        summary.c.total,
+        summary.c.complete,
+        summary.c.failed,
+        summary.c.pruned,
+        summary.c.best,
+        winner.label("best_trial_id"),
+    )
+    row = (await db.execute(stmt)).one()
+    best = row.best
     return TrialsSummary(
-        total=int(counts_row.total),
-        complete=int(counts_row.complete),
-        failed=int(counts_row.failed),
-        pruned=int(counts_row.pruned),
+        total=int(row.total),
+        complete=int(row.complete),
+        failed=int(row.failed),
+        pruned=int(row.pruned),
         best_primary_metric=float(best) if best is not None else None,
-        best_trial_id=best_trial_id,
+        best_trial_id=row.best_trial_id,
     )
