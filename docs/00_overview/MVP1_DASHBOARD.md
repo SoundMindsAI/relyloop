@@ -4,19 +4,25 @@ _Reflects feature-folder state as of **2026-05-13** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md)** — Feature, currently in **Spec**
 
-Pull from the Idea backlog or capture a new feature spec.
+> A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.
+
+Spec exists; run /pipeline to generate the implementation plan + ship
+
+```bash
+/pipeline docs/02_product/planned_features/feat_query_inline_crud --auto
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **29 / 29** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **7** items remaining (features + bugs + chores) |
+| Scoped items done | **29 / 30** (97%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **8** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 6 (idea-stage debt) |
-| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -70,15 +76,16 @@ _None._
 
 _None._
 
-### Spec (0)
-
-_None._
-
-### Idea (9)
+### Spec (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/idea.md) | Feature | The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries ei | — | — |
+| [feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #25](https://github.com/SoundMindsAI/relyloop/pull/25) |
+
+### Idea (8)
+
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_cluster_run_query_history](../02_product/planned_features/chore_cluster_run_query_history/idea.md) | Chore | The "recent run-query history" surface in spec §3 cannot be built without backend support. The `feat_studies_ui` plan (Story 2.1) drops this from the cluster detail page and renders only the summary + | — | — |
@@ -99,6 +106,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_query_inline_crud["query inline crud"]
+  class feat_query_inline_crud spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -157,6 +166,11 @@ graph LR
   class infra_nvmrc done;
   infra_per_trial_timeout["per trial timeout"]
   class infra_per_trial_timeout done;
+  infra_foundation --> feat_query_inline_crud
+  infra_adapter_elastic --> feat_query_inline_crud
+  feat_study_lifecycle --> feat_query_inline_crud
+  feat_llm_judgments --> feat_query_inline_crud
+  feat_studies_ui --> feat_query_inline_crud
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -168,6 +182,7 @@ graph LR
   feat_github_webhook --> chore_tutorial_polish
   feat_llm_judgments --> chore_tutorial_polish
   feat_proposals_ui --> chore_tutorial_polish
+  feat_query_inline_crud --> chore_tutorial_polish
   feat_studies_ui --> chore_tutorial_polish
   feat_study_lifecycle --> chore_tutorial_polish
   infra_adapter_elastic --> chore_tutorial_polish
@@ -182,6 +197,7 @@ graph LR
   feat_github_webhook --> feat_chat_agent
   feat_llm_judgments --> feat_chat_agent
   feat_proposals_ui --> feat_chat_agent
+  feat_query_inline_crud --> feat_chat_agent
   feat_studies_ui --> feat_chat_agent
   feat_study_lifecycle --> feat_chat_agent
   infra_adapter_elastic --> feat_chat_agent
