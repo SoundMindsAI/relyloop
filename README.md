@@ -1,105 +1,78 @@
 # RelyLoop
 
-> **Status: MVP1 in progress (private alpha).** Spec is complete; the foundation feature (`infra_foundation`) is in review (PR #4) — Docker stack, FastAPI + `/healthz`, OpenAI capability check, Alembic baseline, CI workflow, 90% measured backend coverage against an 80% gate. The next 11 MVP1 features are spec-approved and queued. This repo is currently soundminds.ai-internal; it will become public when MVP1 ships.
+> **Status: alpha (MVP1, v0.1.0).** Open-source automated relevance tuning for enterprise search platforms.
 
-**Open-source automated relevance tuning for enterprise search platforms.** RelyLoop combines an LLM-driven agent with an Optuna-driven optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion. Engineers describe relevance problems in chat; the agent introspects the cluster, proposes a search-space, and queues thousands of trials against pytrec_eval-computed metrics. Winning configurations are surfaced as Pull Requests against a central search-config Git repo, where named approvers review and merge.
+RelyLoop combines an LLM-driven chat agent with an Optuna-driven optimization
+loop ("Karpathy loop") to systematically tune query-time relevance on
+Elasticsearch and OpenSearch. Engineers describe the problem in chat; the
+agent introspects the cluster, proposes a search-space, and runs thousands
+of trials against `pytrec_eval`-computed metrics. Winning configurations
+land as Pull Requests against a central search-config Git repo, where named
+approvers review and merge.
 
-## Quickstart
+## 5-minute quickstart
 
 ```bash
 git clone https://github.com/SoundMindsAI/relyloop.git
 cd relyloop
 
-# 1. Install dev toolchain
-uv sync                          # Python deps + .venv (requires Python 3.12+)
-pnpm --dir ui install            # frontend deps (requires Node 20+ + pnpm 9+)
-make pre-commit-install          # install Git hooks
+make up                # auto-generates secrets, builds the ui image, brings up the stack (~90s cold)
+make migrate           # apply the alembic chain
+make seed-clusters     # register local-es + local-opensearch
+make seed-es           # seed local-es 'products' index from samples/products.json (1,000 docs)
 
-# 2. Bring up the stack
-make up                          # auto-generates secrets, then docker compose up -d
-                                 # ~90s cold (image pulls), ~60s warm
-
-# 3. Apply migrations + seed local clusters
-make migrate                     # applies the alembic chain (incl. 0002_clusters_config_repos)
-make seed-clusters               # registers local-es + local-opensearch (idempotent)
-
-# 4. Verify
-curl -s http://localhost:8000/healthz | jq    # status: ok, all subsystems reachable
-                                              # subsystems.elasticsearch_clusters.registered: 2
-
-# 5. (Optional) populate OpenAI key for the capability check
-echo "sk-..." > ./secrets/openai_key
-make down && make up             # re-runs the 4-step capability check at startup
+open http://localhost:3000/chat
 ```
 
-`make` (no target) prints every Make target with descriptions. Full operator
-walkthrough — debugging, port collisions, ES OOMs, the `make reset` flow, the
-operator setup checklist — lives in
-[`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md).
+Tutorial — the full operator walkthrough from `git clone` through "PR opened
+in GitHub" — is in
+[`docs/08_guides/tutorial-first-study.md`](docs/08_guides/tutorial-first-study.md).
 
-**Hardware:** 16 GB RAM is comfortable. Elasticsearch + OpenSearch each
-consume ~1 GB; bump `ES_HEAP_SIZE` in `.env` if you index large corpora.
+For a local-LLM walkthrough (Ollama / LM Studio / vLLM / TGI instead of OpenAI),
+see Step 0 of the tutorial.
 
-## What's in this repo today
+**Hardware:** 16 GB RAM is comfortable. Elasticsearch + OpenSearch each consume
+~1 GB heap; bump `ES_HEAP_SIZE` in `.env` if you index large corpora.
 
-The bootstrap (`infra_foundation`) has shipped. The repo now holds:
+## What it looks like
 
-**Code (MVP1 Stories 1.1 → 5.2):**
+5–7 minute screencast of the full Karpathy loop end-to-end (clone → study →
+PR opened):
 
-- [`backend/app/`](backend/app/) — FastAPI skeleton + `/healthz` + structlog +
-  request-ID middleware + error envelope + Settings (mounted-secret pattern) +
-  async SQLAlchemy engine + OpenAI capability check
-- [`backend/workers/`](backend/workers/) — Arq worker stub
-  (`functions=[]` until later features add jobs)
-- [`backend/tests/`](backend/tests/) — unit / integration / contract layers (90% backend coverage)
-- [`migrations/`](migrations/) — Alembic baseline (`0001_baseline`)
-- [`ui/`](ui/) — Next.js 14 placeholder page (real shell lands with `feat_studies_ui`)
-- [`Dockerfile`](Dockerfile) + [`docker-compose.yml`](docker-compose.yml) +
-  [`.env.example`](.env.example) + [`scripts/install.sh`](scripts/install.sh) — the 6-service stack
-- [`.github/workflows/pr.yml`](.github/workflows/pr.yml) + [`.github/dependabot.yml`](.github/dependabot.yml) — CI gates
+> _Demo recording: TBD — added once `chore_tutorial_polish` Story 4.6 ships
+> the upload._
 
-**Design artifacts:**
+## What's in MVP1 / What's coming
 
-- [`docs/README.md`](docs/README.md) — documentation index and section map
-- [`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md) — the full 30-section product and architectural specification (~2,800 lines)
-- [`docs/02_product/mvp1-user-stories.md`](docs/02_product/mvp1-user-stories.md) — MVP1 broken into 31 user stories mapped to 12 feature folders
-- [`docs/02_product/planned_features/`](docs/02_product/planned_features/) — per-feature spec folders (`infra_foundation` will move to `docs/00_overview/implemented_features/` on merge; the next 11 are spec-approved and queued)
-- [`state.md`](state.md) · [`architecture.md`](architecture.md) · [`CLAUDE.md`](CLAUDE.md) — project context root files
-- [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) — local boot, debug, reset
-- [`docs/05_quality/testing.md`](docs/05_quality/testing.md) — test layers + 80% coverage gate
+MVP1 ships the full Karpathy loop end-to-end on Elasticsearch + OpenSearch:
+chat agent, Optuna optimizer, LLM-as-judge, digest, GitHub PR worker, single-
+tenant install. Observable / Production Stacks / Multi-tenant land in MVP2 →
+MVP3 → MVP4.
 
-**Open-source housekeeping:**
-
-- [`LICENSE`](LICENSE) — Apache License 2.0
-- [`NOTICE`](NOTICE) — Apache 2.0 NOTICE file with dependency attribution
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — DCO-based contribution guide
-- [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) — Contributor Covenant 2.1
-
-## Roadmap at a glance
-
-Five releases, each meaningful as a discrete capability bundle:
-
-| Release | Theme | Time | Audience |
-|---|---|---|---|
-| MVP1 / v0.1 | The Loop | 5 weeks | Technical evaluators willing to test on a laptop |
-| MVP2 / v0.2 | Observable | +3 weeks | Platform teams considering serious evaluation |
-| MVP3 / v0.3 | Production Stacks | +3 weeks | Lucidworks shops, GitLab/Bitbucket enterprises |
-| MVP4 / v0.4 | Multi-tenant, Multi-LLM | +3 weeks | Platform teams operating for many customers |
-| GA v1 / v1.0 | Production-ready | +3 weeks | Production deployments, contributors, the community |
-
-See spec §27 for the full phasing detail.
+Canonical release matrix:
+[`docs/01_architecture/tech-stack.md`](docs/01_architecture/tech-stack.md) —
+do not duplicate here, the matrix is the source of truth.
 
 ## Key design choices
 
-- **Engine-agnostic** — Elasticsearch + OpenSearch in MVP1 via one adapter; Lucidworks Fusion in MVP3; pure Solr in v2; adapter pattern enables community-contributed engines
-- **Provider-agnostic** — OpenAI in MVP1; Anthropic, AWS Bedrock, Azure OpenAI, Google Vertex, Ollama/vLLM in MVP4
-- **Git-as-source-of-truth** — winning configs land as PRs against a central config repo; deployment is the operator's CI's job, not RelyLoop's
-- **Local-first observability** — Langfuse + SigNoz both self-hosted; no LLM trace data leaves the deployment VM
-- **Multi-tenant from MVP4** — single deployment serves many downstream customers in isolation
-- **Agent-first API** — every operation the in-tool orchestrator can perform is also callable by external agents; OpenAPI 3.1, idempotency keys, RFC 7807 errors, outgoing webhooks (no MCP server; idiomatic REST instead)
-- **Deliberate, not real-time** — RelyLoop is for offline experimentation and change management; it does not sit on the live search-serving path
+- **Engine-agnostic** — Elasticsearch + OpenSearch in MVP1 via one adapter; Lucidworks Fusion in MVP3; pure Solr in v2.
+- **Provider-agnostic** — OpenAI in MVP1; Anthropic, AWS Bedrock, Azure OpenAI, Vertex, Ollama / vLLM in MVP4.
+- **Git-as-source-of-truth** — winning configs land as PRs against a central config repo; deployment is the operator's CI's job, not RelyLoop's.
+- **Local-first observability** — Langfuse + SigNoz both self-hosted (MVP2+); no LLM trace data leaves the deployment VM.
+- **Multi-tenant from MVP4** — single deployment serves many downstream customers in isolation.
+- **Agent-first API** — every operation the in-tool orchestrator can perform is also callable by external agents; OpenAPI 3.1, idempotency keys, RFC 7807 errors, outgoing webhooks.
+- **Deliberate, not real-time** — RelyLoop is for offline experimentation and change management; it does not sit on the live search-serving path.
 
-See spec §4 (non-goals) and §28 (tech stack) for the full set.
+See spec §4 (non-goals) for the full set.
+
+## Links
+
+- Tutorial: [`docs/08_guides/tutorial-first-study.md`](docs/08_guides/tutorial-first-study.md)
+- Umbrella spec: [`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md)
+- Architecture index: [`docs/01_architecture/`](docs/01_architecture/)
+- Local-dev runbook: [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md)
+- Release checklist (maintainers): [`docs/03_runbooks/release-checklist.md`](docs/03_runbooks/release-checklist.md)
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 
 ## License
 

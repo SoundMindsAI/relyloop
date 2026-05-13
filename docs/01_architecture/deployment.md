@@ -7,7 +7,7 @@
 
 ## MVP1 deployment shape
 
-Single VM (or a developer's laptop) running Docker Compose. No Kubernetes, no Helm, no multi-region. Six containers per [`system-overview.md`](system-overview.md).
+Single VM (or a developer's laptop) running Docker Compose. No Kubernetes, no Helm, no multi-region. Seven containers (`postgres`, `redis`, `api`, `worker`, `elasticsearch`, `opensearch`, `ui`) per [`system-overview.md`](system-overview.md). The `ui` service was added in `chore_tutorial_polish` Story 2.3 so the tutorial works without a separate `pnpm dev` shell.
 
 ```yaml
 # docker-compose.yml — MVP1 subset
@@ -91,6 +91,23 @@ services:
       - OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m
     ports: ["127.0.0.1:9201:9200"]         # different host port to coexist with ES
 
+  ui:
+    # NEXT_PUBLIC_API_BASE_URL is build-time (Next.js bakes NEXT_PUBLIC_*
+    # into the client bundle at `pnpm build`). Compose `environment:` would
+    # have NO effect — see chore_tutorial_polish §3 (decision log 2026-05-12 M3).
+    image: relyloop/ui:${RELYLOOP_GIT_SHA:-dev}
+    build:
+      context: ./ui                         # ui/Dockerfile (Node 24 LTS multi-stage)
+      args:
+        NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
+    depends_on:
+      api: { condition: service_healthy }
+    ports: ["127.0.0.1:3000:3000"]
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 10s
+      retries: 3
+
 secrets:
   postgres_password:    { file: ./secrets/postgres_password }
   database_url:         { file: ./secrets/database_url }     # contains: postgresql://relyloop:<pw>@postgres/relyloop
@@ -113,9 +130,9 @@ Why placeholder empty files: Compose's `secrets:` directive evaluates the source
 
 A bare `docker compose up` from a fresh clone without the install script will fail with a clear "missing secrets file" error pointing at `make up`. (CI runs `make up` too.)
 
-**Sizing rule of thumb:** 16 GB RAM laptop runs the full MVP1 stack comfortably. ES + OpenSearch each consume ~1 GB; Postgres + Redis are negligible; the API + worker are <500 MB each.
+**Sizing rule of thumb:** 16 GB RAM laptop runs the full MVP1 stack comfortably. ES + OpenSearch each consume ~1 GB; Postgres + Redis are negligible; the API + worker are <500 MB each; the UI runtime image (Next.js standalone target) is ~300 MB resident.
 
-The UI is NOT a Compose service in MVP1 — it runs via `pnpm dev` from the `ui/` directory during development. Adding it as a Compose service is a polish item for `chore_tutorial_polish` or post-MVP1.
+The UI ships as a Compose service from `chore_tutorial_polish` onward (`make up` builds it on first run from `ui/Dockerfile`). Operators iterating on the UI itself can still run `pnpm dev` against the same backend for fast hot-reload — `make ui-dev` shells out to that.
 
 ## Secrets
 
@@ -170,7 +187,6 @@ The umbrella spec §25 lists the full GA v1 deployment (which includes Caddy, La
 | `caddy` (reverse proxy + Let's Encrypt TLS) | **MVP3** | Production-style install (TLS, network exposure) lands with production-stack hardening. **No SSO yet** at MVP3 — Caddy alone provides TLS for trusted-network deployments. |
 | `fusion-mock` | **MVP3** | Lucidworks Fusion adapter ships here; mock service for UI/demo dev when shared dev cluster isn't reachable. |
 | `oauth2-proxy` / Authelia (SSO in front of Caddy) | **MVP4** | Auth surface arrives with `users` + `tenants` + API keys; SSO completes the authenticated-install story per umbrella §18. |
-| `ui` (containerized) | Late MVP1 polish or post-MVP1 | UI runs via `pnpm dev` during MVP1 dev; containerization is a polish item. |
 
 ## Operator workflow (MVP1)
 
@@ -185,11 +201,12 @@ echo "<gh-pat>" > ./secrets/github_token
 make up
 
 # Daily use
-make up            # docker compose up -d
+make up            # docker compose up -d (builds ui image on first run)
 make logs          # docker compose logs -f api worker
 make down          # docker compose stop
 make migrate       # alembic upgrade head (in api container)
 make seed-clusters # populate local-es + local-opensearch as cluster rows
+make seed-es       # seed local-es 'products' index from samples/products.json
 
 # Reset
 make reset         # docker compose down -v && rm -rf ./data

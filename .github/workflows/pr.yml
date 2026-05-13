@@ -183,6 +183,137 @@ jobs:
       - name: Production build (next build)
         run: pnpm --dir ui build
 
+  smoke-test:
+    name: smoke (operator-path tutorial flow)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      # Python + uv so `uv run pytest` works on the smoke runner (parallel to
+      # the backend job; doesn't share its venv).
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version-file: "pyproject.toml"
+      - name: Install project deps (frozen)
+        run: uv sync --frozen
+
+      - name: Pre-generate secrets with container-readable perms
+        env:
+          OPENAI_API_KEY_TEST: ${{ secrets.OPENAI_API_KEY_TEST }}
+        # install.sh's secret-generation steps create files with chmod 600.
+        # Local Docker Desktop hides this via virtiofs UID mapping; on Linux
+        # runners the api container's non-root `relyloop` user can't read
+        # files owned by the runner UID with 0600 perms (api crashes at
+        # startup with PermissionError on /run/secrets/database_url). install.sh
+        # is idempotent — `[[ ! -s ]]` skips regen on existing files — so we
+        # pre-generate every secret here with 0644 perms.
+        run: |
+          mkdir -p ./secrets
+          openssl rand -base64 32 | tr -d '\n' > ./secrets/postgres_password
+          PG_PW="$(cat ./secrets/postgres_password)"
+          printf 'postgresql+asyncpg://relyloop:%s@postgres/relyloop' "$PG_PW" \
+            > ./secrets/database_url
+          # Strip trailing newline so the empty-secret case produces an empty
+          # file (size 0) instead of a one-newline file (which `[ -s ]` would
+          # accept). Sanity-check below uses grep for non-whitespace content.
+          printf '%s' "$OPENAI_API_KEY_TEST" > ./secrets/openai_key
+          : > ./secrets/github_token
+          cat > ./secrets/cluster_credentials.yaml <<'EOY'
+          local-es:
+            username: elastic
+            password: changeme
+          local-opensearch:
+            username: admin
+            password: admin
+          EOY
+          chmod 644 ./secrets/*
+
+      - name: Sanity-check OPENAI_API_KEY_TEST is populated
+        run: |
+          # Use grep so an unset secret (empty file OR file containing only
+          # whitespace) fails fast with a clear message. `[ -s ]` only checks
+          # size > 0, which is satisfied by a single newline.
+          if ! grep -q '[^[:space:]]' ./secrets/openai_key; then
+            echo "::error::OPENAI_API_KEY_TEST secret is empty — smoke gate requires it (per chore_tutorial_polish §3 + decision log M5)"
+            exit 1
+          fi
+
+      - name: Bring up the stack
+        run: make up
+
+      - name: Wait for /healthz
+        run: |
+          for i in $(seq 1 18); do
+            if curl -fsS http://127.0.0.1:8000/healthz | jq -e '.status == "ok"' > /dev/null; then
+              echo "API healthy after ${i}x5s"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::API not healthy within 90s"
+          curl -s http://127.0.0.1:8000/healthz || true
+          exit 1
+
+      - name: Apply migrations
+        run: make migrate
+
+      # The worker imports Optuna at startup, which tries to CREATE TYPE on
+      # the RDB. Before make migrate runs, that fails with InvalidSchemaName
+      # and the worker dies (no restart policy). Restart it now that the
+      # schema exists so it can consume the smoke test's queued jobs.
+      # TODO(bug_worker_optuna_init_race): tracked separately for a real fix
+      # — worker shouldn't crash at startup before migrations have run.
+      - name: Restart worker (post-migrate, so Optuna RDB schema exists)
+        run: docker compose restart worker
+
+      # IMPORTANT order: seed-clusters BEFORE seed-es. seed_es.py reads
+      # cluster.base_url via cluster_repo.get_active_cluster_by_name("local-es")
+      # — so the cluster row must exist first.
+      - name: Seed clusters
+        run: make seed-clusters
+
+      - name: Seed sample ES index
+        run: make seed-es
+
+      - name: Run smoke test (LLM judgment generation + study + alignment guard + digest)
+        run: uv run pytest backend/tests/smoke/test_tutorial_path.py -v --tb=short
+
+      - name: Verify UI container reachable
+        run: |
+          curl -fsS http://127.0.0.1:3000/ | grep -qi "<html" \
+            || { echo "::error::UI container did not render Next.js shell"; exit 1; }
+
+      - name: Collect docker compose logs on failure
+        if: failure()
+        run: |
+          docker compose logs --no-color api worker postgres redis elasticsearch ui > smoke-logs.txt 2>&1 || true
+          curl -s http://127.0.0.1:8000/healthz >> smoke-logs.txt 2>&1 || true
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-logs
+          path: smoke-logs.txt
+          retention-days: 14
+
+      - name: Teardown
+        if: always()
+        # `make reset` does `docker compose down -v && rm -rf ./data`. The
+        # rm step fails on Linux runners because Postgres container creates
+        # /data/postgres files owned by the postgres-container UID, which
+        # the runner user can't delete. The runner is ephemeral so teardown
+        # is best-effort — we don't gate the job on it.
+        run: FORCE=1 make reset || true
+
   docker:
     name: docker buildx (relyloop/api)
     runs-on: ubuntu-latest

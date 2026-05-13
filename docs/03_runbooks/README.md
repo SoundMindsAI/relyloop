@@ -25,6 +25,9 @@ Operational procedures: deployment, upgrades, restores, incident handling, recur
 - [`ui-debugging.md`](ui-debugging.md) — inspecting the TanStack Query
   cache, reproducing polling regressions, tracing UI errors back to
   backend logs via `X-Request-ID` (`feat_studies_ui`)
+- [`release-checklist.md`](release-checklist.md) — maintainer runbook
+  for cutting `v0.1.0`: smoke reliability gate, manual VM walkthroughs,
+  tag + Release procedure (`chore_tutorial_polish`)
 
 ## Coming with later features
 
