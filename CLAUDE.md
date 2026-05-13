@@ -430,7 +430,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, merged 2026-05-11)** |
 | 10 | [`feat_chat_agent`](docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/) | **Complete (PR #60, merged 2026-05-12)** |
 | 11 | [`feat_proposals_ui`](docs/00_overview/implemented_features/2026_05_12_feat_proposals_ui/) | **Complete (PR #58, merged 2026-05-12)** |
-| 12 | [`chore_tutorial_polish`](docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/) | **Complete (PR #64, merged 2026-05-12). Story 4.6 (demo) deferred to MVP3 per [chore_demo_recording_mvp3](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md) (PR #65). Story 4.7 (v0.1.0 tag) is the only remaining MVP1 work — maintainer follows [release-checklist.md](docs/03_runbooks/release-checklist.md).** |
+| 12 | [`chore_tutorial_polish`](docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/) | **Complete (PR #64, merged 2026-05-12). Story 4.6 (demo) deferred to MVP3 per [chore_demo_recording_mvp3](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md) (PR #65). Story 4.7 shipped 2026-05-13 — `v0.1.0` tag on `d099536`, [GitHub Release published](https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0).** |
 
 Run `/pipeline status` for the live view from spec dependencies.
 
