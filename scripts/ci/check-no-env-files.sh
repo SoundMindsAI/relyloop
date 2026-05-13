@@ -48,7 +48,16 @@ resolve_changed_files() {
   case "${event}" in
     pull_request)
       local base="${GITHUB_BASE_REF:-main}"
-      git fetch --no-tags --depth=50 origin "${base}" >/dev/null 2>&1 || true
+      # Explicit refspec creates refs/remotes/origin/<base> deterministically.
+      # actions/checkout's fetch-depth=50 usually populates this already, but
+      # an explicit refspec makes the behavior robust to checkout-mode changes
+      # and forked-PR semantics.
+      git fetch --no-tags --depth=50 origin \
+        "+refs/heads/${base}:refs/remotes/origin/${base}" >/dev/null 2>&1 || true
+      if ! git rev-parse --verify --quiet "origin/${base}" >/dev/null; then
+        echo "::error::check-no-env-files: cannot resolve origin/${base} — refusing to skip the guard. Check the workflow's fetch-depth or actions/checkout configuration." >&2
+        exit 2
+      fi
       git diff --name-only --diff-filter=ACMR "origin/${base}...HEAD"
       ;;
     push)
