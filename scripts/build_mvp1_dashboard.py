@@ -1062,9 +1062,9 @@ def render_html(features: list[Feature]) -> str:
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
     <div class="kpi {"complete" if pct == 100 else ""}">
-      <div class="label">Features done</div>
+      <div class="label">Scoped items done</div>
       <div class="value">{kpi["done_features"]} / {kpi["scoped_features"]}</div>
-      <div class="sub">{pct}% of scoped MVP1 features</div>
+      <div class="sub">{pct}% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:{pct}%"></span></div>
     </div>
     <div class="kpi {"warn" if kpi["remaining"] else "complete"}">
@@ -1288,7 +1288,9 @@ def render_markdown(features: list[Feature]) -> str:
     lines.append("| Metric | Value |")
     lines.append("|---|---|")
     lines.append(
-        f"| Features done | **{kpi['done_features']} / {kpi['scoped_features']}** ({pct}%) |"
+        f"| Scoped items done | "
+        f"**{kpi['done_features']} / {kpi['scoped_features']}** ({pct}%) "
+        f"— feat_/infra_/chore_/epic_ past idea stage |"
     )
     lines.append(
         f"| Path to MVP1 | **{kpi['remaining']}** items remaining (features + bugs + chores) |"

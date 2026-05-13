@@ -147,9 +147,14 @@ def test_smoke_generation_and_study_with_digest(api_base_url: str) -> None:
         )
         jl_id = jg_resp.json()["judgment_list_id"]
 
-        # Poll for judgment-list completion (~30s with gpt-4o-mini).
+        # Poll for judgment-list completion. Median is ~30s with
+        # gpt-4o-mini; tail latency can stretch past 2 minutes during
+        # OpenAI capacity spikes. Budget bumped from 120s → 240s after
+        # two flake hits in one development session (PRs #73 + #78,
+        # both passed on re-run). 240s keeps the smoke job comfortably
+        # within its 15-minute total budget.
         jl: dict[str, object] = {}
-        deadline = time.time() + 120
+        deadline = time.time() + 240
         while time.time() < deadline:
             jl = c.get(f"/api/v1/judgment-lists/{jl_id}").json()
             status = jl.get("status")
@@ -159,7 +164,7 @@ def test_smoke_generation_and_study_with_digest(api_base_url: str) -> None:
                 pytest.fail(f"judgment generation terminal: {status} {jl.get('failed_reason')}")
             time.sleep(3)
         else:
-            pytest.fail("judgment generation did not complete within 120s")
+            pytest.fail("judgment generation did not complete within 240s")
 
         # 3. Use the parameterized study template + 4. Create a 10-trial study.
         study_resp = c.post(
