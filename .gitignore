@@ -150,7 +150,17 @@ activemq-data/
 *.sage.py
 
 # Environments
+# Matches the CI deny pattern in scripts/ci/check-no-env-files.sh: bare .env,
+# any .env.<x>/.env-<x>/.env_<x>/.env~ variant, and .envrc. Keep the broad
+# globs and the explicit entries below in sync — the explicit ones document
+# the canonical incident spellings (.env.old, .env.bak, .env.local) for
+# new contributors; the globs catch backup/rotation patterns from IDEs and
+# user-side tooling that don't fit the canonical shapes.
 .env
+.env.*
+.env-*
+.env_*
+.env~*
 .env.old
 .env.bak
 .env.local

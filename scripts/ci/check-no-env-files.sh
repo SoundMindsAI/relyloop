@@ -10,7 +10,7 @@
 #   bash scripts/ci/check-no-env-files.sh                      # derives diff from GITHUB_* env
 #   bash scripts/ci/check-no-env-files.sh --from-stdin         # reads filenames on stdin (test mode)
 #
-# Denylist:  (^|/)(\.env(\.[^/]+)?|\.envrc)$
+# Denylist:  (^|/)(\.env([._~-][^/]*)?|\.envrc)$
 # Allowlist: (^|/)\.env\.example$
 #
 # Exits 0 when the diff is clean, 1 when a forbidden filename appears, 2 on
@@ -18,7 +18,20 @@
 
 set -euo pipefail
 
-DENY_REGEX='(^|/)(\.env(\.[^/]+)?|\.envrc)$'
+# Match `.env` followed by no separator (bare), or by one of `.`, `_`, `~`, `-`
+# plus optional content. Catches: .env, .env.old, .env-old, .env_bak, .env~,
+# .env.production, backend/.env.local, etc. Also matches the special .envrc
+# (direnv). The separator class [._~-] keeps false positives like
+# .environment.yml or .envoy.conf from triggering — those have a letter after
+# .env, not a punctuation separator.
+#
+# Important: `-` MUST be the last char of the bracket expression. POSIX
+# regex treats `-` as a range operator between two chars (e.g. `[a-z]`).
+# `[._\-~]` would silently parse as "literal `.`, literal `_`, range from
+# `\` to `~`" — which matches every letter but NOT a literal `-`. Putting
+# `-` last (or first, or backslash-escaped via `\\-`) makes it unambiguously
+# literal. We use trailing-position for clarity.
+DENY_REGEX='(^|/)(\.env([._~-][^/]*)?|\.envrc)$'
 ALLOW_REGEX='(^|/)\.env\.example$'
 
 usage() {
