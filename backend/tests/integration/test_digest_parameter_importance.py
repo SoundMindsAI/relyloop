@@ -44,28 +44,6 @@ pytestmark = [
         not postgres_reachable(),
         reason="Postgres not reachable — see docs/03_runbooks/local-dev.md",
     ),
-    # The test seeds Optuna trials via the test's own optuna_study handle
-    # and expects the worker's separately-loaded handle to see them when
-    # computing get_param_importances. In CI's hermetic service-container
-    # Postgres + freshly-built Optuna RDB, the importance call returns
-    # {} (the worker's try/except defense-in-depth fallback catches the
-    # underlying ValueError "No trials are completed yet.").
-    #
-    # **AC-7 is genuinely under-covered by this PR.** test_digest_generate.py
-    # only asserts `parameter_importance is not None` (which `{}` satisfies);
-    # the full key-set + sum-to-1.0 assertion lives only here. The
-    # fixture-seam fix is tracked at
-    # docs/02_product/planned_features/bug_digest_param_importance_seam/idea.md
-    # for the next iteration.
-    pytest.mark.xfail(
-        reason=(
-            "AC-7 cover incomplete: test fixture's Optuna trial seeding "
-            "doesn't survive the worker's separate "
-            "optuna_runtime.get_or_create_study handle in CI. Tracked at "
-            "bug_digest_param_importance_seam/idea.md."
-        ),
-        strict=False,
-    ),
 ]
 
 

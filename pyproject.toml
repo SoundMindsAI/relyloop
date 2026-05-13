@@ -38,6 +38,12 @@ dependencies = [
     "pyyaml>=6.0",
     "jinja2>=3.1",
     "optuna>=3.6",
+    # Required by Optuna's default FanovaImportanceEvaluator (used by the
+    # digest worker's optuna.importance.get_param_importances call). Without
+    # it, the call raises ImportError, the broad except swallows it, and
+    # every digest's parameter_importance is silently {}. See
+    # docs/02_product/planned_features/bug_digest_param_importance_seam/bug_fix.md.
+    "scikit-learn>=1.4",
     "pytrec-eval>=0.5",
     # Headless plotting for the open_pr worker's parameter-importance chart.
     # PNG only — Agg backend, no GUI. Bundled with the API+worker image.

@@ -13,9 +13,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **26 / 26** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **9** items remaining (features + bugs + chores) |
+| Path to MVP1 | **10** items remaining (features + bugs + chores) |
 | Open bugs | 3 |
-| Open chores | 6 (idea-stage debt) |
+| Open chores | 7 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -69,7 +69,7 @@ _None._
 
 _None._
 
-### Idea (10)
+### Idea (11)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -77,6 +77,7 @@ _None._
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_cluster_run_query_history](../02_product/planned_features/chore_cluster_run_query_history/idea.md) | Chore | The "recent run-query history" surface in spec §3 cannot be built without backend support. The `feat_studies_ui` plan (Story 2.1) drops this from the cluster detail page and renders only the summary + | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
+| [chore_digest_worker_narrow_except](../02_product/planned_features/chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Idea (deferred from Gemini Code Assist Finding #2 on [PR #92](https://github.com/SoundMindsAI/relyloop/pull/92)) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
 | [chore_query_inline_edit_delete](../02_product/planned_features/chore_query_inline_edit_delete/idea.md) | Chore | The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries ei | — | — |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
