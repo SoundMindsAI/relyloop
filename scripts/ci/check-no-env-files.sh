@@ -42,14 +42,17 @@ resolve_changed_files() {
   fi
 
   local event="${GITHUB_EVENT_NAME:-}"
+  # --diff-filter=ACMR: Added, Copied, Modified, Renamed. R is non-obvious
+  # but important — `git mv foo.txt .env.old` with high content similarity
+  # is reported as a Rename, not Added; AM alone would miss it.
   case "${event}" in
     pull_request)
       local base="${GITHUB_BASE_REF:-main}"
       git fetch --no-tags --depth=50 origin "${base}" >/dev/null 2>&1 || true
-      git diff --name-only --diff-filter=AM "origin/${base}...HEAD"
+      git diff --name-only --diff-filter=ACMR "origin/${base}...HEAD"
       ;;
     push)
-      git diff --name-only --diff-filter=AM HEAD~1 HEAD
+      git diff --name-only --diff-filter=ACMR HEAD~1 HEAD
       ;;
     "")
       echo "check-no-env-files: GITHUB_EVENT_NAME is unset; pass --from-stdin to test locally" >&2
@@ -74,8 +77,9 @@ if [[ -z "${FORBIDDEN}" ]]; then
 fi
 
 echo "::error::Forbidden .env file(s) in PR diff:"
-# shellcheck disable=SC2086  # Word-split is intentional: one bullet per file via printf format-reuse.
-printf '  - %s\n' ${FORBIDDEN}
+# Use sed to prefix each newline-separated entry. Robust against filenames
+# containing spaces (where unquoted printf word-splitting would mis-split).
+printf '%s\n' "${FORBIDDEN}" | sed 's/^/  - /'
 cat <<'EOF'
 
 Only `.env.example` may be committed. The bare `.env` and any rotated

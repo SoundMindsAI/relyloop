@@ -52,6 +52,7 @@ expect_exit 1 ".env.production" ".env.production"
 expect_exit 1 "nested .env" "secrets/.env"
 expect_exit 1 "nested .env.old" "backend/.env.old"
 expect_exit 1 "mixed legit + bad (.env.example + .env.old)" ".env.example" ".env.old"
+expect_exit 1 ".env.foo bar.bak (space in name)" ".env.foo bar.bak"
 
 echo
 echo "${PASS} passed, ${FAIL} failed"
