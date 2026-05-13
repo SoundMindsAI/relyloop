@@ -307,7 +307,12 @@ jobs:
 
       - name: Teardown
         if: always()
-        run: FORCE=1 make reset
+        # `make reset` does `docker compose down -v && rm -rf ./data`. The
+        # rm step fails on Linux runners because Postgres container creates
+        # /data/postgres files owned by the postgres-container UID, which
+        # the runner user can't delete. The runner is ephemeral so teardown
+        # is best-effort — we don't gate the job on it.
+        run: FORCE=1 make reset || true
 
   docker:
     name: docker buildx (relyloop/api)
