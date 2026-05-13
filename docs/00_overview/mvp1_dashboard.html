@@ -328,13 +328,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">26 / 26</div>
+      <div class="value">29 / 29</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">11</div>
+      <div class="value">8</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -344,7 +344,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">10</div>
+      <div class="value">7</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">12</span></h3>
+  <h3>Idea <span class="count">9</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -393,30 +393,6 @@ footer {
 
   </div>
   <div class="one-liner">The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + &quot;{N} messages&quot;`. There is no preview of the last message — operators with several simila</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_ci_gitignore_paths_ignore_gap">Ci Gitignore Paths Ignore Gap</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">`.github/workflows/pr.yml` has a `paths-ignore` filter that skips the entire workflow when *every* changed path matches:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_ci_gitleaks_workflow_step">Ci Gitleaks Workflow Step</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">Gitleaks runs only as a pre-commit hook locally. Pre-commit is opt-in (the contributor must run `pre-commit install`); on a fresh clone or a contributor who skips the install, nothing scans commit con</div>
 
 
 </div>
@@ -453,18 +429,6 @@ footer {
 
   </div>
   <div class="one-liner">…</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_env_guard_extend_deny_pattern">Env Guard Extend Deny Pattern</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">The shipped guard regex matches `(\.env(\.[^/]+)?|\.envrc)$` — i.e. bare `.env`, dotted `.env.&lt;x&gt;`, and `.envrc`. It does **not** match plausible backup/rotation spellings that an editor or user-side </div>
 
 
 </div>
@@ -535,7 +499,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">33</span></h3>
+  <h3>Done <span class="count">36</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -718,7 +682,43 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap">Ci Gitignore Paths Ignore Gap</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step">Ci Gitleaks Workflow Step</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_cluster_delete_ui">Cluster Delete Ui</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern">Env Guard Extend Deny Pattern</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
     <span>merged 2026-05-13</span>
@@ -971,8 +971,14 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  chore_ci_gitignore_paths_ignore_gap[&quot;ci gitignore paths ignore gap&quot;]
+  class chore_ci_gitignore_paths_ignore_gap done;
+  chore_ci_gitleaks_workflow_step[&quot;ci gitleaks workflow step&quot;]
+  class chore_ci_gitleaks_workflow_step done;
   chore_cluster_delete_ui[&quot;cluster delete ui&quot;]
   class chore_cluster_delete_ui done;
+  chore_env_guard_extend_deny_pattern[&quot;env guard extend deny pattern&quot;]
+  class chore_env_guard_extend_deny_pattern done;
   chore_infra_foundation_github_token_file_retirement[&quot;infra foundation github token file retirement&quot;]
   class chore_infra_foundation_github_token_file_retirement done;
   chore_openapi_contract_validation[&quot;openapi contract validation&quot;]
@@ -1079,8 +1085,14 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  chore_ci_gitignore_paths_ignore_gap[&quot;ci gitignore paths ignore gap&quot;]
+  class chore_ci_gitignore_paths_ignore_gap done;
+  chore_ci_gitleaks_workflow_step[&quot;ci gitleaks workflow step&quot;]
+  class chore_ci_gitleaks_workflow_step done;
   chore_cluster_delete_ui[&quot;cluster delete ui&quot;]
   class chore_cluster_delete_ui done;
+  chore_env_guard_extend_deny_pattern[&quot;env guard extend deny pattern&quot;]
+  class chore_env_guard_extend_deny_pattern done;
   chore_infra_foundation_github_token_file_retirement[&quot;infra foundation github token file retirement&quot;]
   class chore_infra_foundation_github_token_file_retirement done;
   chore_openapi_contract_validation[&quot;openapi contract validation&quot;]
