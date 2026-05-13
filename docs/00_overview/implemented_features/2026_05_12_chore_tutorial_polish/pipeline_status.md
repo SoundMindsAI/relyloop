@@ -24,4 +24,8 @@
 - Phases covered: single-phase
 
 ## Implementation
-- Status: Not started
+- Status: Complete (PR #64 merged 2026-05-12 as `bb95e3f`)
+- Stories shipped: 11 of 13 (Story 1.1, 2.1, 2.2, 2.3, 3.1, 3.2, 4.1, 4.2, 4.3, 4.4, 4.5)
+- Manual blocking steps remaining (per release-checklist.md): Story 4.6 (demo recording) + Story 4.7 (`v0.1.0` Git tag + GitHub Release). Both unblock now that PR #64 is merged.
+- CI gates green on merge commit: backend, frontend, docker buildx, smoke (operator-path tutorial flow).
+- Pre-existing platform bugs surfaced + captured: [`bug_judgment_template_default_params_contract`](../bug_judgment_template_default_params_contract/idea.md), [`bug_worker_optuna_init_race`](../bug_worker_optuna_init_race/idea.md).
