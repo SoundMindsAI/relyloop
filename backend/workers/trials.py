@@ -384,9 +384,15 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
             # Resolve per-trial timeout: study.config override OR the
             # operator-tunable Settings default. Bounds the adapter's
             # httpx call so a hung engine query can't monopolise a worker
-            # slot indefinitely (infra_per_trial_timeout).
+            # slot indefinitely (infra_per_trial_timeout). Explicit
+            # `is not None` (not `or`) so a falsy override like 0 is
+            # respected — the Pydantic schema bounds 5..3600 today, but
+            # the explicit form documents the intent.
+            configured_timeout = study_row.config.get("trial_timeout_s")
             trial_timeout_s = float(
-                study_row.config.get("trial_timeout_s") or get_settings().studies_default_timeout_s
+                configured_timeout
+                if configured_timeout is not None
+                else get_settings().studies_default_timeout_s
             )
             started_at = datetime.now(UTC)
             native_queries: list[NativeQuery] = [
