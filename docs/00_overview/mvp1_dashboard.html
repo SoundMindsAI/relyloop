@@ -328,13 +328,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Features done</div>
-      <div class="value">14 / 14</div>
+      <div class="value">16 / 16</div>
       <div class="sub">100% of scoped MVP1 features</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">20</div>
+      <div class="value">19</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -344,14 +344,14 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">15</div>
+      <div class="value">14</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      4 idea-only feat/infra folders (not yet scoped into MVP1)
+      3 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">24</span></h3>
+  <h3>Idea <span class="count">22</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -393,18 +393,6 @@ footer {
 
   </div>
   <div class="one-liner">CI runs `make test-unit &amp;&amp; make test-integration &amp;&amp; make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_nvmrc">Nvmrc</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">- `ui/package.json` engines: `&quot;node&quot;: &quot;&gt;=20.18&quot;`, verified on Node 22.22.2 per `state.md`. - No `.nvmrc` file at repo root or under `ui/`. - Default shell may have an older nvm-active Node (Node 18 in</div>
 
 
 </div>
@@ -513,18 +501,6 @@ footer {
 
   </div>
   <div class="one-liner">The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_proposals_page_usememo_deps">Proposals Page Usememo Deps</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">`pnpm lint` emits one new warning on the proposals list page:</div>
 
 
 </div>
@@ -679,7 +655,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">17</span></h3>
+  <h3>Done <span class="count">19</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -814,12 +790,36 @@ footer {
 
 
 <div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_infra_nvmrc">Nvmrc</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md">Optuna Eval</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/23">PR #23</a><span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_proposals_page_usememo_deps">Proposals Page Usememo Deps</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
 
 
 </div>
@@ -923,8 +923,12 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  chore_proposals_page_usememo_deps[&quot;proposals page usememo deps&quot;]
+  class chore_proposals_page_usememo_deps done;
   chore_starlette_422_deprecation[&quot;starlette 422 deprecation&quot;]
   class chore_starlette_422_deprecation done;
+  infra_nvmrc[&quot;nvmrc&quot;]
+  class infra_nvmrc done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -941,6 +945,7 @@ footer {
   infra_adapter_elastic --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
+  infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
@@ -952,6 +957,7 @@ footer {
   infra_adapter_elastic --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
+  infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
@@ -1001,8 +1007,12 @@ footer {
   class feat_studies_ui done;
   infra_frontend_stack_refresh[&quot;frontend stack refresh&quot;]
   class infra_frontend_stack_refresh done;
+  chore_proposals_page_usememo_deps[&quot;proposals page usememo deps&quot;]
+  class chore_proposals_page_usememo_deps done;
   chore_starlette_422_deprecation[&quot;starlette 422 deprecation&quot;]
   class chore_starlette_422_deprecation done;
+  infra_nvmrc[&quot;nvmrc&quot;]
+  class infra_nvmrc done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1019,6 +1029,7 @@ footer {
   infra_adapter_elastic --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
+  infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
@@ -1030,6 +1041,7 @@ footer {
   infra_adapter_elastic --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
+  infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker

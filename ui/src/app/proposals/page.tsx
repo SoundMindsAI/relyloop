@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useCallback, useMemo, useState } from 'react';
 
 import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { EmptyState } from '@/components/common/empty-state';
@@ -34,6 +34,19 @@ function ProposalsPageInner() {
   const [clusterFilter, setClusterFilter] = useState<string | null>(null);
   const cursor = cursorStack[cursorStack.length - 1];
 
+  // Single source of truth for the post-fetch source filter; consumed both
+  // by visibleRows below AND by the refetchInterval predicate inside
+  // useProposals so a future change to the filter semantics lands in one
+  // place (per Gemini suggestion on PR #77).
+  const matchesSourceFilter = useCallback(
+    (p: { study_id: string | null }) => {
+      if (sourceFilter === 'all') return true;
+      if (sourceFilter === 'study') return p.study_id != null;
+      return p.study_id == null;
+    },
+    [sourceFilter],
+  );
+
   const query = useProposals(
     {
       status,
@@ -53,9 +66,7 @@ function ProposalsPageInner() {
       refetchInterval: (q) =>
         q.state.data?.data?.some((p) => {
           if (p.status !== 'pr_opened' || p.pr_state !== 'open') return false;
-          if (sourceFilter === 'all') return true;
-          if (sourceFilter === 'study') return p.study_id != null;
-          return p.study_id == null;
+          return matchesSourceFilter(p);
         })
           ? 30_000
           : false,
@@ -85,16 +96,10 @@ function ProposalsPageInner() {
     setCursorStack([undefined]);
   }
 
-  const rows = query.data?.data ?? [];
-  const visibleRows = useMemo(
-    () =>
-      rows.filter((r) => {
-        if (sourceFilter === 'all') return true;
-        if (sourceFilter === 'study') return r.study_id != null;
-        return r.study_id == null;
-      }),
-    [rows, sourceFilter],
-  );
+  const visibleRows = useMemo(() => {
+    const rows = query.data?.data ?? [];
+    return rows.filter(matchesSourceFilter);
+  }, [query.data, matchesSourceFilter]);
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-6">
