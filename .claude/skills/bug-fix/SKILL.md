@@ -61,20 +61,20 @@ proceed if the current phase fails. The whole flow is meant to land in
    (`ls <folder>/`); if `bug_fix.md` already exists, this is a re-entry
    — read it and resume from whichever phase last completed.
 2. **Preflight freshness check.** The `idea.md` may have been written
-   weeks or months ago and quietly drifted from the current code. Gather
-   three cheap signals to decide whether `/idea-preflight` should run
-   first:
-   - `git status <folder>/` — any uncommitted `M` on idea.md → preflight
-     is already in flight (or someone just edited the file). **Skip.**
-   - `git log --since="2 weeks ago" -- <folder>/` — recent commits
-     touching idea.md → it's been refreshed recently. **Skip.**
-   - Idea frontmatter `**Date:**` — if older than 4 weeks AND no recent
-     commits, the idea is stale-by-default. **Recommend preflight.**
-     Surface to user; if autonomous-mode is on, default to "yes, run
-     preflight."
-   - Idea frontmatter ≤ 2 weeks old → too fresh to justify ceremony.
-     **Skip.**
-   - 2–4 weeks old, no recent commits → **Recommend; ask user.**
+   weeks or months ago and quietly drifted from the current code.
+   Evaluate these signals **in order; the first match wins**:
+   - `git status <folder>/idea.md` — any uncommitted `M` → preflight is
+     already in flight (or someone just edited the file). **Skip.**
+   - `git log --since="2 weeks ago" -- <folder>/idea.md` — at least
+     one commit touching idea.md → recently refreshed. **Skip.**
+   - Idea frontmatter `**Date:**` ≤ 2 weeks old → too fresh to justify
+     ceremony. **Skip.**
+   - Idea frontmatter 2–4 weeks old AND no recent commits → **Ask
+     user** ("preflight first?"); recommend yes if anything in the idea
+     references file:line specifics that may have shifted.
+   - Idea frontmatter > 4 weeks old AND no recent commits → idea is
+     stale-by-default. **Recommend preflight**; if autonomous-mode is
+     on, default to "yes, run preflight."
 
    If the decision is "run preflight," invoke `/idea-preflight` via the
    `Skill` tool on the same folder, wait for completion, then resume at
@@ -84,11 +84,16 @@ proceed if the current phase fails. The whole flow is meant to land in
    the **Medium** row, stop and recommend the right alternative.
 5. **Release-window check.** Look for `pre-MVP<N>`, `MVP<N>+`, or
    `deferred until <release>` markers in the idea's frontmatter, "Why
-   deferred" section, or `**Type:**` line. If present and the current
-   release matrix (per `state.md`) hasn't reached that release window,
-   stop and surface: "this bug is tagged for MVP<N>; we're currently
-   on MVP<N-1>. Pull forward, or defer?" Don't pull forward MVP-N
-   work into MVP-(N-1) without an explicit user "yes."
+   deferred" section, or `**Type:**` line. If present, compare against:
+   - current release: read from `state.md` "Last updated" + "Active
+     feature" lines
+   - canonical release matrix: `CLAUDE.md` § release matrix table
+     (pointer to `docs/01_architecture/tech-stack.md`)
+
+   If we haven't reached that window, stop and surface: "this bug is
+   tagged for MVP<N>; we're currently on MVP<N-1>. Pull forward, or
+   defer?" Don't pull MVP-N work into MVP-(N-1) without an explicit
+   user "yes."
 6. Confirm the prefix is `bug_`. If the folder is `chore_` or `infra_`
    but the work is actually a bug fix, surface and ask the user
    whether to rename via `git mv` before continuing.
