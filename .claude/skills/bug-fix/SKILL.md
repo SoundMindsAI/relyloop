@@ -166,6 +166,12 @@ artifact first then the code.
    reproducer from Phase 2 IS this test in most cases — formalize it,
    add fixtures, give it a name that explains *what the bug was*
    (`test_<feature>_handles_<bug_condition>`, not `test_fixes_bug_42`).
+   Verify the test exercises the previously-buggy code path under
+   coverage: `pytest --cov=backend.app.<module> --cov-report=term-missing`
+   should show the new test hitting the lines you changed, not just
+   passing in isolation. The 80% global coverage gate (Phase 5 step 4)
+   is necessary but not sufficient — a regression test that passes
+   without entering the fixed code is a useless guard.
 4. **Run the relevant test suite** (`make test-unit`, `make test-contract`,
    `make lint`, `make typecheck` — and `make test-integration` if the
    bug touches DB / API / worker). Don't rely on CI alone.
