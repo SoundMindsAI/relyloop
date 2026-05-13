@@ -1,7 +1,7 @@
 # Implementation Plan — feat_query_inline_crud
 
 **Date:** 2026-05-13
-**Status:** Draft
+**Status:** Complete (PR pending push)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy sources:**
 - [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md) — error envelope, cursor pagination, `X-Total-Count`, `?since` contract
@@ -1279,11 +1279,11 @@ N/A — no migrations.
 - [x] Story 2.1 — Router PATCH endpoint
 - [x] Story 3.2 — Repo delete_query + count_and_sample_judgment_refs
 - [x] Story 3.1 — Router DELETE endpoint + OpenAPI 409 wiring
-- [ ] Story 4.0 — Frontend hooks (useQueries, useUpdateQuery, useDeleteQuery)
-- [ ] Story 4.1 — <QueriesTable> replaces placeholder card
-- [ ] Story 4.2 — <EditQueryPopover> + <EditMetadataDialog>
-- [ ] Story 4.3 — <DeleteQueryDialog> + 409 toast with link
-- [ ] Story 5.1 — Docs sweep + state.md + deferred-E2E idea file
+- [x] Story 4.0 — Frontend hooks (useQueries, useUpdateQuery, useDeleteQuery)
+- [x] Story 4.1 — <QueriesTable> replaces placeholder card
+- [x] Story 4.2 — <EditQueryPopover> + <EditMetadataDialog>
+- [x] Story 4.3 — <DeleteQueryDialog> + 409 toast with link
+- [x] Story 5.1 — Docs sweep + state.md + deferred-E2E idea file
 
 ### Blocked items
 - (none currently)

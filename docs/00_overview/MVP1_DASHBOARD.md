@@ -19,9 +19,9 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **29 / 30** (97%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **10** items remaining (features + bugs + chores) |
+| Path to MVP1 | **11** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
-| Open chores | 8 (idea-stage debt) |
+| Open chores | 9 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -82,7 +82,7 @@ _None._
 
 _None._
 
-### Idea (10)
+### Idea (11)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -92,6 +92,7 @@ _None._
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
 | [chore_digest_worker_narrow_except](../02_product/planned_features/chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Idea (deferred from Gemini Code Assist Finding #2 on [PR #92](https://github.com/SoundMindsAI/relyloop/pull/92)) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
+| [chore_query_inline_crud_e2e](../02_product/planned_features/chore_query_inline_crud_e2e/idea.md) | Chore | `/query-sets/[id]` does not have a Playwright spec at `ui/tests/e2e/`. The new per-query CRUD UX (Edit popover, Metadata dialog, Delete alert dialog with 409 toast) is only covered at the component /  | — | — |
 | [chore_query_inline_crud_index_coverage_test](../02_product/planned_features/chore_query_inline_crud_index_coverage_test/idea.md) | Chore | `backend/app/db/repo/judgment.py::count_judgments_per_query` issues: | — | — |
 | [chore_query_inline_crud_table_integration_test](../02_product/planned_features/chore_query_inline_crud_table_integration_test/idea.md) | Chore | The current frontend test coverage is split: | — | — |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
