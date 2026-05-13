@@ -74,6 +74,7 @@ if [[ -z "${FORBIDDEN}" ]]; then
 fi
 
 echo "::error::Forbidden .env file(s) in PR diff:"
+# shellcheck disable=SC2086  # Word-split is intentional: one bullet per file via printf format-reuse.
 printf '  - %s\n' ${FORBIDDEN}
 cat <<'EOF'
 
