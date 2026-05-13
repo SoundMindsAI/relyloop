@@ -38,6 +38,10 @@ from backend.app.db.models import Digest, Proposal
 # Wire values for `?status=` filter on `GET /api/v1/proposals`.
 # Values must match backend/app/db/models/proposal.py CHECK proposals_status_check.
 ProposalStatusFilter = Literal["pending", "pr_opened", "pr_merged", "rejected"]
+# Per chore_proposals_source_filter_server_side: distinguishes proposals
+# derived from a completed study (study_id NOT NULL) from operator-authored
+# manual proposals (study_id NULL).
+ProposalSourceFilter = Literal["study", "manual"]
 
 
 class InvalidStateTransition(RuntimeError):
@@ -110,6 +114,20 @@ async def update_proposal_for_digest(
     return row
 
 
+def _apply_source_filter(stmt: Any, source: ProposalSourceFilter | None) -> Any:
+    """Apply the source filter to a Proposal SELECT or COUNT statement.
+
+    ``study`` → ``study_id IS NOT NULL``;
+    ``manual`` → ``study_id IS NULL``;
+    ``None`` → no filter (caller wants both).
+    """
+    if source == "study":
+        return stmt.where(Proposal.study_id.is_not(None))
+    if source == "manual":
+        return stmt.where(Proposal.study_id.is_(None))
+    return stmt
+
+
 async def list_proposals_paginated(
     db: AsyncSession,
     *,
@@ -117,18 +135,25 @@ async def list_proposals_paginated(
     limit: int = 50,
     status: ProposalStatusFilter | None = None,
     cluster_id: str | None = None,
+    source: ProposalSourceFilter | None = None,
 ) -> Sequence[Proposal]:
     """Cursor-paginated proposal list, newest first by ``created_at``.
 
     Order: ``created_at DESC, id DESC`` — mirrors
     :func:`backend.app.db.repo.study.list_studies` row-value comparison
     pattern. Limit clamped at 200 per api-conventions.md.
+
+    ``source`` filter (per chore_proposals_source_filter_server_side):
+    server-side equivalent of the UI's three-state filter chip. Without
+    it, pagination is unaware of the client-side trim and the visible
+    row count drifts from ``X-Total-Count``.
     """
     stmt = select(Proposal)
     if status is not None:
         stmt = stmt.where(Proposal.status == status)
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
+    stmt = _apply_source_filter(stmt, source)
     if cursor is not None:
         cursor_at, cursor_id = cursor
         stmt = stmt.where(
@@ -146,6 +171,7 @@ async def count_proposals(
     *,
     status: ProposalStatusFilter | None = None,
     cluster_id: str | None = None,
+    source: ProposalSourceFilter | None = None,
 ) -> int:
     """COUNT(*) for the ``X-Total-Count`` header on ``GET /api/v1/proposals``."""
     stmt = select(func.count()).select_from(Proposal)
@@ -153,6 +179,7 @@ async def count_proposals(
         stmt = stmt.where(Proposal.status == status)
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
+    stmt = _apply_source_filter(stmt, source)
     return int((await db.execute(stmt)).scalar_one())
 
 

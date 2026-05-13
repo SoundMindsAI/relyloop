@@ -157,21 +157,35 @@ describe('ProposalsPage', () => {
     expect(screen.getByTestId('proposal-status-chip-all')).toHaveAttribute('data-active', 'true');
   });
 
-  it('client-side source filter narrows visible rows without a network call', async () => {
+  it('server-side source filter refetches with ?source=manual', async () => {
     let proposalHits = 0;
+    let capturedSourceParam: string | null = null;
     server.use(
-      http.get(`${API_BASE}/api/v1/proposals`, () => {
+      http.get(`${API_BASE}/api/v1/proposals`, ({ request }) => {
         proposalHits += 1;
+        const url = new URL(request.url);
+        capturedSourceParam = url.searchParams.get('source');
+        // Server-side filter (per chore_proposals_source_filter_server_side):
+        // backend trims rows by ?source= so pagination + X-Total-Count stay
+        // consistent. We mirror that here so the test matches the production
+        // contract.
+        const allRows = [
+          proposalRow({ id: 'pStudy', study_id: 's1' }),
+          proposalRow({ id: 'pManual', study_id: null }),
+        ];
+        const filtered =
+          capturedSourceParam === 'study'
+            ? allRows.filter((r) => r.study_id != null)
+            : capturedSourceParam === 'manual'
+              ? allRows.filter((r) => r.study_id == null)
+              : allRows;
         return HttpResponse.json(
           {
-            data: [
-              proposalRow({ id: 'pStudy', study_id: 's1' }),
-              proposalRow({ id: 'pManual', study_id: null }),
-            ],
+            data: filtered,
             next_cursor: null,
             has_more: false,
           },
-          { headers: { 'X-Total-Count': '2' } },
+          { headers: { 'X-Total-Count': String(filtered.length) } },
         );
       }),
       http.get(`${API_BASE}/api/v1/clusters`, () =>
@@ -187,12 +201,15 @@ describe('ProposalsPage', () => {
       expect(screen.getByTestId('proposal-row-pManual')).toBeInTheDocument();
     });
     expect(proposalHits).toBe(1);
+    expect(capturedSourceParam).toBeNull();
+
     fireEvent.click(screen.getByTestId('proposal-source-chip-manual'));
     await waitFor(() => {
       expect(screen.queryByTestId('proposal-row-pStudy')).not.toBeInTheDocument();
       expect(screen.getByTestId('proposal-row-pManual')).toBeInTheDocument();
     });
-    expect(proposalHits).toBe(1); // no extra wire call
+    expect(proposalHits).toBe(2); // a new wire call goes out with ?source=manual
+    expect(capturedSourceParam).toBe('manual');
   });
 
   it('FR-1: 30s pulse-refetch when a visible row is pr_opened+open', async () => {

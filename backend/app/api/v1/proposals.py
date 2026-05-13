@@ -43,6 +43,7 @@ from backend.app.api.v1.schemas import (
     OpenPrResponse,
     ProposalDetail,
     ProposalsListResponse,
+    ProposalSourceWire,
     ProposalStatusWire,
     ProposalSummary,
     RejectProposalRequest,
@@ -330,10 +331,11 @@ async def list_proposals_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     status_filter: Annotated[ProposalStatusWire | None, Query(alias="status")] = None,
     cluster_id: Annotated[str | None, Query()] = None,
+    source: Annotated[ProposalSourceWire | None, Query()] = None,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
 ) -> ProposalsListResponse:
-    """List proposals with cursor pagination + status + cluster_id filters."""
+    """List proposals with cursor pagination + status + cluster_id + source filters."""
     decoded_cursor = _decode_cursor(cursor) if cursor else None
     rows = list(
         await repo.list_proposals_paginated(
@@ -342,12 +344,15 @@ async def list_proposals_endpoint(
             limit=limit + 1,
             status=status_filter,
             cluster_id=cluster_id,
+            source=source,
         )
     )
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
-    total = await repo.count_proposals(db, status=status_filter, cluster_id=cluster_id)
+    total = await repo.count_proposals(
+        db, status=status_filter, cluster_id=cluster_id, source=source
+    )
     response.headers["X-Total-Count"] = str(total)
     next_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id) if has_more and rows else None
     summaries = await _assemble_proposal_summary_batch(db, rows)
