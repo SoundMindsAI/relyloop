@@ -8,19 +8,27 @@ docker network).
 Coverage:
 * Empty → 1000 docs after first run.
 * Re-run produces still 1000 docs (DELETE+recreate is idempotent in count terms).
-* Re-running after sample-data shrinks does NOT leave orphan docs (the original
-  motivation for DELETE+recreate vs upsert).
+* Missing local-es cluster row → script returns 1 (the operator-skipped-step path).
+
+Uses ``get_session_factory()`` directly rather than the ``db_session``
+SAVEPOINT fixture: ``seed_es.main()`` opens its own session via
+``get_session_factory()`` to look up the cluster, and a savepoint commit
+isn't visible across sessions. The autouse ``_clean_phase2_tables``
+conftest fixture truncates the clusters table after each test, so the
+explicit insert here cleans up automatically.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 
 import httpx
 import pytest
+import pytest_asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db import repo
+from backend.app.db.session import get_session_factory
 from backend.app.scripts import seed_es
 
 INDEX_NAME = "products"
@@ -61,16 +69,44 @@ def cleanup_index() -> Iterator[None]:
             c.delete(f"{ES_URL}/{INDEX_NAME}")
 
 
+@pytest_asyncio.fixture
+async def real_db_session() -> AsyncIterator[AsyncSession]:
+    """Direct session via get_session_factory() — commits real transactions
+    so seed_es.main()'s separate session can see the inserted rows.
+
+    Skips on host-shell runs where Postgres isn't resolvable (the conftest's
+    db_session fixture already has this gate via postgres_reachable, but our
+    real-session path bypasses it). Wipes the clusters table on entry so a
+    leftover ``local-es`` row from a prior ``make seed-clusters`` run (with
+    ``base_url=http://elasticsearch:9200``, unreachable from the host)
+    doesn't shadow the test's own insert. Cleanup after the test is handled
+    by the autouse ``_clean_phase2_tables`` conftest fixture.
+    """
+    from sqlalchemy import text
+
+    from backend.tests.conftest import postgres_reachable
+
+    if not postgres_reachable():
+        pytest.skip(
+            "Postgres not reachable — see docs/03_runbooks/local-dev.md §'Local-vs-CI test layers'."
+        )
+    factory = get_session_factory()
+    async with factory() as session:
+        await session.execute(text("DELETE FROM clusters"))
+        await session.commit()
+        yield session
+
+
 @pytest.mark.integration
 @es_required
 async def test_seed_es_indexes_thousand_then_idempotent(
-    db_session: AsyncSession, cleanup_index: None
+    real_db_session: AsyncSession, cleanup_index: None
 ) -> None:
     """Seed empty → 1000 docs; re-seed → still exactly 1000 docs (no drift)."""
     # Insert a local-es row that points at the host-reachable ES URL.
     # seed_es resolves the cluster by name, so we just need a row with the right base_url.
     await repo.create_cluster(
-        db_session,
+        real_db_session,
         id="id-test-local-es",
         name="local-es",
         engine_type="elasticsearch",
@@ -79,7 +115,7 @@ async def test_seed_es_indexes_thousand_then_idempotent(
         auth_kind="es_basic",
         credentials_ref="local-es",
     )
-    await db_session.commit()
+    await real_db_session.commit()
 
     # First run.
     rc = await seed_es.main()
@@ -105,10 +141,24 @@ async def test_seed_es_indexes_thousand_then_idempotent(
 
 @pytest.mark.integration
 @es_required
-async def test_seed_es_returns_one_when_cluster_missing(
-    db_session: AsyncSession, cleanup_index: None
-) -> None:
-    """No ``local-es`` row registered → script logs an error and returns 1."""
-    # Intentionally don't insert a cluster row.
+async def test_seed_es_returns_one_when_cluster_missing(cleanup_index: None) -> None:
+    """No ``local-es`` row registered → script logs an error and returns 1.
+
+    Wipes the clusters table to drop any leftover row from earlier runs
+    (e.g. host operator running ``make seed-clusters`` before the test).
+    """
+    from sqlalchemy import text
+
+    from backend.tests.conftest import postgres_reachable
+
+    if not postgres_reachable():
+        pytest.skip(
+            "Postgres not reachable — see docs/03_runbooks/local-dev.md §'Local-vs-CI test layers'."
+        )
+    factory = get_session_factory()
+    async with factory() as session:
+        await session.execute(text("DELETE FROM clusters"))
+        await session.commit()
+
     rc = await seed_es.main()
     assert rc == 1

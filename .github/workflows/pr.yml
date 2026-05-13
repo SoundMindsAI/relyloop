@@ -206,14 +206,24 @@ jobs:
         run: uv sync --frozen
 
       - name: Write OPENAI_API_KEY secret to mounted file
+        env:
+          OPENAI_API_KEY_TEST: ${{ secrets.OPENAI_API_KEY_TEST }}
         run: |
           mkdir -p ./secrets
-          echo "${{ secrets.OPENAI_API_KEY_TEST }}" > ./secrets/openai_key
-          chmod 600 ./secrets/openai_key
+          # Strip any trailing newline so the empty-secret case produces an
+          # empty file (size 0) rather than a single-newline file (size 1)
+          # that would slip past the sanity check below. Don't chmod 600 —
+          # the api container runs as a non-root user (`relyloop`) and the
+          # bind-mounted file inherits the runner's UID; restrictive perms
+          # cause PermissionError at api startup.
+          printf '%s' "$OPENAI_API_KEY_TEST" > ./secrets/openai_key
 
       - name: Sanity-check OPENAI_API_KEY_TEST is populated
         run: |
-          if [ ! -s ./secrets/openai_key ]; then
+          # Use grep so an unset secret (empty file OR file containing only
+          # whitespace) fails fast with a clear message. `[ -s ]` only checks
+          # size > 0, which is satisfied by a single newline.
+          if ! grep -q '[^[:space:]]' ./secrets/openai_key; then
             echo "::error::OPENAI_API_KEY_TEST secret is empty — smoke gate requires it (per chore_tutorial_polish §3 + decision log M5)"
             exit 1
           fi
