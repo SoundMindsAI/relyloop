@@ -2,7 +2,7 @@ import { http, HttpResponse } from 'msw';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useReducer } from 'react';
 
 import { server } from '../../setup';
 
@@ -10,14 +10,33 @@ const API_BASE = 'http://api.test';
 
 let lastReplace = '';
 let mockedSearch = '';
+// Subscribers for the useSearchParams mock; each useSearchParams() call
+// registers a force-rerender callback so router.replace(url) propagates
+// to React state and triggers a refetch (per
+// chore_proposals_list_wire_param_e2e_test). Without this, the wire
+// param round-trip through useProposals isn't exercised end-to-end.
+const searchParamsSubscribers = new Set<() => void>();
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
     replace: (url: string) => {
       lastReplace = url;
+      mockedSearch = url.includes('?') ? (url.split('?')[1] ?? '') : '';
+      // Notify subscribers OUTSIDE React's lifecycle; the consuming
+      // useEffect / useState will pick up the change on the next render.
+      searchParamsSubscribers.forEach((fn) => fn());
     },
   }),
-  useSearchParams: () => new URLSearchParams(mockedSearch),
+  useSearchParams: () => {
+    const [, force] = useReducer((x: number) => x + 1, 0);
+    useEffect(() => {
+      searchParamsSubscribers.add(force);
+      return () => {
+        searchParamsSubscribers.delete(force);
+      };
+    }, []);
+    return new URLSearchParams(mockedSearch);
+  },
 }));
 
 vi.mock('next/link', () => ({
@@ -54,6 +73,7 @@ function proposalRow(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   lastReplace = '';
   mockedSearch = '';
+  searchParamsSubscribers.clear();
 });
 
 afterEach(() => {
@@ -107,6 +127,43 @@ describe('ProposalsPage', () => {
     await waitFor(() => expect(screen.getByTestId('empty-state')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('proposal-status-chip-pr_opened'));
     expect(lastReplace).toBe('/proposals?status=pr_opened');
+  });
+
+  it('AC-6: clicking a status chip sends ?status= on the next backend request', async () => {
+    // chore_proposals_list_wire_param_e2e_test: prove the click → router.replace
+    // → useSearchParams re-render → useProposals queryKey change → wire-param
+    // round trip works end-to-end, not just at the router.replace boundary.
+    // The improved useSearchParams mock above (subscribers + useReducer)
+    // propagates URL changes into React state so this test exercises the
+    // full client-side flow.
+    const capturedStatusParams: (string | null)[] = [];
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals`, ({ request }) => {
+        const url = new URL(request.url);
+        capturedStatusParams.push(url.searchParams.get('status'));
+        return HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        );
+      }),
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => expect(capturedStatusParams.length).toBeGreaterThan(0));
+    expect(capturedStatusParams[0]).toBeNull();
+
+    fireEvent.click(screen.getByTestId('proposal-status-chip-pr_opened'));
+    // The router.replace mock propagates to useSearchParams subscribers,
+    // useProposals's queryKey changes, react-query refetches with the
+    // new ?status= param.
+    await waitFor(() => {
+      expect(capturedStatusParams).toContain('pr_opened');
+    });
   });
 
   it('AC-6: status=all chip clears the URL param', async () => {

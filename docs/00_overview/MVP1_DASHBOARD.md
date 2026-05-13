@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **21 / 21** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **15** items remaining (features + bugs + chores) |
+| Scoped items done | **23 / 23** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **13** items remaining (features + bugs + chores) |
 | Open bugs | 5 |
-| Open chores | 10 (idea-stage debt) |
+| Open chores | 8 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (24)
+### Done (26)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -39,6 +39,8 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
+| [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
+| [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_source_filter_server_side](implemented_features/2026_05_13_chore_proposals_source_filter_server_side/idea.md) | Chore | Complete | — | Complete |
 | [chore_spec_trial_created_at_drift](implemented_features/2026_05_13_chore_spec_trial_created_at_drift/idea.md) | Chore | Complete | — | Complete |
@@ -62,7 +64,7 @@ _None._
 
 _None._
 
-### Idea (17)
+### Idea (15)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -74,8 +76,6 @@ _None._
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
 | [chore_infra_foundation_github_token_file_retirement](../02_product/planned_features/chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is: | — | Idea (deferred from `feat_github_pr_worker` spec patch — captured because the cleanup spans `infra_foundation`'s shipped config and isn't in the PR-worker scope) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
-| [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
-| [chore_proposals_list_wire_param_e2e_test](../02_product/planned_features/chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting: | — | Idea — deferred from `feat_proposals_ui` final GPT-5.5 review (finding #4) |
 | [chore_query_inline_edit_delete](../02_product/planned_features/chore_query_inline_edit_delete/idea.md) | Chore | The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries ei | — | — |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
 | [bug_chat_long_conversation_truncation](../02_product/planned_features/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | — |
@@ -121,6 +121,10 @@ graph LR
   class feat_studies_ui done;
   infra_frontend_stack_refresh["frontend stack refresh"]
   class infra_frontend_stack_refresh done;
+  chore_openapi_contract_validation["openapi contract validation"]
+  class chore_openapi_contract_validation done;
+  chore_proposals_list_wire_param_e2e_test["proposals list wire param e2e test"]
+  class chore_proposals_list_wire_param_e2e_test done;
   chore_proposals_page_usememo_deps["proposals page usememo deps"]
   class chore_proposals_page_usememo_deps done;
   chore_proposals_source_filter_server_side["proposals source filter server side"]
