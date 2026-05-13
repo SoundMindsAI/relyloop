@@ -396,6 +396,20 @@ This rule applies even if the issue feels minor. A 3-line idea file with the rig
 
 **Anti-pattern to recognize in yourself:** "I'll just note this and come back to it later." Either fix it now (if it's truly inline-cheap) or capture the idea file now (if it's not). There is no "later" — the conversation will end.
 
+### Inline-fix vs idea-file rubric
+
+"Inline-cheap" is doing too much work in the rule above. Without a sharper rubric, the default has been to capture idea files for medium-sized fixes that would have been faster to inline. Apply this table when deciding:
+
+| Discovery shape | Action |
+|---|---|
+| Fix is ≤20 LOC AND in a file the current PR already touches AND no new tests needed (e.g. docs typo, minor refactor — NOT a bug fix; bug fixes always need a regression test per the Bug Fix Protocol above) | **Inline.** No new PR, no idea file. Just fix in the same commit (or an adjacent commit on the same branch) and note in the commit message. |
+| Fix is ≤100 LOC + bounded tests AND scope-compatible with the current PR's intent | **Inline OR same-branch adjacent commit.** Don't capture an idea file. Accept the scope blur — it's cheaper than the context-switch cost of a separate PR later. |
+| Fix has design surface (multiple defensible approaches), or LOC >100, or touches a clearly separate concern | **Idea file.** Capture; pick up in a separate flow later. |
+| Fix would break a CI gate that's specifically valued on the current PR (e.g., docs-only paths-ignore filter) AND the fix is bounded | **Adjacent PR off `main`** — not inline (preserves the current PR's gate), not idea file (don't defer a bounded fix). Ship the two PRs in parallel. |
+| Fix requires changes to an unrelated subsystem (different ORM model, different service, different UI route) | **Idea file.** Cross-subsystem mixing in one PR breaks reviewability. |
+
+**Default lean:** when the call is borderline between "inline" and "idea file," **lean inline.** The cost of a deferred-and-never-fixed idea file is higher than the cost of a slightly mixed-scope PR. CLAUDE.md's existing "tangential discoveries" rule was written when the failure mode was *forgetting to capture*; the calibration nudge above is for the opposite failure mode (capturing when fixing would have been faster).
+
 ## Local-stub hygiene — never leave commit-eligible debug artifacts in the repo
 
 When you need to verify something locally (`docker compose config --quiet`, `alembic --sql`, an install-script dry-run, a temporary YAML for testing), it is tempting to write the stub file directly into the repo path it would eventually live at — `./secrets/database_url`, `./.env`, `./migrations/versions/0002_*.py`, `./data/postgres/`, etc. **Don't.** The next story (or the next operator) inherits that file and treats it as canonical. Idempotency guards (`[[ ! -s ./secrets/database_url ]]` and friends) silently preserve it. The bug surfaces hours or days later, in a different scope, and is much harder to attribute back to the verification step that created it.
