@@ -135,4 +135,69 @@ describe('useDeleteQuery', () => {
     expect(onSuccessMock).toHaveBeenCalled();
     toastSpy.mockRestore();
   });
+
+  it('409 calls toast.error with action label + onOpenJudgmentList', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    const onOpenSpy = vi.fn();
+    server.use(
+      http.delete(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries/q1`, () =>
+        HttpResponse.json(
+          {
+            detail: {
+              error_code: 'QUERY_HAS_JUDGMENTS',
+              message: 'x',
+              retryable: false,
+              judgment_lists: [{ id: 'jl-1', name: 'list-a' }],
+              overflow_count: 0,
+            },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useDeleteQuery(QS_ID, { onOpenJudgmentList: onOpenSpy }), {
+      wrapper: wrap(qc),
+    });
+    result.current.mutate('q1');
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(errorSpy).toHaveBeenCalled();
+    const [, options] = errorSpy.mock.calls[0];
+    expect(options?.action?.label).toBe('Open list-a →');
+    options?.action?.onClick?.(
+      new MouseEvent('click') as unknown as React.MouseEvent<HTMLButtonElement>,
+    );
+    expect(onOpenSpy).toHaveBeenCalledWith('jl-1');
+    errorSpy.mockRestore();
+  });
+
+  it('non-409 error falls through to toToastMessage formatting', async () => {
+    const errorSpy = vi.spyOn(toast, 'error');
+    server.use(
+      http.delete(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries/q1`, () =>
+        HttpResponse.json(
+          {
+            detail: {
+              error_code: 'QUERY_SET_NOT_FOUND',
+              message: 'qs-1 not found',
+              retryable: false,
+            },
+          },
+          { status: 404 },
+        ),
+      ),
+    );
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { result } = renderHook(() => useDeleteQuery(QS_ID, { onOpenJudgmentList: () => {} }), {
+      wrapper: wrap(qc),
+    });
+    result.current.mutate('q1');
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(errorSpy).toHaveBeenCalled();
+    const [message] = errorSpy.mock.calls[0];
+    expect(String(message)).toContain('QUERY_SET_NOT_FOUND');
+    errorSpy.mockRestore();
+  });
 });

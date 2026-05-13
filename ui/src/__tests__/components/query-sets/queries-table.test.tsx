@@ -93,6 +93,49 @@ describe('QueriesTable', () => {
     await waitFor(() => expect(screen.getByText(/No queries yet/i)).toBeInTheDocument());
   });
 
+  it('renders total-count indicator above the table', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries`, () =>
+        HttpResponse.json(
+          { data: [rowFixture(0)], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '248' } },
+        ),
+      ),
+    );
+    wrap(<QueriesTable querySetId={QS_ID} />);
+    await waitFor(() => expect(screen.getByTestId('queries-total')).toBeInTheDocument());
+    expect(screen.getByTestId('queries-total').textContent).toContain('248 queries total');
+  });
+
+  it('changes page size and resets the cursor stack', async () => {
+    const limits: string[] = [];
+    const cursors: (string | null)[] = [];
+    server.use(
+      http.get(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries`, ({ request }) => {
+        const url = new URL(request.url);
+        limits.push(url.searchParams.get('limit') ?? '');
+        cursors.push(url.searchParams.get('cursor'));
+        return HttpResponse.json(
+          { data: [rowFixture(0)], next_cursor: 'next', has_more: true },
+          { headers: { 'X-Total-Count': '10' } },
+        );
+      }),
+    );
+    wrap(<QueriesTable querySetId={QS_ID} />);
+    await waitFor(() => expect(screen.getByTestId('queries-table')).toBeInTheDocument());
+    // Advance to page 2 first so the cursor stack is non-trivial.
+    fireEvent.click(screen.getByTestId('paginator-next'));
+    await waitFor(() => expect(cursors.some((c) => c === 'next')).toBe(true));
+    // Change page size — must reset cursor stack so the next GET has no cursor.
+    fireEvent.change(screen.getByTestId('page-size-select'), { target: { value: '25' } });
+    await waitFor(() => expect(limits.includes('25')).toBe(true));
+    // The GET after the page-size change must have NO cursor (reset to page 1).
+    const callsWithLimit25 = limits
+      .map((l, i) => ({ l, c: cursors[i] }))
+      .filter((x) => x.l === '25');
+    expect(callsWithLimit25.some((x) => x.c === null)).toBe(true);
+  });
+
   it('paginates Next then Prev correctly', async () => {
     let getCalls = 0;
     server.use(

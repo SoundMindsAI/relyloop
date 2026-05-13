@@ -72,6 +72,9 @@ export function QueriesTable({ querySetId }: QueriesTableProps) {
 
   return (
     <div className="space-y-3">
+      <p className="text-sm text-muted-foreground" data-testid="queries-total">
+        {queries.data.totalCount.toLocaleString()} queries total
+      </p>
       <Table data-testid="queries-table">
         <TableHeader>
           <TableRow>
@@ -102,7 +105,20 @@ export function QueriesTable({ querySetId }: QueriesTableProps) {
               <TableCell>
                 <Badge
                   variant={row.query_metadata ? 'default' : 'secondary'}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={
+                    row.query_metadata
+                      ? 'Edit query metadata (set)'
+                      : 'Edit query metadata (not set)'
+                  }
                   onClick={() => setMetadataQuery(row)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setMetadataQuery(row);
+                    }
+                  }}
                   className="cursor-pointer"
                   data-testid={`meta-badge-${row.id}`}
                 >

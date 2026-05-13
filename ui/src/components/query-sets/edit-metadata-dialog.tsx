@@ -98,8 +98,7 @@ export function EditMetadataDialog({
         <DialogHeader>
           <DialogTitle>Edit query metadata</DialogTitle>
           <DialogDescription>
-            JSON object. Whole-object replace — explicit null removes the field; omitted keys leave
-            existing fields unchanged on PATCH (this dialog sends the whole edited object).
+            Whole-object replace — Save sends the edited object as the new metadata.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -116,6 +115,10 @@ export function EditMetadataDialog({
               {...form.register('metadata_json')}
               data-testid="edit-metadata-textarea"
             />
+            <p className="text-xs text-muted-foreground" data-testid="metadata-helper">
+              JSON object only — arrays, strings, numbers, and <code>null</code> literal are
+              rejected. Use <strong>Clear metadata</strong> to set the column to NULL.
+            </p>
             {jsonError && (
               <p
                 className="text-xs text-destructive"
