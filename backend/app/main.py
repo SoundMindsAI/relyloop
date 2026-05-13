@@ -23,6 +23,7 @@ needs it); for now the OpenAPI version field reports ``Settings`` only when
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -66,6 +67,19 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     ``backend/app/api/probes.py``).
     """
     settings = get_settings()
+
+    # Deprecation WARN: GITHUB_TOKEN_FILE was retired when
+    # feat_github_pr_worker shipped per-repo `auth_ref`. Carrying it over
+    # from a pre-retirement install is silently no-op; warn the operator
+    # so the stale env var gets dropped on the next deploy.
+    if os.environ.get("GITHUB_TOKEN_FILE"):
+        logger.warning(
+            "GITHUB_TOKEN_FILE is no longer read; "
+            "register each config_repo via POST /api/v1/config-repos with an "
+            "explicit auth_ref and drop the corresponding PAT at ./secrets/{auth_ref}",
+            event_type="github_token_file_deprecated",
+        )
+
     redis_client: Redis = Redis.from_url(settings.redis_url, decode_responses=False)
     cap_task = asyncio.create_task(
         run_capability_check_background(

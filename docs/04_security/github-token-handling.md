@@ -34,10 +34,12 @@ feature vs the older single-token model:
   on a quarterly schedule while less-sensitive dev repos stay on a
   longer cadence — no all-or-nothing trade-off.
 
-The `GITHUB_TOKEN_FILE` env var from `infra_foundation` is now
-deprecated for the PR worker's needs. See
-[`chore_infra_foundation_github_token_file_retirement/idea.md`](../02_product/planned_features/chore_infra_foundation_github_token_file_retirement/idea.md)
-for the formal retirement path.
+The legacy `GITHUB_TOKEN_FILE` env var from `infra_foundation` was
+retired in `chore_infra_foundation_github_token_file_retirement`. The
+API now emits a startup WARN if it's still set in env, and the Settings
+field has been removed — pre-retirement installs see no functional
+change beyond the warning, but the env var should be dropped on the
+next deploy.
 
 ## Rotation procedures
 
