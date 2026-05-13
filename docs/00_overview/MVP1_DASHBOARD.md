@@ -12,7 +12,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Features done | **17 / 17** (100%) |
+| Scoped items done | **17 / 17** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Path to MVP1 | **18** items remaining (features + bugs + chores) |
 | Open bugs | 5 |
 | Open chores | 13 (idea-stage debt) |
