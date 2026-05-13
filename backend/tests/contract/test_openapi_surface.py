@@ -139,16 +139,25 @@ def test_endpoint_response_model_declared(
     )
 
 
-def test_openapi_has_no_orphan_paths(openapi_spec: dict[str, Any]) -> None:
-    """Every path in app.openapi() is on the EXPECTED_ENDPOINTS list.
+_HTTP_METHODS = frozenset({"get", "post", "put", "delete", "patch", "options", "head", "trace"})
 
-    Failure means a new endpoint shipped without an entry in this test —
-    add it to EXPECTED_ENDPOINTS so the surface stays canonically tracked.
+
+def test_openapi_has_no_orphan_endpoints(openapi_spec: dict[str, Any]) -> None:
+    """Every (method, path) in app.openapi() is on the EXPECTED_ENDPOINTS list.
+
+    Failure means a new endpoint (or a new method on an existing path)
+    shipped without an entry in this test — add it to EXPECTED_ENDPOINTS
+    so the surface stays canonically tracked. Per Gemini suggestion on
+    PR #84: catches method-addition regressions, not just path-addition.
     """
-    expected_paths = {p for _, p, _ in EXPECTED_ENDPOINTS}
-    actual_paths = set(openapi_spec.get("paths", {}).keys())
-    orphans = actual_paths - expected_paths
+    expected = {(m.lower(), p) for m, p, _ in EXPECTED_ENDPOINTS}
+    actual: set[tuple[str, str]] = set()
+    for path, path_item in openapi_spec.get("paths", {}).items():
+        for key in path_item:
+            if key.lower() in _HTTP_METHODS:
+                actual.add((key.lower(), path))
+    orphans = actual - expected
     assert not orphans, (
-        f"OpenAPI paths missing from EXPECTED_ENDPOINTS: {sorted(orphans)}. "
-        f"Add entries to keep the surface canonically tracked."
+        f"OpenAPI endpoints (method, path) missing from EXPECTED_ENDPOINTS: "
+        f"{sorted(orphans)}. Add entries to keep the surface canonically tracked."
     )
