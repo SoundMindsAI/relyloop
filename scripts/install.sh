@@ -8,8 +8,10 @@
 # CLAUDE.md Absolute Rule #2: secrets live in mounted files (./secrets/<name>),
 # never as bare env vars. Compose's `secrets:` directive errors out at startup
 # if a source file is missing — even for "optional" secrets — so we create
-# zero-byte placeholders for openai_key + github_token. The application layer
-# (Pydantic Settings) treats empty content as "not configured".
+# zero-byte placeholders for openai_key. The application layer (Pydantic
+# Settings) treats empty content as "not configured". GitHub PATs are NOT
+# global: each ``config_repos`` row carries its own ``auth_ref`` field naming
+# a ``./secrets/<auth_ref>`` file, registered via POST /api/v1/config-repos.
 
 set -euo pipefail
 
@@ -43,7 +45,6 @@ fi
 
 # 4. Create empty placeholder files for optional secrets (Compose mounts them).
 [[ -e ./secrets/openai_key ]]     || { touch ./secrets/openai_key;     chmod 600 ./secrets/openai_key;     }
-[[ -e ./secrets/github_token ]]   || { touch ./secrets/github_token;   chmod 600 ./secrets/github_token;   }
 if [[ ! -e ./secrets/cluster_credentials.yaml ]]; then
   # Seed default credentials for the local Compose ES + OpenSearch containers
   # (well-known dev defaults — not production secrets). The seed-clusters

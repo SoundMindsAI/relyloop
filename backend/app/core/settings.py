@@ -13,8 +13,15 @@ Required secrets (raise ``SettingsError`` on missing or empty content):
 
 Optional secrets (return ``None`` on missing/empty; API logs WARN at startup):
     - ``OPENAI_API_KEY_FILE``
-    - ``GITHUB_TOKEN_FILE``
     - ``CLUSTER_CREDENTIALS_FILE``
+
+GitHub PATs are NOT global at MVP1: each ``config_repos`` row carries
+its own ``auth_ref`` field naming a ``./secrets/<auth_ref>`` file. The
+legacy ``GITHUB_TOKEN_FILE`` env var was retired in
+``chore_infra_foundation_github_token_file_retirement`` once
+``feat_github_pr_worker`` shipped the per-repo model. Operators upgrading
+from pre-retirement installs see a startup WARN when ``GITHUB_TOKEN_FILE``
+is still present in env.
 
 Plain values (env-var literal):
     ``REDIS_URL``, ``OPENAI_BASE_URL``, ``OPENAI_MODEL``, ``OPENAI_MODEL_CHAT``,
@@ -89,10 +96,6 @@ class Settings(BaseSettings):
         default=None,
         description="Path to file containing the OpenAI API key (or any OpenAI-compatible "
         "endpoint's key). Optional pre-feat_llm_judgments; empty file = not configured.",
-    )
-    github_token_file: Path | None = Field(
-        default=None,
-        description="Path to file containing the GitHub PAT. Optional pre-feat_github_pr_worker.",
     )
     cluster_credentials_file: Path | None = Field(
         default=None,
@@ -258,11 +261,6 @@ class Settings(BaseSettings):
     def openai_api_key(self) -> str | None:
         """Resolved OpenAI key. Returns ``None`` if file is missing or empty."""
         return _read_secret_file(self.openai_api_key_file, required=False, name="OPENAI_API_KEY")
-
-    @cached_property
-    def github_token(self) -> str | None:
-        """Resolved GitHub PAT. Returns ``None`` if file is missing or empty."""
-        return _read_secret_file(self.github_token_file, required=False, name="GITHUB_TOKEN")
 
     @cached_property
     def cluster_credentials_yaml(self) -> str | None:
