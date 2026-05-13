@@ -427,10 +427,10 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 6 | [`feat_digest_proposal`](docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/) | **Complete (PR #41, merged 2026-05-11)** |
 | 7 | [`feat_github_pr_worker`](docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker/) | **Complete (PR #45, merged 2026-05-12)** |
 | 8 | [`feat_github_webhook`](docs/00_overview/implemented_features/2026_05_12_feat_github_webhook/) | **Complete (PR #56, merged 2026-05-12)** |
-| 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, pending merge)** |
-| 10 | [`feat_chat_agent`](docs/02_product/planned_features/feat_chat_agent/) | **Complete (PR pending merge)** |
+| 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, merged 2026-05-11)** |
+| 10 | [`feat_chat_agent`](docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/) | **Complete (PR #60, merged 2026-05-12)** |
 | 11 | [`feat_proposals_ui`](docs/00_overview/implemented_features/2026_05_12_feat_proposals_ui/) | **Complete (PR #58, merged 2026-05-12)** |
-| 12 | [`chore_tutorial_polish`](docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/) | **Complete (PR #64, merged 2026-05-12) — Stories 4.6 (demo) + 4.7 (v0.1.0 tag) deferred to maintainer per [release-checklist.md](docs/03_runbooks/release-checklist.md)** |
+| 12 | [`chore_tutorial_polish`](docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/) | **Complete (PR #64, merged 2026-05-12). Story 4.6 (demo) deferred to MVP3 per [chore_demo_recording_mvp3](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md) (PR #65). Story 4.7 (v0.1.0 tag) is the only remaining MVP1 work — maintainer follows [release-checklist.md](docs/03_runbooks/release-checklist.md).** |
 
 Run `/pipeline status` for the live view from spec dependencies.
 

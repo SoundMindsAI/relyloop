@@ -275,6 +275,12 @@ Thumbs.db
 .tmp/
 tmp/
 
+# Maintainer-local release-notes drafts (per release-checklist.md §7).
+# Drafts live at repo root with a `release-notes-` prefix; the maintainer
+# pastes the final content into the GitHub Release form, so the file
+# never needs to ship in the repo.
+release-notes-*.md
+
 # Claude Code runtime state (per-session lock files, local-only settings).
 # `.claude/skills/` is intentionally tracked (committed skill definitions);
 # only ignore lock files + the local-settings overlay.
