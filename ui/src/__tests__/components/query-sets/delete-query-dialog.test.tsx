@@ -98,14 +98,13 @@ describe('DeleteQueryDialog', () => {
     fireEvent.click(screen.getByTestId('confirm-delete-query'));
 
     await waitFor(() => expect(errorSpy).toHaveBeenCalled());
-    const [message, options] = errorSpy.mock.calls[0];
+    const [message, options] = errorSpy.mock.calls[0]!;
+    const action = options?.action as { label: string; onClick: (e: unknown) => void } | undefined;
     expect(String(message)).toContain('2 judgment lists');
-    expect(options?.action?.label).toBe('Open esci-tutorial-v1 →');
+    expect(action?.label).toBe('Open esci-tutorial-v1 →');
 
     // Click the action label → navigates to /judgments/{first_id}
-    options?.action?.onClick?.(
-      new MouseEvent('click') as unknown as React.MouseEvent<HTMLButtonElement>,
-    );
+    action?.onClick?.(new MouseEvent('click'));
     expect(pushMock).toHaveBeenCalledWith('/judgments/jl-1');
 
     errorSpy.mockRestore();
@@ -144,7 +143,7 @@ describe('DeleteQueryDialog', () => {
     fireEvent.click(screen.getByTestId('confirm-delete-query'));
 
     await waitFor(() => expect(errorSpy).toHaveBeenCalled());
-    const [message] = errorSpy.mock.calls[0];
+    const [message] = errorSpy.mock.calls[0]!;
     expect(String(message)).toContain('15 judgment lists');
     expect(String(message)).toContain('5 more not shown');
     errorSpy.mockRestore();
@@ -181,11 +180,12 @@ describe('DeleteQueryDialog', () => {
     fireEvent.click(screen.getByTestId('confirm-delete-query'));
 
     await waitFor(() => expect(errorSpy).toHaveBeenCalled());
-    const [, options] = errorSpy.mock.calls[0];
+    const [, options] = errorSpy.mock.calls[0]!;
+    const action = options?.action as { label: string; onClick: (e: unknown) => void } | undefined;
     // Sonner gets the action label as a plain string — React/Sonner will text-render it
     // (not as HTML). The string itself contains the literal characters; what matters is
     // that no injected <script> node appears in the document.
-    expect(options?.action?.label).toBe(`Open ${evilName} →`);
+    expect(action?.label).toBe(`Open ${evilName} →`);
     expect(document.querySelector('script[data-test-injected]')).toBeNull();
     errorSpy.mockRestore();
   });
@@ -218,7 +218,7 @@ describe('DeleteQueryDialog', () => {
     fireEvent.click(screen.getByTestId('confirm-delete-query'));
 
     await waitFor(() => expect(errorSpy).toHaveBeenCalled());
-    const [message] = errorSpy.mock.calls[0];
+    const [message] = errorSpy.mock.calls[0]!;
     expect(String(message)).toContain('QUERY_SET_NOT_FOUND');
     errorSpy.mockRestore();
   });

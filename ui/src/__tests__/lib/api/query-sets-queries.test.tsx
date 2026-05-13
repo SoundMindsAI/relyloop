@@ -163,11 +163,10 @@ describe('useDeleteQuery', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(errorSpy).toHaveBeenCalled();
-    const [, options] = errorSpy.mock.calls[0];
-    expect(options?.action?.label).toBe('Open list-a →');
-    options?.action?.onClick?.(
-      new MouseEvent('click') as unknown as React.MouseEvent<HTMLButtonElement>,
-    );
+    const [, options] = errorSpy.mock.calls[0]!;
+    const action = options?.action as { label: string; onClick: (e: unknown) => void } | undefined;
+    expect(action?.label).toBe('Open list-a →');
+    action?.onClick?.(new MouseEvent('click'));
     expect(onOpenSpy).toHaveBeenCalledWith('jl-1');
     errorSpy.mockRestore();
   });
@@ -196,7 +195,7 @@ describe('useDeleteQuery', () => {
     await waitFor(() => expect(result.current.isError).toBe(true));
 
     expect(errorSpy).toHaveBeenCalled();
-    const [message] = errorSpy.mock.calls[0];
+    const [message] = errorSpy.mock.calls[0]!;
     expect(String(message)).toContain('QUERY_SET_NOT_FOUND');
     errorSpy.mockRestore();
   });
