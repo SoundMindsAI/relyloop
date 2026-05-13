@@ -663,6 +663,19 @@ Values must match backend/app/db/models/proposal.py CHECK
 proposals_status_check (cycle-2 F4 / cycle-3 F1).
 """
 
+ProposalSourceWire = Literal["study", "manual"]
+"""Wire values for ``?source=`` filter on ``GET /api/v1/proposals``.
+
+``study`` → ``study_id IS NOT NULL`` (proposal derived from a completed
+study). ``manual`` → ``study_id IS NULL`` (operator-authored hand-crafted
+proposal). Omit for both. Per chore_proposals_source_filter_server_side.
+
+Values must match backend/app/db/repo/proposal.py ProposalSourceFilter +
+ui/src/components/proposals/proposal-source-filter-chips.tsx (frontend
+chip values exclude the meta `all` selection — that's a UI-only "no
+filter" sentinel).
+"""
+
 ProposalPrStateWire = Literal["open", "closed", "merged"]
 """Wire values for ``proposals.pr_state``.
 
