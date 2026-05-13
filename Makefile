@@ -6,7 +6,7 @@
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
         ui-lint ui-typecheck ui-test ui-build ui-dev \
         pre-commit pre-commit-install \
-        up down restart logs reset migrate migrate-create seed-clusters \
+        up down restart logs reset migrate migrate-create seed-clusters seed-es \
         dev dashboard
 
 help:  ## Show this help message
@@ -128,6 +128,12 @@ seed-clusters:  ## Register local-es + local-opensearch clusters (idempotent —
 	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
 	}
 	docker compose exec -T api python -m backend.app.scripts.seed_clusters
+
+seed-es:  ## Seed local-es 'products' index from samples/products.json (idempotent — DELETE+recreate)
+	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \
+	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
+	}
+	docker compose exec -T api python -m backend.app.scripts.seed_es
 
 migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs inside api container; pins sequential rev-id)
 	@if [ -z "$(name)" ]; then \

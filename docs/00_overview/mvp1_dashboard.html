@@ -300,7 +300,7 @@ footer {
 <header>
   <h1>RelyLoop MVP1 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-05-12 (latest mtime of any
+    Reflects feature-folder state as of 2026-05-13 (latest mtime of any
     <code>docs/02_product/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -334,12 +334,12 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">22</div>
+      <div class="value">24</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">6</div>
+      <div class="value">8</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">25</span></h3>
+  <h3>Idea <span class="count">27</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -663,12 +663,36 @@ footer {
 
 
 <div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_judgment_template_default_params_contract">Judgment Template Default Params Contract</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str]</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_test_smoke_requires_env_vars">Test Smoke Requires Env Vars</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
 
   </div>
   <div class="one-liner">`backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_worker_optuna_init_race">Worker Optuna Init Race</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">Compose ordering:</div>
 
 
 </div>
