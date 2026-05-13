@@ -67,6 +67,18 @@ export function useRegisterCluster(): UseMutationResult<
   });
 }
 
+export function useDeleteCluster(): UseMutationResult<void, ApiError, string> {
+  const qc = useQueryClient();
+  return useMutation<void, ApiError, string>({
+    mutationFn: async (clusterId) => {
+      await apiClient.delete<void>(`/api/v1/clusters/${clusterId}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['clusters'] });
+    },
+  });
+}
+
 export function useClusterSchema(
   id: string,
   target: string | undefined,

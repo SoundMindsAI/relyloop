@@ -79,10 +79,10 @@ Best trial: tri_01HXYZ_0987
 
 | Auth kind | Mechanism | Stored as | Notes |
 |---|---|---|---|
-| Personal Access Token (PAT) | `Authorization: token <pat>` header on REST calls; HTTP basic for clone (`https://x-access-token:<pat>@github.com/...`) | `./secrets/github_token` (mounted file per [`deployment.md`](deployment.md)) | MVP1 default. Per-install token; needs `repo` scope on the configured config repos. |
+| Personal Access Token (PAT) | `Authorization: token <pat>` header on REST calls; HTTP basic for clone (`https://x-access-token:<pat>@github.com/...`) | `./secrets/<config_repos.auth_ref>` (per-repo mounted file — see [`github-token-handling.md`](../04_security/github-token-handling.md)) | MVP1 default. Per-`config_repo` token; needs `repo` scope on the configured config repo. |
 | GitHub App | Installation token via JWT-signed App auth | App private key + installation_id in mounted secrets | Reserved for **MVP3** (production-stack hardening; finer-grained perms + audit). |
 
-PAT is the only path in MVP1. The token is loaded at worker startup via Pydantic Settings reading `GITHUB_TOKEN_FILE`; if the file is empty, PR creation returns `GITHUB_NOT_CONFIGURED` and the proposal's `status` stays `pending`.
+PAT is the only path in MVP1. The PAT is resolved per-`config_repo` at job time: the worker reads `./secrets/<auth_ref>` named on the proposal's parent cluster's `config_repos.auth_ref` column. If the file is missing or empty, `POST /api/v1/proposals/{id}/open_pr` returns `GITHUB_NOT_CONFIGURED` and the proposal's `status` stays `pending`.
 
 ## Webhook receiver
 

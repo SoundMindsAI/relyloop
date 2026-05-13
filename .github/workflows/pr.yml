@@ -241,7 +241,6 @@ jobs:
           # file (size 0) instead of a one-newline file (which `[ -s ]` would
           # accept). Sanity-check below uses grep for non-whitespace content.
           printf '%s' "$OPENAI_API_KEY_TEST" > ./secrets/openai_key
-          : > ./secrets/github_token
           cat > ./secrets/cluster_credentials.yaml <<'EOY'
           local-es:
             username: elastic

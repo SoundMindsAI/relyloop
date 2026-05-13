@@ -4,6 +4,7 @@ import { use } from 'react';
 
 import { EmptyState } from '@/components/common/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ClusterActionBar } from '@/components/clusters/cluster-action-bar';
 import { ClusterDetailSummary } from '@/components/clusters/cluster-detail-summary';
 import { StudiesByClusterTable } from '@/components/clusters/studies-by-cluster-table';
 import { useCluster } from '@/lib/api/clusters';
@@ -33,6 +34,7 @@ export function ClusterDetailView({ clusterId }: { clusterId: string }) {
       ) : query.data ? (
         <>
           <ClusterDetailSummary cluster={query.data} />
+          <ClusterActionBar cluster={query.data} />
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Studies using this cluster</CardTitle>

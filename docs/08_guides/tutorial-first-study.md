@@ -310,13 +310,16 @@ recommended config. You're routed to the proposal detail page; click
 This opens a Pull Request against the public
 [`SoundMindsAI/relyloop-test-configs`](https://github.com/SoundMindsAI/relyloop-test-configs)
 repo with the recommended params written into the corresponding
-`*.params.json` file. Without a GitHub PAT in `./secrets/github_token`, the
-button surfaces a configuration error — that's the only step that needs
-write access to the repo.
+`*.params.json` file. GitHub PATs are registered per `config_repo`: drop
+the PAT at `./secrets/<auth_ref>` (the same `auth_ref` you provided when
+registering the config repo via `POST /api/v1/config-repos`). Without
+the per-repo PAT file the button surfaces a configuration error —
+that's the only step that needs write access to the repo.
 
 To use your own config repo: register it via
 [`/config-repos/new`](http://localhost:3000/config-repos/new) with your fork's
-URL, then re-run from Step 8.
+URL + an `auth_ref` value, drop the PAT at `./secrets/<auth_ref>`, then
+re-run from Step 8.
 
 ---
 

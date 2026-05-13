@@ -59,7 +59,6 @@ services:
       OPENAI_API_KEY_FILE: /run/secrets/openai_key
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-2024-08-06}
       OPENAI_MODEL_CHAT: ${OPENAI_MODEL_CHAT:-gpt-4o-mini-2024-07-18}
-      GITHUB_TOKEN_FILE: /run/secrets/github_token
       CLUSTER_CREDENTIALS_FILE: /run/secrets/cluster_credentials
       RELYLOOP_GIT_SHA: ${RELYLOOP_GIT_SHA:-dev}
     ports:
@@ -69,7 +68,6 @@ services:
       - database_url
       - openai_key
       - cluster_credentials
-      - github_token
     volumes:
       - ./data/repo-clones:/var/lib/relyloop/repos
       # Bind-mount migrations + alembic.ini so `make migrate-create` (which
@@ -117,14 +115,12 @@ services:
       OPENAI_API_KEY_FILE: /run/secrets/openai_key
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-2024-08-06}
       OPENAI_MODEL_CHAT: ${OPENAI_MODEL_CHAT:-gpt-4o-mini-2024-07-18}
-      GITHUB_TOKEN_FILE: /run/secrets/github_token
       CLUSTER_CREDENTIALS_FILE: /run/secrets/cluster_credentials
     secrets:
       - postgres_password
       - database_url
       - openai_key
       - cluster_credentials
-      - github_token
     volumes:
       - ./data/repo-clones:/var/lib/relyloop/repos
 
@@ -188,5 +184,3 @@ secrets:
     file: ./secrets/openai_key
   cluster_credentials:
     file: ./secrets/cluster_credentials.yaml
-  github_token:
-    file: ./secrets/github_token

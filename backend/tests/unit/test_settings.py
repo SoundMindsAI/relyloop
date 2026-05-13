@@ -29,7 +29,6 @@ def _make_settings(
     database_url_file: Path | None = None,
     postgres_password_file: Path | None = None,
     openai_api_key_file: Path | None = None,
-    github_token_file: Path | None = None,
     cluster_credentials_file: Path | None = None,
 ) -> Settings:
     """Construct Settings with explicit secret-file paths via env vars."""
@@ -39,8 +38,6 @@ def _make_settings(
         monkeypatch.setenv("POSTGRES_PASSWORD_FILE", str(postgres_password_file))
     if openai_api_key_file is not None:
         monkeypatch.setenv("OPENAI_API_KEY_FILE", str(openai_api_key_file))
-    if github_token_file is not None:
-        monkeypatch.setenv("GITHUB_TOKEN_FILE", str(github_token_file))
     if cluster_credentials_file is not None:
         monkeypatch.setenv("CLUSTER_CREDENTIALS_FILE", str(cluster_credentials_file))
     return Settings()
@@ -139,16 +136,22 @@ class TestOptionalSecrets:
         )
         assert s.openai_api_key is None
 
-    def test_empty_github_token_file_returns_none(
+    def test_github_token_file_field_is_retired(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ):
+        """`GITHUB_TOKEN_FILE` was retired when feat_github_pr_worker shipped
+        per-repo `auth_ref`. Settings ignores the env var (`extra="ignore"`
+        config) and has no `github_token_file` / `github_token` accessor.
+        Operators upgrading from pre-retirement installs see a startup WARN
+        emitted from the API lifespan (verified in main.py integration)."""
+        monkeypatch.setenv("GITHUB_TOKEN_FILE", str(tmp_path / "ghtoken"))
         s = _make_settings(
             monkeypatch,
             database_url_file=_write(tmp_path / "db-url", "postgresql://x"),
             postgres_password_file=_write(tmp_path / "pw", "secret"),
-            github_token_file=_write(tmp_path / "ghtoken", ""),
         )
-        assert s.github_token is None
+        assert not hasattr(s, "github_token_file")
+        assert not hasattr(s, "github_token")
 
     def test_empty_cluster_credentials_file_returns_none(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
