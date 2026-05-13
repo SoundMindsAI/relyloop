@@ -89,6 +89,34 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
 ]
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _settings_env(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Any:
+    """Stub required Settings inputs so ``backend.app.main`` imports locally.
+
+    CI provides ``DATABASE_URL_FILE`` + ``POSTGRES_PASSWORD_FILE``; laptop
+    developers running ``pytest backend/tests/contract/test_openapi_surface.py``
+    would otherwise hit ``pydantic_core.ValidationError`` at module import.
+    Module-scoped so it runs before the ``openapi_spec`` module fixture.
+    Mirrors the pattern in ``backend/tests/unit/test_smoke.py``.
+    """
+    tmp = tmp_path_factory.mktemp("openapi_surface_env")
+    db_url_file = tmp / "db_url"
+    db_url_file.write_text("postgresql+asyncpg://x:y@localhost/test")
+    pw_file = tmp / "pw"
+    pw_file.write_text("test")
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("DATABASE_URL_FILE", str(db_url_file))
+        mp.setenv("POSTGRES_PASSWORD_FILE", str(pw_file))
+        mp.setenv("REDIS_URL", "redis://redis:6379/0")
+        from backend.app.core.settings import get_settings
+
+        get_settings.cache_clear()
+        yield
+        get_settings.cache_clear()
+
+
 @pytest.fixture(scope="module")
 def openapi_spec() -> dict[str, Any]:
     from backend.app.main import app
