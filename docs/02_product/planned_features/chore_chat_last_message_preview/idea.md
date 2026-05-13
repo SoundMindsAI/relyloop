@@ -45,5 +45,5 @@ MVP1 ships without a preview because:
 
 ## Related work
 
-- Companion deferred work: [`bug_chat_long_conversation_truncation`](../bug_chat_long_conversation_truncation/idea.md)
+- Companion deferred work: [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation_mvp2/idea.md)
   — both are MVP2 chat polish items and could ship together.
