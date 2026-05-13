@@ -59,7 +59,7 @@ class ErrorResponse(BaseModel):
 
 _HTTP_STATUS_TO_CODE: dict[int, tuple[str, bool]] = {
     status.HTTP_404_NOT_FOUND: ("RESOURCE_NOT_FOUND", False),
-    status.HTTP_422_UNPROCESSABLE_ENTITY: ("VALIDATION_ERROR", False),
+    status.HTTP_422_UNPROCESSABLE_CONTENT: ("VALIDATION_ERROR", False),
     status.HTTP_429_TOO_MANY_REQUESTS: ("RATE_LIMITED", True),
     status.HTTP_500_INTERNAL_SERVER_ERROR: ("INTERNAL_ERROR", False),
     status.HTTP_503_SERVICE_UNAVAILABLE: ("SERVICE_UNAVAILABLE", True),
@@ -114,7 +114,7 @@ async def validation_exception_handler(
     ]
     message = "Request validation failed: " + "; ".join(field_errors)
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content=_envelope("VALIDATION_ERROR", message, False),
     )
 

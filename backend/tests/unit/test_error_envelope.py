@@ -107,7 +107,7 @@ class TestValidationExceptionHandler:
         # on FastAPI/Pydantic versions, but the envelope shape and error code
         # are stable contracts we own.
         resp = await client.post("/echo", json={})
-        assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+        assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT
         body = resp.json()
         assert body["detail"]["error_code"] == "VALIDATION_ERROR"
         assert body["detail"]["retryable"] is False
