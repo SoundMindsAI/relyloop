@@ -6,19 +6,27 @@ and the DELETE. The contract is that Postgres's FK check during the
 DELETE statement is the single source of truth — so the post-condition
 is deterministic:
 
-* EITHER the delete succeeded AND no judgments exist for this query, OR
-* the delete returned 409 (FK violation) AND judgments exist for this query.
+* EITHER the DELETE response is 204 AND no judgments exist for this
+  query, OR
+* the DELETE response is 409 ``QUERY_HAS_JUDGMENTS`` AND judgments exist
+  for this query.
 
-Never both, never neither.
+Never both, never neither. Race driven against the live ASGI router
+(per GPT-5.5 phase-1 F4 — the test must exercise the HTTP contract, not
+just the repo function).
 """
 
 from __future__ import annotations
 
 import asyncio
 import uuid
+from collections.abc import AsyncIterator
 
+import httpx
 import pytest
+import pytest_asyncio
 import uuid_utils
+from asgi_lifespan import LifespanManager
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
@@ -36,8 +44,26 @@ pytestmark = [
 ]
 
 
-async def _seed_scenario() -> tuple[str, str]:
-    """Seed one cluster + query_set + query + judgment_list. Returns (query_id, jl_id)."""
+@pytest_asyncio.fixture
+async def async_client() -> AsyncIterator[httpx.AsyncClient]:
+    from backend.app.main import app
+    from backend.tests.conftest import _apply_migrations_if_needed
+
+    _apply_migrations_if_needed()
+    async with LifespanManager(app):
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=app),
+            base_url="http://test",
+            timeout=30.0,
+        ) as client:
+            yield client
+
+
+async def _seed_scenario() -> tuple[str, str, str]:
+    """Seed cluster + query_set + query + judgment_list.
+
+    Returns ``(set_id, query_id, jl_id)``.
+    """
     factory = get_session_factory()
     async with factory() as db:
         cluster = await repo.create_cluster(
@@ -73,20 +99,15 @@ async def _seed_scenario() -> tuple[str, str]:
             status="complete",
         )
         await db.commit()
-        return q.id, jl.id
+        return qs.id, q.id, jl.id
 
 
-async def _attempt_delete(query_id: str) -> str:
-    """Attempt the delete in its own session. Returns 'deleted' or 'rejected'."""
-    factory = get_session_factory()
-    async with factory() as db:
-        try:
-            await repo.delete_query(db, query_id)
-            await db.commit()
-            return "deleted"
-        except IntegrityError:
-            await db.rollback()
-            return "rejected"
+async def _attempt_delete_via_router(
+    async_client: httpx.AsyncClient, set_id: str, query_id: str
+) -> int:
+    """Attempt the DELETE via the live ASGI router. Returns HTTP status."""
+    resp = await async_client.delete(f"/api/v1/query-sets/{set_id}/queries/{query_id}")
+    return resp.status_code
 
 
 async def _attempt_insert(judgment_list_id: str, query_id: str) -> str:
@@ -111,34 +132,35 @@ async def _attempt_insert(judgment_list_id: str, query_id: str) -> str:
             return "rejected"
 
 
-async def test_race_post_condition_deterministic() -> None:
-    """Run the race 20× to surface any non-deterministic outcomes."""
+async def test_race_post_condition_deterministic(async_client: httpx.AsyncClient) -> None:
+    """Run the race 20× to surface any non-deterministic outcomes.
+
+    Each iteration: seed fresh scenario → race DELETE-via-router and
+    judgment-INSERT concurrently → assert the post-condition holds.
+    """
     factory = get_session_factory()
     for _ in range(20):
-        query_id, jl_id = await _seed_scenario()
+        set_id, query_id, jl_id = await _seed_scenario()
 
-        delete_result, insert_result = await asyncio.gather(
-            _attempt_delete(query_id),
+        delete_status, insert_result = await asyncio.gather(
+            _attempt_delete_via_router(async_client, set_id, query_id),
             _attempt_insert(jl_id, query_id),
         )
 
         async with factory() as db:
-            count_stmt = select(Judgment).where(Judgment.query_id == query_id).limit(1)
-            existing_judgment = (await db.execute(count_stmt)).scalar_one_or_none()
+            judgment_stmt = select(Judgment).where(Judgment.query_id == query_id).limit(1)
+            existing_judgment = (await db.execute(judgment_stmt)).scalar_one_or_none()
             existing_query = await repo.get_query(db, query_id)
 
         # Post-condition: exactly one of these two scenarios holds.
-        scenario_a = (
-            delete_result == "deleted" and existing_query is None and existing_judgment is None
-        )
+        scenario_a = delete_status == 204 and existing_query is None and existing_judgment is None
         scenario_b = (
-            delete_result == "rejected"
-            and existing_query is not None
-            and existing_judgment is not None
+            delete_status == 409 and existing_query is not None and existing_judgment is not None
         )
 
         assert scenario_a or scenario_b, (
-            f"Race produced inconsistent state: delete={delete_result!r}, "
-            f"insert={insert_result!r}, query_exists={existing_query is not None}, "
+            f"Race produced inconsistent state: delete_status={delete_status}, "
+            f"insert_result={insert_result!r}, "
+            f"query_exists={existing_query is not None}, "
             f"judgment_exists={existing_judgment is not None}"
         )

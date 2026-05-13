@@ -1272,13 +1272,13 @@ N/A — no migrations.
 ## 9) Execution tracker (copy/paste section)
 
 ### Current sprint
-- [ ] Story 1.2 — Repo extensions: get_query, count_queries_for_set, list_queries_for_set_cursor
-- [ ] Story 1.3 — Batch judgment-count helper
-- [ ] Story 1.1 — Router GET /api/v1/query-sets/{set_id}/queries
-- [ ] Story 2.2 — Repo update_query + UpdateQueryRequest schema
-- [ ] Story 2.1 — Router PATCH endpoint
-- [ ] Story 3.2 — Repo delete_query + count_and_sample_judgment_refs
-- [ ] Story 3.1 — Router DELETE endpoint + OpenAPI 409 wiring
+- [x] Story 1.2 — Repo extensions: get_query, count_queries_for_set, list_queries_for_set_cursor
+- [x] Story 1.3 — Batch judgment-count helper
+- [x] Story 1.1 — Router GET /api/v1/query-sets/{set_id}/queries
+- [x] Story 2.2 — Repo update_query + UpdateQueryRequest schema
+- [x] Story 2.1 — Router PATCH endpoint
+- [x] Story 3.2 — Repo delete_query + count_and_sample_judgment_refs
+- [x] Story 3.1 — Router DELETE endpoint + OpenAPI 409 wiring
 - [ ] Story 4.0 — Frontend hooks (useQueries, useUpdateQuery, useDeleteQuery)
 - [ ] Story 4.1 — <QueriesTable> replaces placeholder card
 - [ ] Story 4.2 — <EditQueryPopover> + <EditMetadataDialog>

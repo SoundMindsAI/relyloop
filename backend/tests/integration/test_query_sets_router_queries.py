@@ -153,35 +153,80 @@ async def test_ac_4_missing_set_returns_query_set_not_found(
     assert resp.json()["detail"]["error_code"] == "QUERY_SET_NOT_FOUND"
 
 
+async def test_patch_missing_parent_set_returns_query_set_not_found(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """GPT-5.5 phase-1 F1: PATCH against a nonexistent parent set → 404 QUERY_SET_NOT_FOUND."""
+    fake_set = str(uuid_utils.uuid7())
+    fake_qid = str(uuid_utils.uuid7())
+    resp = await async_client.patch(
+        f"/api/v1/query-sets/{fake_set}/queries/{fake_qid}",
+        json={"query_text": "x"},
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["error_code"] == "QUERY_SET_NOT_FOUND"
+
+
+async def test_delete_missing_parent_set_returns_query_set_not_found(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """GPT-5.5 phase-1 F1: DELETE against a nonexistent parent set → 404 QUERY_SET_NOT_FOUND."""
+    fake_set = str(uuid_utils.uuid7())
+    fake_qid = str(uuid_utils.uuid7())
+    resp = await async_client.delete(f"/api/v1/query-sets/{fake_set}/queries/{fake_qid}")
+    assert resp.status_code == 404
+    assert resp.json()["detail"]["error_code"] == "QUERY_SET_NOT_FOUND"
+
+
+async def test_get_limit_zero_returns_422(async_client: httpx.AsyncClient) -> None:
+    """GPT-5.5 phase-1 F2: ?limit=0 is below the ge=1 bound."""
+    set_id, _ = await _seed_set(1)
+    resp = await async_client.get(f"/api/v1/query-sets/{set_id}/queries?limit=0")
+    assert resp.status_code == 422
+
+
+async def test_get_limit_above_max_returns_422(async_client: httpx.AsyncClient) -> None:
+    """GPT-5.5 phase-1 F2: ?limit=201 is above the le=200 bound."""
+    set_id, _ = await _seed_set(1)
+    resp = await async_client.get(f"/api/v1/query-sets/{set_id}/queries?limit=201")
+    assert resp.status_code == 422
+
+
+async def test_get_since_malformed_returns_422(async_client: httpx.AsyncClient) -> None:
+    """GPT-5.5 phase-1 F2: malformed ?since= fails Pydantic datetime coercion."""
+    set_id, _ = await _seed_set(1)
+    resp = await async_client.get(f"/api/v1/query-sets/{set_id}/queries?since=not-a-date")
+    assert resp.status_code == 422
+
+
 async def test_ac_25_since_lower_bound_inclusive(async_client: httpx.AsyncClient) -> None:
-    """``?since`` filter respects UUIDv7 lower-bound. The filter is inclusive."""
+    """``?since`` filter respects UUIDv7 lower-bound. The filter is inclusive.
+
+    Per GPT-5.5 phase-1 F5: tighten the assertion. We construct the
+    ``?since`` value by subtracting 1ms from q[2]'s timestamp so the
+    boundary is unambiguously **before** q[2] — meaning q[2] MUST be
+    included (along with q[3], q[4]). Total = 3 rows exactly.
+    """
     set_id, query_ids = await _seed_set(5)
 
-    # Pull each query's creation timestamp (UUIDv7 ts) from the LIST result.
-    # We'll use the timestamp of query_ids[2] as our `since` boundary.
-    factory = get_session_factory()
-    async with factory() as db:
-        q2 = await repo.get_query(db, query_ids[2])
-        assert q2 is not None
-        # UUIDv7 hex first 12 chars encode ts in ms. Extract.
-        hex_no_dashes = query_ids[2].replace("-", "")
-        ts_ms = int(hex_no_dashes[:12], 16)
+    # Extract q[2]'s embedded UUIDv7 timestamp (first 48 bits in ms).
+    hex_no_dashes = query_ids[2].replace("-", "")
+    ts_ms = int(hex_no_dashes[:12], 16)
 
-    # Use the boundary timestamp as ?since.
-    since_iso = datetime.fromtimestamp(ts_ms / 1000.0, tz=UTC).isoformat()
+    # Subtract 1ms so the ?since boundary is strictly before q[2].
+    since_iso = datetime.fromtimestamp((ts_ms - 1) / 1000.0, tz=UTC).isoformat()
 
     resp = await async_client.get(f"/api/v1/query-sets/{set_id}/queries?since={since_iso}")
     assert resp.status_code == 200
     body = resp.json()
     returned_ids = [r["id"] for r in body["data"]]
-    # Inclusive — q[2] is INCLUDED (id >= since_lower_bound_id).
-    # ms precision floor may include q[2] or skip it depending on rounding; tolerate either.
+    # q[2], q[3], q[4] all included; q[0], q[1] excluded.
+    assert query_ids[2] in returned_ids
     assert query_ids[3] in returned_ids
     assert query_ids[4] in returned_ids
     assert query_ids[0] not in returned_ids
     assert query_ids[1] not in returned_ids
-    # X-Total-Count respects ?since (independent of pagination).
-    assert int(resp.headers["X-Total-Count"]) in (2, 3)
+    assert int(resp.headers["X-Total-Count"]) == 3
 
 
 async def test_ac_26_since_plus_cursor_compose(async_client: httpx.AsyncClient) -> None:
@@ -449,3 +494,76 @@ async def test_ac_24_delete_cross_set_returns_query_not_found(
     # Q_a STILL EXISTS in set A.
     list_resp = await async_client.get(f"/api/v1/query-sets/{set_id_a}/queries")
     assert q_a in {r["id"] for r in list_resp.json()["data"]}
+
+
+# ===========================================================================
+# GPT-5.5 phase-1 F3: structlog event assertions on PATCH / DELETE / 409
+# ===========================================================================
+
+
+async def test_patch_emits_query_updated_structlog(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """PATCH success emits ``query_updated`` with fields_changed; no values logged."""
+    import structlog
+
+    set_id, [q1, *_] = await _seed_set(1)
+    with structlog.testing.capture_logs() as captured:
+        resp = await async_client.patch(
+            f"/api/v1/query-sets/{set_id}/queries/{q1}",
+            json={"query_text": "redact-me", "reference_answer": "secret-ref"},
+        )
+    assert resp.status_code == 200
+
+    events = [e for e in captured if e.get("event") == "query_updated"]
+    assert len(events) == 1, f"expected 1 query_updated event; got {len(events)}"
+    e = events[0]
+    assert e["query_set_id"] == set_id
+    assert e["query_id"] == q1
+    assert sorted(e["fields_changed"]) == ["query_text", "reference_answer"]
+    assert "latency_ms" in e
+
+    # Defense-in-depth: no log record contains the VALUES.
+    for record in captured:
+        record_str = repr(record)
+        assert "redact-me" not in record_str, f"query_text value leaked: {record!r}"
+        assert "secret-ref" not in record_str, f"reference_answer value leaked: {record!r}"
+
+
+async def test_delete_204_emits_query_deleted_structlog(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """DELETE 204 emits ``query_deleted`` with ``had_judgments=False``."""
+    import structlog
+
+    set_id, [q1, *_] = await _seed_set(1)
+    with structlog.testing.capture_logs() as captured:
+        resp = await async_client.delete(f"/api/v1/query-sets/{set_id}/queries/{q1}")
+    assert resp.status_code == 204
+
+    events = [e for e in captured if e.get("event") == "query_deleted"]
+    assert len(events) == 1
+    assert events[0]["query_set_id"] == set_id
+    assert events[0]["query_id"] == q1
+    assert events[0]["had_judgments"] is False
+
+
+async def test_delete_409_emits_query_deleted_blocked_structlog(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """DELETE 409 emits ``query_deleted_blocked`` with ``had_judgments=True`` + counts."""
+    import structlog
+
+    set_id, [q1, *_] = await _seed_set(1)
+    await _seed_judgment_for(set_id, q1)
+
+    with structlog.testing.capture_logs() as captured:
+        resp = await async_client.delete(f"/api/v1/query-sets/{set_id}/queries/{q1}")
+    assert resp.status_code == 409
+
+    events = [e for e in captured if e.get("event") == "query_deleted_blocked"]
+    assert len(events) == 1
+    e = events[0]
+    assert e["had_judgments"] is True
+    assert e["list_count"] == 1
+    assert e["judgment_count"] == 1
