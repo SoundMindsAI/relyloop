@@ -16,8 +16,24 @@ name: pr
 on:
   pull_request:
     branches: [main]
+    # Docs-only changes don't need backend tests / frontend build /
+    # smoke / docker buildx. A PR that touches BOTH docs and code
+    # still runs the full workflow (any non-ignored path matches).
+    # Keep this list synchronized with the `push` trigger below.
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'release-notes-*.md'
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.gitignore'
+      - 'LICENSE'
+      - 'release-notes-*.md'
 
 permissions:
   contents: read
