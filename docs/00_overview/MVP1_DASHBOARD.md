@@ -13,9 +13,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Features done | **13 / 13** (100%) |
-| Path to MVP1 | **23** items remaining (features + bugs + chores) |
+| Path to MVP1 | **24** items remaining (features + bugs + chores) |
 | Open bugs | 7 |
-| Open chores | 16 (idea-stage debt) |
+| Open chores | 17 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -52,7 +52,7 @@ _None._
 
 _None._
 
-### Idea (27)
+### Idea (28)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -66,6 +66,7 @@ _None._
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
 | [chore_infra_foundation_github_token_file_retirement](../02_product/planned_features/chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is: | — | Idea (deferred from `feat_github_pr_worker` spec patch — captured because the cleanup spans `infra_foundation`'s shipped config and isn't in the PR-worker scope) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
+| [chore_mvp1_dashboard_truncation](../02_product/planned_features/chore_mvp1_dashboard_truncation/idea.md) | Chore | The `mvp1-dashboard-regen` pre-commit hook ([`scripts/build_mvp1_dashboard.py`](../../../../scripts/build_mvp1_dashboard.py)) generates two artifacts — [`docs/00_overview/MVP1_DASHBOARD.md`](../../../ | — | — |
 | [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [chore_proposals_list_wire_param_e2e_test](../02_product/planned_features/chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting: | — | Idea — deferred from `feat_proposals_ui` final GPT-5.5 review (finding #4) |
 | [chore_proposals_page_usememo_deps](../02_product/planned_features/chore_proposals_page_usememo_deps/idea.md) | Chore | `pnpm lint` emits one new warning on the proposals list page: | — | Idea — deferred from `feat_proposals_ui` tangential sweep |
