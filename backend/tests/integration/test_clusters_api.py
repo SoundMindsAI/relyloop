@@ -104,23 +104,71 @@ async def clean_clusters() -> AsyncIterator[None]:
 # ---------------------------------------------------------------------------
 
 
-def _cluster_body(**overrides: object) -> dict[str, object]:
+# Per-engine wire config used by the parametrized test classes below.
+# Mirrors the Compose service names + default credentials in docker-compose.yml.
+# Both engines share the same wire surface (per umbrella spec §8); parametrizing
+# proves the adapter doesn't silently regress one engine when the other changes.
+_ENGINE_BASE_URL: dict[str, str] = {
+    "elasticsearch": "http://elasticsearch:9200",
+    "opensearch": "http://opensearch:9200",
+}
+_ENGINE_RAW_AUTH: dict[str, tuple[str, str]] = {
+    "elasticsearch": ("elastic", "changeme"),
+    "opensearch": ("admin", "admin"),
+}
+_ENGINE_AUTH_KIND: dict[str, str] = {
+    "elasticsearch": "es_basic",
+    "opensearch": "opensearch_basic",
+}
+_ENGINE_CRED_REF: dict[str, str] = {
+    "elasticsearch": "test-es-ref",
+    "opensearch": "test-os-ref",
+}
+_ENGINE_NAME_PREFIX: dict[str, str] = {
+    "elasticsearch": "test-es",
+    "opensearch": "test-os",
+}
+
+# Parametrize tuples used by test classes that need engine-specific config.
+ENGINE_PARAMS = [
+    pytest.param("elasticsearch", id="es"),
+    pytest.param("opensearch", id="opensearch"),
+]
+
+
+def _cluster_body(
+    *,
+    engine_type: str = "elasticsearch",
+    **overrides: object,
+) -> dict[str, object]:
+    """Build a /clusters POST body for the given engine_type.
+
+    Defaults to elasticsearch for tests that don't parametrize over the
+    engine (e.g., validation-only tests where the engine is irrelevant).
+    """
     return {
-        "name": "test-es",
-        "engine_type": "elasticsearch",
+        "name": _ENGINE_NAME_PREFIX[engine_type],
+        "engine_type": engine_type,
         "environment": "dev",
-        "base_url": "http://elasticsearch:9200",
-        "auth_kind": "es_basic",
-        "credentials_ref": "test-es-ref",
+        "base_url": _ENGINE_BASE_URL[engine_type],
+        "auth_kind": _ENGINE_AUTH_KIND[engine_type],
+        "credentials_ref": _ENGINE_CRED_REF[engine_type],
         **overrides,
     }
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def _stub_credentials_yaml(tmp_path, monkeypatch):
-    """Mount a YAML with credentials matching the Compose ES container."""
+    """Mount a YAML with credentials for BOTH ES and OS Compose containers."""
     creds = tmp_path / "creds.yaml"
-    creds.write_text("test-es-ref:\n  username: elastic\n  password: changeme\n")
+    creds.write_text(
+        "test-es-ref:\n"
+        "  username: elastic\n"
+        "  password: changeme\n"
+        "test-os-ref:\n"
+        "  username: admin\n"
+        "  password: admin\n"
+    )
     monkeypatch.setenv("CLUSTER_CREDENTIALS_FILE", str(creds))
     get_settings.cache_clear()
     yield
@@ -128,44 +176,59 @@ async def _stub_credentials_yaml(tmp_path, monkeypatch):
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("engine", ENGINE_PARAMS)
 class TestPostCluster:
+    """Cluster registration tests parametrized over ES + OpenSearch.
+
+    Validation tests (engine_type / auth_kind / URL scheme) re-run on both
+    engines — the redundancy is cheap and proves the validation surface
+    behaves identically. Engine-specific tests (happy path, unreachable URL,
+    duplicate name) use the parametrize fixture to derive engine wire config.
+    """
+
     async def test_happy_path_201_with_health(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        resp = await app_client.post("/api/v1/clusters", json=_cluster_body())
+        resp = await app_client.post("/api/v1/clusters", json=_cluster_body(engine_type=engine))
         assert resp.status_code == 201, resp.text
         body = resp.json()
-        assert body["name"] == "test-es"
-        assert body["engine_type"] == "elasticsearch"
+        assert body["engine_type"] == engine
         assert body["health_check"]["status"] in ("green", "yellow")
         assert body["health_check"]["version"] is not None
 
     async def test_engine_type_solr_returns_400(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        resp = await app_client.post("/api/v1/clusters", json=_cluster_body(engine_type="solr"))
+        resp = await app_client.post(
+            "/api/v1/clusters",
+            json=_cluster_body(engine_type="solr"),  # override regardless of parametrize
+        )
         assert resp.status_code == 400
         detail = resp.json()["detail"]
         assert detail["error_code"] == "ENGINE_NOT_SUPPORTED"
 
     async def test_auth_kind_sigv4_returns_400(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
         resp = await app_client.post(
-            "/api/v1/clusters", json=_cluster_body(auth_kind="opensearch_sigv4")
+            "/api/v1/clusters",
+            json=_cluster_body(engine_type=engine, auth_kind="opensearch_sigv4"),
         )
         assert resp.status_code == 400
         assert resp.json()["detail"]["error_code"] == "AUTH_KIND_NOT_SUPPORTED"
 
     async def test_unknown_auth_kind_returns_400(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        resp = await app_client.post("/api/v1/clusters", json=_cluster_body(auth_kind="bogus"))
+        resp = await app_client.post(
+            "/api/v1/clusters",
+            json=_cluster_body(engine_type=engine, auth_kind="bogus"),
+        )
         assert resp.status_code == 400
         assert resp.json()["detail"]["error_code"] == "AUTH_KIND_NOT_SUPPORTED"
 
     async def test_engine_auth_mismatch_returns_400(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
         """engine_type × auth_kind cross-product check: opensearch + es_apikey."""
         resp = await app_client.post(
@@ -178,7 +241,7 @@ class TestPostCluster:
         assert "not valid for engine_type='opensearch'" in body["detail"]["message"]
 
     async def test_engine_auth_mismatch_es_with_opensearch_basic_returns_400(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
         resp = await app_client.post(
             "/api/v1/clusters",
@@ -188,30 +251,31 @@ class TestPostCluster:
         assert resp.json()["detail"]["error_code"] == "AUTH_KIND_NOT_SUPPORTED"
 
     async def test_ftp_scheme_returns_422(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
-    ) -> None:
-        resp = await app_client.post("/api/v1/clusters", json=_cluster_body(base_url="ftp://x:21/"))
-        assert resp.status_code == 422
-
-    async def test_unreachable_url_returns_503_no_row(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
         resp = await app_client.post(
             "/api/v1/clusters",
-            json=_cluster_body(base_url="http://elasticsearch:9999"),
+            json=_cluster_body(engine_type=engine, base_url="ftp://x:21/"),
         )
+        assert resp.status_code == 422
+
+    async def test_unreachable_url_returns_503_no_row(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        body = _cluster_body(engine_type=engine, base_url=f"http://{engine}:9999")
+        resp = await app_client.post("/api/v1/clusters", json=body)
         assert resp.status_code == 503
         assert resp.json()["detail"]["error_code"] == "CLUSTER_UNREACHABLE"
         # AC-6: no DB row created.
         list_resp = await app_client.get("/api/v1/clusters")
-        assert all(c["name"] != "test-es" for c in list_resp.json()["data"])
+        assert all(c["name"] != body["name"] for c in list_resp.json()["data"])
 
     async def test_duplicate_name_returns_409(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        first = await app_client.post("/api/v1/clusters", json=_cluster_body())
+        first = await app_client.post("/api/v1/clusters", json=_cluster_body(engine_type=engine))
         assert first.status_code == 201
-        second = await app_client.post("/api/v1/clusters", json=_cluster_body())
+        second = await app_client.post("/api/v1/clusters", json=_cluster_body(engine_type=engine))
         assert second.status_code == 409
         assert second.json()["detail"]["error_code"] == "CLUSTER_NAME_TAKEN"
 
@@ -273,14 +337,16 @@ class TestSoftDeleteAndRevival:
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("engine", ENGINE_PARAMS)
 class TestSchemaEndpoint:
     async def test_schema_against_seeded_index(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        # Seed a 4-field index on the live ES.
-        async with httpx.AsyncClient(auth=("elastic", "changeme"), timeout=10.0) as c:
+        base_url = _ENGINE_BASE_URL[engine]
+        auth = _ENGINE_RAW_AUTH[engine]
+        async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
             await c.put(
-                "http://elasticsearch:9200/products",
+                f"{base_url}/products",
                 json={
                     "mappings": {
                         "properties": {
@@ -293,7 +359,9 @@ class TestSchemaEndpoint:
                 },
             )
         try:
-            post_resp = await app_client.post("/api/v1/clusters", json=_cluster_body())
+            post_resp = await app_client.post(
+                "/api/v1/clusters", json=_cluster_body(engine_type=engine)
+            )
             cluster_id = post_resp.json()["id"]
             resp = await app_client.get(f"/api/v1/clusters/{cluster_id}/schema?target=products")
             assert resp.status_code == 200, resp.text
@@ -304,13 +372,15 @@ class TestSchemaEndpoint:
             title = next(f for f in schema["fields"] if f["name"] == "title")
             assert title["analyzer"] == "standard"
         finally:
-            async with httpx.AsyncClient(auth=("elastic", "changeme"), timeout=10.0) as c:
-                await c.delete("http://elasticsearch:9200/products")
+            async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+                await c.delete(f"{base_url}/products")
 
     async def test_schema_missing_target_returns_404(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        post_resp = await app_client.post("/api/v1/clusters", json=_cluster_body())
+        post_resp = await app_client.post(
+            "/api/v1/clusters", json=_cluster_body(engine_type=engine)
+        )
         cluster_id = post_resp.json()["id"]
         resp = await app_client.get(f"/api/v1/clusters/{cluster_id}/schema?target=does-not-exist")
         assert resp.status_code == 404
@@ -318,23 +388,28 @@ class TestSchemaEndpoint:
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("engine", ENGINE_PARAMS)
 class TestRunQuery:
     async def test_run_query_happy_path(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
         """AC-3: POST /run_query returns hits descending by score."""
-        async with httpx.AsyncClient(auth=("elastic", "changeme"), timeout=10.0) as c:
+        base_url = _ENGINE_BASE_URL[engine]
+        auth = _ENGINE_RAW_AUTH[engine]
+        async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
             await c.put(
-                "http://elasticsearch:9200/runq",
+                f"{base_url}/runq",
                 json={"mappings": {"properties": {"title": {"type": "text"}}}},
             )
             for t in ["red shoes", "blue shoes", "green hat"]:
                 await c.post(
-                    "http://elasticsearch:9200/runq/_doc?refresh=true",
+                    f"{base_url}/runq/_doc?refresh=true",
                     json={"title": t},
                 )
         try:
-            post_resp = await app_client.post("/api/v1/clusters", json=_cluster_body())
+            post_resp = await app_client.post(
+                "/api/v1/clusters", json=_cluster_body(engine_type=engine)
+            )
             cluster_id = post_resp.json()["id"]
             resp = await app_client.post(
                 f"/api/v1/clusters/{cluster_id}/run_query",
@@ -350,13 +425,15 @@ class TestRunQuery:
             # Descending by score
             assert hits[0]["score"] >= hits[1]["score"]
         finally:
-            async with httpx.AsyncClient(auth=("elastic", "changeme"), timeout=10.0) as c:
-                await c.delete("http://elasticsearch:9200/runq")
+            async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+                await c.delete(f"{base_url}/runq")
 
     async def test_run_query_top_k_over_1000_returns_422(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        post_resp = await app_client.post("/api/v1/clusters", json=_cluster_body())
+        post_resp = await app_client.post(
+            "/api/v1/clusters", json=_cluster_body(engine_type=engine)
+        )
         cluster_id = post_resp.json()["id"]
         resp = await app_client.post(
             f"/api/v1/clusters/{cluster_id}/run_query",
@@ -365,7 +442,7 @@ class TestRunQuery:
         assert resp.status_code == 422
 
     async def test_run_query_unknown_cluster_returns_404(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
         resp = await app_client.post(
             "/api/v1/clusters/missing-id/run_query",
@@ -375,17 +452,22 @@ class TestRunQuery:
         assert resp.json()["detail"]["error_code"] == "CLUSTER_NOT_FOUND"
 
     async def test_run_query_invalid_dsl_returns_400(
-        self, app_client: httpx.AsyncClient, clean_clusters: None
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        async with httpx.AsyncClient(auth=("elastic", "changeme"), timeout=10.0) as c:
+        base_url = _ENGINE_BASE_URL[engine]
+        auth = _ENGINE_RAW_AUTH[engine]
+        async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
             await c.put(
-                "http://elasticsearch:9200/dslfail",
+                f"{base_url}/dslfail",
                 json={"mappings": {"properties": {"title": {"type": "text"}}}},
             )
         try:
-            post_resp = await app_client.post("/api/v1/clusters", json=_cluster_body())
+            post_resp = await app_client.post(
+                "/api/v1/clusters", json=_cluster_body(engine_type=engine)
+            )
             cluster_id = post_resp.json()["id"]
-            # bogus_clause is not a valid ES query parser → parsing_exception
+            # bogus_clause is not a valid query parser → parsing_exception on
+            # both engines (they share Lucene QueryParser semantics)
             resp = await app_client.post(
                 f"/api/v1/clusters/{cluster_id}/run_query",
                 json={
@@ -397,5 +479,5 @@ class TestRunQuery:
             assert resp.status_code == 400
             assert resp.json()["detail"]["error_code"] == "INVALID_QUERY_DSL"
         finally:
-            async with httpx.AsyncClient(auth=("elastic", "changeme"), timeout=10.0) as c:
-                await c.delete("http://elasticsearch:9200/dslfail")
+            async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+                await c.delete(f"{base_url}/dslfail")

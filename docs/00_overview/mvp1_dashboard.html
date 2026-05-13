@@ -328,13 +328,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">18 / 18</div>
+      <div class="value">20 / 20</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">17</div>
+      <div class="value">16</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -344,14 +344,14 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">12</div>
+      <div class="value">11</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      3 idea-only feat/infra folders (not yet scoped into MVP1)
+      2 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">20</span></h3>
+  <h3>Idea <span class="count">18</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -381,18 +381,6 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review)</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_ci_smoke_makeup">Ci Smoke Makeup</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">CI runs `make test-unit &amp;&amp; make test-integration &amp;&amp; make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure</div>
 
 
 </div>
@@ -542,18 +530,6 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_test_both_engines">Test Both Engines</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">`backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test:</div>
-
-
-</div>
-
-
 <div class="card bug" data-prefix="bug">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_chat_long_conversation_truncation">Chat Long Conversation Truncation</a></div>
   <div class="meta">
@@ -631,7 +607,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">21</span></h3>
+  <h3>Done <span class="count">23</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -742,6 +718,18 @@ footer {
 
 
 <div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_infra_ci_smoke_makeup">Ci Smoke Makeup</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_09_infra_foundation/feature_spec.md">Foundation</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
@@ -815,6 +803,18 @@ footer {
 
 <div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_starlette_422_deprecation">Starlette 422 Deprecation</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_test_both_engines">Test Both Engines</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
     <span>merged 2026-05-13</span>
@@ -929,8 +929,12 @@ footer {
   class chore_spec_trial_created_at_drift done;
   chore_starlette_422_deprecation[&quot;starlette 422 deprecation&quot;]
   class chore_starlette_422_deprecation done;
+  chore_test_both_engines[&quot;test both engines&quot;]
+  class chore_test_both_engines done;
   chore_trial_summary_single_query[&quot;trial summary single query&quot;]
   class chore_trial_summary_single_query done;
+  infra_ci_smoke_makeup[&quot;ci smoke makeup&quot;]
+  class infra_ci_smoke_makeup done;
   infra_nvmrc[&quot;nvmrc&quot;]
   class infra_nvmrc done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -947,6 +951,7 @@ footer {
   feat_studies_ui --&gt; chore_tutorial_polish
   feat_study_lifecycle --&gt; chore_tutorial_polish
   infra_adapter_elastic --&gt; chore_tutorial_polish
+  infra_ci_smoke_makeup --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
@@ -959,6 +964,7 @@ footer {
   feat_studies_ui --&gt; feat_chat_agent
   feat_study_lifecycle --&gt; feat_chat_agent
   infra_adapter_elastic --&gt; feat_chat_agent
+  infra_ci_smoke_makeup --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
@@ -1017,8 +1023,12 @@ footer {
   class chore_spec_trial_created_at_drift done;
   chore_starlette_422_deprecation[&quot;starlette 422 deprecation&quot;]
   class chore_starlette_422_deprecation done;
+  chore_test_both_engines[&quot;test both engines&quot;]
+  class chore_test_both_engines done;
   chore_trial_summary_single_query[&quot;trial summary single query&quot;]
   class chore_trial_summary_single_query done;
+  infra_ci_smoke_makeup[&quot;ci smoke makeup&quot;]
+  class infra_ci_smoke_makeup done;
   infra_nvmrc[&quot;nvmrc&quot;]
   class infra_nvmrc done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -1035,6 +1045,7 @@ footer {
   feat_studies_ui --&gt; chore_tutorial_polish
   feat_study_lifecycle --&gt; chore_tutorial_polish
   infra_adapter_elastic --&gt; chore_tutorial_polish
+  infra_ci_smoke_makeup --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
@@ -1047,6 +1058,7 @@ footer {
   feat_studies_ui --&gt; feat_chat_agent
   feat_study_lifecycle --&gt; feat_chat_agent
   infra_adapter_elastic --&gt; feat_chat_agent
+  infra_ci_smoke_makeup --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
