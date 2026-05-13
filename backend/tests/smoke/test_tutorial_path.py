@@ -51,12 +51,10 @@ def _wait_healthy(client: httpx.Client, timeout: float = 10.0) -> None:
 def _create_judgment_template(c: httpx.Client) -> str:
     """Minimal `{{ query_text }}`-only template for the judgment-generation path.
 
-    The judgment-generation worker needs a template it can render with NO params
-    (the existing integration tests use the same shape — see
-    backend/tests/integration/test_judgment_generate.py). Declaring params here
-    would trip ``render: missing required template params`` because the worker
-    calls ``compute_default_params`` against the API-stored simple-form schema
-    which can't produce defaults — a pre-existing platform contract gap.
+    Keeping the judge template separate from the study template lets the
+    judge target broad recall (no boost params) while the study optimizes
+    the parameterized template. See
+    backend/tests/integration/test_judgment_generate.py for the same shape.
     """
     resp = c.post(
         "/api/v1/query-templates",

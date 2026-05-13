@@ -328,18 +328,18 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">23 / 23</div>
+      <div class="value">24 / 24</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">13</div>
+      <div class="value">12</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">5</div>
+      <div class="value">4</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
@@ -351,7 +351,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      2 idea-only feat/infra folders (not yet scoped into MVP1)
+      1 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">15</span></h3>
+  <h3>Idea <span class="count">13</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -381,18 +381,6 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review)</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_per_trial_timeout">Per Trial Timeout</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">`Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the </div>
 
 
 </div>
@@ -531,18 +519,6 @@ footer {
 
 
 <div class="card bug" data-prefix="bug">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_judgment_template_default_params_contract">Judgment Template Default Params Contract</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-
-  </div>
-  <div class="one-liner">The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str]</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_worker_optuna_init_race">Worker Optuna Init Race</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -571,7 +547,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">26</span></h3>
+  <h3>Done <span class="count">28</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -741,6 +717,18 @@ footer {
 </div>
 
 
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_infra_per_trial_timeout">Per Trial Timeout</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
 <div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_openapi_contract_validation">Openapi Contract Validation</a></div>
   <div class="meta">
@@ -874,6 +862,18 @@ footer {
 
 
 <div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_judgment_template_default_params_contract">Judgment Template Default Params Contract</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_test_smoke_requires_env_vars">Test Smoke Requires Env Vars</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -943,6 +943,8 @@ footer {
   class infra_ci_smoke_makeup done;
   infra_nvmrc[&quot;nvmrc&quot;]
   class infra_nvmrc done;
+  infra_per_trial_timeout[&quot;per trial timeout&quot;]
+  class infra_per_trial_timeout done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -962,6 +964,7 @@ footer {
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
+  infra_per_trial_timeout --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
@@ -975,6 +978,7 @@ footer {
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
+  infra_per_trial_timeout --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
@@ -1043,6 +1047,8 @@ footer {
   class infra_ci_smoke_makeup done;
   infra_nvmrc[&quot;nvmrc&quot;]
   class infra_nvmrc done;
+  infra_per_trial_timeout[&quot;per trial timeout&quot;]
+  class infra_per_trial_timeout done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1062,6 +1068,7 @@ footer {
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
+  infra_per_trial_timeout --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
@@ -1075,6 +1082,7 @@ footer {
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
+  infra_per_trial_timeout --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker

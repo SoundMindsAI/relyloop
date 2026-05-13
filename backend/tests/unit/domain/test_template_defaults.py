@@ -84,3 +84,57 @@ def test_mixed_param_types_resolve_independently() -> None:
         "use_phrase": False,
         "operator": "AND",
     }
+
+
+# Simple-form (`dict[str, str]`) regression tests for
+# bug_judgment_template_default_params_contract. The
+# `query_templates` API stores declared_params as
+# `{name: type_name_string}`; without a fallback, `adapter.render`
+# raised `missing required template params` for every API-created
+# template that declared any params.
+
+
+def test_simple_form_float_returns_neutral_fallback() -> None:
+    template = _template({"title_boost": "float"})
+    params = compute_default_params(template)
+    assert params == {"title_boost": 1.0}
+    assert isinstance(params["title_boost"], float)
+
+
+def test_simple_form_int_returns_one() -> None:
+    template = _template({"max_clauses": "int"})
+    assert compute_default_params(template) == {"max_clauses": 1}
+
+
+def test_simple_form_bool_returns_false() -> None:
+    template = _template({"use_phrase": "bool"})
+    assert compute_default_params(template) == {"use_phrase": False}
+
+
+def test_simple_form_string_returns_empty_string() -> None:
+    template = _template({"filter_field": "string"})
+    assert compute_default_params(template) == {"filter_field": ""}
+
+
+def test_simple_form_unknown_type_skipped() -> None:
+    """Unrecognized simple-form type-names are omitted so the template's own
+    Jinja fallback applies, matching the rich-form malformed-entry policy."""
+    template = _template({"weird": "regex"})
+    assert compute_default_params(template) == {}
+
+
+def test_simple_form_mixed_with_rich_form_resolves_independently() -> None:
+    """Templates whose declared_params mixes both shapes (test fixtures
+    or hand-edited rows) resolve each entry under the matching policy."""
+    template = _template(
+        {
+            "title_boost": "float",  # simple
+            "k1": {"type": "int", "min": 1, "max": 9},  # rich
+            "use_phrase": "bool",  # simple
+        }
+    )
+    assert compute_default_params(template) == {
+        "title_boost": 1.0,
+        "k1": 5,
+        "use_phrase": False,
+    }
