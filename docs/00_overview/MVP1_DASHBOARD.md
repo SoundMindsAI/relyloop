@@ -19,8 +19,8 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Features done | **12 / 13** (92%) |
-| Path to MVP1 | **23** items remaining (features + bugs + chores) |
-| Open bugs | 7 |
+| Path to MVP1 | **24** items remaining (features + bugs + chores) |
+| Open bugs | 8 |
 | Open chores | 15 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
@@ -58,7 +58,7 @@ _None._
 
 _None._
 
-### Idea (26)
+### Idea (27)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -88,6 +88,7 @@ _None._
 | [bug_env_file_corrupted_during_session](../02_product/planned_features/bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../../../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation sessio | — | Idea — captured during `infra_foundation` Story 4.4 implementation |
 | [bug_judgment_template_default_params_contract](../02_product/planned_features/bug_judgment_template_default_params_contract/idea.md) | Bug | The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] | — | — |
 | [bug_test_smoke_requires_env_vars](../02_product/planned_features/bug_test_smoke_requires_env_vars/idea.md) | Bug | `backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment: | — | Idea — captured during `feat_github_webhook` `/impl-execute` |
+| [bug_worker_optuna_init_race](../02_product/planned_features/bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | — |
 
 ## Dependency graph
 
