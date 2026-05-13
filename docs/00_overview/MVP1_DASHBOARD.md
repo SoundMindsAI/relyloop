@@ -13,9 +13,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Features done | **13 / 13** (100%) |
-| Path to MVP1 | **23** items remaining (features + bugs + chores) |
+| Path to MVP1 | **24** items remaining (features + bugs + chores) |
 | Open bugs | 8 |
-| Open chores | 15 (idea-stage debt) |
+| Open chores | 16 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -51,7 +51,7 @@ _None._
 
 _None._
 
-### Idea (27)
+### Idea (28)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -62,6 +62,7 @@ _None._
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_cluster_delete_ui](../02_product/planned_features/chore_cluster_delete_ui/idea.md) | Chore | The `/clusters` list page (Story 2.1) and `/clusters/{id}` detail page render registered clusters fine, but there is no Delete button. When an operator registers a cluster with stale credentials or a  | — | Idea — gap surfaced during `feat_studies_ui` first-run testing (2026-05-12 after PR #50 + the CORS fix landed). |
 | [chore_cluster_run_query_history](../02_product/planned_features/chore_cluster_run_query_history/idea.md) | Chore | The "recent run-query history" surface in spec §3 cannot be built without backend support. The `feat_studies_ui` plan (Story 2.1) drops this from the cluster detail page and renders only the summary + | — | — |
+| [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
 | [chore_infra_foundation_github_token_file_retirement](../02_product/planned_features/chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is: | — | Idea (deferred from `feat_github_pr_worker` spec patch — captured because the cleanup spans `infra_foundation`'s shipped config and isn't in the PR-worker scope) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
 | [chore_openapi_contract_validation](../02_product/planned_features/chore_openapi_contract_validation/idea.md) | Chore | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |

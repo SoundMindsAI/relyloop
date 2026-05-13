@@ -34,14 +34,6 @@ see Step 0 of the tutorial.
 **Hardware:** 16 GB RAM is comfortable. Elasticsearch + OpenSearch each consume
 ~1 GB heap; bump `ES_HEAP_SIZE` in `.env` if you index large corpora.
 
-## What it looks like
-
-5–7 minute screencast of the full Karpathy loop end-to-end (clone → study →
-PR opened):
-
-> _Demo recording: TBD — added once `chore_tutorial_polish` Story 4.6 ships
-> the upload._
-
 ## What's in MVP1 / What's coming
 
 MVP1 ships the full Karpathy loop end-to-end on Elasticsearch + OpenSearch:
