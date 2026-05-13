@@ -13,15 +13,15 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **26 / 26** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **10** items remaining (features + bugs + chores) |
-| Open bugs | 3 |
+| Path to MVP1 | **9** items remaining (features + bugs + chores) |
+| Open bugs | 2 |
 | Open chores | 7 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (31)
+### Done (32)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -52,6 +52,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | Complete | — | Complete |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_foundation` `infra_frontend_stack_refresh` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
+| [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | Complete | — | Complete |
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | Complete | — | Complete |
@@ -69,7 +70,7 @@ _None._
 
 _None._
 
-### Idea (11)
+### Idea (10)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -82,7 +83,6 @@ _None._
 | [chore_query_inline_edit_delete](../02_product/planned_features/chore_query_inline_edit_delete/idea.md) | Chore | The `feat_studies_ui` plan called for a "view-only queries table" on the query-set detail page (Story 2.2). During implementation we discovered there is **no GET endpoint to list individual queries ei | — | — |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
 | [bug_chat_long_conversation_truncation_mvp2](../02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
-| [bug_digest_param_importance_seam](../02_product/planned_features/bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Idea (deferred from `feat_digest_proposal` Story 4.2; tracked because the test was marked `xfail` rather than fixed inline) |
 | [bug_env_file_corrupted_during_session](../02_product/planned_features/bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../../../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation sessio | — | Idea — captured during `infra_foundation` Story 4.4 implementation |
 
 ## Dependency graph
