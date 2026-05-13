@@ -102,7 +102,7 @@ def _decode_trial_cursor(raw: str, sort_key: str) -> tuple[Any, str]:
         row_id = str(decoded[1])
     except Exception as exc:
         raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
-    if sort_key.startswith("created_at"):
+    if sort_key.startswith("ended_at"):
         value: Any = datetime.fromisoformat(raw_value) if raw_value is not None else None
     else:
         value = raw_value
@@ -360,8 +360,8 @@ _ALLOWED_SORT_KEYS = frozenset(
     {
         "primary_metric_desc",
         "primary_metric_asc",
-        "created_at_desc",
-        "created_at_asc",
+        "ended_at_desc",
+        "ended_at_asc",
         "optuna_trial_number_asc",
     }
 )
@@ -384,7 +384,7 @@ async def list_study_trials(
     """List trials in a study (FR-6).
 
     Sort variants per spec §7.4: ``primary_metric_desc`` (default),
-    ``primary_metric_asc``, ``created_at_desc``, ``created_at_asc``,
+    ``primary_metric_asc``, ``ended_at_desc``, ``ended_at_asc``,
     ``optuna_trial_number_asc``.
     """
     if sort not in _ALLOWED_SORT_KEYS:
@@ -418,7 +418,7 @@ async def list_study_trials(
         cursor_value: Any
         if sort.startswith("primary_metric"):
             cursor_value = last.primary_metric
-        elif sort.startswith("created_at"):
+        elif sort.startswith("ended_at"):
             cursor_value = last.ended_at
         else:  # optuna_trial_number_asc
             cursor_value = last.optuna_trial_number

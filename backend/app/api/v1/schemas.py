@@ -181,8 +181,8 @@ PrunerKind = Literal["median", "none"]
 TrialSortKey = Literal[
     "primary_metric_desc",
     "primary_metric_asc",
-    "created_at_desc",
-    "created_at_asc",
+    "ended_at_desc",
+    "ended_at_asc",
     "optuna_trial_number_asc",
 ]
 

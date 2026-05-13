@@ -334,7 +334,7 @@ export interface paths {
      * @description List trials in a study (FR-6).
      *
      *     Sort variants per spec §7.4: ``primary_metric_desc`` (default),
-     *     ``primary_metric_asc``, ``created_at_desc``, ``created_at_asc``,
+     *     ``primary_metric_asc``, ``ended_at_desc``, ``ended_at_asc``,
      *     ``optuna_trial_number_asc``.
      */
     get: operations['list_study_trials_api_v1_studies__study_id__trials_get'];
