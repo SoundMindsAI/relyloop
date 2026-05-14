@@ -4,22 +4,16 @@ _Reflects feature-folder state as of **2026-05-14** (latest mtime of any planned
 
 ## Next up
 
-**[feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_query_inline_crud/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **29 / 30** (97%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **8** items remaining (features + bugs + chores) |
+| Scoped items done | **30 / 30** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **7** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 6 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
@@ -27,7 +21,7 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (36)
+### Done (37)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -37,6 +31,7 @@ Plan approved; run /impl-execute to ship
 | [feat_github_webhook](implemented_features/2026_05_12_feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `infra_adapter_elastic` `feat_github_pr_worker` | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
 | [feat_llm_judgments](implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) merged 2026-05-11 |
 | [feat_proposals_ui](implemented_features/2026_05_12_feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | [PR #58](https://github.com/SoundMindsAI/relyloop/pull/58) merged 2026-05-12 |
+| [feat_query_inline_crud](implemented_features/2026_05_14_feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #101](https://github.com/SoundMindsAI/relyloop/pull/101) merged 2026-05-14 |
 | [feat_studies_ui](implemented_features/2026_05_12_feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../../../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgm | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | [PR #50](https://github.com/SoundMindsAI/relyloop/pull/50) merged 2026-05-12 |
 | [feat_study_lifecycle](implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
@@ -72,11 +67,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #101](https://github.com/SoundMindsAI/relyloop/pull/101) |
+_None._
 
 ### Spec (0)
 
@@ -106,8 +99,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_query_inline_crud["query inline crud"]
-  class feat_query_inline_crud plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -166,11 +157,8 @@ graph LR
   class infra_nvmrc done;
   infra_per_trial_timeout["per trial timeout"]
   class infra_per_trial_timeout done;
-  infra_foundation --> feat_query_inline_crud
-  infra_adapter_elastic --> feat_query_inline_crud
-  feat_study_lifecycle --> feat_query_inline_crud
-  feat_llm_judgments --> feat_query_inline_crud
-  feat_studies_ui --> feat_query_inline_crud
+  feat_query_inline_crud["query inline crud"]
+  class feat_query_inline_crud done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -223,6 +211,11 @@ graph LR
   feat_digest_proposal --> feat_studies_ui
   feat_llm_judgments --> feat_studies_ui
   infra_adapter_elastic --> feat_studies_ui
+  infra_foundation --> feat_query_inline_crud
+  infra_adapter_elastic --> feat_query_inline_crud
+  feat_study_lifecycle --> feat_query_inline_crud
+  feat_llm_judgments --> feat_query_inline_crud
+  feat_studies_ui --> feat_query_inline_crud
 ```
 
 ---
