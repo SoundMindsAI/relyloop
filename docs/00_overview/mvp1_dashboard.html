@@ -328,7 +328,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">31 / 31</div>
+      <div class="value">32 / 32</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -351,7 +351,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      3 idea-only feat/infra folders (not yet scoped into MVP1)
+      2 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">8</span></h3>
+  <h3>Idea <span class="count">7</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -381,18 +381,6 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review)</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_dashboard_regen_pre_commit_conflict">Dashboard Regen Pre Commit Conflict</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">The pre-commit pipeline does:</div>
 
 
 </div>
@@ -487,7 +475,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">39</span></h3>
+  <h3>Done <span class="count">40</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -626,6 +614,18 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict">Dashboard Regen Pre Commit Conflict</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
 
@@ -1031,6 +1031,8 @@ footer {
   class feat_judgments_periodic_resume_sweep done;
   feat_query_inline_crud[&quot;query inline crud&quot;]
   class feat_query_inline_crud done;
+  infra_dashboard_regen_pre_commit_conflict[&quot;dashboard regen pre commit conflict&quot;]
+  class infra_dashboard_regen_pre_commit_conflict done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1048,6 +1050,7 @@ footer {
   feat_study_lifecycle --&gt; chore_tutorial_polish
   infra_adapter_elastic --&gt; chore_tutorial_polish
   infra_ci_smoke_makeup --&gt; chore_tutorial_polish
+  infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
@@ -1064,6 +1067,7 @@ footer {
   feat_study_lifecycle --&gt; feat_chat_agent
   infra_adapter_elastic --&gt; feat_chat_agent
   infra_ci_smoke_makeup --&gt; feat_chat_agent
+  infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
@@ -1158,6 +1162,8 @@ footer {
   class feat_judgments_periodic_resume_sweep done;
   feat_query_inline_crud[&quot;query inline crud&quot;]
   class feat_query_inline_crud done;
+  infra_dashboard_regen_pre_commit_conflict[&quot;dashboard regen pre commit conflict&quot;]
+  class infra_dashboard_regen_pre_commit_conflict done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1175,6 +1181,7 @@ footer {
   feat_study_lifecycle --&gt; chore_tutorial_polish
   infra_adapter_elastic --&gt; chore_tutorial_polish
   infra_ci_smoke_makeup --&gt; chore_tutorial_polish
+  infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
@@ -1191,6 +1198,7 @@ footer {
   feat_study_lifecycle --&gt; feat_chat_agent
   infra_adapter_elastic --&gt; feat_chat_agent
   infra_ci_smoke_makeup --&gt; feat_chat_agent
+  infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
