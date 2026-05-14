@@ -13,10 +13,10 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **36 / 36** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **1** items remaining (features + bugs + chores) |
-| Open bugs | 1 |
+| Path to MVP1 | **0** items remaining (features + bugs + chores) |
+| Open bugs | 0 |
 | Open chores | 0 (idea-stage debt) |
-| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -25,7 +25,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
+| [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
 | [feat_github_webhook](implemented_features/2026_05_12_feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `infra_adapter_elastic` `feat_github_pr_worker` | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
@@ -60,7 +60,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
 | [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | Complete | — | Complete |
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | Complete | — | Complete |
-| [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
+| [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
@@ -82,12 +82,9 @@ _None._
 
 _None._
 
-### Idea (2)
+### Idea (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| [bug_chat_long_conversation_truncation_mvp2](../02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
+_None._
 
 ## Dependency graph
 

@@ -32,8 +32,17 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PLANNED_DIR = REPO_ROOT / "docs/02_product/planned_features"
 IMPLEMENTED_DIR = REPO_ROOT / "docs/00_overview/implemented_features"
-OUTPUT_HTML = REPO_ROOT / "docs/00_overview/mvp1_dashboard.html"
-OUTPUT_MD = REPO_ROOT / "docs/00_overview/MVP1_DASHBOARD.md"
+DASHBOARD_DIR = REPO_ROOT / "docs/00_overview"
+
+# Per-release dashboard outputs are keyed by lowercase release tag
+# (``mvp1``, ``mvp2``, ``mvp3``, ...). The classifier in
+# :func:`_target_release` routes each feature to exactly one release,
+# and the renderer emits one ``<TAG>_DASHBOARD.md`` + ``<tag>_dashboard.html``
+# pair per release that has at least one item. New releases auto-appear
+# the moment a feature folder uses the ``_mvpN`` suffix (or a feature
+# spec's status line names ``Held for MVPN``).
+DEFAULT_RELEASE = "mvp1"
+"""Features without an explicit release tag default to MVP1 (the active scope)."""
 
 # Feature directory name → human title fragment. Anything not in this map
 # falls back to the folder name with the prefix stripped.
@@ -69,10 +78,49 @@ class Feature:
     pr_number: int | None = None
     merged_date: str | None = None
     deferred_phase: str | None = None  # human note if a phase*_idea.md is present
+    release: str = DEFAULT_RELEASE  # "mvp1" | "mvp2" | "mvp3" | ...
 
     @property
     def display_name(self) -> str:
-        return self.short_name.replace("_", " ").title()
+        # Strip a trailing _mvpN tag from the visible label so the release
+        # suffix doesn't double-print on the dashboard card. The release tag
+        # is already conveyed by which dashboard the card appears on.
+        name = re.sub(r"_mvp\d+$", "", self.short_name)
+        return name.replace("_", " ").title()
+
+
+_RELEASE_SUFFIX_RE = re.compile(r"_mvp(\d+)$")
+"""Match ``..._mvp2`` / ``..._mvp3`` / ... at the END of a folder short-name."""
+
+_RELEASE_STATUS_RE = re.compile(r"Held\s+for\s+MVP\s*(\d+)", flags=re.IGNORECASE)
+"""Match ``Held for MVP2`` / ``Held for MVP3`` in a status line."""
+
+
+def _target_release(short_name: str, status_line: str) -> str:
+    """Classify a feature's target release tag.
+
+    Two signals, suffix wins over status:
+
+    1. Folder ``_mvpN`` suffix on ``short_name`` (e.g.,
+       ``arq_subprocess_test_mvp2`` → ``mvp2``). This is the canonical
+       per-folder hold marker — same precedent the
+       ``bug_chat_long_conversation_truncation_mvp2`` rename established
+       (state.md 2026-05-13).
+    2. ``**Status:** Held for MVPN`` line in the idea/spec body.
+
+    Falls back to :data:`DEFAULT_RELEASE` (``"mvp1"``) when no signal
+    fires. Implemented features always carry their shipped release in
+    git history; for dashboard purposes they belong to the release whose
+    folder name they live under (suffix-detected first), or MVP1 if
+    they shipped before the per-release tagging convention.
+    """
+    m = _RELEASE_SUFFIX_RE.search(short_name)
+    if m:
+        return f"mvp{int(m.group(1))}"
+    m2 = _RELEASE_STATUS_RE.search(status_line or "")
+    if m2:
+        return f"mvp{int(m2.group(1))}"
+    return DEFAULT_RELEASE
 
 
 # ---------------------------------------------------------------------------
@@ -177,13 +225,14 @@ def _safe_truncate_markdown(text: str, max_len: int) -> str:
     return candidate.rstrip() + "…"
 
 
-_DASHBOARD_DIR = OUTPUT_MD.parent
+_DASHBOARD_DIR = DASHBOARD_DIR
 """Directory the rendered dashboards live in.
 
 Used by :func:`_rewrite_markdown_links` to recompute relative paths in
 extracted one-liner text from each feature folder's perspective into the
-dashboard's perspective. Both ``OUTPUT_MD`` and ``OUTPUT_HTML`` live
-under ``docs/00_overview/``, so a single directory anchor covers both.
+dashboard's perspective. All ``<release>_dashboard.html`` and
+``<RELEASE>_DASHBOARD.md`` pairs live under ``docs/00_overview/``, so a
+single directory anchor covers every release.
 """
 
 _MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
@@ -452,6 +501,7 @@ def _load_planned(folder_path: Path) -> Feature | None:
         pr_number=_extract_pr_number(pipe, plan, spec),
         merged_date=_extract_merged_date(pipe + plan + spec),
         deferred_phase=deferred,
+        release=_target_release(short, status_line + " " + (idea or "")),
     )
     return feature
 
@@ -476,6 +526,7 @@ def _load_implemented(folder_path: Path) -> Feature | None:
     if m and not merged:
         merged = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
 
+    status_line = _extract_status_line(pipe + plan + spec) or "Complete"
     return Feature(
         folder=short_with_prefix,
         prefix=prefix,
@@ -483,11 +534,12 @@ def _load_implemented(folder_path: Path) -> Feature | None:
         path=folder_path,
         location="implemented",
         stage="done",
-        status_line=_extract_status_line(pipe + plan + spec) or "Complete",
+        status_line=status_line,
         one_liner=one_liner,
         depends_on=_extract_depends_on(spec),
         pr_number=pr,
         merged_date=merged,
+        release=_target_release(short, status_line),
     )
 
 
@@ -1059,7 +1111,13 @@ def _mermaid_graph(features: list[Feature]) -> str:
     return "\n".join(lines)
 
 
-def _next_up_html(features: list[Feature]) -> str:
+def _release_label(release: str) -> str:
+    """Render a release tag like ``mvp1`` as ``MVP1`` for headings + KPI copy."""
+    m = re.match(r"^mvp(\d+)$", release)
+    return f"MVP{m.group(1)}" if m else release.upper()
+
+
+def _next_up_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
     """Render the 'Next up' callout — the prominent banner above the KPIs.
 
     Tells the operator EXACTLY what feature to start next + the runnable
@@ -1068,11 +1126,12 @@ def _next_up_html(features: list[Feature]) -> str:
     """
     next_feature, cmd = _next_action(features)
     if next_feature is None:
-        return """
+        release_label = _release_label(release)
+        return f"""
 <section>
   <div class="next-up done">
     <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="title">All scoped {html.escape(release_label)} features shipped 🎉</div>
     <div class="one-liner">
       Pull from the Idea backlog or capture a new feature spec.
     </div>
@@ -1108,7 +1167,13 @@ def _next_up_html(features: list[Feature]) -> str:
 """
 
 
-def render_html(features: list[Feature]) -> str:
+def render_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
+    """Render an HTML dashboard for a single release tag.
+
+    ``features`` must already be filtered to the target release — the
+    caller is :func:`main`, which loads + classifies + filters once and
+    then invokes this renderer once per discovered release.
+    """
     kpi = _classify_kpi(features)
     pct = (
         round(kpi["done_features"] * 100 / kpi["scoped_features"]) if kpi["scoped_features"] else 0
@@ -1124,22 +1189,23 @@ def render_html(features: list[Feature]) -> str:
 
     columns = "".join(_column_html(s, by_stage[s]) for s in STAGES)
     mermaid = _mermaid_graph(features)
-    next_up = _next_up_html(features)
+    next_up = _next_up_html(features, release=release)
     # Use the most-recent mtime of any feature-folder file (or this script
     # itself) instead of `now()` — keeps regeneration idempotent so the
     # pre-commit hook doesn't churn the dashboard on every unrelated commit.
     now = _data_freshness().strftime("%Y-%m-%d")
+    release_label = _release_label(release)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>RelyLoop MVP1 Dashboard</title>
+<title>RelyLoop {release_label} Dashboard</title>
 <style>{CSS}</style>
 </head>
 <body>
 <header>
-  <h1>RelyLoop MVP1 Dashboard</h1>
+  <h1>RelyLoop {release_label} Dashboard</h1>
   <div class="meta">
     Reflects feature-folder state as of {now} (latest mtime of any
     <code>docs/02_product/planned_features/</code> or
@@ -1155,7 +1221,7 @@ def render_html(features: list[Feature]) -> str:
 {next_up}
 
 <section>
-  <h2>MVP1 Progress</h2>
+  <h2>{release_label} Progress</h2>
   <div class="kpi-row">
     <div class="kpi {"complete" if pct == 100 else ""}">
       <div class="label">Scoped items done</div>
@@ -1164,7 +1230,7 @@ def render_html(features: list[Feature]) -> str:
       <div class="bar"><span style="width:{pct}%"></span></div>
     </div>
     <div class="kpi {"warn" if kpi["remaining"] else "complete"}">
-      <div class="label">Path to MVP1</div>
+      <div class="label">Path to {release_label}</div>
       <div class="value">{kpi["remaining"]}</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
@@ -1182,7 +1248,7 @@ def render_html(features: list[Feature]) -> str:
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      {kpi["backlog_ideas"]} idea-only feat/infra folders (not yet scoped into MVP1)
+      {kpi["backlog_ideas"]} idea-only feat/infra folders (not yet scoped into {release_label})
     </span>
     <span>
       <strong>In flight:</strong>
@@ -1266,7 +1332,7 @@ def _md_link(label: str, target: Path) -> str:
     computed relative to `docs/00_overview/` (using os.path.relpath which
     correctly emits `../` segments for parent traversal).
     """
-    rel = os.path.relpath(target, OUTPUT_MD.parent)
+    rel = os.path.relpath(target, DASHBOARD_DIR)
     # POSIX-style separators so GitHub renders correctly on any platform.
     return f"[{label}]({Path(rel).as_posix()})"
 
@@ -1319,12 +1385,13 @@ def _md_stage_section(stage: str, features: list[Feature]) -> str:
     return f"### {STAGE_LABELS[stage]} ({len(features)})\n\n" + "\n".join(rows) + "\n"
 
 
-def render_markdown(features: list[Feature]) -> str:
-    """Render the GitHub-native dashboard view.
+def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
+    """Render the GitHub-native dashboard view for a single release tag.
 
     Mirrors the HTML's information architecture using GitHub-native
     primitives (tables + Mermaid block) so the file renders inline when
-    browsed on github.com without any preview proxy.
+    browsed on github.com without any preview proxy. ``features`` is the
+    already-filtered subset for ``release``.
     """
     kpi = _classify_kpi(features)
     pct = (
@@ -1339,16 +1406,18 @@ def render_markdown(features: list[Feature]) -> str:
 
     asof = _data_freshness().strftime("%Y-%m-%d")
     mermaid = _mermaid_graph(features)
+    release_label = _release_label(release)
+    html_filename = f"{release}_dashboard.html"
 
     lines: list[str] = []
-    lines.append("# RelyLoop MVP1 Dashboard")
+    lines.append(f"# RelyLoop {release_label} Dashboard")
     lines.append("")
     lines.append(
         f"_Reflects feature-folder state as of **{asof}** "
         "(latest mtime of any planned/implemented feature `.md` file). "
         "Regenerated by `make dashboard` and the `mvp1-dashboard-regen` pre-commit hook. "
         "For the rich local view (filter chips, type colors), open "
-        "[`mvp1_dashboard.html`](mvp1_dashboard.html) in a browser._"
+        f"[`{html_filename}`]({html_filename}) in a browser._"
     )
     lines.append("")
 
@@ -1357,7 +1426,7 @@ def render_markdown(features: list[Feature]) -> str:
     lines.append("## Next up")
     lines.append("")
     if next_feature is None:
-        lines.append("All scoped MVP1 features shipped 🎉")
+        lines.append(f"All scoped {release_label} features shipped 🎉")
         lines.append("")
         lines.append("Pull from the Idea backlog or capture a new feature spec.")
     else:
@@ -1379,7 +1448,7 @@ def render_markdown(features: list[Feature]) -> str:
         lines.append("```")
     lines.append("")
 
-    lines.append("## MVP1 Progress")
+    lines.append(f"## {release_label} Progress")
     lines.append("")
     lines.append("| Metric | Value |")
     lines.append("|---|---|")
@@ -1389,13 +1458,14 @@ def render_markdown(features: list[Feature]) -> str:
         f"— feat_/infra_/chore_/epic_ past idea stage |"
     )
     lines.append(
-        f"| Path to MVP1 | **{kpi['remaining']}** items remaining (features + bugs + chores) |"
+        f"| Path to {release_label} | **{kpi['remaining']}** "
+        "items remaining (features + bugs + chores) |"
     )
     lines.append(f"| Open bugs | {kpi['open_bugs']} |")
     lines.append(f"| Open chores | {kpi['open_chores_idea']} (idea-stage debt) |")
     lines.append(
         f"| Backlog ideas | {kpi['backlog_ideas']} idea-only feat/infra "
-        "(not yet scoped into MVP1) |"
+        f"(not yet scoped into {release_label}) |"
     )
     lines.append(f"| In flight | {len(by_stage['implement'])} feature(s) actively shipping |")
     lines.append("")
@@ -1444,24 +1514,45 @@ def _maybe_write(path: Path, new_content: str) -> bool:
     return True
 
 
+def _dashboard_paths(release: str) -> tuple[Path, Path]:
+    """Return ``(html_path, md_path)`` for a release tag.
+
+    File names follow the existing MVP1 precedent — lowercase ``html``
+    and uppercase ``MD`` — so the historical paths
+    ``mvp1_dashboard.html`` / ``MVP1_DASHBOARD.md`` are preserved while
+    new release tags get parallel filenames (``mvp2_dashboard.html`` /
+    ``MVP2_DASHBOARD.md``, ...).
+    """
+    return (
+        DASHBOARD_DIR / f"{release}_dashboard.html",
+        DASHBOARD_DIR / f"{release.upper()}_DASHBOARD.md",
+    )
+
+
 def main() -> int:
     features = load_all()
-    output_html = _strip_trailing_ws(render_html(features))
-    output_md = _strip_trailing_ws(render_markdown(features))
-    html_written = _maybe_write(OUTPUT_HTML, output_html)
-    md_written = _maybe_write(OUTPUT_MD, output_md)
-    if html_written or md_written:
-        wrote = [
-            str(p.relative_to(REPO_ROOT))
-            for p, written in (
-                (OUTPUT_HTML, html_written),
-                (OUTPUT_MD, md_written),
-            )
-            if written
-        ]
-        print(f"wrote {' + '.join(wrote)} ({len(features)} features)")
+    # Always emit at least the MVP1 dashboard; auto-discover any other
+    # release tags from the loaded features (so MVP2/MVP3/... appear as
+    # soon as a feature folder uses the matching ``_mvpN`` suffix).
+    discovered = sorted({f.release for f in features} | {DEFAULT_RELEASE})
+
+    wrote_paths: list[Path] = []
+    for release in discovered:
+        subset = [f for f in features if f.release == release]
+        html_path, md_path = _dashboard_paths(release)
+        output_html = _strip_trailing_ws(render_html(subset, release=release))
+        output_md = _strip_trailing_ws(render_markdown(subset, release=release))
+        if _maybe_write(html_path, output_html):
+            wrote_paths.append(html_path)
+        if _maybe_write(md_path, output_md):
+            wrote_paths.append(md_path)
+        print(f"{release}: {len(subset)} features")
+
+    if wrote_paths:
+        rels = " + ".join(str(p.relative_to(REPO_ROOT)) for p in wrote_paths)
+        print(f"wrote {rels} ({len(features)} features across {len(discovered)} release(s))")
     else:
-        print(f"no changes ({len(features)} features)")
+        print(f"no changes ({len(features)} features across {len(discovered)} release(s))")
     return 0
 
 
