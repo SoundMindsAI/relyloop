@@ -83,20 +83,20 @@ tested matrix.
 
 ## 6. Demo recording linked from README — AC-6
 
-**Deferred to MVP3 release polish** (decided 2026-05-12 post-merge of
-`chore_tutorial_polish` PR #64). Tracked at
-[`docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md`](../02_product/planned_features/chore_demo_recording_mvp3/idea.md).
+**Dropped (2026-05-14)** per `/idea-preflight` ship-vs-drop call.
 
-Reasoning: the demo's value depends on UX stability (won't rot in 4 weeks)
-+ a credible "production" story to tell. MVP1 is alpha for technical
-evaluators who'll read code, not a video. MVP3 ships TLS install + Lucidworks
-Fusion adapter + multi-Git-provider — the first release polished enough to
-warrant a demo. MVP2 wouldn't change the demo content; MVP4 (multi-tenant
-auth) would invalidate any pre-MVP4 video.
+Rationale: single-maintainer alpha-project base rates make the 4–6 hour
+record-edit-upload-embed task unlikely to execute, and any pre-MVP4
+recording would need to be re-shot once MVP4's auth UI (login + tenant
+switcher) lands. [`docs/08_guides/tutorial-first-study.md`](../08_guides/tutorial-first-study.md)
+serves the demo's discovery role for the alpha audience: it's text +
+screenshots, search-indexable, low-maintenance, complete.
 
-For `v0.1.0` specifically: the `What it looks like` placeholder has been
-removed from `README.md`; the quickstart + tutorial link is sufficient
-audience-fit for the alpha. Skip this section entirely when cutting `v0.1.0`.
+Skip this section entirely when cutting any future release — there is no
+demo recording to verify. If the project's audience or maintenance capacity
+changes (e.g., a video-marketing collaborator joins for MVP3+), file a
+fresh idea at that time; this section will be re-opened in the same
+release-checklist revision.
 
 ## 7. Tag + Release procedure
 
