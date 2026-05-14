@@ -27,13 +27,13 @@ under this contract, instead of silently shipping empty importance maps for
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import patch
 
 import optuna
 import optuna.importance
 import pytest
 
+from backend.tests._log_helpers import RecordingLogger
 from backend.workers.digest import (
     _PARAM_IMPORTANCE_EXPECTED_EXCEPTIONS,
     _compute_param_importance,
@@ -41,48 +41,6 @@ from backend.workers.digest import (
 
 # Optuna is noisy by default; silence for the test session.
 optuna.logging.set_verbosity(optuna.logging.ERROR)
-
-
-class _RecordingLogger:
-    """Tiny stub for ``structlog.BoundLogger`` that records calls.
-
-    Replaces ``structlog.testing.capture_logs()`` in this file because the
-    project's :func:`backend.app.core.logging.configure_logging` uses
-    ``structlog.configure(cache_logger_on_first_use=True)``. Once a sibling
-    integration test in the same pytest session warms the cache via
-    FastAPI lifespan, ``capture_logs()`` cannot intercept the already-
-    bound logger and returns an empty list. Locally (cache cold)
-    capture_logs works; in CI (cache warm from prior integration tests)
-    it doesn't. Same issue is silently lurking in any other test that
-    uses ``capture_logs()`` on a cached logger.
-
-    Monkeypatching the module-level ``logger`` attribute bypasses the
-    cache entirely — the function under test reads ``logger`` through
-    module attribute lookup at call time, so the replacement is seen
-    immediately. See ``infra_structlog_test_level_helper/idea.md`` for
-    the systematic follow-up that would factor this pattern repo-wide.
-    """
-
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, str, dict[str, Any]]] = []
-
-    def warning(self, event: str, **kwargs: Any) -> None:
-        self.calls.append(("warning", event, dict(kwargs)))
-
-    def error(self, event: str, **kwargs: Any) -> None:
-        self.calls.append(("error", event, dict(kwargs)))
-
-    def info(self, event: str, **kwargs: Any) -> None:
-        # Helper doesn't emit info, but make the stub forgiving.
-        self.calls.append(("info", event, dict(kwargs)))
-
-    def find(self, *, level: str, event_type: str) -> list[dict[str, Any]]:
-        """Return kwargs dicts for matching (level, event_type) calls."""
-        return [
-            kw
-            for lvl, _evt, kw in self.calls
-            if lvl == level and kw.get("event_type") == event_type
-        ]
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +145,7 @@ def test_routing_allowlisted_value_error_logs_warning_and_returns_empty(
     is preserved unchanged for grep continuity in operator logs.
     """
     study = _stub_study()
-    rec = _RecordingLogger()
+    rec = RecordingLogger()
     monkeypatch.setattr("backend.workers.digest.logger", rec)
     with patch.object(
         optuna.importance,
@@ -227,7 +185,7 @@ def test_routing_unexpected_exception_logs_error_and_returns_empty(
     ImportError case.
     """
     study = _stub_study()
-    rec = _RecordingLogger()
+    rec = RecordingLogger()
     monkeypatch.setattr("backend.workers.digest.logger", rec)
     with patch.object(optuna.importance, "get_param_importances", side_effect=exc):
         result = _compute_param_importance(study, study_id="study-error")

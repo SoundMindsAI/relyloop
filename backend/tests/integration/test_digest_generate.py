@@ -9,8 +9,6 @@ populated), and no second proposal row is created.
 
 from __future__ import annotations
 
-from typing import Any
-
 import optuna
 import optuna.importance
 import pytest
@@ -20,6 +18,7 @@ from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.models import Proposal
 from backend.app.db.session import get_session_factory
+from backend.tests._log_helpers import RecordingLogger
 from backend.tests.conftest import postgres_reachable
 from backend.tests.integration._digest_helpers import (
     make_openai_response,
@@ -28,39 +27,6 @@ from backend.tests.integration._digest_helpers import (
     stub_capability,
 )
 from backend.workers.digest import generate_digest
-
-
-class _RecordingLogger:
-    """Tiny stub that records `.warning()` / `.error()` calls.
-
-    Avoids `structlog.testing.capture_logs()` which can't intercept loggers
-    that were cached under the project's `configure_logging` (uses
-    `cache_logger_on_first_use=True`). Monkeypatching the module-level
-    `logger` attribute is reliable regardless of cache state.
-
-    Tracked for repo-wide factoring as
-    `infra_structlog_test_level_helper/idea.md`.
-    """
-
-    def __init__(self) -> None:
-        self.calls: list[tuple[str, str, dict[str, Any]]] = []
-
-    def warning(self, event: str, **kwargs: Any) -> None:
-        self.calls.append(("warning", event, dict(kwargs)))
-
-    def error(self, event: str, **kwargs: Any) -> None:
-        self.calls.append(("error", event, dict(kwargs)))
-
-    def info(self, event: str, **kwargs: Any) -> None:
-        self.calls.append(("info", event, dict(kwargs)))
-
-    def find(self, *, level: str, event_type: str) -> list[dict[str, Any]]:
-        return [
-            kw
-            for lvl, _evt, kw in self.calls
-            if lvl == level and kw.get("event_type") == event_type
-        ]
-
 
 pytestmark = [
     pytest.mark.integration,
@@ -169,8 +135,8 @@ async def test_unexpected_importance_exception_surfaces_as_error_event(
 
     # Capture digest-worker log calls by replacing the module-level logger
     # with a recording stub. Bypasses structlog's cache_logger_on_first_use
-    # issue that affects capture_logs() in CI (see _RecordingLogger above).
-    rec = _RecordingLogger()
+    # issue that affects capture_logs() in CI; see backend/tests/_log_helpers.py.
+    rec = RecordingLogger()
     monkeypatch.setattr("backend.workers.digest.logger", rec)
     await generate_digest({}, seeded["study_id"])
 
