@@ -172,8 +172,12 @@ async def resume_stuck_judgment_lists(ctx: dict[str, Any]) -> dict[str, int]:
         logger.info("judgments_resume_tick_complete", cadence_min=cadence_min, **summary)
         return summary
 
-    redis_client: Redis = Redis.from_url(settings.redis_url, decode_responses=False)
+    # Access ctx["arq_pool"] BEFORE constructing the Redis client. If the
+    # ctx is misconfigured (KeyError), we fail without leaking a Redis
+    # connection that the finally block wouldn't close because it sits
+    # outside the try. (Gemini Code Assist PR #104 inline.)
     arq_pool = ctx["arq_pool"]
+    redis_client: Redis = Redis.from_url(settings.redis_url, decode_responses=False)
     try:
         for jid in candidate_ids:
             try:
