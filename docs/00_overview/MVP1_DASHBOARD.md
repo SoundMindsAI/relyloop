@@ -13,9 +13,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **30 / 30** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **7** items remaining (features + bugs + chores) |
+| Path to MVP1 | **6** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
-| Open chores | 6 (idea-stage debt) |
+| Open chores | 5 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -75,13 +75,12 @@ _None._
 
 _None._
 
-### Idea (8)
+### Idea (7)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
-| [chore_cluster_run_query_history](../02_product/planned_features/chore_cluster_run_query_history/idea.md) | Chore | The "recent run-query history" surface in spec §3 cannot be built without backend support. The `feat_studies_ui` plan (Story 2.1) drops this from the cluster detail page and renders only the summary + | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
 | [chore_digest_worker_narrow_except](../02_product/planned_features/chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Idea (deferred from Gemini Code Assist Finding #2 on [PR #92](https://github.com/SoundMindsAI/relyloop/pull/92)) |
 | [chore_judgments_periodic_resume_sweep](../02_product/planned_features/chore_judgments_periodic_resume_sweep/idea.md) | Chore | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status='generating'` row gets re-enqueued at worker boot, covering the c | — | Idea — deferred from feat_llm_judgments cycle-2 plan review |
