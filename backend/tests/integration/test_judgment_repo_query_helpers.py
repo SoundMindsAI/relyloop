@@ -178,3 +178,43 @@ async def test_custom_sample_limit() -> None:
         assert refs.list_count == 5
         assert len(refs.sample_lists) == 2
         assert refs.overflow_count == 3
+
+
+async def test_judgments_list_query_idx_exists() -> None:
+    """Regression guard against silent index drop.
+
+    The ``count_judgments_per_query`` and ``count_and_sample_judgment_refs``
+    helpers rely on ``judgments_list_query_idx`` (declared on
+    ``Judgment.__table_args__``) to keep their per-row predicates O(log n).
+    If a future migration drops this index, both helpers degrade to seq-scans
+    silently — the functional tests still pass but p95 latency rises with the
+    judgments table size.
+
+    Instead of asserting EXPLAIN-plan output (brittle to planner choices),
+    we introspect ``pg_indexes`` for the presence + shape. This catches the
+    "someone dropped the index" failure mode without false-positives on
+    planner-stat fluctuations.
+    """
+    from sqlalchemy import text
+
+    factory = get_session_factory()
+    async with factory() as db:
+        result = await db.execute(
+            text(
+                "SELECT indexdef FROM pg_indexes "
+                "WHERE schemaname = 'public' "
+                "AND tablename = 'judgments' "
+                "AND indexname = 'judgments_list_query_idx'"
+            )
+        )
+        row = result.first()
+        assert row is not None, (
+            "judgments_list_query_idx not found in pg_indexes — "
+            "count_judgments_per_query + count_and_sample_judgment_refs will "
+            "degrade to seq-scans. Restore the index in a migration."
+        )
+        indexdef = row[0]
+        # CREATE INDEX ... ON public.judgments USING btree (judgment_list_id, query_id)
+        # We tolerate column order changes but require both columns present.
+        assert "judgment_list_id" in indexdef, f"index missing judgment_list_id: {indexdef}"
+        assert "query_id" in indexdef, f"index missing query_id: {indexdef}"
