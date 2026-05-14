@@ -7,7 +7,7 @@
 
 ## Problem
 
-The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target. Verified shape ([`Makefile:26-34`](../../../../Makefile#L26-L34)):
+The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target. Pre-fix shape was ([`Makefile:26-34` in the pre-PR-110 main](../../../../Makefile)):
 
 ```makefile
 fmt:  ## Format Python (ruff format) and frontend (prettier)
@@ -27,7 +27,7 @@ CI works because GitHub Actions provisions Node 20+ via `actions/setup-node@v6`.
 
 ## Proposed capabilities
 
-**Symmetric `backend-*` sub-targets that mirror the existing `ui-*` targets** at [`Makefile:62-72`](../../../../Makefile#L62-L72) (`ui-lint`, `ui-typecheck`, `ui-test`, `ui-build`). The bundled top-level targets become composition layers:
+**Symmetric `backend-*` sub-targets that mirror the existing `ui-*` targets** (`ui-lint`, `ui-typecheck`, `ui-test`, `ui-build`, `ui-fmt` — see [`Makefile`](../../../../Makefile)). The bundled top-level targets become composition layers:
 
 ```makefile
 # ---------- Backend code quality (added per
@@ -52,7 +52,7 @@ lint: backend-lint ui-lint  ## Lint Python (ruff check) and frontend (eslint)
 typecheck: backend-typecheck ui-typecheck  ## Type-check Python (mypy --strict) and frontend (tsc --noEmit)
 ```
 
-Total: ~12 lines added, 3 lines deleted from the existing bundled targets (the bodies move into the new sub-targets). `.PHONY` line at [`Makefile:6-10`](../../../../Makefile#L6-L10) gains 3 new entries.
+Total: ~16 lines added (3 new `backend-*` targets + 1 new `ui-fmt` for symmetry, post-Gemini-review), 3 lines deleted from the existing bundled targets (their bodies move into sub-targets). The `.PHONY` block at the top of the Makefile gains 4 new entries (`backend-fmt`, `backend-lint`, `backend-typecheck`, `ui-fmt`).
 
 ### Why mirror the existing `ui-*` naming (not the originally-captured `fmt-backend`)
 
@@ -92,5 +92,5 @@ The fix is ~12 lines of Makefile but it was out of scope for `feat_judgments_per
 ## Relationship to other work
 
 - Sibling chore: [`infra_dashboard_regen_pre_commit_conflict`](../../../00_overview/implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict/idea.md) (shipped 2026-05-14 as PR #108 — `_maybe_write` idempotency + path-rewriter helpers). Both originated from the same `feat_judgments_periodic_resume_sweep` tangential sweep; same operational-friction class (build-tooling and pre-commit-hook drift).
-- Builds on the existing `ui-*` sub-targets at [`Makefile:62-72`](../../../../Makefile#L62-L72) (precedent for the scope-first naming).
+- Builds on the existing `ui-*` sub-targets in [`Makefile`](../../../../Makefile) (precedent for the scope-first naming).
 - Doesn't interfere with any active or backlogged feature.

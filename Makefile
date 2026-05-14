@@ -5,7 +5,7 @@
 .DEFAULT_GOAL := help
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
         backend-fmt backend-lint backend-typecheck \
-        ui-lint ui-typecheck ui-test ui-build ui-dev \
+        ui-fmt ui-lint ui-typecheck ui-test ui-build ui-dev \
         pre-commit pre-commit-install \
         up down restart logs reset migrate migrate-create seed-clusters seed-es \
         dev dashboard
@@ -41,8 +41,7 @@ backend-typecheck:  ## Type-check Python (mypy --strict) — backend only, skips
 
 # ---------- Code quality (composed: backend + UI) ----------
 
-fmt: backend-fmt  ## Format Python (ruff format) and frontend (prettier)
-	pnpm --dir ui format
+fmt: backend-fmt ui-fmt  ## Format Python (ruff format) and frontend (prettier)
 
 lint: backend-lint ui-lint  ## Lint Python (ruff check) and frontend (eslint)
 
@@ -73,6 +72,9 @@ pre-commit-install:  ## Install pre-commit hooks (commit-msg + pre-commit stages
 	@echo "Pre-commit hooks installed. Hooks run automatically on git commit."
 
 # ---------- Frontend (UI) ----------
+
+ui-fmt:  ## Format frontend (prettier)
+	pnpm --dir ui format
 
 ui-lint:  ## Lint frontend (next lint / eslint)
 	pnpm --dir ui lint
