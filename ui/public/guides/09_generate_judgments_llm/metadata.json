@@ -1,0 +1,29 @@
+{
+  "title": "Generate judgments via LLM",
+  "description": "Trigger the LLM-as-judge worker against a query set — every (query, top-K doc) pair is rated 0-3 with a real OpenAI call. The deterministic alternative is the import path (guide 05).",
+  "order": 9,
+  "tags": ["judgments", "llm", "ground-truth"],
+  "estimated_time": "5 minutes (mostly waiting on the worker)",
+  "screenshots": [
+    {
+      "file": "01-query-set-detail-no-judgments.png",
+      "caption": "Open a query set's detail page. The 'Associated judgment lists' card on the right shows what's already been generated — or, on a fresh set, an empty state with the 'Generate judgments' button as the next action."
+    },
+    {
+      "file": "02-generate-dialog-empty.png",
+      "caption": "Click 'Generate judgments' to open the dialog. The form has four fields: a name for the judgment list, the target index/collection on the cluster, the query template that produces candidate docs, and the rubric the LLM judge uses to score relevance."
+    },
+    {
+      "file": "03-generate-dialog-text-filled.png",
+      "caption": "Fill the text fields: a unique name for the judgment list, the target index/collection on the cluster (e.g., 'products'), and customize the rubric if needed. The default rubric is a 0-3 relevance scale; tailor it to your domain ('Rate ecommerce search relevance' vs. 'Rate documentation search relevance')."
+    },
+    {
+      "file": "04-template-dropdown-open.png",
+      "caption": "Open the template dropdown and pick the query template that produces candidate docs for each query. The worker renders this template per query, runs the search, and rates every returned doc — so template choice + top-K determine both the cost of generation and the judgments' downstream usefulness."
+    },
+    {
+      "file": "05-judgment-list-terminal-state.png",
+      "caption": "Submit. The worker enqueues immediately (202 ACCEPTED) and begins hitting OpenAI per (query, doc) pair. The `/judgments/{id}` page polls for status. On success (`complete`), the per-judgment rows populate with rating + brief reasoning; on failure (`failed`), check the worker logs — common causes are cluster unreachable from the API container, daily budget exceeded, or LLM_PROVIDER_INCAPABLE (the configured model lacks structured output). Cost ~$0.01-0.05 with gpt-4o-mini for a small set."
+    }
+  ]
+}

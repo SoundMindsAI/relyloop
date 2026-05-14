@@ -102,8 +102,22 @@ export const GUIDE_REGISTRY: GuideRegistryEntry[] = [
     id: '08_chat_shell',
     title: 'Chat shell — conversations + composer',
     description:
-      'Navigate the chat conversation list, start a new chat, and understand the secrets-warning banner. Message streaming with the agent is covered in a future guide when LLM mocking lands.',
+      'Navigate the chat conversation list, start a new chat, and understand the secrets-warning banner. Message streaming with the agent is covered in guide 10.',
     estimatedTime: '2 minutes',
+  },
+  {
+    id: '09_generate_judgments_llm',
+    title: 'Generate judgments via LLM',
+    description:
+      'Trigger the LLM-as-judge worker against a query set — every (query, top-K doc) pair is rated 0-3 with a real OpenAI call. The deterministic alternative is the import path (guide 05).',
+    estimatedTime: '5 minutes (mostly waiting on the worker)',
+  },
+  {
+    id: '10_chat_with_agent',
+    title: 'Chat with the agent (real LLM)',
+    description:
+      'Send a prompt, watch the agent dispatch a tool call, and read the final assistant response. Exercises the full SSE streaming pipeline against the live OpenAI endpoint.',
+    estimatedTime: '3 minutes',
   },
 ];
 
@@ -120,6 +134,17 @@ export const GUIDE_MAP: GuideMapEntry[] = [
   },
   { prefix: '/studies', guideId: '06_create_and_monitor_study', label: 'Create + monitor a study' },
   { prefix: '/chat', guideId: '08_chat_shell', label: 'Chat conversations' },
+  { prefix: '/chat', guideId: '10_chat_with_agent', label: 'Chat with the agent (real LLM)' },
+  {
+    prefix: '/query-sets',
+    guideId: '09_generate_judgments_llm',
+    label: 'Generate judgments via LLM',
+  },
+  {
+    prefix: '/judgments',
+    guideId: '09_generate_judgments_llm',
+    label: 'Generate judgments via LLM',
+  },
 ];
 
 export function guidesForPath(pathname: string): GuideMapEntry[] {

@@ -45,15 +45,13 @@ Shipped guides:
 | 05 | [`05_import_judgments_and_calibrate`](../../ui/public/guides/05_import_judgments_and_calibrate/) | `/judgments` | Skip LLM judgment generation via the import path → run Cohen's + linear-weighted κ calibration |
 | 06 | [`06_create_and_monitor_study`](../../ui/public/guides/06_create_and_monitor_study/) | `/studies` | Configure a study → watch trials populate live → terminal state + cancel |
 | 07 | [`07_browse_proposals`](../../ui/public/guides/07_browse_proposals/) | `/proposals` | Three-axis filter (status / source / cluster) → 30-second pulse-refetch for open PRs |
-| 08 | [`08_chat_shell`](../../ui/public/guides/08_chat_shell/) | `/chat` | Conversation list → new chat → secrets warning banner (message streaming covered in a future MVP2 guide) |
+| 08 | [`08_chat_shell`](../../ui/public/guides/08_chat_shell/) | `/chat` | Conversation list → new chat → secrets warning banner |
+| 09 | [`09_generate_judgments_llm`](../../ui/public/guides/09_generate_judgments_llm/) | `/query-sets`, `/judgments` | Trigger the LLM-as-judge worker → wait for terminal state → review populated judgments. Real OpenAI calls; ~$0.02 per run. |
+| 10 | [`10_chat_with_agent`](../../ui/public/guides/10_chat_with_agent/) | `/chat` | Send a prompt → watch the SSE tool-call card render → read the assistant's final response. Real LLM, end-to-end. |
 
-**Workflows NOT yet covered by a guide:**
+**Workflows still NOT covered by a guide:**
 
-- **B4 — LLM judgment generation** (`POST /api/v1/judgments/generate`): needs a live LLM endpoint or an SSE-stream mock to capture deterministically. The import path (guide 05) is the offline-friendly substitute.
-- **C2 / E1-E3 — chat-driven study creation + agent introspection**: same blocker — agent tool dispatch is LLM-bound.
-- **D4 (full) — Open PR end-to-end**: the trigger is captured in guide 02; the worker's GitHub interaction requires a registered config-repo + real PAT, which is operator territory.
-
-These ship when MVP2 lands LLM mocking infrastructure (per the umbrella spec roadmap).
+- **D4 (full) — Open PR end-to-end**: the trigger is captured in guide 02; the worker's GitHub interaction requires a registered config-repo + real PAT, which is operator-credential territory.
 
 ### Adding or regenerating a guide
 

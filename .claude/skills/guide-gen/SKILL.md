@@ -73,8 +73,8 @@ Shipped guides (kept in sync with `GUIDE_REGISTRY` in `ui/src/components/guides/
 | 06 | `06_create_and_monitor_study` | Configure study → watch live trials → terminal state + cancel | `/studies` | Shipped |
 | 07 | `07_browse_proposals` | Three-axis filter (status / source / cluster) + 30s pulse-refetch | `/proposals` | Shipped |
 | 08 | `08_chat_shell` | Conversation list + new + secrets banner (no message streaming) | `/chat` | Shipped |
-| — | LLM judgment generation | LLM-driven `/judgments/generate` flow | `/judgments` | Blocked on LLM mocking (MVP2+) |
-| — | Chat with tool dispatch | Agent introspection + create-study via chat (workflows C2 / E1-E3) | `/chat` | Blocked on LLM mocking (MVP2+) |
+| 09 | `09_generate_judgments_llm` | LLM-driven `/judgments/generate` flow against real OpenAI | `/query-sets`, `/judgments` | Shipped |
+| 10 | `10_chat_with_agent` | Agent tool dispatch (list_clusters) end-to-end against real OpenAI | `/chat` | Shipped |
 | — | Open PR end-to-end | Worker side of `POST /proposals/{id}/open_pr` against real GitHub | `/proposals` | Operator-specific (needs registered config_repo + real PAT) |
 
 ---

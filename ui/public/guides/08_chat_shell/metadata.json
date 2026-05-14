@@ -1,6 +1,6 @@
 {
   "title": "Chat shell — conversations + composer",
-  "description": "Navigate the chat conversation list, start a new chat, and understand the secrets-warning banner. Message streaming with the agent is covered in a future guide when LLM mocking lands.",
+  "description": "Navigate the chat conversation list, start a new chat, and understand the secrets-warning banner. Message streaming with the agent is covered in guide 10.",
   "order": 8,
   "tags": ["chat", "shell", "conversations"],
   "estimated_time": "2 minutes",
