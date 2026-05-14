@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 
+import { GuideTrigger } from '@/components/guides/guide-trigger';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TopNav } from '@/components/layout/top-nav';
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <TopNav />
             {children}
             <Toaster />
+            <GuideTrigger />
           </QueryProvider>
         </ThemeProvider>
       </body>
