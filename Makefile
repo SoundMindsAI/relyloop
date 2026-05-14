@@ -4,6 +4,7 @@
 
 .DEFAULT_GOAL := help
 .PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
+        backend-fmt backend-lint backend-typecheck \
         ui-lint ui-typecheck ui-test ui-build ui-dev \
         pre-commit pre-commit-install \
         up down restart logs reset migrate migrate-create seed-clusters seed-es \
@@ -21,17 +22,31 @@ help:  ## Show this help message
 	@echo " invoke manually only to apply a freshly-authored revision without bouncing.)"
 	@echo ""
 
-# ---------- Code quality ----------
+# ---------- Backend code quality (per infra_make_targets_split_backend_only) ----------
+#
+# `backend-*` sub-targets mirror the existing `ui-*` siblings below.
+# Backend-only contributors (humans or agents on backend/*.py changes)
+# can run these without tripping the UI tooling's Node ≥20.18 engine
+# guard. The bundled `fmt`/`lint`/`typecheck` targets compose
+# `backend-*` + `ui-*` so CI behavior is unchanged.
 
-fmt:  ## Format Python (ruff format) and frontend (prettier)
+backend-fmt:  ## Format Python (ruff format) — backend only, skips UI
 	uv run ruff format .
-	pnpm --dir ui format
 
-lint: ui-lint  ## Lint Python (ruff check) and frontend (eslint)
+backend-lint:  ## Lint Python (ruff check) — backend only, skips UI
 	uv run ruff check .
 
-typecheck: ui-typecheck  ## Type-check Python (mypy --strict) and frontend (tsc --noEmit)
+backend-typecheck:  ## Type-check Python (mypy --strict) — backend only, skips UI
 	uv run mypy backend/
+
+# ---------- Code quality (composed: backend + UI) ----------
+
+fmt: backend-fmt  ## Format Python (ruff format) and frontend (prettier)
+	pnpm --dir ui format
+
+lint: backend-lint ui-lint  ## Lint Python (ruff check) and frontend (eslint)
+
+typecheck: backend-typecheck ui-typecheck  ## Type-check Python (mypy --strict) and frontend (tsc --noEmit)
 
 # ---------- Tests ----------
 
