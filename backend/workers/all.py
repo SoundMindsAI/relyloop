@@ -62,6 +62,10 @@ from backend.app.eval.optuna_runtime import build_storage
 from backend.workers.digest import generate_digest
 from backend.workers.git_pr import open_pr
 from backend.workers.judgments import generate_judgments_llm
+from backend.workers.judgments_resume import (
+    _resume_sweep_cron_kwargs,
+    resume_stuck_judgment_lists,
+)
 from backend.workers.orchestrator import resume_study, start_study
 from backend.workers.pr_reconcile import _poll_cron_kwargs, reconcile_pr_state
 from backend.workers.register_webhook import register_webhook
@@ -211,11 +215,21 @@ class WorkerSettings:
         func(open_pr, timeout=_OPEN_PR_JOB_TIMEOUT_S, max_tries=_OPEN_PR_MAX_TRIES),
         register_webhook,
     ]
-    # feat_github_webhook Story 3.1: polling reconciler. The cron kwargs are
-    # derived from `Settings.relyloop_pr_poll_minutes` (defaults to every 15
-    # minutes, whitelisted to cron-expressible values — see
-    # backend.workers.pr_reconcile.SUPPORTED_POLL_MINUTES).
-    cron_jobs: list[Any] = [cron(reconcile_pr_state, **_poll_cron_kwargs())]
+    # Registered cron jobs:
+    # * `reconcile_pr_state` (feat_github_webhook Story 3.1) — polls GitHub
+    #   for PR-state changes on `proposals` that webhook delivery missed.
+    #   Cadence from `Settings.relyloop_pr_poll_minutes`.
+    # * `resume_stuck_judgment_lists`
+    #   (feat_judgments_periodic_resume_sweep Story 1.3) — periodic
+    #   re-enqueue for `judgment_lists.status='generating'` rows whose initial
+    #   Arq enqueue failed mid-run. Cadence from
+    #   `Settings.relyloop_judgments_resume_sweep_minutes`.
+    # Both cadences are whitelisted against the same cron-expressible set —
+    # see backend.workers.pr_reconcile.SUPPORTED_POLL_MINUTES.
+    cron_jobs: list[Any] = [
+        cron(reconcile_pr_state, **_poll_cron_kwargs()),
+        cron(resume_stuck_judgment_lists, **_resume_sweep_cron_kwargs()),
+    ]
     redis_settings = _build_redis_settings()
     on_startup = on_startup
     on_shutdown = on_shutdown
