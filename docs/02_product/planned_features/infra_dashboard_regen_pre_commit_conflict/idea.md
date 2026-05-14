@@ -1,7 +1,7 @@
 # Dashboard regen pre-commit hook conflicts with stash-on-unstaged-files
 
 **Date:** 2026-05-14
-**Status:** Idea — captured during feat_judgments_periodic_resume_sweep impl-execute tangential sweep
+**Status:** Partial — §2 (idempotency) + §4 (path rewriting) addressed by PR opened 2026-05-14 (this PR). §3 (runbook addendum) still pending. §1 already done in the actual hook config (was misdiagnosed; see note below).
 **Origin:** `/impl-execute` Step 7 (commit) — `mvp1-dashboard-regen` pre-commit hook chronically blocked commit attempts during the feat_judgments_periodic_resume_sweep `/pipeline --auto` run, requiring multiple stash-pop-restage-recommit cycles.
 
 ## Problem
@@ -36,16 +36,16 @@ The dashboard hook is also overly aggressive: it regenerates on every commit, ev
 
 Three independent improvements that compound:
 
-### 1. Tighten the hook trigger to actual scope changes
+### 1. Tighten the hook trigger to actual scope changes — **already done, originally misdiagnosed**
 
-The hook config currently has no `files:` regex — it runs on every commit. Add a filter:
+The hook config actually already has a correct `files:` regex (verified 2026-05-14 in the same `/impl-execute --ad-hoc` session that addresses §2 + §4):
 
 ```yaml
 - id: mvp1-dashboard-regen
-  files: ^docs/(02_product/planned_features|00_overview/implemented_features)/
+  files: ^(docs/02_product/planned_features/|docs/00_overview/implemented_features/|scripts/build_mvp1_dashboard\.py$)
 ```
 
-Skip if no planned/implemented feature folder changed. Most commits (backend code, runbook tweaks, test additions) wouldn't trigger the hook.
+The hook only fires for commits that touch planned/implemented feature folders or the script itself. The friction I attributed to this issue in the initial capture was actually caused by §2 (no idempotency — hook fires correctly on idea.md edits but the regenerated dashboard output looks like an unrelated diff that pre-commit's "files modified by this hook" check then aborts the commit on, requiring a re-stage). My initial diagnosis was wrong; subsection kept for historical accuracy with a "already addressed" note.
 
 ### 2. Make the regen idempotent
 
