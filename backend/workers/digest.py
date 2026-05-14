@@ -45,10 +45,11 @@ import json
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import Any, cast
 
 import openai
 import optuna
+import optuna.importance
 import structlog
 import uuid_utils
 from openai import AsyncOpenAI
@@ -81,6 +82,73 @@ logger = structlog.get_logger(__name__)
 
 TOP_K_TRIALS = 10
 """Top-N trials passed to the LLM in the prompt (per spec §11 token budget)."""
+
+
+_PARAM_IMPORTANCE_EXPECTED_EXCEPTIONS: tuple[type[BaseException], ...] = (ValueError,)
+"""Exceptions that ``optuna.importance.get_param_importances`` legitimately raises.
+
+Audited via parametrized unit tests at
+``backend/tests/unit/workers/test_digest_importance_audit.py`` against three
+edge cases — zero-completed-trials, single-trial, all-pruned — all of which
+raise ``ValueError`` with documented messages ("Cannot evaluate parameter
+importances without completed trials" / "...with only a single trial").
+Exceptions NOT in this tuple (e.g., ``ImportError`` from a missing optional
+dep like scikit-learn — the canonical PR #92 regression — or ``RuntimeError``
+from a misconfigured Optuna RDB) take the louder ERROR-level fallback path in
+:func:`_compute_param_importance` so the regression doesn't silently ship
+``{}`` again. See ``chore_digest_worker_narrow_except`` idea for the full
+audit + fork decisions.
+"""
+
+
+def _compute_param_importance(optuna_study: optuna.Study, *, study_id: str) -> dict[str, float]:
+    """Compute parameter importance with two-tier fallback.
+
+    * Allowlisted exceptions (per ``_PARAM_IMPORTANCE_EXPECTED_EXCEPTIONS``) →
+      log ``digest_importance_failed`` at WARN, return ``{}``. These are the
+      benign small-study cases the digest can gracefully degrade through.
+    * Anything else → log ``digest_importance_failed_unexpected`` at ERROR,
+      return ``{}``. The digest still ships (soft-fail), but the ERROR-level
+      event_type makes the regression visible to ``make logs`` / MVP2+ Langfuse
+      alerting instead of silently degrading.
+
+    Both paths return ``{}`` to preserve the existing caller contract; only the
+    signal-loudness differs.
+
+    Extracted from the inline try/except at the Step 10 call site to make the
+    routing logic unit-testable without the surrounding ``generate_digest`` DB
+    + OpenAI fixture chain (per ``chore_digest_worker_narrow_except`` idea
+    Story 1 + Story 2).
+    """
+    try:
+        # optuna's stub returns Any; the documented contract is dict[str, float]
+        # (param name → normalized importance score). Cast at the boundary.
+        result = optuna.importance.get_param_importances(optuna_study)
+        return cast(dict[str, float], result)
+    except _PARAM_IMPORTANCE_EXPECTED_EXCEPTIONS as exc:
+        logger.warning(
+            "digest worker: get_param_importances raised; using empty map",
+            event_type="digest_importance_failed",
+            study_id=study_id,
+            error_type=type(exc).__name__,
+            error=str(exc),
+        )
+        return {}
+    except Exception as exc:  # noqa: BLE001 — unexpected; surfaces as ERROR
+        # exc_info=True captures the traceback into structlog so operators
+        # can root-cause unexpected regressions like the PR #92 ImportError.
+        # Only on the unexpected path — allowlisted exceptions are benign
+        # and don't need traceback noise.
+        logger.error(
+            "digest worker: get_param_importances raised UNEXPECTEDLY; using empty map",
+            event_type="digest_importance_failed_unexpected",
+            study_id=study_id,
+            error_type=type(exc).__name__,
+            error=str(exc),
+            exc_info=True,
+        )
+        return {}
+
 
 _MAX_COMPLETION_TOKENS = 2_000
 """Honest budget gate: matches cost_model._OUTPUT_TOKEN_CEILING. Cycle-1 F4."""
@@ -531,19 +599,9 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     sampler=sampler,
                     pruner=pruner,
                 )
-                try:
-                    parameter_importance = await _asyncio.to_thread(
-                        optuna.importance.get_param_importances, optuna_study
-                    )
-                except Exception as exc:  # noqa: BLE001 — small-study edge case
-                    logger.warning(
-                        "digest worker: get_param_importances raised; using empty map",
-                        event_type="digest_importance_failed",
-                        study_id=study_id,
-                        error_type=type(exc).__name__,
-                        error=str(exc),
-                    )
-                    parameter_importance = {}
+                parameter_importance = await _asyncio.to_thread(
+                    _compute_param_importance, optuna_study, study_id=study_id
+                )
 
                 # Load the best trial + top-K trials from the app DB.
                 from backend.app.db.models import Trial
