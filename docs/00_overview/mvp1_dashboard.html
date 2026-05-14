@@ -313,12 +313,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md">Judgments Periodic Resume Sweep</a></div>
+    <div class="one-liner">A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status=&#x27;generating&#x27;` row via deterministic `_job_id` dedup, and caps re-enqueues </div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/feat_judgments_periodic_resume_sweep --auto</code>
   </div>
 </section>
 
@@ -326,15 +326,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">30 / 30</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">30 / 31</div>
+      <div class="sub">97% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:97%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">5</div>
+      <div class="value">6</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -351,7 +351,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      2 idea-only feat/infra folders (not yet scoped into MVP1)
+      1 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,19 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">7</span></h3>
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_judgments_periodic_resume_sweep">Judgments Periodic Resume Sweep</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">`feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in [`backend/workers/all.py:127`](../../../../backend/workers/all.py#L127) + [:148-161](../../../../backend/workers/all.py#L148-L161):</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">6</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -460,7 +448,18 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md">Judgments Periodic Resume Sweep</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a><span>merged 2026-05-12</span>
+  </div>
+  <div class="one-liner">A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status=&#x27;generating&#x27;` row via deterministi</div>
+
+
+</div>
 
 </div>
 
@@ -933,6 +932,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
+  class feat_judgments_periodic_resume_sweep spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1002,6 +1003,7 @@ footer {
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
+  feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
   feat_query_inline_crud --&gt; chore_tutorial_polish
@@ -1017,6 +1019,7 @@ footer {
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
+  feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
   feat_query_inline_crud --&gt; feat_chat_agent
@@ -1056,6 +1059,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
+  class feat_judgments_periodic_resume_sweep spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1125,6 +1130,7 @@ footer {
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
+  feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
   feat_query_inline_crud --&gt; chore_tutorial_polish
@@ -1140,6 +1146,7 @@ footer {
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
+  feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
   feat_query_inline_crud --&gt; feat_chat_agent

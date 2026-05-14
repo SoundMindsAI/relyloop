@@ -4,19 +4,25 @@ _Reflects feature-folder state as of **2026-05-14** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_judgments_periodic_resume_sweep](../02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md)** — Feature, currently in **Spec**
 
-Pull from the Idea backlog or capture a new feature spec.
+> A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status='generating'` row via deterministic `_job_id` dedup, and caps re-enqueues
+
+Spec exists; run /pipeline to generate the implementation plan + ship
+
+```bash
+/pipeline docs/02_product/planned_features/feat_judgments_periodic_resume_sweep --auto
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **30 / 30** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **5** items remaining (features + bugs + chores) |
+| Scoped items done | **30 / 31** (97%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **6** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 4 (idea-stage debt) |
-| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -71,15 +77,16 @@ _None._
 
 _None._
 
-### Spec (0)
-
-_None._
-
-### Idea (7)
+### Spec (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_judgments_periodic_resume_sweep](../02_product/planned_features/feat_judgments_periodic_resume_sweep/idea.md) | Feature | `feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in [`backend/workers/all.py:127`](../../../../backend/workers/all.py#L127) + [:148-161](../../../../backend/workers/all.py#L148-L161): | — | Idea — deferred from feat_llm_judgments cycle-2 plan review; **eligible** as of 2026-05-12 once `feat_github_webhook` shipped the cron precedent. |
+| [feat_judgments_periodic_resume_sweep](../02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md) | Feature | A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status='generating'` row via deterministi | — | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
+
+### Idea (6)
+
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
@@ -98,6 +105,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_judgments_periodic_resume_sweep["judgments periodic resume sweep"]
+  class feat_judgments_periodic_resume_sweep spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -167,6 +176,7 @@ graph LR
   feat_digest_proposal --> chore_tutorial_polish
   feat_github_pr_worker --> chore_tutorial_polish
   feat_github_webhook --> chore_tutorial_polish
+  feat_judgments_periodic_resume_sweep --> chore_tutorial_polish
   feat_llm_judgments --> chore_tutorial_polish
   feat_proposals_ui --> chore_tutorial_polish
   feat_query_inline_crud --> chore_tutorial_polish
@@ -182,6 +192,7 @@ graph LR
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
   feat_github_webhook --> feat_chat_agent
+  feat_judgments_periodic_resume_sweep --> feat_chat_agent
   feat_llm_judgments --> feat_chat_agent
   feat_proposals_ui --> feat_chat_agent
   feat_query_inline_crud --> feat_chat_agent
