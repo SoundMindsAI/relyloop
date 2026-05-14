@@ -169,7 +169,7 @@ GROUP BY judgment_list_id;
 ## Known limitations (MVP1)
 
 * No periodic in-worker resume sweep — only boot-time. A future
-  `chore_judgments_periodic_resume_sweep` adds cron-based re-enqueueing
+  `feat_judgments_periodic_resume_sweep` adds cron-based re-enqueueing
   for stuck `generating` rows (idea file lives in
   `docs/02_product/planned_features/`).
 * The worker stores LLM rationales in `judgments.notes` but does not yet
