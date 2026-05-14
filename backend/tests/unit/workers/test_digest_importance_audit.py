@@ -27,13 +27,11 @@ under this contract, instead of silently shipping empty importance maps for
 
 from __future__ import annotations
 
-from collections.abc import MutableMapping
 from typing import Any
 from unittest.mock import patch
 
 import optuna
 import pytest
-import structlog.testing
 
 from backend.workers.digest import (
     _PARAM_IMPORTANCE_EXPECTED_EXCEPTIONS,
@@ -42,6 +40,48 @@ from backend.workers.digest import (
 
 # Optuna is noisy by default; silence for the test session.
 optuna.logging.set_verbosity(optuna.logging.ERROR)
+
+
+class _RecordingLogger:
+    """Tiny stub for ``structlog.BoundLogger`` that records calls.
+
+    Replaces ``structlog.testing.capture_logs()`` in this file because the
+    project's :func:`backend.app.core.logging.configure_logging` uses
+    ``structlog.configure(cache_logger_on_first_use=True)``. Once a sibling
+    integration test in the same pytest session warms the cache via
+    FastAPI lifespan, ``capture_logs()`` cannot intercept the already-
+    bound logger and returns an empty list. Locally (cache cold)
+    capture_logs works; in CI (cache warm from prior integration tests)
+    it doesn't. Same issue is silently lurking in any other test that
+    uses ``capture_logs()`` on a cached logger.
+
+    Monkeypatching the module-level ``logger`` attribute bypasses the
+    cache entirely — the function under test reads ``logger`` through
+    module attribute lookup at call time, so the replacement is seen
+    immediately. See ``infra_structlog_test_level_helper/idea.md`` for
+    the systematic follow-up that would factor this pattern repo-wide.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, dict[str, Any]]] = []
+
+    def warning(self, event: str, **kwargs: Any) -> None:
+        self.calls.append(("warning", event, dict(kwargs)))
+
+    def error(self, event: str, **kwargs: Any) -> None:
+        self.calls.append(("error", event, dict(kwargs)))
+
+    def info(self, event: str, **kwargs: Any) -> None:
+        # Helper doesn't emit info, but make the stub forgiving.
+        self.calls.append(("info", event, dict(kwargs)))
+
+    def find(self, *, level: str, event_type: str) -> list[dict[str, Any]]:
+        """Return kwargs dicts for matching (level, event_type) calls."""
+        return [
+            kw
+            for lvl, _evt, kw in self.calls
+            if lvl == level and kw.get("event_type") == event_type
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -137,39 +177,31 @@ def test_routing_success_path_returns_actual_dict() -> None:
     assert result == expected
 
 
-def test_routing_allowlisted_value_error_logs_warning_and_returns_empty() -> None:
+def test_routing_allowlisted_value_error_logs_warning_and_returns_empty(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """ValueError → ``digest_importance_failed`` at WARN + ``{}`` return.
 
     The benign small-study path. The legacy event_type (``digest_importance_failed``)
     is preserved unchanged for grep continuity in operator logs.
     """
     study = _stub_study()
-    with (
-        patch.object(
-            optuna.importance,
-            "get_param_importances",
-            side_effect=ValueError(
-                "Cannot evaluate parameter importances with only a single trial."
-            ),
-        ),
-        structlog.testing.capture_logs() as captured,
+    rec = _RecordingLogger()
+    monkeypatch.setattr("backend.workers.digest.logger", rec)
+    with patch.object(
+        optuna.importance,
+        "get_param_importances",
+        side_effect=ValueError("Cannot evaluate parameter importances with only a single trial."),
     ):
         result = _compute_param_importance(study, study_id="study-warn")
 
     assert result == {}
-    warn_events: list[MutableMapping[str, Any]] = [
-        e for e in captured if e.get("event_type") == "digest_importance_failed"
-    ]
-    assert len(warn_events) == 1
-    # structlog's `capture_logs()` writes the level under different keys
-    # depending on version (some emit "log_level", others "level"). Accept
-    # whichever is present — the event_type already proves the right path
-    # fired; we only need the level to confirm WARN vs ERROR.
-    assert (warn_events[0].get("log_level") or warn_events[0].get("level")) == "warning"
-    assert warn_events[0]["study_id"] == "study-warn"
-    assert warn_events[0]["error_type"] == "ValueError"
-    # Verify the unexpected event_type did NOT also fire on this path.
-    assert not [e for e in captured if e.get("event_type") == "digest_importance_failed_unexpected"]
+    warn_calls = rec.find(level="warning", event_type="digest_importance_failed")
+    assert len(warn_calls) == 1
+    assert warn_calls[0]["study_id"] == "study-warn"
+    assert warn_calls[0]["error_type"] == "ValueError"
+    # The unexpected event_type did NOT fire on this path.
+    assert not rec.find(level="error", event_type="digest_importance_failed_unexpected")
 
 
 @pytest.mark.parametrize(
@@ -182,7 +214,7 @@ def test_routing_allowlisted_value_error_logs_warning_and_returns_empty() -> Non
     ids=["ImportError-PR92-canary", "RuntimeError-rdb-drift", "TypeError-api-drift"],
 )
 def test_routing_unexpected_exception_logs_error_and_returns_empty(
-    exc: Exception,
+    exc: Exception, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Anything outside the allowlist → ``digest_importance_failed_unexpected`` ERROR + ``{}``.
 
@@ -194,20 +226,15 @@ def test_routing_unexpected_exception_logs_error_and_returns_empty(
     ImportError case.
     """
     study = _stub_study()
-    with (
-        patch.object(optuna.importance, "get_param_importances", side_effect=exc),
-        structlog.testing.capture_logs() as captured,
-    ):
+    rec = _RecordingLogger()
+    monkeypatch.setattr("backend.workers.digest.logger", rec)
+    with patch.object(optuna.importance, "get_param_importances", side_effect=exc):
         result = _compute_param_importance(study, study_id="study-error")
 
     assert result == {}
-    error_events: list[MutableMapping[str, Any]] = [
-        e for e in captured if e.get("event_type") == "digest_importance_failed_unexpected"
-    ]
-    assert len(error_events) == 1
-    # Cross-version-tolerant level key (see WARN test above for rationale).
-    assert (error_events[0].get("log_level") or error_events[0].get("level")) == "error"
-    assert error_events[0]["study_id"] == "study-error"
-    assert error_events[0]["error_type"] == type(exc).__name__
-    # Verify the allowlisted event_type did NOT fire on this path.
-    assert not [e for e in captured if e.get("event_type") == "digest_importance_failed"]
+    error_calls = rec.find(level="error", event_type="digest_importance_failed_unexpected")
+    assert len(error_calls) == 1
+    assert error_calls[0]["study_id"] == "study-error"
+    assert error_calls[0]["error_type"] == type(exc).__name__
+    # The allowlisted event_type did NOT fire on this path.
+    assert not rec.find(level="warning", event_type="digest_importance_failed")

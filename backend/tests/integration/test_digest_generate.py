@@ -9,9 +9,10 @@ populated), and no second proposal row is created.
 
 from __future__ import annotations
 
+from typing import Any
+
 import optuna
 import pytest
-import structlog.testing
 from redis.asyncio import Redis
 
 from backend.app.core.settings import get_settings
@@ -26,6 +27,39 @@ from backend.tests.integration._digest_helpers import (
     stub_capability,
 )
 from backend.workers.digest import generate_digest
+
+
+class _RecordingLogger:
+    """Tiny stub that records `.warning()` / `.error()` calls.
+
+    Avoids `structlog.testing.capture_logs()` which can't intercept loggers
+    that were cached under the project's `configure_logging` (uses
+    `cache_logger_on_first_use=True`). Monkeypatching the module-level
+    `logger` attribute is reliable regardless of cache state.
+
+    Tracked for repo-wide factoring as
+    `infra_structlog_test_level_helper/idea.md`.
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str, dict[str, Any]]] = []
+
+    def warning(self, event: str, **kwargs: Any) -> None:
+        self.calls.append(("warning", event, dict(kwargs)))
+
+    def error(self, event: str, **kwargs: Any) -> None:
+        self.calls.append(("error", event, dict(kwargs)))
+
+    def info(self, event: str, **kwargs: Any) -> None:
+        self.calls.append(("info", event, dict(kwargs)))
+
+    def find(self, *, level: str, event_type: str) -> list[dict[str, Any]]:
+        return [
+            kw
+            for lvl, _evt, kw in self.calls
+            if lvl == level and kw.get("event_type") == event_type
+        ]
+
 
 pytestmark = [
     pytest.mark.integration,
@@ -132,8 +166,12 @@ async def test_unexpected_importance_exception_surfaces_as_error_event(
         lambda _study: (_ for _ in ()).throw(ImportError("No module named 'sklearn'")),
     )
 
-    with structlog.testing.capture_logs() as captured:
-        await generate_digest({}, seeded["study_id"])
+    # Capture digest-worker log calls by replacing the module-level logger
+    # with a recording stub. Bypasses structlog's cache_logger_on_first_use
+    # issue that affects capture_logs() in CI (see _RecordingLogger above).
+    rec = _RecordingLogger()
+    monkeypatch.setattr("backend.workers.digest.logger", rec)
+    await generate_digest({}, seeded["study_id"])
 
     # 1. Digest was created (soft-fail behaviour preserved).
     factory = get_session_factory()
@@ -144,16 +182,10 @@ async def test_unexpected_importance_exception_surfaces_as_error_event(
         assert digest.parameter_importance == {}
 
     # 3. ERROR-level event_type fired exactly once.
-    error_events = [
-        e for e in captured if e.get("event_type") == "digest_importance_failed_unexpected"
-    ]
-    assert len(error_events) == 1
-    # structlog's capture_logs() uses different level keys across versions
-    # ("log_level" in some, "level" in others); accept whichever is present.
-    assert (error_events[0].get("log_level") or error_events[0].get("level")) == "error"
-    assert error_events[0]["error_type"] == "ImportError"
-    assert error_events[0]["study_id"] == seeded["study_id"]
+    error_calls = rec.find(level="error", event_type="digest_importance_failed_unexpected")
+    assert len(error_calls) == 1
+    assert error_calls[0]["error_type"] == "ImportError"
+    assert error_calls[0]["study_id"] == seeded["study_id"]
 
     # 4. The benign WARN-level event_type did NOT fire on this unexpected path.
-    warn_events = [e for e in captured if e.get("event_type") == "digest_importance_failed"]
-    assert not warn_events
+    assert not rec.find(level="warning", event_type="digest_importance_failed")
