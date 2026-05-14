@@ -16,6 +16,7 @@ DB-backed via the existing service-container Postgres + ``get_session_factory``.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 import pytest
@@ -66,6 +67,13 @@ async def _seed_set_with_queries(num_queries: int = 3) -> tuple[str, list[str]]:
                 query_metadata={"i": i} if i % 2 == 0 else None,
             )
             query_ids.append(q.id)
+            # Ensure distinct UUIDv7 ms timestamps so since_lower_bound_id /
+            # cursor tests (test_count_queries_for_set_with_since_filter,
+            # test_list_cursor_with_since_inclusive_boundary) don't flake
+            # when two queries share the same 48-bit ms prefix. Same
+            # precedent + reasoning as test_phase2_repos.py:131 and the
+            # sibling router test test_query_sets_router_queries.py:_seed_set.
+            await asyncio.sleep(0.01)
         await db.commit()
     return qs.id, query_ids
 
