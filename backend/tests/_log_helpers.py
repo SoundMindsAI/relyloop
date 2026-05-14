@@ -99,24 +99,28 @@ class RecordingLogger:
     def debug(self, event: str, **kwargs: Any) -> None:
         self.calls.append(("debug", event, dict(kwargs)))
 
+    def exception(self, event: str, **kwargs: Any) -> None:
+        """Mirror structlog's ``.exception()`` — records at ERROR level."""
+        self.calls.append(("error", event, dict(kwargs)))
+
     def find(
         self,
         *,
-        level: str,
+        level: str | None = None,
         event_type: str | None = None,
         event: str | None = None,
     ) -> list[dict[str, Any]]:
-        """Return kwargs dicts for calls matching ``level`` (+ optional event filter).
+        """Return event dicts for calls matching the filters.
 
-        ``event_type`` matches against the ``event_type`` kwarg (machine-routable
-        events). ``event`` matches against the positional event name passed to
-        ``.warning()`` / ``.error()`` / etc. Both kwargs optional; pass whichever
-        the production code emits.
+        Returned dicts include the ``level`` and ``event`` keys (matching the
+        shape of ``capture_logs()`` output) so :func:`assert_log_level` and
+        :func:`find_log_events` compose against the same value. All filters
+        optional; passing none returns the full call list.
         """
         return [
-            kw
+            {"level": lvl, "event": evt, **kw}
             for lvl, evt, kw in self.calls
-            if lvl == level
+            if (level is None or lvl == level)
             and (event_type is None or kw.get("event_type") == event_type)
             and (event is None or evt == event)
         ]
