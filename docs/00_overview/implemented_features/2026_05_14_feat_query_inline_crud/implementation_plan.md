@@ -1,7 +1,7 @@
 # Implementation Plan — feat_query_inline_crud
 
 **Date:** 2026-05-13
-**Status:** Complete (PR pending push)
+**Status:** Complete (PR #101, squash-merged 2026-05-14 as `6a21da4`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy sources:**
 - [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md) — error envelope, cursor pagination, `X-Total-Count`, `?since` contract
