@@ -19,8 +19,8 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **30 / 31** (97%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **6** items remaining (features + bugs + chores) |
-| Open bugs | 1 |
+| Path to MVP1 | **7** items remaining (features + bugs + chores) |
+| Open bugs | 2 |
 | Open chores | 4 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
@@ -83,7 +83,7 @@ _None._
 
 _None._
 
-### Idea (8)
+### Idea (9)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -95,6 +95,7 @@ _None._
 | [chore_digest_worker_narrow_except](../02_product/planned_features/chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Idea (deferred from Gemini Code Assist Finding #2 on [PR #92](https://github.com/SoundMindsAI/relyloop/pull/92)) |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
 | [bug_chat_long_conversation_truncation_mvp2](../02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
+| [bug_query_inline_crud_since_filter_uuidv7_ms_collision](../02_product/planned_features/bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | The test (shipped in PR #101) seeds 5 queries via `_seed_set(5)`, takes `query_ids[2]`'s UUIDv7 embedded timestamp (first 48 bits = milliseconds), subtracts 1ms, and uses that as the `?since` boundary | — | Bug — captured during feat_judgments_periodic_resume_sweep PR #104 CI run |
 
 ## Dependency graph
 
