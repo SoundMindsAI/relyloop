@@ -314,11 +314,11 @@ footer {
 
 <section>
   <div class="next-up">
-    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
     <div class="title"><a href="../../docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md">Judgments Periodic Resume Sweep</a></div>
     <div class="one-liner">A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status=&#x27;generating&#x27;` row via deterministic `_job_id` dedup, and caps re-enqueues </div>
-    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
-    <code class="cmd">/pipeline docs/02_product/planned_features/feat_judgments_periodic_resume_sweep --auto</code>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -448,7 +448,12 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">1</span></h3>
+  <h3>Spec <span class="count">0</span></h3>
+
+</div>
+
+<div class="col plan">
+  <h3>Plan <span class="count">1</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md">Judgments Periodic Resume Sweep</a></div>
@@ -460,11 +465,6 @@ footer {
 
 
 </div>
-
-</div>
-
-<div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -933,7 +933,7 @@ footer {
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
-  class feat_judgments_periodic_resume_sweep spec;
+  class feat_judgments_periodic_resume_sweep plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1060,7 +1060,7 @@ footer {
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
-  class feat_judgments_periodic_resume_sweep spec;
+  class feat_judgments_periodic_resume_sweep plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]

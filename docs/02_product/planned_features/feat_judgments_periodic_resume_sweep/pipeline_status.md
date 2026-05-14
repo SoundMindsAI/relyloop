@@ -13,7 +13,12 @@
 - Phases: 1 of 1 (single-phase, all in-scope work ships together)
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-14
+- File: [implementation_plan.md](./implementation_plan.md)
+- Cross-model review: GPT-5.5 passed (1 cycle, 5 findings — 4 Medium + 1 Low; all accepted or accepted-partial; none changed FR scope, AC text, story scope, or contract surface)
+- Stories: 4 total across 1 epic, single phase
+- Phases covered: 1 of 1 (single-phase feature)
 
 ## Implementation
 - Status: Not started

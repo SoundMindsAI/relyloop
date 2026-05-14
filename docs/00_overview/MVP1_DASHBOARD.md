@@ -4,14 +4,14 @@ _Reflects feature-folder state as of **2026-05-14** (latest mtime of any planned
 
 ## Next up
 
-**[feat_judgments_periodic_resume_sweep](../02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_judgments_periodic_resume_sweep](../02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md)** — Feature, currently in **Plan**
 
 > A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status='generating'` row via deterministic `_job_id` dedup, and caps re-enqueues
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_judgments_periodic_resume_sweep --auto
+/impl-execute docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -73,15 +73,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_judgments_periodic_resume_sweep](../02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md) | Feature | A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status='generating'` row via deterministi | — | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (6)
 
@@ -106,7 +106,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_judgments_periodic_resume_sweep["judgments periodic resume sweep"]
-  class feat_judgments_periodic_resume_sweep spec;
+  class feat_judgments_periodic_resume_sweep plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
