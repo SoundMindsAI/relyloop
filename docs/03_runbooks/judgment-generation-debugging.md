@@ -36,12 +36,94 @@ worker.generate_judgments_llm:
   ↓ update_judgment_list_status(complete) — or failed_reason on Budget / Pricing / unexpected
 ```
 
+## Automatic recovery — boot-time sweep + periodic cron
+
+Two automatic recovery paths now cover stuck `status='generating'` rows;
+operators rarely need the manual snippet below.
+
+1. **Boot-time sweep** — the worker's `on_startup` hook at
+   [`backend/workers/all.py:148-161`](../../backend/workers/all.py#L148-L161)
+   sweeps every `status='generating'` row at worker boot and re-enqueues
+   `generate_judgments_llm` for each. This covers the "worker crashed mid-run"
+   case where a SIGKILL leaves a row without setting `failed_reason`.
+   _Origin: per the GPT-5.5 cycle 1 F14 / cycle 2 F1 design from `feat_llm_judgments`._
+2. **Periodic in-worker cron** — `resume_stuck_judgment_lists` (shipped by
+   `feat_judgments_periodic_resume_sweep`) ticks every
+   `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15) and
+   re-enqueues every `status='generating'` row via deterministic
+   `_job_id="generate_judgments_llm:<jid>"`. Arq's `_job_id` dedup makes
+   an already-in-flight or recently-completed job a no-op by construction.
+   This covers the "Arq enqueue raised while the worker is running" case —
+   e.g., a transient Redis hiccup during `POST /api/v1/judgments/generate`.
+
+A Redis daily counter `judgments:resume:YYYY-MM-DD:<jid>` (26h TTL, mirrors
+the budget-gate pattern at [`backend/app/llm/budget_gate.py:44-50`](../../backend/app/llm/budget_gate.py#L44-L50))
+caps re-enqueues per `(id, UTC day)` at `RELYLOOP_JUDGMENTS_RESUME_MAX_PER_DAY`
+(default 24). On cap-breach the cron emits `judgment_resume_capped` at WARN
+and skips the row — see "Stuck-list cap-breach triage" below.
+
+## Stuck-list cap-breach triage
+
+If you see a `judgment_resume_capped` WARN log line, the periodic cron has
+attempted to re-enqueue that `judgment_list_id` more than
+`RELYLOOP_JUDGMENTS_RESUME_MAX_PER_DAY` times in the current UTC day and is
+backing off. This signals one of two scenarios:
+
+1. **Structurally-broken row** (most common) — bad rubric, missing query
+   template, malformed query set. The `generate_judgments_llm` handler
+   raises the same way on every retry, leaving the row stuck.
+2. **Legitimately long-running job** — the handler is still working through
+   a large query set × slow LLM upstream; each tick's attempted re-enqueue
+   counts against the cap (per spec §10 Threat 5). The boot-time sweep on
+   next worker restart heals this without a cap.
+
+**Triage steps for scenario 1:**
+
+```bash
+# 1. Inspect the row state.
+docker compose exec postgres psql -U relyloop -d relyloop -c \
+  "SELECT id, status, failed_reason, created_at FROM judgment_lists \
+   WHERE id = '<judgment-list-id>';"
+
+# 2. If `failed_reason` is populated → the handler tripped a known
+#    failure mode (BudgetExceededError, UnknownModelPricingError, etc.).
+#    See "End-to-end flow walkthrough" above. Fix the underlying issue
+#    (top up budget, pin a known model, etc.).
+
+# 3. If `failed_reason` is NULL but `status='generating'` → the handler
+#    is raising an unexpected exception before it can persist
+#    failed_reason. Inspect worker logs:
+docker compose logs --tail=200 worker | grep -E "(judgment|generate_judgments)"
+
+# 4. After fixing, manually re-enqueue (the cap doesn't block the manual
+#    snippet — only the cron is rate-limited). See below.
+```
+
+**Triage steps for scenario 2:**
+
+```bash
+# Raise the cap via env var, then `make restart api worker`.
+# Example: set to 96 (every-tick-all-day at 15-min cadence) to disable
+# the cap for legitimately long jobs while keeping the protection
+# against runaway loops on broken rows for the rest of the deployment.
+echo "RELYLOOP_JUDGMENTS_RESUME_MAX_PER_DAY=96" >> .env
+make restart api worker
+```
+
+The cap counter persists in Redis with a 26h TTL — it resets naturally at
+UTC midnight. If you need to force a reset for a specific row:
+
+```bash
+docker compose exec redis redis-cli DEL "judgments:resume:$(date -u +%Y-%m-%d):<judgment-list-id>"
+```
+
 ## Resuming a stuck `generating` row manually
 
-The worker's `on_startup` hook sweeps every `status='generating'` row at
-boot and re-enqueues `generate_judgments_llm` for each (per the GPT-5.5
-cycle 1 F14 / cycle 2 F1 design). If you need to nudge a single list
-without restarting the worker, run an Arq enqueue directly from a Python
+The periodic cron resumes stuck rows automatically; this manual path is
+needed only when (a) the cron has capped a row that's not actually broken
+(see "Stuck-list cap-breach triage" above for the cleaner fix), (b) you
+want to force an immediate re-enqueue without waiting for the next tick, or
+(c) the cron itself is failing. Run an Arq enqueue directly from a Python
 REPL inside the worker container:
 
 ```bash
@@ -168,10 +250,10 @@ GROUP BY judgment_list_id;
 
 ## Known limitations (MVP1)
 
-* No periodic in-worker resume sweep — only boot-time. A future
-  `chore_judgments_periodic_resume_sweep` adds cron-based re-enqueueing
-  for stuck `generating` rows (idea file lives in
-  `docs/02_product/planned_features/`).
+* **Resolved** — boot-time + periodic-cron resume sweeps both ship in MVP1.
+  See "Automatic recovery — boot-time sweep + periodic cron" above.
+  Originally tracked as `feat_judgments_periodic_resume_sweep`; merged with
+  this runbook update.
 * The worker stores LLM rationales in `judgments.notes` but does not yet
   surface them via the API. Inspection requires direct DB access.
 * No multi-LLM provider abstraction — every call goes through `openai.AsyncOpenAI`.

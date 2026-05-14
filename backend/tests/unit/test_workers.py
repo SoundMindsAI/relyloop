@@ -158,3 +158,21 @@ def test_pr_reconcile_cron_registered(_settings_env: None) -> None:
     # arq.CronJob exposes the registered coroutine; match by its __name__.
     names = {getattr(job.coroutine, "__name__", None) for job in cron_jobs}
     assert "reconcile_pr_state" in names
+
+
+def test_resume_judgment_lists_cron_registered(_settings_env: None) -> None:
+    """feat_judgments_periodic_resume_sweep Story 1.3 — resume_stuck_judgment_lists wired.
+
+    Parallel to :func:`test_pr_reconcile_cron_registered` for the second
+    cron job added in this feature (spec FR-1 / AC-1). The set-membership
+    assertion shape lets both crons coexist without test fragility.
+    """
+    from backend.workers.all import WorkerSettings
+
+    cron_jobs = getattr(WorkerSettings, "cron_jobs", [])
+    assert cron_jobs, "WorkerSettings.cron_jobs missing"
+    names = {getattr(job.coroutine, "__name__", None) for job in cron_jobs}
+    assert "resume_stuck_judgment_lists" in names
+    # Sanity: the reconcile_pr_state cron is also still there — the new
+    # registration must not displace the existing one.
+    assert "reconcile_pr_state" in names

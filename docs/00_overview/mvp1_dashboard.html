@@ -313,12 +313,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md">Judgments Periodic Resume Sweep</a></div>
+    <div class="one-liner">A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status=&#x27;generating&#x27;` row via deterministic `_job_id` dedup, and caps re-enqueues </div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -326,32 +326,32 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">30 / 30</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">30 / 31</div>
+      <div class="sub">97% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:97%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">6</div>
+      <div class="value">7</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">1</div>
+      <div class="value">2</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">5</div>
+      <div class="value">4</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      1 idea-only feat/infra folders (not yet scoped into MVP1)
+      3 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">7</span></h3>
+  <h3>Idea <span class="count">9</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -381,6 +381,30 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review)</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_dashboard_regen_pre_commit_conflict">Dashboard Regen Pre Commit Conflict</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+  </div>
+  <div class="one-liner">The pre-commit pipeline does:</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_make_targets_split_backend_only">Make Targets Split Backend Only</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+  </div>
+  <div class="one-liner">The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target:</div>
 
 
 </div>
@@ -423,18 +447,6 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_judgments_periodic_resume_sweep">Judgments Periodic Resume Sweep</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">`feat_llm_judgments` Story 2.1 ships a **boot-time** resume sweep in `backend/workers/all.py:on_startup`: every `judgment_lists.status=&#x27;generating&#x27;` row gets re-enqueued at worker boot, covering the c</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_studies_ui_shadcn_polish">Studies Ui Shadcn Polish</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -457,6 +469,18 @@ footer {
 
 </div>
 
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_query_inline_crud_since_filter_uuidv7_ms_collision">Query Inline Crud Since Filter Uuidv7 Ms Collision</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">The test (shipped in PR #101) seeds 5 queries via `_seed_set(5)`, takes `query_ids[2]`&#x27;s UUIDv7 embedded timestamp (first 48 bits = milliseconds), subtracts 1ms, and uses that as the `?since` boundary</div>
+
+
+</div>
+
 </div>
 
 <div class="col spec">
@@ -465,7 +489,18 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md">Judgments Periodic Resume Sweep</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a><span>merged 2026-05-12</span>
+  </div>
+  <div class="one-liner">A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status=&#x27;generating&#x27;` row via deterministi</div>
+
+
+</div>
 
 </div>
 
@@ -485,7 +520,7 @@ footer {
   </div>
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
 </div>
 
 
@@ -833,7 +868,7 @@ footer {
   </div>
   <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span></div>
 </div>
 
 
@@ -933,6 +968,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
+  class feat_judgments_periodic_resume_sweep plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1002,6 +1039,7 @@ footer {
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
+  feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
   feat_query_inline_crud --&gt; chore_tutorial_polish
@@ -1017,6 +1055,7 @@ footer {
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
+  feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
   feat_query_inline_crud --&gt; feat_chat_agent
@@ -1056,6 +1095,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
+  class feat_judgments_periodic_resume_sweep plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1125,6 +1166,7 @@ footer {
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
+  feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
   feat_query_inline_crud --&gt; chore_tutorial_polish
@@ -1140,6 +1182,7 @@ footer {
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
+  feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
   feat_query_inline_crud --&gt; feat_chat_agent
