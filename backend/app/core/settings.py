@@ -192,6 +192,57 @@ class Settings(BaseSettings):
             )
         return value
 
+    relyloop_judgments_resume_sweep_minutes: int = Field(
+        default=15,
+        ge=1,
+        le=1440,
+        description=(
+            "Cron cadence for the resume_stuck_judgment_lists worker "
+            "(feat_judgments_periodic_resume_sweep FR-3). MVP1 default 15. "
+            "Restricted to the same whitelist as RELYLOOP_PR_POLL_MINUTES: see "
+            "backend.workers.pr_reconcile.SUPPORTED_POLL_MINUTES. Lives "
+            "alongside the boot-time resume sweep at "
+            "backend/workers/all.py:148-161; the cron picks up rows the API "
+            "couldn't enqueue mid-run."
+        ),
+    )
+
+    @field_validator("relyloop_judgments_resume_sweep_minutes")
+    @classmethod
+    def _validate_judgments_resume_sweep_minutes(cls, value: int) -> int:
+        """Narrow to the same cron-expressible whitelist as relyloop_pr_poll_minutes.
+
+        Reuses SUPPORTED_POLL_MINUTES from pr_reconcile so operators have one
+        mental model for cron cadence settings (feat_judgments_periodic_resume_sweep
+        spec §7.4 + locked decision #1). Lazy import for the same reason as
+        :meth:`_validate_pr_poll_minutes`: the settings module is imported
+        very early, before backend.workers.pr_reconcile.
+        """
+        from backend.workers.pr_reconcile import SUPPORTED_POLL_MINUTES
+
+        if value not in SUPPORTED_POLL_MINUTES:
+            raise ValueError(
+                f"RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES={value} is not in the "
+                f"supported set {sorted(SUPPORTED_POLL_MINUTES)}. Pick a divisor "
+                "of 60 (≤60) or a multiple of 60 that divides 1440 (>60)."
+            )
+        return value
+
+    relyloop_judgments_resume_max_per_day: int = Field(
+        default=24,
+        ge=1,
+        le=10000,
+        description=(
+            "Maximum re-enqueue attempts per (judgment_list_id, UTC day) "
+            "before the cron skips a row and emits judgment_resume_capped "
+            "at WARN (feat_judgments_periodic_resume_sweep FR-4). MVP1 "
+            "default 24 (≈ one per hour at 15-min cadence). Raise to ~96 "
+            "if operators have legitimately long-running judgment generation "
+            "jobs that exhaust the cap mid-run; spec §10 Threat 5 documents "
+            "the recovery model (boot-sweep on next worker restart)."
+        ),
+    )
+
     es_heap_size: str = Field(
         default="512m",
         description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",
