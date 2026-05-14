@@ -148,7 +148,9 @@ async def test_unexpected_importance_exception_surfaces_as_error_event(
         e for e in captured if e.get("event_type") == "digest_importance_failed_unexpected"
     ]
     assert len(error_events) == 1
-    assert error_events[0]["log_level"] == "error"
+    # structlog's capture_logs() uses different level keys across versions
+    # ("log_level" in some, "level" in others); accept whichever is present.
+    assert (error_events[0].get("log_level") or error_events[0].get("level")) == "error"
     assert error_events[0]["error_type"] == "ImportError"
     assert error_events[0]["study_id"] == seeded["study_id"]
 

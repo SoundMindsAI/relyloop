@@ -161,7 +161,11 @@ def test_routing_allowlisted_value_error_logs_warning_and_returns_empty() -> Non
         e for e in captured if e.get("event_type") == "digest_importance_failed"
     ]
     assert len(warn_events) == 1
-    assert warn_events[0]["log_level"] == "warning"
+    # structlog's `capture_logs()` writes the level under different keys
+    # depending on version (some emit "log_level", others "level"). Accept
+    # whichever is present — the event_type already proves the right path
+    # fired; we only need the level to confirm WARN vs ERROR.
+    assert (warn_events[0].get("log_level") or warn_events[0].get("level")) == "warning"
     assert warn_events[0]["study_id"] == "study-warn"
     assert warn_events[0]["error_type"] == "ValueError"
     # Verify the unexpected event_type did NOT also fire on this path.
@@ -201,7 +205,8 @@ def test_routing_unexpected_exception_logs_error_and_returns_empty(
         e for e in captured if e.get("event_type") == "digest_importance_failed_unexpected"
     ]
     assert len(error_events) == 1
-    assert error_events[0]["log_level"] == "error"
+    # Cross-version-tolerant level key (see WARN test above for rationale).
+    assert (error_events[0].get("log_level") or error_events[0].get("level")) == "error"
     assert error_events[0]["study_id"] == "study-error"
     assert error_events[0]["error_type"] == type(exc).__name__
     # Verify the allowlisted event_type did NOT fire on this path.
