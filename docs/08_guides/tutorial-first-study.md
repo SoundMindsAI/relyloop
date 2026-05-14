@@ -160,18 +160,19 @@ registered`, you skipped Step 3.
 Open the UI:
 
 ```bash
-open http://localhost:3000/query-sets/new
+open http://localhost:3000/query-sets
 ```
 
-In the form:
+Click **"Create query set"** and fill the form:
 
 - **Name:** `tutorial_queries`
-- **Cluster:** `local-es`
+- **Cluster ID:** the UUIDv7 of `local-es` (grab it from
+  [`http://localhost:3000/clusters`](http://localhost:3000/clusters))
 - **Description:** anything (e.g. "Tutorial queries from ESCI")
 
-Submit. On the query-set detail page, click **"Bulk add from CSV"** and
-upload `samples/queries.csv` — the upload accepts the file's
-`query_id,query_text` shape directly.
+Submit. On the query-set detail page, click **"Add queries"** and
+upload `samples/queries.csv` — the dialog accepts JSON or CSV with the
+file's `query_id,query_text` shape directly.
 
 You can do the same via the API:
 
@@ -201,15 +202,10 @@ you used the wrong UUID. Get the right one from
 This is the only LLM round-trip the tutorial walks you through. Cost is
 ~$0.01–$0.05 with `gpt-4o-mini` against a 5-query subset (or all 48).
 
-In the UI:
+In the UI, open the query-set detail page you created in Step 5 (e.g.
+`http://localhost:3000/query-sets/<id>`) and click **"Generate judgments"**
+in the associated-judgment-lists card. Fill in:
 
-```bash
-open http://localhost:3000/judgments/new
-```
-
-Fill in:
-
-- **Query set:** `tutorial_queries`
 - **Cluster:** `local-es`
 - **Target index:** `products`
 - **Current template:** create one in Step 7 first if needed (or use the
@@ -234,10 +230,11 @@ structured output. Switch to a model from the tested matrix in
 Open:
 
 ```bash
-open http://localhost:3000/templates/new
+open http://localhost:3000/templates
 ```
 
-Paste the contents of `samples/templates/product_search.j2` into the **Body**
+Click **"Create template"**. Paste the contents of
+`samples/templates/product_search.j2` into the **Body**
 field. The template renders an Elasticsearch `multi_match` query with
 three declared params:
 
@@ -271,8 +268,8 @@ The agent will introspect the cluster + judgment list, propose a
 `create_study` tool call with a search-space, and ask you to confirm.
 Reply **"yes"**. The study queues immediately.
 
-The chat agent is one of two ways to create a study; you can also use the
-form at [`/studies/new`](http://localhost:3000/studies/new) directly.
+The chat agent is one of two ways to create a study; you can also click
+**"Create study"** on [`/studies`](http://localhost:3000/studies) directly.
 
 ---
 
@@ -316,10 +313,15 @@ registering the config repo via `POST /api/v1/config-repos`). Without
 the per-repo PAT file the button surfaces a configuration error —
 that's the only step that needs write access to the repo.
 
-To use your own config repo: register it via
-[`/config-repos/new`](http://localhost:3000/config-repos/new) with your fork's
-URL + an `auth_ref` value, drop the PAT at `./secrets/<auth_ref>`, then
-re-run from Step 8.
+To use your own config repo: register it via the API (no UI form ships in
+MVP1) with your fork's URL + an `auth_ref` value, drop the PAT at
+`./secrets/<auth_ref>`, then re-run from Step 8.
+
+```bash
+curl -X POST http://localhost:8000/api/v1/config-repos \
+  -H "Content-Type: application/json" \
+  -d '{"name":"my-config-fork","provider":"github","repo_url":"https://github.com/<you>/<repo>","config_path":"params/","auth_ref":"my_pat"}'
+```
 
 ---
 

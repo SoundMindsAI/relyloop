@@ -73,8 +73,16 @@ export function useDeleteCluster(): UseMutationResult<void, ApiError, string> {
     mutationFn: async (clusterId) => {
       await apiClient.delete<void>(`/api/v1/clusters/${clusterId}`);
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['clusters'] });
+    onSuccess: (_data, clusterId) => {
+      // Drop the deleted cluster's detail + schema entries from cache. A blanket
+      // `invalidateQueries(['clusters'])` would prefix-match the still-mounted
+      // detail subscription on /clusters/[id] and trigger a 404-bound refetch
+      // before the caller's onSuccess can router.push away.
+      qc.removeQueries({ queryKey: ['clusters', clusterId] });
+      qc.invalidateQueries({
+        queryKey: ['clusters'],
+        predicate: (query) => query.queryKey.length >= 2 && typeof query.queryKey[1] !== 'string',
+      });
     },
   });
 }
