@@ -19,7 +19,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import and_, func, literal_column, or_, select, true
+from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Conversation, Message
@@ -157,19 +157,25 @@ async def list_conversations_with_preview_data(
     soft-deleted filtered). Limit clamped at 200.
     """
     count_col = func.count(Message.id).label("message_count")
+    # LATERAL subquery: most-recent qualifying message per parent conversation.
+    # `correlate_except(Message)` keeps `messages` in the subquery's FROM
+    # clause; SQLAlchemy's default auto-correlation would otherwise strip
+    # both tables and surface as "Select returned no FROM clauses." Only
+    # `Conversation` is the outer correlation reference.
     preview_subq = (
         select(
-            literal_column("content->>'text'").label("preview_text"),
+            Message.content["text"].astext.label("preview_text"),
             Message.created_at.label("last_at"),
         )
         .where(
             Message.conversation_id == Conversation.id,
             Message.role.in_(("user", "assistant")),
-            literal_column("content ? 'text'"),
-            literal_column("COALESCE(content->>'kind', '') <> 'system_notice'"),
+            Message.content.has_key("text"),  # noqa: W601 — JSONB ? operator, not Python dict
+            func.coalesce(Message.content["kind"].astext, "") != "system_notice",
         )
         .order_by(Message.created_at.desc())
         .limit(1)
+        .correlate_except(Message)
         .lateral("last_msg")
     )
 
