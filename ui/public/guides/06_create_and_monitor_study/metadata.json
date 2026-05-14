@@ -1,0 +1,34 @@
+{
+  "title": "Create and monitor a study",
+  "description": "Configure a study, watch the trials fill in live, and read the terminal state \u2014 the core Karpathy loop.",
+  "order": 6,
+  "tags": [
+    "studies",
+    "optimization",
+    "core-flow"
+  ],
+  "estimated_time": "5 minutes",
+  "screenshots": [
+    {
+      "file": "01-studies-list.png",
+      "caption": "Open the Studies page. Every study you create lands here with its status, cluster, query set, and trial count. The status filter chips at the top scope by lifecycle stage."
+    },
+    {
+      "file": "02-studies-status-filter.png",
+      "caption": "Click 'queued' to filter the list to studies waiting for the orchestrator. The URL updates to `?status=queued` so the filter is sharable + bookmarkable. Studies move queued \u2192 running \u2192 (completed | failed | cancelled) as the orchestrator processes them."
+    },
+    {
+      "file": "03-create-study-modal.png",
+      "caption": "Click 'Create study' to open the multi-step modal. Step 1 binds the study to a cluster + target index. Subsequent steps pick the query set + judgment list, the query template, the search-space (which params Optuna will vary + their ranges), and the objective metric (ndcg@10, precision@k, etc.) + budget (max_trials or time_budget_min)."
+    },
+    {
+      "file": "04-study-detail.png",
+      "caption": "The detail page is where the operator spends real time. Header surfaces the study name, status badge, baseline metric, and best-so-far metric. The trials table below populates in real-time as Optuna's TPE sampler proposes params and the worker scores them via `pytrec_eval`. The page auto-polls every 3 seconds while the study is running."
+    },
+    {
+      "file": "05-study-terminal-state.png",
+      "caption": "Once max_trials is reached (or the operator cancels via the 'Cancel study' button, which fires `POST /api/v1/studies/{id}/cancel`), the status moves to a terminal state and the orchestrator emits a proposal + digest. Cancellation is graceful \u2014 in-flight trials complete cleanly; no new trials enqueue."
+    }
+  ],
+  "video": "walkthrough.webm"
+}

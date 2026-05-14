@@ -4,6 +4,8 @@
   "private": true,
   "description": "RelyLoop frontend — Next.js 16 App Router",
   "scripts": {
+    "prebuild": "node scripts/copy-docs.mjs",
+    "predev": "node scripts/copy-docs.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -13,6 +15,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "capture-guides": "playwright test -c playwright.demo.config.ts && node scripts/promote-videos.mjs",
     "types:gen": "node scripts/gen-types.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,md}\""
@@ -47,6 +50,7 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.3.0",
+    "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.5.0",
     "@testing-library/react": "^16.1.0",
     "@types/node": "^25.7.0",

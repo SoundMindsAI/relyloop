@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
   { href: '/studies', label: 'Studies' },
   { href: '/proposals', label: 'Proposals' },
   { href: '/chat', label: 'Chat' },
+  { href: '/guide', label: 'Guides' },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {

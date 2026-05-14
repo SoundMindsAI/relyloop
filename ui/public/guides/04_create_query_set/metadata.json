@@ -1,0 +1,34 @@
+{
+  "title": "Create a query set",
+  "description": "Define the benchmark queries you want to tune for \u2014 the stable list every study scores against.",
+  "order": 4,
+  "tags": [
+    "query-sets",
+    "setup",
+    "benchmark"
+  ],
+  "estimated_time": "2 minutes",
+  "screenshots": [
+    {
+      "file": "01-query-sets-list.png",
+      "caption": "Open the Query Sets page. A 'query set' is a named collection of queries scoped to one cluster \u2014 your stable evaluation benchmark. Click 'Create query set' to begin."
+    },
+    {
+      "file": "02-create-modal-empty.png",
+      "caption": "The modal expects three things: a name, the cluster ID (UUIDv7), and an optional description. Cluster ID can be copied from the Clusters page."
+    },
+    {
+      "file": "03-create-modal-filled.png",
+      "caption": "Fill in the name and cluster ID. The cluster_id is a UUIDv7 \u2014 paste it directly from the Clusters list. (A future improvement will swap this text input for a cluster picker dropdown.)"
+    },
+    {
+      "file": "04-query-set-detail-empty.png",
+      "caption": "After submit, the new query set lands in the list and you can drill into its detail page. The set starts empty \u2014 you load queries next."
+    },
+    {
+      "file": "05-add-queries-dialog.png",
+      "caption": "Click 'Add queries' to open the upload dialog. RelyLoop accepts JSON (an array of `{query_text, reference_answer?, query_metadata?}` objects) OR CSV (the tutorial uses CSV with `query_id,query_text` columns). Queries are validated, bulk-inserted, and assigned UUIDv7 IDs."
+    }
+  ],
+  "video": "walkthrough.webm"
+}
