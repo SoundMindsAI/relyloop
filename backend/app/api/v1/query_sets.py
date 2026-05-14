@@ -20,7 +20,7 @@ import base64
 import json
 import re
 import time
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Annotated
 
 import structlog
@@ -298,7 +298,13 @@ def _uuidv7_lower_bound_from_iso(since: datetime) -> str:
     Lexical comparison of two UUIDv7 hex strings is identical to numeric
     comparison of their 128-bit values, so ``id >= :lower_bound``
     correctly filters ``ts_ms >= T``.
+
+    Naive datetimes are interpreted as UTC (Gemini PR #101 review G1 —
+    ``datetime.timestamp()`` on a naive value uses the system local time,
+    which would produce non-deterministic bounds across deployments).
     """
+    if since.tzinfo is None:
+        since = since.replace(tzinfo=UTC)
     ms = int(since.timestamp() * 1000)
     # Pack: 48 ts bits + 4 version bits = 52 bits.
     # Layout: TTTTTTTT-TTTT-7000-8000-000000000000

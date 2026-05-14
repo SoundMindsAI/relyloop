@@ -93,3 +93,16 @@ def test_format_matches_canonical_uuid_regex_for_various_timestamps(ts: datetime
     result = _uuidv7_lower_bound_from_iso(ts)
     canonical = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-8[0-9a-f]{3}-[0-9a-f]{12}$")
     assert canonical.match(result)
+
+
+def test_naive_datetime_treated_as_utc() -> None:
+    """Gemini PR #101 G1: naive datetime must be treated as UTC, not local time.
+
+    Without the explicit ``replace(tzinfo=UTC)``, ``datetime.timestamp()`` on a
+    naive value uses the system's local tz, which would produce different
+    lower-bound IDs across deployments. Compare a naive UTC datetime to the
+    explicit UTC-aware equivalent — they must produce the same UUIDv7 bound.
+    """
+    naive = datetime(2026, 5, 13, 12, 34, 56)
+    aware = datetime(2026, 5, 13, 12, 34, 56, tzinfo=UTC)
+    assert _uuidv7_lower_bound_from_iso(naive) == _uuidv7_lower_bound_from_iso(aware)

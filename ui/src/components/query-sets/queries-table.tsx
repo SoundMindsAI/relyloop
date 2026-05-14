@@ -119,7 +119,7 @@ export function QueriesTable({ querySetId }: QueriesTableProps) {
                       setMetadataQuery(row);
                     }
                   }}
-                  className="cursor-pointer"
+                  className="cursor-pointer focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                   data-testid={`meta-badge-${row.id}`}
                 >
                   {row.query_metadata ? 'Set' : '—'}
