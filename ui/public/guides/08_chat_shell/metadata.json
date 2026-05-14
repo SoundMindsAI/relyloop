@@ -1,25 +1,30 @@
 {
-  "title": "Chat shell — conversations + composer",
+  "title": "Chat shell \u2014 conversations + composer",
   "description": "Navigate the chat conversation list, start a new chat, and understand the secrets-warning banner. Message streaming with the agent is covered in guide 10.",
   "order": 8,
-  "tags": ["chat", "shell", "conversations"],
+  "tags": [
+    "chat",
+    "shell",
+    "conversations"
+  ],
   "estimated_time": "2 minutes",
   "screenshots": [
     {
       "file": "01-chat-list.png",
-      "caption": "Open the Chat page. Past conversations are listed here with a preview of the last user/assistant message + the timestamp of the last activity (added by `chore_chat_last_message_preview`). The list survives stack restarts — conversations are persisted in Postgres."
+      "caption": "Open the Chat page. Past conversations are listed here with a preview of the last user/assistant message + the timestamp of the last activity (added by `chore_chat_last_message_preview`). The list survives stack restarts \u2014 conversations are persisted in Postgres."
     },
     {
       "file": "02-chat-detail-with-banner.png",
-      "caption": "Click a past conversation to resume it. The yellow secrets-warning banner is the first thing you see: 'Don't paste API keys, GitHub tokens, or other credentials in chat — messages are persisted and re-sent to the LLM each turn.' Take it seriously. The composer at the bottom is where you type new messages."
+      "caption": "Click a past conversation to resume it. The yellow secrets-warning banner is the first thing you see: 'Don't paste API keys, GitHub tokens, or other credentials in chat \u2014 messages are persisted and re-sent to the LLM each turn.' Take it seriously. The composer at the bottom is where you type new messages."
     },
     {
       "file": "03-chat-banner-dismissed.png",
-      "caption": "Dismiss the banner with the X button. The dismissal is per-session (session storage), so the warning reappears the next time the page is opened — credentials hygiene is too important to permanently hide."
+      "caption": "Dismiss the banner with the X button. The dismissal is per-session (session storage), so the warning reappears the next time the page is opened \u2014 credentials hygiene is too important to permanently hide."
     },
     {
       "file": "04-chat-new-conversation.png",
-      "caption": "From the conversation list, click 'New conversation' to start fresh. RelyLoop creates a new conversation row + navigates to `/chat/{id}`. The composer mounts immediately, ready for your first message. The agent has tool-call access to introspect clusters, run ad-hoc queries, create studies, and open PRs — see the chat-agent runbook for the full tool inventory."
+      "caption": "From the conversation list, click 'New conversation' to start fresh. RelyLoop creates a new conversation row + navigates to `/chat/{id}`. The composer mounts immediately, ready for your first message. The agent has tool-call access to introspect clusters, run ad-hoc queries, create studies, and open PRs \u2014 see the chat-agent runbook for the full tool inventory."
     }
-  ]
+  ],
+  "video": "walkthrough.webm"
 }

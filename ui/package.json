@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "capture-guides": "playwright test -c playwright.demo.config.ts && node scripts/promote-videos.mjs",
     "types:gen": "node scripts/gen-types.mjs",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css,md}\""

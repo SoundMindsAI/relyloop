@@ -1,8 +1,12 @@
 {
   "title": "Create and monitor a study",
-  "description": "Configure a study, watch the trials fill in live, and read the terminal state — the core Karpathy loop.",
+  "description": "Configure a study, watch the trials fill in live, and read the terminal state \u2014 the core Karpathy loop.",
   "order": 6,
-  "tags": ["studies", "optimization", "core-flow"],
+  "tags": [
+    "studies",
+    "optimization",
+    "core-flow"
+  ],
   "estimated_time": "5 minutes",
   "screenshots": [
     {
@@ -11,7 +15,7 @@
     },
     {
       "file": "02-studies-status-filter.png",
-      "caption": "Click 'queued' to filter the list to studies waiting for the orchestrator. The URL updates to `?status=queued` so the filter is sharable + bookmarkable. Studies move queued → running → (completed | failed | cancelled) as the orchestrator processes them."
+      "caption": "Click 'queued' to filter the list to studies waiting for the orchestrator. The URL updates to `?status=queued` so the filter is sharable + bookmarkable. Studies move queued \u2192 running \u2192 (completed | failed | cancelled) as the orchestrator processes them."
     },
     {
       "file": "03-create-study-modal.png",
@@ -23,7 +27,8 @@
     },
     {
       "file": "05-study-terminal-state.png",
-      "caption": "Once max_trials is reached (or the operator cancels via the 'Cancel study' button, which fires `POST /api/v1/studies/{id}/cancel`), the status moves to a terminal state and the orchestrator emits a proposal + digest. Cancellation is graceful — in-flight trials complete cleanly; no new trials enqueue."
+      "caption": "Once max_trials is reached (or the operator cancels via the 'Cancel study' button, which fires `POST /api/v1/studies/{id}/cancel`), the status moves to a terminal state and the orchestrator emits a proposal + digest. Cancellation is graceful \u2014 in-flight trials complete cleanly; no new trials enqueue."
     }
-  ]
+  ],
+  "video": "walkthrough.webm"
 }

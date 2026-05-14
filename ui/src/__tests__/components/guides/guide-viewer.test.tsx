@@ -18,6 +18,7 @@ const METADATA = {
   order: 99,
   tags: ['test'],
   estimated_time: '1 minute',
+  video: 'walkthrough.webm',
   screenshots: [
     { file: '01-first.png', caption: 'First slide caption' },
     { file: '02-second.png', caption: 'Second slide caption' },
@@ -169,6 +170,46 @@ describe('<GuideViewer>', () => {
     expect(link).toHaveAttribute('href', '/guides/test_guide/01-first.png');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+  });
+
+  it('renders Slides / Video toggle when metadata.video is set; default is Slides', async () => {
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-mode-toggle')).toBeVisible());
+    expect(screen.getByTestId('guide-mode-slides')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('guide-mode-video')).toHaveAttribute('aria-pressed', 'false');
+    // Slide content visible, video container hidden.
+    expect(screen.getByTestId('guide-slide-image')).toBeVisible();
+    expect(screen.queryByTestId('guide-video')).toBeNull();
+  });
+
+  it('switches to Video mode and renders <video> with the right src', async () => {
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-mode-video')).toBeVisible());
+
+    fireEvent.click(screen.getByTestId('guide-mode-video'));
+    expect(screen.getByTestId('guide-mode-video')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('guide-mode-slides')).toHaveAttribute('aria-pressed', 'false');
+    const video = screen.getByTestId('guide-video') as HTMLVideoElement;
+    expect(video).toBeVisible();
+    expect(video).toHaveAttribute('src', '/guides/test_guide/walkthrough.webm');
+    // Slide UI is hidden in video mode.
+    expect(screen.queryByTestId('guide-slide-image')).toBeNull();
+    expect(screen.queryByTestId('guide-prev')).toBeNull();
+    expect(screen.queryByTestId('guide-next')).toBeNull();
+  });
+
+  it('hides the Slides / Video toggle when metadata.video is absent', async () => {
+    const metaWithoutVideo = { ...METADATA };
+    delete (metaWithoutVideo as { video?: string }).video;
+    server.use(
+      http.get('http://localhost/guides/no_video_guide/metadata.json', () =>
+        HttpResponse.json(metaWithoutVideo),
+      ),
+      http.get('/guides/no_video_guide/metadata.json', () => HttpResponse.json(metaWithoutVideo)),
+    );
+    wrap(<GuideViewer guideId="no_video_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-slide-image')).toBeVisible());
+    expect(screen.queryByTestId('guide-mode-toggle')).toBeNull();
   });
 
   it("'f' keyboard shortcut toggles fullscreen", async () => {

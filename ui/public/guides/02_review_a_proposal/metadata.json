@@ -2,12 +2,16 @@
   "title": "Review a proposal",
   "description": "Open a pending proposal, read the config diff and metric delta, then decide whether to open a PR or reject.",
   "order": 2,
-  "tags": ["proposals", "review", "git-ops"],
+  "tags": [
+    "proposals",
+    "review",
+    "git-ops"
+  ],
   "estimated_time": "2 minutes",
   "screenshots": [
     {
       "file": "01-proposals-list.png",
-      "caption": "Open the Proposals page. Every winning study config and every manually-authored proposal lands here. Filter chips at the top scope by status, source, and cluster — start with 'All' to see everything."
+      "caption": "Open the Proposals page. Every winning study config and every manually-authored proposal lands here. Filter chips at the top scope by status, source, and cluster \u2014 start with 'All' to see everything."
     },
     {
       "file": "02-proposals-pending-filter.png",
@@ -19,11 +23,12 @@
     },
     {
       "file": "04-config-diff.png",
-      "caption": "The Config diff panel is the load-bearing review surface. Each row is one parameter key being changed: title.boost from 1.0 → 2.5, description.boost from 1.0 → 0.8. The 'FROM' column shows the cluster's current value; 'TO' shows what the PR will write. (Manual proposals don't carry a baseline metric — those only ship from completed studies.)"
+      "caption": "The Config diff panel is the load-bearing review surface. Each row is one parameter key being changed: title.boost from 1.0 \u2192 2.5, description.boost from 1.0 \u2192 0.8. The 'FROM' column shows the cluster's current value; 'TO' shows what the PR will write. (Manual proposals don't carry a baseline metric \u2014 those only ship from completed studies.)"
     },
     {
       "file": "05-reject-dialog.png",
-      "caption": "If the proposal isn't right — wrong cluster, regressed a query class the metric didn't capture, off-target for the current sprint — click 'Reject'. Provide a brief reason; rejected proposals stay in the queue but are filtered out by default. Alternatively, click 'Open PR' (top right of the detail page) to enqueue the GitHub PR worker."
+      "caption": "If the proposal isn't right \u2014 wrong cluster, regressed a query class the metric didn't capture, off-target for the current sprint \u2014 click 'Reject'. Provide a brief reason; rejected proposals stay in the queue but are filtered out by default. Alternatively, click 'Open PR' (top right of the detail page) to enqueue the GitHub PR worker."
     }
-  ]
+  ],
+  "video": "walkthrough.webm"
 }

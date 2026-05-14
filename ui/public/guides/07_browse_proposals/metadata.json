@@ -1,8 +1,12 @@
 {
   "title": "Browse proposals",
-  "description": "Filter the proposal queue by status, source, and cluster — three-axis URL-backed filtering with 30-second pulse-refetch when PRs are open.",
+  "description": "Filter the proposal queue by status, source, and cluster \u2014 three-axis URL-backed filtering with 30-second pulse-refetch when PRs are open.",
   "order": 7,
-  "tags": ["proposals", "filters", "queue-management"],
+  "tags": [
+    "proposals",
+    "filters",
+    "queue-management"
+  ],
   "estimated_time": "2 minutes",
   "screenshots": [
     {
@@ -23,7 +27,8 @@
     },
     {
       "file": "05-all-filters-reset.png",
-      "caption": "Reset filters by clicking 'all' chips. The empty-state has a friendly message when no proposals match the current filter combination. From here, click any row to drill into the detail page — see Guide 02 for what the detail page looks like + the open-PR / reject decision."
+      "caption": "Reset filters by clicking 'all' chips. The empty-state has a friendly message when no proposals match the current filter combination. From here, click any row to drill into the detail page \u2014 see Guide 02 for what the detail page looks like + the open-PR / reject decision."
     }
-  ]
+  ],
+  "video": "walkthrough.webm"
 }

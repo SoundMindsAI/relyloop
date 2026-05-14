@@ -91,6 +91,7 @@ export function GuideViewer({ guideId, open, onOpenChange }: GuideViewerProps) {
     readStoredBool(STORAGE_FULLSCREEN, false),
   );
   const [textSize, setTextSize] = useState<TextSize>(() => readStoredTextSize());
+  const [mode, setMode] = useState<'slides' | 'video'>('slides');
 
   // React's canonical "reset state when a prop changes" pattern — see
   // https://react.dev/reference/react/useState#storing-information-from-previous-renders
@@ -99,6 +100,7 @@ export function GuideViewer({ guideId, open, onOpenChange }: GuideViewerProps) {
     setStoredGuideId(guideId);
     setState({ status: 'loading', metadata: null, error: null });
     setSlideIndex(0);
+    setMode('slides');
   }
 
   useEffect(() => {
@@ -203,6 +205,43 @@ export function GuideViewer({ guideId, open, onOpenChange }: GuideViewerProps) {
               </DialogPrimitive.Description>
             </div>
             <div className="flex shrink-0 items-center gap-1">
+              {state.status === 'loaded' && state.metadata?.video && (
+                <div
+                  className="mr-1 flex overflow-hidden rounded-md border"
+                  role="group"
+                  aria-label="View mode"
+                  data-testid="guide-mode-toggle"
+                >
+                  <button
+                    type="button"
+                    onClick={() => setMode('slides')}
+                    aria-pressed={mode === 'slides'}
+                    data-testid="guide-mode-slides"
+                    className={cn(
+                      'px-3 py-1.5 text-xs font-medium transition-colors',
+                      mode === 'slides'
+                        ? 'bg-foreground text-background'
+                        : 'bg-background text-foreground hover:bg-muted',
+                    )}
+                  >
+                    Slides
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMode('video')}
+                    aria-pressed={mode === 'video'}
+                    data-testid="guide-mode-video"
+                    className={cn(
+                      'border-l px-3 py-1.5 text-xs font-medium transition-colors',
+                      mode === 'video'
+                        ? 'bg-foreground text-background'
+                        : 'bg-background text-foreground hover:bg-muted',
+                    )}
+                  >
+                    Video
+                  </button>
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
@@ -247,7 +286,25 @@ export function GuideViewer({ guideId, open, onOpenChange }: GuideViewerProps) {
             </p>
           )}
 
-          {state.status === 'loaded' && slide && (
+          {state.status === 'loaded' && mode === 'video' && state.metadata?.video && (
+            <div
+              className="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-md border bg-black"
+              data-testid="guide-video-container"
+            >
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+              <video
+                src={`/guides/${guideId}/${state.metadata.video}`}
+                controls
+                autoPlay
+                loop
+                className="max-h-full max-w-full"
+                data-testid="guide-video"
+                aria-label={state.metadata.title}
+              />
+            </div>
+          )}
+
+          {state.status === 'loaded' && mode === 'slides' && slide && (
             <>
               {/* Image area — fills available vertical space. min-h-0 lets it
                   shrink instead of overflowing the dialog. */}

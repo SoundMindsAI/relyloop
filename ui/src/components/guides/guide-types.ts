@@ -23,6 +23,14 @@ export interface GuideMetadata {
   tags: string[];
   estimated_time: string;
   screenshots: GuideScreenshot[];
+  /**
+   * Filename (relative to `/guides/<id>/`) of the slow-motion walkthrough
+   * video captured by the Playwright demo config. Populated by
+   * `ui/scripts/promote-videos.mjs` after `pnpm capture-guides`. When
+   * present, the GuideViewer surfaces a Video / Slides toggle in the
+   * header; when absent, the toggle is hidden.
+   */
+  video?: string;
 }
 
 /**
