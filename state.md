@@ -338,7 +338,7 @@ Remaining items split by sized work-flow per the inline-fix vs idea-file rubric:
 **`/pipeline` candidates** (feature-scale — new cron + settings + observability):
 - `feat_judgments_periodic_resume_sweep` — strategic in-worker periodic resume cron for stuck `judgment_lists.status='generating'` rows. Preflighted 2026-05-14; folder renamed from `chore_*` to `feat_*` on the same date after work-type re-evaluation against the `feat_github_webhook` cron precedent (new background behavior + new operator settings + new observability events = feat-shaped, not chore-shaped). Design is locked against the existing `reconcile_pr_state` cron pattern; 4 open questions for spec-time decision are captured inline in the idea.
 
-**Operator-deferred:** `chore_studies_ui_shadcn_polish` (shadcn primitive migration), `chore_demo_recording_mvp3` (Story 4.6 deferred to MVP3), `infra_optuna_orphan_reaper` (operationally tolerated for MVP1), and the in-progress dogfood items pending design-partner feedback.
+**Operator-deferred:** `chore_demo_recording_mvp3` (Story 4.6 deferred to MVP3), `infra_optuna_orphan_reaper` (operationally tolerated for MVP1), and the in-progress dogfood items pending design-partner feedback. (`chore_studies_ui_shadcn_polish` dropped 2026-05-14 per `/idea-preflight` ship-vs-drop call — the `feat_proposals_ui` PR #58 `ClusterFilterSelect` precedent established native `<select>` as the project's standard for page-level filter/control surfaces, retiring the F1 finding's inconsistency claim.)
 
 ## Known debt / fragility
 
