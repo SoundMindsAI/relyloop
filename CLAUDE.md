@@ -398,17 +398,43 @@ This rule applies even if the issue feels minor. A 3-line idea file with the rig
 
 ### Inline-fix vs idea-file rubric
 
-"Inline-cheap" is doing too much work in the rule above. Without a sharper rubric, the default has been to capture idea files for medium-sized fixes that would have been faster to inline. Apply this table when deciding:
+The historical failure mode here was *capturing too aggressively* — auto-creating idea files for medium-sized fixes that would have been 30–60 minutes inline. Apply this table when deciding, calibrated toward implement-now:
 
 | Discovery shape | Action |
 |---|---|
-| Fix is ≤20 LOC AND in a file the current PR already touches AND no new tests needed (e.g. docs typo, minor refactor — NOT a bug fix; bug fixes always need a regression test per the Bug Fix Protocol above) | **Inline.** No new PR, no idea file. Just fix in the same commit (or an adjacent commit on the same branch) and note in the commit message. |
-| Fix is ≤100 LOC + bounded tests AND scope-compatible with the current PR's intent | **Inline OR same-branch adjacent commit.** Don't capture an idea file. Accept the scope blur — it's cheaper than the context-switch cost of a separate PR later. |
-| Fix has design surface (multiple defensible approaches), or LOC >100, or touches a clearly separate concern | **Idea file.** Capture; pick up in a separate flow later. |
-| Fix would break a CI gate that's specifically valued on the current PR (e.g., docs-only paths-ignore filter) AND the fix is bounded | **Adjacent PR off `main`** — not inline (preserves the current PR's gate), not idea file (don't defer a bounded fix). Ship the two PRs in parallel. |
-| Fix requires changes to an unrelated subsystem (different ORM model, different service, different UI route) | **Idea file.** Cross-subsystem mixing in one PR breaks reviewability. |
+| Fix is ≤50 LOC AND no new tests needed beyond what the current PR already runs (e.g. docs typo, narrow refactor — NOT a bug fix; bug fixes always need a regression test per the Bug Fix Protocol above) | **Inline.** No new PR, no idea file. Just fix in the same commit (or an adjacent commit on the same branch) and note it in the commit message. |
+| Fix is ≤250 LOC + bounded tests AND the work-type fits this PR's intent (backend → backend, frontend → frontend, infra → infra) | **Inline OR same-branch adjacent commit.** Don't capture an idea file. Accept the scope blur — it's cheaper than the context-switch cost of a separate PR later, and reviewers can read related changes together. |
+| Fix introduces a new dev dep or new test-infra layer (e.g. first Playwright spec, first contract-test file, first migration of a new shape) | **Usually inline.** Adding a canonical *first instance* of common infra is rarely as expensive as it sounds — that's how every layer in this repo started. Estimate the path in minutes before deferring; if it's <60min of work, implement. Override the spec's "no new deps" rule only when the user authorizes it. |
+| Fix would break a CI gate this PR is specifically valued on (e.g., the docs-only paths-ignore filter) AND the fix is bounded | **Adjacent PR off `main`** — not inline (preserves the current PR's gate), not idea file (don't defer a bounded fix). Ship the two PRs in parallel. |
+| Fix requires a separate subsystem AND >250 LOC AND no immediate path to inline (different ORM model unrelated to the feature, different service entirely, different UI route family) | **Idea file.** Cross-subsystem mixing in one PR breaks reviewability. |
+| Fix requires a product/UX decision, third-party config, or an operator-environment change (env vars, mounted secrets, branch-protection settings, SaaS account) | **Idea file.** Can't be unilaterally implemented. |
 
-**Default lean:** when the call is borderline between "inline" and "idea file," **lean inline.** The cost of a deferred-and-never-fixed idea file is higher than the cost of a slightly mixed-scope PR. CLAUDE.md's existing "tangential discoveries" rule was written when the failure mode was *forgetting to capture*; the calibration nudge above is for the opposite failure mode (capturing when fixing would have been faster).
+**Default lean: implement-now, not capture-as-idea-file.** The cost of a deferred-and-never-fixed idea file is higher than the cost of a slightly mixed-scope PR.
+
+### Pre-defer diagnostic: write the path
+
+Before writing an idea file for any tangential discovery, write out the **specific implementation path** in your own working notes — concrete files, concrete steps, concrete tests. If that path is **<60 minutes of work** AND doesn't fork into a separate subsystem AND doesn't need a product/operator decision, just implement it on the current branch.
+
+If you can't estimate in minutes, you haven't thought hard enough about the path yet — finish thinking before deciding to defer.
+
+**Failure-mode words** that should make you re-examine the deferral rather than accept it:
+
+| Surface concern | Why it's usually wrong | What to do instead |
+|---|---|---|
+| "No infra exists for this" | First instances of common infra (Playwright config, contract test file, new test-helper module) are usually <60min. Every layer started this way. | Add the canonical first instance. |
+| "Brittle to X" | Brittle approaches usually have non-brittle alternatives if you think for 30 seconds. EXPLAIN-plan assertions → `pg_indexes` introspection. Time-based polling → event-driven assertion. | Identify the non-brittle alternative; implement that instead. |
+| "High overhead" | Vibes, not minutes. If you can't quantify the overhead, it's probably much smaller than you think. | Estimate concretely (files × tests × verification cycles). If unsure, just try — abort if you cross 60min. |
+| "Out of scope for current PR" | True for cross-subsystem work, often false otherwise. The reviewer can read related changes together; ten 20-line idea-file commits accumulate worse review debt than one 200-line bundled PR. | Check the rubric table above — only defer if the row above genuinely applies. |
+
+**Hard stop signals** (where deferral IS the right call, even after writing the path):
+
+- Current PR diff is already >1000 LOC AND the new work isn't strictly needed for the feature's stated intent (the marginal PR-review cost outweighs the deferral cost).
+- Path requires a separate subsystem and no shared module — the change would land in files no other commit on this branch touches.
+- Path requires a product or UX decision you can't make unilaterally.
+- Path requires environment changes the operator hasn't authorized (new secret, new env var, new deploy target, new SaaS account).
+- The user explicitly directed you to defer (overrides any other signal).
+
+**Anti-pattern: pre-emptive deferral.** "Out of scope" is not self-justifying — the rubric is. If you're about to write an idea file, first ask: did the rubric send me here, or am I taking the easy way out?
 
 ## Local-stub hygiene — never leave commit-eligible debug artifacts in the repo
 

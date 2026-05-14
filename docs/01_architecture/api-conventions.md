@@ -102,7 +102,7 @@ All list endpoints use **cursor pagination**. No offset/limit.
 
 **Filtering by recency.** Every list endpoint **MUST** accept a `?since=<iso8601>` query param that filters by `created_at >= since`. Combines with other filter params.
 
-**MVP1 status:** Active for `GET /api/v1/clusters`, `GET /api/v1/studies`, `GET /api/v1/proposals`, `GET /api/v1/conversations`, `GET /api/v1/query-sets`, `GET /api/v1/query-templates`, `GET /api/v1/judgment-lists`, `GET /api/v1/config-repos`. Not used on resource-detail or sub-resource endpoints.
+**MVP1 status:** Active for `GET /api/v1/clusters`, `GET /api/v1/studies`, `GET /api/v1/proposals`, `GET /api/v1/conversations`, `GET /api/v1/query-sets`, `GET /api/v1/query-sets/{id}/queries` (per-query list, added by `feat_query_inline_crud` with id-only UUIDv7 cursor + UUIDv7-lower-bound `?since`), `GET /api/v1/query-templates`, `GET /api/v1/judgment-lists`, `GET /api/v1/config-repos`. Not used on resource-detail endpoints.
 
 ## Idempotency
 

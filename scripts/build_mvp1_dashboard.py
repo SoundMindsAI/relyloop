@@ -228,6 +228,23 @@ def _extract_depends_on(text: str) -> list[str]:
     return folders
 
 
+_DEP_ROW_RE = re.compile(
+    r"^\s*\|.*\b(?:Implemented|Depends on|Depended)\b.*\|.*$",
+    flags=re.MULTILINE | re.IGNORECASE,
+)
+
+
+def _strip_dependency_table_rows(text: str) -> str:
+    """Drop markdown-table rows whose first column names a dependency.
+
+    Plans cite dependency PR numbers (e.g. ``Implemented (PR #18, #25)``)
+    in their Dependencies / Risks tables. Those numbers belong to OTHER
+    features and must not be mistaken for this feature's own PR by the
+    fallback search.
+    """
+    return _DEP_ROW_RE.sub("", text)
+
+
 def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
     """Find this feature's PR number, not dependency cites.
 
@@ -237,8 +254,11 @@ def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
        formats.
     2. The plan's `**Status:**` header (catches in-flight features).
     3. A `merged`-context match across all artifacts (catches features
-       described in narrative form elsewhere).
-    4. First `#N` reference, as a last-resort fallback.
+       described in narrative form elsewhere). Dependency-table rows are
+       stripped first so PR numbers cited as "Implemented (PR #N)" in a
+       Dependencies row don't leak through.
+    4. First `#N` reference outside any dependency-table row, as a
+       last-resort fallback.
     """
     # 1. Scope to pipeline_status.md's Implement section first.
     impl = re.search(
@@ -254,15 +274,16 @@ def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
     m = re.search(r"^\*\*Status:\*\*[^\n]*PR\s*#(\d+)", plan, flags=re.MULTILINE)
     if m:
         return int(m.group(1))
-    # 3. Merged-context across all sources.
-    combined = pipe + "\n" + plan + "\n" + spec
+    # 3 + 4. Strip dependency-table rows before fuzzy matching so cites
+    # like ``| feat_study_lifecycle Phase 1 | All stories | Implemented
+    # (PR #18, #25) | …`` don't masquerade as this feature's PR.
+    combined = _strip_dependency_table_rows(pipe + "\n" + plan + "\n" + spec)
     m = re.search(r"PR[^a-zA-Z\n]{0,5}#(\d+)[^.\n]{0,80}merged", combined)
     if m:
         return int(m.group(1))
     m = re.search(r"merged[^.\n]{0,80}PR[^a-zA-Z\n]{0,5}#(\d+)", combined)
     if m:
         return int(m.group(1))
-    # 4. Last-resort: first PR reference.
     matches = re.findall(r"PR[^a-zA-Z\n]{0,5}#(\d+)", combined)
     return int(matches[0]) if matches else None
 

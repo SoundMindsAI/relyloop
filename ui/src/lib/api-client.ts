@@ -68,9 +68,16 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
-type EnvelopeShape = { detail?: { error_code?: string; message?: string; retryable?: boolean } };
+type EnvelopeShape = {
+  detail?: { error_code?: string; message?: string; retryable?: boolean } & Record<string, unknown>;
+};
 
-function parseEnvelope(body: unknown): { errorCode: string; message: string; retryable: boolean } {
+function parseEnvelope(body: unknown): {
+  errorCode: string;
+  message: string;
+  retryable: boolean;
+  detail: Record<string, unknown> | null;
+} {
   if (body && typeof body === 'object') {
     const detail = (body as EnvelopeShape).detail;
     if (detail && typeof detail === 'object') {
@@ -78,10 +85,15 @@ function parseEnvelope(body: unknown): { errorCode: string; message: string; ret
         typeof detail.error_code === 'string' ? detail.error_code : 'INTERNAL_ERROR';
       const message = typeof detail.message === 'string' ? detail.message : 'Unknown error';
       const retryable = typeof detail.retryable === 'boolean' ? detail.retryable : false;
-      return { errorCode, message, retryable };
+      return { errorCode, message, retryable, detail };
     }
   }
-  return { errorCode: 'INTERNAL_ERROR', message: 'Unexpected response shape', retryable: false };
+  return {
+    errorCode: 'INTERNAL_ERROR',
+    message: 'Unexpected response shape',
+    retryable: false,
+    detail: null,
+  };
 }
 
 async function readJsonSafe(response: Response): Promise<unknown> {
@@ -207,6 +219,7 @@ export function createApiClient(options: ApiClientOptions = {}): ApiClient {
           message: envelope.message,
           retryable: envelope.retryable,
           requestId,
+          detail: envelope.detail,
         });
 
         // Only 503 + retryable=true triggers backoff. All other errors throw immediately.

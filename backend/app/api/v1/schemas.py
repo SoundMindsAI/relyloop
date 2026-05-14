@@ -20,7 +20,7 @@ from ipaddress import ip_address
 from typing import Any, Literal
 from urllib.parse import urlparse
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from backend.app.core.settings import get_settings
 
@@ -297,6 +297,92 @@ class BulkQueriesResponse(BaseModel):
     """``POST /api/v1/query-sets/{id}/queries`` response."""
 
     added: int
+
+
+# --- feat_query_inline_crud: per-query CRUD --------------------------------
+
+
+class QueryRow(BaseModel):
+    """Wire row returned by the per-query GET + PATCH endpoints.
+
+    Used by both ``GET /api/v1/query-sets/{set_id}/queries`` and
+    ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}``.
+    ``judgment_count`` is a derived field — single batched GROUP BY in the
+    router via :func:`backend.app.db.repo.judgment.count_judgments_per_query`.
+    """
+
+    id: str
+    query_text: str
+    reference_answer: str | None
+    query_metadata: dict[str, Any] | None
+    judgment_count: int
+
+
+class QueryListResponse(BaseModel):
+    """``GET /api/v1/query-sets/{set_id}/queries`` response."""
+
+    data: list[QueryRow]
+    next_cursor: str | None
+    has_more: bool
+
+
+class UpdateQueryRequest(BaseModel):
+    """``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}`` body.
+
+    Whole-object replace on ``query_metadata`` (NOT deep-merge); explicit
+    ``null`` removes a nullable field; omitted key = no change. Empty
+    body ``{}`` validates as a no-op (AC-28).
+
+    ``query_text`` is NOT NULL on the underlying table, so explicit-null
+    is rejected by the ``@model_validator`` below (a 422 surfaces sooner
+    than the SQL ``NotNullViolation``).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+    query_text: str | None = Field(default=None, min_length=1, max_length=4000)
+    reference_answer: str | None = None  # explicit None → NULL the column
+    query_metadata: dict[str, Any] | None = None  # whole-object replace
+
+    @model_validator(mode="after")
+    def _reject_explicit_null_query_text(self) -> UpdateQueryRequest:
+        if "query_text" in self.model_fields_set and self.query_text is None:
+            raise ValueError("query_text cannot be null (column is NOT NULL)")
+        return self
+
+
+class JudgmentListRef(BaseModel):
+    """One entry in the ``QUERY_HAS_JUDGMENTS`` 409 envelope.
+
+    Lives in ``detail.judgment_lists``. Maps from the repo-layer
+    :class:`backend.app.db.repo.judgment.JudgmentListRefRow` at the
+    router boundary.
+    """
+
+    id: str
+    name: str
+
+
+class QueryHasJudgmentsDetail(BaseModel):
+    """The ``detail`` object of a 409 ``QUERY_HAS_JUDGMENTS`` response.
+
+    Extends the canonical ``{error_code, message, retryable}`` envelope
+    with two structured fields the frontend consumes directly
+    (``judgment_lists`` + ``overflow_count``). Wired into the FastAPI
+    route's ``responses={409: {"model": QueryHasJudgmentsEnvelope}}`` so
+    the OpenAPI schema documents the contract.
+    """
+
+    error_code: Literal["QUERY_HAS_JUDGMENTS"]
+    message: str
+    retryable: Literal[False]
+    judgment_lists: list[JudgmentListRef]  # up to 10 entries, alphabetical
+    overflow_count: int  # max(0, total_list_count - 10)
+
+
+class QueryHasJudgmentsEnvelope(BaseModel):
+    """Top-level 409 wrapper (FastAPI nests under ``detail`` for HTTPException)."""
+
+    detail: QueryHasJudgmentsDetail
 
 
 # --- Study ---------------------------------------------------------------

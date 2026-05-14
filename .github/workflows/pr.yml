@@ -358,6 +358,44 @@ jobs:
           curl -fsS http://127.0.0.1:3000/ | grep -qi "<html" \
             || { echo "::error::UI container did not render Next.js shell"; exit 1; }
 
+      # E2E gate — feat_query_inline_crud Story 5.1 ships the first Playwright
+      # specs in the repo (5 cases against /query-sets/[id]). The smoke job
+      # already has the full stack up, so we piggyback rather than starting a
+      # second stack.
+      - name: pnpm setup (Node 20)
+        uses: pnpm/action-setup@v6
+        with:
+          version: 9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: "pnpm"
+          cache-dependency-path: ui/pnpm-lock.yaml
+      - name: pnpm install (ui)
+        run: pnpm --dir ui install --frozen-lockfile
+      - name: Cache Playwright browsers
+        id: cache-playwright
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('ui/pnpm-lock.yaml') }}
+      - name: Install Playwright Chromium
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: pnpm --dir ui exec playwright install --with-deps chromium
+      - name: Run Playwright E2E
+        env:
+          PLAYWRIGHT_BASE_URL: http://127.0.0.1:3000
+          PLAYWRIGHT_API_BASE_URL: http://127.0.0.1:8000
+        run: pnpm --dir ui test:e2e
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ui/playwright-report/
+          retention-days: 14
+
       - name: Collect docker compose logs on failure
         if: failure()
         run: |
