@@ -328,13 +328,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">35 / 35</div>
+      <div class="value">36 / 36</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">3</div>
+      <div class="value">2</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -344,7 +344,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">2</div>
+      <div class="value">1</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">4</span></h3>
+  <h3>Idea <span class="count">3</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -381,18 +381,6 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; </div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_chat_last_message_preview">Chat Last Message Preview</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">The `/chat` list page renders each conversation row as `title + relative timestamp (created_at) + count` via [`ui/src/components/chat/conversation-list.tsx:30-49`](../ui/src/components/chat/conversati</div>
 
 
 </div>
@@ -439,7 +427,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">43</span></h3>
+  <h3>Done <span class="count">44</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -673,6 +661,18 @@ footer {
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_infra_structlog_test_helpers">Structlog Test Helpers</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+    <span>merged 2026-05-14</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_chore_chat_last_message_preview">Chat Last Message Preview</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1027,6 +1027,8 @@ footer {
   class infra_nvmrc done;
   infra_per_trial_timeout[&quot;per trial timeout&quot;]
   class infra_per_trial_timeout done;
+  chore_chat_last_message_preview[&quot;chat last message preview&quot;]
+  class chore_chat_last_message_preview done;
   chore_digest_worker_narrow_except[&quot;digest worker narrow except&quot;]
   class chore_digest_worker_narrow_except done;
   feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
@@ -1168,6 +1170,8 @@ footer {
   class infra_nvmrc done;
   infra_per_trial_timeout[&quot;per trial timeout&quot;]
   class infra_per_trial_timeout done;
+  chore_chat_last_message_preview[&quot;chat last message preview&quot;]
+  class chore_chat_last_message_preview done;
   chore_digest_worker_narrow_except[&quot;digest worker narrow except&quot;]
   class chore_digest_worker_narrow_except done;
   feat_judgments_periodic_resume_sweep[&quot;judgments periodic resume sweep&quot;]
