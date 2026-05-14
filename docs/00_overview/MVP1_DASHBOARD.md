@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **32 / 32** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **33 / 33** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Path to MVP1 | **5** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 4 (idea-stage debt) |
-| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (40)
+### Done (41)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -40,6 +40,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_dashboard_regen_pre_commit_conflict](implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict/idea.md) | Infra | Complete | — | Complete |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
+| [infra_make_targets_split_backend_only](implemented_features/2026_05_14_infra_make_targets_split_backend_only/idea.md) | Infra | Complete | — | Complete |
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
 | [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | Complete | — | Complete |
@@ -78,12 +79,11 @@ _None._
 
 _None._
 
-### Idea (7)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| [infra_make_targets_split_backend_only](../02_product/planned_features/infra_make_targets_split_backend_only/idea.md) | Infra | The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target. Pre-fix shape was ([`Makefile:26-34` in the pre-PR-110 main](../../Makefil | — | Idea — ready for `/impl-execute --ad-hoc`. |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
 | [chore_digest_worker_narrow_except](../02_product/planned_features/chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Idea (deferred from Gemini Code Assist Finding #2 on [PR #92](https://github.com/SoundMindsAI/relyloop/pull/92)) |
@@ -165,6 +165,8 @@ graph LR
   class feat_query_inline_crud done;
   infra_dashboard_regen_pre_commit_conflict["dashboard regen pre commit conflict"]
   class infra_dashboard_regen_pre_commit_conflict done;
+  infra_make_targets_split_backend_only["make targets split backend only"]
+  class infra_make_targets_split_backend_only done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -185,6 +187,7 @@ graph LR
   infra_dashboard_regen_pre_commit_conflict --> chore_tutorial_polish
   infra_foundation --> chore_tutorial_polish
   infra_frontend_stack_refresh --> chore_tutorial_polish
+  infra_make_targets_split_backend_only --> chore_tutorial_polish
   infra_nvmrc --> chore_tutorial_polish
   infra_optuna_eval --> chore_tutorial_polish
   infra_per_trial_timeout --> chore_tutorial_polish
@@ -202,6 +205,7 @@ graph LR
   infra_dashboard_regen_pre_commit_conflict --> feat_chat_agent
   infra_foundation --> feat_chat_agent
   infra_frontend_stack_refresh --> feat_chat_agent
+  infra_make_targets_split_backend_only --> feat_chat_agent
   infra_nvmrc --> feat_chat_agent
   infra_optuna_eval --> feat_chat_agent
   infra_per_trial_timeout --> feat_chat_agent
