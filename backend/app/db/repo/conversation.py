@@ -156,7 +156,18 @@ async def list_conversations_with_preview_data(
     same order as :func:`list_conversations` (newest first;
     soft-deleted filtered). Limit clamped at 200.
     """
-    count_col = func.count(Message.id).label("message_count")
+    # Pre-aggregate the count in its own subquery so the outer SELECT
+    # avoids a GROUP BY over the (potentially large) JSONB-extracted
+    # preview_text column. With the count collapsed here, both outer
+    # joins are 1:0/1:1 per conversation — no top-level aggregation.
+    count_subq = (
+        select(
+            Message.conversation_id.label("conversation_id"),
+            func.count(Message.id).label("message_count"),
+        )
+        .group_by(Message.conversation_id)
+        .subquery()
+    )
     # LATERAL subquery: most-recent qualifying message per parent conversation.
     # `correlate_except(Message)` keeps `messages` in the subquery's FROM
     # clause; SQLAlchemy's default auto-correlation would otherwise strip
@@ -182,14 +193,13 @@ async def list_conversations_with_preview_data(
     stmt = (
         select(
             Conversation,
-            count_col,
+            func.coalesce(count_subq.c.message_count, 0).label("message_count"),
             preview_subq.c.preview_text,
             preview_subq.c.last_at,
         )
-        .outerjoin(Message, Message.conversation_id == Conversation.id)
+        .outerjoin(count_subq, count_subq.c.conversation_id == Conversation.id)
         .outerjoin(preview_subq, true())
         .where(Conversation.deleted_at.is_(None))
-        .group_by(Conversation.id, preview_subq.c.preview_text, preview_subq.c.last_at)
     )
     if cursor is not None:
         cursor_at, cursor_id = cursor
