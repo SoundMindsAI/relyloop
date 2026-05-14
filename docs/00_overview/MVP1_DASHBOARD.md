@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **31 / 31** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **32 / 32** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Path to MVP1 | **5** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 4 (idea-stage debt) |
-| Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (39)
+### Done (40)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -37,6 +37,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [feat_study_lifecycle](implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
 | [infra_ci_smoke_makeup](implemented_features/2026_05_13_infra_ci_smoke_makeup/idea.md) | Infra | Complete | — | Complete |
+| [infra_dashboard_regen_pre_commit_conflict](implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict/idea.md) | Infra | Complete | — | Complete |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
@@ -77,12 +78,11 @@ _None._
 
 _None._
 
-### Idea (8)
+### Idea (7)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review) |
-| [infra_dashboard_regen_pre_commit_conflict](../02_product/planned_features/infra_dashboard_regen_pre_commit_conflict/idea.md) | Infra | The pre-commit pipeline does: | — | Partial — §2 (idempotency) + §4 (path rewriting) addressed by PR opened 2026-05-14 (this PR). §3 (runbook addendum) still pending. §1 already done in the actual hook config (was misdiagnosed; see note below). |
 | [infra_make_targets_split_backend_only](../02_product/planned_features/infra_make_targets_split_backend_only/idea.md) | Infra | The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target: | — | Idea — captured during feat_judgments_periodic_resume_sweep impl-execute tangential sweep |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
@@ -163,6 +163,8 @@ graph LR
   class feat_judgments_periodic_resume_sweep done;
   feat_query_inline_crud["query inline crud"]
   class feat_query_inline_crud done;
+  infra_dashboard_regen_pre_commit_conflict["dashboard regen pre commit conflict"]
+  class infra_dashboard_regen_pre_commit_conflict done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -180,6 +182,7 @@ graph LR
   feat_study_lifecycle --> chore_tutorial_polish
   infra_adapter_elastic --> chore_tutorial_polish
   infra_ci_smoke_makeup --> chore_tutorial_polish
+  infra_dashboard_regen_pre_commit_conflict --> chore_tutorial_polish
   infra_foundation --> chore_tutorial_polish
   infra_frontend_stack_refresh --> chore_tutorial_polish
   infra_nvmrc --> chore_tutorial_polish
@@ -196,6 +199,7 @@ graph LR
   feat_study_lifecycle --> feat_chat_agent
   infra_adapter_elastic --> feat_chat_agent
   infra_ci_smoke_makeup --> feat_chat_agent
+  infra_dashboard_regen_pre_commit_conflict --> feat_chat_agent
   infra_foundation --> feat_chat_agent
   infra_frontend_stack_refresh --> feat_chat_agent
   infra_nvmrc --> feat_chat_agent
