@@ -2,14 +2,14 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-14 (after `feat_query_inline_crud` PR #101 squash-merged to `main` as `6a21da4` — 13th MVP1 feature; backend GET/PATCH/DELETE on individual queries + frontend `<QueriesTable>` with inline edit/metadata/delete + 409 toast; **first Playwright E2E infra in the repo**; rubric-tightening update to CLAUDE.md tangential-discoveries section; MVP1 dashboard PR-extractor fix)
+**Last updated:** 2026-05-14 (after `feat_query_inline_crud` PR #101 squash-merged + PR #102 finalization + drop decision on `chore_cluster_run_query_history` — backlog down to 4 actionable items, zero `/pipeline` candidates remaining)
 
 ---
 
 ## Current branch / execution context
 
 - **Branch:** `main` (post-merge of PR #101 as `6a21da4`). `v0.1.0` annotated tag still on `main` commit `d099536` 2026-05-13; GitHub Release at https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0.
-- **Active feature:** none in flight. `feat_query_inline_crud` shipped 2026-05-14 (13th MVP1 feature). **MVP1 alpha + 13 features shipped + 19 backlog items drained in the pre-MVP2 sweep.** Manual maintainer steps still pending from [`release-checklist.md`](docs/03_runbooks/release-checklist.md): §4 fresh-VM hosted-OpenAI walkthrough, §5 local-LLM walkthrough, §8 feedback Discussion + design-partner channel shares. **Remaining backlog (~5 actionable items):** 4 `/bug-fix` candidates (bug_chat_long_conversation_truncation_mvp2 held for MVP2; bug_digest_param_importance_seam; chore_chat_last_message_preview MVP2 scope; chore_judgments_periodic_resume_sweep); 1 `/pipeline` candidate (chore_cluster_run_query_history). Plus 4 keep-deferred items by operator decision.
+- **Active feature:** none in flight. `feat_query_inline_crud` shipped 2026-05-14 (13th MVP1 feature). **MVP1 alpha + 13 features shipped + 20 backlog items drained.** Manual maintainer steps still pending from [`release-checklist.md`](docs/03_runbooks/release-checklist.md): §4 fresh-VM hosted-OpenAI walkthrough, §5 local-LLM walkthrough, §8 feedback Discussion + design-partner channel shares. **Remaining backlog (~4 actionable items):** 4 `/bug-fix` candidates (bug_chat_long_conversation_truncation_mvp2 held for MVP2; bug_digest_param_importance_seam; chore_chat_last_message_preview MVP2 scope; chore_judgments_periodic_resume_sweep). **Zero `/pipeline` candidates remaining** — `chore_cluster_run_query_history` dropped 2026-05-14 per the /idea-preflight ship-vs-drop call (rationale: `feat_chat_agent`'s conversation transcript already captures agent-driven `run_query` tool dispatches with full request DSL + result hits + latency; the curl-driven path is a rare ad-hoc operator action that doesn't justify a new table + migration + endpoint + UI panel + retention cron; `feat_studies_ui` shipped without the history surface and no operator filed a bug). Plus 4 keep-deferred items by operator decision.
 - **Alembic head:** `0007_conversations_messages` (unchanged through `feat_query_inline_crud`).
 - **Python:** 3.13.
 - **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat config), TypeScript 6, jsdom 29, Node engine `>=20.18`. **NEW: Playwright** (chromium-only, single worker) — first E2E specs in the repo land with feat_query_inline_crud.
@@ -308,7 +308,7 @@ Remaining items split by sized work-flow per the inline-fix vs idea-file rubric:
 - `chore_judgments_periodic_resume_sweep` — strategic in-worker resume sweeper (MVP1 ships boot-time sweep + REPL recovery only).
 
 **`/pipeline` candidates** (feature-scale — schema + endpoint + UI):
-- `chore_cluster_run_query_history` — persist run_query results for inspection (chore_cluster_delete_ui's deferred sibling).
+- *(none — `chore_cluster_run_query_history` dropped 2026-05-14 via /idea-preflight, see "Active feature" above for rationale)*
 
 **Operator-deferred:** `chore_studies_ui_shadcn_polish` (shadcn primitive migration), `chore_demo_recording_mvp3` (Story 4.6 deferred to MVP3), `infra_optuna_orphan_reaper` (operationally tolerated for MVP1), and the in-progress dogfood items pending design-partner feedback.
 
