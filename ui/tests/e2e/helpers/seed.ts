@@ -38,6 +38,29 @@ interface SeedResult {
   judgmentListId: string | null;
 }
 
+interface ClusterSeed {
+  id: string;
+  name: string;
+}
+
+/**
+ * Seed a single cluster (no query-set, no judgments). Useful for tests that
+ * only need a cluster to exist — e.g., the /clusters/[id] delete flow.
+ */
+export async function seedCluster(): Promise<ClusterSeed> {
+  const suffix = randomUUID().slice(0, 8);
+  const name = `e2e-c-${suffix}`;
+  const cluster = await post<{ id: string }>('/api/v1/clusters', {
+    name,
+    engine_type: 'elasticsearch',
+    environment: 'dev',
+    base_url: 'http://elasticsearch:9200',
+    auth_kind: 'es_basic',
+    credentials_ref: 'local-es',
+  });
+  return { id: cluster.id, name };
+}
+
 /**
  * Seed a cluster + query-set + N queries.
  *
