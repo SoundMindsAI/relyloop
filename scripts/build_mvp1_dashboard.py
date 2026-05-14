@@ -44,6 +44,25 @@ DASHBOARD_DIR = REPO_ROOT / "docs/00_overview"
 DEFAULT_RELEASE = "mvp1"
 """Features without an explicit release tag default to MVP1 (the active scope)."""
 
+# Roadmap matrix — every release the project plans to ship through GA v1+, in
+# canonical order. Sourced from `docs/01_architecture/tech-stack.md` §"Canonical
+# release matrix" (the single source of truth per CLAUDE.md). Rendered as the
+# rows of the top-level roadmap dashboard; releases with no tagged features
+# still appear (as "Not yet scoped") so the roadmap shows runway.
+#
+# Each tuple is (release_tag, display_label, one-liner theme). The release_tag
+# matches the `_mvpN` suffix convention used by the per-folder classifier;
+# post-MVP4 releases (`ga`, `v2`) are reserved tags that the classifier can
+# extend to support when post-MVP4 features start being tagged.
+ROADMAP_RELEASES: list[tuple[str, str, str]] = [
+    ("mvp1", "MVP1 / v0.1", "The Loop"),
+    ("mvp2", "MVP2 / v0.2", "Observable"),
+    ("mvp3", "MVP3 / v0.3", "Production Stacks"),
+    ("mvp4", "MVP4 / v0.4", "Multi-tenant, Multi-LLM"),
+    ("ga", "GA v1 / v1.0", "Production-ready"),
+    ("v2", "v2+", "post-GA"),
+]
+
 # Feature directory name → human title fragment. Anything not in this map
 # falls back to the folder name with the prefix stripped.
 PREFIX_LABELS = {
@@ -888,6 +907,61 @@ footer {
 
 /* Hidden via filter */
 .card[data-hidden="1"] { display: none; }
+
+/* Back-to-roadmap link at the top of per-release dashboards. */
+.back-link {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.back-link a {
+  color: #4f46e5;
+  text-decoration: none;
+}
+.back-link a:hover { text-decoration: underline; }
+
+/* Roadmap roll-up rows */
+.roadmap-row {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) auto auto;
+  align-items: center;
+  gap: 16px;
+}
+.roadmap-row .release-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.roadmap-row .release-name a { color: inherit; text-decoration: none; }
+.roadmap-row .release-name a:hover { text-decoration: underline; }
+.roadmap-row .theme {
+  color: #4b5360;
+  font-size: 13px;
+}
+.roadmap-row .progress {
+  color: #5b6477;
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+.roadmap-row .state-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.state-pill.complete   { background: #dcfce7; color: #14532d; }
+.state-pill.in_progress { background: #ffedd5; color: #9a3412; }
+.state-pill.queued     { background: #fef3c7; color: #92400e; }
+.state-pill.unscoped   { background: #f1f5f9; color: #475569; }
 """
 
 
@@ -1117,6 +1191,61 @@ def _release_label(release: str) -> str:
     return f"MVP{m.group(1)}" if m else release.upper()
 
 
+ROADMAP_FILENAME_HTML = "dashboard.html"
+ROADMAP_FILENAME_MD = "DASHBOARD.md"
+"""Roadmap roll-up filenames (no release prefix — these are THE index)."""
+
+
+def _roadmap_row(release_tag: str, features: list[Feature]) -> dict[str, object]:
+    """Compute the roll-up KPIs for a single release row.
+
+    Returns a dict with: ``done`` (int), ``scoped`` (int), ``remaining``
+    (int), ``total`` (int — every folder tagged for this release,
+    including idea-only chore/backlog), ``state`` (str: "complete" /
+    "in_progress" / "queued" / "unscoped"), ``has_dashboard`` (bool —
+    whether to emit a drill-down link).
+    """
+    subset = [f for f in features if f.release == release_tag]
+    if not subset:
+        return {
+            "done": 0,
+            "scoped": 0,
+            "remaining": 0,
+            "total": 0,
+            "state": "unscoped",
+            "has_dashboard": False,
+        }
+    kpi = _classify_kpi(subset)
+    done = kpi["done_features"]
+    scoped = kpi["scoped_features"]
+    remaining = kpi["remaining"]
+    if scoped > 0 and done == scoped and remaining == 0:
+        state = "complete"
+    elif done == 0 and scoped == 0:
+        # Only idea-stage / bug items captured — pre-scope queue.
+        state = "queued"
+    else:
+        state = "in_progress"
+    return {
+        "done": done,
+        "scoped": scoped,
+        "remaining": remaining,
+        "total": len(subset),
+        "state": state,
+        "has_dashboard": True,
+    }
+
+
+def _back_to_roadmap_link_md() -> str:
+    """Header line inserted at the top of every per-release markdown dashboard."""
+    return f"[← Roadmap overview]({ROADMAP_FILENAME_MD})"
+
+
+def _back_to_roadmap_link_html() -> str:
+    """Header element inserted at the top of every per-release HTML dashboard."""
+    return f'<div class="back-link"><a href="{ROADMAP_FILENAME_HTML}">← Roadmap overview</a></div>'
+
+
 def _next_up_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
     """Render the 'Next up' callout — the prominent banner above the KPIs.
 
@@ -1205,6 +1334,7 @@ def render_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
 </head>
 <body>
 <header>
+  {_back_to_roadmap_link_html()}
   <h1>RelyLoop {release_label} Dashboard</h1>
   <div class="meta">
     Reflects feature-folder state as of {now} (latest mtime of any
@@ -1410,6 +1540,8 @@ def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> 
     html_filename = f"{release}_dashboard.html"
 
     lines: list[str] = []
+    lines.append(_back_to_roadmap_link_md())
+    lines.append("")
     lines.append(f"# RelyLoop {release_label} Dashboard")
     lines.append("")
     lines.append(
@@ -1529,6 +1661,150 @@ def _dashboard_paths(release: str) -> tuple[Path, Path]:
     )
 
 
+# ---------------------------------------------------------------------------
+# Roadmap roll-up — top-level index across every release
+# ---------------------------------------------------------------------------
+
+
+def _roadmap_state_label(state: str) -> str:
+    """Render the roll-up state machine value as a human pill label."""
+    return {
+        "complete": "Complete",
+        "in_progress": "In progress",
+        "queued": "Held / queued",
+        "unscoped": "Not yet scoped",
+    }.get(state, state.title())
+
+
+def render_roadmap_html(features: list[Feature]) -> str:
+    asof = _data_freshness().strftime("%Y-%m-%d")
+    rows_html: list[str] = []
+    for release_tag, label, theme in ROADMAP_RELEASES:
+        row = _roadmap_row(release_tag, features)
+        state = str(row["state"])
+        state_pill = (
+            f'<span class="state-pill {state}">{html.escape(_roadmap_state_label(state))}</span>'
+        )
+        if row["has_dashboard"]:
+            href = f"{release_tag}_dashboard.html"
+            name_html = f'<a href="{html.escape(href)}">{html.escape(label)}</a>'
+            done = int(row["done"])
+            scoped = int(row["scoped"])
+            remaining = int(row["remaining"])
+            if scoped > 0:
+                progress = f"{done} / {scoped} scoped done"
+                if remaining > 0:
+                    progress += f" · {remaining} remaining"
+            else:
+                total = int(row["total"])
+                progress = f"{total} item(s) queued"
+        else:
+            name_html = html.escape(label)
+            progress = "—"
+        rows_html.append(
+            f"""
+<div class="roadmap-row">
+  <div class="release-name">{name_html}</div>
+  <div class="theme">{html.escape(theme)}</div>
+  <div class="progress">{html.escape(progress)}</div>
+  {state_pill}
+</div>
+"""
+        )
+
+    rows = "\n".join(rows_html)
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RelyLoop — Release Roadmap</title>
+<style>{CSS}</style>
+</head>
+<body>
+<header>
+  <h1>RelyLoop — Release Roadmap</h1>
+  <div class="meta">
+    Top-level index across MVP1 → GA v1+ as of {asof}. Click a release name to
+    drill into the per-release dashboard. Theme labels sourced from
+    <a href="../01_architecture/tech-stack.md">tech-stack.md §"Canonical
+    release matrix"</a>. See <a href="../../state.md">state.md</a> for
+    active-branch context and <a href="../../CLAUDE.md">CLAUDE.md</a> for
+    conventions.
+  </div>
+</header>
+
+<main>
+<section>
+  <h2>Releases</h2>
+  {rows}
+</section>
+</main>
+
+<footer>
+  Single source of truth: the feature folder structure + the release matrix in
+  <code>tech-stack.md</code>. Regenerate with <code>make dashboard</code>.
+</footer>
+</body>
+</html>
+"""
+
+
+def render_roadmap_markdown(features: list[Feature]) -> str:
+    asof = _data_freshness().strftime("%Y-%m-%d")
+    lines: list[str] = []
+    lines.append("# RelyLoop — Release Roadmap")
+    lines.append("")
+    lines.append(
+        f"_Top-level index across MVP1 → GA v1+ as of **{asof}**. Click a "
+        "release name to drill into the per-release dashboard. Theme labels "
+        "sourced from "
+        '[`docs/01_architecture/tech-stack.md` §"Canonical release matrix"]'
+        "(../01_architecture/tech-stack.md). For the rich local view, open "
+        f"[`{ROADMAP_FILENAME_HTML}`]({ROADMAP_FILENAME_HTML}) in a browser._"
+    )
+    lines.append("")
+    lines.append("## Releases")
+    lines.append("")
+    lines.append("| Release | Theme | Progress | Status |")
+    lines.append("|---|---|---|---|")
+    for release_tag, label, theme in ROADMAP_RELEASES:
+        row = _roadmap_row(release_tag, features)
+        state_label = _roadmap_state_label(str(row["state"]))
+        if row["has_dashboard"]:
+            href = f"{release_tag.upper()}_DASHBOARD.md"
+            name_cell = f"[{label}]({href})"
+            done = int(row["done"])
+            scoped = int(row["scoped"])
+            remaining = int(row["remaining"])
+            if scoped > 0:
+                progress = f"{done} / {scoped} scoped done"
+                if remaining > 0:
+                    progress += f" · {remaining} remaining"
+            else:
+                total = int(row["total"])
+                progress = f"{total} item(s) queued"
+        else:
+            name_cell = label
+            progress = "—"
+        lines.append(
+            f"| {_md_escape_cell(name_cell)} | {_md_escape_cell(theme)} | "
+            f"{_md_escape_cell(progress)} | **{state_label}** |"
+        )
+    lines.append("")
+    lines.append("---")
+    lines.append("")
+    lines.append(
+        "Source of truth: feature folders under "
+        "[`docs/02_product/planned_features/`](../02_product/planned_features/) and "
+        "[`docs/00_overview/implemented_features/`](implemented_features/), plus "
+        "the release matrix in "
+        "[`docs/01_architecture/tech-stack.md`](../01_architecture/tech-stack.md). "
+        "See [`state.md`](../../state.md) for active-branch context and "
+        "[`CLAUDE.md`](../../CLAUDE.md) for conventions."
+    )
+    return "\n".join(lines) + "\n"
+
+
 def main() -> int:
     features = load_all()
     # Always emit at least the MVP1 dashboard; auto-discover any other
@@ -1547,6 +1823,20 @@ def main() -> int:
         if _maybe_write(md_path, output_md):
             wrote_paths.append(md_path)
         print(f"{release}: {len(subset)} features")
+
+    # Top-level roadmap roll-up. Always emitted (lists every release in the
+    # matrix, including those with zero scoped features), so the roadmap
+    # shows runway and provides a single entry point that navigates into
+    # every per-release dashboard.
+    roadmap_html_path = DASHBOARD_DIR / ROADMAP_FILENAME_HTML
+    roadmap_md_path = DASHBOARD_DIR / ROADMAP_FILENAME_MD
+    roadmap_html = _strip_trailing_ws(render_roadmap_html(features))
+    roadmap_md = _strip_trailing_ws(render_roadmap_markdown(features))
+    if _maybe_write(roadmap_html_path, roadmap_html):
+        wrote_paths.append(roadmap_html_path)
+    if _maybe_write(roadmap_md_path, roadmap_md):
+        wrote_paths.append(roadmap_md_path)
+    print(f"roadmap: {len(ROADMAP_RELEASES)} releases in matrix")
 
     if wrote_paths:
         rels = " + ".join(str(p.relative_to(REPO_ROOT)) for p in wrote_paths)
