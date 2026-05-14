@@ -39,6 +39,38 @@ export interface GuideRegistryEntry {
 }
 
 /**
+ * Long-form documentation entry — markdown files in `ui/public/docs/`
+ * (copied at build time from `docs/08_guides/`). Rendered by the
+ * `/guide/docs/[slug]` route using react-markdown.
+ */
+export interface DocRegistryEntry {
+  slug: string;
+  file: string;
+  title: string;
+  description: string;
+  estimatedTime: string;
+}
+
+export const DOC_REGISTRY: DocRegistryEntry[] = [
+  {
+    slug: 'tutorial',
+    file: 'tutorial-first-study.md',
+    title: 'Tutorial — your first relevance study',
+    description:
+      "Go from `git clone` to 'PR opened in GitHub' in under 30 minutes. Bring up the stack, seed sample data, generate LLM judgments, run a 10-trial Optuna study, and read the digest. The same operator path CI's smoke test exercises.",
+    estimatedTime: '30 minutes',
+  },
+  {
+    slug: 'workflows',
+    file: 'workflows-overview.md',
+    title: 'Workflows overview',
+    description:
+      'Complete inventory of the 30 distinct workflows a search engineer can execute in RelyLoop today. Grouped by phase: first-time setup → relevance assets → run the loop → review and ship → conversational introspection → operate the stack.',
+    estimatedTime: '15 minutes',
+  },
+];
+
+/**
  * Map of route prefixes → guide ids. Multiple guides can share a prefix; the
  * GuideTrigger button renders a picker when several match.
  */
