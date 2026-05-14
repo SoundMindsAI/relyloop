@@ -168,7 +168,7 @@ migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs 
 	@echo ""
 	@echo "Run 'make fmt' to apply ruff formatting to the new revision file."
 
-# ---------- MVP1 Dashboard ----------
+# ---------- Release Dashboards ----------
 
-dashboard:  ## Regenerate docs/00_overview/mvp1_dashboard.html from feature folders
+dashboard:  ## Regenerate docs/00_overview/<release>_dashboard.{html,md} from feature folders
 	@python3 scripts/build_mvp1_dashboard.py
