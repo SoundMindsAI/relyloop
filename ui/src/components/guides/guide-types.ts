@@ -188,5 +188,8 @@ export const GUIDE_MAP: GuideMapEntry[] = [
 ];
 
 export function guidesForPath(pathname: string): GuideMapEntry[] {
-  return GUIDE_MAP.filter((g) => pathname.startsWith(g.prefix));
+  // Match a full path segment, not a raw prefix — this prevents `/proposals`
+  // (a registered prefix) from accidentally matching a hypothetical
+  // `/proposals-archive` route.
+  return GUIDE_MAP.filter((g) => pathname === g.prefix || pathname.startsWith(g.prefix + '/'));
 }

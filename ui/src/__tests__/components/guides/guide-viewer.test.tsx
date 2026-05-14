@@ -214,7 +214,12 @@ describe('<GuideViewer>', () => {
 
   it("'f' keyboard shortcut toggles fullscreen", async () => {
     wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
-    await waitFor(() => expect(screen.getByTestId('guide-viewer')).toBeVisible());
+    // Wait for metadata to load — the viewer is visible during the
+    // loading state too, but localStorage-hydration of `data-fullscreen`
+    // happens on mount and could race against the keydown if CI is slow.
+    // Waiting on `guide-slide-image` proves the metadata has resolved.
+    await waitFor(() => expect(screen.getByTestId('guide-slide-image')).toBeVisible());
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'false');
 
     fireEvent.keyDown(window, { key: 'f' });
     expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'true');

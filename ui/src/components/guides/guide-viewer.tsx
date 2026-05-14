@@ -149,16 +149,20 @@ export function GuideViewer({ guideId, open, onOpenChange }: GuideViewerProps) {
   }, []);
 
   useEffect(() => {
-    if (!open || total === 0) return;
+    if (!open) return;
     const handler = (e: KeyboardEvent) => {
       // Don't hijack keys when a form input is focused (Radix Dialog traps
       // focus, so usually the body has focus and these handlers fire — but
       // a future "Take notes" field shouldn't get arrow keys eaten).
       const target = e.target as HTMLElement | null;
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      // Fullscreen is available as soon as the viewer opens — even during
+      // metadata load. Slide navigation is gated on `total > 0` because
+      // there's nothing to navigate before slides are loaded.
+      if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+      if (total === 0) return;
       if (e.key === 'ArrowRight') setSlideIndex((i) => Math.min(i + 1, total - 1));
       if (e.key === 'ArrowLeft') setSlideIndex((i) => Math.max(i - 1, 0));
-      if (e.key === 'f' || e.key === 'F') toggleFullscreen();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -201,7 +205,9 @@ export function GuideViewer({ guideId, open, onOpenChange }: GuideViewerProps) {
               >
                 {state.status === 'loaded'
                   ? (state.metadata?.description ?? '')
-                  : 'Loading walkthrough screenshots…'}
+                  : state.status === 'error'
+                    ? ''
+                    : 'Loading walkthrough screenshots…'}
               </DialogPrimitive.Description>
             </div>
             <div className="flex shrink-0 items-center gap-1">
