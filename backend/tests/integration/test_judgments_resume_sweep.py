@@ -30,6 +30,7 @@ from redis.asyncio import Redis
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
+from backend.tests._log_helpers import assert_log_level
 from backend.tests.conftest import postgres_reachable
 from backend.workers.judgments_resume import (
     _TTL_SECONDS,
@@ -252,7 +253,7 @@ async def test_cap_breach_skips_enqueue_and_warns(redis_client: Redis) -> None:
     capped_events = [e for e in captured if e["event"] == "judgment_resume_capped"]
     assert len(capped_events) == 1
     entry = capped_events[0]
-    assert entry["log_level"] == "warning"
+    assert_log_level(entry, "warning")
     assert entry["judgment_list_id"] == jid
     assert entry["count"] == cap + 1
     assert entry["cap"] == cap
@@ -297,7 +298,7 @@ async def test_per_id_failure_isolated_loop_continues(redis_client: Redis) -> No
 
     errored = [e for e in captured if e["event"] == "judgment_resume_errored"]
     assert len(errored) == 1
-    assert errored[0]["log_level"] == "warning"
+    assert_log_level(errored[0], "warning")
     assert errored[0]["judgment_list_id"] == jid1
     assert errored[0]["error_type"] == "RuntimeError"
 
