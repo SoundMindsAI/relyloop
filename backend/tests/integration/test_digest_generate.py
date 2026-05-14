@@ -9,7 +9,9 @@ populated), and no second proposal row is created.
 
 from __future__ import annotations
 
+import optuna
 import pytest
+import structlog.testing
 from redis.asyncio import Redis
 
 from backend.app.core.settings import get_settings
@@ -90,3 +92,66 @@ async def test_happy_path_updates_pending_proposal(monkeypatch: pytest.MonkeyPat
         assert n == 1
 
     create_mock.assert_called_once()
+
+
+async def test_unexpected_importance_exception_surfaces_as_error_event(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The canonical PR #92 regression guard.
+
+    ``optuna.importance.get_param_importances`` raises an ``ImportError``
+    (simulating the scikit-learn-missing regression from PR #92). The digest
+    worker MUST:
+
+    1. Still produce a digest (soft-fail per
+       ``chore_digest_worker_narrow_except`` fork #2 lock — MVP1 has no
+       PagerDuty, so we don't hard-fail user-facing flow).
+    2. Persist ``parameter_importance == {}`` (empty fallback unchanged).
+    3. Emit the new ``digest_importance_failed_unexpected`` event_type at
+       ERROR level (NOT WARN; ERROR is what observability alarms on).
+
+    Without this routing, the same regression would silently ship empty
+    importance maps for days again — exactly the PR #92 incident pattern.
+    """
+    settings = get_settings()
+    settings.__dict__["openai_api_key"] = "sk-test"
+
+    redis_client = Redis.from_url(settings.redis_url, decode_responses=False)
+    try:
+        await stub_capability(redis_client)
+    finally:
+        await redis_client.aclose()
+
+    seeded = await seed_completed_study()
+    patch_async_openai(monkeypatch, make_openai_response())
+
+    # Simulate the PR #92 regression: get_param_importances raises ImportError.
+    monkeypatch.setattr(
+        optuna.importance,
+        "get_param_importances",
+        lambda _study: (_ for _ in ()).throw(ImportError("No module named 'sklearn'")),
+    )
+
+    with structlog.testing.capture_logs() as captured:
+        await generate_digest({}, seeded["study_id"])
+
+    # 1. Digest was created (soft-fail behaviour preserved).
+    factory = get_session_factory()
+    async with factory() as db:
+        digest = await repo.get_digest_for_study(db, seeded["study_id"])
+        assert digest is not None
+        # 2. Empty importance map (the fallback both paths return).
+        assert digest.parameter_importance == {}
+
+    # 3. ERROR-level event_type fired exactly once.
+    error_events = [
+        e for e in captured if e.get("event_type") == "digest_importance_failed_unexpected"
+    ]
+    assert len(error_events) == 1
+    assert error_events[0]["log_level"] == "error"
+    assert error_events[0]["error_type"] == "ImportError"
+    assert error_events[0]["study_id"] == seeded["study_id"]
+
+    # 4. The benign WARN-level event_type did NOT fire on this unexpected path.
+    warn_events = [e for e in captured if e.get("event_type") == "digest_importance_failed"]
+    assert not warn_events
