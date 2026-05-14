@@ -222,7 +222,9 @@ def _rewrite_markdown_links(text: str, from_dir: Path, to_dir: Path) -> str:
         path_part, _sep, fragment = raw.partition("#")
         try:
             target = (from_dir / path_part).resolve()
-            new_path = os.path.relpath(target, to_dir)
+            # POSIX-style separators so GitHub renders correctly on any
+            # platform — matches the convention used by `_md_link` below.
+            new_path = Path(os.path.relpath(target, to_dir)).as_posix()
         except (ValueError, OSError):
             return match.group(0)
         suffix = f"#{fragment}" if fragment else ""
