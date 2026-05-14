@@ -59,6 +59,10 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("get", "/api/v1/query-sets", "200"),
     ("get", "/api/v1/query-sets/{query_set_id}", "200"),
     ("post", "/api/v1/query-sets/{query_set_id}/queries", "201"),
+    # feat_query_inline_crud — per-query CRUD
+    ("get", "/api/v1/query-sets/{query_set_id}/queries", "200"),
+    ("patch", "/api/v1/query-sets/{query_set_id}/queries/{query_id}", "200"),
+    ("delete", "/api/v1/query-sets/{query_set_id}/queries/{query_id}", "204"),
     # ----- /api/v1/judgments + /api/v1/judgment-lists -----
     ("post", "/api/v1/judgments/generate", "202"),
     ("post", "/api/v1/judgment-lists/import", "201"),

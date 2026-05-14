@@ -40,9 +40,13 @@ from backend.app.db.repo.digest import (
     get_digest_for_study,
 )
 from backend.app.db.repo.judgment import (
+    JudgmentListRefRow,
+    JudgmentRefCounts,
     bulk_create_judgments,
+    count_and_sample_judgment_refs,
     count_judgments_for_list,
     count_judgments_for_list_and_query,
+    count_judgments_per_query,
     create_judgment,
     get_judgment,
     list_judgments_paginated,
@@ -78,8 +82,13 @@ from backend.app.db.repo.proposal import (
 )
 from backend.app.db.repo.query import (
     bulk_create_queries,
+    count_queries_for_set,
     create_query,
+    delete_query,
+    get_query,
     list_queries_for_set,
+    list_queries_for_set_cursor,
+    update_query,
 )
 from backend.app.db.repo.query_set import (
     count_queries_in_set,
@@ -203,4 +212,14 @@ __all__ = [
     "list_messages",
     "soft_delete_conversation",
     "update_conversation_title",
+    # feat_query_inline_crud Stories 1.2 + 2.2 + 3.2 (per-query CRUD)
+    "JudgmentListRefRow",
+    "JudgmentRefCounts",
+    "count_and_sample_judgment_refs",
+    "count_judgments_per_query",
+    "count_queries_for_set",
+    "delete_query",
+    "get_query",
+    "list_queries_for_set_cursor",
+    "update_query",
 ]

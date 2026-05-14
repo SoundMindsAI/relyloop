@@ -14,6 +14,15 @@ export class ApiError extends Error {
   readonly errorCode: string;
   readonly retryable: boolean;
   readonly requestId: string | null;
+  /**
+   * The raw `detail` object from the backend envelope. Most error codes ship
+   * with just `{error_code, message, retryable}` but a few (e.g.
+   * `QUERY_HAS_JUDGMENTS`) extend the detail with structured fields the
+   * frontend consumes directly (`judgment_lists`, `overflow_count`).
+   * Callers that need those structured fields cast `detail` to the
+   * specific envelope type.
+   */
+  readonly detail: Record<string, unknown> | null;
 
   constructor(args: {
     status: number;
@@ -21,6 +30,7 @@ export class ApiError extends Error {
     message: string;
     retryable: boolean;
     requestId?: string | null;
+    detail?: Record<string, unknown> | null;
   }) {
     super(args.message);
     this.name = 'ApiError';
@@ -28,6 +38,7 @@ export class ApiError extends Error {
     this.errorCode = args.errorCode;
     this.retryable = args.retryable;
     this.requestId = args.requestId ?? null;
+    this.detail = args.detail ?? null;
   }
 }
 

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AddQueriesDialog } from '@/components/query-sets/add-queries-dialog';
 import { AssociatedJudgmentLists } from '@/components/query-sets/associated-judgment-lists';
 import { GenerateJudgmentsDialog } from '@/components/query-sets/generate-judgments-dialog';
+import { QueriesTable } from '@/components/query-sets/queries-table';
 import { useQuerySet } from '@/lib/api/query-sets';
 
 interface RouteProps {
@@ -63,11 +64,7 @@ export function QuerySetDetailView({ querySetId }: { querySetId: string }) {
               <CardTitle className="text-base">Queries</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {query.data.query_count.toLocaleString()} queries in this set. Per-query inspection
-                is deferred (see <code>chore_query_inline_edit_delete</code>) — use{' '}
-                <strong>Add queries</strong> to bulk-upload JSON or CSV.
-              </p>
+              <QueriesTable querySetId={query.data.id} />
             </CardContent>
           </Card>
           <Card>

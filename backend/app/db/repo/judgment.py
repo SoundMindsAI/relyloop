@@ -26,6 +26,8 @@ Three notable design decisions:
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
@@ -33,7 +35,7 @@ from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.db.models import Judgment
+from backend.app.db.models import Judgment, JudgmentList
 
 
 async def create_judgment(db: AsyncSession, **fields: object) -> Judgment:
@@ -243,3 +245,128 @@ async def source_breakdown_for_list(
             # 'human' AND 'click' both fold into 'human' per the cycle 2 F6 contract.
             out["human"] += int(count)
     return out
+
+
+# ---------------------------------------------------------------------------
+# feat_query_inline_crud Story 1.3 — batch per-query judgment-count helper
+# ---------------------------------------------------------------------------
+
+
+async def count_judgments_per_query(
+    db: AsyncSession,
+    query_ids: Sequence[str],
+) -> dict[str, int]:
+    """Return ``{query_id: count}`` for every id in ``query_ids``.
+
+    Single ``GROUP BY query_id`` over the paginated page (typically 50
+    rows max), backed by ``judgments_list_query_idx``. Missing keys
+    (queries with zero judgments) are post-filled to ``0`` here so the
+    router never has to.
+
+    Empty input → ``{}`` short-circuit.
+    """
+    if not query_ids:
+        return {}
+    stmt = (
+        select(Judgment.query_id, func.count())
+        .where(Judgment.query_id.in_(list(query_ids)))
+        .group_by(Judgment.query_id)
+    )
+    rows = (await db.execute(stmt)).all()
+    counts: dict[str, int] = {qid: int(c) for qid, c in rows}
+    # Post-fill zero counts so callers always get every requested id.
+    for qid in query_ids:
+        counts.setdefault(qid, 0)
+    return counts
+
+
+# ---------------------------------------------------------------------------
+# feat_query_inline_crud Story 3.2 — FK-guard sample helper for 409 envelope
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class JudgmentListRefRow:
+    """Repo-layer row shape for the FK-guard sample.
+
+    Distinct from the API-layer ``JudgmentListRef`` Pydantic model so the
+    repo doesn't depend on ``backend/app/api/``. Mapped to the wire model
+    at the router boundary.
+    """
+
+    id: str
+    name: str
+
+
+@dataclass(frozen=True)
+class JudgmentRefCounts:
+    """Return shape of :func:`count_and_sample_judgment_refs`.
+
+    Constructs the 409 ``QUERY_HAS_JUDGMENTS`` envelope: ``judgment_count``
+    + ``list_count`` feed ``detail.message``; ``sample_lists`` feeds
+    ``detail.judgment_lists`` (alphabetised by name, capped at the
+    requested ``sample_limit``); ``overflow_count`` is
+    ``max(0, list_count - sample_limit)``.
+    """
+
+    judgment_count: int
+    list_count: int
+    sample_lists: list[JudgmentListRefRow] = field(default_factory=list)
+    overflow_count: int = 0
+
+
+async def count_and_sample_judgment_refs(
+    db: AsyncSession,
+    query_id: str,
+    *,
+    sample_limit: int = 10,
+) -> JudgmentRefCounts:
+    """Aggregate + sample the judgment lists referencing ``query_id``.
+
+    Two SQL statements (helper is called only on the 409 cold path after
+    an ``IntegrityError`` rollback, so the two-query cost is paid only
+    when the operator actually hit a 409):
+
+    1. **Aggregate** — ``COUNT(*)`` + ``COUNT(DISTINCT judgment_list_id)``
+       to populate ``judgment_count`` and ``list_count``.
+    2. **Sample** — alphabetised ``DISTINCT judgment_list_id, name`` join
+       limited to ``sample_limit``. Feeds ``sample_lists``.
+
+    ``overflow_count = max(0, list_count - sample_limit)``.
+    """
+    # Aggregate.
+    agg_stmt = select(
+        func.count().label("judgment_count"),
+        func.count(Judgment.judgment_list_id.distinct()).label("list_count"),
+    ).where(Judgment.query_id == query_id)
+    agg = (await db.execute(agg_stmt)).one()
+    judgment_count = int(agg.judgment_count)
+    list_count = int(agg.list_count)
+
+    if list_count == 0:
+        return JudgmentRefCounts(
+            judgment_count=judgment_count,
+            list_count=0,
+            sample_lists=[],
+            overflow_count=0,
+        )
+
+    # Sample — alphabetised, capped.
+    sample_stmt = (
+        select(JudgmentList.id, JudgmentList.name)
+        .join(Judgment, Judgment.judgment_list_id == JudgmentList.id)
+        .where(Judgment.query_id == query_id)
+        .group_by(JudgmentList.id, JudgmentList.name)
+        .order_by(JudgmentList.name.asc())
+        .limit(sample_limit)
+    )
+    sample_rows = (await db.execute(sample_stmt)).all()
+    sample_lists = [JudgmentListRefRow(id=str(r.id), name=str(r.name)) for r in sample_rows]
+    overflow_count = max(0, list_count - sample_limit)
+
+    return JudgmentRefCounts(
+        judgment_count=judgment_count,
+        list_count=list_count,
+        sample_lists=sample_lists,
+        overflow_count=overflow_count,
+    )

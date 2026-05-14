@@ -189,6 +189,49 @@ The `AlertDialogAction` confirm button calls `event.preventDefault()` before inv
 
 ---
 
+## Per-query editing (`feat_query_inline_crud`)
+
+`/query-sets/[id]` renders `<QueriesTable>` with paginated rows and three inline row-actions:
+
+* **Edit** — opens an anchored `<EditQueryPopover>` for `query_text` + `reference_answer`. Submits a minimal PATCH body (only the keys that changed). Empty body = silent close (no PATCH).
+* **Edit metadata** (also reachable by clicking the "Set"/"—" metadata badge) — opens `<EditMetadataDialog>` with a JSON textarea. Save validates the JSON is a plain object (rejects arrays, scalars, `null` literal inline). "Clear metadata" sends exactly `{"query_metadata": null}` (distinct from empty body, which is a no-op).
+* **Delete** — opens `<DeleteQueryDialog>`. Confirm sends DELETE.
+
+### Delete returns 409 `QUERY_HAS_JUDGMENTS`
+
+The DELETE endpoint guards against orphaning judgments. If any `judgments` row references the query, the response is 409 with this detail shape:
+
+```json
+{
+  "detail": {
+    "error_code": "QUERY_HAS_JUDGMENTS",
+    "message": "query <id> has N judgments across M judgment list(s); remove the parent judgment list(s) first",
+    "retryable": false,
+    "judgment_lists": [{"id": "...", "name": "..."}],
+    "overflow_count": 0
+  }
+}
+```
+
+`useDeleteQuery` is the **single carve-out** from the global error toast — it sets `meta.suppressGlobalErrorToast: true` and renders the 409 as a destructive toast with a Sonner `action` slot. Click "Open `<first list name>` →" to navigate to `/judgments/{first_id}`; delete the parent judgment list there; come back and retry the per-query delete.
+
+Non-409 errors (404 `QUERY_SET_NOT_FOUND`, 404 `QUERY_NOT_FOUND`, 422 `VALIDATION_ERROR`) fall through to `toToastMessage(err)` formatting for parity with the global handler.
+
+### Common error codes (`/query-sets/{id}/queries*`)
+
+| Code (HTTP) | Cause | Recovery |
+|---|---|---|
+| `QUERY_SET_NOT_FOUND` (404) | Parent set was deleted | Navigate back to `/query-sets` |
+| `QUERY_NOT_FOUND` (404) | Query was deleted concurrently OR cross-set lookup (anti-enumeration) | Refetch the list — the row will disappear |
+| `QUERY_HAS_JUDGMENTS` (409) | Delete blocked by FK to `judgments.query_id` | Follow the toast action link |
+| `VALIDATION_ERROR` (422) | Bad cursor / out-of-range limit / malformed `?since` / extra PATCH field / explicit-null `query_text` | Toast surfaces the validation message |
+
+### Anti-enumeration note
+
+PATCH and DELETE on a `query_id` that exists in a **different** `query_set_id` than the one in the URL returns 404 `QUERY_NOT_FOUND` — same shape as a truly missing query. Operators see no information about whether the query exists elsewhere. Spec §10 Threat 2.
+
+---
+
 ## See also
 
 - [`docs/01_architecture/ui-architecture.md`](../01_architecture/ui-architecture.md) — design rationale
