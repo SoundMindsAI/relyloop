@@ -33,7 +33,14 @@ beforeEach(() => {
   );
 });
 
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.clearAllMocks();
+  // Reset preferences so tests don't leak state across cases.
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem('relyloop.guide-viewer.fullscreen');
+    window.localStorage.removeItem('relyloop.guide-viewer.text-size');
+  }
+});
 
 describe('<GuideViewer>', () => {
   it('renders the first slide after loading metadata', async () => {
@@ -103,5 +110,75 @@ describe('<GuideViewer>', () => {
     wrap(<GuideViewer guideId="test_guide" open={false} onOpenChange={vi.fn()} />);
     await new Promise((r) => setTimeout(r, 50));
     expect(fetchCount).toBe(0);
+  });
+
+  it('fullscreen toggle flips data-fullscreen + persists to localStorage', async () => {
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-viewer')).toBeVisible());
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'false');
+
+    fireEvent.click(screen.getByTestId('guide-fullscreen'));
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'true');
+    expect(window.localStorage.getItem('relyloop.guide-viewer.fullscreen')).toBe('1');
+
+    fireEvent.click(screen.getByTestId('guide-fullscreen'));
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'false');
+    expect(window.localStorage.getItem('relyloop.guide-viewer.fullscreen')).toBe('0');
+  });
+
+  it('text-size toggle cycles sm → base → lg → sm and persists', async () => {
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-viewer')).toBeVisible());
+    // Default is base (medium).
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-text-size', 'base');
+
+    fireEvent.click(screen.getByTestId('guide-text-size'));
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-text-size', 'lg');
+    expect(window.localStorage.getItem('relyloop.guide-viewer.text-size')).toBe('lg');
+
+    fireEvent.click(screen.getByTestId('guide-text-size'));
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-text-size', 'sm');
+
+    fireEvent.click(screen.getByTestId('guide-text-size'));
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-text-size', 'base');
+  });
+
+  it('hydrates fullscreen + text-size from localStorage on mount', async () => {
+    window.localStorage.setItem('relyloop.guide-viewer.fullscreen', '1');
+    window.localStorage.setItem('relyloop.guide-viewer.text-size', 'lg');
+
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-viewer')).toBeVisible());
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'true');
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-text-size', 'lg');
+  });
+
+  it('caption announces slide position to screen readers via sr-only prefix', async () => {
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-slide-caption')).toBeVisible());
+    const caption = screen.getByTestId('guide-slide-caption');
+    expect(caption).toHaveAttribute('aria-live', 'polite');
+    // Sr-only span contains "Slide N of M: " prefix.
+    expect(caption.textContent).toMatch(/^Slide 1 of 2: First slide caption$/);
+  });
+
+  it('View full image link points at the raw PNG and opens in a new tab', async () => {
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-view-full')).toBeVisible());
+    const link = screen.getByTestId('guide-view-full');
+    expect(link).toHaveAttribute('href', '/guides/test_guide/01-first.png');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+  });
+
+  it("'f' keyboard shortcut toggles fullscreen", async () => {
+    wrap(<GuideViewer guideId="test_guide" open={true} onOpenChange={vi.fn()} />);
+    await waitFor(() => expect(screen.getByTestId('guide-viewer')).toBeVisible());
+
+    fireEvent.keyDown(window, { key: 'f' });
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'true');
+
+    fireEvent.keyDown(window, { key: 'F' });
+    expect(screen.getByTestId('guide-viewer')).toHaveAttribute('data-fullscreen', 'false');
   });
 });

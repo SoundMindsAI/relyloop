@@ -40,7 +40,7 @@ export function GuideTrigger() {
         <Button
           variant="default"
           size="icon"
-          className="fixed bottom-6 right-6 z-50 size-12 rounded-full shadow-lg"
+          className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] z-50 size-14 rounded-full text-lg shadow-lg"
           onClick={() => openGuide(matches[0]!.guideId)}
           data-testid="guide-trigger"
           aria-label={`Open guide: ${matches[0]!.label}`}
@@ -53,7 +53,7 @@ export function GuideTrigger() {
             <Button
               variant="default"
               size="icon"
-              className="fixed bottom-6 right-6 z-50 size-12 rounded-full shadow-lg"
+              className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] z-50 size-14 rounded-full text-lg shadow-lg"
               data-testid="guide-trigger"
               aria-label="Open guide picker"
             >
