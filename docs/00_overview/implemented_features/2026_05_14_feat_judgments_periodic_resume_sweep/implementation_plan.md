@@ -1,7 +1,7 @@
 # Implementation Plan — feat_judgments_periodic_resume_sweep
 
 **Date:** 2026-05-14
-**Status:** Draft
+**Status:** Complete (PR [#104](https://github.com/SoundMindsAI/relyloop/pull/104), squash-merged `bace67d` 2026-05-14)
 **Primary spec:** [feature_spec.md](./feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../CLAUDE.md), [docs/01_architecture/](../../../01_architecture/)
 

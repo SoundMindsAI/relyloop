@@ -21,4 +21,9 @@
 - Phases covered: 1 of 1 (single-phase feature)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-14
+- PR: [#104](https://github.com/SoundMindsAI/relyloop/pull/104) (squash-merged as `bace67d`)
+- Stories completed: 4 of 4 (Story 1.1 Settings fields → Story 1.4 runbook + state.md)
+- CI status: all 7 jobs green on the post-fix run (backend + backend fast lane + frontend + docker buildx + smoke + secrets-defense + gitleaks)
+- Cross-model reviews: Gemini Code Assist 1 finding (accepted + applied in `1f8fe99` — `arq_pool` access before Redis client construction); GPT-5.5 final review 2 findings (both rejected with cited counter-evidence — see PR #104 adjudication summary comment)
