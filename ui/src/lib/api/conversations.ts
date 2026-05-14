@@ -43,6 +43,14 @@ export interface ConversationSummary {
   title: string | null;
   created_at: string;
   message_count: number;
+  /** Most recent user/assistant message text, truncated to 120 chars at the
+   * repo layer with `…` suffix when cut. Skips tool-role rows and
+   * `system_notice` assistant rows. `null` for empty conversations.
+   * chore_chat_last_message_preview. */
+  last_message_preview: string | null;
+  /** `created_at` of the same message picked for `last_message_preview`,
+   * or `null` when the conversation has no qualifying messages. */
+  last_message_at: string | null;
 }
 
 export interface ConversationDetail {

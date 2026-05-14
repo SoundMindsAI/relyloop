@@ -28,8 +28,22 @@ describe('useConversations', () => {
         HttpResponse.json(
           {
             data: [
-              { id: 'c1', title: 'first', created_at: '2026-05-12T00:00:00Z', message_count: 4 },
-              { id: 'c2', title: null, created_at: '2026-05-12T00:00:01Z', message_count: 0 },
+              {
+                id: 'c1',
+                title: 'first',
+                created_at: '2026-05-12T00:00:00Z',
+                message_count: 4,
+                last_message_preview: 'most recent message text',
+                last_message_at: '2026-05-12T00:05:00Z',
+              },
+              {
+                id: 'c2',
+                title: null,
+                created_at: '2026-05-12T00:00:01Z',
+                message_count: 0,
+                last_message_preview: null,
+                last_message_at: null,
+              },
             ],
             next_cursor: null,
             has_more: false,

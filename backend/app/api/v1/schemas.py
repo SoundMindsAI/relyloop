@@ -989,12 +989,26 @@ class MessageWire(BaseModel):
 
 
 class ConversationSummary(BaseModel):
-    """``GET /api/v1/conversations`` row + ``POST`` 201 body."""
+    """``GET /api/v1/conversations`` row + ``POST`` 201 body.
+
+    ``last_message_preview`` is the most recent user / assistant message's
+    ``content.text``, truncated at the repo layer to 120 chars (with ``…``
+    suffix when cut). Tool-role rows and assistant rows whose ``content.kind``
+    is ``system_notice`` are skipped. ``None`` for brand-new conversations
+    with no qualifying messages — see ``chore_chat_last_message_preview``.
+
+    ``last_message_at`` is the ``created_at`` of that same row, or ``None``
+    for empty conversations. The list page uses it to render "when did
+    anyone last touch this thread" instead of the conversation's
+    ``created_at``.
+    """
 
     id: str
     title: str | None
     created_at: datetime
     message_count: int
+    last_message_preview: str | None = None
+    last_message_at: datetime | None = None
 
 
 class ConversationDetail(BaseModel):
