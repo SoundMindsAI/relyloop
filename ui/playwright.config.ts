@@ -16,6 +16,10 @@ const API_BASE_URL = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:80
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // Walkthrough guides run under playwright.demo.config.ts (slow-mo, video,
+  // 1440×960 viewport) — exclude them from regression runs so they don't
+  // overwrite canonical guide PNGs at unexpected viewport sizes.
+  testIgnore: ['**/guides/**'],
   fullyParallel: false, // single backend stack — keep specs serial to avoid data races
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

@@ -5,6 +5,13 @@
  * the @theme block below (added in feat_studies_ui Story 1.2). */
 @import 'tailwindcss';
 
+/* @tailwindcss/typography — provides the `prose` utility used by the
+ * digest narrative (StudyDigestPanel) and the long-form documentation
+ * viewer (/guide/docs/[slug]). Without this @plugin directive the
+ * `prose prose-sm` class names compile to nothing under Tailwind 4 and
+ * headings + lists render at body-text size. */
+@plugin '@tailwindcss/typography';
+
 /* shadcn-conventional design tokens. Light theme is default; the .dark class
  * on <html> (controlled by next-themes) flips to the dark palette. Tailwind 4's
  * CSS-first pipeline registers these tokens as utility-class targets via the

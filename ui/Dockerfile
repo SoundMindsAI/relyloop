@@ -36,8 +36,11 @@ ENV HOSTNAME=0.0.0.0
 RUN groupadd -r relyloop && useradd -r -g relyloop relyloop
 COPY --from=builder --chown=relyloop:relyloop /app/.next/standalone ./
 COPY --from=builder --chown=relyloop:relyloop /app/.next/static ./.next/static
-# (no `COPY ... /app/public ./public` — ui/ has no public assets; if any
-# are added later, re-add this line so they ship in the runtime image.)
+# Walkthrough guide assets (PNGs + metadata.json + script.md per guide) live
+# under public/guides/ and are served by Next.js at /guides/{id}/{file}. Must
+# ship in the runtime image or the GuideViewer 404s (the Next.js standalone
+# output mode does NOT include `public/` by default).
+COPY --from=builder --chown=relyloop:relyloop /app/public ./public
 USER relyloop
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 \

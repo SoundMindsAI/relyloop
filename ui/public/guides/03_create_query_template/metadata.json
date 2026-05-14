@@ -1,0 +1,34 @@
+{
+  "title": "Create a query template",
+  "description": "Define the Jinja2 query template \u2014 the 'knobs' Optuna will tune across trials \u2014 and learn the fork-to-v2 versioning pattern.",
+  "order": 3,
+  "tags": [
+    "templates",
+    "setup",
+    "search-dsl"
+  ],
+  "estimated_time": "3 minutes",
+  "screenshots": [
+    {
+      "file": "01-templates-list.png",
+      "caption": "Open the Templates page. Every query template defines a Jinja2-rendered query DSL with named parameters \u2014 those parameters are what Optuna varies across trials. Click 'Create template' in the top right."
+    },
+    {
+      "file": "02-create-modal-empty.png",
+      "caption": "The create modal expects three things: a name, the Jinja2 body of the query, and a `name:type` list of declared parameters (one per line)."
+    },
+    {
+      "file": "03-create-modal-filled.png",
+      "caption": "The body is a JSON template that embeds Jinja2 expressions for runtime substitution. `{{ query_text }}` and `{{ boost }}` are the parameters Optuna fills per trial. The Declared params block tells the platform their types \u2014 `boost:float` and `query_text:string` here."
+    },
+    {
+      "file": "04-template-created.png",
+      "caption": "Submit. RelyLoop validates the Jinja2 syntax + checks that declared params match the params actually referenced in the body. On success, the new template lands in the list at version 1."
+    },
+    {
+      "file": "05-template-detail-fork-button.png",
+      "caption": "Templates are immutable \u2014 to evolve them, you fork. Click 'Fork to v2' on the detail page to create a new version with the same name but version=2. The parent_id field on the new template preserves the lineage so studies can reference a specific historical version."
+    }
+  ],
+  "video": "walkthrough.webm"
+}

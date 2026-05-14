@@ -11,9 +11,9 @@ user-invocable: true
 
 # Walkthrough Guide Generator & Visual Auditor
 
-> **DORMANT** until RelyLoop has a tenant-facing web frontend (MVP3+ at the earliest per the umbrella spec roadmap). Do NOT invoke this skill before the web stack lands. The patterns below describe how the skill will work once activated; concrete file paths (`web/`, `web/src/components/guide-trigger.tsx`, `docs/08_guides/`) don't exist yet.
+> **ACTIVE.** The in-app guide surface shipped on branch `feat_guide_viewer_walkthroughs`. See `ui/src/components/guides/` for the GuideViewer + GuideTrigger components and `ui/public/guides/` for the on-disk guide assets.
 
-You generate, audit, and maintain user-facing walkthrough guides for the RelyLoop project. Each guide is a set of Playwright-captured screenshots with captions, served in-app via a `GuideViewer` component (to be built when the UI matures).
+You generate, audit, and maintain user-facing walkthrough guides for the RelyLoop project. Each guide is a set of Playwright-captured screenshots with captions, served in-app via the `<GuideViewer>` component and surfaced contextually by the floating `<GuideTrigger>` button.
 
 The core value of this skill is **visual verification**: every screenshot is compared against the codebase's expected state to catch UI bugs, missing features, stale content, and broken flows — before a tenant ever sees them.
 
@@ -40,18 +40,19 @@ Read these files before starting:
 - `CLAUDE.md` — project conventions, stack, data model
 - `architecture.md` — system design, page structure
 - `docs/08_guides/README.md` — guide conventions, directory structure, walkthrough inventory
-- `web/src/components/guide-trigger.tsx` — route-to-guide mapping (GUIDE_MAP)
-- `web/src/components/guide-viewer.tsx` — how guides are rendered in-app
+- `ui/src/components/guides/guide-types.ts` — `GUIDE_REGISTRY` and `GUIDE_MAP` route bindings (every new guide must be registered here)
+- `ui/src/components/guides/guide-trigger.tsx` — the floating "?" button that surfaces contextual guides
+- `ui/src/components/guides/guide-viewer.tsx` — the in-app slideshow modal that consumes `metadata.json`
 
 ## Directory structure
 
 ```
-web/public/guides/<guide_id>/          # Single source of truth for assets
+ui/public/guides/<guide_id>/          # Single source of truth for assets
   metadata.json                        # Title, description, slides array
   01-screenshot-slug.png               # Screenshots (served by Next.js)
   ...
 
-web/tests/e2e/guides/                  # Playwright specs
+ui/tests/e2e/guides/                  # Playwright specs
   <NN>_<slug>.spec.ts
 
 docs/08_guides/
@@ -60,15 +61,21 @@ docs/08_guides/
 
 ## Walkthrough inventory
 
-**This skill is DORMANT until RelyLoop has a tenant-facing web frontend** (per the umbrella spec roadmap, MVP3+ at the earliest). The walkthrough inventory below will be authored when the UI matures. Likely first guides for RelyLoop:
+Shipped guides (kept in sync with `GUIDE_REGISTRY` in `ui/src/components/guides/guide-types.ts`):
 
-| # | Guide ID | Flow | Route prefix |
-|---|---|---|---|
-| 01 | `01_register_first_cluster` | Add cluster → configure auth → verify health | `/clusters` |
-| 02 | `02_create_query_set_and_judgments` | Upload CSV → generate or import judgments → review calibration | `/query-sets`, `/judgments` |
-| 03 | `03_run_first_study` | Create study form → watch live trials → see digest | `/studies` |
-| 04 | `04_review_digest_and_open_pr` | Read narrative + parameter importance → click Open PR → see PR in GitHub | `/proposals` |
-| 05 | `05_chat_driven_workflow` | Ask agent to tune → watch tool calls → confirm → study runs | `/chat` |
+| # | Guide ID | Flow | Route prefix | Status |
+|---|---|---|---|---|
+| 01 | `01_register_first_cluster` | Add cluster → configure auth → verify health | `/clusters` | Shipped |
+| 02 | `02_review_a_proposal` | Open pending proposal → read config diff → Open PR or Reject | `/proposals` | Shipped |
+| 03 | `03_create_query_template` | Define Jinja2 body + declared params → fork-to-v2 versioning | `/templates` | Shipped |
+| 04 | `04_create_query_set` | Create benchmark set → bulk-load queries (JSON or CSV) | `/query-sets` | Shipped |
+| 05 | `05_import_judgments_and_calibrate` | Import path (no LLM) → Cohen's + linear-weighted κ calibration | `/judgments` | Shipped |
+| 06 | `06_create_and_monitor_study` | Configure study → watch live trials → terminal state + cancel | `/studies` | Shipped |
+| 07 | `07_browse_proposals` | Three-axis filter (status / source / cluster) + 30s pulse-refetch | `/proposals` | Shipped |
+| 08 | `08_chat_shell` | Conversation list + new + secrets banner (no message streaming) | `/chat` | Shipped |
+| 09 | `09_generate_judgments_llm` | LLM-driven `/judgments/generate` flow against real OpenAI | `/query-sets`, `/judgments` | Shipped |
+| 10 | `10_chat_with_agent` | Agent tool dispatch (list_clusters) end-to-end against real OpenAI | `/chat` | Shipped |
+| — | Open PR end-to-end | Worker side of `POST /proposals/{id}/open_pr` against real GitHub | `/proposals` | Operator-specific (needs registered config_repo + real PAT) |
 
 ---
 
@@ -78,7 +85,7 @@ docs/08_guides/
 
 Build an **expected-state model** for the flow — what the user should see at each step:
 
-1. **Identify the pages/components** involved in the flow. Read each page file (`web/src/app/...`) and its key components.
+1. **Identify the pages/components** involved in the flow. Read each page file (`ui/src/app/...`) and its key components.
 2. **For each screen in the flow**, document:
    - URL and route
    - Heading text, form fields, buttons, badges visible
@@ -96,16 +103,16 @@ Expected elements:
   - Trials table: columns (#, params, primary_metric, duration_ms, status)
   - Cancel button: visible only when status="running"
   - Digest panel: visible only when an associated digests row exists
-Source: web/src/app/studies/[id]/page.tsx — depends on `useStudy(id)` hook in ui/lib/api/studies.ts
+Source: ui/src/app/studies/[id]/page.tsx — depends on `useStudy(id)` hook in ui/lib/api/studies.ts
 ```
 
 ### Step 2: Write the Playwright spec
 
-Create `web/tests/e2e/guides/<NN>_<slug>.spec.ts` following the established patterns:
+Create `ui/tests/e2e/guides/<NN>_<slug>.spec.ts` following the established patterns:
 
 **Required conventions:**
 - Import helpers from `../helpers/` (registerCluster, seedQuerySet, importJudgments, cleanupTestStudies, etc.)
-- Write screenshots to `web/public/guides/<guide_id>/`
+- Write screenshots to `ui/public/guides/<guide_id>/`
 - Dismiss cookie consent banner at the start (`page.getByRole("button", { name: /got it/i })`)
 - Hide floating overlays via MutationObserver (for Notion Web Clipper or similar)
 - Use `page.evaluate(() => window.scrollTo(0, 0))` and `page.waitForTimeout(400)` before screenshots
@@ -118,20 +125,20 @@ Create `web/tests/e2e/guides/<NN>_<slug>.spec.ts` following the established patt
 ### Step 3: Run the spec
 
 ```bash
-cd web
-npx playwright test -c playwright.demo.config.ts \
+cd ui
+pnpm playwright test -c playwright.demo.config.ts \
   tests/e2e/guides/<NN>_<slug>.spec.ts \
   --project=chromium --reporter=line
 ```
 
 **Prerequisites check:** Before running, verify:
-1. Backend is responding: `curl -s http://localhost:4800/health`
-2. Frontend is responding: `curl -s http://localhost:4100`
-3. If either is down, run `bash scripts/dev/start.sh` and wait for both to come up
+1. Backend is responding: `curl -s http://localhost:8000/healthz`
+2. Frontend is responding: `curl -s http://localhost:3000`
+3. If either is down, run `make up` and wait for both to come up. UI changes need `docker compose build ui && docker compose up -d ui` before the new code is reflected in captured screenshots.
 
 **Rate limiter:** If the cluster registration endpoint returns "Too many requests", the backend's in-memory rate limiter needs a reset. Restart the backend: kill the uvicorn process and restart it.
 
-**If the spec fails:** Read the error, check the failure screenshot at `web/test-results/demo-artifacts/`, fix the spec, and re-run. Common issues:
+**If the spec fails:** Read the error, check the failure screenshot at `ui/test-results/demo-artifacts/`, fix the spec, and re-run. Common issues:
 - Rate limiter blocking the API (restart backend)
 - Cluster-not-yet-registered redirect (register a cluster first)
 - Form field placeholder mismatch (check actual placeholder text in the component)
@@ -214,7 +221,7 @@ If the guide is incomplete, extend it or adjust the scope and bridge to the next
 
 ### Step 5c: Route relevance check
 
-Verify the guide is mapped to the correct pages in `GUIDE_MAP` (`web/src/components/guide-trigger.tsx`):
+Verify the guide is mapped to the correct pages in `GUIDE_MAP` (`ui/src/components/guide-trigger.tsx`):
 
 1. **Read `GUIDE_MAP`** and check which route prefixes are mapped to this guide.
 2. **For each slide**, verify the screenshot was taken on a page that matches one of the mapped route prefixes. A guide mapped to `/studies` should not show `/settings` screenshots unless the user is explicitly navigated there as part of the flow.
@@ -222,7 +229,7 @@ Verify the guide is mapped to the correct pages in `GUIDE_MAP` (`web/src/compone
    - Add the route prefix to `GUIDE_MAP`, OR
    - Remove those slides (they belong in a different guide)
 4. **Check for wrong mappings:** If the guide is mapped to a page where its content isn't relevant (e.g., a signup guide showing on the studies page), remove that mapping.
-5. **Verify the guide is listed on the `/guide` page** (`web/src/app/guide/page.tsx` → `GUIDE_CATALOG`). If it's a new guide, add it.
+5. **Verify the guide is listed on the `/guide` page** (`ui/src/app/guide/page.tsx` → `GUIDE_CATALOG`). If it's a new guide, add it.
 
 ### Step 6: Findings gate
 
@@ -258,7 +265,7 @@ Note in the audit log but do not create tracking files unless the user requests 
 
 After findings are resolved:
 
-1. **metadata.json** → `web/public/guides/<guide_id>/metadata.json`
+1. **metadata.json** → `ui/public/guides/<guide_id>/metadata.json`
    ```json
    {
      "title": "Human-readable guide title",
@@ -273,12 +280,12 @@ After findings are resolved:
    }
    ```
 
-2. **script.md** → `web/public/guides/<guide_id>/script.md`
+2. **script.md** → `ui/public/guides/<guide_id>/script.md`
    - One `## NN — Title` section per screenshot
    - 1-2 sentences of narrative context
    - `![alt text](/guides/<guide_id>/NN-slug.png)` image reference
 
-3. **GUIDE_MAP entry** → update `web/src/components/guide-trigger.tsx`
+3. **GUIDE_MAP entry** → update `ui/src/components/guide-trigger.tsx`
    - Add the route prefix → guide ID mapping
    - Only add if the guide is relevant to an unauthenticated or specific page
 
@@ -290,10 +297,10 @@ Update `docs/08_guides/README.md` walkthrough inventory table — mark the guide
 
 Stage all new/modified files and commit:
 ```
-git add web/public/guides/<guide_id>/ \
-  web/tests/e2e/guides/<spec>.spec.ts \
+git add ui/public/guides/<guide_id>/ \
+  ui/tests/e2e/guides/<spec>.spec.ts \
   docs/08_guides/walkthroughs/<guide_id>/ \
-  web/src/components/guide-trigger.tsx \
+  ui/src/components/guide-trigger.tsx \
   docs/08_guides/README.md
 ```
 
@@ -403,7 +410,7 @@ await page.addInitScript(() => {
 4. **Never modify application code** to fix bugs found during the audit. Create the tracking file and move on. The fix belongs in a separate PR via the normal spec → plan → execute pipeline.
 5. **Always dismiss the cookie banner** before capturing screenshots.
 6. **Always check that dev servers are running** before executing the Playwright spec.
-7. **Screenshots are the single source of truth** — they live in `web/public/guides/` only. No duplicate copies.
+7. **Screenshots are the single source of truth** — they live in `ui/public/guides/` only. No duplicate copies.
 8. **Clean up test data** — every Playwright spec must clean up created tenants/users in `test.afterEach`.
 9. **Use Playwright's bundled Chromium** — not system Chrome. The demo config sets `channel: undefined` and `--disable-extensions` to avoid browser extension artifacts.
 10. **Present findings to the user** before creating bug/idea files. Major findings require confirmation.
