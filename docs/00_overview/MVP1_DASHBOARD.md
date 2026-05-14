@@ -76,7 +76,7 @@ _None._
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) |
+| [feat_query_inline_crud](../02_product/planned_features/feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #101](https://github.com/SoundMindsAI/relyloop/pull/101) |
 
 ### Spec (0)
 

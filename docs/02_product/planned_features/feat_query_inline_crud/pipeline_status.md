@@ -21,9 +21,9 @@
 - Phases covered: single phase (no deferred phases)
 
 ## Implementation
-- Status: PR pending push
+- Status: PR #101 open (CI green)
 - Stories: 12/12 complete (Backend 7 + Frontend 4 + Docs 1)
-- Tests: 744 unit (was 710; +34) + 4 new integration test files + 1 new contract file (Postgres-required, CI runs) + 207 frontend (was 180; +27)
+- Tests: 744 unit (was 710; +34) + 4 new integration test files + 1 new contract file (Postgres-required, CI runs) + 210 frontend (was 180; +30)
 - Cross-model review: GPT-5.5 ran phase-1 (backend, 7 findings — 5 accept + 1 partial + 1 defer) and phase-2 (frontend, 9 findings — 4 accept + 3 reject + 1 partial + 1 defer).
 - Operator-path verified end-to-end against the live `make up` stack: all 3 backend endpoints (GET 200 + 422 + cursor; PATCH 200 + 422 + no-op; DELETE 204 + 404 + 409 with structured envelope); UI container rebuilt and /query-sets/{id} returns 200.
 - Deferred-work follow-ups: ALL THREE originally-deferred chores pulled forward into this PR after user pushback — (1) Playwright E2E infra + 5 specs against `/query-sets/[id]` running in CI's smoke-test job; (2) component-layer delete-flow integration test through `<QueriesTable>`; (3) `judgments_list_query_idx` presence introspection (replaces the planned EXPLAIN-plan assertion with a non-brittle pg_indexes check). One new dev dep (`@playwright/test`) — spec §5 "no new deps" constraint overridden by user instruction.
