@@ -33,6 +33,7 @@ from backend.app.llm.capability_check import (
     run_capability_check_background,
 )
 from backend.app.llm.capability_models import CapabilityResult
+from backend.tests._log_helpers import assert_log_level
 
 BASE_URL = "https://api.openai.com/v1"
 MODEL = "gpt-4o-2024-08-06"
@@ -199,8 +200,12 @@ class TestModelsEndpointFailure:
         assert result.function_calling == "untested"
         assert result.structured_output == "untested"
         # Verify the WARN was emitted with the structured `step` field.
-        warns = [e for e in captured if e.get("log_level") == "warning"]
-        assert any(e.get("step") == "models_endpoint" for e in warns), warns
+        # Filter by the structured `step` field first (key-name stable across
+        # structlog versions), then assert level via the tolerant helper.
+        step_events = [e for e in captured if e.get("step") == "models_endpoint"]
+        assert step_events, captured
+        for entry in step_events:
+            assert_log_level(entry, "warning")
 
 
 # ---------------------------------------------------------------------------
@@ -278,10 +283,13 @@ class TestNetworkErrors:
         assert result.models_endpoint == "fail"
         assert result.chat_completion == "untested"
         # Pin the WARN: same step + the simulated-timeout error text from the
-        # `error` kwarg passed to logger.warning(...).
-        warns = [e for e in captured if e.get("log_level") == "warning"]
-        assert any(e.get("step") == "models_endpoint" for e in warns), warns
-        assert any("simulated timeout" in str(e.get("error", "")) for e in warns), warns
+        # `error` kwarg passed to logger.warning(...). Filter by the
+        # structured `step` field, then assert level via the tolerant helper.
+        step_events = [e for e in captured if e.get("step") == "models_endpoint"]
+        assert step_events, captured
+        for entry in step_events:
+            assert_log_level(entry, "warning")
+        assert any("simulated timeout" in str(e.get("error", "")) for e in step_events), step_events
 
     async def test_redis_set_failure_does_not_raise(self) -> None:
         redis = _make_redis()
