@@ -108,8 +108,13 @@ def _extract_status_line(text: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def _extract_one_liner(text: str) -> str:
-    """Best-effort: prefer Outcome bullet, fall back to Problem bullet."""
+def _extract_one_liner(text: str, source_dir: Path | None = None) -> str:
+    """Best-effort: prefer Outcome bullet, fall back to Problem bullet.
+
+    When ``source_dir`` is supplied, any relative markdown link in the
+    extracted sentence is rewritten so it resolves correctly from the
+    dashboard files' directory. See :func:`_rewrite_markdown_links`.
+    """
     for label in ("Outcome", "Problem"):
         m = re.search(
             rf"^- \*\*{label}:\*\*\s*(.+?)$",
@@ -120,6 +125,8 @@ def _extract_one_liner(text: str) -> str:
             line = m.group(1).strip()
             # Strip wrapping markdown links/code; keep first sentence.
             sentence = re.split(r"(?<=[.!?])\s+", line, maxsplit=1)[0]
+            if source_dir is not None:
+                sentence = _rewrite_markdown_links(sentence, source_dir, _DASHBOARD_DIR)
             return sentence
     return ""
 
@@ -170,8 +177,70 @@ def _safe_truncate_markdown(text: str, max_len: int) -> str:
     return candidate.rstrip() + "…"
 
 
-def _extract_idea_problem(text: str) -> str:
-    """Pull the first paragraph under the `## Problem` heading."""
+_DASHBOARD_DIR = OUTPUT_MD.parent
+"""Directory the rendered dashboards live in.
+
+Used by :func:`_rewrite_markdown_links` to recompute relative paths in
+extracted one-liner text from each feature folder's perspective into the
+dashboard's perspective. Both ``OUTPUT_MD`` and ``OUTPUT_HTML`` live
+under ``docs/00_overview/``, so a single directory anchor covers both.
+"""
+
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+"""Match markdown links of the form ``[label](path)``. Captures label + raw path."""
+
+
+def _rewrite_markdown_links(text: str, from_dir: Path, to_dir: Path) -> str:
+    """Rewrite relative markdown link paths to be valid when ``text`` is moved.
+
+    When a feature's idea.md / feature_spec.md one-liner is extracted and
+    embedded into the dashboard files, any relative path inside a markdown
+    link breaks: the source file lives at depth 4 (``docs/02_product/
+    planned_features/<folder>/idea.md``), but the dashboard files live at
+    depth 2 (``docs/00_overview/MVP1_DASHBOARD.md``). A path like
+    ``../../../../backend/foo`` correctly resolves to ``<repo>/backend/foo``
+    from the source, but resolves to ``../../backend/foo`` (outside the
+    repo) when embedded in the dashboard.
+
+    This helper recomputes each relative path. Absolute paths (``/foo``),
+    full URLs (``http://...``), in-document anchors (``#section``), and
+    ``mailto:`` links pass through unchanged. Fragments (``#L42``) are
+    preserved on the rewritten side.
+
+    Surfaced by Gemini Code Assist on PR #106 (broken
+    ``backend/tests/integration/...`` links in
+    ``MVP1_DASHBOARD.md:91`` + ``mvp1_dashboard.html:479``); tracked as
+    option A in ``infra_dashboard_regen_pre_commit_conflict/idea.md`` §4.
+    """
+
+    def fix_one(match: re.Match[str]) -> str:
+        label = match.group(1)
+        raw = match.group(2).strip()
+        if raw.startswith(("/", "http://", "https://", "#", "mailto:")):
+            return match.group(0)
+        # Preserve the fragment (e.g., `#L42`) across rewriting.
+        path_part, _sep, fragment = raw.partition("#")
+        try:
+            target = (from_dir / path_part).resolve()
+            # POSIX-style separators so GitHub renders correctly on any
+            # platform — matches the convention used by `_md_link` below.
+            new_path = Path(os.path.relpath(target, to_dir)).as_posix()
+        except (ValueError, OSError):
+            return match.group(0)
+        suffix = f"#{fragment}" if fragment else ""
+        return f"[{label}]({new_path}{suffix})"
+
+    return _MD_LINK_RE.sub(fix_one, text)
+
+
+def _extract_idea_problem(text: str, idea_dir: Path | None = None) -> str:
+    """Pull the first paragraph under the `## Problem` heading.
+
+    When ``idea_dir`` is supplied, any relative markdown link in the
+    extracted paragraph is rewritten so it resolves correctly from the
+    dashboard files' directory (``docs/00_overview/``). See
+    :func:`_rewrite_markdown_links`.
+    """
     m = re.search(r"^##\s+Problem\s*$", text, flags=re.MULTILINE)
     if not m:
         return ""
@@ -179,6 +248,8 @@ def _extract_idea_problem(text: str) -> str:
     # First non-empty paragraph.
     para = next((p for p in rest.split("\n\n") if p.strip()), "")
     para = re.sub(r"\s+", " ", para).strip()
+    if idea_dir is not None:
+        para = _rewrite_markdown_links(para, idea_dir, _DASHBOARD_DIR)
     return _safe_truncate_markdown(para, 240)
 
 
@@ -362,7 +433,11 @@ def _load_planned(folder_path: Path) -> Feature | None:
     status_line = _extract_status_line(status_text) or ""
 
     # One-liner.
-    one_liner = _extract_one_liner(spec) if spec else _extract_idea_problem(idea)
+    one_liner = (
+        _extract_one_liner(spec, source_dir=folder_path)
+        if spec
+        else _extract_idea_problem(idea, idea_dir=folder_path)
+    )
 
     feature = Feature(
         folder=folder,
@@ -392,7 +467,7 @@ def _load_implemented(folder_path: Path) -> Feature | None:
     plan = _read(folder_path / "implementation_plan.md")
     pipe = _read(folder_path / "pipeline_status.md")
 
-    one_liner = _extract_one_liner(spec)
+    one_liner = _extract_one_liner(spec, source_dir=folder_path)
     pr = _extract_pr_number(pipe, plan, spec)
     merged = _extract_merged_date(pipe + plan + spec)
 
@@ -1349,16 +1424,44 @@ def render_markdown(features: list[Feature]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _maybe_write(path: Path, new_content: str) -> bool:
+    """Write ``new_content`` to ``path`` only if it differs from the existing file.
+
+    Returns ``True`` when a write happened, ``False`` when the file was
+    already content-equivalent. Pre-commit's "files were modified by this
+    hook" check sees a no-op write as a failure (mtime changes are
+    irrelevant — pre-commit hashes the file content), so this guard is
+    what makes the regen genuinely idempotent: the hook now only fails a
+    commit when the dashboard's rendered output actually changed.
+    """
+    try:
+        existing: str | None = path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        existing = None
+    if existing == new_content:
+        return False
+    path.write_text(new_content, encoding="utf-8")
+    return True
+
+
 def main() -> int:
     features = load_all()
     output_html = _strip_trailing_ws(render_html(features))
-    OUTPUT_HTML.write_text(output_html, encoding="utf-8")
     output_md = _strip_trailing_ws(render_markdown(features))
-    OUTPUT_MD.write_text(output_md, encoding="utf-8")
-    print(
-        f"wrote {OUTPUT_HTML.relative_to(REPO_ROOT)} + "
-        f"{OUTPUT_MD.relative_to(REPO_ROOT)} ({len(features)} features)"
-    )
+    html_written = _maybe_write(OUTPUT_HTML, output_html)
+    md_written = _maybe_write(OUTPUT_MD, output_md)
+    if html_written or md_written:
+        wrote = [
+            str(p.relative_to(REPO_ROOT))
+            for p, written in (
+                (OUTPUT_HTML, html_written),
+                (OUTPUT_MD, md_written),
+            )
+            if written
+        ]
+        print(f"wrote {' + '.join(wrote)} ({len(features)} features)")
+    else:
+        print(f"no changes ({len(features)} features)")
     return 0
 
 
