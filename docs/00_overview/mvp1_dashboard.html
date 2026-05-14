@@ -328,7 +328,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">34 / 34</div>
+      <div class="value">35 / 35</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -351,7 +351,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      2 idea-only feat/infra folders (not yet scoped into MVP1)
+      1 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">6</span></h3>
+  <h3>Idea <span class="count">5</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -381,18 +381,6 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; </div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_structlog_test_helpers">Structlog Test Helpers</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">The repo currently has two distinct, half-overlapping patterns for asserting structlog events from tests:</div>
 
 
 </div>
@@ -463,7 +451,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">42</span></h3>
+  <h3>Done <span class="count">43</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -686,6 +674,18 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_infra_structlog_test_helpers">Structlog Test Helpers</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
 
@@ -1049,6 +1049,8 @@ footer {
   class infra_dashboard_regen_pre_commit_conflict done;
   infra_make_targets_split_backend_only[&quot;make targets split backend only&quot;]
   class infra_make_targets_split_backend_only done;
+  infra_structlog_test_helpers[&quot;structlog test helpers&quot;]
+  class infra_structlog_test_helpers done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1073,6 +1075,7 @@ footer {
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
+  infra_structlog_test_helpers --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
@@ -1091,6 +1094,7 @@ footer {
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_per_trial_timeout --&gt; feat_chat_agent
+  infra_structlog_test_helpers --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
@@ -1186,6 +1190,8 @@ footer {
   class infra_dashboard_regen_pre_commit_conflict done;
   infra_make_targets_split_backend_only[&quot;make targets split backend only&quot;]
   class infra_make_targets_split_backend_only done;
+  infra_structlog_test_helpers[&quot;structlog test helpers&quot;]
+  class infra_structlog_test_helpers done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1210,6 +1216,7 @@ footer {
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
+  infra_structlog_test_helpers --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
@@ -1228,6 +1235,7 @@ footer {
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_per_trial_timeout --&gt; feat_chat_agent
+  infra_structlog_test_helpers --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
