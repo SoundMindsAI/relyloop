@@ -39,7 +39,9 @@ describe('GUIDE_REGISTRY', () => {
   it('guidesForPath returns the right matches', () => {
     expect(guidesForPath('/clusters')).toHaveLength(1);
     expect(guidesForPath('/clusters/abc-123')).toHaveLength(1); // prefix match
-    expect(guidesForPath('/proposals')).toHaveLength(1);
+    // /proposals has two registered guides (browse + review).
+    expect(guidesForPath('/proposals')).toHaveLength(2);
+    expect(guidesForPath('/templates')).toHaveLength(1);
     expect(guidesForPath('/some-other-route')).toHaveLength(0);
   });
 });

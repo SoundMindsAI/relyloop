@@ -35,10 +35,18 @@ describe('<GuideTrigger>', () => {
   });
 
   it('uses single-guide direct-open mode when only one guide matches', () => {
-    // /proposals only has one registered guide (02_review_a_proposal).
+    // /clusters has exactly one registered guide (01_register_first_cluster).
+    mockPathname = '/clusters';
+    wrap(<GuideTrigger />);
+    const btn = screen.getByTestId('guide-trigger');
+    expect(btn).toHaveAttribute('aria-label', expect.stringContaining('Register a cluster'));
+  });
+
+  it('uses picker mode when multiple guides match the route', () => {
+    // /proposals has both 02_review_a_proposal and 07_browse_proposals.
     mockPathname = '/proposals';
     wrap(<GuideTrigger />);
     const btn = screen.getByTestId('guide-trigger');
-    expect(btn).toHaveAttribute('aria-label', expect.stringContaining('Review a proposal'));
+    expect(btn).toHaveAttribute('aria-label', 'Open guide picker');
   });
 });

@@ -40,6 +40,20 @@ Shipped guides:
 |---|---|---|---|
 | 01 | [`01_register_first_cluster`](../../ui/public/guides/01_register_first_cluster/) | `/clusters` | Add cluster → configure auth → verify health probe |
 | 02 | [`02_review_a_proposal`](../../ui/public/guides/02_review_a_proposal/) | `/proposals` | Open pending proposal → read config diff → decide Open PR or Reject |
+| 03 | [`03_create_query_template`](../../ui/public/guides/03_create_query_template/) | `/templates` | Author the Jinja2 query body + declared params → fork-to-v2 versioning |
+| 04 | [`04_create_query_set`](../../ui/public/guides/04_create_query_set/) | `/query-sets` | Create a benchmark set → bulk-load queries via JSON or CSV |
+| 05 | [`05_import_judgments_and_calibrate`](../../ui/public/guides/05_import_judgments_and_calibrate/) | `/judgments` | Skip LLM judgment generation via the import path → run Cohen's + linear-weighted κ calibration |
+| 06 | [`06_create_and_monitor_study`](../../ui/public/guides/06_create_and_monitor_study/) | `/studies` | Configure a study → watch trials populate live → terminal state + cancel |
+| 07 | [`07_browse_proposals`](../../ui/public/guides/07_browse_proposals/) | `/proposals` | Three-axis filter (status / source / cluster) → 30-second pulse-refetch for open PRs |
+| 08 | [`08_chat_shell`](../../ui/public/guides/08_chat_shell/) | `/chat` | Conversation list → new chat → secrets warning banner (message streaming covered in a future MVP2 guide) |
+
+**Workflows NOT yet covered by a guide:**
+
+- **B4 — LLM judgment generation** (`POST /api/v1/judgments/generate`): needs a live LLM endpoint or an SSE-stream mock to capture deterministically. The import path (guide 05) is the offline-friendly substitute.
+- **C2 / E1-E3 — chat-driven study creation + agent introspection**: same blocker — agent tool dispatch is LLM-bound.
+- **D4 (full) — Open PR end-to-end**: the trigger is captured in guide 02; the worker's GitHub interaction requires a registered config-repo + real PAT, which is operator territory.
+
+These ship when MVP2 lands LLM mocking infrastructure (per the umbrella spec roadmap).
 
 ### Adding or regenerating a guide
 

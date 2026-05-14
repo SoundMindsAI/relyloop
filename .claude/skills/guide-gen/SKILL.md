@@ -67,9 +67,15 @@ Shipped guides (kept in sync with `GUIDE_REGISTRY` in `ui/src/components/guides/
 |---|---|---|---|---|
 | 01 | `01_register_first_cluster` | Add cluster → configure auth → verify health | `/clusters` | Shipped |
 | 02 | `02_review_a_proposal` | Open pending proposal → read config diff → Open PR or Reject | `/proposals` | Shipped |
-| 03 | `03_create_query_set_and_judgments` | Upload CSV → generate or import judgments → review calibration | `/query-sets`, `/judgments` | Planned |
-| 04 | `04_run_first_study` | Create study → watch live trials → see digest | `/studies` | Planned |
-| 05 | `05_chat_driven_workflow` | Ask agent to tune → watch tool calls → confirm → study runs | `/chat` | Planned (needs LLM-stub or real LLM) |
+| 03 | `03_create_query_template` | Define Jinja2 body + declared params → fork-to-v2 versioning | `/templates` | Shipped |
+| 04 | `04_create_query_set` | Create benchmark set → bulk-load queries (JSON or CSV) | `/query-sets` | Shipped |
+| 05 | `05_import_judgments_and_calibrate` | Import path (no LLM) → Cohen's + linear-weighted κ calibration | `/judgments` | Shipped |
+| 06 | `06_create_and_monitor_study` | Configure study → watch live trials → terminal state + cancel | `/studies` | Shipped |
+| 07 | `07_browse_proposals` | Three-axis filter (status / source / cluster) + 30s pulse-refetch | `/proposals` | Shipped |
+| 08 | `08_chat_shell` | Conversation list + new + secrets banner (no message streaming) | `/chat` | Shipped |
+| — | LLM judgment generation | LLM-driven `/judgments/generate` flow | `/judgments` | Blocked on LLM mocking (MVP2+) |
+| — | Chat with tool dispatch | Agent introspection + create-study via chat (workflows C2 / E1-E3) | `/chat` | Blocked on LLM mocking (MVP2+) |
+| — | Open PR end-to-end | Worker side of `POST /proposals/{id}/open_pr` against real GitHub | `/proposals` | Operator-specific (needs registered config_repo + real PAT) |
 
 ---
 
