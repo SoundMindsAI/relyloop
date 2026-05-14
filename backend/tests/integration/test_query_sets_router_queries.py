@@ -9,6 +9,7 @@ OpenAPI ``responses`` wiring) is exercised end-to-end.
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 from datetime import UTC, datetime
 
@@ -60,6 +61,13 @@ async def _seed_set(num_queries: int = 3) -> tuple[str, list[str]]:
                 query_metadata={"i": i} if i % 2 == 0 else None,
             )
             query_ids.append(q.id)
+            # Ensure distinct UUIDv7 ms timestamps so ?since-filter
+            # boundary tests (AC-25, AC-26) don't flake when two queries
+            # share the same 48-bit ms prefix. Matches the precedent at
+            # backend/tests/integration/test_phase2_repos.py:131 — same
+            # "ms-collision under fast CI execution" failure mode.
+            # See planned_features/bug_query_inline_crud_since_filter_uuidv7_ms_collision/.
+            await asyncio.sleep(0.01)
         await db.commit()
     return qs.id, query_ids
 
