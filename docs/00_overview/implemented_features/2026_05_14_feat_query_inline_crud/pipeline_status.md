@@ -21,7 +21,7 @@
 - Phases covered: single phase (no deferred phases)
 
 ## Implementation
-- Status: PR #101 open (CI green)
+- Status: Complete (PR #101, squash-merged 2026-05-14 as `6a21da4`)
 - Stories: 12/12 complete (Backend 7 + Frontend 4 + Docs 1)
 - Tests: 744 unit (was 710; +34) + 4 new integration test files + 1 new contract file (Postgres-required, CI runs) + 210 frontend (was 180; +30)
 - Cross-model review: GPT-5.5 ran phase-1 (backend, 7 findings — 5 accept + 1 partial + 1 defer) and phase-2 (frontend, 9 findings — 4 accept + 3 reject + 1 partial + 1 defer).

@@ -313,12 +313,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/feat_query_inline_crud/feature_spec.md">Query Inline Crud</a></div>
-    <div class="one-liner">A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_query_inline_crud/implementation_plan.md --all</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -326,15 +326,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">29 / 30</div>
-      <div class="sub">97% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:97%"></span></div>
+      <div class="value">30 / 30</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">8</div>
+      <div class="value">7</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -477,18 +477,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_query_inline_crud/feature_spec.md">Query Inline Crud</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/101">PR #101</a>
-  </div>
-  <div class="one-liner">A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.</div>
-
-  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_studies_ui</span></div>
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -498,7 +487,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">36</span></h3>
+  <h3>Done <span class="count">37</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -569,6 +558,18 @@ footer {
   <div class="one-liner">Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + &quot;Open PR&quot; button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app.</div>
 
   <div class="deps">depends on: <span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_feat_query_inline_crud/feature_spec.md">Query Inline Crud</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/101">PR #101</a><span>merged 2026-05-14</span>
+  </div>
+  <div class="one-liner">A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_studies_ui</span></div>
 </div>
 
 
@@ -944,8 +945,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_query_inline_crud[&quot;query inline crud&quot;]
-  class feat_query_inline_crud plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1004,11 +1003,8 @@ footer {
   class infra_nvmrc done;
   infra_per_trial_timeout[&quot;per trial timeout&quot;]
   class infra_per_trial_timeout done;
-  infra_foundation --&gt; feat_query_inline_crud
-  infra_adapter_elastic --&gt; feat_query_inline_crud
-  feat_study_lifecycle --&gt; feat_query_inline_crud
-  feat_llm_judgments --&gt; feat_query_inline_crud
-  feat_studies_ui --&gt; feat_query_inline_crud
+  feat_query_inline_crud[&quot;query inline crud&quot;]
+  class feat_query_inline_crud done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1060,15 +1056,18 @@ footer {
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui
   feat_llm_judgments --&gt; feat_studies_ui
-  infra_adapter_elastic --&gt; feat_studies_ui</div>
+  infra_adapter_elastic --&gt; feat_studies_ui
+  infra_foundation --&gt; feat_query_inline_crud
+  infra_adapter_elastic --&gt; feat_query_inline_crud
+  feat_study_lifecycle --&gt; feat_query_inline_crud
+  feat_llm_judgments --&gt; feat_query_inline_crud
+  feat_studies_ui --&gt; feat_query_inline_crud</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
   classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_query_inline_crud[&quot;query inline crud&quot;]
-  class feat_query_inline_crud plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1127,11 +1126,8 @@ footer {
   class infra_nvmrc done;
   infra_per_trial_timeout[&quot;per trial timeout&quot;]
   class infra_per_trial_timeout done;
-  infra_foundation --&gt; feat_query_inline_crud
-  infra_adapter_elastic --&gt; feat_query_inline_crud
-  feat_study_lifecycle --&gt; feat_query_inline_crud
-  feat_llm_judgments --&gt; feat_query_inline_crud
-  feat_studies_ui --&gt; feat_query_inline_crud
+  feat_query_inline_crud[&quot;query inline crud&quot;]
+  class feat_query_inline_crud done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1183,7 +1179,12 @@ footer {
   feat_study_lifecycle --&gt; feat_studies_ui
   feat_digest_proposal --&gt; feat_studies_ui
   feat_llm_judgments --&gt; feat_studies_ui
-  infra_adapter_elastic --&gt; feat_studies_ui</pre></noscript>
+  infra_adapter_elastic --&gt; feat_studies_ui
+  infra_foundation --&gt; feat_query_inline_crud
+  infra_adapter_elastic --&gt; feat_query_inline_crud
+  feat_study_lifecycle --&gt; feat_query_inline_crud
+  feat_llm_judgments --&gt; feat_query_inline_crud
+  feat_studies_ui --&gt; feat_query_inline_crud</pre></noscript>
   </div>
 </section>
 

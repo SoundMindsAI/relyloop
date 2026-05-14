@@ -2,23 +2,22 @@
 
 > Read this first. Snapshots the active branch, what just shipped, what's in flight, what's queued, and where the project currently sits in the MVP1 → GA roadmap. Updated whenever a feature lands or a priority shifts.
 
-**Last updated:** 2026-05-13 (after CI-speedup + env-defense bundle wave — PRs #94 / #96 / #97 cut CI wall time ~7m20s → ~5m55s + unit-test fast lane; PR #99 bundled 3 env-defense chores: secrets-files-guard moved to its own workflow with no paths-ignore, gitleaks added to CI, deny regex broadened to non-dotted backup spellings)
+**Last updated:** 2026-05-14 (after `feat_query_inline_crud` PR #101 squash-merged to `main` as `6a21da4` — 13th MVP1 feature; backend GET/PATCH/DELETE on individual queries + frontend `<QueriesTable>` with inline edit/metadata/delete + 409 toast; **first Playwright E2E infra in the repo**; rubric-tightening update to CLAUDE.md tangential-discoveries section; MVP1 dashboard PR-extractor fix)
 
 ---
 
 ## Current branch / execution context
 
-- **Branch:** `feature/feat-query-inline-crud` (pending push). `v0.1.0` annotated tag still on `main` commit `d099536` 2026-05-13; GitHub Release at https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0.
-- **Active feature:** `feat_query_inline_crud` — backend GET/PATCH/DELETE on individual queries + frontend `<QueriesTable>` with inline edit/metadata/delete + 409 toast with action link to the offending judgment list. 12 stories complete plus three follow-up enhancements pulled forward into this PR after user pushback on premature deferral: (a) Playwright E2E infrastructure + 5 real-backend specs on `/query-sets/[id]`, (b) component-layer delete-flow integration test through `<QueriesTable>`, (c) `judgments_list_query_idx` presence introspection test (non-brittle alternative to EXPLAIN-plan assertion). Zero deferred-chore idea files for this feature. **One new dep (`@playwright/test`), spec §5 "no new npm packages" overridden by user.** GPT-5.5 ×2 phase reviews (backend 7 findings, frontend 9). Zero schema migrations.
-- **Remaining backlog (~5 actionable items):** 4 `/bug-fix` candidates (bug_chat_long_conversation_truncation_mvp2 held for MVP2; bug_digest_param_importance_seam; chore_chat_last_message_preview MVP2 scope; chore_judgments_periodic_resume_sweep); 1 `/pipeline` candidate (chore_cluster_run_query_history). Plus 4 keep-deferred items by operator decision.
-- **Alembic head:** `0007_conversations_messages` (unchanged — this feature has zero schema migrations).
+- **Branch:** `main` (post-merge of PR #101 as `6a21da4`). `v0.1.0` annotated tag still on `main` commit `d099536` 2026-05-13; GitHub Release at https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0.
+- **Active feature:** none in flight. `feat_query_inline_crud` shipped 2026-05-14 (13th MVP1 feature). **MVP1 alpha + 13 features shipped + 19 backlog items drained in the pre-MVP2 sweep.** Manual maintainer steps still pending from [`release-checklist.md`](docs/03_runbooks/release-checklist.md): §4 fresh-VM hosted-OpenAI walkthrough, §5 local-LLM walkthrough, §8 feedback Discussion + design-partner channel shares. **Remaining backlog (~5 actionable items):** 4 `/bug-fix` candidates (bug_chat_long_conversation_truncation_mvp2 held for MVP2; bug_digest_param_importance_seam; chore_chat_last_message_preview MVP2 scope; chore_judgments_periodic_resume_sweep); 1 `/pipeline` candidate (chore_cluster_run_query_history). Plus 4 keep-deferred items by operator decision.
+- **Alembic head:** `0007_conversations_messages` (unchanged through `feat_query_inline_crud`).
 - **Python:** 3.13.
-- **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat config), TypeScript 6, jsdom 29, Node engine `>=20.18`.
-- **Coverage:** UI tests at **207 passing across 39 files** (was 183 pre-feat_query_inline_crud — +27 new cases across 5 new files: queries-table / edit-query-popover / edit-metadata-dialog / delete-query-dialog / query-sets-queries hooks). Backend unit tests **744 passing** (was 710 — +34 new cases across 3 new unit files for cursor helpers, UUIDv7 lower-bound, UpdateQueryRequest validation).
+- **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat config), TypeScript 6, jsdom 29, Node engine `>=20.18`. **NEW: Playwright** (chromium-only, single worker) — first E2E specs in the repo land with feat_query_inline_crud.
+- **Coverage:** UI vitest **210 passing across 40 files** (was 183 pre-feat_query_inline_crud — +30 new cases across 6 new files); Playwright E2E **5 passing** against the live `make up` stack. Backend unit tests **744 passing** (was 710 — +34 new cases across 3 new unit files for cursor helpers, UUIDv7 lower-bound, UpdateQueryRequest validation).
 
 ## Most recent meaningful changes (newest first)
 
-- **2026-05-13 — `feat_query_inline_crud` implementation complete (pending push).** 12 stories across 3 backend epics + 1 frontend epic + 1 docs epic shipped via `/impl-execute --all`. **Zero migrations.** Adds three new endpoints under `/api/v1/query-sets/{set_id}/queries`:
+- **2026-05-14 — `feat_query_inline_crud` merged into `main`** as PR #101 (squash commit `6a21da4`). 12 stories shipped via `/impl-execute --all`; **zero migrations**. Adds three new endpoints under `/api/v1/query-sets/{set_id}/queries`:
   - `GET /{set_id}/queries` — per-query list with `judgment_count` derived field, id-only UUIDv7 cursor, UUIDv7-lower-bound `?since` filter, `X-Total-Count` header.
   - `PATCH /{set_id}/queries/{query_id}` — partial update with whole-object replace on `query_metadata`; `@model_validator` rejects explicit-null `query_text` (NOT NULL column); `extra="forbid"` rejects unknown fields; empty body `{}` is a no-op (AC-28).
   - `DELETE /{set_id}/queries/{query_id}` — hard delete with FK guard. On `IntegrityError`, rolls back and returns 409 `QUERY_HAS_JUDGMENTS` with a structured `judgment_lists` sample (cap 10) + `overflow_count`. The `QueryHasJudgmentsEnvelope` Pydantic model is wired into FastAPI `responses={409: ...}` so the contract appears in OpenAPI.
@@ -310,7 +309,6 @@ Remaining items split by sized work-flow per the inline-fix vs idea-file rubric:
 
 **`/pipeline` candidates** (feature-scale — schema + endpoint + UI):
 - `chore_cluster_run_query_history` — persist run_query results for inspection (chore_cluster_delete_ui's deferred sibling).
-- `feat_query_inline_crud` (renamed 2026-05-13 from `chore_query_inline_edit_delete`) — backend GET / PATCH / DELETE endpoints for individual queries + UI for inline edit/delete on query-set detail. Listing endpoint is a prerequisite (current detail page only shows count + bulk add). Preflighted 2026-05-13 — ready for `/pipeline`.
 
 **Operator-deferred:** `chore_studies_ui_shadcn_polish` (shadcn primitive migration), `chore_demo_recording_mvp3` (Story 4.6 deferred to MVP3), `infra_optuna_orphan_reaper` (operationally tolerated for MVP1), and the in-progress dogfood items pending design-partner feedback.
 
