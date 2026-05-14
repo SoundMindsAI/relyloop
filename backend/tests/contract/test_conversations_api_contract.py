@@ -88,6 +88,9 @@ def test_request_response_models_importable() -> None:
 
     assert CreateConversationRequest.model_fields["title"].is_required() is False
     assert "id" in ConversationSummary.model_fields
+    # chore_chat_last_message_preview — both fields nullable (None for empty rows).
+    assert "last_message_preview" in ConversationSummary.model_fields
+    assert "last_message_at" in ConversationSummary.model_fields
     assert "messages" in ConversationDetail.model_fields
     assert "data" in ConversationsListResponse.model_fields
     assert "role" in MessageWire.model_fields

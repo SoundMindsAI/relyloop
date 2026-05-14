@@ -19,10 +19,17 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import and_, func, literal_column, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Conversation, Message
+
+PREVIEW_MAX_CHARS = 120
+"""Cap for ``ConversationSummary.last_message_preview`` (chore_chat_last_message_preview).
+
+Truncated at the repo layer so the wire shape is deterministic — frontend
+renders the string verbatim, no per-component truncation drift.
+"""
 
 
 async def create_conversation(
@@ -117,28 +124,66 @@ async def update_conversation_title(
     return row
 
 
-async def list_conversations_with_message_counts(
+async def list_conversations_with_preview_data(
     db: AsyncSession,
     *,
     cursor: tuple[datetime, str] | None = None,
     limit: int = 50,
-) -> Sequence[tuple[Conversation, int]]:
-    """Cursor-paginated conversation list joined with per-conversation message counts.
+) -> Sequence[tuple[Conversation, int, str | None, datetime | None]]:
+    """Cursor-paginated conversation list with message count + last-message preview.
 
     Used by ``GET /api/v1/conversations`` to populate
-    ``ConversationSummary.message_count`` in a single round-trip
-    (LEFT OUTER JOIN ``messages`` + GROUP BY) instead of N+1 queries.
+    :class:`backend.app.api.v1.schemas.ConversationSummary` in a single
+    round-trip. Three joins against ``messages``:
 
-    Returns ``[(Conversation, count), ...]`` in the same order as
-    ``list_conversations`` (newest first; soft-deleted filtered). Limit
-    clamped at 200.
+    * COUNT via LEFT OUTER JOIN + GROUP BY for ``message_count``.
+    * LATERAL subquery for the most-recent human-readable message's
+      ``content->>'text'`` (the preview) and ``created_at``
+      (``last_message_at``).
+
+    The LATERAL subquery filters to user / assistant rows whose JSONB
+    content has a ``text`` field and whose ``kind`` is not
+    ``system_notice``, so tool-result payloads and degraded-mode banners
+    never surface as preview text. The existing
+    ``messages_conversation_idx`` on ``(conversation_id, created_at)``
+    (migration ``0007_conversations_messages``) covers the ORDER BY ...
+    LIMIT 1 lookup; no new index needed.
+
+    The preview is truncated at :data:`PREVIEW_MAX_CHARS` here (single
+    truncation site) — the API + frontend render the value verbatim.
+
+    Returns ``[(Conversation, count, preview, last_at), ...]`` in the
+    same order as :func:`list_conversations` (newest first;
+    soft-deleted filtered). Limit clamped at 200.
     """
     count_col = func.count(Message.id).label("message_count")
+    preview_subq = (
+        select(
+            literal_column("content->>'text'").label("preview_text"),
+            Message.created_at.label("last_at"),
+        )
+        .where(
+            Message.conversation_id == Conversation.id,
+            Message.role.in_(("user", "assistant")),
+            literal_column("content ? 'text'"),
+            literal_column("COALESCE(content->>'kind', '') <> 'system_notice'"),
+        )
+        .order_by(Message.created_at.desc())
+        .limit(1)
+        .lateral("last_msg")
+    )
+
     stmt = (
-        select(Conversation, count_col)
+        select(
+            Conversation,
+            count_col,
+            preview_subq.c.preview_text,
+            preview_subq.c.last_at,
+        )
         .outerjoin(Message, Message.conversation_id == Conversation.id)
+        .outerjoin(preview_subq, true())
         .where(Conversation.deleted_at.is_(None))
-        .group_by(Conversation.id)
+        .group_by(Conversation.id, preview_subq.c.preview_text, preview_subq.c.last_at)
     )
     if cursor is not None:
         cursor_at, cursor_id = cursor
@@ -151,7 +196,17 @@ async def list_conversations_with_message_counts(
     stmt = stmt.order_by(Conversation.created_at.desc(), Conversation.id.desc()).limit(
         min(limit, 200)
     )
-    return [(row[0], int(row[1])) for row in (await db.execute(stmt)).all()]
+
+    def _truncate(text: str | None) -> str | None:
+        if text is None:
+            return None
+        if len(text) <= PREVIEW_MAX_CHARS:
+            return text
+        return text[: PREVIEW_MAX_CHARS - 1] + "…"
+
+    return [
+        (row[0], int(row[1]), _truncate(row[2]), row[3]) for row in (await db.execute(stmt)).all()
+    ]
 
 
 async def create_message(
