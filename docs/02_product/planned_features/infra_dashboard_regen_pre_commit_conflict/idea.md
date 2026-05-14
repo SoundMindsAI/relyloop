@@ -63,6 +63,20 @@ git stash pop    # may still conflict; manual merge required
 
 Add this to `docs/03_runbooks/local-dev.md` or the pre-commit config comments.
 
+### 4. Rewrite relative paths during one-liner extraction (added 2026-05-14)
+
+Gemini Code Assist flagged this on PR #106: `scripts/build_mvp1_dashboard.py` extracts the first few hundred chars of each idea.md's "Problem" section and embeds them verbatim into `docs/00_overview/MVP1_DASHBOARD.md` and `mvp1_dashboard.html`. The idea.md lives at depth 4 (`docs/02_product/planned_features/<folder>/idea.md`) and uses `../../../../backend/...` to reach the repo root. The dashboard files live at depth 2 (`docs/00_overview/MVP1_DASHBOARD.md`), so the same string resolves to **outside** the repo. Result: every dashboard one-liner that references a `backend/...` path via relative link is broken.
+
+Three fix options:
+
+* **A — rewrite paths during extraction.** Detect markdown relative-link patterns in the extracted text and recompute the path against the dashboard's directory depth. Most robust.
+* **B — use repo-rooted absolute paths in idea.md.** Switch idea.md authoring convention from `[file.py](../../../../backend/file.py)` to `[file.py](/backend/file.py)`. Markdown renderers (GitHub, VSCode) interpret leading-`/` as repo-rooted. Simpler script, but requires teaching authors a new convention.
+* **C — strip links from the one-liner before embedding.** Regex out `[text](path)` → keep just `text`. Loses the click-through but the dashboard's "Feature" column already links to idea.md, so the one-liner doesn't strictly need its own links.
+
+**Recommendation: B.** Convention is easy to teach (and `/idea-preflight` can enforce it), the script change is one line (no extraction-side path rewriting needed), and the resulting idea.md files render correctly on GitHub at their canonical path too.
+
+Affected today: dashboard rows for any idea.md with backend/frontend link references in its Problem section. Visible immediately on `bug_query_inline_crud_since_filter_uuidv7_ms_collision` per Gemini's PR #106 inline comments at `MVP1_DASHBOARD.md:91` and `mvp1_dashboard.html:479`.
+
 ## Scope signals
 
 - **Backend:** none (script in `scripts/build_mvp1_dashboard.py`).
