@@ -93,6 +93,8 @@ async def create_conversation_endpoint(
         title=row.title,
         created_at=row.created_at,
         message_count=0,
+        last_message_preview=None,
+        last_message_at=None,
     )
 
 
@@ -110,7 +112,7 @@ async def list_conversations_endpoint(
     """List conversations newest-first with per-row message_count + X-Total-Count header."""
     parsed_cursor = _decode_cursor(cursor) if cursor else None
     rows = list(
-        await repo.list_conversations_with_message_counts(
+        await repo.list_conversations_with_preview_data(
             db,
             cursor=parsed_cursor,
             limit=limit + 1,
@@ -123,7 +125,7 @@ async def list_conversations_endpoint(
     response.headers["X-Total-Count"] = str(total)
     next_cursor: str | None = None
     if has_more and rows:
-        last_row, _ = rows[-1]
+        last_row = rows[-1][0]
         next_cursor = _encode_cursor(last_row.created_at, last_row.id)
     return ConversationsListResponse(
         data=[
@@ -132,8 +134,10 @@ async def list_conversations_endpoint(
                 title=row.title,
                 created_at=row.created_at,
                 message_count=count,
+                last_message_preview=preview,
+                last_message_at=last_at,
             )
-            for row, count in rows
+            for row, count, preview, last_at in rows
         ],
         next_cursor=next_cursor,
         has_more=has_more,

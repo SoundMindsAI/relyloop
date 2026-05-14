@@ -100,7 +100,7 @@ async def test_message_count_join_returns_correct_per_row_counts(
 ) -> None:
     """list endpoint's message_count column reflects the JOIN against messages.
 
-    Exercises Story 1.3's ``list_conversations_with_message_counts`` JOIN +
+    Exercises Story 1.3's ``list_conversations_with_preview_data`` JOIN +
     GROUP BY — without this assertion, a regression that returns 0 for every
     row passes silently. Seeds messages through a direct DB session that
     commits (the ``db_session`` test fixture wraps everything in a SAVEPOINT
@@ -148,3 +148,180 @@ async def test_message_count_join_returns_correct_per_row_counts(
     assert rows[ids[0]] == 4
     assert rows[ids[1]] == 1
     assert rows[ids[2]] == 0
+
+
+async def test_create_returns_none_preview_fields(async_client: httpx.AsyncClient) -> None:
+    """POST 201 sets last_message_preview + last_message_at to None.
+
+    Brand-new conversations have no messages; the ``ConversationSummary``
+    body mirrors the existing ``message_count=0`` hardcode for the two
+    new fields (chore_chat_last_message_preview).
+    """
+    resp = await async_client.post("/api/v1/conversations", json={"title": "fresh"})
+    assert resp.status_code == 201
+    body = resp.json()
+    assert body["last_message_preview"] is None
+    assert body["last_message_at"] is None
+
+
+async def test_list_includes_preview_and_last_at_for_active_rows(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """LATERAL JOIN populates preview + last_at; empty conversations stay None.
+
+    Exercises the chore_chat_last_message_preview LATERAL subquery against
+    real Postgres. Three conversations:
+      * A: user → assistant → user (latest preview is the second user text).
+      * B: single user message.
+      * C: zero messages (empty).
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from backend.app.core.settings import get_settings
+    from backend.app.db import repo as db_repo
+
+    ids: list[str] = []
+    for label in ("preview_A", "preview_B", "preview_C"):
+        resp = await async_client.post("/api/v1/conversations", json={"title": label})
+        ids.append(resp.json()["id"])
+
+    engine = create_async_engine(get_settings().database_url, future=True)
+    try:
+        factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+        async with factory() as session:
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=ids[0],
+                role="user",
+                content={"text": "first user message"},
+            )
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=ids[0],
+                role="assistant",
+                content={"text": "assistant reply"},
+            )
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=ids[0],
+                role="user",
+                content={"text": "latest user follow-up"},
+            )
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=ids[1],
+                role="user",
+                content={"text": "B's only message"},
+            )
+            await session.commit()
+    finally:
+        await engine.dispose()
+
+    list_resp = await async_client.get("/api/v1/conversations?limit=200")
+    rows = {r["id"]: r for r in list_resp.json()["data"]}
+    assert rows[ids[0]]["last_message_preview"] == "latest user follow-up"
+    assert rows[ids[0]]["last_message_at"] is not None
+    assert rows[ids[1]]["last_message_preview"] == "B's only message"
+    assert rows[ids[1]]["last_message_at"] is not None
+    assert rows[ids[2]]["last_message_preview"] is None
+    assert rows[ids[2]]["last_message_at"] is None
+
+
+async def test_preview_skips_tool_rows_and_system_notices(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """LATERAL JOIN filters out tool-role rows and assistant system_notice rows.
+
+    Tool-result payloads (``content={"result": ...}``) have no ``text`` field
+    and would surface as ``None`` from the JSONB extractor anyway, but the
+    WHERE clause also excludes them by role for clarity. The
+    ``content.kind == 'system_notice'`` filter is the load-bearing one:
+    degraded-mode assistant rows DO have a ``text`` field but they're
+    transient banners, not real assistant turns.
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from backend.app.core.settings import get_settings
+    from backend.app.db import repo as db_repo
+
+    resp = await async_client.post("/api/v1/conversations", json={"title": "skip_test"})
+    conv_id = resp.json()["id"]
+
+    engine = create_async_engine(get_settings().database_url, future=True)
+    try:
+        factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+        async with factory() as session:
+            # Real assistant turn — this is what the preview should pick.
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=conv_id,
+                role="assistant",
+                content={"text": "the real answer the operator should see"},
+            )
+            # Later tool-result row (no `text` field, plus role filter excludes it).
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=conv_id,
+                role="tool",
+                content={"result": {"hits": []}},
+            )
+            # Latest assistant turn but flagged as system_notice (degraded-mode banner).
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=conv_id,
+                role="assistant",
+                content={"text": "LLM unreachable — degraded mode", "kind": "system_notice"},
+            )
+            await session.commit()
+    finally:
+        await engine.dispose()
+
+    list_resp = await async_client.get("/api/v1/conversations?limit=200")
+    row = next(r for r in list_resp.json()["data"] if r["id"] == conv_id)
+    assert row["last_message_preview"] == "the real answer the operator should see"
+
+
+async def test_preview_truncates_at_120_chars(async_client: httpx.AsyncClient) -> None:
+    """Repo-layer truncation: preview cut at 120 chars with `…` suffix.
+
+    Single truncation site keeps the wire shape deterministic — frontend
+    renders verbatim.
+    """
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from backend.app.core.settings import get_settings
+    from backend.app.db import repo as db_repo
+
+    resp = await async_client.post("/api/v1/conversations", json={"title": "long"})
+    conv_id = resp.json()["id"]
+    long_text = "a" * 200  # > 120 chars
+
+    engine = create_async_engine(get_settings().database_url, future=True)
+    try:
+        factory = async_sessionmaker(bind=engine, expire_on_commit=False)
+        async with factory() as session:
+            await db_repo.create_message(
+                session,
+                message_id=str(uuid_utils.uuid7()),
+                conversation_id=conv_id,
+                role="user",
+                content={"text": long_text},
+            )
+            await session.commit()
+    finally:
+        await engine.dispose()
+
+    list_resp = await async_client.get("/api/v1/conversations?limit=200")
+    row = next(r for r in list_resp.json()["data"] if r["id"] == conv_id)
+    preview = row["last_message_preview"]
+    assert preview is not None
+    assert len(preview) == 120
+    assert preview.endswith("…")
+    assert preview[:-1] == "a" * 119

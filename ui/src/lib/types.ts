@@ -1036,6 +1036,13 @@ export interface components {
       created_at: string;
       /** Message Count */
       message_count: number;
+      /** Last Message Preview */
+      last_message_preview: string | null;
+      /**
+       * Last Message At
+       * Format: date-time
+       */
+      last_message_at: string | null;
     };
     /**
      * ConversationsListResponse
