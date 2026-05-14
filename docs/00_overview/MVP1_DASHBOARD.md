@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **34 / 34** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **35 / 35** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Path to MVP1 | **4** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 3 (idea-stage debt) |
-| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (42)
+### Done (43)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -44,6 +44,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
 | [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | Complete | — | Complete |
+| [infra_structlog_test_helpers](implemented_features/2026_05_14_infra_structlog_test_helpers/idea.md) | Infra | Complete | — | Complete |
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Complete | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
@@ -80,12 +81,11 @@ _None._
 
 _None._
 
-### Idea (6)
+### Idea (5)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_arq_subprocess_test](../02_product/planned_features/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| [infra_structlog_test_helpers](../02_product/planned_features/infra_structlog_test_helpers/idea.md) | Infra | The repo currently has two distinct, half-overlapping patterns for asserting structlog events from tests: | — | Idea — captured during the PR #112 (`chore_digest_worker_narrow_except`) CI session, refreshed by `/idea-preflight` after PR #112 + PR #113 finalization. |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
@@ -170,6 +170,8 @@ graph LR
   class infra_dashboard_regen_pre_commit_conflict done;
   infra_make_targets_split_backend_only["make targets split backend only"]
   class infra_make_targets_split_backend_only done;
+  infra_structlog_test_helpers["structlog test helpers"]
+  class infra_structlog_test_helpers done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -194,6 +196,7 @@ graph LR
   infra_nvmrc --> chore_tutorial_polish
   infra_optuna_eval --> chore_tutorial_polish
   infra_per_trial_timeout --> chore_tutorial_polish
+  infra_structlog_test_helpers --> chore_tutorial_polish
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
   feat_github_webhook --> feat_chat_agent
@@ -212,6 +215,7 @@ graph LR
   infra_nvmrc --> feat_chat_agent
   infra_optuna_eval --> feat_chat_agent
   infra_per_trial_timeout --> feat_chat_agent
+  infra_structlog_test_helpers --> feat_chat_agent
   infra_foundation --> feat_github_pr_worker
   infra_adapter_elastic --> feat_github_pr_worker
   feat_study_lifecycle --> feat_github_pr_worker
