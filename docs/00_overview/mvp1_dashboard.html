@@ -328,7 +328,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">32 / 32</div>
+      <div class="value">33 / 33</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -351,7 +351,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      2 idea-only feat/infra folders (not yet scoped into MVP1)
+      1 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -372,7 +372,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">7</span></h3>
+  <h3>Idea <span class="count">6</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
@@ -381,18 +381,6 @@ footer {
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; </div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_make_targets_split_backend_only">Make Targets Split Backend Only</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target. Pre-fix shape was ([`Makefile:26-34` in the pre-PR-110 main](../../Makefil</div>
 
 
 </div>
@@ -475,7 +463,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">40</span></h3>
+  <h3>Done <span class="count">41</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -650,6 +638,18 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span>merged 2026-05-12</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_infra_make_targets_split_backend_only">Make Targets Split Backend Only</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
 
@@ -1033,6 +1033,8 @@ footer {
   class feat_query_inline_crud done;
   infra_dashboard_regen_pre_commit_conflict[&quot;dashboard regen pre commit conflict&quot;]
   class infra_dashboard_regen_pre_commit_conflict done;
+  infra_make_targets_split_backend_only[&quot;make targets split backend only&quot;]
+  class infra_make_targets_split_backend_only done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1053,6 +1055,7 @@ footer {
   infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
+  infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
@@ -1070,6 +1073,7 @@ footer {
   infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
+  infra_make_targets_split_backend_only --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_per_trial_timeout --&gt; feat_chat_agent
@@ -1164,6 +1168,8 @@ footer {
   class feat_query_inline_crud done;
   infra_dashboard_regen_pre_commit_conflict[&quot;dashboard regen pre commit conflict&quot;]
   class infra_dashboard_regen_pre_commit_conflict done;
+  infra_make_targets_split_backend_only[&quot;make targets split backend only&quot;]
+  class infra_make_targets_split_backend_only done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1184,6 +1190,7 @@ footer {
   infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
+  infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
@@ -1201,6 +1208,7 @@ footer {
   infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
+  infra_make_targets_split_backend_only --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
   infra_per_trial_timeout --&gt; feat_chat_agent
