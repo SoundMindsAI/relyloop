@@ -12,16 +12,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **33 / 33** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **5** items remaining (features + bugs + chores) |
+| Scoped items done | **34 / 34** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **4** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
-| Open chores | 4 (idea-stage debt) |
+| Open chores | 3 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (41)
+### Done (42)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -47,6 +47,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Complete | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
+| [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | Complete | — | Complete |
 | [chore_env_guard_extend_deny_pattern](implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern/idea.md) | Chore | Complete | — | Complete |
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
@@ -79,7 +80,7 @@ _None._
 
 _None._
 
-### Idea (7)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -87,7 +88,6 @@ _None._
 | [infra_structlog_test_level_helper](../02_product/planned_features/infra_structlog_test_level_helper/idea.md) | Infra | `structlog.testing.capture_logs()` is supposed to give tests a stable EventDict per emission. In practice the level key varies: | — | Idea — captured during chore_digest_worker_narrow_except CI failure on PR #112 |
 | [chore_chat_last_message_preview](../02_product/planned_features/chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page (`ui/src/app/chat/page.tsx`) shows each conversation row as `title + relative timestamp + "{N} messages"`. There is no preview of the last message — operators with several simila | — | — |
 | [chore_demo_recording_mvp3](../02_product/planned_features/chore_demo_recording_mvp3/idea.md) | Chore |  | — | — |
-| [chore_digest_worker_narrow_except](../02_product/planned_features/chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Idea (deferred from Gemini Code Assist Finding #2 on [PR #92](https://github.com/SoundMindsAI/relyloop/pull/92)) — ready for `/impl-execute --ad-hoc` after forks lock. |
 | [chore_studies_ui_shadcn_polish](../02_product/planned_features/chore_studies_ui_shadcn_polish/idea.md) | Chore |  | — | — |
 | [bug_chat_long_conversation_truncation_mvp2](../02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
 
@@ -160,6 +160,8 @@ graph LR
   class infra_nvmrc done;
   infra_per_trial_timeout["per trial timeout"]
   class infra_per_trial_timeout done;
+  chore_digest_worker_narrow_except["digest worker narrow except"]
+  class chore_digest_worker_narrow_except done;
   feat_judgments_periodic_resume_sweep["judgments periodic resume sweep"]
   class feat_judgments_periodic_resume_sweep done;
   feat_query_inline_crud["query inline crud"]
