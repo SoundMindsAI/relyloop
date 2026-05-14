@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 
 import optuna
+import optuna.importance
 import pytest
 from redis.asyncio import Redis
 

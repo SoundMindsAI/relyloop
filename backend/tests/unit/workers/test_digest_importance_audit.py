@@ -31,6 +31,7 @@ from typing import Any
 from unittest.mock import patch
 
 import optuna
+import optuna.importance
 import pytest
 
 from backend.workers.digest import (

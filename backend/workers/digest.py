@@ -49,6 +49,7 @@ from typing import Any, cast
 
 import openai
 import optuna
+import optuna.importance
 import structlog
 import uuid_utils
 from openai import AsyncOpenAI
@@ -134,12 +135,17 @@ def _compute_param_importance(optuna_study: optuna.Study, *, study_id: str) -> d
         )
         return {}
     except Exception as exc:  # noqa: BLE001 — unexpected; surfaces as ERROR
+        # exc_info=True captures the traceback into structlog so operators
+        # can root-cause unexpected regressions like the PR #92 ImportError.
+        # Only on the unexpected path — allowlisted exceptions are benign
+        # and don't need traceback noise.
         logger.error(
             "digest worker: get_param_importances raised UNEXPECTEDLY; using empty map",
             event_type="digest_importance_failed_unexpected",
             study_id=study_id,
             error_type=type(exc).__name__,
             error=str(exc),
+            exc_info=True,
         )
         return {}
 
