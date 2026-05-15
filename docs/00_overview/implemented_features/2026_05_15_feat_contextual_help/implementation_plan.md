@@ -1,7 +1,7 @@
 # Implementation Plan — Contextual Help (Phase 1)
 
 **Date:** 2026-05-14
-**Status:** Draft
+**Status:** Complete (PR #122, merged 2026-05-15)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`idea.md`](idea.md) (locked decisions), [`CLAUDE.md`](../../../../CLAUDE.md) ("Enumerated Value Contract Discipline" rule)
 
@@ -1324,16 +1324,22 @@ Backend gates (`make test-unit`, `make test-integration`, `make test-contract`) 
 
 ### Current sprint (execute strictly in this order)
 
-- [ ] Story 1.1 — Tooltip primitive + provider wiring
-- [ ] Story 1.4 — Glossary source-of-truth + parity test  *(executes before wrappers so they import from a real glossary file)*
-- [ ] Story 1.2 — `InfoTooltip` wrapper (standalone + asChild)
-- [ ] Story 1.3 — `HelpPopover` wrapper
-- [ ] Story 2.1 — Create-study modal tooltips (FR-6)
-- [ ] Story 2.2 — Study-header tooltips (FR-7)
-- [ ] Story 2.3 — Trials-table tooltips (FR-8)
-- [ ] Story 2.4 — Digest-panel tooltips + Open PR aria-disabled refactor (FR-9)
-- [ ] Story 3.1 — Extend `studies.spec.ts` E2E
-- [ ] Story 3.2 — Update `docs/01_architecture/ui-architecture.md`
+- [x] Story 1.1 — Tooltip primitive + provider wiring (commit `615fc93`)
+- [x] Story 1.4 — Glossary source-of-truth + parity test (commit `34ad869`)
+- [x] Story 1.2 — `InfoTooltip` wrapper (standalone + asChild) (commit `2e16c5a`)
+- [x] Story 1.3 — `HelpPopover` wrapper (commit `2e16c5a`)
+- [x] Story 2.1 — Create-study modal tooltips (FR-6) (commit `bac31d0`)
+- [x] Story 2.2 — Study-header tooltips (FR-7) (commit `34d89ab`)
+- [x] Story 2.3 — Trials-table tooltips (FR-8) (commit `1445ca1`)
+- [x] Story 2.4 — Digest-panel tooltips + Open PR aria-disabled refactor (FR-9) (commit `7d68654`)
+- [x] Story 3.1 — Extend `studies.spec.ts` E2E (commit `9a22a0d`)
+- [x] Story 3.2 — Update `docs/01_architecture/ui-architecture.md` (commit `693f479`)
+
+### Post-merge (PR #122 squash-merged into main 2026-05-15)
+
+- 5 CI jobs green (frontend, backend × 2, docker buildx, smoke E2E)
+- Gemini Code Assist: 1 Medium accepted (commit `227c37e` added `type="button"` to aria-disabled Open PR), 1 Medium rejected with cited counter-evidence
+- Final GPT-5.5 review: 1 Medium accepted-framing-but-deferred — `infra_e2e_seed_completed_study` idea tracks the cross-subsystem E2E coverage gap (component-level coverage IS in place)
 
 ### Blocked items
 
