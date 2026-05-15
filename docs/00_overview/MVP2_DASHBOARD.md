@@ -14,18 +14,20 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **0 / 0** (0%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **1 / 1** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Path to MVP2 | **1** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 0 (idea-stage debt) |
-| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP2) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (0)
+### Done (1)
 
-_None._
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
+| [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Complete | — | Complete |
 
 ### Implementing (0)
 
@@ -39,11 +41,10 @@ _None._
 
 _None._
 
-### Idea (3)
+### Idea (2)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_contextual_help_mvp2](../02_product/planned_features/feat_contextual_help_mvp2/idea.md) | Feature | Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study: | — | deferred: Phase 2, Phase 3 |
 | [infra_arq_subprocess_test_mvp2](../02_product/planned_features/infra_arq_subprocess_test_mvp2/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
 | [bug_chat_long_conversation_truncation_mvp2](../02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
 
@@ -58,6 +59,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_contextual_help_mvp2["contextual help mvp2"]
+  class feat_contextual_help_mvp2 done;
 ```
 
 ---

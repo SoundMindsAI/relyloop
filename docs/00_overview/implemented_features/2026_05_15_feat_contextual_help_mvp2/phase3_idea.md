@@ -1,8 +1,8 @@
 # feat_contextual_help — Phase 3 deferred tracking (chat + cluster registration + home onboarding)
 
 **Date:** 2026-05-14
-**Status:** Deferred — Phase 1 ([`feature_spec.md`](../../../00_overview/implemented_features/2026_05_15_feat_contextual_help/feature_spec.md), shipped via PR #122 on 2026-05-15) covered create-study modal + study-detail surface only. Phase 3 picks up the three onboarding-shaped surfaces.
-**Origin:** Carved out of [`feat_contextual_help/idea.md`](../../../00_overview/implemented_features/2026_05_15_feat_contextual_help/idea.md) §"Proposed capabilities → Phase 3 — chat + cluster registration + home onboarding" during cycle 1 of spec-gen scope-lock (2026-05-14, idea Locked Decisions §1).
+**Status:** Deferred — Phase 1 ([`feature_spec.md`](../2026_05_15_feat_contextual_help/feature_spec.md), shipped via PR #122 on 2026-05-15) covered create-study modal + study-detail surface only. Phase 3 picks up the three onboarding-shaped surfaces.
+**Origin:** Carved out of [`feat_contextual_help/idea.md`](../2026_05_15_feat_contextual_help/idea.md) §"Proposed capabilities → Phase 3 — chat + cluster registration + home onboarding" during cycle 1 of spec-gen scope-lock (2026-05-14, idea Locked Decisions §1).
 **Depends on:** Phase 1 ships (primitives + glossary file). Phase 2 may or may not have shipped — Phase 3 doesn't depend on it.
 
 ## Problem (still applicable after Phase 1)
@@ -63,7 +63,7 @@ The MVP2 spec for this phase **MUST** lock this decision before implementation. 
 
 ## Relationship to other work
 
-- [`feat_contextual_help/feature_spec.md`](../../../00_overview/implemented_features/2026_05_15_feat_contextual_help/feature_spec.md) — Phase 1 (shipped) provides the primitives.
-- [`infra_adapter_elastic` (PR #16)](../../../00_overview/implemented_features/2026_05_10_infra_adapter_elastic/) — the underlying cluster registration data model and UI this phase overlays.
-- [`feat_chat_agent` (PR #60)](../../../00_overview/implemented_features/2026_05_12_feat_chat_agent/) — the chat surface this phase adds prompt seeding to.
-- [`feat_studies_ui` (PR #50)](../../../00_overview/implemented_features/2026_05_12_feat_studies_ui/) — the home page (`app/page.tsx`) this phase adds the first-run panel to.
+- [`feat_contextual_help/feature_spec.md`](../2026_05_15_feat_contextual_help/feature_spec.md) — Phase 1 (shipped) provides the primitives.
+- [`infra_adapter_elastic` (PR #16)](../2026_05_10_infra_adapter_elastic/) — the underlying cluster registration data model and UI this phase overlays.
+- [`feat_chat_agent` (PR #60)](../2026_05_12_feat_chat_agent/) — the chat surface this phase adds prompt seeding to.
+- [`feat_studies_ui` (PR #50)](../2026_05_12_feat_studies_ui/) — the home page (`app/page.tsx`) this phase adds the first-run panel to.
