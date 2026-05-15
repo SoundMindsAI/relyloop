@@ -1,9 +1,25 @@
 'use client';
 import Link from 'next/link';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import type { ProposalDetail } from '@/lib/api/proposals';
+import type { ProposalPrState, ProposalStatus } from '@/lib/enums';
+import type { ShortGlossaryKey } from '@/lib/glossary';
+
+const STATUS_TO_GLOSSARY_KEY = {
+  pending: 'proposal.status.pending',
+  pr_opened: 'proposal.status.pr_opened',
+  pr_merged: 'proposal.status.pr_merged',
+  rejected: 'proposal.status.rejected',
+} as const satisfies Record<ProposalStatus, ShortGlossaryKey>;
+
+const PR_STATE_TO_GLOSSARY_KEY = {
+  open: 'proposal.pr_state.open',
+  closed: 'proposal.pr_state.closed',
+  merged: 'proposal.pr_state.merged',
+} as const satisfies Record<ProposalPrState, ShortGlossaryKey>;
 
 export interface ProposalHeaderProps {
   proposal: ProposalDetail;
@@ -14,8 +30,16 @@ export function ProposalHeader({ proposal }: ProposalHeaderProps) {
     <Card>
       <CardContent className="space-y-2 pt-6">
         <div className="flex flex-wrap items-center gap-3">
-          <StatusBadge kind="proposal" value={proposal.status} />
-          {proposal.pr_state && <StatusBadge kind="proposal_pr" value={proposal.pr_state} />}
+          <div className="flex items-center gap-1">
+            <StatusBadge kind="proposal" value={proposal.status} />
+            <InfoTooltip glossaryKey={STATUS_TO_GLOSSARY_KEY[proposal.status]} />
+          </div>
+          {proposal.pr_state && (
+            <div className="flex items-center gap-1">
+              <StatusBadge kind="proposal_pr" value={proposal.pr_state} />
+              <InfoTooltip glossaryKey={PR_STATE_TO_GLOSSARY_KEY[proposal.pr_state]} />
+            </div>
+          )}
           <span className="text-xs text-muted-foreground">
             created {new Date(proposal.created_at).toLocaleString()}
           </span>

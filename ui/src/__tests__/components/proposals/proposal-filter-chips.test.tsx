@@ -1,8 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { ProposalSourceFilterChips } from '@/components/proposals/proposal-source-filter-chips';
 import { ProposalStatusFilterChips } from '@/components/proposals/proposal-status-filter-chips';
+
+// The filter chips now embed an InfoTooltip — every test render needs a
+// TooltipProvider in scope. delayDuration={0} so hover/focus reveals are
+// deterministic in tests.
+function render(node: React.ReactElement): ReturnType<typeof rtlRender> {
+  return rtlRender(<TooltipProvider delayDuration={0}>{node}</TooltipProvider>);
+}
 
 describe('ProposalStatusFilterChips', () => {
   it('renders 5 chips (all + 4 wire values) and marks the active one', () => {

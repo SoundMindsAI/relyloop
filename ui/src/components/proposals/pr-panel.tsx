@@ -1,9 +1,18 @@
 'use client';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
 import { ProposalErrorAlert } from '@/components/proposals/proposal-error-alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ProposalDetail } from '@/lib/api/proposals';
+import type { ProposalPrState } from '@/lib/enums';
+import type { ShortGlossaryKey } from '@/lib/glossary';
+
+const PR_STATE_TO_GLOSSARY_KEY = {
+  open: 'proposal.pr_state.open',
+  closed: 'proposal.pr_state.closed',
+  merged: 'proposal.pr_state.merged',
+} as const satisfies Record<ProposalPrState, ShortGlossaryKey>;
 
 export interface PrPanelProps {
   proposal: ProposalDetail;
@@ -26,14 +35,16 @@ export function PrPanel({ proposal, onOpenPR, openPrIsPending }: PrPanelProps) {
           <>
             {proposal.pr_open_error && <ProposalErrorAlert error={proposal.pr_open_error} />}
             <div className="flex items-center gap-3">
-              <Button
-                type="button"
-                disabled={openPrIsPending}
-                onClick={onOpenPR}
-                data-testid="open-pr-button"
-              >
-                {openPrIsPending ? 'Opening PR…' : 'Open PR'}
-              </Button>
+              <InfoTooltip asChild glossaryKey="proposal.open_pr_button">
+                <Button
+                  type="button"
+                  disabled={openPrIsPending}
+                  onClick={onOpenPR}
+                  data-testid="open-pr-button"
+                >
+                  {openPrIsPending ? 'Opening PR…' : 'Open PR'}
+                </Button>
+              </InfoTooltip>
               {openPrIsPending && (
                 <p className="text-xs text-muted-foreground" data-testid="open-pr-spinner-row">
                   Working on it…
@@ -53,7 +64,12 @@ export function PrPanel({ proposal, onOpenPR, openPrIsPending }: PrPanelProps) {
             >
               {proposal.pr_url}
             </a>
-            {proposal.pr_state && <StatusBadge kind="proposal_pr" value={proposal.pr_state} />}
+            {proposal.pr_state && (
+              <div className="flex items-center gap-1">
+                <StatusBadge kind="proposal_pr" value={proposal.pr_state} />
+                <InfoTooltip glossaryKey={PR_STATE_TO_GLOSSARY_KEY[proposal.pr_state]} />
+              </div>
+            )}
           </div>
         )}
         {proposal.status === 'pr_merged' && (

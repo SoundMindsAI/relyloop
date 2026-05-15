@@ -1,4 +1,5 @@
 'use client';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Button } from '@/components/ui/button';
 
 // Client-side filter only — backend has no ?source= param.
@@ -16,6 +17,7 @@ export interface ProposalSourceFilterChipsProps {
 export function ProposalSourceFilterChips({ value, onChange }: ProposalSourceFilterChipsProps) {
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Source filter">
+      <InfoTooltip glossaryKey="proposal.source_filter" />
       {SOURCE_VALUES.map((chip) => {
         const isActive = chip === value;
         return (

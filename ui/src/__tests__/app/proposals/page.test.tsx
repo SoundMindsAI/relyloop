@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type ReactNode, useEffect, useReducer } from 'react';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
+
 import { server } from '../../setup';
 
 const API_BASE = 'http://api.test';
@@ -50,7 +52,9 @@ async function renderPage() {
   const { default: ProposalsPage } = await import('@/app/proposals/page');
   return render(
     <QueryClientProvider client={qc}>
-      <ProposalsPage />
+      <TooltipProvider delayDuration={0}>
+        <ProposalsPage />
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -13,7 +14,10 @@ export function SuggestedFollowupsPanel({ followups }: SuggestedFollowupsPanelPr
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Suggested follow-ups</CardTitle>
+        <CardTitle className="flex items-center gap-1 text-base">
+          Suggested follow-ups
+          <InfoTooltip glossaryKey="proposal.suggested_followups" />
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="space-y-3" data-testid="suggested-followups-list">

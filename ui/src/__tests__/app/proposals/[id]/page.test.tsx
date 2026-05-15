@@ -4,6 +4,8 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
+
 import { server } from '../../../setup';
 
 const API_BASE = 'http://api.test';
@@ -75,7 +77,9 @@ async function renderPage(proposalId = 'p1') {
   const { ProposalDetailView } = await import('@/app/proposals/[id]/page');
   return render(
     <QueryClientProvider client={qc}>
-      <ProposalDetailView proposalId={proposalId} />
+      <TooltipProvider delayDuration={0}>
+        <ProposalDetailView proposalId={proposalId} />
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }
@@ -427,7 +431,9 @@ describe('Proposal detail page — Story 3.2 (PR panel + polling + auto-trigger)
     const { QueryClientProvider } = await import('@tanstack/react-query');
     render(
       <QueryClientProvider client={qc}>
-        <ProposalDetailView proposalId="p1" />
+        <TooltipProvider delayDuration={0}>
+          <ProposalDetailView proposalId="p1" />
+        </TooltipProvider>
       </QueryClientProvider>,
     );
 
