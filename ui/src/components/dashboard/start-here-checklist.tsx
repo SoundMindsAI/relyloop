@@ -103,14 +103,13 @@ export function StartHereChecklist({
                 data-testid={`start-here-step-${step.key}`}
                 data-done={step.done ? 'true' : 'false'}
                 data-locked={isLocked ? 'true' : 'false'}
-                className={
-                  'flex items-start gap-3 rounded-md border p-3 ' +
-                  (step.done
+                className={`flex items-start gap-3 rounded-md border p-3 ${
+                  step.done
                     ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/20'
                     : isCurrent
                       ? 'border-foreground/20 bg-background'
-                      : 'border-muted bg-muted/30 opacity-70')
-                }
+                      : 'border-muted bg-muted/30 opacity-70'
+                }`}
               >
                 <span
                   aria-hidden="true"

@@ -69,15 +69,6 @@ export default function DashboardPage() {
       return Number(headers.get('X-Total-Count') ?? 0);
     },
   });
-  const allStudies = useQuery({
-    queryKey: ['studies', { limit: 1 }, 'first-run-count'],
-    queryFn: async () => {
-      const { headers } = await apiClient.get<StudyListResponse>('/api/v1/studies', {
-        params: { limit: 1 },
-      });
-      return Number(headers.get('X-Total-Count') ?? 0);
-    },
-  });
 
   const allFailed = recent.isError && openProposals.isError && completedRecently.isError;
 
@@ -102,11 +93,11 @@ export default function DashboardPage() {
            * are non-empty, so it disappears as soon as the user has a working
            * setup. The component handles its own "all done → hide" logic.
            */}
-          {clustersCount.isSuccess && judgmentListsCount.isSuccess && allStudies.isSuccess && (
+          {clustersCount.isSuccess && judgmentListsCount.isSuccess && recent.isSuccess && (
             <StartHereChecklist
               hasClusters={clustersCount.data > 0}
               hasQuerySetsWithJudgments={judgmentListsCount.data > 0}
-              hasStudies={allStudies.data > 0}
+              hasStudies={(recent.data?.totalCount ?? 0) > 0}
             />
           )}
           <section className="grid gap-3 sm:grid-cols-2">
