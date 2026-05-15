@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { Composer } from '@/components/chat/composer';
+import { ExamplePrompts } from '@/components/chat/example-prompts';
 import { MessageStream, type ReactiveMessage } from '@/components/chat/message-stream';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -231,6 +232,9 @@ function ChatDetailInner({ id }: { id: string }) {
         </CardContent>
       </Card>
 
+      {localMessages.length === 0 && !streaming && (
+        <ExamplePrompts onSend={handleSend} disabled={streaming} />
+      )}
       <Composer onSend={handleSend} streaming={streaming} />
     </div>
   );
