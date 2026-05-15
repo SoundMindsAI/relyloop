@@ -1,4 +1,5 @@
 'use client';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
 import { OverridePopover } from '@/components/judgments/override-popover';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,7 @@ export function JudgmentsTable({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2" role="group" aria-label="Source filter">
+        <InfoTooltip glossaryKey="judgment.source_filter" />
         {SOURCE_CHOICES.map((choice) => (
           <Button
             key={choice}
@@ -59,8 +61,18 @@ export function JudgmentsTable({
             <TableRow>
               <TableHead>Query</TableHead>
               <TableHead>Doc</TableHead>
-              <TableHead>Rating</TableHead>
-              <TableHead>Source</TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1">
+                  Rating
+                  <InfoTooltip glossaryKey="judgment.relevance" />
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1">
+                  Source
+                  <InfoTooltip glossaryKey="judgment.source" />
+                </span>
+              </TableHead>
               <TableHead>Notes</TableHead>
               <TableHead className="w-24" />
             </TableRow>

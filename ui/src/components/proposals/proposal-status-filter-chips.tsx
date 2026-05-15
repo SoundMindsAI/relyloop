@@ -1,4 +1,5 @@
 'use client';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Button } from '@/components/ui/button';
 import { PROPOSAL_STATUS_VALUES, type ProposalStatus } from '@/lib/enums';
 
@@ -19,6 +20,7 @@ export function ProposalStatusFilterChips({ value, onChange }: ProposalStatusFil
   const active: ChipValue = value && isChipValue(value) ? value : ALL;
   return (
     <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Status filter">
+      <InfoTooltip glossaryKey="proposal.status_filter" />
       {CHIP_VALUES.map((chip) => {
         const isActive = chip === active;
         return (

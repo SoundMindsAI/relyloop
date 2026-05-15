@@ -309,6 +309,197 @@ export const glossary = {
     short: 'The digest hasn’t produced a pending proposal yet. Check back in a minute, or refresh.',
     ariaLabel: 'More information about open PR (no pending proposal)',
   },
+
+  // -------------------------------------------------------------------------
+  // Phase 2 — Judgments review page
+  // -------------------------------------------------------------------------
+
+  'judgment.relevance': {
+    short:
+      'How relevant the document is to the query, on a 0–3 scale. Used as the ground truth that studies optimize against.',
+    ariaLabel: 'More information about relevance rating',
+  },
+
+  // Source-of-truth: backend/app/api/v1/schemas.py RatingWire
+  // (mirrored in ui/src/lib/enums.ts RATING_VALUES).
+  'judgment.rating.0': { short: 'Not relevant — the document does not match the query intent.' },
+  'judgment.rating.1': {
+    short: 'Marginally relevant — tangentially related but not a useful answer.',
+  },
+  'judgment.rating.2': { short: 'Relevant — answers the query reasonably well.' },
+  'judgment.rating.3': { short: 'Highly relevant — the best possible answer for this query.' },
+
+  'judgment.source': {
+    short:
+      'Where the rating came from: an LLM judge (`llm`), a human reviewer (`human`), or inferred from click logs (`click`).',
+    ariaLabel: 'More information about judgment source',
+  },
+
+  // Source-of-truth: backend/app/api/v1/schemas.py JudgmentSourceWire
+  // (mirrored in ui/src/lib/enums.ts JUDGMENT_SOURCE_VALUES).
+  'judgment.source.llm': {
+    short: 'Rated by the LLM judge worker against the rubric in the judgment list.',
+  },
+  'judgment.source.human': {
+    short: 'Rated manually — either via the Override button or imported as ground truth.',
+  },
+  'judgment.source.click': {
+    short: 'Inferred from production click logs. Lower confidence than human or LLM ratings.',
+  },
+
+  'judgment.override_button': {
+    short:
+      'Replace this rating with your own. Override ratings have `source=human` and take precedence over LLM ratings in the next study.',
+    ariaLabel: 'More information about overriding a rating',
+  },
+  'judgment.source_filter': {
+    short:
+      'Show only ratings from one source. "All" includes overrides + LLM ratings together; "human" shows only your overrides.',
+    ariaLabel: 'More information about source filter',
+  },
+  'judgment.calibration': {
+    long: [
+      'Calibration measures how well the LLM judge agrees with a sample of human ratings.',
+      '',
+      'Paste a CSV (`query_id,doc_id,rating`) or JSON array of human-rated samples. The server computes two agreement scores:',
+      '',
+      "- **Cohen's κ** — chance-adjusted agreement on the categorical rating. Treats 0/1/2/3 as unordered labels.",
+      '- **Weighted κ** — same idea, but penalizes "off by 2" more than "off by 1". The right metric for ordinal ratings like ours.',
+      '',
+      'Interpretation:',
+      '',
+      '- κ ≥ 0.7 — strong agreement; the LLM judge is reliable.',
+      '- 0.4 ≤ κ < 0.7 — moderate agreement; usable but inspect the rubric.',
+      '- κ < 0.4 — needs calibration; revise the rubric or switch metrics.',
+    ].join('\n'),
+    ariaLabel: 'More information about calibration scores',
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 2 — Proposals
+  // -------------------------------------------------------------------------
+
+  // Source-of-truth: backend/app/api/v1/schemas.py ProposalStatusWire
+  // (mirrored in ui/src/lib/enums.ts PROPOSAL_STATUS_VALUES).
+  'proposal.status.pending': {
+    short: 'Generated from a study but no PR opened yet. Click "Open PR" to advance.',
+  },
+  'proposal.status.pr_opened': {
+    short: 'A GitHub PR exists in the config repo. Operator review is the next step.',
+  },
+  'proposal.status.pr_merged': {
+    short: 'The config-repo PR merged — your CI is responsible for deploying it.',
+  },
+  'proposal.status.rejected': {
+    short: 'Rejected by an operator. See "Rejected reason" for context; no PR will be opened.',
+  },
+
+  // Source-of-truth: backend/app/api/v1/schemas.py ProposalPrStateWire
+  // (mirrored in ui/src/lib/enums.ts PROPOSAL_PR_STATE_VALUES).
+  'proposal.pr_state.open': { short: 'GitHub PR is open and awaiting review.' },
+  'proposal.pr_state.closed': { short: 'GitHub PR was closed without merging.' },
+  'proposal.pr_state.merged': {
+    short: 'GitHub PR merged — deployment now depends on your CI.',
+  },
+
+  'proposal.open_pr_button': {
+    short:
+      "Open a GitHub PR with this proposal's config diff in the cluster's config repo. Operator merge triggers deployment.",
+    ariaLabel: 'More information about opening a PR',
+  },
+  'proposal.config_diff.key': {
+    short: 'The parameter the study tuned — typically a template parameter or query-time setting.',
+    ariaLabel: 'More information about config-diff Key',
+  },
+  'proposal.config_diff.from': {
+    short: "The baseline value, taken from the study's baseline trial.",
+    ariaLabel: 'More information about config-diff From',
+  },
+  'proposal.config_diff.to': {
+    short: 'The recommended value — what the best-scoring trial used.',
+    ariaLabel: 'More information about config-diff To',
+  },
+  'proposal.metric_delta': {
+    short:
+      'Baseline score → best score for the metric the study optimized. Sign reflects the direction (maximize vs minimize).',
+    ariaLabel: 'More information about metric delta',
+  },
+  'proposal.suggested_followups': {
+    short:
+      "LLM-generated next-study hypotheses based on this study's parameter-importance pattern. Click to seed a new study.",
+    ariaLabel: 'More information about suggested follow-ups',
+  },
+  'proposal.status_filter': {
+    short:
+      'Filter the proposals list by lifecycle state. "All" shows every proposal regardless of where it is in the open-PR / merge flow.',
+    ariaLabel: 'More information about status filter',
+  },
+  'proposal.source_filter': {
+    short:
+      'Filter by how the proposal was created. "study" = digest-generated from a completed study; "manual" = operator-authored.',
+    ariaLabel: 'More information about source filter',
+  },
+
+  // -------------------------------------------------------------------------
+  // Phase 3 — Cluster registration
+  // -------------------------------------------------------------------------
+
+  'cluster.auth_kind': {
+    short:
+      'How RelyLoop authenticates to the cluster. Elasticsearch uses API keys or HTTP basic; OpenSearch uses HTTP basic or AWS SigV4.',
+    ariaLabel: 'More information about auth kind',
+  },
+
+  // Source-of-truth: backend/app/api/v1/schemas.py AuthKind
+  // (mirrored in ui/src/lib/enums.ts AUTH_KIND_VALUES).
+  'cluster.auth_kind.es_apikey': {
+    short:
+      'Elasticsearch API key (preferred for ES 8.x+). Faster than basic auth and supports fine-grained roles.',
+  },
+  'cluster.auth_kind.es_basic': {
+    short: 'Elasticsearch HTTP basic (username + password). Use when API keys are not available.',
+  },
+  'cluster.auth_kind.opensearch_basic': {
+    short:
+      'OpenSearch HTTP basic (username + password). Works with the OpenSearch security plugin.',
+  },
+  'cluster.auth_kind.opensearch_sigv4': {
+    short:
+      'AWS SigV4 for OpenSearch on AWS managed service. Uses IAM roles, not username/password.',
+  },
+
+  'cluster.environment': {
+    short:
+      'Which deployment environment this cluster represents. Used for display + filtering only — does not change cluster behavior.',
+    ariaLabel: 'More information about environment',
+  },
+
+  // Source-of-truth: backend/app/api/v1/schemas.py Environment
+  // (mirrored in ui/src/lib/enums.ts ENVIRONMENT_VALUES).
+  'cluster.environment.prod': {
+    short:
+      'Production. Tune carefully — RelyLoop never writes to your cluster, but the proposals it generates target it.',
+  },
+  'cluster.environment.staging': {
+    short: 'Pre-production. The right place to dry-run new templates before they reach prod.',
+  },
+  'cluster.environment.dev': { short: 'Local or scratch cluster. Safe to experiment freely.' },
+
+  'cluster.credentials_ref': {
+    long: [
+      'Credentials are mounted from `./secrets/<name>` on the host into the API container as Docker secrets, then read at startup.',
+      '',
+      '**How to set up:**',
+      '',
+      '1. Create a YAML file at `./secrets/cluster_credentials.yaml` on the host.',
+      '2. Add an entry keyed by the name you put in this field. For example, if you enter `es-apikey` here, the file needs an `es-apikey:` block with the credential fields.',
+      '3. For HTTP basic, use `username` + `password` keys; for API keys, use `api_key`.',
+      '4. The API container reads the secret at startup — no restart needed for new entries, but the value cannot change while a container is running.',
+      '',
+      'Never check credentials into git. The `./secrets/` directory is gitignored except for `.gitkeep`.',
+    ].join('\n'),
+    ariaLabel: 'More information about credentials reference',
+  },
 } as const satisfies Record<string, GlossaryEntry>;
 
 // =============================================================================
