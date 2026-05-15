@@ -356,7 +356,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP1 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-05-14 (latest mtime of any
+    Reflects feature-folder state as of 2026-05-15 (latest mtime of any
     <code>docs/02_product/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -369,12 +369,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_contextual_help/feature_spec.md">Contextual Help</a></div>
+    <div class="one-liner">a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the same allowlist the backend validates agains</div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_contextual_help/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -382,15 +382,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">36 / 36</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">36 / 37</div>
+      <div class="sub">97% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:97%"></span></div>
     </div>
-    <div class="kpi complete">
+    <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">0</div>
+      <div class="value">1</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi ">
@@ -438,7 +438,18 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_contextual_help/feature_spec.md">Contextual Help</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam</div>
+  <div class="deferred">deferred: Phase 2, Phase 3</div>
+
+</div>
 
 </div>
 
@@ -458,7 +469,7 @@ footer {
   </div>
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span></div>
 </div>
 
 
@@ -878,7 +889,7 @@ footer {
   </div>
   <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span></div>
 </div>
 
 
@@ -990,6 +1001,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_contextual_help[&quot;contextual help&quot;]
+  class feat_contextual_help plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1068,6 +1081,7 @@ footer {
   infra_adapter_elastic --&gt; feat_llm_judgments
   feat_study_lifecycle --&gt; feat_llm_judgments
   feat_chat_agent --&gt; chore_tutorial_polish
+  feat_contextual_help --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
@@ -1087,6 +1101,7 @@ footer {
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
   infra_structlog_test_helpers --&gt; chore_tutorial_polish
+  feat_contextual_help --&gt; feat_chat_agent
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
@@ -1133,6 +1148,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_contextual_help[&quot;contextual help&quot;]
+  class feat_contextual_help plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1211,6 +1228,7 @@ footer {
   infra_adapter_elastic --&gt; feat_llm_judgments
   feat_study_lifecycle --&gt; feat_llm_judgments
   feat_chat_agent --&gt; chore_tutorial_polish
+  feat_contextual_help --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
@@ -1230,6 +1248,7 @@ footer {
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
   infra_structlog_test_helpers --&gt; chore_tutorial_polish
+  feat_contextual_help --&gt; feat_chat_agent
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
