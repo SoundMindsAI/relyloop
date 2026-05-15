@@ -243,6 +243,25 @@ The same SSE wire format (`event: <type>\ndata: <json>\n\n`) is used; only the t
 
 **X-Request-ID** is injected into every API call by `ui/lib/api-client.ts` for log correlation per [`api-conventions.md` §"Trace / request correlation"](api-conventions.md). Optionally accepts a server-supplied `X-Request-ID` if present in the response.
 
+## Contextual help (tooltips and popovers)
+
+`feat_contextual_help` Phase 1 (2026-05-14) added the project's first tooltip primitive plus two glossary-backed wrappers. New surfaces that need label-adjacent help should use these instead of inventing a pattern.
+
+**Primitive:** [`ui/src/components/ui/tooltip.tsx`](../../ui/src/components/ui/tooltip.tsx) — shadcn-style re-export of `@radix-ui/react-tooltip` (`Tooltip` / `TooltipTrigger` / `TooltipContent` / `TooltipProvider`). `TooltipContent` carries `motion-reduce:animate-none` so the project respects `prefers-reduced-motion: reduce` (Radix does NOT auto-disable Tailwind animation classes added at the project layer). The `TooltipProvider` is mounted once in [`ui/src/app/layout.tsx`](../../ui/src/app/layout.tsx) inside `QueryProvider` with `delayDuration={700}` so every page has shared tooltip context.
+
+**Wrappers:**
+
+| Wrapper | Use for | Trigger | Glossary-key type |
+|---|---|---|---|
+| [`InfoTooltip`](../../ui/src/components/common/info-tooltip.tsx) | Short (≤140 char) factual help next to a label, column header, or section title | Hover OR keyboard focus | `ShortGlossaryKey` |
+| [`HelpPopover`](../../ui/src/components/common/help-popover.tsx) | Multi-line guidance, multi-option comparisons (≤800 char), Markdown bullet lists | Click / Enter / Space | `LongGlossaryKey` |
+
+`InfoTooltip` has two modes: **standalone** (default — renders its own `<button type="button" aria-label="...">` with a 14×14 lucide `<Info />` icon inside a 24×24 hit area; satisfies WCAG 2.2 SC 2.5.8 — Target Size Minimum), and **asChild** (set `asChild` prop; the caller-supplied child becomes the trigger via Radix `TooltipTrigger asChild`; the wrapper does NOT inject its own `data-testid` because a DOM node carries only one). asChild mode is for wrapping existing focusable elements like buttons or links; standalone mode is for label-adjacent placements.
+
+**Glossary source-of-truth:** [`ui/src/lib/glossary.ts`](../../ui/src/lib/glossary.ts). All tooltip / popover copy lives here — never inline in components. The file mirrors the [`enums.ts`](../../ui/src/lib/enums.ts) pattern: a `// Source-of-truth: backend/.../path.py Symbol` comment above each enum-keyed group, with the parity test helper `expectGlossaryGroundedAgainstEnums(prefix, wireValues)` enforcing key-for-key alignment with the backend wire types. User-visible copy fields (`short`, `long`, `ariaLabel`) **MUST NOT** contain backend file paths or symbol names — citations go in the TypeScript comments only. The companion vitest at [`ui/src/__tests__/lib/glossary.test.ts`](../../ui/src/__tests__/lib/glossary.test.ts) enforces this contract.
+
+When adding new tooltips on existing surfaces (Phase 2 / Phase 3 work — see [`feat_contextual_help/phase2_idea.md`](../02_product/planned_features/feat_contextual_help/phase2_idea.md) and [`phase3_idea.md`](../02_product/planned_features/feat_contextual_help/phase3_idea.md)), extend `glossary.ts` with new keys following the same naming convention (dotted, lowercase, `<scope>.<aggregate>` or `<scope>.<aggregate>.<wire_value>`) and add a parity-test case for any new enum group.
+
 ## Reserved for later releases
 
 | Capability | Activates at |

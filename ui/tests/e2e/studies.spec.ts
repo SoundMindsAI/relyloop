@@ -58,6 +58,84 @@ test.describe('/studies', () => {
     await expect(page).not.toHaveURL(/[?&]status=/);
   });
 
+  test('contextual help — modal triggers (FR-6, 11 placements)', async ({ page }) => {
+    await page.goto('/studies');
+    // Open the create-study modal.
+    await page.getByTestId('open-create-study').click();
+    await expect(page.getByTestId('create-study-form')).toBeVisible({ timeout: 5_000 });
+
+    // Step 1: target trigger
+    await expect(page.getByTestId('tooltip-trigger-study.target')).toBeVisible();
+    // NOTE: Step 3 (template) and Step 5 (objective + config) triggers require
+    // advancing through the wizard with a seeded chain. Those triggers are
+    // covered by the create-study-modal.test.tsx vitest component test (which
+    // walks all 5 steps with a mocked backend). E2E here asserts only the
+    // Step 1 trigger as a smoke; deeper E2E walks live in vitest where the
+    // form state machine is deterministic.
+  });
+
+  test('contextual help — study-detail header + trials-table triggers (FR-7, FR-8)', async ({
+    page,
+  }) => {
+    const chain = await seedFullChain(2);
+    const study = await seedStudy({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      maxTrials: 1,
+    });
+    await page.goto(`/studies/${study.id}`);
+
+    // Wait for the study to load so the header renders.
+    await expect(page.getByTestId('study-name')).toBeVisible({ timeout: 10_000 });
+
+    // FR-7: study-header tooltips (status badge dynamic key + Best metric + Trials).
+    // The status badge tooltip uses a dynamic key matching the actual status.
+    const statusTrigger = page
+      .getByTestId(/^tooltip-trigger-study\.status\.(queued|running|completed|cancelled|failed)$/)
+      .first();
+    await expect(statusTrigger).toBeVisible();
+    await expect(page.getByTestId('tooltip-trigger-study.best_metric')).toBeVisible();
+    await expect(page.getByTestId('tooltip-trigger-study.trials_summary')).toBeVisible();
+
+    // FR-8: trials-table tooltips. The Sort label always renders (above the table).
+    await expect(page.getByTestId('tooltip-trigger-trial.sort_by')).toBeVisible();
+    // Column headers only render when at least one trial row exists; the
+    // empty-state placeholder takes their place otherwise. Assert headers
+    // only on the populated path so the test doesn't race the orchestrator.
+    const trialsTable = page.getByTestId('trials-table');
+    if (await trialsTable.isVisible().catch(() => false)) {
+      await expect(page.getByTestId('tooltip-trigger-trial.status')).toBeVisible();
+      await expect(page.getByTestId('tooltip-trigger-trial.primary_metric')).toBeVisible();
+      await expect(page.getByTestId('tooltip-trigger-trial.duration_ms')).toBeVisible();
+      await expect(page.getByTestId('tooltip-trigger-trial.params')).toBeVisible();
+    }
+  });
+
+  test('contextual help — InfoTooltip reveals on hover and ESC dismisses (AC-2 / AC-3)', async ({
+    page,
+  }) => {
+    const chain = await seedFullChain(2);
+    const study = await seedStudy({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      maxTrials: 1,
+    });
+    await page.goto(`/studies/${study.id}`);
+    await expect(page.getByTestId('study-name')).toBeVisible({ timeout: 10_000 });
+
+    const trigger = page.getByTestId('tooltip-trigger-study.best_metric');
+    await trigger.hover();
+    await expect(page.getByTestId('tooltip-body-study.best_metric')).toBeVisible({
+      timeout: 2_000,
+    });
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('tooltip-body-study.best_metric')).not.toBeVisible();
+  });
+
   test('cancel button fires POST /cancel on a cancellable study', async ({ page }) => {
     // Deterministic test of the C4 cancel flow: seed a study, navigate to its
     // detail page, and verify that clicking the cancel button (when visible)
