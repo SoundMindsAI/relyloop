@@ -116,7 +116,7 @@ A `phase2_idea.md` and `phase3_idea.md` tracking artifact is created in Step 10 
 
 ## 5) Assumptions and dependencies
 
-- **Dependency:** `@radix-ui/react-tooltip` (new npm dep). **Status:** not yet in `ui/package.json`. **Risk if missing:** N/A — Phase 1 adds it. Match the version pinning style of the existing Radix deps (e.g., `@radix-ui/react-popover: ~1.1.15`).
+- **Dependency:** `@radix-ui/react-tooltip` (new npm dep). **Status:** not yet in `ui/package.json`. **Risk if missing:** N/A — Phase 1 adds it. Match the project's tilde-pinning style; the tooltip package's 1.x track is independent of dialog/popover (their earliest 1.x is 1.2.1, latest 1.2.8 as of 2026-05-14), so pin `~1.2.8`.
 - **Dependency:** `lucide-react`'s `Info` icon. **Status:** already in `ui/package.json` and imported by [`ui/src/components/ui/dialog.tsx:3`](../../../../ui/src/components/ui/dialog.tsx) (`X`) + [`ui/src/components/ui/select.tsx:3`](../../../../ui/src/components/ui/select.tsx) (`Check, ChevronDown`).
 - **Dependency:** existing `ui/src/lib/enums.ts` source-of-truth file. **Status:** shipped (chore_proposals_source_filter_server_side timeframe). The glossary's source-of-truth comments mirror this file's pattern character-for-character.
 - **Dependency:** existing `StatusBadge` component at [`ui/src/components/common/status-badge.tsx`](../../../../ui/src/components/common/status-badge.tsx). **Status:** shipped. Phase 1 wraps `<StatusBadge>` instances in tooltip triggers without modifying the component itself.

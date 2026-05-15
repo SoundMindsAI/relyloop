@@ -6,6 +6,7 @@ import { QueryProvider } from '@/components/providers/query-provider';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { TopNav } from '@/components/layout/top-nav';
 import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export const metadata: Metadata = {
   title: 'RelyLoop',
@@ -22,10 +23,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <ThemeProvider>
           <QueryProvider>
-            <TopNav />
-            {children}
-            <Toaster />
-            <GuideTrigger />
+            <TooltipProvider delayDuration={700}>
+              <TopNav />
+              {children}
+              <Toaster />
+              <GuideTrigger />
+            </TooltipProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

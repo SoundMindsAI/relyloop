@@ -120,7 +120,7 @@ export const TooltipContent = React.forwardRef<
 ```
 
 **Tasks**
-1. `cd ui && pnpm add @radix-ui/react-tooltip@~1.1.15` (matches existing Radix pinning).
+1. `cd ui && pnpm add @radix-ui/react-tooltip@~1.2.8` (matches existing Radix pinning).
 2. Write `ui/src/components/ui/tooltip.tsx` per the Key interfaces above.
 3. Modify `ui/src/app/layout.tsx` to wrap children with `<TooltipProvider delayDuration={700}>`. Place it as a child of `<QueryProvider>` so every page renders inside a tooltip context.
 4. Run `cd ui && pnpm typecheck && pnpm lint && pnpm test && pnpm build` — all four must pass with no new errors before completing.
@@ -1263,7 +1263,7 @@ Backend gates (`make test-unit`, `make test-integration`, `make test-contract`) 
 
 | Dependency | Needed by | Status | Risk if missing |
 |---|---|---|---|
-| `@radix-ui/react-tooltip` ~1.1.15 | Story 1.1 | Planned (Story 1.1 adds it) | None — Story 1.1 fails fast if `pnpm add` fails |
+| `@radix-ui/react-tooltip` ~1.2.8 | Story 1.1 | Planned (Story 1.1 adds it) | None — Story 1.1 fails fast if `pnpm add` fails |
 | `lucide-react` `Info` icon | Stories 1.2, 1.3 | Installed (verified at `ui/package.json`) | None |
 | `react-markdown` | Story 1.3 | Installed (~9.0.3) | None |
 | Story 1.1 (primitive) | Stories 1.2, 1.3 | Sequential | Hard sequence: **1.1 → 1.4 → 1.2 + 1.3 → 2.x → 3.x** (1.4 lands before wrappers so they import a real glossary file — no stub interim) |
