@@ -25,7 +25,19 @@
 - Phases covered: Phase 1 (MVP1).
 
 ## Implementation
-- Status: Awaiting classifier-model recovery — `/impl-execute --all` requires `pnpm` (typecheck/lint/test/build), `gh` (PR creation, CI monitoring), and `python3` (final GPT-5.5 review) to be unblocked by the Bash classifier. Fast-path commands (`git`, `echo`, `ls`) currently work; classifier-gated commands return "claude-opus-4-7[1m] is temporarily unavailable" as of 2026-05-14 20:30 EDT.
+- Status: **Complete**
+- Date: 2026-05-15
+- PR: [#122](https://github.com/SoundMindsAI/relyloop/pull/122) (squash-merged)
+- Stories: 10 of 10 complete (`[x]`-marked in [implementation_plan.md §9](implementation_plan.md))
+- CI on final commit: 5 of 5 jobs green (frontend, backend × 2, docker buildx, smoke E2E)
+- Gemini Code Assist: 2 findings — 1 accepted + fixed (commit `227c37e` added `type="button"` to aria-disabled Open PR), 1 rejected with cited counter-evidence (`TooltipContent` `displayName` diverges from existing project convention on dialog/popover/select primitives)
+- Final GPT-5.5 review: 1 Medium — accepted framing, remediation deferred to [`infra_e2e_seed_completed_study`](../infra_e2e_seed_completed_study/) (E2E gap for digest-panel 7 triggers + AC-11 disabled-button; component-level coverage IS in place via `info-tooltip.test.tsx` asChild case + `studies/[id]/page.test.tsx` integration test against mocked completed study)
+
+## Done
+- Status: Merged to main
+- Date: 2026-05-15
+- PR: [#122](https://github.com/SoundMindsAI/relyloop/pull/122)
+- Phases 2 + 3 deferred to MVP2 — tracked at [`feat_contextual_help_mvp2/`](../feat_contextual_help_mvp2/)
 
 ## Deferred-phase artifacts
 - [phase2_idea.md](phase2_idea.md) — judgments + proposals surfaces (Phase 2, MVP2)
