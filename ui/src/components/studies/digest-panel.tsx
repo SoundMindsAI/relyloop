@@ -3,6 +3,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { ParameterImportanceChart } from '@/components/common/parameter-importance-chart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +39,10 @@ export function DigestPanel({
       </CardHeader>
       <CardContent className="space-y-6">
         <section>
-          <p className="text-xs uppercase text-muted-foreground">Narrative</p>
+          <p className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+            Narrative
+            <InfoTooltip glossaryKey="digest.narrative" />
+          </p>
           <div className="prose prose-sm mt-1 max-w-none" data-testid="digest-narrative">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
@@ -51,14 +55,20 @@ export function DigestPanel({
         </section>
         <section className="grid gap-6 md:grid-cols-2">
           <div>
-            <p className="text-xs uppercase text-muted-foreground">Parameter importance</p>
+            <p className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+              Parameter importance
+              <InfoTooltip glossaryKey="digest.parameter_importance" />
+            </p>
             <div className="mt-2">
               <ParameterImportanceChart data={digest.parameter_importance} />
             </div>
           </div>
           <div className="space-y-3">
             <div>
-              <p className="text-xs uppercase text-muted-foreground">Metric delta</p>
+              <p className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+                Metric delta
+                <InfoTooltip glossaryKey="digest.metric_delta" />
+              </p>
               <p className="mt-1 text-lg" data-testid="digest-metric-delta">
                 {baselineMetric != null ? baselineMetric.toFixed(3) : '—'} →{' '}
                 {bestMetric != null ? bestMetric.toFixed(3) : '—'} (
@@ -66,7 +76,10 @@ export function DigestPanel({
               </p>
             </div>
             <div>
-              <p className="text-xs uppercase text-muted-foreground">Recommended config</p>
+              <p className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+                Recommended config
+                <InfoTooltip glossaryKey="digest.recommended_config" />
+              </p>
               <pre className="mt-1 max-h-48 overflow-auto rounded-md border bg-muted/40 p-2 text-xs">
                 {JSON.stringify(digest.recommended_config, null, 2)}
               </pre>
@@ -75,7 +88,10 @@ export function DigestPanel({
         </section>
         {followups.length > 0 && (
           <section>
-            <p className="text-xs uppercase text-muted-foreground">Suggested follow-ups</p>
+            <p className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+              Suggested follow-ups
+              <InfoTooltip glossaryKey="digest.suggested_followups" />
+            </p>
             <ul className="mt-1 list-inside list-disc text-sm">
               {followups.map((f, i) => (
                 <li key={`followup-${i}`}>{f}</li>
@@ -85,13 +101,30 @@ export function DigestPanel({
         )}
         <section className="flex items-center gap-3">
           {pendingProposal ? (
-            <Button asChild data-testid="open-pr-link">
-              <Link href={`/proposals/${pendingProposal.id}?action=open_pr`}>Open PR…</Link>
-            </Button>
+            <InfoTooltip asChild glossaryKey="digest.open_pr_button">
+              <Button asChild data-testid="open-pr-link">
+                <Link href={`/proposals/${pendingProposal.id}?action=open_pr`}>Open PR…</Link>
+              </Button>
+            </InfoTooltip>
           ) : (
-            <Button disabled data-testid="open-pr-disabled">
-              Open PR (no pending proposal)
-            </Button>
+            <InfoTooltip asChild glossaryKey="digest.open_pr_disabled">
+              {/*
+               * aria-disabled pattern (not native `disabled`) so the button
+               * stays focusable and the tooltip can reveal on focus for
+               * keyboard users (AC-11). Click activation is prevented via
+               * onClick. The visual disabled state is preserved via Tailwind
+               * utilities since the native attribute is no longer set.
+               */}
+              <Button
+                type="button"
+                aria-disabled="true"
+                onClick={(e) => e.preventDefault()}
+                data-testid="open-pr-disabled"
+                className="cursor-not-allowed opacity-50"
+              >
+                Open PR (no pending proposal)
+              </Button>
+            </InfoTooltip>
           )}
         </section>
       </CardContent>

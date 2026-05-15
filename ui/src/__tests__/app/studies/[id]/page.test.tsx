@@ -4,6 +4,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
+
 import { server } from '../../../setup';
 
 const API_BASE = 'http://api.test';
@@ -59,7 +61,9 @@ async function renderPage(studyId = 'st1') {
   const { StudyDetailView } = await import('@/app/studies/[id]/page');
   return render(
     <QueryClientProvider client={qc}>
-      <StudyDetailView studyId={studyId} />
+      <TooltipProvider delayDuration={0}>
+        <StudyDetailView studyId={studyId} />
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }

@@ -4,6 +4,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
+
 import { server } from '../../setup';
 
 // Radix Select crashes inside jsdom's portal handling for this many-Select
@@ -63,7 +65,11 @@ const API_BASE = 'http://api.test';
 
 function wrap(node: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={qc}>
+      <TooltipProvider delayDuration={0}>{node}</TooltipProvider>
+    </QueryClientProvider>,
+  );
 }
 
 function mockBackend() {

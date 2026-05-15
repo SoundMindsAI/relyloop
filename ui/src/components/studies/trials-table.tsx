@@ -1,4 +1,5 @@
 'use client';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
 import {
   Select,
@@ -28,9 +29,12 @@ export function TrialsTable({ rows, sort, onSortChange }: TrialsTableProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-sm">
-        <label htmlFor="trial-sort" className="text-muted-foreground">
-          Sort by
-        </label>
+        <div className="flex items-center gap-1">
+          <label htmlFor="trial-sort" className="text-muted-foreground">
+            Sort by
+          </label>
+          <InfoTooltip glossaryKey="trial.sort_by" />
+        </div>
         <Select value={sort} onValueChange={(v) => onSortChange(v as TrialSort)}>
           <SelectTrigger id="trial-sort" className="w-64">
             <SelectValue />
@@ -53,10 +57,30 @@ export function TrialsTable({ rows, sort, onSortChange }: TrialsTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>#</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Primary metric</TableHead>
-              <TableHead>Duration (ms)</TableHead>
-              <TableHead>Params</TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1">
+                  Status
+                  <InfoTooltip glossaryKey="trial.status" />
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1">
+                  Primary metric
+                  <InfoTooltip glossaryKey="trial.primary_metric" />
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1">
+                  Duration (ms)
+                  <InfoTooltip glossaryKey="trial.duration_ms" />
+                </span>
+              </TableHead>
+              <TableHead>
+                <span className="inline-flex items-center gap-1">
+                  Params
+                  <InfoTooltip glossaryKey="trial.params" />
+                </span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

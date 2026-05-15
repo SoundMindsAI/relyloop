@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { toast } from 'sonner';
 
+import { HelpPopover } from '@/components/common/help-popover';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -254,7 +256,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cs-target">Target index / collection</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="cs-target">Target index / collection</Label>
+                  <InfoTooltip glossaryKey="study.target" />
+                </div>
                 <Input id="cs-target" {...form.register('target')} placeholder="products" />
                 {schema.data && (
                   <p className="text-xs text-muted-foreground">
@@ -310,7 +315,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
           {step === 2 && (
             <div className="space-y-4" data-testid="step-3">
               <div className="space-y-1.5">
-                <Label htmlFor="cs-tpl">Query template (filtered by engine)</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="cs-tpl">Query template (filtered by engine)</Label>
+                  <InfoTooltip glossaryKey="study.template" />
+                </div>
                 <Select
                   value={values.template_id}
                   onValueChange={(v) => form.setValue('template_id', v)}
@@ -350,7 +358,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
             <div className="space-y-4" data-testid="step-5">
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-metric">Metric</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-metric">Metric</Label>
+                    <HelpPopover glossaryKey="study.metric" />
+                  </div>
                   <Select
                     value={values.metric}
                     onValueChange={(v) => form.setValue('metric', v as ObjectiveMetric)}
@@ -368,7 +379,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-k">k</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-k">k</Label>
+                    <InfoTooltip glossaryKey="study.k" />
+                  </div>
                   <Select
                     value={values.k != null ? String(values.k) : ''}
                     onValueChange={(v) =>
@@ -388,7 +402,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-dir">Direction</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-dir">Direction</Label>
+                    <InfoTooltip glossaryKey="study.direction" />
+                  </div>
                   <Select
                     value={values.direction}
                     onValueChange={(v) => form.setValue('direction', v as ObjectiveDirection)}
@@ -408,7 +425,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-max">Max trials</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-max">Max trials</Label>
+                    <InfoTooltip glossaryKey="study.max_trials" />
+                  </div>
                   <Input
                     id="cs-max"
                     type="number"
@@ -416,7 +436,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-budget">Time budget (min)</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-budget">Time budget (min)</Label>
+                    <InfoTooltip glossaryKey="study.time_budget_min" />
+                  </div>
                   <Input
                     id="cs-budget"
                     type="number"
@@ -425,7 +448,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-par">Parallelism</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-par">Parallelism</Label>
+                    <InfoTooltip glossaryKey="study.parallelism" />
+                  </div>
                   <Input
                     id="cs-par"
                     type="number"
@@ -435,7 +461,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-sampler">Sampler</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-sampler">Sampler</Label>
+                    <HelpPopover glossaryKey="study.sampler" />
+                  </div>
                   <Select
                     value={values.sampler ?? ''}
                     onValueChange={(v) => form.setValue('sampler', v as SamplerKind)}
@@ -453,7 +482,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-pruner">Pruner</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-pruner">Pruner</Label>
+                    <HelpPopover glossaryKey="study.pruner" />
+                  </div>
                   <Select
                     value={values.pruner ?? ''}
                     onValueChange={(v) => form.setValue('pruner', v as PrunerKind)}
@@ -471,7 +503,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="cs-seed">Seed</Label>
+                  <div className="flex items-center gap-1">
+                    <Label htmlFor="cs-seed">Seed</Label>
+                    <InfoTooltip glossaryKey="study.seed" />
+                  </div>
                   <Input
                     id="cs-seed"
                     type="number"
