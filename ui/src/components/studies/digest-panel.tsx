@@ -116,6 +116,7 @@ export function DigestPanel({
                * utilities since the native attribute is no longer set.
                */}
               <Button
+                type="button"
                 aria-disabled="true"
                 onClick={(e) => e.preventDefault()}
                 data-testid="open-pr-disabled"
