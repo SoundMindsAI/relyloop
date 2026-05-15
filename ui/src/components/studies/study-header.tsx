@@ -1,11 +1,28 @@
 'use client';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { StudyDetail } from '@/lib/api/studies';
+import type { StudyStatus } from '@/lib/enums';
+import type { ShortGlossaryKey } from '@/lib/glossary';
 
 export interface StudyHeaderProps {
   study: StudyDetail;
 }
+
+/**
+ * Dynamic glossary-key lookup for the study status badge tooltip (FR-7).
+ * Typed as `Record<StudyStatus, ShortGlossaryKey>` so TypeScript enforces
+ * that every status value has a glossary `short` entry — the FR-4 parity
+ * test is the runtime sibling check.
+ */
+const STATUS_TO_GLOSSARY_KEY = {
+  queued: 'study.status.queued',
+  running: 'study.status.running',
+  completed: 'study.status.completed',
+  cancelled: 'study.status.cancelled',
+  failed: 'study.status.failed',
+} as const satisfies Record<StudyStatus, ShortGlossaryKey>;
 
 export function StudyHeader({ study }: StudyHeaderProps) {
   return (
@@ -13,7 +30,10 @@ export function StudyHeader({ study }: StudyHeaderProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-3 text-base">
           <span data-testid="study-name">{study.name}</span>
-          <StatusBadge kind="study" value={study.status} />
+          <div className="flex items-center gap-1">
+            <StatusBadge kind="study" value={study.status} />
+            <InfoTooltip glossaryKey={STATUS_TO_GLOSSARY_KEY[study.status]} />
+          </div>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -27,13 +47,19 @@ export function StudyHeader({ study }: StudyHeaderProps) {
             <dd>{study.target}</dd>
           </div>
           <div>
-            <dt className="text-xs uppercase text-muted-foreground">Best metric</dt>
+            <dt className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+              Best metric
+              <InfoTooltip glossaryKey="study.best_metric" />
+            </dt>
             <dd data-testid="study-best-metric">
               {study.best_metric != null ? study.best_metric.toFixed(3) : '—'}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase text-muted-foreground">Trials</dt>
+            <dt className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+              Trials
+              <InfoTooltip glossaryKey="study.trials_summary" />
+            </dt>
             <dd data-testid="study-trial-count">
               {study.trials_summary.total.toLocaleString()} ({study.trials_summary.complete}{' '}
               complete · {study.trials_summary.failed} failed · {study.trials_summary.pruned}{' '}
