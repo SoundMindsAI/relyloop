@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, use, useCallback, useEffect, useRef, useState } from 'react';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { MetricDelta } from '@/components/common/metric-delta';
 import { EmptyState } from '@/components/common/empty-state';
 import { ConfigDiffPanel } from '@/components/proposals/config-diff-panel';
@@ -155,7 +156,10 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
           <ConfigDiffPanel diff={proposalQ.data.config_diff} />
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Metric delta</CardTitle>
+              <CardTitle className="flex items-center gap-1 text-base">
+                Metric delta
+                <InfoTooltip glossaryKey="proposal.metric_delta" />
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {(() => {

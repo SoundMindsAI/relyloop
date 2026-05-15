@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { HelpPopover } from '@/components/common/help-popover';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -105,7 +106,10 @@ export function CalibrationModal({ open, onOpenChange, listId }: CalibrationModa
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Calibrate against human samples</DialogTitle>
+          <DialogTitle className="flex items-center gap-1">
+            Calibrate against human samples
+            <HelpPopover glossaryKey="judgment.calibration" />
+          </DialogTitle>
           <DialogDescription>
             Paste a CSV (header: <code>query_id,doc_id,rating</code>) or JSON array of samples. The
             server computes Cohen&rsquo;s κ + weighted κ against the LLM judgments.

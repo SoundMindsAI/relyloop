@@ -1,12 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  AUTH_KIND_VALUES,
   ENVIRONMENT_VALUES,
   HEALTH_STATUS_VALUES,
+  JUDGMENT_SOURCE_VALUES,
   OBJECTIVE_DIRECTION_VALUES,
   OBJECTIVE_K_VALUES,
   OBJECTIVE_METRIC_VALUES,
+  PROPOSAL_PR_STATE_VALUES,
+  PROPOSAL_STATUS_VALUES,
   PRUNER_VALUES,
+  RATING_VALUES,
   SAMPLER_VALUES,
   STUDY_STATUS_VALUES,
   TRIAL_SORT_VALUES,
@@ -54,6 +59,31 @@ describe('glossary parity against ui/src/lib/enums.ts (FR-4 / AC-5)', () => {
 
   it('study.pruner — every PrunerKind value has a key + no extras', () => {
     expectGlossaryGroundedAgainstEnums('study.pruner', PRUNER_VALUES);
+  });
+
+  // Phase 2 / 3 additions
+  it('judgment.rating — every RatingWire value has a key + no extras', () => {
+    expectGlossaryGroundedAgainstEnums('judgment.rating', RATING_VALUES);
+  });
+
+  it('judgment.source — every JudgmentSourceWire value has a key + no extras', () => {
+    expectGlossaryGroundedAgainstEnums('judgment.source', JUDGMENT_SOURCE_VALUES);
+  });
+
+  it('proposal.status — every ProposalStatusWire value has a key + no extras', () => {
+    expectGlossaryGroundedAgainstEnums('proposal.status', PROPOSAL_STATUS_VALUES);
+  });
+
+  it('proposal.pr_state — every ProposalPrStateWire value has a key + no extras', () => {
+    expectGlossaryGroundedAgainstEnums('proposal.pr_state', PROPOSAL_PR_STATE_VALUES);
+  });
+
+  it('cluster.auth_kind — every AuthKind value has a key + no extras', () => {
+    expectGlossaryGroundedAgainstEnums('cluster.auth_kind', AUTH_KIND_VALUES);
+  });
+
+  it('cluster.environment — every Environment value has a key + no extras', () => {
+    expectGlossaryGroundedAgainstEnums('cluster.environment', ENVIRONMENT_VALUES);
   });
 });
 

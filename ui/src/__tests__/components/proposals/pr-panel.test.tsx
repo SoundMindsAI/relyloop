@@ -1,9 +1,17 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen } from '@testing-library/react';
 import { type ReactNode } from 'react';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { PrPanel } from '@/components/proposals/pr-panel';
 import type { ProposalDetail } from '@/lib/api/proposals';
+
+// PrPanel now wraps its Open PR button in an InfoTooltip (asChild) — every
+// render() call must include a TooltipProvider in scope. delayDuration={0}
+// so any hover/focus reveals are deterministic in tests.
+function render(node: React.ReactElement): ReturnType<typeof rtlRender> {
+  return rtlRender(<TooltipProvider delayDuration={0}>{node}</TooltipProvider>);
+}
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (

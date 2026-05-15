@@ -1,4 +1,5 @@
 'use client';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -45,9 +46,24 @@ export function ConfigDiffPanel({ diff }: ConfigDiffPanelProps) {
           <Table data-testid="config-diff-table">
             <TableHeader>
               <TableRow>
-                <TableHead>Key</TableHead>
-                <TableHead>From</TableHead>
-                <TableHead>To</TableHead>
+                <TableHead>
+                  <span className="inline-flex items-center gap-1">
+                    Key
+                    <InfoTooltip glossaryKey="proposal.config_diff.key" />
+                  </span>
+                </TableHead>
+                <TableHead>
+                  <span className="inline-flex items-center gap-1">
+                    From
+                    <InfoTooltip glossaryKey="proposal.config_diff.from" />
+                  </span>
+                </TableHead>
+                <TableHead>
+                  <span className="inline-flex items-center gap-1">
+                    To
+                    <InfoTooltip glossaryKey="proposal.config_diff.to" />
+                  </span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

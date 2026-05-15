@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
+import { HelpPopover } from '@/components/common/help-popover';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -141,7 +143,10 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cl-env">Environment</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="cl-env">Environment</Label>
+                <InfoTooltip glossaryKey="cluster.environment" />
+              </div>
               <Select
                 value={form.watch('environment')}
                 onValueChange={(v) => form.setValue('environment', v as Environment)}
@@ -159,7 +164,10 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cl-auth">Auth kind</Label>
+              <div className="flex items-center gap-1">
+                <Label htmlFor="cl-auth">Auth kind</Label>
+                <InfoTooltip glossaryKey="cluster.auth_kind" />
+              </div>
               <Select
                 value={form.watch('auth_kind')}
                 onValueChange={(v) => form.setValue('auth_kind', v as AuthKind)}
@@ -190,7 +198,10 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
             )}
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="cl-cred">Credentials ref (./secrets/&lt;name&gt;)</Label>
+            <div className="flex items-center gap-1">
+              <Label htmlFor="cl-cred">Credentials ref (./secrets/&lt;name&gt;)</Label>
+              <HelpPopover glossaryKey="cluster.credentials_ref" />
+            </div>
             <Input
               id="cl-cred"
               {...form.register('credentials_ref', { required: true })}
