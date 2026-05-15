@@ -61,7 +61,7 @@ test.describe('/studies', () => {
   test('contextual help — modal triggers (FR-6, 11 placements)', async ({ page }) => {
     await page.goto('/studies');
     // Open the create-study modal.
-    await page.getByTestId('create-study-button').click();
+    await page.getByTestId('open-create-study').click();
     await expect(page.getByTestId('create-study-form')).toBeVisible({ timeout: 5_000 });
 
     // Step 1: target trigger
