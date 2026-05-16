@@ -98,6 +98,26 @@ it has tests at every layer it touches.
 Every accepted endpoint needs a contract test asserting response shape +
 documented error codes (per spec §7.5 and api-conventions.md).
 
+### Frontend-specific: column-config discipline (`feat_data_table_primitive`)
+
+`<DataTable>` consumers export a co-located column config that drives the
+toolbar's enum / FK filters. The Story 2.13 lint guard at
+[`ui/src/__tests__/components/common/data-table-column-discipline.test.tsx`](../../ui/src/__tests__/components/common/data-table-column-discipline.test.tsx)
+scans every `*.column-config.{ts,tsx}` under `ui/src/components/**` and
+fails the suite when:
+
+- A `filter: { kind: 'enum', ... }` entry uses an inline `wireValues: [...]`
+  array instead of importing the identifier from `@/lib/enums`.
+- The imported identifier's declaration in `enums.ts` is missing the
+  canonical `// Values must match backend/...py <Symbol>` comment.
+- A `filter` entry (enum or fk-select) is missing its `sourceOfTruth: '...'`
+  string or its value doesn't start with `backend/`.
+
+The test is pure-Node (no DOM), runs in well under 100 ms, and is the only
+test in the project that scans the live source tree for a static invariant.
+Five regression cases pin the failure-message contract so the next contributor
+sees a useful diagnostic on a real violation.
+
 ## Benchmarks (opt-in)
 
 Performance budgets are enforced by benchmark tests under

@@ -23,17 +23,21 @@ export interface ClustersFilter {
   cursor?: string | undefined;
   limit?: number | undefined;
   since?: string | undefined;
+  q?: string | undefined;
+  sort?: string | undefined;
+  engine_type?: string | undefined;
+  environment?: string | undefined;
 }
 
 export function useClusters(
   filter: ClustersFilter = {},
 ): UseQueryResult<ClusterListPage, ApiError> {
-  const { cursor, limit, since } = filter;
+  const { cursor, limit, since, q, sort, engine_type, environment } = filter;
   return useQuery<ClusterListPage, ApiError>({
-    queryKey: ['clusters', { cursor, limit, since }],
+    queryKey: ['clusters', { cursor, limit, since, q, sort, engine_type, environment }],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<ClusterListResponse>('/api/v1/clusters', {
-        params: { cursor, limit, since },
+        params: { cursor, limit, since, q, sort, engine_type, environment },
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },

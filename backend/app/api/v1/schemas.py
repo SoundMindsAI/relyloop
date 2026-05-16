@@ -190,6 +190,89 @@ TrialSortKey = Literal[
 TrialStatusWire = Literal["complete", "failed", "pruned"]
 
 
+# ---------------------------------------------------------------------------
+# DataTable sort-key Literals (feat_data_table_primitive Story 1.3)
+#
+# Each ``<Resource>SortKey`` is the cross-product of sortable columns × {asc, desc}
+# accepted by ``GET /api/v1/<resource>?sort=<value>``. Frontend mirrors these
+# arrays in ``ui/src/lib/enums.ts`` (CI grep gate enforces parity).
+# ---------------------------------------------------------------------------
+
+# Values must match ui/src/lib/enums.ts CLUSTER_SORT_VALUES.
+ClusterSortKey = Literal[
+    "name:asc",
+    "name:desc",
+    "created_at:asc",
+    "created_at:desc",
+    "environment:asc",
+    "environment:desc",
+]
+
+# Values must match ui/src/lib/enums.ts STUDY_SORT_VALUES.
+StudySortKey = Literal[
+    "name:asc",
+    "name:desc",
+    "created_at:asc",
+    "created_at:desc",
+    "completed_at:asc",
+    "completed_at:desc",
+    "best_metric:asc",
+    "best_metric:desc",
+    "status:asc",
+    "status:desc",
+]
+
+# Values must match ui/src/lib/enums.ts QUERY_SET_SORT_VALUES.
+QuerySetSortKey = Literal[
+    "name:asc",
+    "name:desc",
+    "created_at:asc",
+    "created_at:desc",
+]
+
+# Values must match ui/src/lib/enums.ts QUERY_TEMPLATE_SORT_VALUES.
+QueryTemplateSortKey = Literal[
+    "name:asc",
+    "name:desc",
+    "created_at:asc",
+    "created_at:desc",
+    "engine_type:asc",
+    "engine_type:desc",
+    "version:asc",
+    "version:desc",
+]
+
+# Values must match ui/src/lib/enums.ts JUDGMENT_LIST_SORT_VALUES.
+JudgmentListSortKey = Literal[
+    "name:asc",
+    "name:desc",
+    "created_at:asc",
+    "created_at:desc",
+    "status:asc",
+    "status:desc",
+]
+
+# Values must match ui/src/lib/enums.ts JUDGMENT_ROW_SORT_VALUES.
+JudgmentRowSortKey = Literal[
+    "created_at:asc",
+    "created_at:desc",
+    "rating:asc",
+    "rating:desc",
+    "source:asc",
+    "source:desc",
+]
+
+# Values must match ui/src/lib/enums.ts PROPOSAL_SORT_VALUES.
+ProposalSortKey = Literal[
+    "created_at:asc",
+    "created_at:desc",
+    "status:asc",
+    "status:desc",
+    "pr_state:asc",
+    "pr_state:desc",
+]
+
+
 # --- Query template -------------------------------------------------------
 
 

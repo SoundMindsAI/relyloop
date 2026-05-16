@@ -30,10 +30,22 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
-from sqlalchemy import and_, func, or_, select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Digest, Proposal
+from backend.app.db.repo._sort import (
+    ParsedSort,
+    keyset_predicate,
+    order_by_clauses,
+    parse_sort,
+)
+
+_PROPOSAL_SORT_COLUMNS: dict[str, object] = {
+    "created_at": Proposal.created_at,
+    "status": Proposal.status,
+    "pr_state": Proposal.pr_state,
+}
 
 # Wire values for `?status=` filter on `GET /api/v1/proposals`.
 # Values must match backend/app/db/models/proposal.py CHECK proposals_status_check.
@@ -131,38 +143,45 @@ def _apply_source_filter(stmt: Any, source: ProposalSourceFilter | None) -> Any:
 async def list_proposals_paginated(
     db: AsyncSession,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[object, str] | None = None,
     limit: int = 50,
     status: ProposalStatusFilter | None = None,
     cluster_id: str | None = None,
     source: ProposalSourceFilter | None = None,
+    template_id: str | None = None,
+    sort: str | None = None,
 ) -> Sequence[Proposal]:
-    """Cursor-paginated proposal list, newest first by ``created_at``.
+    """Cursor-paginated proposal list. Sort-aware (Story 1.3).
 
-    Order: ``created_at DESC, id DESC`` — mirrors
-    :func:`backend.app.db.repo.study.list_studies` row-value comparison
-    pattern. Limit clamped at 200 per api-conventions.md.
-
-    ``source`` filter (per chore_proposals_source_filter_server_side):
-    server-side equivalent of the UI's three-state filter chip. Without
-    it, pagination is unaware of the client-side trim and the visible
-    row count drifts from ``X-Total-Count``.
+    Default ordering ``created_at DESC, id DESC``. ``?sort=`` switches to
+    ``<col>:<dir>`` with explicit NULLS handling. ``template_id``
+    filter (Story 1.5) narrows by ``proposals.template_id`` FK.
+    ``source`` filter (per chore_proposals_source_filter_server_side)
+    is the server-side equivalent of the UI's three-state chip.
     """
+    parsed_sort: ParsedSort | None = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
     stmt = select(Proposal)
     if status is not None:
         stmt = stmt.where(Proposal.status == status)
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
+    if template_id is not None:
+        stmt = stmt.where(Proposal.template_id == template_id)
     stmt = _apply_source_filter(stmt, source)
     if cursor is not None:
-        cursor_at, cursor_id = cursor
+        cursor_value, cursor_id = cursor
         stmt = stmt.where(
-            or_(
-                Proposal.created_at < cursor_at,
-                and_(Proposal.created_at == cursor_at, Proposal.id < cursor_id),
+            keyset_predicate(
+                parsed_sort,
+                cursor_value,
+                cursor_id,
+                default_col=Proposal.created_at,
+                id_col=Proposal.id,
             )
         )
-    stmt = stmt.order_by(Proposal.created_at.desc(), Proposal.id.desc()).limit(min(limit, 200))
+    stmt = stmt.order_by(
+        *order_by_clauses(parsed_sort, default_col=Proposal.created_at, id_col=Proposal.id)
+    ).limit(min(limit, 200))
     return list((await db.execute(stmt)).scalars().all())
 
 
@@ -172,13 +191,19 @@ async def count_proposals(
     status: ProposalStatusFilter | None = None,
     cluster_id: str | None = None,
     source: ProposalSourceFilter | None = None,
+    template_id: str | None = None,
 ) -> int:
-    """COUNT(*) for the ``X-Total-Count`` header on ``GET /api/v1/proposals``."""
+    """COUNT(*) for the ``X-Total-Count`` header on ``GET /api/v1/proposals``.
+
+    ``template_id`` filter (Story 1.5) narrows by FK.
+    """
     stmt = select(func.count()).select_from(Proposal)
     if status is not None:
         stmt = stmt.where(Proposal.status == status)
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
+    if template_id is not None:
+        stmt = stmt.where(Proposal.template_id == template_id)
     stmt = _apply_source_filter(stmt, source)
     return int((await db.execute(stmt)).scalar_one())
 

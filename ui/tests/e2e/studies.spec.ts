@@ -38,23 +38,29 @@ test.describe('/studies', () => {
     await expect(page.getByText(study.name).first()).toBeVisible({ timeout: 5_000 });
 
     // Detail page renders the canonical header testids + trials surface.
+    // Story 3.7 migrated trials-table to <DataTable>; the legacy
+    // `trials-empty` testid was replaced by the generic DataTable
+    // empty-state testids (`data-table-empty-no-rows-exist`).
     await page.goto(`/studies/${study.id}`);
     await expect(page.getByTestId('study-name')).toContainText(study.name);
-    await expect(page.getByTestId('trials-table').or(page.getByTestId('trials-empty'))).toBeVisible(
-      { timeout: 10_000 },
-    );
+    await expect(
+      page.getByTestId('trials-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('status filter chips drive the URL ?status= param', async ({ page }) => {
     await page.goto('/studies');
-    await expect(page.getByTestId('studies-table').or(page.getByTestId('studies-empty'))).toBeVisible();
+    await expect(
+      page.getByTestId('studies-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
+    ).toBeVisible();
 
     // Click the "completed" chip → URL should reflect ?status=completed.
-    await page.getByTestId('status-chip-completed').click();
+    // Story 2.3 testid pattern: `filter-chip-<col>-<val>`.
+    await page.getByTestId('filter-chip-status-completed').click();
     await expect(page).toHaveURL(/[?&]status=completed/);
 
     // Back to "all" → ?status= dropped.
-    await page.getByTestId('status-chip-all').click();
+    await page.getByTestId('filter-chip-status-all').click();
     await expect(page).not.toHaveURL(/[?&]status=/);
   });
 
@@ -99,11 +105,12 @@ test.describe('/studies', () => {
     await expect(page.getByTestId('tooltip-trigger-study.best_metric')).toBeVisible();
     await expect(page.getByTestId('tooltip-trigger-study.trials_summary')).toBeVisible();
 
-    // FR-8: trials-table tooltips. The Sort label always renders (above the table).
-    await expect(page.getByTestId('tooltip-trigger-trial.sort_by')).toBeVisible();
-    // Column headers only render when at least one trial row exists; the
-    // empty-state placeholder takes their place otherwise. Assert headers
-    // only on the populated path so the test doesn't race the orchestrator.
+    // FR-8: trials-table tooltips. After the Story 3.7 migration the legacy
+    // `<Select>` sort-by control with its glossary tooltip is replaced by
+    // column-header click sort, so the standalone `trial.sort_by` trigger
+    // no longer renders. Column-header tooltips below cover the populated
+    // path — they only render when at least one trial row exists since the
+    // empty-state placeholder takes their place otherwise.
     const trialsTable = page.getByTestId('trials-table');
     if (await trialsTable.isVisible().catch(() => false)) {
       await expect(page.getByTestId('tooltip-trigger-trial.status')).toBeVisible();

@@ -356,7 +356,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP2 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-05-15 (latest mtime of any
+    Reflects feature-folder state as of 2026-05-16 (latest mtime of any
     <code>docs/02_product/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -407,7 +407,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      1 idea-only feat/infra folders (not yet scoped into MVP2)
+      2 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -428,7 +428,19 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">2</span></h3>
+  <h3>Idea <span class="count">3</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_fts_rank_ordering_mvp2">Fts Rank Ordering</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">`feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery(&#x27;english&#x27;, &#x27;foo&#x27;)` is true but orders results by `created_at DESC, id DESC` (the def</div>
+
+
+</div>
+
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test_mvp2">Arq Subprocess Test</a></div>

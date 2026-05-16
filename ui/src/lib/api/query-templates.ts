@@ -22,18 +22,20 @@ export interface TemplatesFilter {
   engine_type?: string | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
+  q?: string | undefined;
+  sort?: string | undefined;
 }
 
 export function useTemplates(
   filter: TemplatesFilter = {},
 ): UseQueryResult<QueryTemplateListPage, ApiError> {
-  const { engine_type, cursor, limit } = filter;
+  const { engine_type, cursor, limit, q, sort } = filter;
   return useQuery<QueryTemplateListPage, ApiError>({
-    queryKey: ['query-templates', { engine_type, cursor, limit }],
+    queryKey: ['query-templates', { engine_type, cursor, limit, q, sort }],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<QueryTemplateListResponse>(
         '/api/v1/query-templates',
-        { params: { engine_type, cursor, limit } },
+        { params: { engine_type, cursor, limit, q, sort } },
       );
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },

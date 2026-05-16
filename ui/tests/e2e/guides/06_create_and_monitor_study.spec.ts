@@ -37,7 +37,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     });
 
     // 02: Status filter chips driving the URL.
-    await page.getByTestId('status-chip-queued').click();
+    await page.getByTestId('filter-chip-status-queued').click();
     await page.waitForTimeout(400);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '02-studies-status-filter.png'),
@@ -45,7 +45,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     });
 
     // 03: Open the Create study modal (its first step).
-    await page.getByTestId('status-chip-all').click();
+    await page.getByTestId('filter-chip-status-all').click();
     await page.waitForTimeout(200);
     await page.getByTestId('open-create-study').click();
     await expect(page.getByRole('dialog')).toBeVisible();

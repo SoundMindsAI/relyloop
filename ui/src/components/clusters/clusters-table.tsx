@@ -1,60 +1,78 @@
 'use client';
-import Link from 'next/link';
 
-import { StatusBadge } from '@/components/common/status-badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+/**
+ * `<ClustersTable>` thin DataTable consumer
+ * (feat_data_table_primitive Story 3.3).
+ *
+ * Renders the 6-column clusters list via the shared `<DataTable>` primitive
+ * with `clustersColumns`. URL state owned by `useDataTableUrlState` at
+ * `/clusters/page.tsx`. FTS `?q=` searches `name + base_url`.
+ */
+import { DataTable } from '@/components/common/data-table';
+import { clustersColumns } from '@/components/clusters/clusters-table.column-config';
+import { Button } from '@/components/ui/button';
+import type { DataTableUrlStateApi } from '@/hooks/use-data-table-url-state';
 import type { ClusterSummary } from '@/lib/api/clusters';
 
 export interface ClustersTableProps {
   rows: readonly ClusterSummary[];
+  totalCount?: number;
+  has_more: boolean;
+  next_cursor: string | null;
+  isLoading: boolean;
+  isError: boolean;
+  urlState: DataTableUrlStateApi;
+  onRegisterCluster?: () => void;
 }
 
-export function ClustersTable({ rows }: ClustersTableProps) {
-  if (rows.length === 0) {
-    return (
-      <p className="py-12 text-center text-sm text-muted-foreground" data-testid="clusters-empty">
-        No clusters registered. Click &ldquo;Register cluster&rdquo; to add one.
-      </p>
-    );
-  }
+export function ClustersTable({
+  rows,
+  totalCount,
+  has_more,
+  next_cursor,
+  isLoading,
+  isError,
+  urlState,
+  onRegisterCluster,
+}: ClustersTableProps) {
   return (
-    <Table data-testid="clusters-table">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Engine</TableHead>
-          <TableHead>Environment</TableHead>
-          <TableHead>Health</TableHead>
-          <TableHead>Base URL</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((c) => (
-          <TableRow key={c.id} data-testid={`cluster-row-${c.id}`}>
-            <TableCell>
-              <Link
-                href={`/clusters/${c.id}`}
-                className="text-blue-600 underline-offset-4 hover:underline"
-              >
-                {c.name}
-              </Link>
-            </TableCell>
-            <TableCell>{c.engine_type}</TableCell>
-            <TableCell>{c.environment}</TableCell>
-            <TableCell>
-              <StatusBadge kind="health" value={c.health_check.status} />
-            </TableCell>
-            <TableCell className="font-mono text-xs">{c.base_url}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable<ClusterSummary>
+      tableId="clusters"
+      tableTestId="clusters-table"
+      rowTestId={(r) => `cluster-row-${r.id}`}
+      columns={clustersColumns}
+      data={rows}
+      isLoading={isLoading}
+      isError={isError}
+      totalCount={totalCount}
+      has_more={has_more}
+      next_cursor={next_cursor}
+      searchable
+      sort={urlState.sort}
+      onSortChange={urlState.setSort}
+      filters={urlState.filters}
+      onFilterChange={urlState.setFilter}
+      q={urlState.q}
+      onQChange={urlState.setQ}
+      cursor={urlState.cursor}
+      pageSize={urlState.pageSize}
+      onCursorChange={urlState.setCursor}
+      onPageSizeChange={urlState.setPageSize}
+      onClearMatchers={urlState.clearAllMatchers}
+      anyMatcherActive={urlState.anyMatcherActive}
+      emptyStateNoRows={{
+        title: 'No clusters registered',
+        message: 'Register a cluster to start tuning.',
+        primaryCta: onRegisterCluster ? (
+          <Button onClick={onRegisterCluster} data-testid="empty-register-cluster">
+            Register cluster
+          </Button>
+        ) : undefined,
+      }}
+      emptyStateNoMatch={{
+        title: 'No clusters match',
+        message: 'No clusters match the current filters.',
+      }}
+    />
   );
 }

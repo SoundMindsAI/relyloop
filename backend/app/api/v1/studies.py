@@ -46,6 +46,7 @@ from backend.app.api.v1.schemas import (
     CreateStudyRequest,
     StudyDetail,
     StudyListResponse,
+    StudySortKey,
     StudyStatusWire,
     StudySummary,
     TrialDetail,
@@ -266,14 +267,38 @@ async def list_studies(
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
     study_status: Annotated[StudyStatusWire | None, Query(alias="status")] = None,
+    q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
+    sort: Annotated[StudySortKey | None, Query()] = None,
 ) -> StudyListResponse:
     """List studies with cursor pagination + X-Total-Count.
 
     ``?status=`` is typed as :data:`StudyStatusWire` so FastAPI returns
-    422 ``VALIDATION_ERROR`` for unsupported values rather than silently
-    returning an empty list (C3-F2 GPT-5.5 cycle-3 fix).
+    422 ``VALIDATION_ERROR`` for unsupported values. ``?q=`` is a Postgres
+    FTS match against ``search_vector`` (name + target). ``?sort=`` is a
+    :data:`StudySortKey` value (``<col>:<asc|desc>``); the cursor is
+    sort-aware (feat_data_table_primitive Stories 1.2 + 1.3).
     """
-    parsed_cursor = _decode_cursor(cursor) if cursor else None
+    from backend.app.db.repo._sort import (
+        cursor_value_is_datetime,
+        parse_sort,
+    )
+    from backend.app.db.repo._sort import (
+        decode_cursor as _sort_decode_cursor,
+    )
+    from backend.app.db.repo._sort import (
+        encode_cursor as _sort_encode_cursor,
+    )
+    from backend.app.db.repo.study import _STUDY_SORT_COLUMNS
+
+    parsed_sort = parse_sort(sort, _STUDY_SORT_COLUMNS)
+    parsed_cursor: tuple[object, str] | None = None
+    if cursor:
+        try:
+            parsed_cursor = _sort_decode_cursor(
+                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+            )
+        except Exception as exc:
+            raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
     status_filter: Any = study_status if study_status else None
     rows = await repo.list_studies(
         db,
@@ -281,15 +306,21 @@ async def list_studies(
         limit=limit,
         since=since,
         status=status_filter,
+        q=q,
+        sort=sort,
     )
-    total = await repo.count_studies(db, since=since, status=status_filter)
+    total = await repo.count_studies(db, since=since, status=status_filter, q=q)
     response.headers["X-Total-Count"] = str(total)
 
     next_cursor: str | None = None
     has_more = False
     if rows and len(rows) == limit:
         last = rows[-1]
-        next_cursor = _encode_cursor(last.created_at, last.id)
+        if parsed_sort is None:
+            cursor_value: object = last.created_at
+        else:
+            cursor_value = getattr(last, parsed_sort.col_name)
+        next_cursor = _sort_encode_cursor(cursor_value, last.id)
         has_more = True
     return StudyListResponse(
         data=[_summary(r) for r in rows],

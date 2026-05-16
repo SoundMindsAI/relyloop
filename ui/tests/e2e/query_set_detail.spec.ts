@@ -22,7 +22,7 @@ test.describe('/query-sets/[id] per-query CRUD', () => {
 
     await page.goto(`/query-sets/${querySetId}`);
     await expect(page.getByTestId('queries-table')).toBeVisible();
-    await expect(page.getByTestId('queries-total')).toContainText('3 queries total');
+    await expect(page.getByTestId('data-table-total-count')).toContainText('3');
     await expect(page.getByText('e2e query 0')).toBeVisible();
     await expect(page.getByText('e2e query 1')).toBeVisible();
     await expect(page.getByText('e2e query 2')).toBeVisible();
@@ -63,14 +63,14 @@ test.describe('/query-sets/[id] per-query CRUD', () => {
     const q1 = queryIds[1];
 
     await page.goto(`/query-sets/${querySetId}`);
-    await expect(page.getByTestId('queries-total')).toContainText('3 queries total');
+    await expect(page.getByTestId('data-table-total-count')).toContainText('3');
 
     await page.getByTestId(`delete-${q1}`).click();
     await expect(page.getByTestId('confirm-delete-query')).toBeVisible();
     await page.getByTestId('confirm-delete-query').click();
 
     await expect(page.getByText('e2e query 1')).toHaveCount(0);
-    await expect(page.getByTestId('queries-total')).toContainText('2 queries total');
+    await expect(page.getByTestId('data-table-total-count')).toContainText('2');
   });
 
   test('delete (with judgments): 409 toast with action link, row stays', async ({ page }) => {

@@ -1,8 +1,8 @@
-import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Suspense, type ReactNode } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { Suspense, type ReactNode, useEffect, useReducer } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 
@@ -10,11 +10,44 @@ import { server } from '../../../setup';
 
 const API_BASE = 'http://api.test';
 
+let mockedSearch = '';
+const searchParamsSubscribers = new Set<() => void>();
+
+function applyUrl(url: string) {
+  if (url.startsWith('?')) mockedSearch = url.slice(1);
+  else if (url.includes('?')) mockedSearch = url.split('?')[1] ?? '';
+  else mockedSearch = '';
+  searchParamsSubscribers.forEach((fn) => fn());
+}
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
+  useRouter: () => ({
+    replace: (url: string) => applyUrl(url),
+    push: (url: string) => applyUrl(url),
+  }),
+  useSearchParams: () => {
+    const [, force] = useReducer((x: number) => x + 1, 0);
+    useEffect(() => {
+      searchParamsSubscribers.add(force);
+      return () => {
+        searchParamsSubscribers.delete(force);
+      };
+    }, []);
+    return new URLSearchParams(mockedSearch);
+  },
+}));
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
 }));
+
+beforeEach(() => {
+  mockedSearch = '';
+  searchParamsSubscribers.clear();
+});
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -85,7 +118,7 @@ describe('Judgment list page', () => {
     expect(screen.getByTestId('judgment-row-j-llm-1')).toBeInTheDocument();
   });
 
-  it('clicking a source chip refetches with ?source=human', async () => {
+  it('clicking a source filter chip refetches with ?source=human', async () => {
     const capturedUrls: string[] = [];
     server.use(
       http.get(`${API_BASE}/api/v1/judgment-lists/list-1`, () => HttpResponse.json(makeList())),
@@ -105,9 +138,8 @@ describe('Judgment list page', () => {
     );
     await renderPage();
     await waitFor(() => expect(screen.getByTestId('judgment-row-j-llm-1')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('source-chip-human'));
+    fireEvent.click(screen.getByTestId('filter-chip-source-human'));
     await waitFor(() => expect(screen.getByTestId('judgment-row-j-human-1')).toBeInTheDocument());
-    // Verify the latest request included ?source=human
     const last = capturedUrls[capturedUrls.length - 1] ?? '';
     expect(new URL(last).searchParams.get('source')).toBe('human');
   });

@@ -1,107 +1,71 @@
 'use client';
-import { InfoTooltip } from '@/components/common/info-tooltip';
-import { StatusBadge } from '@/components/common/status-badge';
-import { OverridePopover } from '@/components/judgments/override-popover';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import type { JudgmentRow } from '@/lib/api/judgments';
-import { JUDGMENT_SOURCE_FILTER_VALUES } from '@/lib/enums';
 
-const SOURCE_CHOICES = ['all', ...JUDGMENT_SOURCE_FILTER_VALUES] as const;
-type SourceChoice = (typeof SOURCE_CHOICES)[number];
+/**
+ * `<JudgmentsTable>` thin DataTable consumer
+ * (feat_data_table_primitive Story 3.6).
+ *
+ * Per-list judgments view: searchable=false (no FTS on per-list endpoint).
+ * Filter on source (URL-backed via ?source=), sort on rating + source.
+ * The OverridePopover lives in the cell renderer of the Actions column
+ * (see useJudgmentsColumns).
+ */
+import { DataTable } from '@/components/common/data-table';
+import { useJudgmentsColumns } from '@/components/judgments/judgments-table.column-config';
+import type { DataTableUrlStateApi } from '@/hooks/use-data-table-url-state';
+import type { JudgmentRow } from '@/lib/api/judgments';
 
 export interface JudgmentsTableProps {
   rows: readonly JudgmentRow[];
   listId: string;
-  sourceFilter: SourceChoice;
-  onSourceFilterChange: (next: SourceChoice) => void;
+  totalCount?: number;
+  has_more: boolean;
+  next_cursor: string | null;
+  isLoading: boolean;
+  isError: boolean;
+  urlState: DataTableUrlStateApi;
 }
 
 export function JudgmentsTable({
   rows,
   listId,
-  sourceFilter,
-  onSourceFilterChange,
+  totalCount,
+  has_more,
+  next_cursor,
+  isLoading,
+  isError,
+  urlState,
 }: JudgmentsTableProps) {
+  const columns = useJudgmentsColumns(listId);
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2" role="group" aria-label="Source filter">
-        <InfoTooltip glossaryKey="judgment.source_filter" />
-        {SOURCE_CHOICES.map((choice) => (
-          <Button
-            key={choice}
-            type="button"
-            variant={choice === sourceFilter ? 'default' : 'outline'}
-            size="sm"
-            data-testid={`source-chip-${choice}`}
-            data-active={choice === sourceFilter ? 'true' : 'false'}
-            onClick={() => onSourceFilterChange(choice)}
-          >
-            {choice}
-          </Button>
-        ))}
-      </div>
-      {rows.length === 0 ? (
-        <p
-          className="py-12 text-center text-sm text-muted-foreground"
-          data-testid="judgments-empty"
-        >
-          No judgments match the current filters.
-        </p>
-      ) : (
-        <Table data-testid="judgments-table">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Query</TableHead>
-              <TableHead>Doc</TableHead>
-              <TableHead>
-                <span className="inline-flex items-center gap-1">
-                  Rating
-                  <InfoTooltip glossaryKey="judgment.relevance" />
-                </span>
-              </TableHead>
-              <TableHead>
-                <span className="inline-flex items-center gap-1">
-                  Source
-                  <InfoTooltip glossaryKey="judgment.source" />
-                </span>
-              </TableHead>
-              <TableHead>Notes</TableHead>
-              <TableHead className="w-24" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((j) => (
-              <TableRow key={j.id} data-testid={`judgment-row-${j.id}`}>
-                <TableCell className="font-mono text-xs">{j.query_id}</TableCell>
-                <TableCell className="font-mono text-xs">{j.doc_id}</TableCell>
-                <TableCell data-testid={`judgment-rating-${j.id}`}>{j.rating}</TableCell>
-                <TableCell>
-                  <span data-testid={`judgment-source-${j.id}`}>
-                    <StatusBadge kind="judgment_list" value={j.source} />
-                  </span>
-                </TableCell>
-                <TableCell data-testid={`judgment-notes-${j.id}`}>
-                  {j.notes ?? <span className="text-muted-foreground">—</span>}
-                </TableCell>
-                <TableCell>
-                  <OverridePopover listId={listId} judgment={j} />
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </div>
+    <DataTable<JudgmentRow>
+      tableId={`judgments-${listId}`}
+      tableTestId="judgments-table"
+      rowTestId={(r) => `judgment-row-${r.id}`}
+      columns={columns}
+      data={rows}
+      isLoading={isLoading}
+      isError={isError}
+      totalCount={totalCount}
+      has_more={has_more}
+      next_cursor={next_cursor}
+      sort={urlState.sort}
+      onSortChange={urlState.setSort}
+      filters={urlState.filters}
+      onFilterChange={urlState.setFilter}
+      cursor={urlState.cursor}
+      pageSize={urlState.pageSize}
+      onCursorChange={urlState.setCursor}
+      onPageSizeChange={urlState.setPageSize}
+      onClearMatchers={urlState.clearAllMatchers}
+      anyMatcherActive={urlState.anyMatcherActive}
+      emptyStateNoRows={{
+        title: 'No judgments yet',
+        message: 'Generate judgments via the calibration modal.',
+      }}
+      emptyStateNoMatch={{
+        title: 'No judgments match',
+        message: 'No judgments match the current filters.',
+      }}
+    />
   );
 }
-
-export type { SourceChoice };
-export { SOURCE_CHOICES };

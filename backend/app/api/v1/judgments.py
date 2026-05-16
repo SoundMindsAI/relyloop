@@ -45,9 +45,11 @@ from backend.app.api.v1.schemas import (
     JudgmentListDetail,
     JudgmentListJudgmentsResponse,
     JudgmentListListResponse,
+    JudgmentListSortKey,
     JudgmentListStatusWire,
     JudgmentListSummary,
     JudgmentRow,
+    JudgmentRowSortKey,
     JudgmentSourceFilterWire,
     OverrideJudgmentRequest,
     _SourceBreakdown,
@@ -56,6 +58,17 @@ from backend.app.core.logging import get_logger
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.models import Judgment, JudgmentList
+from backend.app.db.repo._sort import (
+    cursor_value_is_datetime,
+    parse_sort,
+)
+from backend.app.db.repo._sort import (
+    decode_cursor as _sort_decode_cursor,
+)
+from backend.app.db.repo._sort import (
+    encode_cursor as _sort_encode_cursor,
+)
+from backend.app.db.repo.judgment_list import _JUDGMENT_LIST_SORT_COLUMNS
 from backend.app.db.session import get_db
 from backend.app.eval.calibration import compute_calibration
 from backend.app.services.agent_judgments_dispatch import (
@@ -328,16 +341,41 @@ async def list_judgment_lists_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    since: Annotated[datetime | None, Query()] = None,
+    q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
+    sort: Annotated[JudgmentListSortKey | None, Query()] = None,
 ) -> JudgmentListListResponse:
-    """List judgment lists, newest-first with cursor pagination."""
-    decoded_cursor = _decode_cursor(cursor) if cursor else None
-    rows = await repo.list_judgment_lists(db, cursor=decoded_cursor, limit=limit + 1)
+    """List judgment lists, newest-first with cursor pagination.
+
+    ``?since=`` filters by ``created_at >= since`` (Story 1.5). ``?q=`` FTS
+    match against ``search_vector`` (name + target). ``?sort=`` is a
+    :data:`JudgmentListSortKey` value with sort-aware cursor (Story 1.3).
+    """
+    parsed_sort = parse_sort(sort, _JUDGMENT_LIST_SORT_COLUMNS)
+    decoded_cursor: tuple[object, str] | None = None
+    if cursor:
+        try:
+            decoded_cursor = _sort_decode_cursor(
+                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+            )
+        except Exception as exc:
+            raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
+    rows = await repo.list_judgment_lists(
+        db, cursor=decoded_cursor, limit=limit + 1, since=since, q=q, sort=sort
+    )
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
-    total = await repo.count_judgment_lists(db)
+    total = await repo.count_judgment_lists(db, since=since, q=q)
     response.headers["X-Total-Count"] = str(total)
-    next_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id) if has_more and rows else None
+    next_cursor: str | None = None
+    if has_more and rows:
+        last = rows[-1]
+        if parsed_sort is None:
+            cursor_value: object = last.created_at
+        else:
+            cursor_value = getattr(last, parsed_sort.col_name)
+        next_cursor = _sort_encode_cursor(cursor_value, last.id)
     return JudgmentListListResponse(
         data=[_summary(r) for r in rows],
         next_cursor=next_cursor,
@@ -387,7 +425,15 @@ async def list_judgments_endpoint(
     source: Annotated[JudgmentSourceFilterWire | None, Query()] = None,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    sort: Annotated[JudgmentRowSortKey | None, Query()] = None,
 ) -> JudgmentListJudgmentsResponse:
+    """List per-list judgments with cursor pagination.
+
+    ``?sort=`` is :data:`JudgmentRowSortKey` with sort-aware cursor
+    (feat_data_table_primitive Story 1.3).
+    """
+    from backend.app.db.repo.judgment import _JUDGMENT_ROW_SORT_COLUMNS
+
     row = await repo.get_judgment_list(db, judgment_list_id)
     if row is None:
         raise _err(
@@ -396,20 +442,36 @@ async def list_judgments_endpoint(
             f"judgment list {judgment_list_id} not found",
             False,
         )
-    decoded_cursor = _decode_cursor(cursor) if cursor else None
+    parsed_sort = parse_sort(sort, _JUDGMENT_ROW_SORT_COLUMNS)
+    decoded_cursor: tuple[object, str] | None = None
+    if cursor:
+        try:
+            decoded_cursor = _sort_decode_cursor(
+                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+            )
+        except Exception as exc:
+            raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
     rows = await repo.list_judgments_paginated(
         db,
         judgment_list_id,
         cursor=decoded_cursor,
         limit=limit + 1,
         source=source,
+        sort=sort,
     )
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
     total = await repo.count_judgments_for_list(db, judgment_list_id, source=source)
     response.headers["X-Total-Count"] = str(total)
-    next_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id) if has_more and rows else None
+    next_cursor: str | None = None
+    if has_more and rows:
+        last = rows[-1]
+        if parsed_sort is None:
+            cursor_value: object = last.created_at
+        else:
+            cursor_value = getattr(last, parsed_sort.col_name)
+        next_cursor = _sort_encode_cursor(cursor_value, last.id)
     return JudgmentListJudgmentsResponse(
         data=[_judgment_row(r) for r in rows],
         next_cursor=next_cursor,

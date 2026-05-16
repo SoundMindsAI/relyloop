@@ -14,6 +14,7 @@ let mockedSearch = '';
 let lastReplace = '';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useSearchParams: () => new URLSearchParams(mockedSearch),
   useRouter: () => ({
     replace: (url: string) => {

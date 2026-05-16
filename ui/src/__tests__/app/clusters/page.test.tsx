@@ -1,18 +1,30 @@
-import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { type ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { server } from '../../setup';
 
 const API_BASE = 'http://api.test';
+
+let mockedSearch = '';
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(mockedSearch),
+}));
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
   ),
 }));
+
+beforeEach(() => {
+  mockedSearch = '';
+});
 
 async function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

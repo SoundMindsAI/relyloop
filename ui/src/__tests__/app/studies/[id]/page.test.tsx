@@ -1,14 +1,22 @@
-import { http, HttpResponse } from 'msw';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { type ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 import { server } from '../../../setup';
 
 const API_BASE = 'http://api.test';
+
+let mockedSearch = '';
+
+vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
+  useSearchParams: () => new URLSearchParams(mockedSearch),
+}));
 
 vi.mock('next/link', () => ({
   default: ({ children, href, ...rest }: { children: ReactNode; href: string }) => (
@@ -17,6 +25,10 @@ vi.mock('next/link', () => ({
     </a>
   ),
 }));
+
+beforeEach(() => {
+  mockedSearch = '';
+});
 
 vi.mock('recharts', async () => {
   const actual: typeof import('recharts') = await vi.importActual('recharts');
