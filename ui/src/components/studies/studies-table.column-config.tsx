@@ -36,6 +36,9 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
     header: 'Cluster',
     accessorKey: 'cluster_id',
     sticky: true,
+    // Plan Story 3.1: cluster_id is not hideable. sticky force-shows in
+    // render; hideable: false also hides it from the col-vis menu.
+    hideable: false,
     cell: ({ row }) => <span className="font-mono text-xs">{row.original.cluster_id}</span>,
   },
   {

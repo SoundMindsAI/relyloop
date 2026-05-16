@@ -23,7 +23,11 @@ const POLL_MS = 3000;
 const DEFAULT_TRIAL_SORT: TrialSort = 'primary_metric_desc';
 
 export function StudyDetailView({ studyId }: { studyId: string }) {
-  const urlState = useDataTableUrlState('trials', trialsColumns, { defaultPageSize: 50 });
+  // Scope the URL hook by studyId so col-vis + density preferences don't
+  // bleed across different study detail pages.
+  const urlState = useDataTableUrlState(`trials-${studyId}`, trialsColumns, {
+    defaultPageSize: 50,
+  });
 
   // Narrow the URL sort value to the canonical TrialSortKey allowlist —
   // invalid values fall back to the default. The DataTable feeds the wire
@@ -86,6 +90,7 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
                 isLoading={trialsQ.isPending}
                 isError={trialsQ.isError}
                 urlState={urlState}
+                tableId={`trials-${studyId}`}
               />
             </CardContent>
           </Card>

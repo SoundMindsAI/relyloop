@@ -1,9 +1,11 @@
 /**
  * Column configuration for `<ClustersTable>` (feat_data_table_primitive Story 3.3).
  *
- * 5 columns: Name (link, sortable + sticky), Engine (filter enum), Environment
- * (sortable, filter enum), Health (synthetic — not sortable / not filterable),
- * Base URL (not sortable).
+ * 6 columns (5 visible by default, Created hideable): Name (link,
+ * sortable+sticky), Engine (filter enum), Environment (sortable, filter
+ * enum), Health (synthetic — not sortable / not filterable), Base URL,
+ * Created (sortable, hideable so the original 5-column layout is the
+ * default but the user can opt in to a created-at sort+view).
  *
  * Filters wire to the new backend `?engine_type=` and `?environment=` params
  * (Story 1.4) and `?q=` FTS on `name + base_url` (Story 1.2).

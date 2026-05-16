@@ -40,6 +40,7 @@ function ClustersPageInner() {
             isLoading={query.isPending}
             isError={query.isError}
             urlState={urlState}
+            onRegisterCluster={() => setRegisterOpen(true)}
           />
         </CardContent>
       </Card>

@@ -10,6 +10,7 @@
  */
 import { DataTable } from '@/components/common/data-table';
 import { clustersColumns } from '@/components/clusters/clusters-table.column-config';
+import { Button } from '@/components/ui/button';
 import type { DataTableUrlStateApi } from '@/hooks/use-data-table-url-state';
 import type { ClusterSummary } from '@/lib/api/clusters';
 
@@ -61,7 +62,12 @@ export function ClustersTable({
       anyMatcherActive={urlState.anyMatcherActive}
       emptyStateNoRows={{
         title: 'No clusters registered',
-        message: 'Click "Register cluster" to add one.',
+        message: 'Register a cluster to start tuning.',
+        primaryCta: onRegisterCluster ? (
+          <Button onClick={onRegisterCluster} data-testid="empty-register-cluster">
+            Register cluster
+          </Button>
+        ) : undefined,
       }}
       emptyStateNoMatch={{
         title: 'No clusters match',

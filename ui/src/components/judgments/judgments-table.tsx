@@ -38,7 +38,7 @@ export function JudgmentsTable({
   const columns = useJudgmentsColumns(listId);
   return (
     <DataTable<JudgmentRow>
-      tableId="judgments"
+      tableId={`judgments-${listId}`}
       tableTestId="judgments-table"
       rowTestId={(r) => `judgment-row-${r.id}`}
       columns={columns}

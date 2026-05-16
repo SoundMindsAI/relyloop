@@ -25,6 +25,9 @@ export interface TrialsTableProps {
   isLoading: boolean;
   isError: boolean;
   urlState: DataTableUrlStateApi;
+  /** Scoped tableId — typically `trials-${studyId}` so col-vis / density
+   *  preferences don't bleed across study detail pages. */
+  tableId: string;
 }
 
 export function TrialsTable({
@@ -35,10 +38,11 @@ export function TrialsTable({
   isLoading,
   isError,
   urlState,
+  tableId,
 }: TrialsTableProps) {
   return (
     <DataTable<TrialDetail>
-      tableId="trials"
+      tableId={tableId}
       tableTestId="trials-table"
       rowTestId={(r) => `trial-row-${r.id}`}
       columns={trialsColumns}

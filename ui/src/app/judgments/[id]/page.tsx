@@ -22,7 +22,9 @@ export function JudgmentListView({ listId }: { listId: string }) {
   // to figure out which params are filter keys. Pulling the columns once
   // here gives the hook the right scope without re-computing them.
   const columns = useJudgmentsColumns(listId);
-  const urlState = useDataTableUrlState('judgments', columns, { defaultPageSize: 50 });
+  // Scope the URL hook by listId so col-vis + density preferences don't
+  // bleed across different judgment lists' detail pages.
+  const urlState = useDataTableUrlState(`judgments-${listId}`, columns, { defaultPageSize: 50 });
   const [calibrationOpen, setCalibrationOpen] = useState(false);
 
   // Narrow the URL source value to the backend's accepted set.
