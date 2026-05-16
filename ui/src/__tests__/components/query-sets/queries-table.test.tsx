@@ -1,27 +1,56 @@
 /**
- * Component tests for QueriesTable (feat_query_inline_crud Story 4.1).
+ * Component tests for QueriesTable (Story 3.8 DataTable migration).
  *
- * Covers AC-18 (render + paginate). Overlay-opening (Edit / Metadata / Delete)
- * has its own dedicated test file per story; this file asserts the table renders
- * the trio of icon-buttons with correct aria-labels.
+ * Asserts rendering, the trio of action icon-buttons, empty state, and
+ * Next/Prev pagination behaviour against the new useDataTableUrlState
+ * contract.
  */
-import { http, HttpResponse } from 'msw';
-import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { type ReactNode } from 'react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
+import { type ReactNode, useEffect, useReducer } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { server } from '../../setup';
 import { QueriesTable } from '@/components/query-sets/queries-table';
 
-// next/navigation isn't bound to a Next runtime in vitest — mock useRouter
-// because <DeleteQueryDialog> (rendered inside each row) calls it at mount.
-vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: () => {} }),
-}));
+import { server } from '../../setup';
 
 const API_BASE = 'http://api.test';
 const QS_ID = 'qs-1';
+
+let mockedSearch = '';
+const searchParamsSubscribers = new Set<() => void>();
+
+function applyUrl(url: string) {
+  if (url.startsWith('?')) mockedSearch = url.slice(1);
+  else if (url.includes('?')) mockedSearch = url.split('?')[1] ?? '';
+  else mockedSearch = '';
+  searchParamsSubscribers.forEach((fn) => fn());
+}
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: (url: string) => applyUrl(url),
+    replace: (url: string) => applyUrl(url),
+  }),
+  useSearchParams: () => {
+    const [, force] = useReducer((x: number) => x + 1, 0);
+    useEffect(() => {
+      searchParamsSubscribers.add(force);
+      return () => {
+        searchParamsSubscribers.delete(force);
+      };
+    }, []);
+    return new URLSearchParams(mockedSearch);
+  },
+}));
+
+beforeEach(() => {
+  mockedSearch = '';
+  searchParamsSubscribers.clear();
+});
+
+afterEach(() => vi.restoreAllMocks());
 
 function wrap(node: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -38,7 +67,7 @@ function rowFixture(idx: number) {
   };
 }
 
-describe('QueriesTable', () => {
+describe('QueriesTable (DataTable migration)', () => {
   it('renders rows with judgment_count and total count', async () => {
     server.use(
       http.get(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries`, () =>
@@ -59,9 +88,10 @@ describe('QueriesTable', () => {
     expect(screen.getByText('query-0')).toBeInTheDocument();
     expect(screen.getByText('query-1')).toBeInTheDocument();
     expect(screen.getByText('ref-1')).toBeInTheDocument();
-    // Reference-answer null shows the em-dash sentinel.
     const dashCells = screen.getAllByText('—');
     expect(dashCells.length).toBeGreaterThan(0);
+    // Total-count display now lives in the DataTable toolbar (Story 2.5).
+    expect(screen.getByTestId('data-table-total-count')).toHaveTextContent('3');
   });
 
   it('renders Edit / Metadata / Delete icon buttons with correct aria-labels', async () => {
@@ -80,7 +110,7 @@ describe('QueriesTable', () => {
     expect(screen.getByLabelText('Delete query')).toBeInTheDocument();
   });
 
-  it('shows EmptyState when no queries', async () => {
+  it('shows the no-rows-exist empty state when no queries', async () => {
     server.use(
       http.get(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries`, () =>
         HttpResponse.json(
@@ -90,50 +120,10 @@ describe('QueriesTable', () => {
       ),
     );
     wrap(<QueriesTable querySetId={QS_ID} />);
-    await waitFor(() => expect(screen.getByText(/No queries yet/i)).toBeInTheDocument());
-  });
-
-  it('renders total-count indicator above the table', async () => {
-    server.use(
-      http.get(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries`, () =>
-        HttpResponse.json(
-          { data: [rowFixture(0)], next_cursor: null, has_more: false },
-          { headers: { 'X-Total-Count': '248' } },
-        ),
-      ),
+    await waitFor(() =>
+      expect(screen.getByTestId('data-table-empty-no-rows-exist')).toBeInTheDocument(),
     );
-    wrap(<QueriesTable querySetId={QS_ID} />);
-    await waitFor(() => expect(screen.getByTestId('queries-total')).toBeInTheDocument());
-    expect(screen.getByTestId('queries-total').textContent).toContain('248 queries total');
-  });
-
-  it('changes page size and resets the cursor stack', async () => {
-    const limits: string[] = [];
-    const cursors: (string | null)[] = [];
-    server.use(
-      http.get(`${API_BASE}/api/v1/query-sets/${QS_ID}/queries`, ({ request }) => {
-        const url = new URL(request.url);
-        limits.push(url.searchParams.get('limit') ?? '');
-        cursors.push(url.searchParams.get('cursor'));
-        return HttpResponse.json(
-          { data: [rowFixture(0)], next_cursor: 'next', has_more: true },
-          { headers: { 'X-Total-Count': '10' } },
-        );
-      }),
-    );
-    wrap(<QueriesTable querySetId={QS_ID} />);
-    await waitFor(() => expect(screen.getByTestId('queries-table')).toBeInTheDocument());
-    // Advance to page 2 first so the cursor stack is non-trivial.
-    fireEvent.click(screen.getByTestId('paginator-next'));
-    await waitFor(() => expect(cursors.some((c) => c === 'next')).toBe(true));
-    // Change page size — must reset cursor stack so the next GET has no cursor.
-    fireEvent.change(screen.getByTestId('page-size-select'), { target: { value: '25' } });
-    await waitFor(() => expect(limits.includes('25')).toBe(true));
-    // The GET after the page-size change must have NO cursor (reset to page 1).
-    const callsWithLimit25 = limits
-      .map((l, i) => ({ l, c: cursors[i] }))
-      .filter((x) => x.l === '25');
-    expect(callsWithLimit25.some((x) => x.c === null)).toBe(true);
+    expect(screen.getByText(/No queries yet/i)).toBeInTheDocument();
   });
 
   it('paginates Next then Prev correctly', async () => {

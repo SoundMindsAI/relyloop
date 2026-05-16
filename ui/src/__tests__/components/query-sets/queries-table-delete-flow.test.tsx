@@ -24,7 +24,8 @@ import { server } from '../../setup';
 import { QueriesTable } from '@/components/query-sets/queries-table';
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: () => {} }),
+  useRouter: () => ({ push: () => {}, replace: () => {} }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 const API_BASE = 'http://api.test';
@@ -73,7 +74,7 @@ describe('QueriesTable delete-flow integration', () => {
 
     wrap(<QueriesTable querySetId={QS_ID} />);
     await waitFor(() => expect(screen.getByText('query-0')).toBeInTheDocument());
-    expect(screen.getByTestId('queries-total').textContent).toContain('3 queries total');
+    expect(screen.getByTestId('data-table-total-count')).toHaveTextContent('3');
 
     // Click the row's Delete icon-button → AlertDialog opens.
     fireEvent.click(screen.getByTestId(`delete-${row(0).id}`));
@@ -85,7 +86,7 @@ describe('QueriesTable delete-flow integration', () => {
     expect(screen.getByText('query-1')).toBeInTheDocument();
     expect(screen.getByText('query-2')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByTestId('queries-total').textContent).toContain('2 queries total'),
+      expect(screen.getByTestId('data-table-total-count')).toHaveTextContent('2'),
     );
   });
 
