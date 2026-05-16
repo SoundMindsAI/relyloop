@@ -19,6 +19,7 @@
  */
 
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
+import { useEffect, useState } from 'react';
 
 import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { InfoTooltip } from '@/components/common/info-tooltip';
@@ -31,6 +32,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+import { DataTableBulkActions } from './data-table-bulk-actions';
 import { DataTableEmpty } from './data-table-empty';
 import { DataTableFilterChips } from './data-table-filter-chips';
 import { DataTableFkSelect } from './data-table-fk-select';
@@ -67,7 +69,53 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     anyMatcherActive = false,
     has_more,
     next_cursor,
+    selectable = false,
+    bulkActions,
+    onSelectionChange,
   } = props;
+
+  // Story 2.9 — selection state (React-only, never URL-encoded per spec FR-13).
+  // Cleared on cursor / filter / sort / q change via the effect below.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Build a stable key from the URL-state pieces — selection clears whenever
+  // any of these change so a moved cursor or filter flip doesn't leave a
+  // stale per-row selection visible across pages.
+  const urlStateKey = JSON.stringify({ cursor, sort, q, filters });
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [urlStateKey]);
+  useEffect(() => {
+    onSelectionChange?.(Array.from(selectedIds));
+  }, [selectedIds, onSelectionChange]);
+
+  const toggleRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const toggleAllOnPage = () => {
+    setSelectedIds((prev) => {
+      const allOnPage = data.every((r) => prev.has(r.id));
+      if (allOnPage) {
+        // Currently all selected on page → unselect all on page.
+        const next = new Set(prev);
+        data.forEach((r) => next.delete(r.id));
+        return next;
+      }
+      // Some/none selected on page → select all on page.
+      const next = new Set(prev);
+      data.forEach((r) => next.add(r.id));
+      return next;
+    });
+  };
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const allOnPageSelected = data.length > 0 && data.every((r) => selectedIds.has(r.id));
+  const someOnPageSelected =
+    data.length > 0 && data.some((r) => selectedIds.has(r.id)) && !allOnPageSelected;
 
   // Build the filter slot for the toolbar (Story 2.3 / FR-5).
   // Each filterable column gets a chip row (enum) or `<select>` (fk-select).
@@ -198,63 +246,100 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
           onReturnToFirstPage={onCursorChange ? () => onCursorChange(null) : undefined}
         />
       ) : (
-        <Table data-testid={tableTestId}>
-          {/* Story 2.8 — sticky header (FR-11). Tailwind `position: sticky` +
-              `top: 0` + `bg-background` so rows don't bleed through on scroll
-              inside a constrained parent (consumer wraps in a max-h Card). */}
-          <TableHeader className="sticky top-0 bg-background z-10">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  const colDef = header.column.columnDef as DataTableColumnDef<T>;
-                  const rawHeader = header.isPlaceholder
-                    ? null
-                    : flexRender(colDef.header, header.getContext());
-                  // Story 2.8 — tooltip-enabled column headers (FR-12).
-                  const tooltipNode = colDef.tooltipKey ? (
-                    <InfoTooltip glossaryKey={colDef.tooltipKey} />
-                  ) : null;
-                  const labelWithTooltip = tooltipNode ? (
-                    <span className="inline-flex items-center gap-1">
-                      {rawHeader}
-                      {tooltipNode}
-                    </span>
-                  ) : (
-                    rawHeader
-                  );
-                  // Wrap with the sort header when the column declares `sortable`.
-                  // Falls back to the raw rendered header for non-sortable columns.
-                  if (colDef.sortable && onSortChange) {
-                    return (
-                      <TableHead key={header.id}>
-                        <DataTableSortHeader
-                          label={labelWithTooltip}
-                          sortKey={colDef.sortKey ?? colDef.id}
-                          activeSort={sort}
-                          onSortChange={onSortChange}
-                          firstClickDirection={colDef.firstClickDirection}
-                          sortDirections={colDef.sortDirections}
-                        />
-                      </TableHead>
+        <>
+          {/* Story 2.9 — bulk-action toolbar above the table when selectable + actions supplied. */}
+          {selectable && bulkActions && bulkActions.length > 0 && (
+            <DataTableBulkActions
+              selectedIds={Array.from(selectedIds)}
+              actions={bulkActions}
+              onClear={clearSelection}
+            />
+          )}
+          <Table data-testid={tableTestId}>
+            {/* Story 2.8 — sticky header (FR-11). Tailwind `position: sticky` +
+                `top: 0` + `bg-background` so rows don't bleed through on scroll
+                inside a constrained parent (consumer wraps in a max-h Card). */}
+            <TableHeader className="sticky top-0 bg-background z-10">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {selectable && (
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        aria-label="Select all rows on this page"
+                        data-testid="data-table-select-all"
+                        className="h-4 w-4 rounded border-border accent-primary"
+                        checked={allOnPageSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someOnPageSelected;
+                        }}
+                        onChange={toggleAllOnPage}
+                      />
+                    </TableHead>
+                  )}
+                  {headerGroup.headers.map((header) => {
+                    const colDef = header.column.columnDef as DataTableColumnDef<T>;
+                    const rawHeader = header.isPlaceholder
+                      ? null
+                      : flexRender(colDef.header, header.getContext());
+                    // Story 2.8 — tooltip-enabled column headers (FR-12).
+                    const tooltipNode = colDef.tooltipKey ? (
+                      <InfoTooltip glossaryKey={colDef.tooltipKey} />
+                    ) : null;
+                    const labelWithTooltip = tooltipNode ? (
+                      <span className="inline-flex items-center gap-1">
+                        {rawHeader}
+                        {tooltipNode}
+                      </span>
+                    ) : (
+                      rawHeader
                     );
-                  }
-                  return <TableHead key={header.id}>{labelWithTooltip}</TableHead>;
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} data-testid={rowTestId(row.original)}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    // Wrap with the sort header when the column declares `sortable`.
+                    // Falls back to the raw rendered header for non-sortable columns.
+                    if (colDef.sortable && onSortChange) {
+                      return (
+                        <TableHead key={header.id}>
+                          <DataTableSortHeader
+                            label={labelWithTooltip}
+                            sortKey={colDef.sortKey ?? colDef.id}
+                            activeSort={sort}
+                            onSortChange={onSortChange}
+                            firstClickDirection={colDef.firstClickDirection}
+                            sortDirections={colDef.sortDirections}
+                          />
+                        </TableHead>
+                      );
+                    }
+                    return <TableHead key={header.id}>{labelWithTooltip}</TableHead>;
+                  })}
+                </TableRow>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-testid={rowTestId(row.original)}>
+                  {selectable && (
+                    <TableCell className="w-10">
+                      <input
+                        type="checkbox"
+                        aria-label="Select row"
+                        data-testid={`data-table-select-row-${row.original.id}`}
+                        className="h-4 w-4 rounded border-border accent-primary"
+                        checked={selectedIds.has(row.original.id)}
+                        onChange={() => toggleRow(row.original.id)}
+                      />
+                    </TableCell>
+                  )}
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </>
       )}
       {/* Story 2.7 — wrap CursorPaginator so consumers stop importing it directly. */}
       {data.length > 0 && onCursorChange && onPageSizeChange && (
