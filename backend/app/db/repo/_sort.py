@@ -127,17 +127,22 @@ def keyset_predicate(
     )
 
 
-def encode_cursor(value: Any, row_id: str) -> str:
+def encode_cursor(value: Any, row_id: Any) -> str:
     """Sort-key-agnostic cursor encoder.
 
     ``value`` may be a datetime, str, int, float, or None — JSON-serializable
     via ``isoformat()`` for datetimes, raw for primitives, ``null`` for None.
+
+    ``row_id`` is stringified for symmetry with :func:`decode_cursor` (which
+    always returns ``str(decoded[1])``). Callers pass strings today, but
+    accepting ``Any`` + stringifying here means a future caller that passes
+    a ``uuid.UUID`` doesn't trip a ``TypeError`` from ``json.dumps``.
     """
     if isinstance(value, datetime):
         encoded_value: Any = value.isoformat()
     else:
         encoded_value = value
-    return base64.urlsafe_b64encode(json.dumps([encoded_value, row_id]).encode()).decode()
+    return base64.urlsafe_b64encode(json.dumps([encoded_value, str(row_id)]).encode()).decode()
 
 
 def decode_cursor(raw: str, *, value_is_datetime: bool) -> tuple[Any, str]:

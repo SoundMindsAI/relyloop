@@ -390,12 +390,12 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">2</div>
+      <div class="value">3</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
-    <div class="kpi ">
+    <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">0</div>
+      <div class="value">1</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
@@ -428,7 +428,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">2</span></h3>
+  <h3>Idea <span class="count">3</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_e2e_seed_completed_study">E2E Seed Completed Study</a></div>
@@ -449,6 +449,18 @@ footer {
 
   </div>
   <div class="one-liner">`feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_cursor_decode_value_validation">Cursor Decode Value Validation</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+  </div>
+  <div class="one-liner">`backend/app/db/repo/_sort.py:decode_cursor()` performs a `json.loads(base64.urlsafe_b64decode(raw))` round-trip and then takes `decoded[0]` + `str(decoded[1])` without validating the payload shape or</div>
 
 
 </div>

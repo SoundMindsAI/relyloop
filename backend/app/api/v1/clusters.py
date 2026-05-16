@@ -72,11 +72,9 @@ from backend.app.services.cluster import (
 
 router = APIRouter()
 
-_CLUSTER_SORT_COLUMNS: dict[str, object] = {
-    "name": Cluster.name,
-    "created_at": Cluster.created_at,
-    "environment": Cluster.environment,
-}
+# Sort allowlist is owned by the repo layer (single source of truth across
+# every list endpoint in this PR). Import inside the handler to avoid a
+# module-level import cycle.
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
@@ -210,6 +208,8 @@ async def list_clusters(
     sort-aware so the keyset predicate matches the active ORDER BY
     (feat_data_table_primitive Stories 1.2 + 1.3).
     """
+    from backend.app.db.repo.cluster import _CLUSTER_SORT_COLUMNS
+
     parsed_sort = parse_sort(sort, _CLUSTER_SORT_COLUMNS)
     parsed_cursor: tuple[object, str] | None = None
     if cursor:

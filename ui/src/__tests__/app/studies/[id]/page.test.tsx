@@ -13,6 +13,7 @@ const API_BASE = 'http://api.test';
 let mockedSearch = '';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({ replace: vi.fn(), push: vi.fn() }),
   useSearchParams: () => new URLSearchParams(mockedSearch),
 }));

@@ -29,6 +29,7 @@ function applyUrl(url: string) {
 }
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({
     push: (url: string) => applyUrl(url),
     replace: (url: string) => applyUrl(url),

@@ -23,7 +23,7 @@
  * hook can pass `limit: urlState.pageSize` through.
  */
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 
 import type { DataTableColumnDef } from '@/components/common/types';
@@ -63,6 +63,11 @@ export function useDataTableUrlState<T extends { id: string }>(
 ): DataTableUrlStateApi {
   const router = useRouter();
   const searchParams = useSearchParams();
+  // `usePathname` is the SSR-safe idiomatic way to read the current path in
+  // the App Router. Used below in `navigate` instead of
+  // `window.location.pathname`, which is undefined during the initial
+  // server render.
+  const pathname = usePathname();
   const { defaultPageSize = DEFAULT_PAGE_SIZE } = options;
 
   // Filter-column names — the hook only parses URL params whose name appears
@@ -104,14 +109,14 @@ export function useDataTableUrlState<T extends { id: string }>(
         }
       }
       const qs = next.toString();
-      const url = qs ? `?${qs}` : window.location.pathname;
+      const url = qs ? `?${qs}` : pathname;
       if (strategy === 'push') {
         router.push(url);
       } else {
         router.replace(url);
       }
     },
-    [router, searchParams],
+    [router, searchParams, pathname],
   );
 
   const setSort = useCallback(

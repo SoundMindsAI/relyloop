@@ -41,6 +41,7 @@ let currentSearch = '';
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock, replace: replaceMock }),
   useSearchParams: () => new URLSearchParams(currentSearch),
+  usePathname: () => '/studies',
 }));
 
 beforeEach(() => {

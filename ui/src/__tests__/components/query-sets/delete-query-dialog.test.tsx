@@ -21,6 +21,7 @@ const QS_ID = 'qs-1';
 
 const pushMock = vi.fn();
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({ push: pushMock }),
 }));
 

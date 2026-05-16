@@ -24,6 +24,7 @@ import { server } from '../../setup';
 import { QueriesTable } from '@/components/query-sets/queries-table';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({ push: () => {}, replace: () => {} }),
   useSearchParams: () => new URLSearchParams(),
 }));

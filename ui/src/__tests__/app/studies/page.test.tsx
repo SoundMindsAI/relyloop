@@ -13,6 +13,7 @@ let lastPush = '';
 let mockedSearch = '';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({
     replace: (url: string) => {
       lastReplace = url;

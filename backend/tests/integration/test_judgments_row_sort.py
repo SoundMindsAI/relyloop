@@ -98,7 +98,11 @@ async def _seed_judgments(n_llm: int = 3, n_human: int = 3) -> str:
                     doc_id=f"doc-llm-{i}",
                     rating=i,  # 0, 1, 2 — distinct ratings
                     source="llm",
-                    rater_ref="openai:gpt-4o-2024-08-06",
+                    # Neutral non-model fixture string per CLAUDE.md rule
+                    # against hardcoded LLM model names — production code
+                    # reads the model from Settings; tests don't need a real
+                    # model identifier here.
+                    rater_ref="test-llm-rater",
                     confidence=0.8,
                     notes=None,
                 )
