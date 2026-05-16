@@ -268,28 +268,6 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     getRowId: (row) => row.id,
   });
 
-  // Loading shell — keep simple in the scaffold; Story 2.7 introduces the
-  // full empty-state tree (no-rows-match / no-rows-exist / stale-cursor).
-  if (isLoading) {
-    return (
-      <div
-        data-testid={`${tableTestId}-loading`}
-        className="py-12 text-center text-sm text-muted-foreground"
-      >
-        Loading…
-      </div>
-    );
-  }
-  if (isError) {
-    return (
-      <DataTableEmpty
-        kind="no-rows-match"
-        title="Failed to load"
-        message="Try again or check the backend."
-      />
-    );
-  }
-
   // Story 2.4 — search input slot for the toolbar (left of filters).
   const searchSlot =
     searchable && onQChange ? (
@@ -336,8 +314,12 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
   //   - data empty + totalCount > 0 + cursor active → stale-cursor
   //   - data empty + (any filter | q) active        → no-rows-match
   //   - data empty otherwise                        → no-rows-exist (consumer copy)
+  // Empty-state branching only applies when NOT loading and NOT error;
+  // loading/error render their own body region while the toolbar stays
+  // visible (so filter / search controls are visible-but-disabled while
+  // the outer query is in flight).
   let emptyBranch: 'stale-cursor' | 'no-rows-match' | 'no-rows-exist' | null = null;
-  if (data.length === 0) {
+  if (!isLoading && !isError && data.length === 0) {
     if (totalCount !== undefined && totalCount > 0 && cursor) {
       emptyBranch = 'stale-cursor';
     } else if (anyMatcherActive) {
@@ -350,7 +332,20 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
   return (
     <div className="space-y-3">
       <DataTableToolbar tableId={props.tableId} leftSlot={leftSlot} rightSlot={rightSlot} />
-      {emptyBranch === 'no-rows-exist' ? (
+      {isLoading ? (
+        <div
+          data-testid={`${tableTestId}-loading`}
+          className="py-12 text-center text-sm text-muted-foreground"
+        >
+          Loading…
+        </div>
+      ) : isError ? (
+        <DataTableEmpty
+          kind="no-rows-match"
+          title="Failed to load"
+          message="Try again or check the backend."
+        />
+      ) : emptyBranch === 'no-rows-exist' ? (
         <DataTableEmpty
           kind="no-rows-exist"
           title={emptyStateNoRows.title}
