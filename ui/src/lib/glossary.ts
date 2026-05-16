@@ -500,6 +500,35 @@ export const glossary = {
     ].join('\n'),
     ariaLabel: 'More information about credentials reference',
   },
+
+  // -------------------------------------------------------------------------
+  // DataTable primitive (feat_data_table_primitive Story 2.8)
+  // -------------------------------------------------------------------------
+
+  'datatable.sort.toggle': {
+    short: 'Click to sort ascending. Click again to reverse, click a third time to clear.',
+    ariaLabel: 'More information about sorting',
+  },
+  'datatable.search.min_length': {
+    short: 'Type at least 2 characters to search by name.',
+    ariaLabel: 'More information about search',
+  },
+  'datatable.total_count': {
+    short: 'The total across all pages matching the current filter.',
+    ariaLabel: 'More information about total count',
+  },
+  'datatable.density.toggle': {
+    short: 'Switch between comfortable and compact row heights.',
+    ariaLabel: 'More information about density',
+  },
+  'datatable.column_visibility': {
+    short: 'Show or hide columns. Choices persist on this device.',
+    ariaLabel: 'More information about column visibility',
+  },
+  'datatable.selection.all_on_page': {
+    short: 'Select all rows on this page. Selection clears when you change page.',
+    ariaLabel: 'More information about row selection',
+  },
 } as const satisfies Record<string, GlossaryEntry>;
 
 // =============================================================================

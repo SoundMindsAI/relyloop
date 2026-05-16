@@ -14,7 +14,7 @@
 
 import type { ColumnDef as TanstackColumnDef } from '@tanstack/react-table';
 
-import type { GlossaryKey } from '@/lib/glossary';
+import type { ShortGlossaryKey } from '@/lib/glossary';
 
 // ---------------------------------------------------------------------------
 // Filter kinds (Story 2.3 — wired in `<DataTableFilterChips>` / `<DataTableFkSelect>`)
@@ -84,7 +84,7 @@ export type DataTableColumnDef<T extends { id: string }, TValue = unknown> = Tan
    */
   sortDirections?: readonly ('asc' | 'desc')[];
   filter?: DataTableFilter;
-  tooltipKey?: GlossaryKey;
+  tooltipKey?: ShortGlossaryKey;
   /** Default `true` — column appears in the visibility menu. */
   hideable?: boolean;
   /** Default `false` — sticky columns aren't hideable (e.g. selection checkbox). */
@@ -206,4 +206,20 @@ export interface DataTableProps<T extends { id: string }> {
    * "Showing N rows (of M matching)" wording per FR-7.
    */
   cursorStackLength?: number;
+
+  /**
+   * Story 2.6/2.7 — controlled cursor state. The hook supplies these from
+   * URL state; the primitive feeds them to its wrapped <CursorPaginator>.
+   */
+  cursor?: string | null;
+  pageSize?: number;
+  onCursorChange?: (next: string | null) => void;
+  onPageSizeChange?: (size: number) => void;
+  pageSizeOptions?: readonly number[];
+
+  /** Story 2.7 — for `kind="no-rows-match"` action button. */
+  onClearMatchers?: () => void;
+
+  /** Story 2.7 — true when any filter or `q` is active (for branching). */
+  anyMatcherActive?: boolean;
 }

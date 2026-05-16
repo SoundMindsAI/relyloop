@@ -9,7 +9,7 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { DataTable } from '@/components/common/data-table';
 import type { DataTableColumnDef } from '@/components/common/types';
@@ -93,5 +93,37 @@ describe('DataTable scaffold (Story 2.1)', () => {
     // the backend id, not "0" / "1" / "2".
     expect(screen.queryByTestId('mock-row-0')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mock-row-1')).not.toBeInTheDocument();
+  });
+
+  // Story 2.7 — empty-state branching (no-rows-match / no-rows-exist / stale-cursor).
+  it('renders no-rows-match when data empty AND a filter is active', () => {
+    renderTable({
+      data: [],
+      totalCount: 0,
+      anyMatcherActive: true,
+      onClearMatchers: vi.fn(),
+    });
+    expect(screen.getByTestId('data-table-empty-no-rows-match')).toBeInTheDocument();
+    expect(screen.getByTestId('data-table-empty-clear-filters')).toBeInTheDocument();
+  });
+
+  it('renders stale-cursor when data empty BUT totalCount > 0 AND cursor present', () => {
+    renderTable({
+      data: [],
+      totalCount: 12,
+      cursor: 'opaque',
+      onCursorChange: vi.fn(),
+    });
+    expect(screen.getByTestId('data-table-empty-stale-cursor')).toBeInTheDocument();
+    expect(screen.getByTestId('data-table-empty-return-to-first-page')).toBeInTheDocument();
+  });
+
+  it('renders no-rows-exist when data empty AND no filters/q active AND totalCount=0', () => {
+    renderTable({
+      data: [],
+      totalCount: 0,
+      anyMatcherActive: false,
+    });
+    expect(screen.getByTestId('data-table-empty-no-rows-exist')).toBeInTheDocument();
   });
 });

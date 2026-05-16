@@ -20,6 +20,8 @@
 
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 
+import { CursorPaginator } from '@/components/common/cursor-paginator';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import {
   Table,
   TableBody,
@@ -56,6 +58,15 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     searchable = false,
     totalCount,
     cursorStackLength = 1,
+    cursor = null,
+    pageSize = 50,
+    onCursorChange,
+    onPageSizeChange,
+    pageSizeOptions,
+    onClearMatchers,
+    anyMatcherActive = false,
+    has_more,
+    next_cursor,
   } = props;
 
   // Build the filter slot for the toolbar (Story 2.3 / FR-5).
@@ -148,19 +159,50 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
       />
     ) : null;
 
+  // Story 2.7 — three empty-state shapes per FR-9.
+  // Branch logic:
+  //   - data empty + totalCount > 0 + cursor active → stale-cursor
+  //   - data empty + (any filter | q) active        → no-rows-match
+  //   - data empty otherwise                        → no-rows-exist (consumer copy)
+  let emptyBranch: 'stale-cursor' | 'no-rows-match' | 'no-rows-exist' | null = null;
+  if (data.length === 0) {
+    if (totalCount !== undefined && totalCount > 0 && cursor) {
+      emptyBranch = 'stale-cursor';
+    } else if (anyMatcherActive) {
+      emptyBranch = 'no-rows-match';
+    } else {
+      emptyBranch = 'no-rows-exist';
+    }
+  }
+
   return (
     <div className="space-y-3">
       <DataTableToolbar tableId={props.tableId} leftSlot={leftSlot} rightSlot={rightSlot} />
-      {data.length === 0 ? (
+      {emptyBranch === 'no-rows-exist' ? (
         <DataTableEmpty
           kind="no-rows-exist"
           title={emptyStateNoRows.title}
           message={emptyStateNoRows.message}
           primaryCta={emptyStateNoRows.primaryCta}
         />
+      ) : emptyBranch === 'no-rows-match' ? (
+        <DataTableEmpty
+          kind="no-rows-match"
+          title={props.emptyStateNoMatch?.title}
+          message={props.emptyStateNoMatch?.message}
+          onClearFilters={onClearMatchers}
+        />
+      ) : emptyBranch === 'stale-cursor' ? (
+        <DataTableEmpty
+          kind="stale-cursor"
+          onReturnToFirstPage={onCursorChange ? () => onCursorChange(null) : undefined}
+        />
       ) : (
         <Table data-testid={tableTestId}>
-          <TableHeader>
+          {/* Story 2.8 — sticky header (FR-11). Tailwind `position: sticky` +
+              `top: 0` + `bg-background` so rows don't bleed through on scroll
+              inside a constrained parent (consumer wraps in a max-h Card). */}
+          <TableHeader className="sticky top-0 bg-background z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
@@ -168,13 +210,25 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                   const rawHeader = header.isPlaceholder
                     ? null
                     : flexRender(colDef.header, header.getContext());
+                  // Story 2.8 — tooltip-enabled column headers (FR-12).
+                  const tooltipNode = colDef.tooltipKey ? (
+                    <InfoTooltip glossaryKey={colDef.tooltipKey} />
+                  ) : null;
+                  const labelWithTooltip = tooltipNode ? (
+                    <span className="inline-flex items-center gap-1">
+                      {rawHeader}
+                      {tooltipNode}
+                    </span>
+                  ) : (
+                    rawHeader
+                  );
                   // Wrap with the sort header when the column declares `sortable`.
                   // Falls back to the raw rendered header for non-sortable columns.
                   if (colDef.sortable && onSortChange) {
                     return (
                       <TableHead key={header.id}>
                         <DataTableSortHeader
-                          label={rawHeader}
+                          label={labelWithTooltip}
                           sortKey={colDef.sortKey ?? colDef.id}
                           activeSort={sort}
                           onSortChange={onSortChange}
@@ -184,7 +238,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                       </TableHead>
                     );
                   }
-                  return <TableHead key={header.id}>{rawHeader}</TableHead>;
+                  return <TableHead key={header.id}>{labelWithTooltip}</TableHead>;
                 })}
               </TableRow>
             ))}
@@ -201,6 +255,18 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
             ))}
           </TableBody>
         </Table>
+      )}
+      {/* Story 2.7 — wrap CursorPaginator so consumers stop importing it directly. */}
+      {data.length > 0 && onCursorChange && onPageSizeChange && (
+        <CursorPaginator
+          hasMore={has_more}
+          onNext={has_more && next_cursor ? () => onCursorChange(next_cursor) : undefined}
+          onPrev={cursor ? () => onCursorChange(null) : undefined}
+          pageSize={pageSize}
+          onPageSizeChange={onPageSizeChange}
+          totalCount={totalCount}
+          pageSizeOptions={pageSizeOptions}
+        />
       )}
     </div>
   );
