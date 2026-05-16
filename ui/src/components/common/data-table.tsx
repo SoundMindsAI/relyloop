@@ -35,6 +35,7 @@ import { DataTableFkSelect } from './data-table-fk-select';
 import { DataTableSearch } from './data-table-search';
 import { DataTableSortHeader } from './data-table-sort-header';
 import { DataTableToolbar } from './data-table-toolbar';
+import { DataTableTotalCount } from './data-table-total-count';
 import type { DataTableColumnDef, DataTableProps } from './types';
 
 export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
@@ -54,6 +55,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     onQChange,
     searchable = false,
     totalCount,
+    cursorStackLength = 1,
   } = props;
 
   // Build the filter slot for the toolbar (Story 2.3 / FR-5).
@@ -136,9 +138,19 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
       </>
     ) : null;
 
+  // Story 2.5 — total-count display in the right slot.
+  const rightSlot =
+    totalCount !== undefined ? (
+      <DataTableTotalCount
+        totalCount={totalCount}
+        rowsRendered={data.length}
+        cursorStackLength={cursorStackLength}
+      />
+    ) : null;
+
   return (
     <div className="space-y-3">
-      <DataTableToolbar tableId={props.tableId} leftSlot={leftSlot} />
+      <DataTableToolbar tableId={props.tableId} leftSlot={leftSlot} rightSlot={rightSlot} />
       {data.length === 0 ? (
         <DataTableEmpty
           kind="no-rows-exist"
