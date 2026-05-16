@@ -19,7 +19,7 @@
  */
 
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 
 import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { InfoTooltip } from '@/components/common/info-tooltip';
@@ -76,6 +76,8 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     selectable = false,
     bulkActions,
     onSelectionChange,
+    keyboardNav = true,
+    onRowActivate,
   } = props;
 
   // Story 2.10 — column visibility persisted to localStorage per tableId.
@@ -144,6 +146,43 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
   const allOnPageSelected = data.length > 0 && data.every((r) => selectedIds.has(r.id));
   const someOnPageSelected =
     data.length > 0 && data.some((r) => selectedIds.has(r.id)) && !allOnPageSelected;
+
+  // Story 2.12 — keyboard navigation (FR-16). Roving tabindex: only the
+  // currently-focused row is in the tab order; Arrow Up/Down move focus
+  // (wrapping at ends), Enter activates the row, Space toggles selection
+  // when `selectable`. Disabled entirely when `keyboardNav === false`.
+  const [focusedRowIndex, setFocusedRowIndex] = useState(0);
+  const rowRefs = useRef<Array<HTMLTableRowElement | null>>([]);
+  // Clamp the focused index back into bounds when data length shrinks
+  // (filters, cursor moves) so we never point past the last row.
+  useEffect(() => {
+    if (focusedRowIndex > 0 && focusedRowIndex >= data.length) {
+      setFocusedRowIndex(Math.max(0, data.length - 1));
+    }
+  }, [data.length, focusedRowIndex]);
+  const handleRowKeyDown = (event: KeyboardEvent<HTMLTableRowElement>, idx: number) => {
+    if (!keyboardNav || data.length === 0) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      const next = (idx + 1) % data.length;
+      setFocusedRowIndex(next);
+      rowRefs.current[next]?.focus();
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      const next = (idx - 1 + data.length) % data.length;
+      setFocusedRowIndex(next);
+      rowRefs.current[next]?.focus();
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      const row = data[idx];
+      if (row && onRowActivate) onRowActivate(row.id);
+    } else if (event.key === ' ' && selectable) {
+      // Space toggles selection — matches the checkbox the row already renders.
+      event.preventDefault();
+      const row = data[idx];
+      if (row) toggleRow(row.id);
+    }
+  };
 
   // Build the filter slot for the toolbar (Story 2.3 / FR-5).
   // Each filterable column gets a chip row (enum) or `<select>` (fk-select).
@@ -367,8 +406,17 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
               ))}
             </TableHeader>
             <TableBody>
-              {table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-testid={rowTestId(row.original)}>
+              {table.getRowModel().rows.map((row, idx) => (
+                <TableRow
+                  key={row.id}
+                  data-testid={rowTestId(row.original)}
+                  ref={(el) => {
+                    rowRefs.current[idx] = el;
+                  }}
+                  tabIndex={keyboardNav ? (focusedRowIndex === idx ? 0 : -1) : undefined}
+                  onKeyDown={keyboardNav ? (e) => handleRowKeyDown(e, idx) : undefined}
+                  onFocus={keyboardNav ? () => setFocusedRowIndex(idx) : undefined}
+                >
                   {selectable && (
                     <TableCell className="w-10">
                       <input
