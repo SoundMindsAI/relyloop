@@ -47,14 +47,17 @@ test.describe('/studies', () => {
 
   test('status filter chips drive the URL ?status= param', async ({ page }) => {
     await page.goto('/studies');
-    await expect(page.getByTestId('studies-table').or(page.getByTestId('studies-empty'))).toBeVisible();
+    await expect(
+      page.getByTestId('studies-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
+    ).toBeVisible();
 
     // Click the "completed" chip → URL should reflect ?status=completed.
-    await page.getByTestId('status-chip-completed').click();
+    // Story 2.3 testid pattern: `filter-chip-<col>-<val>`.
+    await page.getByTestId('filter-chip-status-completed').click();
     await expect(page).toHaveURL(/[?&]status=completed/);
 
     // Back to "all" → ?status= dropped.
-    await page.getByTestId('status-chip-all').click();
+    await page.getByTestId('filter-chip-status-all').click();
     await expect(page).not.toHaveURL(/[?&]status=/);
   });
 

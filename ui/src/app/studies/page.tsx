@@ -1,43 +1,25 @@
 'use client';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 
-import { CursorPaginator } from '@/components/common/cursor-paginator';
-import { EmptyState } from '@/components/common/empty-state';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { CreateStudyModal } from '@/components/studies/create-study-modal';
 import { StudiesTable } from '@/components/studies/studies-table';
-import { StudyStatusFilterChips } from '@/components/studies/study-status-filter-chips';
+import { studiesColumns } from '@/components/studies/studies-table.column-config';
+import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useStudies } from '@/lib/api/studies';
 
 function StudiesPageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const statusParam = searchParams.get('status');
-
-  const [pageSize, setPageSize] = useState(50);
-  const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
+  const urlState = useDataTableUrlState('studies', studiesColumns, { defaultPageSize: 50 });
   const [createOpen, setCreateOpen] = useState(false);
-  const cursor = cursorStack[cursorStack.length - 1];
 
   const query = useStudies({
-    status: statusParam ?? undefined,
-    cursor,
-    limit: pageSize,
+    status: urlState.filters['status'],
+    sort: urlState.sort ?? undefined,
+    q: urlState.q ?? undefined,
+    cursor: urlState.cursor ?? undefined,
+    limit: urlState.pageSize,
   });
-
-  function setStatus(next: string | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (next == null) {
-      params.delete('status');
-    } else {
-      params.set('status', next);
-    }
-    const qs = params.toString();
-    router.replace(qs ? `/studies?${qs}` : '/studies');
-    setCursorStack([undefined]);
-  }
 
   const rows = query.data?.data ?? [];
 
@@ -50,40 +32,16 @@ function StudiesPageInner() {
         </Button>
       </div>
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Filters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <StudyStatusFilterChips value={statusParam} onChange={setStatus} />
-        </CardContent>
-      </Card>
-      <Card>
         <CardContent className="pt-6">
-          {query.isPending ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading studies…</p>
-          ) : query.isError ? (
-            <EmptyState
-              title="Backend unreachable"
-              message="Check `make logs` and confirm the API container is healthy."
-            />
-          ) : (
-            <>
-              <StudiesTable rows={rows} />
-              <CursorPaginator
-                hasMore={query.data?.has_more ?? false}
-                onNext={() => setCursorStack((s) => [...s, query.data?.next_cursor ?? undefined])}
-                onPrev={
-                  cursorStack.length > 1 ? () => setCursorStack((s) => s.slice(0, -1)) : undefined
-                }
-                pageSize={pageSize}
-                onPageSizeChange={(n) => {
-                  setPageSize(n);
-                  setCursorStack([undefined]);
-                }}
-                totalCount={query.data?.totalCount}
-              />
-            </>
-          )}
+          <StudiesTable
+            rows={rows}
+            totalCount={query.data?.totalCount}
+            has_more={query.data?.has_more ?? false}
+            next_cursor={query.data?.next_cursor ?? null}
+            isLoading={query.isPending}
+            isError={query.isError}
+            urlState={urlState}
+          />
         </CardContent>
       </Card>
       <CreateStudyModal open={createOpen} onOpenChange={setCreateOpen} />
