@@ -19,9 +19,9 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **37 / 38** (97%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **1** items remaining (features + bugs + chores) |
+| Path to MVP1 | **2** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
-| Open chores | 0 (idea-stage debt) |
+| Open chores | 1 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -91,11 +91,12 @@ _None._
 
 _None._
 
-### Idea (1)
+### Idea (2)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_e2e_seed_completed_study](../02_product/planned_features/infra_e2e_seed_completed_study/idea.md) | Infra | `feat_contextual_help` Phase 1 ships 7 InfoTooltip placements on the digest panel ([`ui/src/components/studies/digest-panel.tsx`](../../ui/src/components/studies/digest-panel.tsx)) — five section labe | — | Idea — deferred from `feat_contextual_help` Phase 1 Story 3.1 |
+| [chore_data_table_primitive_followups](../02_product/planned_features/chore_data_table_primitive_followups/idea.md) | Chore | `feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe | — | Idea — six discrete follow-ups deferred from `feat_data_table_primitive` GPT-5.5 review cycles (Epic 2 cycles 1/2/3 + Epic 3 cycle 1) and from Step 2.5 tangential-observations sweep. Each was correctly classified "defer as non-regression follow-up" at the time; capturing them now per the CLAUDE.md tangential-discoveries rule so they don't evaporate. |
 
 ## Dependency graph
 
