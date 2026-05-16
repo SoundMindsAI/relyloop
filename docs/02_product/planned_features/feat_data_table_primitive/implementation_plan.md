@@ -1834,7 +1834,7 @@ Per Epic 4 / Story 4.1:
 - [ ] Story 1.3 — `?sort=` with sort-aware cursor
 - [ ] Story 1.4 — `?engine_type=` + `?environment=` filters
 - [ ] Story 1.5 — `?template_id=` + `?since=` additions
-- [ ] Story 2.1 — `@tanstack/react-table` dep + primitive scaffold
+- [x] Story 2.1 — `@tanstack/react-table` dep + primitive scaffold
 - [ ] Story 2.2 — Sortable column headers
 - [ ] Story 2.3 — Filter chips (enum + fk-select)
 - [ ] Story 2.4 — Debounced text search
