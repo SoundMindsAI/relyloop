@@ -1835,16 +1835,16 @@ Per Epic 4 / Story 4.1:
 - [ ] Story 1.4 — `?engine_type=` + `?environment=` filters
 - [ ] Story 1.5 — `?template_id=` + `?since=` additions
 - [x] Story 2.1 — `@tanstack/react-table` dep + primitive scaffold
-- [ ] Story 2.2 — Sortable column headers
-- [ ] Story 2.3 — Filter chips (enum + fk-select)
-- [ ] Story 2.4 — Debounced text search
-- [ ] Story 2.5 — Total-count display
-- [ ] Story 2.6 — `useDataTableUrlState` hook
-- [ ] Story 2.7 — Three empty states + cursor wrapping
-- [ ] Story 2.8 — Sticky header + tooltip headers
-- [ ] Story 2.9 — Multi-row selection + bulk actions
-- [ ] Story 2.10 — Column visibility menu
-- [ ] Story 2.11 — Density toggle
+- [x] Story 2.2 — Sortable column headers
+- [x] Story 2.3 — Filter chips (enum + fk-select)
+- [x] Story 2.4 — Debounced text search
+- [x] Story 2.5 — Total-count display
+- [x] Story 2.6 — `useDataTableUrlState` hook
+- [x] Story 2.7 — Three empty states + cursor wrapping
+- [x] Story 2.8 — Sticky header + tooltip headers
+- [x] Story 2.9 — Multi-row selection + bulk actions
+- [x] Story 2.10 — Column visibility menu
+- [x] Story 2.11 — Density toggle
 - [ ] Story 2.12 — Keyboard navigation
 - [ ] Story 2.13 — Source-of-truth lint guard test
 - [ ] Story 3.1 — Migrate studies-table
