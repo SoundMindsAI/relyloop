@@ -1,32 +1,48 @@
 'use client';
 import Link from 'next/link';
-import { use, useState } from 'react';
+import { Suspense, use, useMemo, useState } from 'react';
 
-import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { EmptyState } from '@/components/common/empty-state';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { CalibrationModal } from '@/components/judgments/calibration-modal';
 import { JudgmentListHeader } from '@/components/judgments/judgment-list-header';
-import { JudgmentsTable, type SourceChoice } from '@/components/judgments/judgments-table';
+import { JudgmentsTable } from '@/components/judgments/judgments-table';
+import { useJudgmentsColumns } from '@/components/judgments/judgments-table.column-config';
+import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useJudgmentList, useJudgments } from '@/lib/api/judgments';
+import { JUDGMENT_SOURCE_FILTER_VALUES } from '@/lib/enums';
 
 interface RouteProps {
   params: Promise<{ id: string }>;
 }
 
 export function JudgmentListView({ listId }: { listId: string }) {
-  const [pageSize, setPageSize] = useState(50);
-  const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
-  const [source, setSource] = useState<SourceChoice>('all');
+  // The column config carries the filter declaration the URL hook consults
+  // to figure out which params are filter keys. Pulling the columns once
+  // here gives the hook the right scope without re-computing them.
+  const columns = useJudgmentsColumns(listId);
+  // Scope the URL hook by listId so col-vis + density preferences don't
+  // bleed across different judgment lists' detail pages.
+  const urlState = useDataTableUrlState(`judgments-${listId}`, columns, { defaultPageSize: 50 });
   const [calibrationOpen, setCalibrationOpen] = useState(false);
-  const cursor = cursorStack[cursorStack.length - 1];
+
+  // Narrow the URL source value to the backend's accepted set.
+  const rawSource = urlState.filters['source'];
+  const source = useMemo<'llm' | 'human' | undefined>(() => {
+    if (rawSource === 'llm' || rawSource === 'human') return rawSource;
+    if (rawSource && !(JUDGMENT_SOURCE_FILTER_VALUES as readonly string[]).includes(rawSource)) {
+      return undefined;
+    }
+    return undefined;
+  }, [rawSource]);
 
   const list = useJudgmentList(listId);
   const judgments = useJudgments(listId, {
-    cursor,
-    limit: pageSize,
-    source: source === 'all' ? undefined : source,
+    source,
+    sort: urlState.sort ?? undefined,
+    cursor: urlState.cursor ?? undefined,
+    limit: urlState.pageSize,
   });
 
   return (
@@ -57,47 +73,17 @@ export function JudgmentListView({ listId }: { listId: string }) {
           </div>
           <JudgmentListHeader list={list.data} />
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Judgments</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {judgments.isPending ? (
-                <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-              ) : judgments.isError ? (
-                <EmptyState
-                  title="Backend unreachable"
-                  message="Check `make logs` and confirm the API container is healthy."
-                />
-              ) : (
-                <>
-                  <JudgmentsTable
-                    rows={judgments.data?.data ?? []}
-                    listId={listId}
-                    sourceFilter={source}
-                    onSourceFilterChange={(next) => {
-                      setSource(next);
-                      setCursorStack([undefined]);
-                    }}
-                  />
-                  <CursorPaginator
-                    hasMore={judgments.data?.has_more ?? false}
-                    onNext={() =>
-                      setCursorStack((s) => [...s, judgments.data?.next_cursor ?? undefined])
-                    }
-                    onPrev={
-                      cursorStack.length > 1
-                        ? () => setCursorStack((s) => s.slice(0, -1))
-                        : undefined
-                    }
-                    pageSize={pageSize}
-                    onPageSizeChange={(n) => {
-                      setPageSize(n);
-                      setCursorStack([undefined]);
-                    }}
-                    totalCount={judgments.data?.totalCount}
-                  />
-                </>
-              )}
+            <CardContent className="pt-6">
+              <JudgmentsTable
+                rows={judgments.data?.data ?? []}
+                listId={listId}
+                totalCount={judgments.data?.totalCount}
+                has_more={judgments.data?.has_more ?? false}
+                next_cursor={judgments.data?.next_cursor ?? null}
+                isLoading={judgments.isPending}
+                isError={judgments.isError}
+                urlState={urlState}
+              />
             </CardContent>
           </Card>
           <CalibrationModal
@@ -113,5 +99,9 @@ export function JudgmentListView({ listId }: { listId: string }) {
 
 export default function JudgmentListPage({ params }: RouteProps) {
   const { id } = use(params);
-  return <JudgmentListView listId={id} />;
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-7xl p-6">Loading…</main>}>
+      <JudgmentListView listId={id} />
+    </Suspense>
+  );
 }

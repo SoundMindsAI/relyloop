@@ -28,15 +28,17 @@ export interface StudiesFilter {
   cursor?: string | undefined;
   limit?: number | undefined;
   since?: string | undefined;
+  q?: string | undefined;
+  sort?: string | undefined;
 }
 
 export function useStudies(filter: StudiesFilter = {}): UseQueryResult<StudyListPage, ApiError> {
-  const { status, cluster_id, cursor, limit, since } = filter;
+  const { status, cluster_id, cursor, limit, since, q, sort } = filter;
   return useQuery<StudyListPage, ApiError>({
-    queryKey: ['studies', { status, cluster_id, cursor, limit, since }],
+    queryKey: ['studies', { status, cluster_id, cursor, limit, since, q, sort }],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<StudyListResponse>('/api/v1/studies', {
-        params: { status, cluster_id, cursor, limit, since },
+        params: { status, cluster_id, cursor, limit, since, q, sort },
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },

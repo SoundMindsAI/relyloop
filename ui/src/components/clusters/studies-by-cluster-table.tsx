@@ -1,9 +1,21 @@
 'use client';
-import { useState } from 'react';
 
-import { CursorPaginator } from '@/components/common/cursor-paginator';
-import { EmptyState } from '@/components/common/empty-state';
+/**
+ * `<StudiesByClusterTable>` — per-cluster studies list
+ * (feat_data_table_primitive Story 3.9 inheritance).
+ *
+ * Thin wrapper around `<StudiesTable>` scoped to a single `cluster_id`. The
+ * URL state hook is namespaced to a different `tableId` ("studies-by-cluster")
+ * so col-vis / density preferences don't bleed between the global
+ * `/studies` page and per-cluster sub-views, but the user-facing behaviour
+ * (search / sort / status filter / cursor pagination) inherits unchanged.
+ *
+ * `cluster_id` is fixed by the route — not encoded into URL filter state,
+ * not surfaced as a filter chip.
+ */
 import { StudiesTable } from '@/components/studies/studies-table';
+import { studiesColumns } from '@/components/studies/studies-table.column-config';
+import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useStudies } from '@/lib/api/studies';
 
 export interface StudiesByClusterTableProps {
@@ -11,31 +23,26 @@ export interface StudiesByClusterTableProps {
 }
 
 export function StudiesByClusterTable({ clusterId }: StudiesByClusterTableProps) {
-  const [pageSize, setPageSize] = useState(25);
-  const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
-  const cursor = cursorStack[cursorStack.length - 1];
-
-  const query = useStudies({ cluster_id: clusterId, cursor, limit: pageSize });
-  if (query.isPending) {
-    return <p className="py-6 text-center text-sm text-muted-foreground">Loading studies…</p>;
-  }
-  if (query.isError) {
-    return <EmptyState title="Backend unreachable" message="Refresh after re-launching the API." />;
-  }
+  const urlState = useDataTableUrlState('studies-by-cluster', studiesColumns, {
+    defaultPageSize: 25,
+  });
+  const query = useStudies({
+    cluster_id: clusterId,
+    status: urlState.filters['status'],
+    sort: urlState.sort ?? undefined,
+    q: urlState.q ?? undefined,
+    cursor: urlState.cursor ?? undefined,
+    limit: urlState.pageSize,
+  });
   return (
-    <div className="space-y-3">
-      <StudiesTable rows={query.data?.data ?? []} />
-      <CursorPaginator
-        hasMore={query.data?.has_more ?? false}
-        onNext={() => setCursorStack((s) => [...s, query.data?.next_cursor ?? undefined])}
-        onPrev={cursorStack.length > 1 ? () => setCursorStack((s) => s.slice(0, -1)) : undefined}
-        pageSize={pageSize}
-        onPageSizeChange={(n) => {
-          setPageSize(n);
-          setCursorStack([undefined]);
-        }}
-        totalCount={query.data?.totalCount}
-      />
-    </div>
+    <StudiesTable
+      rows={query.data?.data ?? []}
+      totalCount={query.data?.totalCount}
+      has_more={query.data?.has_more ?? false}
+      next_cursor={query.data?.next_cursor ?? null}
+      isLoading={query.isPending}
+      isError={query.isError}
+      urlState={urlState}
+    />
   );
 }

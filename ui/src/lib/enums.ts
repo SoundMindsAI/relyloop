@@ -116,3 +116,100 @@ export type MessageRole = (typeof MESSAGE_ROLE_VALUES)[number];
 // Values must match backend/app/api/v1/schemas.py SSEEventTypeWire.
 export const SSE_EVENT_TYPE_VALUES = ['token', 'tool_call', 'tool_result', 'done'] as const;
 export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];
+
+// =============================================================================
+// DataTable sort-key arrays (feat_data_table_primitive Story 1.3)
+//
+// Each <Resource>_SORT_VALUES is the cross-product of sortable columns ×
+// {asc, desc} accepted by GET /api/v1/<resource>?sort=<value>. Backend mirrors
+// these in `backend/app/api/v1/schemas.py` as `<Resource>SortKey` Literals;
+// the CI grep gate at `scripts/ci/verify_enum_source_of_truth.sh` enforces
+// parity in both directions.
+// =============================================================================
+
+// Values must match backend/app/api/v1/schemas.py ClusterSortKey.
+export const CLUSTER_SORT_VALUES = [
+  'name:asc',
+  'name:desc',
+  'created_at:asc',
+  'created_at:desc',
+  'environment:asc',
+  'environment:desc',
+] as const;
+export type ClusterSortKey = (typeof CLUSTER_SORT_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py StudySortKey.
+export const STUDY_SORT_VALUES = [
+  'name:asc',
+  'name:desc',
+  'created_at:asc',
+  'created_at:desc',
+  'completed_at:asc',
+  'completed_at:desc',
+  'best_metric:asc',
+  'best_metric:desc',
+  'status:asc',
+  'status:desc',
+] as const;
+export type StudySortKey = (typeof STUDY_SORT_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py QuerySetSortKey.
+export const QUERY_SET_SORT_VALUES = [
+  'name:asc',
+  'name:desc',
+  'created_at:asc',
+  'created_at:desc',
+] as const;
+export type QuerySetSortKey = (typeof QUERY_SET_SORT_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py QueryTemplateSortKey.
+export const QUERY_TEMPLATE_SORT_VALUES = [
+  'name:asc',
+  'name:desc',
+  'created_at:asc',
+  'created_at:desc',
+  'engine_type:asc',
+  'engine_type:desc',
+  'version:asc',
+  'version:desc',
+] as const;
+export type QueryTemplateSortKey = (typeof QUERY_TEMPLATE_SORT_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py JudgmentListSortKey.
+export const JUDGMENT_LIST_SORT_VALUES = [
+  'name:asc',
+  'name:desc',
+  'created_at:asc',
+  'created_at:desc',
+  'status:asc',
+  'status:desc',
+] as const;
+export type JudgmentListSortKey = (typeof JUDGMENT_LIST_SORT_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py JudgmentRowSortKey.
+export const JUDGMENT_ROW_SORT_VALUES = [
+  'created_at:asc',
+  'created_at:desc',
+  'rating:asc',
+  'rating:desc',
+  'source:asc',
+  'source:desc',
+] as const;
+export type JudgmentRowSortKey = (typeof JUDGMENT_ROW_SORT_VALUES)[number];
+
+// Values must match backend/app/api/v1/schemas.py ProposalSortKey.
+export const PROPOSAL_SORT_VALUES = [
+  'created_at:asc',
+  'created_at:desc',
+  'status:asc',
+  'status:desc',
+  'pr_state:asc',
+  'pr_state:desc',
+] as const;
+export type ProposalSortKey = (typeof PROPOSAL_SORT_VALUES)[number];
+
+// New in feat_data_table_primitive Story 3.2 — frontend mirror of
+// backend ProposalSourceWire Literal (which has existed since PR #83).
+// Values must match backend/app/api/v1/schemas.py ProposalSourceWire.
+export const PROPOSAL_SOURCE_VALUES = ['study', 'manual'] as const;
+export type ProposalSource = (typeof PROPOSAL_SOURCE_VALUES)[number];

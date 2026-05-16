@@ -36,6 +36,20 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Judgment, JudgmentList
+from backend.app.db.repo._sort import (
+    ParsedSort,
+    keyset_predicate,
+    order_by_clauses,
+    parse_sort,
+)
+
+# Allowlist for ``?sort=<col>:<dir>`` on
+# ``/api/v1/judgment-lists/{id}/judgments``. Keys mirror ``JudgmentRowSortKey``.
+_JUDGMENT_ROW_SORT_COLUMNS: dict[str, object] = {
+    "created_at": Judgment.created_at,
+    "rating": Judgment.rating,
+    "source": Judgment.source,
+}
 
 
 async def create_judgment(db: AsyncSession, **fields: object) -> Judgment:
@@ -158,27 +172,39 @@ async def list_judgments_paginated(
     db: AsyncSession,
     judgment_list_id: str,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[object, str] | None = None,
     limit: int = 50,
     source: str | None = None,
+    sort: str | None = None,
 ) -> list[Judgment]:
-    """Cursor-paginated list of judgments for one judgment list (FR-6).
+    """Cursor-paginated list of judgments for one judgment list.
 
-    Cursor shape ``(created_at, id)`` mirrors :func:`list_judgment_lists`.
+    Sort-aware (feat_data_table_primitive Story 1.3). Default ordering
+    ``created_at DESC, id DESC``. ``?sort=<col>:<dir>`` where ``<col>`` is
+    one of ``created_at | rating | source`` switches to that column with
+    NULLS handling + ``id DESC`` tie-breaker.
+
     ``source`` filter is one of ``"llm"`` / ``"human"`` (rejected at the
     router layer for ``"click"``; see :data:`JudgmentSourceFilterWire`).
     """
+    parsed_sort: ParsedSort | None = parse_sort(sort, _JUDGMENT_ROW_SORT_COLUMNS)
     stmt = select(Judgment).where(Judgment.judgment_list_id == judgment_list_id)
     if source is not None:
         stmt = stmt.where(Judgment.source == source)
-    stmt = stmt.order_by(Judgment.created_at.desc(), Judgment.id.desc())
     if cursor is not None:
-        created_at, row_id = cursor
+        cursor_value, cursor_id = cursor
         stmt = stmt.where(
-            (Judgment.created_at < created_at)
-            | ((Judgment.created_at == created_at) & (Judgment.id < row_id))
+            keyset_predicate(
+                parsed_sort,
+                cursor_value,
+                cursor_id,
+                default_col=Judgment.created_at,
+                id_col=Judgment.id,
+            )
         )
-    stmt = stmt.limit(limit)
+    stmt = stmt.order_by(
+        *order_by_clauses(parsed_sort, default_col=Judgment.created_at, id_col=Judgment.id)
+    ).limit(limit)
     return list((await db.execute(stmt)).scalars().all())
 
 

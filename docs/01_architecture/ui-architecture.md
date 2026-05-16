@@ -235,7 +235,21 @@ The same SSE wire format (`event: <type>\ndata: <json>\n\n`) is used; only the t
 - `<StatusBadge status={...} />` — colored chip for `studies.status`, `proposals.status`, `pr_state`, etc.
 - `<MetricDelta baseline={n} achieved={m} />` — formatted "0.612 → 0.762 (+24.5%)" with color
 - `<ParameterImportanceChart data={...} />` — Recharts horizontal bar chart consuming `digests.parameter_importance`
-- `<TrialsTable trials={...} sortBy={...} onSort={...} />` — sortable table with cursor pagination
+- `<DataTable<T>>` — shared list-table primitive (see [§"DataTable primitive"](#datatable-primitive)). All 8 standalone tables now consume this; per-table thin wrappers like `<StudiesTable>` and `<TrialsTable>` only wire URL state and column configs.
+
+## DataTable primitive
+
+`feat_data_table_primitive` (2026-05-16) consolidated the 8 hand-rolled `<Table>` components into one shared primitive at [`ui/src/components/common/data-table.tsx`](../../ui/src/components/common/data-table.tsx) built on `@tanstack/react-table@~8.21.3` and the existing shadcn `<Table>` primitive.
+
+**Shape.** The primitive is a controlled component — server state (`data`, `totalCount`, `has_more`, `next_cursor`) flows in from the consumer's TanStack Query hook, and URL state (`sort`, `filters`, `q`, `cursor`, `pageSize`) flows in from a page-level [`useDataTableUrlState(tableId, columns)`](../../ui/src/hooks/use-data-table-url-state.ts) hook. The primitive renders the toolbar (search input + filter chips/FK selects + density toggle + column-visibility menu + total-count display), the table body, and the wrapped `<CursorPaginator>`. Three empty-state shapes (`no-rows-exist`, `no-rows-match`, `stale-cursor`) cover the FR-9 branches.
+
+**Column config interface.** Each consumer exports a co-located `<table>-table.column-config.tsx` that returns a `DataTableColumnDef<T>[]` — TanStack Table's `ColumnDef<T>` with RelyLoop extras (`sortable`, `sortKey`, `firstClickDirection`, `sortDirections`, `filter`, `tooltipKey`, `hideable`, `sticky`). Filters declare `kind: 'enum' | 'fk-select'`; enum filters carry `wireValues: readonly string[]` (imported from [`@/lib/enums`](../../ui/src/lib/enums.ts)) and FK filters carry `useOptions: () => { data: { id, label }[], isLoading }`.
+
+**Source-of-truth discipline.** Every filter — enum or FK — declares a `sourceOfTruth: string` field pointing at the canonical backend allowlist (e.g., `'backend/app/api/v1/schemas.py StudyStatusWire'` or `'backend/app/db/models/proposal.py Proposal.template_id'`). The Story 2.13 lint guard at [`ui/src/__tests__/components/common/data-table-column-discipline.test.tsx`](../../ui/src/__tests__/components/common/data-table-column-discipline.test.tsx) scans every `*.column-config.{ts,tsx}` and fails the test suite if (a) any filter is missing `sourceOfTruth`, (b) `sourceOfTruth` doesn't start with `backend/`, (c) `wireValues` is an inline array rather than an imported identifier, or (d) the imported identifier's declaration in `enums.ts` is missing the canonical `// Values must match backend/...py <Symbol>` comment. This is the frontend half of the "Enumerated Value Contract Discipline" rule in CLAUDE.md — the lint guard catches drift CI-side; the CLAUDE.md rule and the `enums.ts` source-of-truth comment catch it review-side.
+
+**Custom sort wire formats.** Most consumers use the generic `?sort=<col>:<dir>` URL shape. Trials' backend predates this convention and uses fused tokens (`primary_metric_desc`, `optuna_trial_number_asc`); the primitive accepts an optional `sortCodec` prop (`{ encode, decode }`) that translates between the internal `(col, dir)` form and the legacy wire format without leaking the fork into the rest of the surface. See [`ui/src/components/studies/trials-table.column-config.tsx`](../../ui/src/components/studies/trials-table.column-config.tsx).
+
+**Per-resource scoping.** Pages on resource-specific routes (`/studies/[id]`, `/judgments/[id]`, `/query-sets/[id]`, `/clusters/[id]`) scope the `tableId` with the URL parameter (`trials-${studyId}`, `judgments-${listId}`, etc.) so column-visibility and density preferences in `localStorage` don't bleed across different parent resources.
 
 ## Auth surface (MVP1)
 

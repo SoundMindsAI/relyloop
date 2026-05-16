@@ -36,17 +36,17 @@ test.describe('/proposals', () => {
     await seedManualProposal();
 
     await page.goto('/proposals');
-    // Status filter chips render.
-    await expect(page.getByTestId('proposal-status-chip-all')).toBeVisible();
-    await expect(page.getByTestId('proposal-status-chip-pending')).toBeVisible();
+    // Status filter chips render via the Story 2.3 `filter-chip-<col>-<val>` pattern.
+    await expect(page.getByTestId('filter-chip-status-all')).toBeVisible();
+    await expect(page.getByTestId('filter-chip-status-pending')).toBeVisible();
 
     // Click "pending" → URL ?status=pending.
-    await page.getByTestId('proposal-status-chip-pending').click();
+    await page.getByTestId('filter-chip-status-pending').click();
     await expect(page).toHaveURL(/[?&]status=pending/);
 
-    // Source filter chips render.
-    await expect(page.getByTestId('proposal-source-chip-all')).toBeVisible();
-    await expect(page.getByTestId('proposal-source-chip-manual')).toBeVisible();
+    // Source filter chips render with the same primitive pattern.
+    await expect(page.getByTestId('filter-chip-source-all')).toBeVisible();
+    await expect(page.getByTestId('filter-chip-source-manual')).toBeVisible();
   });
 
   test('detail page renders config-diff table for a manual proposal', async ({ page }) => {

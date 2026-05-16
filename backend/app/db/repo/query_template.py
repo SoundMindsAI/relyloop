@@ -9,10 +9,24 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import QueryTemplate
+from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._sort import (
+    ParsedSort,
+    keyset_predicate,
+    order_by_clauses,
+    parse_sort,
+)
+
+_QUERY_TEMPLATE_SORT_COLUMNS: dict[str, object] = {
+    "name": QueryTemplate.name,
+    "created_at": QueryTemplate.created_at,
+    "engine_type": QueryTemplate.engine_type,
+    "version": QueryTemplate.version,
+}
 
 
 async def create_query_template(db: AsyncSession, **fields: object) -> QueryTemplate:
@@ -41,25 +55,41 @@ async def get_query_template_by_name_version(
 async def list_query_templates(
     db: AsyncSession,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[object, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
+    q: str | None = None,
+    sort: str | None = None,
+    engine_type: str | None = None,
 ) -> Sequence[QueryTemplate]:
-    """Cursor-paginated list, newest first. Mirror of repo.cluster.list_clusters."""
+    """Cursor-paginated list, sort-aware (Story 1.3) + engine_type filter (Story 1.4)."""
+    parsed_sort: ParsedSort | None = parse_sort(sort, _QUERY_TEMPLATE_SORT_COLUMNS)
     stmt = select(QueryTemplate)
     if since is not None:
         stmt = stmt.where(QueryTemplate.created_at >= since)
+    if engine_type is not None:
+        stmt = stmt.where(QueryTemplate.engine_type == engine_type)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
-        cursor_at, cursor_id = cursor
+        cursor_value, cursor_id = cursor
         stmt = stmt.where(
-            or_(
-                QueryTemplate.created_at < cursor_at,
-                and_(QueryTemplate.created_at == cursor_at, QueryTemplate.id < cursor_id),
+            keyset_predicate(
+                parsed_sort,
+                cursor_value,
+                cursor_id,
+                default_col=QueryTemplate.created_at,
+                id_col=QueryTemplate.id,
             )
         )
-    stmt = stmt.order_by(QueryTemplate.created_at.desc(), QueryTemplate.id.desc()).limit(
-        min(limit, 200)
-    )
+    stmt = stmt.order_by(
+        *order_by_clauses(
+            parsed_sort,
+            default_col=QueryTemplate.created_at,
+            id_col=QueryTemplate.id,
+        )
+    ).limit(min(limit, 200))
     return list((await db.execute(stmt)).scalars().all())
 
 
@@ -67,9 +97,16 @@ async def count_query_templates(
     db: AsyncSession,
     *,
     since: datetime | None = None,
+    q: str | None = None,
+    engine_type: str | None = None,
 ) -> int:
     """COUNT(*) templates for the X-Total-Count header."""
     stmt = select(func.count(QueryTemplate.id))
     if since is not None:
         stmt = stmt.where(QueryTemplate.created_at >= since)
+    if engine_type is not None:
+        stmt = stmt.where(QueryTemplate.engine_type == engine_type)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     return int((await db.execute(stmt)).scalar_one())

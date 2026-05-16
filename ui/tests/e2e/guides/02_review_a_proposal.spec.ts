@@ -31,7 +31,7 @@ test.describe('Walkthrough: Review a proposal', () => {
 
     // ── 01: Land on /proposals list ───────────────────────────────────
     await page.goto('/proposals');
-    await expect(page.getByTestId('proposal-status-chip-all')).toBeVisible();
+    await expect(page.getByTestId('filter-chip-status-all')).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(500);
     await page.screenshot({
@@ -40,7 +40,7 @@ test.describe('Walkthrough: Review a proposal', () => {
     });
 
     // ── 02: Filter to pending ──────────────────────────────────────────
-    await page.getByTestId('proposal-status-chip-pending').click();
+    await page.getByTestId('filter-chip-status-pending').click();
     await page.waitForTimeout(500);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '02-proposals-pending-filter.png'),

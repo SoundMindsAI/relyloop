@@ -1,76 +1,72 @@
 'use client';
-import Link from 'next/link';
 
-import { StatusBadge } from '@/components/common/status-badge';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+/**
+ * `<StudiesTable>` thin DataTable consumer
+ * (feat_data_table_primitive Story 3.1).
+ *
+ * Was a hand-rolled `<Table>` rendering 6 columns; now defers to the shared
+ * `<DataTable>` primitive with `studiesColumns`. URL-backed search / sort /
+ * status filter / cursor pagination is owned by the parent
+ * `/studies/page.tsx` via `useDataTableUrlState`, and threaded in as props
+ * here (controlled-component contract per spec FR-8).
+ */
+import { DataTable } from '@/components/common/data-table';
+import { studiesColumns } from '@/components/studies/studies-table.column-config';
 import type { StudySummary } from '@/lib/api/studies';
+import type { DataTableUrlStateApi } from '@/hooks/use-data-table-url-state';
 
 export interface StudiesTableProps {
   rows: readonly StudySummary[];
+  totalCount?: number;
+  has_more: boolean;
+  next_cursor: string | null;
+  isLoading: boolean;
+  isError: boolean;
+  urlState: DataTableUrlStateApi;
 }
 
-export function StudiesTable({ rows }: StudiesTableProps) {
-  if (rows.length === 0) {
-    return (
-      <p className="py-12 text-center text-sm text-muted-foreground" data-testid="studies-empty">
-        No studies match the current filters.
-      </p>
-    );
-  }
+export function StudiesTable({
+  rows,
+  totalCount,
+  has_more,
+  next_cursor,
+  isLoading,
+  isError,
+  urlState,
+}: StudiesTableProps) {
   return (
-    <Table data-testid="studies-table">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Cluster</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Best metric</TableHead>
-          <TableHead>Created</TableHead>
-          <TableHead>Completed</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((s) => (
-          <TableRow key={s.id} data-testid={`study-row-${s.id}`}>
-            <TableCell>
-              <Link
-                href={`/studies/${s.id}`}
-                className="text-blue-600 underline-offset-4 hover:underline"
-              >
-                {s.name}
-              </Link>
-            </TableCell>
-            <TableCell className="font-mono text-xs">{s.cluster_id}</TableCell>
-            <TableCell>
-              <StatusBadge kind="study" value={s.status} />
-            </TableCell>
-            <TableCell>
-              {s.best_metric != null ? (
-                s.best_metric.toFixed(3)
-              ) : (
-                <span className="text-muted-foreground">—</span>
-              )}
-            </TableCell>
-            <TableCell className="whitespace-nowrap">
-              {new Date(s.created_at).toLocaleString()}
-            </TableCell>
-            <TableCell className="whitespace-nowrap">
-              {s.completed_at ? (
-                new Date(s.completed_at).toLocaleString()
-              ) : (
-                <span className="text-muted-foreground">—</span>
-              )}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable<StudySummary>
+      tableId="studies"
+      tableTestId="studies-table"
+      rowTestId={(r) => `study-row-${r.id}`}
+      columns={studiesColumns}
+      data={rows}
+      isLoading={isLoading}
+      isError={isError}
+      totalCount={totalCount}
+      has_more={has_more}
+      next_cursor={next_cursor}
+      searchable
+      sort={urlState.sort}
+      onSortChange={urlState.setSort}
+      filters={urlState.filters}
+      onFilterChange={urlState.setFilter}
+      q={urlState.q}
+      onQChange={urlState.setQ}
+      cursor={urlState.cursor}
+      pageSize={urlState.pageSize}
+      onCursorChange={urlState.setCursor}
+      onPageSizeChange={urlState.setPageSize}
+      onClearMatchers={urlState.clearAllMatchers}
+      anyMatcherActive={urlState.anyMatcherActive}
+      emptyStateNoRows={{
+        title: 'No studies yet',
+        message: 'Create a study to start tuning.',
+      }}
+      emptyStateNoMatch={{
+        title: 'No studies match',
+        message: 'No studies match the current filters.',
+      }}
+    />
   );
 }

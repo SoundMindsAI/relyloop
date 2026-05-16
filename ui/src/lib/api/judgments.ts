@@ -64,19 +64,20 @@ export interface JudgmentsFilter {
   cursor?: string | undefined;
   limit?: number | undefined;
   source?: 'llm' | 'human' | undefined;
+  sort?: string | undefined;
 }
 
 export function useJudgments(
   listId: string,
   filter: JudgmentsFilter = {},
 ): UseQueryResult<JudgmentsPage, ApiError> {
-  const { cursor, limit, source } = filter;
+  const { cursor, limit, source, sort } = filter;
   return useQuery<JudgmentsPage, ApiError>({
-    queryKey: ['judgments', listId, { cursor, limit, source }],
+    queryKey: ['judgments', listId, { cursor, limit, source, sort }],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<JudgmentListJudgmentsResponse>(
         `/api/v1/judgment-lists/${listId}/judgments`,
-        { params: { cursor, limit, source } },
+        { params: { cursor, limit, source, sort } },
       );
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },

@@ -23,6 +23,7 @@ from sqlalchemy import and_, func, or_, select, true
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Conversation, Message
+from backend.app.db.repo._fts import fts_predicate
 
 PREVIEW_MAX_CHARS = 120
 """Cap for ``ConversationSummary.last_message_preview`` (chore_chat_last_message_preview).
@@ -81,9 +82,24 @@ async def list_conversations(
     return list((await db.execute(stmt)).scalars().all())
 
 
-async def count_conversations(db: AsyncSession) -> int:
-    """COUNT(*) non-soft-deleted conversations (for the ``X-Total-Count`` header)."""
+async def count_conversations(
+    db: AsyncSession,
+    *,
+    since: datetime | None = None,
+    q: str | None = None,
+) -> int:
+    """COUNT(*) non-soft-deleted conversations (for the ``X-Total-Count`` header).
+
+    ``since`` filters by ``created_at >= since`` (Story 1.5 — closes
+    api-conventions.md drift). ``q`` is an optional Postgres FTS match
+    against ``search_vector`` (conversations.title).
+    """
     stmt = select(func.count(Conversation.id)).where(Conversation.deleted_at.is_(None))
+    if since is not None:
+        stmt = stmt.where(Conversation.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     return int((await db.execute(stmt)).scalar_one())
 
 
@@ -129,6 +145,8 @@ async def list_conversations_with_preview_data(
     *,
     cursor: tuple[datetime, str] | None = None,
     limit: int = 50,
+    since: datetime | None = None,
+    q: str | None = None,
 ) -> Sequence[tuple[Conversation, int, str | None, datetime | None]]:
     """Cursor-paginated conversation list with message count + last-message preview.
 
@@ -201,6 +219,11 @@ async def list_conversations_with_preview_data(
         .outerjoin(preview_subq, true())
         .where(Conversation.deleted_at.is_(None))
     )
+    if since is not None:
+        stmt = stmt.where(Conversation.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
         cursor_at, cursor_id = cursor
         stmt = stmt.where(

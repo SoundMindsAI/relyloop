@@ -32,6 +32,7 @@ import base64
 import json
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 import uuid_utils
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
@@ -43,6 +44,7 @@ from backend.app.api.v1.schemas import (
     OpenPrResponse,
     ProposalDetail,
     ProposalsListResponse,
+    ProposalSortKey,
     ProposalSourceWire,
     ProposalStatusWire,
     ProposalSummary,
@@ -55,7 +57,17 @@ from backend.app.api.v1.schemas import (
 from backend.app.core.logging import get_logger
 from backend.app.db import repo
 from backend.app.db.models import Proposal
-from backend.app.db.repo.proposal import InvalidStateTransition
+from backend.app.db.repo._sort import (
+    cursor_value_is_datetime,
+    parse_sort,
+)
+from backend.app.db.repo._sort import (
+    decode_cursor as _sort_decode_cursor,
+)
+from backend.app.db.repo._sort import (
+    encode_cursor as _sort_encode_cursor,
+)
+from backend.app.db.repo.proposal import _PROPOSAL_SORT_COLUMNS, InvalidStateTransition
 from backend.app.db.session import get_db
 from backend.app.services import agent_proposals_dispatch
 
@@ -332,11 +344,27 @@ async def list_proposals_endpoint(
     status_filter: Annotated[ProposalStatusWire | None, Query(alias="status")] = None,
     cluster_id: Annotated[str | None, Query()] = None,
     source: Annotated[ProposalSourceWire | None, Query()] = None,
+    template_id: Annotated[UUID | None, Query()] = None,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    sort: Annotated[ProposalSortKey | None, Query()] = None,
 ) -> ProposalsListResponse:
-    """List proposals with cursor pagination + status + cluster_id + source filters."""
-    decoded_cursor = _decode_cursor(cursor) if cursor else None
+    """List proposals with cursor pagination + filters.
+
+    ``?template_id=`` (Story 1.5) filters by ``proposals.template_id`` FK;
+    invalid UUIDs return 422 via FastAPI's UUID parsing. ``?sort=`` (Story
+    1.3) is a :data:`ProposalSortKey` value with sort-aware cursor.
+    """
+    parsed_sort = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
+    decoded_cursor: tuple[object, str] | None = None
+    if cursor:
+        try:
+            decoded_cursor = _sort_decode_cursor(
+                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+            )
+        except Exception as exc:
+            raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
+    template_id_str = str(template_id) if template_id is not None else None
     rows = list(
         await repo.list_proposals_paginated(
             db,
@@ -345,16 +373,29 @@ async def list_proposals_endpoint(
             status=status_filter,
             cluster_id=cluster_id,
             source=source,
+            template_id=template_id_str,
+            sort=sort,
         )
     )
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
     total = await repo.count_proposals(
-        db, status=status_filter, cluster_id=cluster_id, source=source
+        db,
+        status=status_filter,
+        cluster_id=cluster_id,
+        source=source,
+        template_id=template_id_str,
     )
     response.headers["X-Total-Count"] = str(total)
-    next_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id) if has_more and rows else None
+    next_cursor: str | None = None
+    if has_more and rows:
+        last = rows[-1]
+        if parsed_sort is None:
+            cursor_value: object = last.created_at
+        else:
+            cursor_value = getattr(last, parsed_sort.col_name)
+        next_cursor = _sort_encode_cursor(cursor_value, last.id)
     summaries = await _assemble_proposal_summary_batch(db, rows)
     return ProposalsListResponse(data=summaries, next_cursor=next_cursor, has_more=has_more)
 

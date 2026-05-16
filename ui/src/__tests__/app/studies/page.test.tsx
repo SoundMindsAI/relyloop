@@ -1,20 +1,25 @@
-import { http, HttpResponse } from 'msw';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { http, HttpResponse } from 'msw';
 import { type ReactNode } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { server } from '../../setup';
 
 const API_BASE = 'http://api.test';
 
 let lastReplace = '';
+let lastPush = '';
 let mockedSearch = '';
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({
     replace: (url: string) => {
       lastReplace = url;
+    },
+    push: (url: string) => {
+      lastPush = url;
     },
   }),
   useSearchParams: () => new URLSearchParams(mockedSearch),
@@ -38,6 +43,7 @@ async function renderPage() {
 
 beforeEach(() => {
   lastReplace = '';
+  lastPush = '';
   mockedSearch = '';
 });
 
@@ -72,10 +78,11 @@ describe('StudiesPage', () => {
       expect(screen.getByTestId('study-row-s0')).toBeInTheDocument();
       expect(screen.getByTestId('study-row-s1')).toBeInTheDocument();
     });
-    expect(screen.getByTestId('total-count')).toHaveTextContent('2');
+    // Total-count display now lives in the DataTable toolbar (Story 2.5).
+    expect(screen.getByTestId('data-table-total-count')).toHaveTextContent('2');
   });
 
-  it('clicking a status chip updates the URL', async () => {
+  it('clicking a status filter chip updates the URL via replace()', async () => {
     server.use(
       http.get(`${API_BASE}/api/v1/studies`, () =>
         HttpResponse.json(
@@ -85,8 +92,12 @@ describe('StudiesPage', () => {
       ),
     );
     await renderPage();
-    await waitFor(() => expect(screen.getByTestId('studies-empty')).toBeInTheDocument());
-    fireEvent.click(screen.getByTestId('status-chip-running'));
-    expect(lastReplace).toBe('/studies?status=running');
+    // Empty state when data is empty + no matcher → no-rows-exist branch.
+    await waitFor(() =>
+      expect(screen.getByTestId('data-table-empty-no-rows-exist')).toBeInTheDocument(),
+    );
+    // Filter-chip testids follow the Story 2.3 `filter-chip-<col>-<val>` pattern.
+    fireEvent.click(screen.getByTestId('filter-chip-status-running'));
+    expect(lastReplace).toContain('status=running');
   });
 });

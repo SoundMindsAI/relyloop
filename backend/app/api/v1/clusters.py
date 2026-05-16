@@ -38,8 +38,11 @@ from backend.app.api.health import get_redis_client
 from backend.app.api.v1.schemas import (
     ClusterDetail,
     ClusterListResponse,
+    ClusterSortKey,
     ClusterSummary,
     CreateClusterRequest,
+    EngineTypeWire,
+    Environment,
     HealthCheckResult,
     RunQueryHit,
     RunQueryRequest,
@@ -47,6 +50,16 @@ from backend.app.api.v1.schemas import (
 )
 from backend.app.db import repo
 from backend.app.db.models import Cluster
+from backend.app.db.repo._sort import (
+    cursor_value_is_datetime,
+    parse_sort,
+)
+from backend.app.db.repo._sort import (
+    decode_cursor as _sort_decode_cursor,
+)
+from backend.app.db.repo._sort import (
+    encode_cursor as _sort_encode_cursor,
+)
 from backend.app.db.session import get_db
 from backend.app.services import cluster as cluster_svc
 from backend.app.services.cluster import (
@@ -58,6 +71,10 @@ from backend.app.services.cluster import (
 )
 
 router = APIRouter()
+
+# Sort allowlist is owned by the repo layer (single source of truth across
+# every list endpoint in this PR). Import inside the handler to avoid a
+# module-level import cycle.
 
 DEFAULT_PAGE_LIMIT = 50
 MAX_PAGE_LIMIT = 200
@@ -177,11 +194,44 @@ async def list_clusters(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
+    q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
+    sort: Annotated[ClusterSortKey | None, Query()] = None,
+    engine_type: Annotated[EngineTypeWire | None, Query()] = None,
+    environment: Annotated[Environment | None, Query()] = None,
 ) -> ClusterListResponse:
-    """List clusters with cursor pagination + ``X-Total-Count`` header."""
-    parsed_cursor = _decode_cursor(cursor) if cursor else None
-    rows = await repo.list_clusters(db, cursor=parsed_cursor, limit=limit, since=since)
-    total = await repo.count_clusters(db, since=since)
+    """List clusters with cursor pagination + ``X-Total-Count`` header.
+
+    ``?q=`` is a Postgres FTS match against the cluster's ``search_vector``
+    (name + base_url); 2–200 chars. Filter-only — ordering unchanged per
+    spec FR-1. ``?sort=`` is one of the values in
+    :data:`~backend.app.api.v1.schemas.ClusterSortKey`; the cursor is
+    sort-aware so the keyset predicate matches the active ORDER BY
+    (feat_data_table_primitive Stories 1.2 + 1.3).
+    """
+    from backend.app.db.repo.cluster import _CLUSTER_SORT_COLUMNS
+
+    parsed_sort = parse_sort(sort, _CLUSTER_SORT_COLUMNS)
+    parsed_cursor: tuple[object, str] | None = None
+    if cursor:
+        try:
+            parsed_cursor = _sort_decode_cursor(
+                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+            )
+        except Exception as exc:
+            raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
+    rows = await repo.list_clusters(
+        db,
+        cursor=parsed_cursor,
+        limit=limit,
+        since=since,
+        q=q,
+        sort=sort,
+        engine_type=engine_type,
+        environment=environment,
+    )
+    total = await repo.count_clusters(
+        db, since=since, q=q, engine_type=engine_type, environment=environment
+    )
     response.headers["X-Total-Count"] = str(total)
 
     summaries: list[ClusterSummary] = []
@@ -193,7 +243,12 @@ async def list_clusters(
     has_more = False
     if rows and len(rows) == limit:
         last = rows[-1]
-        next_cursor = _encode_cursor(last.created_at, last.id)
+        # Compute the value-half of the next cursor from the active sort col.
+        if parsed_sort is None:
+            cursor_value: object = last.created_at
+        else:
+            cursor_value = getattr(last, parsed_sort.col_name)
+        next_cursor = _sort_encode_cursor(cursor_value, last.id)
         has_more = True
     return ClusterListResponse(data=summaries, next_cursor=next_cursor, has_more=has_more)
 

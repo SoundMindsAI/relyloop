@@ -12,6 +12,7 @@ const API_BASE = 'http://api.test';
 
 let lastPush = '';
 vi.mock('next/navigation', () => ({
+  usePathname: () => '/test',
   useRouter: () => ({
     push: (url: string) => {
       lastPush = url;

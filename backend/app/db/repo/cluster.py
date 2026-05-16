@@ -15,10 +15,25 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Cluster
+from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._sort import (
+    ParsedSort,
+    keyset_predicate,
+    order_by_clauses,
+    parse_sort,
+)
+
+# Allowlist for ``?sort=<col>:<dir>`` on ``/api/v1/clusters``. Keys mirror the
+# ``ClusterSortKey`` Literal in ``backend.app.api.v1.schemas``.
+_CLUSTER_SORT_COLUMNS: dict[str, object] = {
+    "name": Cluster.name,
+    "created_at": Cluster.created_at,
+    "environment": Cluster.environment,
+}
 
 
 async def create_cluster(db: AsyncSession, **fields: object) -> Cluster:
@@ -33,38 +48,76 @@ async def create_cluster(db: AsyncSession, **fields: object) -> Cluster:
 async def list_clusters(
     db: AsyncSession,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[object, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
+    q: str | None = None,
+    sort: str | None = None,
+    engine_type: str | None = None,
+    environment: str | None = None,
 ) -> Sequence[Cluster]:
-    """Cursor-paginated active list, newest first.
+    """Cursor-paginated active list.
 
-    Excludes soft-deleted rows. ``cursor=(created_at, id)`` returns rows
-    strictly older than the cursor; ``since`` filters to rows created at
-    or after a wall-clock timestamp. ``limit`` is clamped to 200 per
-    api-conventions.md §"Pagination".
+    Default ordering: ``created_at DESC, id DESC``. When ``sort`` is non-default
+    (e.g. ``name:asc``), the ORDER BY + keyset cursor predicate are switched
+    to the requested column with explicit NULLS handling and ``id DESC``
+    tie-breaker (see ``backend/app/db/repo/_sort.py``).
+
+    ``since`` filters to ``created_at >= since``. ``q`` is an optional
+    Postgres FTS match against ``search_vector`` (clusters.name + base_url).
+    Excludes soft-deleted rows. ``limit`` clamped to 200.
     """
+    parsed_sort: ParsedSort | None = parse_sort(sort, _CLUSTER_SORT_COLUMNS)
     stmt = select(Cluster).where(Cluster.deleted_at.is_(None))
     if since is not None:
         stmt = stmt.where(Cluster.created_at >= since)
+    if engine_type is not None:
+        stmt = stmt.where(Cluster.engine_type == engine_type)
+    if environment is not None:
+        stmt = stmt.where(Cluster.environment == environment)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
-        cursor_at, cursor_id = cursor
+        cursor_value, cursor_id = cursor
         stmt = stmt.where(
-            or_(
-                Cluster.created_at < cursor_at,
-                and_(Cluster.created_at == cursor_at, Cluster.id < cursor_id),
+            keyset_predicate(
+                parsed_sort,
+                cursor_value,
+                cursor_id,
+                default_col=Cluster.created_at,
+                id_col=Cluster.id,
             )
         )
-    stmt = stmt.order_by(Cluster.created_at.desc(), Cluster.id.desc()).limit(min(limit, 200))
+    stmt = stmt.order_by(
+        *order_by_clauses(parsed_sort, default_col=Cluster.created_at, id_col=Cluster.id)
+    ).limit(min(limit, 200))
     result = await db.execute(stmt)
     return list(result.scalars().all())
 
 
-async def count_clusters(db: AsyncSession, *, since: datetime | None = None) -> int:
-    """Count active (non-soft-deleted) cluster rows for the ``X-Total-Count`` header."""
+async def count_clusters(
+    db: AsyncSession,
+    *,
+    since: datetime | None = None,
+    q: str | None = None,
+    engine_type: str | None = None,
+    environment: str | None = None,
+) -> int:
+    """Count active (non-soft-deleted) cluster rows for the ``X-Total-Count`` header.
+
+    ``sort`` is intentionally NOT an argument — sort doesn't affect count.
+    """
     stmt = select(func.count(Cluster.id)).where(Cluster.deleted_at.is_(None))
     if since is not None:
         stmt = stmt.where(Cluster.created_at >= since)
+    if engine_type is not None:
+        stmt = stmt.where(Cluster.engine_type == engine_type)
+    if environment is not None:
+        stmt = stmt.where(Cluster.environment == environment)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     result = await db.execute(stmt)
     return int(result.scalar_one())
 
