@@ -168,12 +168,19 @@ ui/              Next.js 16 App Router (post infra_frontend_stack_refresh):
                  + RejectDialog + ?action=open_pr auto-trigger + 3s/30s
                  polling ladder). Shared primitives in src/components/common/
                  (StatusBadge / MetricDelta / CursorPaginator / EmptyState /
-                 ParameterImportanceChart); per-resource hooks in
-                 src/lib/api/ (clusters, config-repos, digests, judgments,
-                 proposals, query-sets, query-templates, studies); canonical
-                 wire-value allowlists in src/lib/enums.ts.
+                 ParameterImportanceChart / DataTable — the latter from
+                 feat_data_table_primitive consolidates 8 hand-rolled tables
+                 onto @tanstack/react-table with co-located column configs at
+                 src/components/<resource>/<table>-table.column-config.tsx +
+                 page-level useDataTableUrlState hook for the URL contract);
+                 per-resource hooks in src/lib/api/ (clusters, config-repos,
+                 digests, judgments, proposals, query-sets, query-templates,
+                 studies); canonical wire-value allowlists in src/lib/enums.ts.
 migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters
-                 + 0003 study_lifecycle_schema + 0004_judgments + 0005_digests)
+                 + 0003 study_lifecycle_schema + 0004_judgments + 0005_digests
+                 + 0006 proposals_pr_url_idx + 0007 conversations_messages +
+                 0008–0013 search_vector + GIN indexes from
+                 feat_data_table_primitive)
 docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
                  04_security / 05_quality / 08_guides
 ```

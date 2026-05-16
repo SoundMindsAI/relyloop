@@ -100,9 +100,24 @@ All list endpoints use **cursor pagination**. No offset/limit.
 
 **Total counts.** Every list endpoint **MUST** return an `X-Total-Count` response header with the total row count matching the current filter (independent of pagination). Required for dashboard count widgets in `feat_studies_ui` + `feat_proposals_ui` (e.g., "studies completed in last 7 days") without forcing the UI to paginate the entire list. Backend implementation is a separate `COUNT(*)` query alongside the paginated SELECT; perf is acceptable for MVP1 list sizes (<10K rows typical) and can be optimized via cached estimates at MVP2.
 
-**Filtering by recency.** Every list endpoint **MUST** accept a `?since=<iso8601>` query param that filters by `created_at >= since`. Combines with other filter params.
+**Filtering by recency.** Every list endpoint **MUST** accept a `?since=<iso8601>` query param that filters by `created_at >= since`. Combines with other filter params. `feat_data_table_primitive` extended this convention to `GET /api/v1/judgment-lists` and `GET /api/v1/conversations`, which previously lacked the param.
 
-**MVP1 status:** Active for `GET /api/v1/clusters`, `GET /api/v1/studies`, `GET /api/v1/proposals`, `GET /api/v1/conversations`, `GET /api/v1/query-sets`, `GET /api/v1/query-sets/{id}/queries` (per-query list, added by `feat_query_inline_crud` with id-only UUIDv7 cursor + UUIDv7-lower-bound `?since`), `GET /api/v1/query-templates`, `GET /api/v1/judgment-lists`, `GET /api/v1/config-repos`. Not used on resource-detail endpoints.
+**Full-text search.** Six list endpoints accept `?q=<text>` for full-text search powered by a Postgres `tsvector GENERATED ALWAYS AS … STORED` column + GIN index per row (added by `feat_data_table_primitive` migrations `0008`–`0013`). The predicate is `search_vector @@ plainto_tsquery('english', q)`. Results are filtered (not rank-ordered — rank ordering deferred to MVP2; see [`docs/02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md`](../02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md)) so the existing `(created_at, id)` cursor stays correct. The Zod schema in the UI rejects under-length input (min 2 chars) before the backend ever sees the call.
+
+| Endpoint | Searchable fields |
+|---|---|
+| `GET /api/v1/clusters` | `name + base_url` |
+| `GET /api/v1/studies` | `name` |
+| `GET /api/v1/query-sets` | `name` |
+| `GET /api/v1/query-templates` | `name` |
+| `GET /api/v1/judgment-lists` | `name` |
+| `GET /api/v1/conversations` | `title` |
+
+The `search_vector` column is **not declared in the ORM models** — it is database-generated. Never INSERT or UPDATE it directly; the column is read-only from the application's perspective.
+
+**Sort.** Most list endpoints accept `?sort=<col>:<asc|desc>` (e.g. `?sort=name:asc`, `?sort=created_at:desc`). The cursor encoding is sort-aware: when `?sort=name:asc` is active, the cursor encodes `(name, id)` rather than `(created_at, id)`, so changing sort drops the cursor and starts a new page-1. `trials` is the one exception — its backend Literal predates this convention and uses fused tokens (`primary_metric_desc`, `ended_at_asc`, `optuna_trial_number_asc`). The frontend `<DataTable>` accepts an optional `sortCodec` prop that translates between internal `(col, dir)` and the wire form so the legacy contract survives unchanged.
+
+**MVP1 status:** `?cursor=`, `?limit=`, `?since=` active for `GET /api/v1/clusters`, `GET /api/v1/studies`, `GET /api/v1/proposals`, `GET /api/v1/conversations`, `GET /api/v1/query-sets`, `GET /api/v1/query-sets/{id}/queries` (per-query list, added by `feat_query_inline_crud` with id-only UUIDv7 cursor + UUIDv7-lower-bound `?since`), `GET /api/v1/query-templates`, `GET /api/v1/judgment-lists`, `GET /api/v1/config-repos`. `?q=` + `?sort=` added by `feat_data_table_primitive` to the 6/7 endpoints in the tables above. Not used on resource-detail endpoints.
 
 ## Idempotency
 

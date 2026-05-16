@@ -277,6 +277,23 @@ CREATE TABLE messages (
 
 Soft-delete on `conversations` filters the row out of `GET /api/v1/conversations` and `GET /api/v1/conversations/{id}` (`deleted_at IS NULL` predicate); messages remain joined via the FK so a future hard-purge runbook can drop both atomically. Hard delete cascades to messages via `ON DELETE CASCADE`.
 
+## Full-text search vectors (owned by `feat_data_table_primitive`)
+
+Migrations `0008`–`0013` add a `search_vector tsvector GENERATED ALWAYS AS … STORED` column + a `GIN(search_vector)` index to six tables. The columns are populated by Postgres on every row write (no application code involvement) and are queried via `search_vector @@ plainto_tsquery('english', :q)` from the API's `?q=` parameter.
+
+| Table | Migration | Indexed fields | API endpoint |
+|---|---|---|---|
+| `clusters` | `0008` | `name + ' ' + base_url` | `GET /api/v1/clusters` |
+| `studies` | `0009` | `name` | `GET /api/v1/studies` |
+| `query_sets` | `0010` | `name` | `GET /api/v1/query-sets` |
+| `query_templates` | `0011` | `name` | `GET /api/v1/query-templates` |
+| `judgment_lists` | `0012` | `name` | `GET /api/v1/judgment-lists` |
+| `conversations` | `0013` | `title` | `GET /api/v1/conversations` |
+
+**Hard rule:** `search_vector` is **not declared** in the SQLAlchemy ORM models. The columns are read-only from the application's perspective — Postgres maintains them via the `GENERATED ALWAYS AS … STORED` clause. Any attempt to INSERT or UPDATE these columns will fail with a Postgres error. The Story 2.13 lint guard is not the enforcement point here; the database itself is.
+
+**Rank ordering deferred to MVP2** — the `?q=` predicate filters but does not re-order results, so the existing `(created_at, id)` cursor stays valid. See [`docs/02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md`](../02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md) for the rank-ordering follow-up; cursor encoding will need to change to include the `ts_rank` score when that lands.
+
 ## Forthcoming: `audit_log` (MVP2 + MVP4 evolution)
 
 Documented here so MVP2 authoring has a target. Not in MVP1.
