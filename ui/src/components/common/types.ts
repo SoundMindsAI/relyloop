@@ -189,4 +189,11 @@ export interface DataTableProps<T extends { id: string }> {
    */
   filters?: Record<string, string | null | undefined>;
   onFilterChange?: (columnId: string, next: string | null) => void;
+
+  /**
+   * Story 2.4 — debounced text search URL state. Transient until Story 2.6.
+   * Only rendered when `searchable === true`.
+   */
+  q?: string | null;
+  onQChange?: (next: string | null) => void;
 }

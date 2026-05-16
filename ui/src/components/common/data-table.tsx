@@ -32,6 +32,7 @@ import {
 import { DataTableEmpty } from './data-table-empty';
 import { DataTableFilterChips } from './data-table-filter-chips';
 import { DataTableFkSelect } from './data-table-fk-select';
+import { DataTableSearch } from './data-table-search';
 import { DataTableSortHeader } from './data-table-sort-header';
 import { DataTableToolbar } from './data-table-toolbar';
 import type { DataTableColumnDef, DataTableProps } from './types';
@@ -49,6 +50,10 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     onSortChange,
     filters,
     onFilterChange,
+    q = null,
+    onQChange,
+    searchable = false,
+    totalCount,
   } = props;
 
   // Build the filter slot for the toolbar (Story 2.3 / FR-5).
@@ -117,12 +122,23 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     );
   }
 
+  // Story 2.4 — search input slot for the toolbar (left of filters).
+  const searchSlot =
+    searchable && onQChange ? (
+      <DataTableSearch value={q} onQChange={onQChange} totalCount={totalCount} />
+    ) : null;
+
+  const leftSlot =
+    searchSlot || filterSlot.length > 0 ? (
+      <>
+        {searchSlot}
+        {filterSlot}
+      </>
+    ) : null;
+
   return (
     <div className="space-y-3">
-      <DataTableToolbar
-        tableId={props.tableId}
-        leftSlot={filterSlot.length > 0 ? <>{filterSlot}</> : null}
-      />
+      <DataTableToolbar tableId={props.tableId} leftSlot={leftSlot} />
       {data.length === 0 ? (
         <DataTableEmpty
           kind="no-rows-exist"
