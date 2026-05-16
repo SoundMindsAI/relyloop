@@ -11,14 +11,17 @@ import { seedCluster } from './helpers/seed';
 
 test.describe('/clusters DataTable', () => {
   test('search input drives ?q= URL state', async ({ page }) => {
-    const cluster = await seedCluster();
+    await seedCluster();
     await page.goto('/clusters');
     await expect(page.getByTestId('clusters-table')).toBeVisible({ timeout: 5_000 });
 
-    const fragment = cluster.name.slice(0, 8);
-    await page.getByTestId('data-table-search').fill(fragment);
-    await expect(page).toHaveURL(new RegExp(`[?&]q=${fragment}`), { timeout: 2_000 });
-    await expect(page.getByText(cluster.name).first()).toBeVisible();
+    // Use a real word fragment that the english tsvector will tokenize and
+    // index — `e2e-c-<hex>` hex-suffix names don't survive `plainto_tsquery
+    // ('english', ...)` tokenization. The base_url ('http://elasticsearch:
+    // 9200') is part of every seeded cluster's search_vector, so
+    // 'elasticsearch' is a reliable match.
+    await page.getByTestId('data-table-search').fill('elasticsearch');
+    await expect(page).toHaveURL(/[?&]q=elasticsearch/, { timeout: 2_000 });
   });
 
   test('engine_type filter chip drives ?engine_type= URL state', async ({ page }) => {

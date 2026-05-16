@@ -106,8 +106,14 @@ class TestSchemaCreation:
             engine.dispose()
 
     def test_downgrade_drops_both_tables(self, restore_head: None) -> None:
+        # Downgrade target is `0006_proposals_pr_url_idx` — i.e. one
+        # revision BEFORE the 0007 conversations+messages migration.
+        # `downgrade -1` was the right target when 0007 was head, but
+        # feat_data_table_primitive extended the chain to 0013, so we
+        # use an explicit revision id here to stay correct as more
+        # migrations land on top.
         _alembic("upgrade", "head")
-        _alembic("downgrade", "-1")
+        _alembic("downgrade", "0006")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
@@ -121,13 +127,15 @@ class TestSchemaCreation:
                         )
                     ).fetchall()
                 }
-                assert names == set(), "conversations + messages should be dropped by downgrade -1"
+                assert names == set(), (
+                    "conversations + messages should be dropped by downgrade to 0006"
+                )
         finally:
             engine.dispose()
 
     def test_roundtrip(self, restore_head: None) -> None:
         _alembic("upgrade", "head")
-        _alembic("downgrade", "-1")
+        _alembic("downgrade", "0006")
         _alembic("upgrade", "head")
         engine = create_engine(_sync_database_url(), future=True)
         try:

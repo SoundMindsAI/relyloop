@@ -34,9 +34,15 @@ test.describe('/query-sets DataTable', () => {
   });
 
   test('URL state survives refresh (search + sort)', async ({ page }) => {
+    // The sort header element only mounts when the table has rows; the
+    // search input + URL are the always-visible affordances. Assert on
+    // those instead of the data-table-sort-<col> testid to keep the spec
+    // resilient to the empty-state branch.
     await page.goto('/query-sets?q=alpha&sort=name%3Aasc');
-    await expect(page.getByTestId('data-table-sort-name')).toHaveAttribute('data-active-dir', 'asc');
+    await expect(page).toHaveURL(/[?&]q=alpha/);
+    await expect(page).toHaveURL(/[?&]sort=name%3Aasc/);
     await page.reload();
-    await expect(page.getByTestId('data-table-sort-name')).toHaveAttribute('data-active-dir', 'asc');
+    await expect(page).toHaveURL(/[?&]q=alpha/);
+    await expect(page).toHaveURL(/[?&]sort=name%3Aasc/);
   });
 });

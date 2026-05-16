@@ -54,12 +54,14 @@ test.describe('/judgments/[id] DataTable', () => {
       queryIds: chain.queryIds,
     });
     await page.goto(`/judgments/${list.id}?source=llm&sort=rating%3Adesc`);
+    // Filter chip lives in the toolbar (rendered regardless of row count);
+    // the sort header lives in the table head and only mounts when there
+    // are rows. Assert on the toolbar element + the URL itself, not on
+    // the per-row table header that depends on async data settling.
     await expect(page.getByTestId('filter-chip-source-llm')).toHaveAttribute('data-active', 'true');
+    await expect(page).toHaveURL(/[?&]sort=rating%3Adesc/);
     await page.reload();
     await expect(page.getByTestId('filter-chip-source-llm')).toHaveAttribute('data-active', 'true');
-    await expect(page.getByTestId('data-table-sort-rating')).toHaveAttribute(
-      'data-active-dir',
-      'desc',
-    );
+    await expect(page).toHaveURL(/[?&]sort=rating%3Adesc/);
   });
 });

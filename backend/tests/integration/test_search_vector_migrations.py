@@ -41,14 +41,11 @@ from backend.app.core.settings import get_settings
 
 REPO = Path(__file__).resolve().parents[3]
 
-SEARCH_VECTOR_REVS = [
-    "0008_search_vector_clusters",
-    "0009_search_vector_studies",
-    "0010_search_vector_query_sets",
-    "0011_search_vector_query_templates",
-    "0012_search_vector_judgment_lists",
-    "0013_search_vector_conversations",
-]
+# Use bare numeric revision IDs (matching `revision: str = "NNNN"` in each
+# migration file). The file *names* include the descriptive slug
+# (`0008_search_vector_clusters.py`) but alembic looks up revisions by the
+# `revision` string only.
+SEARCH_VECTOR_REVS = ["0008", "0009", "0010", "0011", "0012", "0013"]
 TABLES = [
     "clusters",
     "studies",
