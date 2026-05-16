@@ -10,6 +10,15 @@ import { expect, test } from '@playwright/test';
 
 import { seedFullChain, seedStudy } from './helpers/seed';
 
+/**
+ * Sort header testids (`data-table-sort-<col>`) only render when the
+ * trials table has rows. The orchestrator produces trials asynchronously
+ * after a study is seeded, so each spec waits up to 30s for at least one
+ * `trials-table` to mount (which guarantees the column headers are
+ * present) before interacting with the sort cycle.
+ */
+const TRIALS_PRODUCE_TIMEOUT_MS = 30_000;
+
 test.describe('/studies/[id] trials DataTable', () => {
   test('Primary metric sort header serializes to ?sort=primary_metric_<dir>', async ({ page }) => {
     const chain = await seedFullChain(2);
@@ -21,9 +30,10 @@ test.describe('/studies/[id] trials DataTable', () => {
       maxTrials: 1,
     });
     await page.goto(`/studies/${study.id}`);
-    await expect(
-      page.getByTestId('trials-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
-    ).toBeVisible({ timeout: 10_000 });
+    // Wait for the table to mount (proves at least one trial completed).
+    await expect(page.getByTestId('trials-table')).toBeVisible({
+      timeout: TRIALS_PRODUCE_TIMEOUT_MS,
+    });
 
     // First click on Primary metric → firstClickDirection 'desc' → wire `primary_metric_desc`.
     await page.getByTestId('data-table-sort-primary_metric').click();
@@ -46,9 +56,9 @@ test.describe('/studies/[id] trials DataTable', () => {
       maxTrials: 1,
     });
     await page.goto(`/studies/${study.id}`);
-    await expect(
-      page.getByTestId('trials-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('trials-table')).toBeVisible({
+      timeout: TRIALS_PRODUCE_TIMEOUT_MS,
+    });
 
     await page.getByTestId('data-table-sort-optuna_trial_number').click();
     await expect(page).toHaveURL(/[?&]sort=optuna_trial_number_asc/);
@@ -69,9 +79,9 @@ test.describe('/studies/[id] trials DataTable', () => {
       maxTrials: 1,
     });
     await page.goto(`/studies/${study.id}?sort=ended_at_asc`);
-    await expect(
-      page.getByTestId('trials-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('trials-table')).toBeVisible({
+      timeout: TRIALS_PRODUCE_TIMEOUT_MS,
+    });
     await expect(page.getByTestId('data-table-sort-ended_at')).toHaveAttribute(
       'data-active-dir',
       'asc',

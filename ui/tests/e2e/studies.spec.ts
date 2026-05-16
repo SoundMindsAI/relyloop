@@ -38,11 +38,14 @@ test.describe('/studies', () => {
     await expect(page.getByText(study.name).first()).toBeVisible({ timeout: 5_000 });
 
     // Detail page renders the canonical header testids + trials surface.
+    // Story 3.7 migrated trials-table to <DataTable>; the legacy
+    // `trials-empty` testid was replaced by the generic DataTable
+    // empty-state testids (`data-table-empty-no-rows-exist`).
     await page.goto(`/studies/${study.id}`);
     await expect(page.getByTestId('study-name')).toContainText(study.name);
-    await expect(page.getByTestId('trials-table').or(page.getByTestId('trials-empty'))).toBeVisible(
-      { timeout: 10_000 },
-    );
+    await expect(
+      page.getByTestId('trials-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
+    ).toBeVisible({ timeout: 10_000 });
   });
 
   test('status filter chips drive the URL ?status= param', async ({ page }) => {
