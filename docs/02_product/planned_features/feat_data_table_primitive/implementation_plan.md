@@ -1857,7 +1857,7 @@ Per Epic 4 / Story 4.1:
 - [x] Story 3.8 — Migrate queries-table
 - [x] Story 3.9 — Verify studies-by-cluster inheritance
 - [x] Story 4.1 — Update architecture & convention docs
-- [ ] Story 4.2 — Capture deferred-feature idea files
+- [x] Story 4.2 — Capture deferred-feature idea files
 
 ### Blocked items
 (none)
