@@ -168,4 +168,16 @@ export interface DataTableProps<T extends { id: string }> {
    * `row-<id>` for queries-table), so the consumer supplies the mapper.
    */
   rowTestId: (row: T) => string;
+
+  /**
+   * Story 2.2 — sort URL state (transient prop until Story 2.6 lifts URL
+   * ownership to a `useDataTableUrlState` hook at the consumer). Optional
+   * during the 2.2-2.5 build-out; becomes required when 2.6 lands.
+   *
+   * Wire shape: ``<col>:<asc|desc>`` for the default column-name encoder,
+   * or the resource's combined-wire form for trials (the consumer-supplied
+   * encoder maps `(col, dir)` to/from the wire value at column-config level).
+   */
+  sort?: string | null;
+  onSortChange?: (next: string | null) => void;
 }

@@ -30,11 +30,22 @@ import {
 } from '@/components/ui/table';
 
 import { DataTableEmpty } from './data-table-empty';
+import { DataTableSortHeader } from './data-table-sort-header';
 import { DataTableToolbar } from './data-table-toolbar';
-import type { DataTableProps } from './types';
+import type { DataTableColumnDef, DataTableProps } from './types';
 
 export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
-  const { columns, data, isLoading, isError, emptyStateNoRows, tableTestId, rowTestId } = props;
+  const {
+    columns,
+    data,
+    isLoading,
+    isError,
+    emptyStateNoRows,
+    tableTestId,
+    rowTestId,
+    sort = null,
+    onSortChange,
+  } = props;
 
   // TanStack Table model. `getRowId: (row) => row.id` keys row identity on the
   // backend UUID rather than the row index — required for stable selection,
@@ -86,13 +97,29 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  const colDef = header.column.columnDef as DataTableColumnDef<T>;
+                  const rawHeader = header.isPlaceholder
+                    ? null
+                    : flexRender(colDef.header, header.getContext());
+                  // Wrap with the sort header when the column declares `sortable`.
+                  // Falls back to the raw rendered header for non-sortable columns.
+                  if (colDef.sortable && onSortChange) {
+                    return (
+                      <TableHead key={header.id}>
+                        <DataTableSortHeader
+                          label={rawHeader}
+                          sortKey={colDef.sortKey ?? colDef.id}
+                          activeSort={sort}
+                          onSortChange={onSortChange}
+                          firstClickDirection={colDef.firstClickDirection}
+                          sortDirections={colDef.sortDirections}
+                        />
+                      </TableHead>
+                    );
+                  }
+                  return <TableHead key={header.id}>{rawHeader}</TableHead>;
+                })}
               </TableRow>
             ))}
           </TableHeader>
