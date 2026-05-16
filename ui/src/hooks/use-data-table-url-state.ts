@@ -82,7 +82,10 @@ export function useDataTableUrlState<T extends { id: string }>(
   }, [filterColumnIds, searchParams]);
 
   const sort = searchParams.get('sort');
-  const q = searchParams.get('q');
+  // Normalize empty or whitespace `?q=` to null — `?q=` and `?q=   ` are
+  // not meaningful matchers and must not flip `anyMatcherActive` true.
+  const qRaw = searchParams.get('q');
+  const q = qRaw && qRaw.trim() ? qRaw : null;
   const cursor = searchParams.get('cursor');
   const limitRaw = searchParams.get('limit');
   const pageSize = limitRaw ? Number(limitRaw) || defaultPageSize : defaultPageSize;

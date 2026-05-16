@@ -95,7 +95,11 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
       return [cursor ?? null];
     });
   }, [cursor]);
-  const cursorStackLength = cursorStack.length;
+  // A direct load of `?cursor=<opaque>` initializes the stack to length 1
+  // (we don't know the trail), but the user is *not* on page 1. Treat any
+  // non-null cursor as a subsequent page for the FR-7 cursor-paginator-honest
+  // wording, regardless of stack length.
+  const cursorStackLength = cursor ? Math.max(cursorStack.length, 2) : cursorStack.length;
   const goNext = () => {
     if (!has_more || !next_cursor || !onCursorChange) return;
     setCursorStack((prev) => [...prev, next_cursor]);
@@ -249,7 +253,11 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
   // backend UUID rather than the row index — required for stable selection,
   // keyboard activation, and per-row testids when rows shift across pages.
   // Story 2.10 — column visibility state derived from the localStorage set.
-  const visibleColumns = columns.filter((c) => c.sticky || !hiddenColumns.has(c.id));
+  // Non-hideable columns (sticky OR hideable === false) are force-shown even
+  // if a tampered localStorage entry tries to hide them.
+  const visibleColumns = columns.filter(
+    (c) => c.sticky || c.hideable === false || !hiddenColumns.has(c.id),
+  );
   const table = useReactTable<T>({
     data: data as T[],
     // TanStack Table's `columns` prop is typed as a mutable `ColumnDef<T>[]`,
@@ -399,36 +407,39 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                       ? null
                       : flexRender(colDef.header, header.getContext());
                     // Story 2.8 — tooltip-enabled column headers (FR-12).
+                    // For sortable columns, pass the tooltip via the
+                    // `trailing` slot on `DataTableSortHeader` so it renders
+                    // outside the sort `<button>` — avoids invalid
+                    // button-in-button nesting and accidental sort on
+                    // tooltip interaction.
                     const tooltipNode = colDef.tooltipKey ? (
                       <InfoTooltip glossaryKey={colDef.tooltipKey} />
                     ) : null;
-                    const labelWithTooltip = tooltipNode ? (
-                      <span className="inline-flex items-center gap-1">
-                        {rawHeader}
-                        {tooltipNode}
-                      </span>
-                    ) : (
-                      rawHeader
-                    );
-                    // Wrap with the sort header when the column declares `sortable`.
-                    // Falls back to the raw rendered header for non-sortable columns.
                     if (colDef.sortable && onSortChange) {
                       return (
                         <TableHead key={header.id} className={cellPaddingClass}>
                           <DataTableSortHeader
-                            label={labelWithTooltip}
+                            label={rawHeader}
                             sortKey={colDef.sortKey ?? colDef.id}
                             activeSort={sort}
                             onSortChange={onSortChange}
                             firstClickDirection={colDef.firstClickDirection}
                             sortDirections={colDef.sortDirections}
+                            trailing={tooltipNode}
                           />
                         </TableHead>
                       );
                     }
                     return (
                       <TableHead key={header.id} className={cellPaddingClass}>
-                        {labelWithTooltip}
+                        {tooltipNode ? (
+                          <span className="inline-flex items-center gap-1">
+                            {rawHeader}
+                            {tooltipNode}
+                          </span>
+                        ) : (
+                          rawHeader
+                        )}
                       </TableHead>
                     );
                   })}

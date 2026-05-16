@@ -6,6 +6,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { DataTable } from '@/components/common/data-table';
 import {
   DataTableColumnVisibility,
   type ColumnVisibilityItem,
@@ -14,6 +15,7 @@ import {
   DataTableDensityToggle,
   type DataTableDensity,
 } from '@/components/common/data-table-density-toggle';
+import type { DataTableColumnDef } from '@/components/common/types';
 
 beforeEach(() => {
   // Reset localStorage between tests so density / col-vis defaults stay clean.
@@ -101,5 +103,113 @@ describe('DataTableDensityToggle', () => {
     render(<DataTableDensityToggle density="comfortable" onChange={onChange} />);
     fireEvent.click(screen.getByTestId('data-table-density-toggle-compact'));
     expect(onChange).toHaveBeenCalledWith('compact');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Integration through <DataTable> (Story 2.10 + 2.11 DoD):
+// hide-column round-trip + density localStorage persistence.
+// ---------------------------------------------------------------------------
+
+describe('DataTable integration — column visibility + density (Stories 2.10/2.11)', () => {
+  interface Row {
+    id: string;
+    name: string;
+    status: string;
+  }
+
+  const integrationColumns: DataTableColumnDef<Row>[] = [
+    { id: 'name', header: 'Name', accessorKey: 'name' },
+    { id: 'status', header: 'Status', accessorKey: 'status' },
+  ];
+
+  const integrationRows: Row[] = [
+    { id: 'r1', name: 'alpha', status: 'completed' },
+    { id: 'r2', name: 'beta', status: 'queued' },
+  ];
+
+  function renderIntegrationTable() {
+    return render(
+      <DataTable<Row>
+        tableId="integration-tbl"
+        tableTestId="integration-table"
+        rowTestId={(r) => `integration-row-${r.id}`}
+        columns={integrationColumns}
+        data={integrationRows}
+        isLoading={false}
+        isError={false}
+        has_more={false}
+        next_cursor={null}
+        emptyStateNoRows={{ title: 'Empty', message: '' }}
+      />,
+    );
+  }
+
+  it('toggling a column off via the menu removes its cells and persists to localStorage', () => {
+    renderIntegrationTable();
+    // Status column visible by default.
+    expect(screen.getAllByText('completed').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByTestId('data-table-column-visibility'));
+    fireEvent.click(screen.getByTestId('data-table-column-visibility-toggle-status'));
+    // Status cells gone.
+    expect(screen.queryByText('completed')).not.toBeInTheDocument();
+    // localStorage holds the hidden id.
+    const raw = window.localStorage.getItem('relyloop:datatable:integration-tbl:hidden-columns');
+    expect(raw).toBeTruthy();
+    expect(JSON.parse(raw!)).toContain('status');
+  });
+
+  it('mounts with a pre-existing localStorage hidden entry — column starts hidden', () => {
+    window.localStorage.setItem(
+      'relyloop:datatable:integration-tbl:hidden-columns',
+      JSON.stringify(['status']),
+    );
+    renderIntegrationTable();
+    expect(screen.queryByText('completed')).not.toBeInTheDocument();
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+  });
+
+  it('tampered localStorage cannot hide a column with hideable: false', () => {
+    window.localStorage.setItem(
+      'relyloop:datatable:integration-tbl:hidden-columns',
+      JSON.stringify(['name', 'status']),
+    );
+    // Override: mark `name` as non-hideable.
+    const cols: DataTableColumnDef<Row>[] = [
+      { id: 'name', header: 'Name', accessorKey: 'name', hideable: false },
+      { id: 'status', header: 'Status', accessorKey: 'status' },
+    ];
+    render(
+      <DataTable<Row>
+        tableId="integration-tbl"
+        tableTestId="integration-table"
+        rowTestId={(r) => `integration-row-${r.id}`}
+        columns={cols}
+        data={integrationRows}
+        isLoading={false}
+        isError={false}
+        has_more={false}
+        next_cursor={null}
+        emptyStateNoRows={{ title: 'Empty', message: '' }}
+      />,
+    );
+    // Name cells are still rendered despite localStorage including it.
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(screen.getByText('beta')).toBeInTheDocument();
+  });
+
+  it('density toggle persists to localStorage and hydrates on mount', () => {
+    const { unmount } = renderIntegrationTable();
+    fireEvent.click(screen.getByTestId('data-table-density-toggle-compact'));
+    expect(window.localStorage.getItem('relyloop:datatable:integration-tbl:density')).toBe(
+      'compact',
+    );
+    unmount();
+    // Remount — density should hydrate to 'compact'.
+    renderIntegrationTable();
+    expect(screen.getByTestId('data-table-density-toggle-compact')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
   });
 });

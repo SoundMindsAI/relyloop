@@ -59,6 +59,12 @@ export function DataTableSearch({
   }, [value]);
 
   useEffect(() => {
+    // Guard against the debounce-vs-sync race: when the controlled `value`
+    // prop changes externally, the sync effect updates `draft` immediately
+    // but `debouncedDraft` is still the prior tick's value. Skipping the
+    // commit until the debouncer catches up (draft === debouncedDraft)
+    // prevents `onQChange(null)` from undoing the external update.
+    if (debouncedDraft !== draft) return;
     // Recompute the commit decision from the debounced draft.
     const parsed = QSchema.safeParse(debouncedDraft);
     const next: string | null = parsed.success ? parsed.data : null;
@@ -73,7 +79,7 @@ export function DataTableSearch({
     }
     lastCommittedRef.current = next;
     onQChange(next);
-  }, [debouncedDraft, onQChange]);
+  }, [debouncedDraft, draft, onQChange]);
 
   return (
     <div className="flex items-center gap-2">

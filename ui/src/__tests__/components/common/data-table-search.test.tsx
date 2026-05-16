@@ -52,4 +52,23 @@ describe('DataTableSearch', () => {
     render(<DataTableSearch value={null} onQChange={vi.fn()} totalCount={100} />);
     expect(screen.queryByTestId('data-table-search-result-count')).not.toBeInTheDocument();
   });
+
+  // Regression for the debounce-vs-sync race surfaced by GPT-5.5 cycle 2:
+  // an external `value` change (e.g. back/forward nav) must not be undone
+  // by a stale debounced commit that fires with `onQChange(null)`.
+  it('external value change is not undone by a stale debounce tick', async () => {
+    const onQChange = vi.fn();
+    const { rerender } = render(
+      <DataTableSearch value={null} onQChange={onQChange} debounceMs={FAST_DEBOUNCE_MS} />,
+    );
+    // Simulate back/forward navigation supplying `value="product"` from URL.
+    rerender(
+      <DataTableSearch value="product" onQChange={onQChange} debounceMs={FAST_DEBOUNCE_MS} />,
+    );
+    // Wait past the debounce window — the search input syncs draft to "product"
+    // but must NOT then fire onQChange(null) from a stale debounced tick.
+    await new Promise((r) => setTimeout(r, WAIT_BUFFER_MS));
+    const calls = onQChange.mock.calls.map((c) => c[0]);
+    expect(calls).not.toContain(null);
+  });
 });
