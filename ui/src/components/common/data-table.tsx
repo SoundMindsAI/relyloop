@@ -32,7 +32,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
+import { useLocalStorageSet } from '@/hooks/use-local-storage-set';
+
 import { DataTableBulkActions } from './data-table-bulk-actions';
+import { DataTableColumnVisibility } from './data-table-column-visibility';
+import { type DataTableDensity, DataTableDensityToggle } from './data-table-density-toggle';
 import { DataTableEmpty } from './data-table-empty';
 import { DataTableFilterChips } from './data-table-filter-chips';
 import { DataTableFkSelect } from './data-table-fk-select';
@@ -73,6 +77,30 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     bulkActions,
     onSelectionChange,
   } = props;
+
+  // Story 2.10 — column visibility persisted to localStorage per tableId.
+  const hiddenColumns = useLocalStorageSet(`relyloop:datatable:${props.tableId}:hidden-columns`);
+  // Story 2.11 — density persisted to localStorage per tableId.
+  const densityKey = `relyloop:datatable:${props.tableId}:density`;
+  const [density, setDensityState] = useState<DataTableDensity>('comfortable');
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? window.localStorage.getItem(densityKey) : null;
+      if (raw === 'compact' || raw === 'comfortable') setDensityState(raw);
+    } catch {
+      /* private-browsing fallback */
+    }
+  }, [densityKey]);
+  const setDensity = (next: DataTableDensity) => {
+    setDensityState(next);
+    try {
+      if (typeof window !== 'undefined') window.localStorage.setItem(densityKey, next);
+    } catch {
+      /* swallow */
+    }
+  };
+  // Density Tailwind classes applied to cells (header + body).
+  const cellPaddingClass = density === 'compact' ? 'py-1.5 px-3' : 'py-3 px-4';
 
   // Story 2.9 — selection state (React-only, never URL-encoded per spec FR-13).
   // Cleared on cursor / filter / sort / q change via the effect below.
@@ -151,12 +179,14 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
   // TanStack Table model. `getRowId: (row) => row.id` keys row identity on the
   // backend UUID rather than the row index — required for stable selection,
   // keyboard activation, and per-row testids when rows shift across pages.
+  // Story 2.10 — column visibility state derived from the localStorage set.
+  const visibleColumns = columns.filter((c) => c.sticky || !hiddenColumns.has(c.id));
   const table = useReactTable<T>({
     data: data as T[],
     // TanStack Table's `columns` prop is typed as a mutable `ColumnDef<T>[]`,
     // but the consumer's column config is always a frozen `as const` array.
     // Cast to satisfy the API; the array is not mutated by TanStack.
-    columns: columns as unknown as import('@tanstack/react-table').ColumnDef<T>[],
+    columns: visibleColumns as unknown as import('@tanstack/react-table').ColumnDef<T>[],
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
   });
@@ -198,14 +228,31 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     ) : null;
 
   // Story 2.5 — total-count display in the right slot.
-  const rightSlot =
-    totalCount !== undefined ? (
-      <DataTableTotalCount
-        totalCount={totalCount}
-        rowsRendered={data.length}
-        cursorStackLength={cursorStackLength}
+  // Story 2.10/2.11 — density toggle + column-visibility menu also in right slot.
+  const columnVisibilityItems = columns
+    .filter((c) => c.hideable !== false)
+    .map((c) => ({
+      id: c.id,
+      label: typeof c.header === 'string' ? c.header : c.id,
+      hidden: hiddenColumns.has(c.id),
+      sticky: c.sticky,
+    }));
+  const rightSlot = (
+    <>
+      {totalCount !== undefined && (
+        <DataTableTotalCount
+          totalCount={totalCount}
+          rowsRendered={data.length}
+          cursorStackLength={cursorStackLength}
+        />
+      )}
+      <DataTableDensityToggle density={density} onChange={setDensity} />
+      <DataTableColumnVisibility
+        items={columnVisibilityItems}
+        onToggle={(id) => hiddenColumns.toggle(id)}
       />
-    ) : null;
+    </>
+  );
 
   // Story 2.7 — three empty-state shapes per FR-9.
   // Branch logic:
@@ -298,7 +345,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                     // Falls back to the raw rendered header for non-sortable columns.
                     if (colDef.sortable && onSortChange) {
                       return (
-                        <TableHead key={header.id}>
+                        <TableHead key={header.id} className={cellPaddingClass}>
                           <DataTableSortHeader
                             label={labelWithTooltip}
                             sortKey={colDef.sortKey ?? colDef.id}
@@ -310,7 +357,11 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                         </TableHead>
                       );
                     }
-                    return <TableHead key={header.id}>{labelWithTooltip}</TableHead>;
+                    return (
+                      <TableHead key={header.id} className={cellPaddingClass}>
+                        {labelWithTooltip}
+                      </TableHead>
+                    );
                   })}
                 </TableRow>
               ))}
@@ -331,7 +382,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                     </TableCell>
                   )}
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className={cellPaddingClass}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
