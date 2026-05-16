@@ -19,6 +19,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Cluster
+from backend.app.db.repo._fts import fts_predicate
 
 
 async def create_cluster(db: AsyncSession, **fields: object) -> Cluster:
@@ -36,17 +37,23 @@ async def list_clusters(
     cursor: tuple[datetime, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
+    q: str | None = None,
 ) -> Sequence[Cluster]:
     """Cursor-paginated active list, newest first.
 
     Excludes soft-deleted rows. ``cursor=(created_at, id)`` returns rows
     strictly older than the cursor; ``since`` filters to rows created at
-    or after a wall-clock timestamp. ``limit`` is clamped to 200 per
-    api-conventions.md §"Pagination".
+    or after a wall-clock timestamp. ``q`` is an optional Postgres FTS
+    match against ``search_vector`` (clusters.name + base_url); ordering
+    is unchanged (filter-only FTS per spec FR-1). ``limit`` is clamped to
+    200 per api-conventions.md §"Pagination".
     """
     stmt = select(Cluster).where(Cluster.deleted_at.is_(None))
     if since is not None:
         stmt = stmt.where(Cluster.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
         cursor_at, cursor_id = cursor
         stmt = stmt.where(
@@ -60,11 +67,16 @@ async def list_clusters(
     return list(result.scalars().all())
 
 
-async def count_clusters(db: AsyncSession, *, since: datetime | None = None) -> int:
+async def count_clusters(
+    db: AsyncSession, *, since: datetime | None = None, q: str | None = None
+) -> int:
     """Count active (non-soft-deleted) cluster rows for the ``X-Total-Count`` header."""
     stmt = select(func.count(Cluster.id)).where(Cluster.deleted_at.is_(None))
     if since is not None:
         stmt = stmt.where(Cluster.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     result = await db.execute(stmt)
     return int(result.scalar_one())
 

@@ -13,6 +13,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import QueryTemplate
+from backend.app.db.repo._fts import fts_predicate
 
 
 async def create_query_template(db: AsyncSession, **fields: object) -> QueryTemplate:
@@ -44,11 +45,19 @@ async def list_query_templates(
     cursor: tuple[datetime, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
+    q: str | None = None,
 ) -> Sequence[QueryTemplate]:
-    """Cursor-paginated list, newest first. Mirror of repo.cluster.list_clusters."""
+    """Cursor-paginated list, newest first. Mirror of repo.cluster.list_clusters.
+
+    ``q`` is an optional Postgres FTS match against ``search_vector``
+    (query_templates.name).
+    """
     stmt = select(QueryTemplate)
     if since is not None:
         stmt = stmt.where(QueryTemplate.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
         cursor_at, cursor_id = cursor
         stmt = stmt.where(
@@ -67,9 +76,13 @@ async def count_query_templates(
     db: AsyncSession,
     *,
     since: datetime | None = None,
+    q: str | None = None,
 ) -> int:
     """COUNT(*) templates for the X-Total-Count header."""
     stmt = select(func.count(QueryTemplate.id))
     if since is not None:
         stmt = stmt.where(QueryTemplate.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     return int((await db.execute(stmt)).scalar_one())

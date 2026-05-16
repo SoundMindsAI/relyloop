@@ -20,6 +20,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Study
+from backend.app.db.repo._fts import fts_predicate
 
 # Wire values for `?status=` filter on `GET /api/v1/studies`.
 # Must match backend/app/db/models/study.py CHECK constraint + the
@@ -54,19 +55,25 @@ async def list_studies(
     limit: int = 50,
     since: datetime | None = None,
     status: StudyStatusFilter | None = None,
+    q: str | None = None,
 ) -> Sequence[Study]:
     """Cursor-paginated study list, newest first.
 
     Order: ``created_at DESC, id DESC``. ``cursor=(created_at, id)``
     returns rows strictly older than the cursor; ``since`` filters to
     rows created at or after a wall-clock timestamp; ``status`` filters
-    to a single state. Limit clamped at 200 per api-conventions.md.
+    to a single state; ``q`` is an optional Postgres FTS match against
+    ``search_vector`` (studies.name + target). Limit clamped at 200 per
+    api-conventions.md.
     """
     stmt = select(Study)
     if status is not None:
         stmt = stmt.where(Study.status == status)
     if since is not None:
         stmt = stmt.where(Study.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
         cursor_at, cursor_id = cursor
         stmt = stmt.where(
@@ -84,6 +91,7 @@ async def count_studies(
     *,
     since: datetime | None = None,
     status: StudyStatusFilter | None = None,
+    q: str | None = None,
 ) -> int:
     """COUNT(*) studies matching the filter (for the X-Total-Count header)."""
     stmt = select(func.count(Study.id))
@@ -91,6 +99,9 @@ async def count_studies(
         stmt = stmt.where(Study.status == status)
     if since is not None:
         stmt = stmt.where(Study.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     return int((await db.execute(stmt)).scalar_one())
 
 

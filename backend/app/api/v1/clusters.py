@@ -177,11 +177,17 @@ async def list_clusters(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
+    q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
 ) -> ClusterListResponse:
-    """List clusters with cursor pagination + ``X-Total-Count`` header."""
+    """List clusters with cursor pagination + ``X-Total-Count`` header.
+
+    ``?q=`` is a Postgres FTS match against the cluster's ``search_vector``
+    (name + base_url); 2–200 chars. Filter-only — ordering unchanged per
+    spec FR-1 (feat_data_table_primitive Story 1.2).
+    """
     parsed_cursor = _decode_cursor(cursor) if cursor else None
-    rows = await repo.list_clusters(db, cursor=parsed_cursor, limit=limit, since=since)
-    total = await repo.count_clusters(db, since=since)
+    rows = await repo.list_clusters(db, cursor=parsed_cursor, limit=limit, since=since, q=q)
+    total = await repo.count_clusters(db, since=since, q=q)
     response.headers["X-Total-Count"] = str(total)
 
     summaries: list[ClusterSummary] = []

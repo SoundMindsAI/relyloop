@@ -158,11 +158,16 @@ async def list_query_templates(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
+    q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
 ) -> QueryTemplateListResponse:
-    """List query templates with cursor pagination + X-Total-Count header."""
+    """List query templates with cursor pagination + X-Total-Count header.
+
+    ``?q=`` is a Postgres FTS match against ``search_vector`` (name);
+    2-200 chars. Feat_data_table_primitive Story 1.2.
+    """
     parsed_cursor = _decode_cursor(cursor) if cursor else None
-    rows = await repo.list_query_templates(db, cursor=parsed_cursor, limit=limit, since=since)
-    total = await repo.count_query_templates(db, since=since)
+    rows = await repo.list_query_templates(db, cursor=parsed_cursor, limit=limit, since=since, q=q)
+    total = await repo.count_query_templates(db, since=since, q=q)
     response.headers["X-Total-Count"] = str(total)
 
     next_cursor: str | None = None

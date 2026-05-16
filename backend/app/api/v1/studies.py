@@ -266,12 +266,16 @@ async def list_studies(
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
     study_status: Annotated[StudyStatusWire | None, Query(alias="status")] = None,
+    q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
 ) -> StudyListResponse:
     """List studies with cursor pagination + X-Total-Count.
 
     ``?status=`` is typed as :data:`StudyStatusWire` so FastAPI returns
     422 ``VALIDATION_ERROR`` for unsupported values rather than silently
-    returning an empty list (C3-F2 GPT-5.5 cycle-3 fix).
+    returning an empty list (C3-F2 GPT-5.5 cycle-3 fix). ``?q=`` is a
+    Postgres FTS match against ``search_vector`` (name + target);
+    2-200 chars. Filter-only — ordering unchanged per spec FR-1
+    (feat_data_table_primitive Story 1.2).
     """
     parsed_cursor = _decode_cursor(cursor) if cursor else None
     status_filter: Any = study_status if study_status else None
@@ -281,8 +285,9 @@ async def list_studies(
         limit=limit,
         since=since,
         status=status_filter,
+        q=q,
     )
-    total = await repo.count_studies(db, since=since, status=status_filter)
+    total = await repo.count_studies(db, since=since, status=status_filter, q=q)
     response.headers["X-Total-Count"] = str(total)
 
     next_cursor: str | None = None

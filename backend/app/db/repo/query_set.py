@@ -9,6 +9,7 @@ from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Query, QuerySet
+from backend.app.db.repo._fts import fts_predicate
 
 
 async def create_query_set(db: AsyncSession, **fields: object) -> QuerySet:
@@ -32,11 +33,19 @@ async def list_query_sets(
     cursor: tuple[datetime, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
+    q: str | None = None,
 ) -> Sequence[QuerySet]:
-    """Cursor-paginated list, newest first."""
+    """Cursor-paginated list, newest first.
+
+    ``q`` is an optional Postgres FTS match against ``search_vector``
+    (query_sets.name). Filter-only — ordering preserved per spec FR-1.
+    """
     stmt = select(QuerySet)
     if since is not None:
         stmt = stmt.where(QuerySet.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
         cursor_at, cursor_id = cursor
         stmt = stmt.where(
@@ -53,11 +62,15 @@ async def count_query_sets(
     db: AsyncSession,
     *,
     since: datetime | None = None,
+    q: str | None = None,
 ) -> int:
     """COUNT(*) query sets for the X-Total-Count header."""
     stmt = select(func.count(QuerySet.id))
     if since is not None:
         stmt = stmt.where(QuerySet.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     return int((await db.execute(stmt)).scalar_one())
 
 

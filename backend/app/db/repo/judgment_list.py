@@ -20,6 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import JudgmentList
+from backend.app.db.repo._fts import fts_predicate
 
 
 async def create_judgment_list(db: AsyncSession, **fields: object) -> JudgmentList:
@@ -47,14 +48,24 @@ async def list_judgment_lists(
     *,
     cursor: tuple[datetime, str] | None = None,
     limit: int = 50,
+    since: datetime | None = None,
+    q: str | None = None,
 ) -> list[JudgmentList]:
     """Cursor-paginated list of judgment lists, newest first by ``created_at``.
 
     Cursor shape ``(created_at, id)`` mirrors the studies pagination pattern in
-    :func:`backend.app.db.repo.study.list_studies`. ``limit`` is clamped at the
-    router layer (default 50, max 200 per api-conventions.md).
+    :func:`backend.app.db.repo.study.list_studies`. ``since`` filters by
+    ``created_at >= since`` (Story 1.5 — closes api-conventions.md drift).
+    ``q`` is an optional Postgres FTS match against ``search_vector``
+    (judgment_lists.name + target). ``limit`` is clamped at the router layer
+    (default 50, max 200 per api-conventions.md).
     """
     stmt = select(JudgmentList).order_by(JudgmentList.created_at.desc(), JudgmentList.id.desc())
+    if since is not None:
+        stmt = stmt.where(JudgmentList.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     if cursor is not None:
         created_at, row_id = cursor
         stmt = stmt.where(
@@ -65,11 +76,21 @@ async def list_judgment_lists(
     return list((await db.execute(stmt)).scalars().all())
 
 
-async def count_judgment_lists(db: AsyncSession) -> int:
+async def count_judgment_lists(
+    db: AsyncSession,
+    *,
+    since: datetime | None = None,
+    q: str | None = None,
+) -> int:
     """Total count for ``X-Total-Count`` header on ``GET /api/v1/judgment-lists``."""
     from sqlalchemy import func as _func
 
     stmt = select(_func.count()).select_from(JudgmentList)
+    if since is not None:
+        stmt = stmt.where(JudgmentList.created_at >= since)
+    fts = fts_predicate(q)
+    if fts is not None:
+        stmt = stmt.where(fts)
     return int((await db.execute(stmt)).scalar_one())
 
 

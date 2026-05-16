@@ -328,14 +328,23 @@ async def list_judgment_lists_endpoint(
     db: Annotated[AsyncSession, Depends(get_db)],
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
+    since: Annotated[datetime | None, Query()] = None,
+    q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
 ) -> JudgmentListListResponse:
-    """List judgment lists, newest-first with cursor pagination."""
+    """List judgment lists, newest-first with cursor pagination.
+
+    ``?since=`` (Story 1.5 — closes api-conventions.md drift) filters by
+    ``created_at >= since``. ``?q=`` (Story 1.2) is a Postgres FTS match
+    against ``search_vector`` (name + target); 2-200 chars.
+    """
     decoded_cursor = _decode_cursor(cursor) if cursor else None
-    rows = await repo.list_judgment_lists(db, cursor=decoded_cursor, limit=limit + 1)
+    rows = await repo.list_judgment_lists(
+        db, cursor=decoded_cursor, limit=limit + 1, since=since, q=q
+    )
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
-    total = await repo.count_judgment_lists(db)
+    total = await repo.count_judgment_lists(db, since=since, q=q)
     response.headers["X-Total-Count"] = str(total)
     next_cursor = _encode_cursor(rows[-1].created_at, rows[-1].id) if has_more and rows else None
     return JudgmentListListResponse(
