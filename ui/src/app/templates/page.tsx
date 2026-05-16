@@ -1,22 +1,25 @@
 'use client';
 import { Suspense, useState } from 'react';
 
-import { CursorPaginator } from '@/components/common/cursor-paginator';
-import { EmptyState } from '@/components/common/empty-state';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TemplatesTable } from '@/components/templates/templates-table';
 import { CreateTemplateModal } from '@/components/templates/create-template-modal';
+import { TemplatesTable } from '@/components/templates/templates-table';
+import { templatesColumns } from '@/components/templates/templates-table.column-config';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useTemplates } from '@/lib/api/query-templates';
 
 function TemplatesPageInner() {
-  const [pageSize, setPageSize] = useState(50);
-  const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
+  const urlState = useDataTableUrlState('templates', templatesColumns, { defaultPageSize: 50 });
   const [createOpen, setCreateOpen] = useState(false);
-  const cursor = cursorStack[cursorStack.length - 1];
 
-  const query = useTemplates({ cursor, limit: pageSize });
-  const rows = query.data?.data ?? [];
+  const query = useTemplates({
+    engine_type: urlState.filters['engine_type'] ?? undefined,
+    q: urlState.q ?? undefined,
+    sort: urlState.sort ?? undefined,
+    cursor: urlState.cursor ?? undefined,
+    limit: urlState.pageSize,
+  });
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-6">
@@ -25,35 +28,16 @@ function TemplatesPageInner() {
         <Button onClick={() => setCreateOpen(true)}>Create template</Button>
       </div>
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">All templates</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {query.isPending ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          ) : query.isError ? (
-            <EmptyState
-              title="Backend unreachable"
-              message="Check `make logs` and confirm the API container is healthy."
-            />
-          ) : (
-            <>
-              <TemplatesTable rows={rows} />
-              <CursorPaginator
-                hasMore={query.data?.has_more ?? false}
-                onNext={() => setCursorStack((s) => [...s, query.data?.next_cursor ?? undefined])}
-                onPrev={
-                  cursorStack.length > 1 ? () => setCursorStack((s) => s.slice(0, -1)) : undefined
-                }
-                pageSize={pageSize}
-                onPageSizeChange={(n) => {
-                  setPageSize(n);
-                  setCursorStack([undefined]);
-                }}
-                totalCount={query.data?.totalCount}
-              />
-            </>
-          )}
+        <CardContent className="pt-6">
+          <TemplatesTable
+            rows={query.data?.data ?? []}
+            totalCount={query.data?.totalCount}
+            has_more={query.data?.has_more ?? false}
+            next_cursor={query.data?.next_cursor ?? null}
+            isLoading={query.isPending}
+            isError={query.isError}
+            urlState={urlState}
+          />
         </CardContent>
       </Card>
       <CreateTemplateModal open={createOpen} onOpenChange={setCreateOpen} />

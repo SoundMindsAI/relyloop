@@ -1850,8 +1850,8 @@ Per Epic 4 / Story 4.1:
 - [x] Story 3.1 — Migrate studies-table
 - [x] Story 3.2 — Migrate proposals-table
 - [x] Story 3.3 — Migrate clusters-table
-- [ ] Story 3.4 — Migrate templates-table
-- [ ] Story 3.5 — Migrate query-sets-table
+- [x] Story 3.4 — Migrate templates-table
+- [x] Story 3.5 — Migrate query-sets-table
 - [ ] Story 3.6 — Migrate judgments-table
 - [ ] Story 3.7 — Migrate trials-table
 - [ ] Story 3.8 — Migrate queries-table

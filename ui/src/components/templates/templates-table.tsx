@@ -1,57 +1,66 @@
 'use client';
-import Link from 'next/link';
 
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+/**
+ * `<TemplatesTable>` thin DataTable consumer
+ * (feat_data_table_primitive Story 3.4).
+ */
+import { DataTable } from '@/components/common/data-table';
+import { templatesColumns } from '@/components/templates/templates-table.column-config';
+import type { DataTableUrlStateApi } from '@/hooks/use-data-table-url-state';
 import type { QueryTemplateSummary } from '@/lib/api/query-templates';
 
 export interface TemplatesTableProps {
   rows: readonly QueryTemplateSummary[];
+  totalCount?: number;
+  has_more: boolean;
+  next_cursor: string | null;
+  isLoading: boolean;
+  isError: boolean;
+  urlState: DataTableUrlStateApi;
 }
 
-export function TemplatesTable({ rows }: TemplatesTableProps) {
-  if (rows.length === 0) {
-    return (
-      <p className="py-12 text-center text-sm text-muted-foreground" data-testid="templates-empty">
-        No templates yet — click &ldquo;Create template&rdquo; to add one.
-      </p>
-    );
-  }
+export function TemplatesTable({
+  rows,
+  totalCount,
+  has_more,
+  next_cursor,
+  isLoading,
+  isError,
+  urlState,
+}: TemplatesTableProps) {
   return (
-    <Table data-testid="templates-table">
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Engine</TableHead>
-          <TableHead>Version</TableHead>
-          <TableHead>Created</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((t) => (
-          <TableRow key={t.id} data-testid={`template-row-${t.id}`}>
-            <TableCell>
-              <Link
-                href={`/templates/${t.id}`}
-                className="text-blue-600 underline-offset-4 hover:underline"
-              >
-                {t.name}
-              </Link>
-            </TableCell>
-            <TableCell>{t.engine_type}</TableCell>
-            <TableCell>v{t.version}</TableCell>
-            <TableCell className="whitespace-nowrap">
-              {new Date(t.created_at).toLocaleString()}
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <DataTable<QueryTemplateSummary>
+      tableId="templates"
+      tableTestId="templates-table"
+      rowTestId={(r) => `template-row-${r.id}`}
+      columns={templatesColumns}
+      data={rows}
+      isLoading={isLoading}
+      isError={isError}
+      totalCount={totalCount}
+      has_more={has_more}
+      next_cursor={next_cursor}
+      searchable
+      sort={urlState.sort}
+      onSortChange={urlState.setSort}
+      filters={urlState.filters}
+      onFilterChange={urlState.setFilter}
+      q={urlState.q}
+      onQChange={urlState.setQ}
+      cursor={urlState.cursor}
+      pageSize={urlState.pageSize}
+      onCursorChange={urlState.setCursor}
+      onPageSizeChange={urlState.setPageSize}
+      onClearMatchers={urlState.clearAllMatchers}
+      anyMatcherActive={urlState.anyMatcherActive}
+      emptyStateNoRows={{
+        title: 'No templates yet',
+        message: 'Click "Create template" to add one.',
+      }}
+      emptyStateNoMatch={{
+        title: 'No templates match',
+        message: 'No templates match the current filters.',
+      }}
+    />
   );
 }

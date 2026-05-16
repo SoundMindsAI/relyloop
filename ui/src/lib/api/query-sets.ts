@@ -41,17 +41,19 @@ export interface QuerySetsFilter {
   cluster_id?: string | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
+  q?: string | undefined;
+  sort?: string | undefined;
 }
 
 export function useQuerySets(
   filter: QuerySetsFilter = {},
 ): UseQueryResult<QuerySetsPage, ApiError> {
-  const { cluster_id, cursor, limit } = filter;
+  const { cluster_id, cursor, limit, q, sort } = filter;
   return useQuery<QuerySetsPage, ApiError>({
-    queryKey: ['query-sets', { cluster_id, cursor, limit }],
+    queryKey: ['query-sets', { cluster_id, cursor, limit, q, sort }],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<QuerySetListResponse>('/api/v1/query-sets', {
-        params: { cluster_id, cursor, limit },
+        params: { cluster_id, cursor, limit, q, sort },
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },
