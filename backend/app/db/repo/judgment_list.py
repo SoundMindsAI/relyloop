@@ -21,6 +21,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import JudgmentList
 from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._sort import (
+    ParsedSort,
+    keyset_predicate,
+    order_by_clauses,
+    parse_sort,
+)
+
+_JUDGMENT_LIST_SORT_COLUMNS: dict[str, object] = {
+    "name": JudgmentList.name,
+    "created_at": JudgmentList.created_at,
+    "status": JudgmentList.status,
+}
 
 
 async def create_judgment_list(db: AsyncSession, **fields: object) -> JudgmentList:
@@ -46,33 +58,44 @@ async def get_judgment_list(db: AsyncSession, judgment_list_id: str) -> Judgment
 async def list_judgment_lists(
     db: AsyncSession,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[object, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
     q: str | None = None,
+    sort: str | None = None,
 ) -> list[JudgmentList]:
-    """Cursor-paginated list of judgment lists, newest first by ``created_at``.
+    """Cursor-paginated list of judgment lists, sort-aware (Story 1.3).
 
-    Cursor shape ``(created_at, id)`` mirrors the studies pagination pattern in
-    :func:`backend.app.db.repo.study.list_studies`. ``since`` filters by
-    ``created_at >= since`` (Story 1.5 — closes api-conventions.md drift).
-    ``q`` is an optional Postgres FTS match against ``search_vector``
-    (judgment_lists.name + target). ``limit`` is clamped at the router layer
-    (default 50, max 200 per api-conventions.md).
+    Default ordering ``created_at DESC, id DESC``. ``?sort=`` switches
+    to ``<col>:<dir>`` with explicit NULLS handling. ``since`` filters
+    by ``created_at >= since``. ``q`` is FTS match against
+    ``search_vector`` (name + target).
     """
-    stmt = select(JudgmentList).order_by(JudgmentList.created_at.desc(), JudgmentList.id.desc())
+    parsed_sort: ParsedSort | None = parse_sort(sort, _JUDGMENT_LIST_SORT_COLUMNS)
+    stmt = select(JudgmentList)
     if since is not None:
         stmt = stmt.where(JudgmentList.created_at >= since)
     fts = fts_predicate(q)
     if fts is not None:
         stmt = stmt.where(fts)
     if cursor is not None:
-        created_at, row_id = cursor
+        cursor_value, cursor_id = cursor
         stmt = stmt.where(
-            (JudgmentList.created_at < created_at)
-            | ((JudgmentList.created_at == created_at) & (JudgmentList.id < row_id))
+            keyset_predicate(
+                parsed_sort,
+                cursor_value,
+                cursor_id,
+                default_col=JudgmentList.created_at,
+                id_col=JudgmentList.id,
+            )
         )
-    stmt = stmt.limit(limit)
+    stmt = stmt.order_by(
+        *order_by_clauses(
+            parsed_sort,
+            default_col=JudgmentList.created_at,
+            id_col=JudgmentList.id,
+        )
+    ).limit(limit)
     return list((await db.execute(stmt)).scalars().all())
 
 

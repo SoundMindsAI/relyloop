@@ -16,11 +16,27 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Study
 from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._sort import (
+    ParsedSort,
+    keyset_predicate,
+    order_by_clauses,
+    parse_sort,
+)
+
+# Allowlist for ``?sort=<col>:<dir>`` on ``/api/v1/studies``. Keys mirror
+# ``StudySortKey`` Literal in ``backend.app.api.v1.schemas``.
+_STUDY_SORT_COLUMNS: dict[str, object] = {
+    "name": Study.name,
+    "created_at": Study.created_at,
+    "completed_at": Study.completed_at,
+    "best_metric": Study.best_metric,
+    "status": Study.status,
+}
 
 # Wire values for `?status=` filter on `GET /api/v1/studies`.
 # Must match backend/app/db/models/study.py CHECK constraint + the
@@ -51,21 +67,25 @@ async def get_study(db: AsyncSession, study_id: str) -> Study | None:
 async def list_studies(
     db: AsyncSession,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[object, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
     status: StudyStatusFilter | None = None,
     q: str | None = None,
+    sort: str | None = None,
 ) -> Sequence[Study]:
-    """Cursor-paginated study list, newest first.
+    """Cursor-paginated study list.
 
-    Order: ``created_at DESC, id DESC``. ``cursor=(created_at, id)``
-    returns rows strictly older than the cursor; ``since`` filters to
-    rows created at or after a wall-clock timestamp; ``status`` filters
-    to a single state; ``q`` is an optional Postgres FTS match against
-    ``search_vector`` (studies.name + target). Limit clamped at 200 per
-    api-conventions.md.
+    Default ordering: ``created_at DESC, id DESC``. When ``sort`` is non-default
+    (e.g. ``name:asc``, ``best_metric:desc``), the ORDER BY + keyset cursor
+    predicate are switched accordingly with explicit NULLS handling and
+    ``id DESC`` tie-breaker.
+
+    ``since`` filters to ``created_at >= since``. ``status`` filters to a
+    single state. ``q`` is an optional Postgres FTS match against
+    ``search_vector`` (studies.name + target). Limit clamped at 200.
     """
+    parsed_sort: ParsedSort | None = parse_sort(sort, _STUDY_SORT_COLUMNS)
     stmt = select(Study)
     if status is not None:
         stmt = stmt.where(Study.status == status)
@@ -75,14 +95,19 @@ async def list_studies(
     if fts is not None:
         stmt = stmt.where(fts)
     if cursor is not None:
-        cursor_at, cursor_id = cursor
+        cursor_value, cursor_id = cursor
         stmt = stmt.where(
-            or_(
-                Study.created_at < cursor_at,
-                and_(Study.created_at == cursor_at, Study.id < cursor_id),
+            keyset_predicate(
+                parsed_sort,
+                cursor_value,
+                cursor_id,
+                default_col=Study.created_at,
+                id_col=Study.id,
             )
         )
-    stmt = stmt.order_by(Study.created_at.desc(), Study.id.desc()).limit(min(limit, 200))
+    stmt = stmt.order_by(
+        *order_by_clauses(parsed_sort, default_col=Study.created_at, id_col=Study.id)
+    ).limit(min(limit, 200))
     return list((await db.execute(stmt)).scalars().all())
 
 

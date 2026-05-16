@@ -31,12 +31,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1.schemas import (
     CreateQueryTemplateRequest,
+    EngineTypeWire,
     QueryTemplateDetail,
     QueryTemplateListResponse,
+    QueryTemplateSortKey,
     QueryTemplateSummary,
 )
 from backend.app.db import repo
 from backend.app.db.models import QueryTemplate
+from backend.app.db.repo._sort import (
+    cursor_value_is_datetime,
+    parse_sort,
+)
+from backend.app.db.repo._sort import (
+    decode_cursor as _sort_decode_cursor,
+)
+from backend.app.db.repo._sort import (
+    encode_cursor as _sort_encode_cursor,
+)
+from backend.app.db.repo.query_template import _QUERY_TEMPLATE_SORT_COLUMNS
 from backend.app.db.session import get_db
 from backend.app.domain.study.template_validator import (
     DeclaredParamUnused,
@@ -159,22 +172,44 @@ async def list_query_templates(
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
     q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
+    sort: Annotated[QueryTemplateSortKey | None, Query()] = None,
+    engine_type: Annotated[EngineTypeWire | None, Query()] = None,
 ) -> QueryTemplateListResponse:
     """List query templates with cursor pagination + X-Total-Count header.
 
-    ``?q=`` is a Postgres FTS match against ``search_vector`` (name);
-    2-200 chars. Feat_data_table_primitive Story 1.2.
+    ``?q=`` FTS match (name). ``?sort=`` sort-aware cursor (Story 1.3).
+    ``?engine_type=`` filters by engine (Story 1.4).
     """
-    parsed_cursor = _decode_cursor(cursor) if cursor else None
-    rows = await repo.list_query_templates(db, cursor=parsed_cursor, limit=limit, since=since, q=q)
-    total = await repo.count_query_templates(db, since=since, q=q)
+    parsed_sort = parse_sort(sort, _QUERY_TEMPLATE_SORT_COLUMNS)
+    parsed_cursor: tuple[object, str] | None = None
+    if cursor:
+        try:
+            parsed_cursor = _sort_decode_cursor(
+                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+            )
+        except Exception as exc:
+            raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
+    rows = await repo.list_query_templates(
+        db,
+        cursor=parsed_cursor,
+        limit=limit,
+        since=since,
+        q=q,
+        sort=sort,
+        engine_type=engine_type,
+    )
+    total = await repo.count_query_templates(db, since=since, q=q, engine_type=engine_type)
     response.headers["X-Total-Count"] = str(total)
 
     next_cursor: str | None = None
     has_more = False
     if rows and len(rows) == limit:
         last = rows[-1]
-        next_cursor = _encode_cursor(last.created_at, last.id)
+        if parsed_sort is None:
+            cursor_value: object = last.created_at
+        else:
+            cursor_value = getattr(last, parsed_sort.col_name)
+        next_cursor = _sort_encode_cursor(cursor_value, last.id)
         has_more = True
     return QueryTemplateListResponse(
         data=[_summary(r) for r in rows],

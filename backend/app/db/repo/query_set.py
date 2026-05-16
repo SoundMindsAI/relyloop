@@ -5,11 +5,22 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Query, QuerySet
 from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._sort import (
+    ParsedSort,
+    keyset_predicate,
+    order_by_clauses,
+    parse_sort,
+)
+
+_QUERY_SET_SORT_COLUMNS: dict[str, object] = {
+    "name": QuerySet.name,
+    "created_at": QuerySet.created_at,
+}
 
 
 async def create_query_set(db: AsyncSession, **fields: object) -> QuerySet:
@@ -30,16 +41,19 @@ async def get_query_set(db: AsyncSession, query_set_id: str) -> QuerySet | None:
 async def list_query_sets(
     db: AsyncSession,
     *,
-    cursor: tuple[datetime, str] | None = None,
+    cursor: tuple[object, str] | None = None,
     limit: int = 50,
     since: datetime | None = None,
     q: str | None = None,
+    sort: str | None = None,
 ) -> Sequence[QuerySet]:
-    """Cursor-paginated list, newest first.
+    """Cursor-paginated list. Sort-aware cursor per Story 1.3.
 
     ``q`` is an optional Postgres FTS match against ``search_vector``
-    (query_sets.name). Filter-only — ordering preserved per spec FR-1.
+    (query_sets.name). Default ordering ``created_at DESC, id DESC`` is
+    preserved when ``sort`` is None.
     """
+    parsed_sort: ParsedSort | None = parse_sort(sort, _QUERY_SET_SORT_COLUMNS)
     stmt = select(QuerySet)
     if since is not None:
         stmt = stmt.where(QuerySet.created_at >= since)
@@ -47,14 +61,19 @@ async def list_query_sets(
     if fts is not None:
         stmt = stmt.where(fts)
     if cursor is not None:
-        cursor_at, cursor_id = cursor
+        cursor_value, cursor_id = cursor
         stmt = stmt.where(
-            or_(
-                QuerySet.created_at < cursor_at,
-                and_(QuerySet.created_at == cursor_at, QuerySet.id < cursor_id),
+            keyset_predicate(
+                parsed_sort,
+                cursor_value,
+                cursor_id,
+                default_col=QuerySet.created_at,
+                id_col=QuerySet.id,
             )
         )
-    stmt = stmt.order_by(QuerySet.created_at.desc(), QuerySet.id.desc()).limit(min(limit, 200))
+    stmt = stmt.order_by(
+        *order_by_clauses(parsed_sort, default_col=QuerySet.created_at, id_col=QuerySet.id)
+    ).limit(min(limit, 200))
     return list((await db.execute(stmt)).scalars().all())
 
 

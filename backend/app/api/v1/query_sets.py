@@ -39,12 +39,24 @@ from backend.app.api.v1.schemas import (
     QueryRow,
     QuerySetDetail,
     QuerySetListResponse,
+    QuerySetSortKey,
     QuerySetSummary,
     UpdateQueryRequest,
 )
 from backend.app.db import repo
 from backend.app.db.models import Query as QueryModel
 from backend.app.db.models import QuerySet
+from backend.app.db.repo._sort import (
+    cursor_value_is_datetime,
+    parse_sort,
+)
+from backend.app.db.repo._sort import (
+    decode_cursor as _sort_decode_cursor,
+)
+from backend.app.db.repo._sort import (
+    encode_cursor as _sort_encode_cursor,
+)
+from backend.app.db.repo.query_set import _QUERY_SET_SORT_COLUMNS
 from backend.app.db.session import get_db
 from backend.app.domain.study.csv_parser import InvalidCsvError, parse_queries_csv
 
@@ -152,14 +164,25 @@ async def list_query_sets(
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
     q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
+    sort: Annotated[QuerySetSortKey | None, Query()] = None,
 ) -> QuerySetListResponse:
     """List query sets with cursor pagination + X-Total-Count.
 
-    ``?q=`` is a Postgres FTS match against ``search_vector`` (name);
-    2-200 chars. Feat_data_table_primitive Story 1.2.
+    ``?q=`` is FTS match against ``search_vector`` (name). ``?sort=`` is a
+    :data:`QuerySetSortKey` value; cursor is sort-aware.
     """
-    parsed_cursor = _decode_cursor(cursor) if cursor else None
-    rows = await repo.list_query_sets(db, cursor=parsed_cursor, limit=limit, since=since, q=q)
+    parsed_sort = parse_sort(sort, _QUERY_SET_SORT_COLUMNS)
+    parsed_cursor: tuple[object, str] | None = None
+    if cursor:
+        try:
+            parsed_cursor = _sort_decode_cursor(
+                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+            )
+        except Exception as exc:
+            raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
+    rows = await repo.list_query_sets(
+        db, cursor=parsed_cursor, limit=limit, since=since, q=q, sort=sort
+    )
     total = await repo.count_query_sets(db, since=since, q=q)
     response.headers["X-Total-Count"] = str(total)
 
@@ -167,7 +190,11 @@ async def list_query_sets(
     has_more = False
     if rows and len(rows) == limit:
         last = rows[-1]
-        next_cursor = _encode_cursor(last.created_at, last.id)
+        if parsed_sort is None:
+            cursor_value: object = last.created_at
+        else:
+            cursor_value = getattr(last, parsed_sort.col_name)
+        next_cursor = _sort_encode_cursor(cursor_value, last.id)
         has_more = True
     return QuerySetListResponse(
         data=[_summary(r) for r in rows],
