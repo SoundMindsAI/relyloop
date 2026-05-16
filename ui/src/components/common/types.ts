@@ -182,6 +182,15 @@ export interface DataTableProps<T extends { id: string }> {
   onSortChange?: (next: string | null) => void;
 
   /**
+   * Optional codec for tables whose backend `?sort=` Literal is a fused
+   * single token (e.g. trials' `primary_metric_desc`,
+   * `optuna_trial_number_asc`) rather than the default `<col>:<dir>` form.
+   * DataTable threads it into the sort header so column-header clicks
+   * still drive the cycle but the URL/wire stays in the legacy format.
+   */
+  sortCodec?: import('./data-table-sort-header').SortCodec;
+
+  /**
    * Story 2.3 — filter URL state (transient until Story 2.6). Map of column
    * id → active wire value (`null` or absent = "all" / no filter). The
    * primitive renders chip rows / FK selects in the toolbar for every column

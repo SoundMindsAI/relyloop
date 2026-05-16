@@ -77,6 +77,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     onSelectionChange,
     keyboardNav = true,
     onRowActivate,
+    sortCodec,
   } = props;
 
   // Story 2.5 / 2.7 — cursor stack: DataTable owns the trail of cursors the
@@ -421,6 +422,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
                             firstClickDirection={colDef.firstClickDirection}
                             sortDirections={colDef.sortDirections}
                             trailing={tooltipNode}
+                            sortCodec={sortCodec}
                           />
                         </TableHead>
                       );

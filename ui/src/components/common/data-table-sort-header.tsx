@@ -28,6 +28,18 @@ import { cn } from '@/lib/utils';
 
 export type SortDir = 'asc' | 'desc';
 
+/**
+ * Optional encoder/decoder pair for tables whose backend `?sort=` Literal
+ * is a fused single token (e.g. trials' `primary_metric_desc`,
+ * `optuna_trial_number_asc`) rather than the default `<col>:<dir>` form.
+ * When supplied, the sort header transforms `(col, dir)` ↔ wire at the
+ * URL boundary; when omitted, the default `<col>:<dir>` parse applies.
+ */
+export interface SortCodec {
+  encode: (col: string, dir: SortDir) => string;
+  decode: (wire: string) => { col: string; dir: SortDir } | null;
+}
+
 export interface DataTableSortHeaderProps {
   label: React.ReactNode;
   /** Wire-form column name used in the `?sort=<col>:<dir>` URL/api value. */
@@ -42,13 +54,25 @@ export interface DataTableSortHeaderProps {
   sortDirections?: readonly SortDir[];
   /** Optional tooltip slot (Story 2.8 renders `<InfoTooltip>` next to label). */
   trailing?: React.ReactNode;
+  /** Optional codec for fused-wire backends (trials, etc.). */
+  sortCodec?: SortCodec;
 }
 
-function currentDir(activeSort: string | null, sortKey: string): SortDir | null {
+function defaultCurrentDir(activeSort: string | null, sortKey: string): SortDir | null {
   if (!activeSort) return null;
   const [col, dir] = activeSort.split(':');
   if (col !== sortKey) return null;
   return dir === 'asc' || dir === 'desc' ? dir : null;
+}
+
+function currentDir(activeSort: string | null, sortKey: string, codec?: SortCodec): SortDir | null {
+  if (!activeSort) return null;
+  if (codec) {
+    const decoded = codec.decode(activeSort);
+    if (!decoded || decoded.col !== sortKey) return null;
+    return decoded.dir;
+  }
+  return defaultCurrentDir(activeSort, sortKey);
 }
 
 /**
@@ -100,15 +124,28 @@ export function DataTableSortHeader({
   firstClickDirection = 'asc',
   sortDirections = ['asc', 'desc'],
   trailing,
+  sortCodec,
 }: DataTableSortHeaderProps) {
-  const dir = currentDir(activeSort, sortKey);
+  const dir = currentDir(activeSort, sortKey, sortCodec);
   const buttonId = useId();
   const ariaSort = dir === 'asc' ? 'ascending' : dir === 'desc' ? 'descending' : 'none';
   const Chevron = dir === 'asc' ? ChevronUp : dir === 'desc' ? ChevronDown : ChevronsUpDown;
   const chevronClass = dir === null ? 'opacity-40' : '';
 
   const handleClick = () => {
-    onSortChange(nextSortValue(dir, sortKey, firstClickDirection, sortDirections));
+    const nextDefault = nextSortValue(dir, sortKey, firstClickDirection, sortDirections);
+    if (!sortCodec) {
+      onSortChange(nextDefault);
+      return;
+    }
+    // Codec path: re-derive the next (col, dir) and encode to wire.
+    if (nextDefault === null) {
+      onSortChange(null);
+      return;
+    }
+    const [, nextDirRaw] = nextDefault.split(':');
+    const nextDir = nextDirRaw === 'asc' || nextDirRaw === 'desc' ? (nextDirRaw as SortDir) : null;
+    onSortChange(nextDir ? sortCodec.encode(sortKey, nextDir) : null);
   };
 
   return (

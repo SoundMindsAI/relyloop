@@ -1,30 +1,40 @@
 'use client';
 import Link from 'next/link';
-import { use, useState } from 'react';
+import { Suspense, use } from 'react';
 
-import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { EmptyState } from '@/components/common/empty-state';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
 import { StudyHeader } from '@/components/studies/study-header';
 import { TrialsTable } from '@/components/studies/trials-table';
+import { trialsColumns } from '@/components/studies/trials-table.column-config';
+import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useStudyDigest } from '@/lib/api/digests';
 import { useProposalForStudy } from '@/lib/api/proposals';
 import { useStudy, useStudyTrials } from '@/lib/api/studies';
-import type { TrialSort } from '@/lib/enums';
+import { TRIAL_SORT_VALUES, type TrialSort } from '@/lib/enums';
 
 interface RouteProps {
   params: Promise<{ id: string }>;
 }
 
 const POLL_MS = 3000;
+const DEFAULT_TRIAL_SORT: TrialSort = 'primary_metric_desc';
 
 export function StudyDetailView({ studyId }: { studyId: string }) {
-  const [pageSize, setPageSize] = useState(50);
-  const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
-  const [sort, setSort] = useState<TrialSort>('primary_metric_desc');
-  const cursor = cursorStack[cursorStack.length - 1];
+  const urlState = useDataTableUrlState('trials', trialsColumns, { defaultPageSize: 50 });
+
+  // Narrow the URL sort value to the canonical TrialSortKey allowlist —
+  // invalid values fall back to the default. The DataTable feeds the wire
+  // form back via urlState.sort thanks to trialsSortCodec; this narrowing
+  // protects useStudyTrials from receiving an arbitrary string when an
+  // operator hand-edits the URL.
+  const rawSort = urlState.sort;
+  const sort: TrialSort =
+    rawSort && (TRIAL_SORT_VALUES as readonly string[]).includes(rawSort)
+      ? (rawSort as TrialSort)
+      : DEFAULT_TRIAL_SORT;
 
   // Caller-driven polling per spec §4: TanStack Query's refetchInterval
   // function form derives the interval from the latest query state on each
@@ -34,8 +44,8 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
   });
   const trialsQ = useStudyTrials(studyId, {
     sort,
-    cursor,
-    limit: pageSize,
+    cursor: urlState.cursor ?? undefined,
+    limit: urlState.pageSize,
     refetchInterval: () => (studyQ.data?.status === 'running' ? POLL_MS : false),
   });
   const digestQ = useStudyDigest(studyId);
@@ -68,40 +78,15 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               <CardTitle className="text-base">Trials</CardTitle>
             </CardHeader>
             <CardContent>
-              {trialsQ.isError ? (
-                <EmptyState
-                  title="Backend unreachable"
-                  message="Refresh after re-launching the API."
-                />
-              ) : (
-                <>
-                  <TrialsTable
-                    rows={trialsQ.data?.data ?? []}
-                    sort={sort}
-                    onSortChange={(s) => {
-                      setSort(s);
-                      setCursorStack([undefined]);
-                    }}
-                  />
-                  <CursorPaginator
-                    hasMore={trialsQ.data?.has_more ?? false}
-                    onNext={() =>
-                      setCursorStack((s) => [...s, trialsQ.data?.next_cursor ?? undefined])
-                    }
-                    onPrev={
-                      cursorStack.length > 1
-                        ? () => setCursorStack((s) => s.slice(0, -1))
-                        : undefined
-                    }
-                    pageSize={pageSize}
-                    onPageSizeChange={(n) => {
-                      setPageSize(n);
-                      setCursorStack([undefined]);
-                    }}
-                    totalCount={trialsQ.data?.totalCount}
-                  />
-                </>
-              )}
+              <TrialsTable
+                rows={trialsQ.data?.data ?? []}
+                totalCount={trialsQ.data?.totalCount}
+                has_more={trialsQ.data?.has_more ?? false}
+                next_cursor={trialsQ.data?.next_cursor ?? null}
+                isLoading={trialsQ.isPending}
+                isError={trialsQ.isError}
+                urlState={urlState}
+              />
             </CardContent>
           </Card>
           {studyQ.data.status === 'completed' && digestQ.data && (
@@ -120,5 +105,11 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
 
 export default function StudyDetailPage({ params }: RouteProps) {
   const { id } = use(params);
-  return <StudyDetailView studyId={id} />;
+  // `useSearchParams` (inside useDataTableUrlState) requires a Suspense boundary
+  // in Next 16 App Router.
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-7xl p-6">Loading…</main>}>
+      <StudyDetailView studyId={id} />
+    </Suspense>
+  );
 }

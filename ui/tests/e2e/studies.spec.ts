@@ -102,11 +102,12 @@ test.describe('/studies', () => {
     await expect(page.getByTestId('tooltip-trigger-study.best_metric')).toBeVisible();
     await expect(page.getByTestId('tooltip-trigger-study.trials_summary')).toBeVisible();
 
-    // FR-8: trials-table tooltips. The Sort label always renders (above the table).
-    await expect(page.getByTestId('tooltip-trigger-trial.sort_by')).toBeVisible();
-    // Column headers only render when at least one trial row exists; the
-    // empty-state placeholder takes their place otherwise. Assert headers
-    // only on the populated path so the test doesn't race the orchestrator.
+    // FR-8: trials-table tooltips. After the Story 3.7 migration the legacy
+    // `<Select>` sort-by control with its glossary tooltip is replaced by
+    // column-header click sort, so the standalone `trial.sort_by` trigger
+    // no longer renders. Column-header tooltips below cover the populated
+    // path — they only render when at least one trial row exists since the
+    // empty-state placeholder takes their place otherwise.
     const trialsTable = page.getByTestId('trials-table');
     if (await trialsTable.isVisible().catch(() => false)) {
       await expect(page.getByTestId('tooltip-trigger-trial.status')).toBeVisible();
