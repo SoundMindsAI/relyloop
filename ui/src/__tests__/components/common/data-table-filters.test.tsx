@@ -20,10 +20,10 @@ describe('DataTableFilterChips', () => {
         onChange={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('data-table-filter-chip-status-all')).toBeInTheDocument();
-    expect(screen.getByTestId('data-table-filter-chip-status-queued')).toBeInTheDocument();
-    expect(screen.getByTestId('data-table-filter-chip-status-running')).toBeInTheDocument();
-    expect(screen.getByTestId('data-table-filter-chip-status-completed')).toBeInTheDocument();
+    expect(screen.getByTestId('filter-chip-status-all')).toBeInTheDocument();
+    expect(screen.getByTestId('filter-chip-status-queued')).toBeInTheDocument();
+    expect(screen.getByTestId('filter-chip-status-running')).toBeInTheDocument();
+    expect(screen.getByTestId('filter-chip-status-completed')).toBeInTheDocument();
   });
 
   it('marks the active chip with data-active="true"; "all" is active when value is null', () => {
@@ -35,14 +35,8 @@ describe('DataTableFilterChips', () => {
         onChange={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('data-table-filter-chip-status-all')).toHaveAttribute(
-      'data-active',
-      'true',
-    );
-    expect(screen.getByTestId('data-table-filter-chip-status-queued')).toHaveAttribute(
-      'data-active',
-      'false',
-    );
+    expect(screen.getByTestId('filter-chip-status-all')).toHaveAttribute('data-active', 'true');
+    expect(screen.getByTestId('filter-chip-status-queued')).toHaveAttribute('data-active', 'false');
   });
 
   it('marks the matching chip active when value is non-null', () => {
@@ -54,10 +48,7 @@ describe('DataTableFilterChips', () => {
         onChange={vi.fn()}
       />,
     );
-    expect(screen.getByTestId('data-table-filter-chip-status-running')).toHaveAttribute(
-      'data-active',
-      'true',
-    );
+    expect(screen.getByTestId('filter-chip-status-running')).toHaveAttribute('data-active', 'true');
   });
 
   it('calls onChange with the wire value when a non-all chip is clicked', () => {
@@ -70,7 +61,7 @@ describe('DataTableFilterChips', () => {
         onChange={onChange}
       />,
     );
-    fireEvent.click(screen.getByTestId('data-table-filter-chip-status-completed'));
+    fireEvent.click(screen.getByTestId('filter-chip-status-completed'));
     expect(onChange).toHaveBeenCalledWith('completed');
   });
 
@@ -84,7 +75,7 @@ describe('DataTableFilterChips', () => {
         onChange={onChange}
       />,
     );
-    fireEvent.click(screen.getByTestId('data-table-filter-chip-status-all'));
+    fireEvent.click(screen.getByTestId('filter-chip-status-all'));
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
@@ -98,8 +89,8 @@ describe('DataTableFilterChips', () => {
         isLoading
       />,
     );
-    expect(screen.getByTestId('data-table-filter-chip-status-all')).toBeDisabled();
-    expect(screen.getByTestId('data-table-filter-chip-status-queued')).toBeDisabled();
+    expect(screen.getByTestId('filter-chip-status-all')).toBeDisabled();
+    expect(screen.getByTestId('filter-chip-status-queued')).toBeDisabled();
   });
 });
 
@@ -117,7 +108,7 @@ describe('DataTableFkSelect', () => {
         onChange={vi.fn()}
       />,
     );
-    const select = screen.getByTestId('data-table-fk-cluster');
+    const select = screen.getByTestId('fk-select-cluster');
     expect(select).toBeDisabled();
     expect(select).toHaveTextContent('(loading…)');
   });
@@ -135,7 +126,7 @@ describe('DataTableFkSelect', () => {
         placeholder="All clusters"
       />,
     );
-    const select = screen.getByTestId('data-table-fk-cluster');
+    const select = screen.getByTestId('fk-select-cluster');
     expect(select).toHaveTextContent('All clusters');
     expect(screen.getByText('prod-es')).toBeInTheDocument();
     expect(screen.getByText('staging-os')).toBeInTheDocument();
@@ -154,7 +145,7 @@ describe('DataTableFkSelect', () => {
         onChange={onChange}
       />,
     );
-    const select = screen.getByTestId('data-table-fk-cluster') as HTMLSelectElement;
+    const select = screen.getByTestId('fk-select-cluster') as HTMLSelectElement;
     fireEvent.change(select, { target: { value: 'c2' } });
     expect(onChange).toHaveBeenCalledWith('c2');
     fireEvent.change(select, { target: { value: '' } });

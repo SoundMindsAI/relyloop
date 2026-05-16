@@ -48,6 +48,16 @@ export function DataTableSearch({
   const debouncedDraft = useDebouncedValue(draft, debounceMs);
   const lastCommittedRef = useRef<string | null>(value);
 
+  // Sync the local draft when the controlled `value` prop changes externally
+  // (back/forward navigation, programmatic URL update). Without this, the
+  // input would show stale text after Back from a page that had `?q=foo`.
+  useEffect(() => {
+    if (value !== lastCommittedRef.current) {
+      setDraft(value ?? '');
+      lastCommittedRef.current = value;
+    }
+  }, [value]);
+
   useEffect(() => {
     // Recompute the commit decision from the debounced draft.
     const parsed = QSchema.safeParse(debouncedDraft);

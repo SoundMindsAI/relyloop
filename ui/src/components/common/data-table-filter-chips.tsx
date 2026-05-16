@@ -46,7 +46,7 @@ export function DataTableFilterChips({
       className="flex flex-wrap items-center gap-2"
       role="group"
       aria-label={ariaLabel ?? `${columnId} filter`}
-      data-testid={`data-table-filter-${columnId}`}
+      data-testid={`filter-chips-${columnId}`}
     >
       {choices.map((choice) => {
         const isActive = choice === active;
@@ -57,7 +57,7 @@ export function DataTableFilterChips({
             variant={isActive ? 'default' : 'outline'}
             size="sm"
             disabled={isLoading}
-            data-testid={`data-table-filter-chip-${columnId}-${choice}`}
+            data-testid={`filter-chip-${columnId}-${choice}`}
             data-active={isActive ? 'true' : 'false'}
             onClick={() => onChange(choice === ALL ? null : choice)}
           >

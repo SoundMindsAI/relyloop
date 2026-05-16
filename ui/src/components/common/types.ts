@@ -198,16 +198,6 @@ export interface DataTableProps<T extends { id: string }> {
   onQChange?: (next: string | null) => void;
 
   /**
-   * Story 2.5 — total-count display state. `cursorStackLength` is the
-   * count of cursor pushes the user has made via in-app Next clicks
-   * (1 = first page; 2 = page 2; etc.). When the user reloads or shares
-   * a URL with `?cursor=`, the consumer cannot reconstruct this number
-   * — leave at 1 and the toolbar renders the cursor-paginator-honest
-   * "Showing N rows (of M matching)" wording per FR-7.
-   */
-  cursorStackLength?: number;
-
-  /**
    * Story 2.6/2.7 — controlled cursor state. The hook supplies these from
    * URL state; the primitive feeds them to its wrapped <CursorPaginator>.
    */

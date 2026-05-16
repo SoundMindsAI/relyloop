@@ -63,7 +63,6 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     onQChange,
     searchable = false,
     totalCount,
-    cursorStackLength = 1,
     cursor = null,
     pageSize = 50,
     onCursorChange,
@@ -79,6 +78,35 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     keyboardNav = true,
     onRowActivate,
   } = props;
+
+  // Story 2.5 / 2.7 — cursor stack: DataTable owns the trail of cursors the
+  // user has clicked Next through, so Prev can step back one page instead
+  // of always returning to page 1. Stack entry [0] is always `null` (first
+  // page); each Next click pushes the current `next_cursor`. The stack is
+  // re-grounded whenever the URL `cursor` changes externally (filter / sort /
+  // q change, shared-link hydration) so it never drifts out of sync.
+  const [cursorStack, setCursorStack] = useState<(string | null)[]>(() => [cursor ?? null]);
+  useEffect(() => {
+    setCursorStack((prev) => {
+      const last = prev[prev.length - 1] ?? null;
+      if (last === (cursor ?? null)) return prev;
+      // Cursor changed externally (filter/sort/q reset, hydration). Reset
+      // the stack to a single entry — we no longer know the user's trail.
+      return [cursor ?? null];
+    });
+  }, [cursor]);
+  const cursorStackLength = cursorStack.length;
+  const goNext = () => {
+    if (!has_more || !next_cursor || !onCursorChange) return;
+    setCursorStack((prev) => [...prev, next_cursor]);
+    onCursorChange(next_cursor);
+  };
+  const goPrev = () => {
+    if (!onCursorChange || cursorStack.length <= 1) return;
+    const nextStack = cursorStack.slice(0, -1);
+    setCursorStack(nextStack);
+    onCursorChange(nextStack[nextStack.length - 1] ?? null);
+  };
 
   // Story 2.10 — column visibility persisted to localStorage per tableId.
   const hiddenColumns = useLocalStorageSet(`relyloop:datatable:${props.tableId}:hidden-columns`);
@@ -198,6 +226,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
               value={filters?.[col.id] ?? null}
               onChange={(next) => onFilterChange(col.id, next)}
               isLoading={isLoading}
+              label={col.filter.label}
             />,
           ];
         }
@@ -210,6 +239,7 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
             value={filters?.[col.id] ?? null}
             onChange={(next) => onFilterChange(col.id, next)}
             placeholder={col.filter.placeholder}
+            isLoading={isLoading}
           />,
         ];
       })
@@ -444,8 +474,8 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
       {data.length > 0 && onCursorChange && onPageSizeChange && (
         <CursorPaginator
           hasMore={has_more}
-          onNext={has_more && next_cursor ? () => onCursorChange(next_cursor) : undefined}
-          onPrev={cursor ? () => onCursorChange(null) : undefined}
+          onNext={has_more && next_cursor ? goNext : undefined}
+          onPrev={cursorStack.length > 1 ? goPrev : undefined}
           pageSize={pageSize}
           onPageSizeChange={onPageSizeChange}
           totalCount={totalCount}

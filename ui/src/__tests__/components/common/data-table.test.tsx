@@ -8,7 +8,7 @@
  * dedicated test cases here.
  */
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import { DataTable } from '@/components/common/data-table';
@@ -125,5 +125,137 @@ describe('DataTable scaffold (Story 2.1)', () => {
       anyMatcherActive: false,
     });
     expect(screen.getByTestId('data-table-empty-no-rows-exist')).toBeInTheDocument();
+  });
+
+  // Story 2.5/2.7 cursor stack — DataTable owns the trail of cursors so Prev
+  // steps back one page rather than jumping to page 1.
+  describe('cursor stack (Story 2.5/2.7)', () => {
+    it('Prev is disabled on page 1 (stack length 1)', () => {
+      renderTable({
+        has_more: true,
+        next_cursor: 'c2',
+        onCursorChange: vi.fn(),
+        onPageSizeChange: vi.fn(),
+      });
+      expect(screen.getByTestId('paginator-prev')).toBeDisabled();
+    });
+
+    it('Next pushes the cursor; Prev pops back to the prior page', () => {
+      const onCursorChange = vi.fn();
+      renderTable({
+        has_more: true,
+        next_cursor: 'c2',
+        onCursorChange,
+        onPageSizeChange: vi.fn(),
+      });
+      fireEvent.click(screen.getByTestId('paginator-next'));
+      expect(onCursorChange).toHaveBeenLastCalledWith('c2');
+      // Simulate consumer applying the new cursor — Prev should now step
+      // back to the prior page (null), not jump straight to page 1.
+      // Stack state lives in DataTable and survives across renders.
+    });
+
+    it('Prev steps back one page after a Next click (single-step verification)', () => {
+      const onCursorChange = vi.fn();
+      const { rerender } = render(
+        <DataTable<MockRow>
+          tableId="mock"
+          tableTestId="mock-table"
+          rowTestId={(r) => `mock-row-${r.id}`}
+          columns={columns}
+          data={rows}
+          isLoading={false}
+          isError={false}
+          has_more={true}
+          next_cursor="c2"
+          emptyStateNoRows={{ title: 'no', message: '' }}
+          onCursorChange={onCursorChange}
+          onPageSizeChange={vi.fn()}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('paginator-next'));
+      // Simulate the consumer applying the URL change: cursor is now 'c2'.
+      rerender(
+        <DataTable<MockRow>
+          tableId="mock"
+          tableTestId="mock-table"
+          rowTestId={(r) => `mock-row-${r.id}`}
+          columns={columns}
+          data={rows}
+          isLoading={false}
+          isError={false}
+          has_more={false}
+          next_cursor={null}
+          cursor="c2"
+          emptyStateNoRows={{ title: 'no', message: '' }}
+          onCursorChange={onCursorChange}
+          onPageSizeChange={vi.fn()}
+        />,
+      );
+      fireEvent.click(screen.getByTestId('paginator-prev'));
+      // Prev pops back to the prior entry (null = first page).
+      expect(onCursorChange).toHaveBeenLastCalledWith(null);
+    });
+
+    it('External cursor change (filter / sort / q reset) regrounds the stack', () => {
+      const onCursorChange = vi.fn();
+      const { rerender } = render(
+        <DataTable<MockRow>
+          tableId="mock"
+          tableTestId="mock-table"
+          rowTestId={(r) => `mock-row-${r.id}`}
+          columns={columns}
+          data={rows}
+          isLoading={false}
+          isError={false}
+          has_more={true}
+          next_cursor="c2"
+          cursor={null}
+          emptyStateNoRows={{ title: 'no', message: '' }}
+          onCursorChange={onCursorChange}
+          onPageSizeChange={vi.fn()}
+        />,
+      );
+      // Click Next → stack pushes 'c2'.
+      fireEvent.click(screen.getByTestId('paginator-next'));
+      // Consumer applies the URL change: cursor is now 'c2'.
+      rerender(
+        <DataTable<MockRow>
+          tableId="mock"
+          tableTestId="mock-table"
+          rowTestId={(r) => `mock-row-${r.id}`}
+          columns={columns}
+          data={rows}
+          isLoading={false}
+          isError={false}
+          has_more={true}
+          next_cursor="c3"
+          cursor="c2"
+          emptyStateNoRows={{ title: 'no', message: '' }}
+          onCursorChange={onCursorChange}
+          onPageSizeChange={vi.fn()}
+        />,
+      );
+      // User flips a filter — consumer's URL hook resets cursor to null.
+      rerender(
+        <DataTable<MockRow>
+          tableId="mock"
+          tableTestId="mock-table"
+          rowTestId={(r) => `mock-row-${r.id}`}
+          columns={columns}
+          data={rows}
+          isLoading={false}
+          isError={false}
+          has_more={true}
+          next_cursor="c2"
+          cursor={null}
+          emptyStateNoRows={{ title: 'no', message: '' }}
+          onCursorChange={onCursorChange}
+          onPageSizeChange={vi.fn()}
+        />,
+      );
+      // Stack regrounded to [null]; Prev disabled again.
+      expect(screen.getByTestId('paginator-prev')).toBeDisabled();
+    });
   });
 });

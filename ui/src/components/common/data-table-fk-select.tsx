@@ -25,6 +25,8 @@ export interface DataTableFkSelectProps {
   onChange: (next: string | null) => void;
   /** Default `"All <columnId>"`. */
   placeholder?: string;
+  /** Disables the select when the underlying table query is fetching. */
+  isLoading?: boolean;
 }
 
 export function DataTableFkSelect({
@@ -33,10 +35,12 @@ export function DataTableFkSelect({
   value,
   onChange,
   placeholder,
+  isLoading: isTableLoading = false,
 }: DataTableFkSelectProps) {
-  const { data, isLoading } = useOptions();
+  const { data, isLoading: areOptionsLoading } = useOptions();
   const placeholderText = placeholder ?? `All ${columnId}`;
-  const selectId = `data-table-fk-${columnId}`;
+  const selectId = `fk-select-${columnId}`;
+  const disabled = isTableLoading || areOptionsLoading;
   return (
     <div className="flex items-center gap-2">
       <label htmlFor={selectId} className="text-sm">
@@ -47,10 +51,10 @@ export function DataTableFkSelect({
         className="rounded-md border border-gray-200 bg-white px-2 py-1 text-sm"
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value || null)}
-        disabled={isLoading}
+        disabled={disabled}
         data-testid={selectId}
       >
-        <option value="">{isLoading ? '(loading…)' : placeholderText}</option>
+        <option value="">{areOptionsLoading ? '(loading…)' : placeholderText}</option>
         {data.map((opt) => (
           <option key={opt.id} value={opt.id}>
             {opt.label}

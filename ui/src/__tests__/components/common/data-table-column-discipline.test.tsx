@@ -26,9 +26,10 @@ import { describe, expect, it } from 'vitest';
 const COMPONENTS_ROOT = join(process.cwd(), 'src', 'components');
 const ENUMS_PATH = join(process.cwd(), 'src', 'lib', 'enums.ts');
 
-const ENUM_FILTER_RE = /filter:\s*\{\s*kind:\s*['"]enum['"]\s*,\s*wireValues:\s*([A-Z][A-Z0-9_]*)/g;
-const FK_FILTER_RE = /filter:\s*\{\s*kind:\s*['"]fk-select['"]/g;
-const SOURCE_OF_TRUTH_RE = /sourceOfTruth:\s*['"]([^'"]*)['"]/g;
+// Matches a `filter: { … }` block — captures everything between the braces
+// (greedy, but bounded to a single filter block since we anchor on the
+// closing `}` before the next column-config field). `[\s\S]` accepts newlines.
+const FILTER_BLOCK_RE = /filter:\s*(\{[\s\S]*?\})/g;
 const ENUMS_IMPORT_RE =
   /import\s+(?:type\s+)?\{[^}]*?\b([A-Z][A-Z0-9_]*)\b[^}]*?\}\s+from\s+['"]@\/lib\/enums['"]/g;
 
@@ -72,23 +73,76 @@ export function validateColumnConfig(
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
-  // 1. Every enum filter must reference an identifier from enums.ts.
-  const enumMatches = [...content.matchAll(ENUM_FILTER_RE)];
   const importedFromEnums = new Set<string>();
   for (const m of content.matchAll(ENUMS_IMPORT_RE)) {
     importedFromEnums.add(m[1]!);
   }
-  for (const m of enumMatches) {
-    const ident = m[1]!;
+  const enumLines = enumsContent.split('\n');
+  const canonicalCommentRe = /^\s*\/\/\s*Values must match\s+backend\//;
+
+  // Parse each filter block individually so per-filter assertions fire
+  // independently (a file with two filters where only one has a valid
+  // `sourceOfTruth` still fails).
+  for (const blockMatch of content.matchAll(FILTER_BLOCK_RE)) {
+    const block = blockMatch[1]!;
+    const kindMatch = block.match(/kind:\s*['"]([^'"]+)['"]/);
+    if (!kindMatch) continue;
+    const kind = kindMatch[1]!;
+
+    // sourceOfTruth assertions apply to every filter kind.
+    const sotMatch = block.match(/sourceOfTruth:\s*['"]([^'"]*)['"]/);
+    if (!sotMatch) {
+      errors.push({
+        file: filePath,
+        message: `filter block (kind: '${kind}') is missing a \`sourceOfTruth: '...'\` field. Every filter column must cite the backend allowlist (e.g., 'backend/app/api/v1/schemas.py StudyStatusWire').`,
+      });
+    } else {
+      const value = sotMatch[1]!;
+      if (value.trim() === '') {
+        errors.push({
+          file: filePath,
+          message: `filter block (kind: '${kind}') has an empty \`sourceOfTruth\`. Cite the backend allowlist.`,
+        });
+      } else if (!value.startsWith('backend/')) {
+        errors.push({
+          file: filePath,
+          message: `filter block (kind: '${kind}') \`sourceOfTruth\` value \`${value}\` does not start with 'backend/'. Filter values must be grounded in a backend file, not a frontend path.`,
+        });
+      }
+    }
+
+    if (kind !== 'enum') continue;
+
+    // For enum filters: wireValues must be an identifier imported from
+    // '@/lib/enums', not an inline literal. Match `wireValues: <expr>`
+    // where <expr> ends at the next `,` or `}` (not inside quotes/brackets).
+    const wireMatch = block.match(/wireValues:\s*([^,}\n]+?)(?=\s*[,}])/);
+    if (!wireMatch) {
+      errors.push({
+        file: filePath,
+        message: `enum filter is missing a \`wireValues\` field.`,
+      });
+      continue;
+    }
+    const wireExpr = wireMatch[1]!.trim();
+    // Allowed: a single UPPER_SNAKE identifier (re-export of enums.ts).
+    // Forbidden: inline arrays (`['a', 'b']`), object expressions, function calls.
+    if (!/^[A-Z][A-Z0-9_]*$/.test(wireExpr)) {
+      errors.push({
+        file: filePath,
+        message: `enum filter \`wireValues\` is not a single identifier (\`${wireExpr}\`). Inline arrays are forbidden — define the array in src/lib/enums.ts with a 'Values must match backend/...' comment and import it.`,
+      });
+      continue;
+    }
+    const ident = wireExpr;
     if (!importedFromEnums.has(ident)) {
       errors.push({
         file: filePath,
-        message: `enum filter references \`${ident}\` but it is not imported from '@/lib/enums'. Inline arrays are forbidden — add the value to enums.ts (with a 'Values must match backend/...' comment) and import it.`,
+        message: `enum filter references \`${ident}\` but it is not imported from '@/lib/enums'.`,
       });
       continue;
     }
     // Verify the enums.ts declaration is preceded by the canonical comment.
-    const enumLines = enumsContent.split('\n');
     const declRe = new RegExp(`^\\s*export\\s+const\\s+${ident}\\b`);
     const declLineIdx = enumLines.findIndex((line) => declRe.test(line));
     if (declLineIdx === -1) {
@@ -98,37 +152,11 @@ export function validateColumnConfig(
       });
       continue;
     }
-    // Look at lines N-1 and N-2 for the canonical comment.
-    const commentRe = /^\s*\/\/\s*Values must match\s+backend\//;
     const precedingLines = [enumLines[declLineIdx - 1] ?? '', enumLines[declLineIdx - 2] ?? ''];
-    if (!precedingLines.some((line) => commentRe.test(line))) {
+    if (!precedingLines.some((line) => canonicalCommentRe.test(line))) {
       errors.push({
         file: filePath,
         message: `\`${ident}\` declaration in src/lib/enums.ts is missing the canonical \`// Values must match backend/...py <Symbol>\` source-of-truth comment on the preceding line.`,
-      });
-    }
-  }
-
-  // 2. Every filter (enum + fk-select) must carry a non-empty backend sourceOfTruth.
-  const filterCount = enumMatches.length + [...content.matchAll(FK_FILTER_RE)].length;
-  const sotMatches = [...content.matchAll(SOURCE_OF_TRUTH_RE)];
-  if (filterCount > 0 && sotMatches.length === 0) {
-    errors.push({
-      file: filePath,
-      message: `column-config declares ${filterCount} filter(s) but no \`sourceOfTruth: '...'\` field. Every filter column must cite the backend allowlist (e.g., 'backend/app/api/v1/schemas.py StudyStatusWire').`,
-    });
-  }
-  for (const m of sotMatches) {
-    const value = m[1]!;
-    if (value.trim() === '') {
-      errors.push({
-        file: filePath,
-        message: `\`sourceOfTruth\` is empty. Cite the backend allowlist (e.g., 'backend/app/api/v1/schemas.py StudyStatusWire').`,
-      });
-    } else if (!value.startsWith('backend/')) {
-      errors.push({
-        file: filePath,
-        message: `\`sourceOfTruth\` value \`${value}\` does not start with 'backend/'. Filter values must be grounded in a backend file, not a frontend path.`,
       });
     }
   }
@@ -166,6 +194,50 @@ export const cols = [
     const errors = validateColumnConfig('synthetic.column-config.ts', synthetic, enumsContent);
     expect(errors.length).toBeGreaterThan(0);
     expect(errors[0]!.message).toMatch(/sourceOfTruth/);
+  });
+
+  it('regression: per-filter check — one missing sourceOfTruth in a two-filter file still fails', () => {
+    const synthetic = `
+import { STUDY_STATUS_VALUES, TRIAL_STATUS_VALUES } from '@/lib/enums';
+
+export const cols = [
+  {
+    id: 'status',
+    filter: {
+      kind: 'enum',
+      wireValues: STUDY_STATUS_VALUES,
+      sourceOfTruth: 'backend/app/api/v1/schemas.py StudyStatusWire',
+    },
+  },
+  {
+    id: 'trial_status',
+    filter: { kind: 'enum', wireValues: TRIAL_STATUS_VALUES },
+  },
+];
+`;
+    const enumsContent = readFileSync(ENUMS_PATH, 'utf8');
+    const errors = validateColumnConfig('synthetic.column-config.ts', synthetic, enumsContent);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors.some((e) => /is missing a `sourceOfTruth/.test(e.message))).toBe(true);
+  });
+
+  it('regression: inline array literal in wireValues is rejected', () => {
+    const synthetic = `
+export const cols = [
+  {
+    id: 'status',
+    filter: {
+      kind: 'enum',
+      wireValues: ['queued', 'running'],
+      sourceOfTruth: 'backend/app/api/v1/schemas.py StudyStatusWire',
+    },
+  },
+];
+`;
+    const enumsContent = readFileSync(ENUMS_PATH, 'utf8');
+    const errors = validateColumnConfig('synthetic.column-config.ts', synthetic, enumsContent);
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors.some((e) => /Inline arrays are forbidden/.test(e.message))).toBe(true);
   });
 
   it('regression: enum filter referencing inline (non-imported) literal fails', () => {
