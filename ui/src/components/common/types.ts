@@ -180,4 +180,13 @@ export interface DataTableProps<T extends { id: string }> {
    */
   sort?: string | null;
   onSortChange?: (next: string | null) => void;
+
+  /**
+   * Story 2.3 — filter URL state (transient until Story 2.6). Map of column
+   * id → active wire value (`null` or absent = "all" / no filter). The
+   * primitive renders chip rows / FK selects in the toolbar for every column
+   * with `column.filter` set.
+   */
+  filters?: Record<string, string | null | undefined>;
+  onFilterChange?: (columnId: string, next: string | null) => void;
 }

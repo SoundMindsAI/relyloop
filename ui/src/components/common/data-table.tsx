@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/table';
 
 import { DataTableEmpty } from './data-table-empty';
+import { DataTableFilterChips } from './data-table-filter-chips';
+import { DataTableFkSelect } from './data-table-fk-select';
 import { DataTableSortHeader } from './data-table-sort-header';
 import { DataTableToolbar } from './data-table-toolbar';
 import type { DataTableColumnDef, DataTableProps } from './types';
@@ -45,7 +47,40 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
     rowTestId,
     sort = null,
     onSortChange,
+    filters,
+    onFilterChange,
   } = props;
+
+  // Build the filter slot for the toolbar (Story 2.3 / FR-5).
+  // Each filterable column gets a chip row (enum) or `<select>` (fk-select).
+  const filterSlot = onFilterChange
+    ? columns.flatMap((col) => {
+        if (!col.filter) return [];
+        if (col.filter.kind === 'enum') {
+          return [
+            <DataTableFilterChips
+              key={col.id}
+              columnId={col.id}
+              wireValues={col.filter.wireValues}
+              value={filters?.[col.id] ?? null}
+              onChange={(next) => onFilterChange(col.id, next)}
+              isLoading={isLoading}
+            />,
+          ];
+        }
+        // kind === 'fk-select'
+        return [
+          <DataTableFkSelect
+            key={col.id}
+            columnId={col.id}
+            useOptions={col.filter.useOptions}
+            value={filters?.[col.id] ?? null}
+            onChange={(next) => onFilterChange(col.id, next)}
+            placeholder={col.filter.placeholder}
+          />,
+        ];
+      })
+    : [];
 
   // TanStack Table model. `getRowId: (row) => row.id` keys row identity on the
   // backend UUID rather than the row index — required for stable selection,
@@ -84,7 +119,10 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
 
   return (
     <div className="space-y-3">
-      <DataTableToolbar tableId={props.tableId} />
+      <DataTableToolbar
+        tableId={props.tableId}
+        leftSlot={filterSlot.length > 0 ? <>{filterSlot}</> : null}
+      />
       {data.length === 0 ? (
         <DataTableEmpty
           kind="no-rows-exist"
