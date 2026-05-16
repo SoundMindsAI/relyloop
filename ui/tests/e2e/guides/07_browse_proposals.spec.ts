@@ -23,7 +23,7 @@ test.describe('Walkthrough: Browse proposals', () => {
     await seedProposal({ clusterId: cluster.id, templateId: template.id });
 
     await page.goto('/proposals');
-    await expect(page.getByTestId('proposal-status-chip-all')).toBeVisible();
+    await expect(page.getByTestId('filter-chip-status-all')).toBeVisible();
     await page.waitForTimeout(600);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '01-proposals-list.png'),
@@ -31,7 +31,7 @@ test.describe('Walkthrough: Browse proposals', () => {
     });
 
     // 02: Status chip → pending (URL ?status=pending).
-    await page.getByTestId('proposal-status-chip-pending').click();
+    await page.getByTestId('filter-chip-status-pending').click();
     await page.waitForTimeout(400);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '02-status-filter-pending.png'),
@@ -39,7 +39,7 @@ test.describe('Walkthrough: Browse proposals', () => {
     });
 
     // 03: Source chip → manual.
-    await page.getByTestId('proposal-source-chip-manual').click();
+    await page.getByTestId('filter-chip-source-manual').click();
     await page.waitForTimeout(400);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '03-source-filter-manual.png'),
@@ -47,7 +47,7 @@ test.describe('Walkthrough: Browse proposals', () => {
     });
 
     // 04: Cluster filter dropdown.
-    await page.getByTestId('cluster-filter-select').click();
+    await page.getByTestId('fk-select-cluster_id').click();
     await page.waitForTimeout(400);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '04-cluster-filter-open.png'),
@@ -58,8 +58,8 @@ test.describe('Walkthrough: Browse proposals', () => {
     await page.waitForTimeout(300);
 
     // 05: Reset to all + show the row count.
-    await page.getByTestId('proposal-status-chip-all').click();
-    await page.getByTestId('proposal-source-chip-all').click();
+    await page.getByTestId('filter-chip-status-all').click();
+    await page.getByTestId('filter-chip-source-all').click();
     await page.waitForTimeout(400);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '05-all-filters-reset.png'),
