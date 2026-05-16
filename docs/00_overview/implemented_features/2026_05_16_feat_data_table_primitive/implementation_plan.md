@@ -1,7 +1,7 @@
 # Implementation Plan — Shared `<DataTable>` primitive (FTS + sort + filter + URL state)
 
 **Date:** 2026-05-15
-**Status:** Draft
+**Status:** Complete (PR #126, merged 2026-05-16)
 **Primary spec:** [feature_spec.md](./feature_spec.md)
 **Policy source(s):**
 - [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md) — cursor pagination + `X-Total-Count` + error envelope

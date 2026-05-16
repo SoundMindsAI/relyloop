@@ -28,4 +28,17 @@
 - Phases covered: single-phase delivery per Locked Decision #4. No deferred phases.
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-16
+- PR: [#126](https://github.com/SoundMindsAI/relyloop/pull/126) (squash commit `d6115b3`, merged 2026-05-16)
+- CI: all 7 checks green on cycle 4 — backend lint + typecheck + tests + coverage, backend unit fast lane, docker buildx, frontend lint + typecheck + tests + build, gitleaks, secrets files guard, smoke (operator-path E2E)
+- Stories completed: 28 / 28 (Epic 1: 5 backend stories, Epic 2: 13 primitive stories, Epic 3: 9 table-migration stories incl. Story 3.9 inheritor, Epic 4: 2 docs/idea-capture stories)
+- Cross-model review:
+  - 3 Epic-2 phase-gate GPT-5.5 cycles (15 + 7 + 3 findings) — converged with 13 fixes applied, 7 deferred to `chore_data_table_primitive_followups`, 4 rejected with cited counter-evidence
+  - 1 Epic-3 phase-gate GPT-5.5 cycle (7 findings) — 5 accepted + fixed, 2 rejected with cited counter-evidence
+  - Final cross-model GPT-5.5 review on full PR diff: 2 findings — 1 accepted + fixed (`test-llm-rater` fixture), 1 deferred to `bug_cursor_decode_value_validation`
+- Gemini Code Assist: 7 line-level findings, all 7 accepted + fixed (commit `acfd304`). Adjudication summary posted as PR comment.
+- Deferred follow-ups captured:
+  - [`feat_fts_rank_ordering_mvp2`](../feat_fts_rank_ordering_mvp2/idea.md) — rank-ordered FTS results (per spec §16)
+  - [`chore_data_table_primitive_followups`](../chore_data_table_primitive_followups/idea.md) — 6 review-cycle items
+  - [`bug_cursor_decode_value_validation`](../bug_cursor_decode_value_validation/idea.md) — cursor payload validation
