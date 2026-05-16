@@ -15,7 +15,9 @@ test.describe('/clusters register flow', () => {
     const name = `e2e-reg-${randomUUID().slice(0, 8)}`;
     await page.goto('/clusters');
 
-    await expect(page.getByTestId('clusters-table').or(page.getByTestId('clusters-empty'))).toBeVisible();
+    await expect(
+      page.getByTestId('clusters-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
+    ).toBeVisible();
 
     await page.getByTestId('open-register-cluster').click();
     await expect(page.getByTestId('register-form')).toBeVisible();

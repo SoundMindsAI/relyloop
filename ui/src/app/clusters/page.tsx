@@ -1,21 +1,26 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 
-import { CursorPaginator } from '@/components/common/cursor-paginator';
-import { EmptyState } from '@/components/common/empty-state';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClustersTable } from '@/components/clusters/clusters-table';
+import { clustersColumns } from '@/components/clusters/clusters-table.column-config';
 import { RegisterClusterModal } from '@/components/clusters/register-cluster-modal';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useClusters } from '@/lib/api/clusters';
 
-export default function ClustersPage() {
-  const [pageSize, setPageSize] = useState(50);
-  const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined]);
+function ClustersPageInner() {
+  const urlState = useDataTableUrlState('clusters', clustersColumns, { defaultPageSize: 50 });
   const [registerOpen, setRegisterOpen] = useState(false);
-  const cursor = cursorStack[cursorStack.length - 1];
 
-  const query = useClusters({ cursor, limit: pageSize });
+  const query = useClusters({
+    engine_type: urlState.filters['engine_type'] ?? undefined,
+    environment: urlState.filters['environment'] ?? undefined,
+    q: urlState.q ?? undefined,
+    sort: urlState.sort ?? undefined,
+    cursor: urlState.cursor ?? undefined,
+    limit: urlState.pageSize,
+  });
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-6">
@@ -26,38 +31,27 @@ export default function ClustersPage() {
         </Button>
       </div>
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Registered clusters</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {query.isPending ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          ) : query.isError ? (
-            <EmptyState
-              title="Backend unreachable"
-              message="Check `make logs` and confirm the API container is healthy."
-            />
-          ) : (
-            <>
-              <ClustersTable rows={query.data?.data ?? []} />
-              <CursorPaginator
-                hasMore={query.data?.has_more ?? false}
-                onNext={() => setCursorStack((s) => [...s, query.data?.next_cursor ?? undefined])}
-                onPrev={
-                  cursorStack.length > 1 ? () => setCursorStack((s) => s.slice(0, -1)) : undefined
-                }
-                pageSize={pageSize}
-                onPageSizeChange={(n) => {
-                  setPageSize(n);
-                  setCursorStack([undefined]);
-                }}
-                totalCount={query.data?.totalCount}
-              />
-            </>
-          )}
+        <CardContent className="pt-6">
+          <ClustersTable
+            rows={query.data?.data ?? []}
+            totalCount={query.data?.totalCount}
+            has_more={query.data?.has_more ?? false}
+            next_cursor={query.data?.next_cursor ?? null}
+            isLoading={query.isPending}
+            isError={query.isError}
+            urlState={urlState}
+          />
         </CardContent>
       </Card>
       <RegisterClusterModal open={registerOpen} onOpenChange={setRegisterOpen} />
     </main>
+  );
+}
+
+export default function ClustersPage() {
+  return (
+    <Suspense fallback={<main className="mx-auto max-w-7xl p-6">Loading…</main>}>
+      <ClustersPageInner />
+    </Suspense>
   );
 }

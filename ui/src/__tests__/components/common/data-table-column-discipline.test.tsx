@@ -30,8 +30,8 @@ const ENUMS_PATH = join(process.cwd(), 'src', 'lib', 'enums.ts');
 // (greedy, but bounded to a single filter block since we anchor on the
 // closing `}` before the next column-config field). `[\s\S]` accepts newlines.
 const FILTER_BLOCK_RE = /filter:\s*(\{[\s\S]*?\})/g;
-const ENUMS_IMPORT_RE =
-  /import\s+(?:type\s+)?\{[^}]*?\b([A-Z][A-Z0-9_]*)\b[^}]*?\}\s+from\s+['"]@\/lib\/enums['"]/g;
+const ENUMS_IMPORT_BLOCK_RE = /import\s+(?:type\s+)?\{([^}]+)\}\s+from\s+['"]@\/lib\/enums['"]/g;
+const UPPER_IDENT_RE = /\b([A-Z][A-Z0-9_]*)\b/g;
 
 function walkColumnConfigs(dir: string): string[] {
   const out: string[] = [];
@@ -73,9 +73,15 @@ export function validateColumnConfig(
 ): ValidationError[] {
   const errors: ValidationError[] = [];
 
+  // Collect every UPPER_SNAKE identifier in any `import { ... } from '@/lib/enums'`
+  // statement so multi-name imports like `import { A, B } from '@/lib/enums'`
+  // register both names, not just the first.
   const importedFromEnums = new Set<string>();
-  for (const m of content.matchAll(ENUMS_IMPORT_RE)) {
-    importedFromEnums.add(m[1]!);
+  for (const blockMatch of content.matchAll(ENUMS_IMPORT_BLOCK_RE)) {
+    const block = blockMatch[1]!;
+    for (const identMatch of block.matchAll(UPPER_IDENT_RE)) {
+      importedFromEnums.add(identMatch[1]!);
+    }
   }
   const enumLines = enumsContent.split('\n');
   const canonicalCommentRe = /^\s*\/\/\s*Values must match\s+backend\//;
