@@ -77,6 +77,12 @@ interface ConversationSeed {
   title: string | null;
 }
 
+interface CompletedStudySeed {
+  studyId: string;
+  digestId: string;
+  proposalId: string | null;
+}
+
 interface FullChainSeed {
   clusterId: string;
   clusterName: string;
@@ -316,6 +322,49 @@ export async function seedProposal(args: {
     },
   });
   return { id: proposal.id };
+}
+
+/**
+ * Drive a study deterministically through queued → running → completed and
+ * populate the digest (+ optional pending proposal) so the study-detail
+ * page's digest panel renders against real backend rows.
+ *
+ * Backed by the test-only endpoint at `POST /api/v1/_test/studies/seed-completed`
+ * which returns 404 unless `ENVIRONMENT=development` (the CI test environment
+ * sets this; staging/production never expose the endpoint).
+ *
+ * Use this when an E2E test needs:
+ *   - the seven InfoTooltip placements on the digest panel
+ *   - AC-7 body-content assertions (narrative + recommended config)
+ *   - AC-11 Open PR enabled-vs-aria-disabled branch coverage
+ *
+ * Without this helper the digest panel can only be exercised at the
+ * vitest component layer with mocked data — the orchestrator + digest
+ * worker can't be reliably driven to completion in a Playwright timeout.
+ */
+export async function seedStudyCompletedWithDigest(args: {
+  clusterId: string;
+  querySetId: string;
+  templateId: string;
+  judgmentListId: string;
+  withPendingProposal?: boolean;
+}): Promise<CompletedStudySeed> {
+  const { clusterId, querySetId, templateId, judgmentListId, withPendingProposal = true } = args;
+  const result = await post<{ study_id: string; digest_id: string; proposal_id: string | null }>(
+    '/api/v1/_test/studies/seed-completed',
+    {
+      cluster_id: clusterId,
+      query_set_id: querySetId,
+      template_id: templateId,
+      judgment_list_id: judgmentListId,
+      with_pending_proposal: withPendingProposal,
+    },
+  );
+  return {
+    studyId: result.study_id,
+    digestId: result.digest_id,
+    proposalId: result.proposal_id,
+  };
 }
 
 /**
