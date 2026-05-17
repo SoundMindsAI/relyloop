@@ -34,6 +34,7 @@ from redis.asyncio import Redis
 from backend.app.api import health
 from backend.app.api.errors import install_exception_handlers
 from backend.app.api.middleware import RequestIDMiddleware
+from backend.app.api.v1 import _test as test_router
 from backend.app.api.v1 import clusters as clusters_router
 from backend.app.api.v1 import config_repos as config_repos_router
 from backend.app.api.v1 import conversations as conversations_router
@@ -170,4 +171,7 @@ app.include_router(judgments_router.router, prefix="/api/v1")  # feat_llm_judgme
 app.include_router(proposals_router.router, prefix="/api/v1")  # feat_digest_proposal Epic 3
 app.include_router(config_repos_router.router, prefix="/api/v1")  # feat_github_pr_worker Epic 3
 app.include_router(conversations_router.router, prefix="/api/v1")  # feat_chat_agent Epic 3
+app.include_router(
+    test_router.router, prefix="/api/v1"
+)  # infra_e2e_seed_completed_study — dev-only; 404 outside
 app.include_router(webhook_github_router.router)  # feat_github_webhook /webhooks/github

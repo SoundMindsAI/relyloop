@@ -288,6 +288,25 @@ class Settings(BaseSettings):
         "Optuna trial. Operator-tunable without redeploy.",
     )
 
+    # `environment` gates dev-only surfaces (e.g. the test-seeding endpoint
+    # added by infra_e2e_seed_completed_study) that MUST NOT exist in staging
+    # or production. Strict equality check — anything other than the literal
+    # string "development" causes those endpoints to return 404.
+    #
+    # Canonical values per CLAUDE.md §"Environments":
+    #   - "development" — local dev (`make up`) + CI (GitHub Actions service
+    #     containers). Same toolchain; no auth; no TLS.
+    #   - "staging"     — MVP3+ operator deployment (TLS on; trusted network).
+    #   - "production"  — MVP4+ operator deployment (TLS + SSO + multi-tenant).
+    environment: str = Field(
+        default="development",
+        description=(
+            "Deployment environment tag. Controls dev-only surfaces such as "
+            "test-seeding endpoints. Must be one of {development, staging, "
+            "production}. Defaults to development for local + CI."
+        ),
+    )
+
     @cached_property
     def database_url(self) -> str:
         """Resolved Postgres URL from ``DATABASE_URL_FILE``. Required."""

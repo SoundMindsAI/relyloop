@@ -90,6 +90,8 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("get", "/api/v1/conversations/{conversation_id}", "200"),
     ("delete", "/api/v1/conversations/{conversation_id}", "204"),
     ("post", "/api/v1/conversations/{conversation_id}/messages", "200"),
+    # ----- /api/v1/_test (infra_e2e_seed_completed_study; dev-only — 404 outside) -----
+    ("post", "/api/v1/_test/studies/seed-completed", "201"),
 ]
 
 
