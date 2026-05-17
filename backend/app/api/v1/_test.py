@@ -105,11 +105,19 @@ class SeedCompletedStudyResponse(BaseModel):
         "waiting on the orchestrator + Optuna workers."
     ),
 )
-async def seed_completed_study(
+async def seed_completed_study(  # pragma: no cover  - integration only
     body: SeedCompletedStudyRequest,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> SeedCompletedStudyResponse:
-    """See module docstring."""
+    """See module docstring.
+
+    Marked ``pragma: no cover`` for the handler body — the env-guard
+    dependency + request/response schemas are covered by
+    ``backend/tests/contract/test_test_endpoint_guard.py``; the actual
+    DB write path is covered by
+    ``backend/tests/integration/test_test_seeding.py``. The handler is
+    one-line wire glue between those two layers.
+    """
     triple = await seed_study_completed_with_digest(
         db,
         cluster_id=body.cluster_id,

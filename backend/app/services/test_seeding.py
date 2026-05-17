@@ -37,7 +37,7 @@ class SeededStudyTriple:
     proposal_id: str | None
 
 
-async def seed_study_completed_with_digest(
+async def seed_study_completed_with_digest(  # pragma: no cover  - integration only
     db: AsyncSession,
     *,
     cluster_id: str,
@@ -56,6 +56,15 @@ async def seed_study_completed_with_digest(
 
     Caller is responsible for committing. The router commits once at the
     end of its handler.
+
+    Marked ``pragma: no cover`` because the function is exercised only
+    against a live Postgres — its repo-write path can't be unit-tested
+    without mocking out the entire repo + service layer, which would only
+    exercise the mocks. The integration test at
+    ``backend/tests/integration/test_test_seeding.py`` provides real
+    coverage; this pragma is the safety net for coverage-tooling cases
+    where integration coverage isn't picked up (matches the precedent set
+    by ``feat_github_pr_worker`` PR #45 on ``backend/workers/git_pr.py``).
     """
     study_id = str(uuid_utils.uuid7())
 
