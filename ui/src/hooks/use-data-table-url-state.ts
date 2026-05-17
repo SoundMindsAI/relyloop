@@ -137,8 +137,15 @@ export function useDataTableUrlState<T extends { id: string }>(
     const allowedDirs = sortKeyDirections[col];
     if (!allowedDirs) return null;
     // `dir` is undefined (`?sort=name` → no colon) or `'asc'` / `'desc'`.
-    // Default to first allowed direction if dir missing (mirrors the
-    // backend `parse_sort` helper's fallback: empty dir → ASC).
+    // Mirror the backend `parse_sort` helper's contract
+    // (`backend/app/db/repo/_sort.py:50-56`): anything other than the
+    // literal `"desc"` resolves to `"asc"`. We do NOT synthesize a
+    // direction from the column's `sortDirections` when the URL omits
+    // it — a desc-only column with `?sort=col` (no direction) resolves
+    // to `col:asc`, which the column's allowlist rejects, and the
+    // whole sort falls through to `null`. This is intentional: silently
+    // producing `col:desc` for a `?sort=col` URL would be guessing what
+    // the user meant and would surprise callers copy-pasting URLs.
     const resolved = dir === 'desc' ? 'desc' : 'asc';
     if (!allowedDirs.has(resolved)) return null;
     return `${col}:${resolved}`;
@@ -157,7 +164,10 @@ export function useDataTableUrlState<T extends { id: string }>(
   const limitRaw = searchParams.get('limit');
   const pageSize = useMemo(() => {
     if (!limitRaw) return defaultPageSize;
-    const parsed = Number(limitRaw);
+    // `parseInt` (not `Number`) enforces the integer contract — `?limit=10.5`
+    // becomes `10`, and the result is then checked against `pageSizeOptions`
+    // so fractional values can't reach `?limit=` API calls.
+    const parsed = parseInt(limitRaw, 10);
     if (!parsed || parsed <= 0) return defaultPageSize;
     if (pageSizeOptions && !pageSizeOptions.includes(parsed)) return defaultPageSize;
     return parsed;

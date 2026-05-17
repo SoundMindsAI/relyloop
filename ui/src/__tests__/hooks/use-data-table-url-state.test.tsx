@@ -228,6 +228,22 @@ describe('useDataTableUrlState — sort token validation', () => {
     const { result } = renderHook(() => useDataTableUrlState('mock', sortColumns));
     expect(result.current.sort).toBe('name:asc');
   });
+
+  it('drops ?sort=<col> on a desc-only column (no synthesizing direction)', () => {
+    // Regression for Gemini PR #132 finding: `?sort=version` (no direction)
+    // resolves to `version:asc` via the backend-mirroring fallback. The
+    // `version` column above is asc-only — wait, that's now asc-only.
+    // The intent: prove that for a column with `sortDirections: ['desc']`,
+    // `?sort=col` resolves to `col:asc` (the fallback) and then drops
+    // because asc isn't in the allowlist. The hook does NOT silently
+    // synthesize `col:desc` to "be charitable."
+    const descOnly: DataTableColumnDef<MockRow>[] = [
+      { id: 'metric', header: 'Metric', sortable: true, sortDirections: ['desc'] },
+    ];
+    currentSearch = 'sort=metric';
+    const { result } = renderHook(() => useDataTableUrlState('mock', descOnly));
+    expect(result.current.sort).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -273,5 +289,18 @@ describe('useDataTableUrlState — pageSize validation', () => {
       }),
     );
     expect(result.current.pageSize).toBe(50);
+  });
+
+  it('truncates fractional ?limit= to an integer (Gemini PR #132 finding)', () => {
+    // `parseInt("100.5", 10)` returns 100, not NaN — caller gets a clean
+    // integer even when a URL is hand-crafted with a fraction.
+    currentSearch = 'limit=100.5';
+    const { result } = renderHook(() =>
+      useDataTableUrlState('mock', columns, {
+        defaultPageSize: 50,
+        pageSizeOptions: [25, 50, 100, 200],
+      }),
+    );
+    expect(result.current.pageSize).toBe(100);
   });
 });
