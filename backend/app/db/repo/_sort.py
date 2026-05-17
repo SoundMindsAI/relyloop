@@ -146,18 +146,48 @@ def encode_cursor(value: Any, row_id: Any) -> str:
 
 
 def decode_cursor(raw: str, *, value_is_datetime: bool) -> tuple[Any, str]:
-    """Reverse of :func:`encode_cursor`; raises ``ValueError`` on parse failure.
+    """Reverse of :func:`encode_cursor`; raises ``ValueError`` on parse, shape, or type failure.
 
     ``value_is_datetime`` controls whether the value-half is parsed as
     ISO 8601 datetime. The router caller decides this based on the active
     ``?sort=`` parameter: e.g., ``sort=created_at:desc`` → ``True``;
     ``sort=name:asc`` → ``False`` (str).
+
+    Validates the decoded payload shape (2-element list) and value-half
+    type (``None | str | int | float`` — bool rejected explicitly). Without
+    this, a tampered cursor whose value-half is a dict / list / bool would
+    flow into the SQL comparison clause built by ``keyset_predicate`` and
+    surface as 500 instead of the intended 422.
     """
-    decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
+    try:
+        decoded = json.loads(base64.urlsafe_b64decode(raw.encode()).decode())
+    except Exception as exc:
+        raise ValueError(f"cursor payload not decodable: {exc}") from exc
+    if not isinstance(decoded, list) or len(decoded) != 2:
+        shape = (
+            f"list of length {len(decoded)}"
+            if isinstance(decoded, list)
+            else type(decoded).__name__
+        )
+        raise ValueError(f"cursor payload must be a 2-element list, got {shape}")
     raw_value = decoded[0]
+    # ``bool`` is technically an ``int`` subclass but is never a legitimate
+    # sort value; reject explicitly before the broader primitive check.
+    if isinstance(raw_value, bool) or not isinstance(raw_value, (type(None), str, int, float)):
+        raise ValueError(
+            f"cursor value-half must be null|str|int|float, got {type(raw_value).__name__}"
+        )
     row_id = str(decoded[1])
     if value_is_datetime and raw_value is not None:
-        value: Any = datetime.fromisoformat(raw_value)
+        if not isinstance(raw_value, str):
+            raise ValueError(
+                f"datetime-typed sort cursor requires str value-half, "
+                f"got {type(raw_value).__name__}"
+            )
+        try:
+            value: Any = datetime.fromisoformat(raw_value)
+        except ValueError as exc:
+            raise ValueError(f"cursor value-half is not a valid ISO 8601 datetime: {exc}") from exc
     else:
         value = raw_value
     return value, row_id
