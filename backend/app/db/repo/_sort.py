@@ -177,7 +177,15 @@ def decode_cursor(raw: str, *, value_is_datetime: bool) -> tuple[Any, str]:
         raise ValueError(
             f"cursor value-half must be null|str|int|float, got {type(raw_value).__name__}"
         )
-    row_id = str(decoded[1])
+    # ``row_id`` must be a string. ``encode_cursor`` always stringifies before
+    # encoding, so a non-string at decode time is tampering. Stringifying
+    # blindly via ``str(decoded[1])`` would convert ``None`` → ``"None"`` /
+    # ``[]`` → ``"[]"``, which then surfaces as a 500 when SQLAlchemy tries
+    # to coerce the bogus string to a UUID id column (or silently matches the
+    # wrong row when the id column is a free-form string).
+    if not isinstance(decoded[1], str):
+        raise ValueError(f"cursor row-id must be a string, got {type(decoded[1]).__name__}")
+    row_id = decoded[1]
     if value_is_datetime and raw_value is not None:
         if not isinstance(raw_value, str):
             raise ValueError(

@@ -7,7 +7,7 @@
 
 ## Problem
 
-[`backend.app.db.repo._sort.decode_cursor`](../../../../backend/app/db/repo/_sort.py#L148-L163) does no payload-shape or value-type validation. A tampered cursor whose value-half is a non-primitive (dict, list, bool, etc.) passes through `decoded[0]` and `str(decoded[1])` cleanly when `value_is_datetime=False`, flows into [`keyset_predicate`](../../../../backend/app/db/repo/_sort.py#L81-L127), and surfaces as **500 INTERNAL_ERROR** when SQLAlchemy / Postgres rejects the type-mismatched comparison — instead of the intended **422 VALIDATION_ERROR** that all 9 cursor-consuming routers translate `except Exception` into. Origin: GPT-5.5 final review on PR #126 (Medium severity, deferred from inline fix).
+[`backend.app.db.repo._sort.decode_cursor`](../../../../backend/app/db/repo/_sort.py#L148-L193) does no payload-shape or value-type validation. A tampered cursor whose value-half is a non-primitive (dict, list, bool, etc.) passes through `decoded[0]` and `str(decoded[1])` cleanly when `value_is_datetime=False`, flows into [`keyset_predicate`](../../../../backend/app/db/repo/_sort.py#L81-L127), and surfaces as **500 INTERNAL_ERROR** when SQLAlchemy / Postgres rejects the type-mismatched comparison — instead of the intended **422 VALIDATION_ERROR** that all 9 cursor-consuming routers translate `except Exception` into. Origin: GPT-5.5 final review on PR #126 (Medium severity, deferred from inline fix).
 
 ## Reproduction
 
@@ -34,7 +34,7 @@ result = decode_cursor(tampered, value_is_datetime=False)
 ## Root cause
 
 - **Owning layer:** repo helper.
-- **Origin:** [`backend/app/db/repo/_sort.py:148-163`](../../../../backend/app/db/repo/_sort.py#L148-L163) — no shape/type validation on `decoded`.
+- **Origin:** [`backend/app/db/repo/_sort.py:148-193`](../../../../backend/app/db/repo/_sort.py#L148-L193) — no shape/type validation on `decoded`.
 - **Propagation:** non-primitive `raw_value` enters [`keyset_predicate` at `_sort.py:81-127`](../../../../backend/app/db/repo/_sort.py#L81-L127) and reaches SQLAlchemy / Postgres as a type-mismatched comparison.
 - **Caller landscape:** 9 routers (`studies`, `judgments` ×2, `clusters`, `query_templates`, `query_sets`, `conversations`, `config_repos`, `proposals`) wrap `_sort_decode_cursor` in `try/except Exception → 422 VALIDATION_ERROR`. The except never fires because decode succeeds.
 

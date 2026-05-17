@@ -251,6 +251,18 @@ def test_decode_cursor_rejects_int_value_half_when_datetime_sort_active() -> Non
         decode_cursor(tampered, value_is_datetime=True)
 
 
+@pytest.mark.parametrize("bad_row_id", [None, 42, [], {"x": 1}, True])
+def test_decode_cursor_rejects_non_string_row_id(bad_row_id: object) -> None:
+    """Used to silently ``str(...)``-coerce any type — ``None`` → ``"None"`` /
+    ``[]`` → ``"[]"`` — which then surfaces as 500 when SQLAlchemy tries to
+    coerce the bogus string to a UUID id column (or silently matches the
+    wrong row when the id column is a free-form string). Now must raise
+    ValueError so the router translates to 422."""
+    tampered = _encode_raw(["legitimate-value", bad_row_id])
+    with pytest.raises(ValueError, match="row-id must be a string"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
 # ---------------------------------------------------------------------------
 # cursor_value_is_datetime
 # ---------------------------------------------------------------------------
