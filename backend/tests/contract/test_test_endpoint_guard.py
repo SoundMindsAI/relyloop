@@ -15,10 +15,11 @@ indistinguishable from "this server doesn't have that feature."
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import httpx
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 from pydantic import ValidationError
 
@@ -94,10 +95,15 @@ def test_guard_raises_404_outside_development(environment: str) -> None:
     """Symmetric dependency-layer test: the guard raises with the expected
     error code + retryable flag for every non-development value."""
     settings = _stub_settings(environment)
-    with pytest.raises(test_router.HTTPException) as exc_info:
+    with pytest.raises(HTTPException) as exc_info:
         test_router._require_development_env(settings)
     assert exc_info.value.status_code == httpx.codes.NOT_FOUND
-    assert exc_info.value.detail == {
+    # FastAPI types ``HTTPException.detail`` as ``str``, but our routers raise
+    # with a structured envelope per api-conventions §"Standard error codes".
+    # Cast through ``Any`` to assert on the actual dict shape without tripping
+    # mypy's narrowed-to-str unreachable check.
+    detail: Any = exc_info.value.detail
+    assert detail == {
         "error_code": "RESOURCE_NOT_FOUND",
         "message": "Not found",
         "retryable": False,
