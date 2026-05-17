@@ -25,13 +25,17 @@ const columns: DataTableColumnDef<MockRow>[] = [
   {
     id: 'status',
     header: 'Status',
-    filter: { kind: 'enum', wireValues: ['queued', 'running'], sourceOfTruth: 'test' },
+    filter: { kind: 'enum', wireValues: ['queued', 'running', 'completed'], sourceOfTruth: 'test' },
   },
   {
     id: 'source',
     header: 'Source',
     filter: { kind: 'enum', wireValues: ['llm', 'human'], sourceOfTruth: 'test' },
   },
+  // A sortable column used by the hydration test below — without one, the
+  // chore_data_table_primitive_followups item 6 sort-token validation
+  // (added 2026-05-17) drops `?sort=name:asc` as "no such sortable column."
+  { id: 'name', header: 'Name', sortable: true },
 ];
 
 const pushMock = vi.fn();
@@ -167,5 +171,107 @@ describe('useDataTableUrlState — anyMatcherActive', () => {
     currentSearch = 'q=foo';
     const { result } = renderHook(() => useDataTableUrlState('mock', columns));
     expect(result.current.anyMatcherActive).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// chore_data_table_primitive_followups item 6 — URL-state validation
+// ---------------------------------------------------------------------------
+describe('useDataTableUrlState — enum filter validation', () => {
+  it('drops a filter value not in the column wireValues allowlist', () => {
+    currentSearch = 'status=invented';
+    const { result } = renderHook(() => useDataTableUrlState('mock', columns));
+    expect(result.current.filters).toEqual({});
+    expect(result.current.anyMatcherActive).toBe(false);
+  });
+
+  it('preserves a filter value that matches the wireValues allowlist', () => {
+    currentSearch = 'status=running';
+    const { result } = renderHook(() => useDataTableUrlState('mock', columns));
+    expect(result.current.filters).toEqual({ status: 'running' });
+  });
+
+  it('drops only the invalid filter; leaves valid siblings intact', () => {
+    currentSearch = 'status=invented&source=llm';
+    const { result } = renderHook(() => useDataTableUrlState('mock', columns));
+    expect(result.current.filters).toEqual({ source: 'llm' });
+  });
+});
+
+const sortColumns: DataTableColumnDef<MockRow>[] = [
+  { id: 'name', header: 'Name', sortable: true },
+  { id: 'version', header: 'Version', sortable: true, sortDirections: ['asc'] },
+];
+
+describe('useDataTableUrlState — sort token validation', () => {
+  it('drops a sort token whose column is not in the sortable allowlist', () => {
+    currentSearch = 'sort=invented:asc';
+    const { result } = renderHook(() => useDataTableUrlState('mock', sortColumns));
+    expect(result.current.sort).toBeNull();
+  });
+
+  it('drops a sort token whose direction is not in the column sortDirections', () => {
+    // version is asc-only; ?sort=version:desc must fall through to null.
+    currentSearch = 'sort=version:desc';
+    const { result } = renderHook(() => useDataTableUrlState('mock', sortColumns));
+    expect(result.current.sort).toBeNull();
+  });
+
+  it('accepts a sort token within the column sortDirections', () => {
+    currentSearch = 'sort=version:asc';
+    const { result } = renderHook(() => useDataTableUrlState('mock', sortColumns));
+    expect(result.current.sort).toBe('version:asc');
+  });
+
+  it('defaults to asc when ?sort=<col> is missing the direction half', () => {
+    currentSearch = 'sort=name';
+    const { result } = renderHook(() => useDataTableUrlState('mock', sortColumns));
+    expect(result.current.sort).toBe('name:asc');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// chore_data_table_primitive_followups item 4 — pageSize allowlist coercion
+// ---------------------------------------------------------------------------
+describe('useDataTableUrlState — pageSize validation', () => {
+  it('coerces ?limit= values outside pageSizeOptions to defaultPageSize', () => {
+    currentSearch = 'limit=99';
+    const { result } = renderHook(() =>
+      useDataTableUrlState('mock', columns, {
+        defaultPageSize: 50,
+        pageSizeOptions: [25, 50, 100, 200],
+      }),
+    );
+    expect(result.current.pageSize).toBe(50);
+  });
+
+  it('accepts ?limit= values inside pageSizeOptions', () => {
+    currentSearch = 'limit=100';
+    const { result } = renderHook(() =>
+      useDataTableUrlState('mock', columns, {
+        defaultPageSize: 50,
+        pageSizeOptions: [25, 50, 100, 200],
+      }),
+    );
+    expect(result.current.pageSize).toBe(100);
+  });
+
+  it('accepts any positive ?limit= when pageSizeOptions is omitted (backward-compat)', () => {
+    currentSearch = 'limit=99';
+    const { result } = renderHook(() =>
+      useDataTableUrlState('mock', columns, { defaultPageSize: 50 }),
+    );
+    expect(result.current.pageSize).toBe(99);
+  });
+
+  it('coerces non-numeric ?limit= to defaultPageSize regardless of pageSizeOptions', () => {
+    currentSearch = 'limit=abc';
+    const { result } = renderHook(() =>
+      useDataTableUrlState('mock', columns, {
+        defaultPageSize: 50,
+        pageSizeOptions: [25, 50, 100],
+      }),
+    );
+    expect(result.current.pageSize).toBe(50);
   });
 });

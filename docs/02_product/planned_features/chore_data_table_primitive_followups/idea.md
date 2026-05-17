@@ -1,9 +1,9 @@
 # DataTable primitive — review-cycle follow-ups
 
 **Date:** 2026-05-16
-**Status:** Idea — six discrete follow-ups deferred from `feat_data_table_primitive` GPT-5.5 review cycles (Epic 2 cycles 1/2/3 + Epic 3 cycle 1) and from Step 2.5 tangential-observations sweep. Each was correctly classified "defer as non-regression follow-up" at the time; capturing them now per the CLAUDE.md tangential-discoveries rule so they don't evaporate.
-**Origin:** [`feat_data_table_primitive/implementation_plan.md`](../feat_data_table_primitive/implementation_plan.md) review cycles. Specific cycle/finding references inline below.
-**Depends on:** `feat_data_table_primitive` (PR open on `feat/data-table-primitive`).
+**Status:** Partial — items 1, 2, 4, 6 shipped in PR (TBD) 2026-05-17. Items 3 + 5 remain open (larger refactors touching 8 DataTable consumers each).
+**Origin:** [`feat_data_table_primitive`](../../../00_overview/implemented_features/2026_05_16_feat_data_table_primitive/) review cycles. Specific cycle/finding references inline below.
+**Depends on:** `feat_data_table_primitive` (merged as PR #126).
 
 ## Problem
 
@@ -11,9 +11,11 @@
 
 ## Proposed capabilities
 
-### 1. Factor the `searchParams subscriber` test mock pattern
+### 1. Factor the `searchParams subscriber` test mock pattern ✅ DONE 2026-05-17
 
 **Origin:** session observation during test writing.
+
+**Resolution:** Factored into `ui/src/__tests__/helpers/data-table-url-mock.ts` exporting `makeNextNavigationMock()` + `resetDataTableUrlMock()` + `getDataTableUrlMockState()` + `setMockedSearch()`. Three test files refactored to use the helper via `vi.mock('next/navigation', async () => { const mod = await import('../../helpers/data-table-url-mock'); return mod.makeNextNavigationMock(); })`. The async factory pattern sidesteps Vitest's `vi.mock` hoist trap (factory references its own-file imports). Net -85 LOC duplicated boilerplate across the three test files.
 
 Four test files duplicate the same ~25-line `searchParamsSubscribers` + `applyUrl` mock setup that propagates URL changes through React state for `useDataTableUrlState`:
 
@@ -24,13 +26,13 @@ Four test files duplicate the same ~25-line `searchParamsSubscribers` + `applyUr
 
 Factor into `ui/src/__tests__/helpers/data-table-url-mock.ts` exporting `setupDataTableUrlMock()` that returns `{ setSearch, getLastReplace, getLastPush }`. Next consumer that adds a DataTable URL-state test pulls the helper instead of duplicating.
 
-### 2. `useLocalStorageSet` return shape
+### 2. `useLocalStorageSet` return shape ✅ DONE 2026-05-17
 
 **Origin:** Epic 2 GPT-5.5 cycle 1 finding #14 (Low, deferred).
 
 Plan Story 2.10 specifies `useLocalStorageSet` returns `{ value: string[], add(id), remove(id), toggle(id) }`. The implementation returns a `Set<string>` plus `clear()` + `has()` helpers. Works for current consumers but diverges from the documented API.
 
-Decision needed: update the plan to match the impl, or refactor the impl to return `{value: string[], ...}` and adapt the 2 call sites.
+**Resolution:** Locked the shipped Set-based shape as canonical. The plan's `string[]` proposal was an early sketch — the actual consumer (`<DataTable>` at `ui/src/components/common/data-table.tsx`) uses `.has(c.id)` + `.toggle(id)`, which are Set-shaped operations. Set provides O(1) membership; array would force `.includes()` (O(n)). Updated the hook's docstring at `ui/src/hooks/use-local-storage-set.ts` to lock in the contract and reference this idea. No code change.
 
 ### 3. `DataTableProps` URL state aggregate prop
 
@@ -40,13 +42,13 @@ Plan Story 2.6 key-interface block declares `DataTableProps` gaining required `u
 
 Refactor would touch every Epic 3 consumer (8 thin wrappers). The flat-prop API is also slightly more idiomatic React; the question is whether the plan should be updated to reflect the chosen design or the code should be updated to reflect the plan.
 
-### 4. `?limit=` coercion to `pageSizeOptions` allowlist
+### 4. `?limit=` coercion to `pageSizeOptions` allowlist ✅ DONE 2026-05-17
 
 **Origin:** Epic 2 GPT-5.5 cycle 2 finding #13 (Medium, deferred).
 
 `useDataTableUrlState` currently accepts any positive integer for `?limit=` (e.g., `?limit=99` becomes `pageSize=99`). The hook accepts `pageSizeOptions` in its config but doesn't use it for hydration validation. Tightening would coerce out-of-allowlist values to `defaultPageSize`.
 
-Low-priority — the backend caps `?limit=200` per `api-conventions.md` so the worst case is a 99-row page render rather than data loss.
+**Resolution:** Added pageSize coercion at hook hydration: when `options.pageSizeOptions` is provided, out-of-allowlist `?limit=` values fall back to `defaultPageSize`. Backward-compatible — when `pageSizeOptions` is omitted (current consumer pattern), any positive integer still passes. 4 new test cases at `ui/src/__tests__/hooks/use-data-table-url-state.test.tsx`.
 
 ### 5. TanStack `state.columnVisibility` wire-up
 
@@ -54,13 +56,13 @@ Low-priority — the backend caps `?limit=200` per `api-conventions.md` so the w
 
 Current implementation pre-filters `columns` before passing to `useReactTable`. The TanStack-idiomatic approach is to pass the full column array and use `state.columnVisibility: Record<id, boolean>` to control visibility. Functional today; refactor would compose better with future column-state features (column ordering, pinning, resizing).
 
-### 6. URL-state Zod validation in `useDataTableUrlState`
+### 6. URL-state Zod validation in `useDataTableUrlState` ✅ DONE 2026-05-17
 
 **Origin:** Epic 2 GPT-5.5 cycle 3 finding #1 (Medium, deferred).
 
 Direct URLs like `?status=invented` or `?sort=garbage:asc` currently pass through `useDataTableUrlState` unchanged and fail at the backend with a 422. Defense-in-depth would validate against `column.filter.wireValues` (enum filters) and `column.sortable` + `column.sortDirections` (sort) at the hook level, dropping invalid params and optionally calling `replace()` to clean the URL.
 
-Most surfaces already narrow this at the page level (e.g., `/proposals/page.tsx` checks `PROPOSAL_STATUS_VALUES.includes()` before calling the API). Centralizing in the hook would make the discipline consistent across all 8 consumers.
+**Resolution:** Centralized validation in `useDataTableUrlState` for enum-filter columns and sort tokens. Enum filters drop values outside `column.filter.wireValues`. Sort tokens drop tokens whose column isn't sortable OR whose direction isn't in `column.sortDirections`. fk-select filters pass through (their option IDs load async, so can't validate at hook time). Did NOT call `replace()` to clean the URL — dropping silently avoids the "flash of empty state" UX surprise, matching the page-level pattern in `/proposals/page.tsx`. 7 new test cases.
 
 ## Scope signals
 
