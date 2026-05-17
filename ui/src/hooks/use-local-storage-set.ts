@@ -7,6 +7,19 @@
  * Stores a string array under the given key. Safe under SSR (no-op on
  * server), Safari Private Browsing (try/catch on write quota), and tabs
  * without localStorage support.
+ *
+ * ## Return shape (canonical)
+ *
+ * Returns `{ value: Set<string>, add, remove, toggle, clear, has }`. The
+ * shipped shape uses `Set<string>` for O(1) membership checks via `.has()`
+ * + ergonomic `.toggle()`, which is what `<DataTable>`'s sole consumer
+ * actually uses (`hiddenColumns.has(c.id)` / `hiddenColumns.toggle(id)`).
+ *
+ * `feat_data_table_primitive/implementation_plan.md` Story 2.10's key-
+ * interface block proposed `{ value: string[], add, remove, toggle }` as
+ * an early sketch — the consumer pattern that emerged during build-out
+ * was Set-shaped. The shipped impl is the canonical contract; the plan
+ * proposal is closed via `chore_data_table_primitive_followups` item 2.
  */
 
 import { useCallback, useEffect, useState } from 'react';

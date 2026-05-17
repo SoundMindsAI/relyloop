@@ -1,58 +1,24 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { type ReactNode, useEffect, useReducer } from 'react';
+import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+import {
+  getDataTableUrlMockState,
+  resetDataTableUrlMock,
+  setMockedSearch,
+} from '../../helpers/data-table-url-mock';
 import { server } from '../../setup';
 
 const API_BASE = 'http://api.test';
 
-let lastReplace = '';
-let lastPush = '';
-let mockedSearch = '';
-// Subscribers for the useSearchParams mock; each useSearchParams() call
-// registers a force-rerender callback so router.replace(url) propagates
-// to React state and triggers a refetch (preserved from
-// chore_proposals_list_wire_param_e2e_test). Without this the wire
-// param round-trip through useProposals isn't exercised end-to-end.
-const searchParamsSubscribers = new Set<() => void>();
-
-function applyUrl(url: string) {
-  // Extract the query string from a path-or-query URL emitted by
-  // `useDataTableUrlState`. The hook calls router.replace('?qs') or
-  // `window.location.pathname` for an empty query.
-  if (url.startsWith('?')) mockedSearch = url.slice(1);
-  else if (url.includes('?')) mockedSearch = url.split('?')[1] ?? '';
-  else mockedSearch = '';
-  searchParamsSubscribers.forEach((fn) => fn());
-}
-
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/test',
-  useRouter: () => ({
-    replace: (url: string) => {
-      lastReplace = url;
-      applyUrl(url);
-    },
-    push: (url: string) => {
-      lastPush = url;
-      applyUrl(url);
-    },
-  }),
-  useSearchParams: () => {
-    const [, force] = useReducer((x: number) => x + 1, 0);
-    useEffect(() => {
-      searchParamsSubscribers.add(force);
-      return () => {
-        searchParamsSubscribers.delete(force);
-      };
-    }, []);
-    return new URLSearchParams(mockedSearch);
-  },
-}));
+vi.mock('next/navigation', async () => {
+  const mod = await import('../../helpers/data-table-url-mock');
+  return mod.makeNextNavigationMock();
+});
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -88,10 +54,7 @@ function proposalRow(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
-  lastReplace = '';
-  lastPush = '';
-  mockedSearch = '';
-  searchParamsSubscribers.clear();
+  resetDataTableUrlMock();
 });
 
 afterEach(() => {
@@ -158,11 +121,11 @@ describe('ProposalsPage (DataTable migration — Story 3.2)', () => {
       expect(screen.getByTestId('data-table-empty-no-rows-exist')).toBeInTheDocument(),
     );
     fireEvent.click(screen.getByTestId('filter-chip-status-pr_opened'));
-    expect(lastReplace).toContain('status=pr_opened');
+    expect(getDataTableUrlMockState().lastReplace).toContain('status=pr_opened');
   });
 
   it('GPT-5.5 cycle-2 A2: invalid URL ?status= is silently ignored', async () => {
-    mockedSearch = 'status=invented';
+    setMockedSearch('status=invented');
     let capturedStatusParam: string | null | undefined;
     server.use(
       http.get(`${API_BASE}/api/v1/proposals`, ({ request }) => {
