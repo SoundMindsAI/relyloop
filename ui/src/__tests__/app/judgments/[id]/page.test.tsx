@@ -1,42 +1,20 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { Suspense, type ReactNode, useEffect, useReducer } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 
+import { resetDataTableUrlMock } from '../../../helpers/data-table-url-mock';
 import { server } from '../../../setup';
 
 const API_BASE = 'http://api.test';
 
-let mockedSearch = '';
-const searchParamsSubscribers = new Set<() => void>();
-
-function applyUrl(url: string) {
-  if (url.startsWith('?')) mockedSearch = url.slice(1);
-  else if (url.includes('?')) mockedSearch = url.split('?')[1] ?? '';
-  else mockedSearch = '';
-  searchParamsSubscribers.forEach((fn) => fn());
-}
-
-vi.mock('next/navigation', () => ({
-  usePathname: () => '/test',
-  useRouter: () => ({
-    replace: (url: string) => applyUrl(url),
-    push: (url: string) => applyUrl(url),
-  }),
-  useSearchParams: () => {
-    const [, force] = useReducer((x: number) => x + 1, 0);
-    useEffect(() => {
-      searchParamsSubscribers.add(force);
-      return () => {
-        searchParamsSubscribers.delete(force);
-      };
-    }, []);
-    return new URLSearchParams(mockedSearch);
-  },
-}));
+vi.mock('next/navigation', async () => {
+  const mod = await import('../../../helpers/data-table-url-mock');
+  return mod.makeNextNavigationMock();
+});
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
@@ -45,8 +23,7 @@ vi.mock('next/link', () => ({
 }));
 
 beforeEach(() => {
-  mockedSearch = '';
-  searchParamsSubscribers.clear();
+  resetDataTableUrlMock();
 });
 
 afterEach(() => vi.restoreAllMocks());
