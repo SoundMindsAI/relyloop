@@ -178,6 +178,92 @@ def test_decode_cursor_raises_value_error_on_malformed_input() -> None:
 
 
 # ---------------------------------------------------------------------------
+# decode_cursor — payload-shape + value-type validation (bug_cursor_decode_value_validation)
+#
+# Without these guards a tampered cursor whose value-half is non-primitive
+# (dict / list / bool) silently passes through decode_cursor when
+# value_is_datetime=False, flows into keyset_predicate's SQL comparison clause,
+# and surfaces as 500 instead of the intended 422 VALIDATION_ERROR. The 9
+# routers that wrap decode_cursor in `except Exception` don't catch this
+# because decode succeeds for non-primitive value-halves. The fix raises
+# ValueError at decode time so the router's existing translation fires.
+# ---------------------------------------------------------------------------
+
+
+def _encode_raw(payload: object) -> str:
+    """Helper to mint a tampered cursor with an arbitrary JSON payload."""
+    import base64
+    import json
+
+    return base64.urlsafe_b64encode(json.dumps(payload).encode()).decode()
+
+
+def test_decode_cursor_rejects_dict_value_half() -> None:
+    """Non-primitive value-half + value_is_datetime=False used to pass through;
+    must now raise ValueError so the router translates to 422."""
+    tampered = _encode_raw([{"x": 1}, "abc"])
+    with pytest.raises(ValueError, match="must be null|str|int|float"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
+def test_decode_cursor_rejects_list_value_half() -> None:
+    tampered = _encode_raw([[1, 2, 3], "abc"])
+    with pytest.raises(ValueError, match="must be null|str|int|float"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
+def test_decode_cursor_rejects_bool_value_half() -> None:
+    """bool is technically int but is never a legitimate sort value;
+    explicit rejection guards against `isinstance(True, int) == True`."""
+    tampered = _encode_raw([True, "abc"])
+    with pytest.raises(ValueError, match="must be null|str|int|float"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
+def test_decode_cursor_rejects_single_element_payload() -> None:
+    """Used to raise IndexError; now raises ValueError for contract consistency."""
+    tampered = _encode_raw(["x"])
+    with pytest.raises(ValueError, match="2-element list"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
+def test_decode_cursor_rejects_three_element_payload() -> None:
+    """Forward-compat: today's encoder emits 2-tuple; a 3-tuple cursor is
+    either tampered or from a future encoder format and must fail-fast."""
+    tampered = _encode_raw(["value", "row-id", "extra"])
+    with pytest.raises(ValueError, match="2-element list"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
+def test_decode_cursor_rejects_non_list_top_level() -> None:
+    """Top-level dict used to raise KeyError; now raises ValueError."""
+    tampered = _encode_raw({"value": "x", "row_id": "abc"})
+    with pytest.raises(ValueError, match="2-element list"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
+def test_decode_cursor_rejects_int_value_half_when_datetime_sort_active() -> None:
+    """value_is_datetime=True + int value-half used to TypeError out of
+    fromisoformat (caught by router's `except Exception`); now raises
+    explicit ValueError before reaching fromisoformat."""
+    tampered = _encode_raw([42, "abc"])
+    with pytest.raises(ValueError, match="requires str value-half"):
+        decode_cursor(tampered, value_is_datetime=True)
+
+
+@pytest.mark.parametrize("bad_row_id", [None, 42, [], {"x": 1}, True])
+def test_decode_cursor_rejects_non_string_row_id(bad_row_id: object) -> None:
+    """Used to silently ``str(...)``-coerce any type — ``None`` → ``"None"`` /
+    ``[]`` → ``"[]"`` — which then surfaces as 500 when SQLAlchemy tries to
+    coerce the bogus string to a UUID id column (or silently matches the
+    wrong row when the id column is a free-form string). Now must raise
+    ValueError so the router translates to 422."""
+    tampered = _encode_raw(["legitimate-value", bad_row_id])
+    with pytest.raises(ValueError, match="row-id must be a string"):
+        decode_cursor(tampered, value_is_datetime=False)
+
+
+# ---------------------------------------------------------------------------
 # cursor_value_is_datetime
 # ---------------------------------------------------------------------------
 
