@@ -19,7 +19,7 @@ brittleness).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import uuid_utils
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,13 +79,21 @@ async def seed_study_completed_with_digest(
         optuna_study_name=study_id,
     )
 
-    # Insert two trials before transitioning to ``completed`` so the
-    # state machine's denormalized ``best_trial_id`` FK has a real row to
-    # reference (``best_trial_id`` is not a formal FK at the DB level but
-    # the orchestrator's invariant is that it points to an existing trial).
+    # Transition queued → running BEFORE inserting trials so the seeded data
+    # mirrors the real orchestrator flow (study starts, then run_trial writes
+    # rows as trials execute) per Gemini feedback on PR #130. start_study
+    # returns the Study row with ``started_at`` stamped; we anchor trial
+    # timestamps off that so they're internally consistent with the study.
+    study = await study_state.start_study(db, study_id)
+    started = study.started_at or datetime.now(UTC)
+
+    # Trial 1 (winner): begins at study start, runs for 1200ms.
+    # Trial 2 (loser):  begins 100ms after trial 1 ends, runs for 1100ms.
+    # ``ended_at - started_at`` matches the stored ``duration_ms`` so any
+    # downstream code that re-derives duration from the timestamp pair gets
+    # the same answer the orchestrator's writer would have produced.
     winning_trial_id = str(uuid_utils.uuid7())
     losing_trial_id = str(uuid_utils.uuid7())
-    started = datetime.now(UTC)
     await repo.create_trial(
         db,
         id=winning_trial_id,
@@ -98,7 +106,7 @@ async def seed_study_completed_with_digest(
         status="complete",
         error=None,
         started_at=started,
-        ended_at=started,
+        ended_at=started + timedelta(milliseconds=1200),
     )
     await repo.create_trial(
         db,
@@ -111,11 +119,10 @@ async def seed_study_completed_with_digest(
         duration_ms=1100,
         status="complete",
         error=None,
-        started_at=started,
-        ended_at=started,
+        started_at=started + timedelta(milliseconds=1300),
+        ended_at=started + timedelta(milliseconds=2400),
     )
 
-    await study_state.start_study(db, study_id)
     await study_state.complete_study(
         db,
         study_id,
