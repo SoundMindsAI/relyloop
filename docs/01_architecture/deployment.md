@@ -218,9 +218,9 @@ echo "<openai-key>" > ./secrets/openai_key
 make up
 
 # Daily use
-make up            # docker compose up -d (builds ui image on first run)
+make up            # docker compose build (all services) + up -d
 make logs          # docker compose logs -f api worker
-make down          # docker compose stop
+make down          # docker compose down (containers removed; data volumes preserved)
 make migrate       # alembic upgrade head + optuna_schema — idempotent (also runs automatically via the migrate init container at boot)
 make seed-clusters # populate local-es + local-opensearch as cluster rows
 make seed-es       # seed local-es 'products' index from samples/products.json
