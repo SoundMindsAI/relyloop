@@ -104,8 +104,8 @@ If you want the round-trip test to actually run from your shell, you'd need to e
 
 | Target | What it does |
 |---|---|
-| `make up` | Generate secrets if missing → `docker compose up -d` |
-| `make down` | `docker compose stop` (preserves data volumes) |
+| `make up` | Generate secrets if missing → `docker compose build` (every buildable service) → `docker compose up -d` |
+| `make down` | `docker compose down` (removes containers + network; preserves data volumes) |
 | `make logs` | `docker compose logs -f api worker` |
 | `make migrate` | `alembic upgrade head` + initialize Optuna RDB schema (idempotent — also runs automatically via the `migrate` init container at boot) |
 | `make migrate-create name=<slug>` | New Alembic revision (autogenerate) |
