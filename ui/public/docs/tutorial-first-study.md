@@ -166,20 +166,30 @@ open http://localhost:3000/query-sets
 Click **"Create query set"** and fill the form:
 
 - **Name:** `tutorial_queries`
-- **Cluster ID:** the UUIDv7 of `local-es` (grab it from
-  [`http://localhost:3000/clusters`](http://localhost:3000/clusters))
+- **Cluster:** pick `local-es` from the dropdown — no UUID typing required;
+  the field is a searchable list of every cluster the API knows about,
+  with health-status dots so you can see at a glance which clusters are
+  reachable
 - **Description:** anything (e.g. "Tutorial queries from ESCI")
 
 Submit. On the query-set detail page, click **"Add queries"** and
 upload `samples/queries.csv` — the dialog accepts JSON or CSV with the
 file's `query_id,query_text` shape directly.
 
-You can do the same via the API:
+48 queries should now be attached to the query set.
+
+You can do the same via the API. The example below resolves the
+cluster's UUIDv7 from the registry first, then posts the query set
+using a shell variable — no manual UUID copy-paste:
 
 ```bash
+# Resolve the cluster UUID from its name (no copy-paste, no typos).
+LOCAL_ES_ID=$(curl -s http://localhost:8000/api/v1/clusters \
+  | jq -r '.data[] | select(.name=="local-es") | .id')
+
 QS_ID=$(curl -s -X POST http://localhost:8000/api/v1/query-sets \
   -H "Content-Type: application/json" \
-  -d '{"name":"tutorial_queries","cluster_id":"<local-es-id>","description":"ESCI tutorial"}' \
+  -d "{\"name\":\"tutorial_queries\",\"cluster_id\":\"$LOCAL_ES_ID\",\"description\":\"ESCI tutorial\"}" \
   | jq -r .id)
 
 curl -X POST http://localhost:8000/api/v1/query-sets/$QS_ID/queries \
@@ -188,12 +198,8 @@ curl -X POST http://localhost:8000/api/v1/query-sets/$QS_ID/queries \
         '{queries: ($csv | split("\n") | .[1:] | map(select(length>0)) | map(split(",") | {query_text: .[1]}))}')"
 ```
 
-48 queries should now be attached to the query set.
-
-**If something went wrong:** if the upload fails with `cluster_id not found`,
-you used the wrong UUID. Get the right one from
-[`http://localhost:3000/clusters`](http://localhost:3000/clusters) or via
-`curl -s http://localhost:8000/api/v1/clusters | jq '.data[] | select(.name=="local-es") | .id'`.
+**If something went wrong:** if `LOCAL_ES_ID` came back empty, the
+cluster wasn't registered — re-run Step 4 first.
 
 ---
 

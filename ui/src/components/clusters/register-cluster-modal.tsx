@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import { HelpPopover } from '@/components/common/help-popover';
 import { InfoTooltip } from '@/components/common/info-tooltip';
+import { EntitySelect } from '@/components/common/entity-select';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -208,26 +209,23 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
               placeholder="es-apikey"
             />
           </div>
-          {(configRepos.data?.data ?? []).length > 0 && (
-            <div className="space-y-1.5">
-              <Label htmlFor="cl-repo">Config repo (optional)</Label>
-              <Select
-                value={form.watch('config_repo_id') ?? ''}
-                onValueChange={(v) => form.setValue('config_repo_id', v || undefined)}
-              >
-                <SelectTrigger id="cl-repo">
-                  <SelectValue placeholder="—" />
-                </SelectTrigger>
-                <SelectContent>
-                  {configRepos.data?.data.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Label htmlFor="cl-repo">Config repo (optional)</Label>
+            <EntitySelect
+              id="cl-repo"
+              data-testid="cl-repo"
+              query={configRepos}
+              getId={(r) => r.id}
+              getLabel={(r) => r.name}
+              value={form.watch('config_repo_id') || undefined}
+              onChange={(v) => form.setValue('config_repo_id', v || undefined)}
+              placeholder="—"
+              emptyState={{
+                message: 'No config repos registered',
+                cta: { label: 'Register a config repo', href: '/clusters' },
+              }}
+            />
+          </div>
           <div className="space-y-1.5">
             <Label htmlFor="cl-notes">Notes</Label>
             <Textarea id="cl-notes" rows={3} {...form.register('notes')} />

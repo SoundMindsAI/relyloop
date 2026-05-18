@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import { HelpPopover } from '@/components/common/help-popover';
 import { InfoTooltip } from '@/components/common/info-tooltip';
+import { EntitySelect } from '@/components/common/entity-select';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -234,26 +235,24 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
             <div className="space-y-4" data-testid="step-1">
               <div className="space-y-1.5">
                 <Label htmlFor="cs-cluster">Cluster</Label>
-                <Select
-                  value={values.cluster_id}
-                  onValueChange={(v) => {
-                    form.setValue('cluster_id', v);
+                <EntitySelect
+                  id="cs-cluster"
+                  data-testid="cs-cluster"
+                  query={clusters}
+                  getId={(c) => c.id}
+                  getLabel={(c) => `${c.name} (${c.engine_type})`}
+                  getStatus={(c) =>
+                    c.health_check.status === 'unreachable' ? 'unknown' : c.health_check.status
+                  }
+                  value={values.cluster_id || undefined}
+                  onChange={(v) => {
+                    form.setValue('cluster_id', v ?? '');
                     form.setValue('query_set_id', '');
                     form.setValue('judgment_list_id', '');
                     form.setValue('template_id', '');
                   }}
-                >
-                  <SelectTrigger id="cs-cluster">
-                    <SelectValue placeholder="Choose a cluster" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(clusters.data?.data ?? []).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name} ({c.engine_type})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Choose a cluster"
+                />
               </div>
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1">
@@ -273,42 +272,32 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
             <div className="space-y-4" data-testid="step-2">
               <div className="space-y-1.5">
                 <Label htmlFor="cs-qs">Query set</Label>
-                <Select
-                  value={values.query_set_id}
-                  onValueChange={(v) => {
-                    form.setValue('query_set_id', v);
+                <EntitySelect
+                  id="cs-qs"
+                  data-testid="cs-qs"
+                  query={querySets}
+                  getId={(q) => q.id}
+                  getLabel={(q) => q.name}
+                  value={values.query_set_id || undefined}
+                  onChange={(v) => {
+                    form.setValue('query_set_id', v ?? '');
                     form.setValue('judgment_list_id', '');
                   }}
-                >
-                  <SelectTrigger id="cs-qs">
-                    <SelectValue placeholder="Choose a query set" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(querySets.data?.data ?? []).map((q) => (
-                      <SelectItem key={q.id} value={q.id}>
-                        {q.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Choose a query set"
+                />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="cs-jl">Judgment list</Label>
-                <Select
-                  value={values.judgment_list_id}
-                  onValueChange={(v) => form.setValue('judgment_list_id', v)}
-                >
-                  <SelectTrigger id="cs-jl">
-                    <SelectValue placeholder="Choose a judgment list" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(judgmentLists.data?.data ?? []).map((j) => (
-                      <SelectItem key={j.id} value={j.id}>
-                        {j.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntitySelect
+                  id="cs-jl"
+                  data-testid="cs-jl"
+                  query={judgmentLists}
+                  getId={(j) => j.id}
+                  getLabel={(j) => j.name}
+                  value={values.judgment_list_id || undefined}
+                  onChange={(v) => form.setValue('judgment_list_id', v ?? '')}
+                  placeholder="Choose a judgment list"
+                />
               </div>
             </div>
           )}
@@ -319,21 +308,16 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   <Label htmlFor="cs-tpl">Query template (filtered by engine)</Label>
                   <InfoTooltip glossaryKey="study.template" />
                 </div>
-                <Select
-                  value={values.template_id}
-                  onValueChange={(v) => form.setValue('template_id', v)}
-                >
-                  <SelectTrigger id="cs-tpl">
-                    <SelectValue placeholder="Choose a template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(templates.data?.data ?? []).map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
-                        {t.name} (v{t.version})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <EntitySelect
+                  id="cs-tpl"
+                  data-testid="cs-tpl"
+                  query={templates}
+                  getId={(t) => t.id}
+                  getLabel={(t) => `${t.name} (v${t.version})`}
+                  value={values.template_id || undefined}
+                  onChange={(v) => form.setValue('template_id', v ?? '')}
+                  placeholder="Choose a template"
+                />
               </div>
             </div>
           )}
