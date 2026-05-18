@@ -19,10 +19,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useClusters, type ClusterSummary } from '@/lib/api/clusters';
 import { useCreateQuerySet } from '@/lib/api/query-sets';
 
-function useClustersForSelect() {
-  return useClusters({ limit: 200 });
-}
-
 interface CreateQuerySetFormValues {
   name: string;
   description?: string;
@@ -41,6 +37,7 @@ export function CreateQuerySetModal({
   defaultClusterId,
 }: CreateQuerySetModalProps) {
   const create = useCreateQuerySet();
+  const clusters = useClusters({ limit: 200 });
   const [submitting, setSubmitting] = useState(false);
   const form = useForm<CreateQuerySetFormValues>({
     defaultValues: {
@@ -97,7 +94,7 @@ export function CreateQuerySetModal({
             <EntitySelect<ClusterSummary>
               id="qs-cluster"
               data-testid="qs-cluster"
-              useEntities={useClustersForSelect}
+              query={clusters}
               getId={(c) => c.id}
               getLabel={(c) => c.name}
               getStatus={(c) =>

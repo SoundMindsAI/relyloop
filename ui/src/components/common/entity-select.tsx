@@ -42,7 +42,15 @@ export interface EntitySelectListPage<T> {
 }
 
 export interface EntitySelectProps<T> {
-  useEntities: () => UseQueryResult<EntitySelectListPage<T>, ApiError>;
+  /**
+   * The TanStack query result. Consumer calls the listing hook
+   * (`useClusters({ limit: 200 })`, `useQuerySets({ cluster_id, ... })`, etc.)
+   * in its own component scope and passes the result here. This keeps the
+   * primitive's API decoupled from per-resource filter params and sidesteps
+   * the react-hooks/rules-of-hooks lint that fires when a hook call is
+   * wrapped in an inline arrow function.
+   */
+  query: UseQueryResult<EntitySelectListPage<T>, ApiError>;
   getId: (entity: T) => string;
   getLabel: (entity: T) => string;
   value: string | undefined;
@@ -74,7 +82,7 @@ const STATUS_COLOR: Record<EntityStatus, string> = {
 
 export function EntitySelect<T>(props: EntitySelectProps<T>) {
   const {
-    useEntities,
+    query,
     getId,
     getLabel,
     value,
@@ -90,7 +98,6 @@ export function EntitySelect<T>(props: EntitySelectProps<T>) {
   } = props;
   const dataTestId = props['data-testid'];
 
-  const query = useEntities();
   const { data, isLoading, isError, refetch } = query;
 
   const entities = data?.data ? data.data.filter((entity) => getId(entity) != null) : [];

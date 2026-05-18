@@ -10,10 +10,11 @@ import type { ApiError } from '@/lib/api-errors';
 /**
  * Unit tests for the EntitySelect primitive (chore_form_dropdown_primitive Story 1.1).
  *
- * The primitive consumes `useEntities()` as a value, so tests inject a
- * synchronous fake hook rather than wiring up `QueryClientProvider` + msw.
- * Modal-level integration tests (Stories 2.1-2.4) exercise the primitive
- * through real TanStack hooks; this file pins primitive-internal behavior.
+ * The primitive accepts `query: UseQueryResult` directly, so tests construct
+ * a synthetic query object rather than wiring up `QueryClientProvider` + msw.
+ * Modal-level integration tests (Stories 2.1-2.4) call the real TanStack hook
+ * in their own scope and pass the result here; this file pins primitive-
+ * internal behavior.
  */
 
 interface Fixture {
@@ -22,7 +23,7 @@ interface Fixture {
   health?: EntityStatus;
 }
 
-function buildHook(
+function buildQuery(
   data: Fixture[] | undefined,
   opts: { isLoading?: boolean; isError?: boolean; refetch?: () => void } = {},
 ) {
@@ -32,7 +33,7 @@ function buildHook(
     isError: opts.isError ?? false,
     refetch: opts.refetch ?? vi.fn(),
   };
-  return () => result as unknown as UseQueryResult<{ data: Fixture[] }, ApiError>;
+  return result as unknown as UseQueryResult<{ data: Fixture[] }, ApiError>;
 }
 
 const FIXTURES_THREE: Fixture[] = [
@@ -45,7 +46,7 @@ describe('EntitySelect — baseline rendering', () => {
   it('renders the placeholder when value is undefined and data is loaded', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(FIXTURES_THREE)}
+        query={buildQuery(FIXTURES_THREE)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -62,7 +63,7 @@ describe('EntitySelect — baseline rendering', () => {
   it('passes id through to the trigger button', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(FIXTURES_THREE)}
+        query={buildQuery(FIXTURES_THREE)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -77,7 +78,7 @@ describe('EntitySelect — baseline rendering', () => {
   it('renders the selected entity label when value matches a loaded id', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(FIXTURES_THREE)}
+        query={buildQuery(FIXTURES_THREE)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value="e2"
@@ -93,7 +94,7 @@ describe('EntitySelect — baseline rendering', () => {
     const user = userEvent.setup();
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(FIXTURES_THREE)}
+        query={buildQuery(FIXTURES_THREE)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -111,7 +112,7 @@ describe('EntitySelect — loading state (FR-2)', () => {
   it('renders a disabled trigger with the default loading placeholder', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(undefined, { isLoading: true })}
+        query={buildQuery(undefined, { isLoading: true })}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -127,7 +128,7 @@ describe('EntitySelect — loading state (FR-2)', () => {
   it('honors a custom loadingPlaceholder', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(undefined, { isLoading: true })}
+        query={buildQuery(undefined, { isLoading: true })}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -146,7 +147,7 @@ describe('EntitySelect — error state (FR-3)', () => {
     const user = userEvent.setup();
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(undefined, { isError: true, refetch })}
+        query={buildQuery(undefined, { isError: true, refetch })}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -167,7 +168,7 @@ describe('EntitySelect — empty state (FR-4)', () => {
   it('renders the default "No options" placeholder when no emptyState provided', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook([])}
+        query={buildQuery([])}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -183,7 +184,7 @@ describe('EntitySelect — empty state (FR-4)', () => {
   it('renders the configured emptyState message + CTA Link', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook([])}
+        query={buildQuery([])}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -211,7 +212,7 @@ describe('EntitySelect — status indicator (FR-6)', () => {
     ];
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(fixtures)}
+        query={buildQuery(fixtures)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -241,7 +242,7 @@ describe('EntitySelect — status indicator (FR-6)', () => {
     ];
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(fixtures)}
+        query={buildQuery(fixtures)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -266,7 +267,7 @@ describe('EntitySelect — status indicator (FR-6)', () => {
     const user = userEvent.setup();
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(FIXTURES_THREE)}
+        query={buildQuery(FIXTURES_THREE)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -282,7 +283,7 @@ describe('EntitySelect — status indicator (FR-6)', () => {
   it('renders inlineWarning under the trigger when selected entity yields non-null', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook([{ id: 'sick', name: 'staging-es', health: 'yellow' }])}
+        query={buildQuery([{ id: 'sick', name: 'staging-es', health: 'yellow' }])}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value="sick"
@@ -300,7 +301,7 @@ describe('EntitySelect — status indicator (FR-6)', () => {
   it('does not render inlineWarning when callback returns null', () => {
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook([{ id: 'ok', name: 'local-es', health: 'green' }])}
+        query={buildQuery([{ id: 'ok', name: 'local-es', health: 'green' }])}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value="ok"
@@ -321,7 +322,7 @@ describe('EntitySelect — disabled subset (FR-5)', () => {
     const user = userEvent.setup();
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(FIXTURES_THREE)}
+        query={buildQuery(FIXTURES_THREE)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
@@ -342,7 +343,7 @@ describe('EntitySelect — disabled subset (FR-5)', () => {
     const user = userEvent.setup();
     render(
       <EntitySelect<Fixture>
-        useEntities={buildHook(FIXTURES_THREE)}
+        query={buildQuery(FIXTURES_THREE)}
         getId={(e) => e.id}
         getLabel={(e) => e.name}
         value={undefined}
