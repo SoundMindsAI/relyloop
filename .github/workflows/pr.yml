@@ -277,7 +277,7 @@ jobs:
       # Python + uv so `uv run pytest` works on the smoke runner (parallel to
       # the backend job; doesn't share its venv).
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
       - name: Set up Python
