@@ -31,7 +31,11 @@ test.describe('Walkthrough: Create a query set', () => {
 
     // Fill the form.
     await page.getByLabel('Name', { exact: true }).fill(name);
-    await page.getByLabel(/^Cluster ID/).fill(cluster.id);
+    // Cluster picker is an EntitySelect (shadcn Select) post-chore_form_dropdown_primitive.
+    // Open the dropdown and click the seeded cluster's name; the status dot
+    // is aria-hidden so the accessible name is just `cluster.name`.
+    await page.getByTestId('qs-cluster').click();
+    await page.getByRole('option', { name: cluster.name }).click();
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(SCREENSHOTS, '03-create-modal-filled.png') });
 

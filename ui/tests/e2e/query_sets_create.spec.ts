@@ -20,8 +20,12 @@ test.describe('/query-sets create flow', () => {
     await expect(page.getByRole('dialog')).toBeVisible();
 
     await page.getByLabel('Name', { exact: true }).fill(name);
-    // Cluster picker in MVP1 is a plain text input — type the UUIDv7 directly.
-    await page.getByLabel(/^Cluster ID/).fill(cluster.id);
+    // Cluster picker is an EntitySelect (shadcn Select). Open the dropdown,
+    // then click the option matching the seeded cluster's name. The status
+    // dot inside the option is aria-hidden so the accessible name is just
+    // the cluster name.
+    await page.getByTestId('qs-cluster').click();
+    await page.getByRole('option', { name: cluster.name }).click();
 
     await page.getByTestId('create-query-set-submit').click();
 
