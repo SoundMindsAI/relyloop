@@ -176,7 +176,7 @@ make migrate-create name=<slug>   # alembic revision --autogenerate -m "<slug>"
 
 **Ports (MVP1):**
 - API: `127.0.0.1:8000`
-- UI: `127.0.0.1:3000` (Compose service `ui`, rebuilt by `make up`; for hot-reload during frontend work, stop the Compose `ui` and run `cd ui && pnpm dev` instead)
+- UI: `127.0.0.1:3000` (Compose service `ui`, rebuilt by `make up`; for hot-reload during frontend work, stop the service with `docker compose stop ui` and run `cd ui && pnpm dev` instead)
 - Postgres: internal only (`postgres:5432` on the Compose network; not bound to host)
 - Redis: internal only (`redis:6379`)
 - Elasticsearch: `127.0.0.1:9200`
