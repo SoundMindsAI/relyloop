@@ -105,8 +105,8 @@ ui-dev:  ## Start the Next.js dev server (http://localhost:3000) — uses .nvmrc
 up:  ## Generate secrets if missing, then docker compose up -d (auto-bootstrap)
 	bash scripts/install.sh
 
-down:  ## docker compose stop (preserves data volumes)
-	docker compose stop
+down:  ## docker compose down (removes containers + network; preserves data volumes)
+	docker compose down
 
 restart:  ## docker compose restart api + worker (fast bounce when something wedges)
 	docker compose restart api worker
