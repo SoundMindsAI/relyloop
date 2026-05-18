@@ -14,16 +14,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **39 / 39** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **2** items remaining (features + bugs + chores) |
+| Scoped items done | **40 / 40** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **3** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
-| Open chores | 2 (idea-stage debt) |
+| Open chores | 3 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (48)
+### Done (49)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -56,6 +56,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
 | [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | Complete | — | Complete |
 | [chore_env_guard_extend_deny_pattern](implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern/idea.md) | Chore | Complete | — | Complete |
+| [chore_form_dropdown_primitive](implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) | Chore | Ready for Execution | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | Complete | — | Complete |
@@ -88,13 +89,14 @@ _None._
 
 _None._
 
-### Idea (3)
+### Idea (4)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_e2e_wire_seed_helper_into_studies_spec](../02_product/planned_features/infra_e2e_wire_seed_helper_into_studies_spec/idea.md) | Infra | `infra_e2e_seed_completed_study` shipped `POST /api/v1/_test/studies/seed-completed` and the `seedStudyCompletedWithDigest` TypeScript helper. The two consuming E2E tests in `ui/tests/e2e/studies.spec | — | Idea — deferred from `infra_e2e_seed_completed_study` PR #130. The endpoint + helper landed cleanly; the 2 Playwright E2E tests that consume them caused the smoke CI lane to fail (root cause undiagnosed — agent environment had no access to GitHub Actions logs to debug the Playwright report). |
 | [chore_data_table_primitive_followups](../02_product/planned_features/chore_data_table_primitive_followups/idea.md) | Chore | `feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe | — | Partial — items 1, 2, 4, 6 shipped in PR (TBD) 2026-05-17. Items 3 + 5 remain open (larger refactors touching 8 DataTable consumers each). |
-| [chore_form_dropdown_primitive](../02_product/planned_features/chore_form_dropdown_primitive/idea.md) | Chore | The DataTable primitive shipped with a lint-enforced source-of-truth discipline — every enum filter cites a backend `Literal[...]` and every FK filter cites a `useX()` hook. Forms didn't get the same  | — | Idea — identified during tutorial UX debugging session 2026-05-17. |
+| [chore_extract_shadcn_select_test_mock](../02_product/planned_features/chore_extract_shadcn_select_test_mock/idea.md) | Chore | A factor-and-share refactor was attempted during `chore_form_dropdown_primitive` post-implementation. I extracted the mock to `ui/src/__tests__/helpers/shadcn-select-mock.tsx` exporting `mockShadcnSel | — | Idea — captured during `chore_form_dropdown_primitive` execution (PR pending). |
+| [chore_form_dropdown_guide_screenshot_refresh](../02_product/planned_features/chore_form_dropdown_guide_screenshot_refresh/idea.md) | Chore | Each affected guide has a Playwright spec at `ui/tests/e2e/guides/*.spec.ts` that captures screenshots when run against the real backend. The PR's UI changes produce different screenshots: | — | Idea — captured during `chore_form_dropdown_primitive` post-implementation guide-impact assessment. |
 
 ## Dependency graph
 
@@ -185,6 +187,8 @@ graph LR
   class feat_data_table_primitive done;
   infra_e2e_seed_completed_study["e2e seed completed study"]
   class infra_e2e_seed_completed_study done;
+  chore_form_dropdown_primitive["form dropdown primitive"]
+  class chore_form_dropdown_primitive done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
