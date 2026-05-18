@@ -224,6 +224,15 @@ jobs:
         # via the project venv that uv-sync set up above.
         run: bash scripts/ci/verify_enum_source_of_truth.sh
 
+      - name: Verify install.sh builds every buildable Compose service (bug_install_skip_ui_rebuild)
+        # Fails when scripts/install.sh's `docker compose build` line uses an
+        # explicit service list that doesn't cover every service with a
+        # `build:` block in docker-compose.yml. Catches the silent-drift class
+        # of bug where adding a service to Compose leaves operators running a
+        # stale image on the second `make up` after a code change (the
+        # smoke-test job runs on a fresh runner so it never sees that path).
+        run: bash scripts/ci/verify_install_builds_all_services.sh
+
   frontend:
     name: frontend (lint + typecheck + tests + build)
     runs-on: ubuntu-latest
