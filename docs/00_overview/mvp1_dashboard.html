@@ -384,13 +384,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">39 / 39</div>
+      <div class="value">40 / 40</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">2</div>
+      <div class="value">3</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi ">
@@ -400,7 +400,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">2</div>
+      <div class="value">3</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -428,7 +428,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">3</span></h3>
+  <h3>Idea <span class="count">4</span></h3>
 
 <div class="card infra" data-prefix="infra">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_e2e_wire_seed_helper_into_studies_spec">E2E Wire Seed Helper Into Studies Spec</a></div>
@@ -455,12 +455,24 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_form_dropdown_primitive">Form Dropdown Primitive</a></div>
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_extract_shadcn_select_test_mock">Extract Shadcn Select Test Mock</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
 
   </div>
-  <div class="one-liner">The DataTable primitive shipped with a lint-enforced source-of-truth discipline — every enum filter cites a backend `Literal[...]` and every FK filter cites a `useX()` hook. Forms didn&#x27;t get the same </div>
+  <div class="one-liner">A factor-and-share refactor was attempted during `chore_form_dropdown_primitive` post-implementation. I extracted the mock to `ui/src/__tests__/helpers/shadcn-select-mock.tsx` exporting `mockShadcnSel</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_form_dropdown_guide_screenshot_refresh">Form Dropdown Guide Screenshot Refresh</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">Each affected guide has a Playwright spec at `ui/tests/e2e/guides/*.spec.ts` that captures screenshots when run against the real backend. The PR&#x27;s UI changes produce different screenshots:</div>
 
 
 </div>
@@ -483,7 +495,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">48</span></h3>
+  <h3>Done <span class="count">49</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -834,6 +846,18 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md">Form Dropdown Primitive</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/126">PR #126</a><span>merged 2026-05-16</span>
+  </div>
+  <div class="one-liner">Ready for Execution</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement">Infra Foundation Github Token File Retirement</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1151,6 +1175,8 @@ footer {
   class feat_data_table_primitive done;
   infra_e2e_seed_completed_study[&quot;e2e seed completed study&quot;]
   class infra_e2e_seed_completed_study done;
+  chore_form_dropdown_primitive[&quot;form dropdown primitive&quot;]
+  class chore_form_dropdown_primitive done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1306,6 +1332,8 @@ footer {
   class feat_data_table_primitive done;
   infra_e2e_seed_completed_study[&quot;e2e seed completed study&quot;]
   class infra_e2e_seed_completed_study done;
+  chore_form_dropdown_primitive[&quot;form dropdown primitive&quot;]
+  class chore_form_dropdown_primitive done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
