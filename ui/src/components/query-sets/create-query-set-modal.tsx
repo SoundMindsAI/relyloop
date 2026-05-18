@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
+import { EntitySelect } from '@/components/common/entity-select';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useClusters, type ClusterSummary } from '@/lib/api/clusters';
 import { useCreateQuerySet } from '@/lib/api/query-sets';
 
 interface CreateQuerySetFormValues {
@@ -35,6 +37,7 @@ export function CreateQuerySetModal({
   defaultClusterId,
 }: CreateQuerySetModalProps) {
   const create = useCreateQuerySet();
+  const clusters = useClusters({ limit: 200 });
   const [submitting, setSubmitting] = useState(false);
   const form = useForm<CreateQuerySetFormValues>({
     defaultValues: {
@@ -45,6 +48,10 @@ export function CreateQuerySetModal({
   });
 
   function submit(values: CreateQuerySetFormValues) {
+    if (!values.cluster_id) {
+      form.setError('cluster_id', { type: 'required', message: 'Cluster is required' });
+      return;
+    }
     setSubmitting(true);
     create.mutate(
       {
@@ -83,11 +90,23 @@ export function CreateQuerySetModal({
             <Input id="qs-name" {...form.register('name', { required: true })} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="qs-cluster">Cluster ID</Label>
-            <Input
+            <Label htmlFor="qs-cluster">Cluster</Label>
+            <EntitySelect<ClusterSummary>
               id="qs-cluster"
-              {...form.register('cluster_id', { required: true })}
-              placeholder="UUIDv7 of the registered cluster"
+              data-testid="qs-cluster"
+              query={clusters}
+              getId={(c) => c.id}
+              getLabel={(c) => c.name}
+              getStatus={(c) =>
+                c.health_check.status === 'unreachable' ? 'unknown' : c.health_check.status
+              }
+              value={form.watch('cluster_id') || undefined}
+              onChange={(v) => form.setValue('cluster_id', v ?? '')}
+              placeholder="Choose a cluster"
+              emptyState={{
+                message: 'No clusters registered',
+                cta: { label: 'Register a cluster', href: '/clusters' },
+              }}
             />
           </div>
           <div className="space-y-1.5">
