@@ -1,12 +1,78 @@
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { server } from '../../setup';
-import { RegisterClusterModal } from '@/components/clusters/register-cluster-modal';
+
+/**
+ * EntitySelect renders shadcn <Select> which crashes inside Dialog +
+ * jsdom (Radix patchedFocus recursion). Same mock pattern as
+ * create-study-modal.test.tsx, extended to forward data-testid.
+ */
+vi.mock('@/components/ui/select', async () => {
+  const React = (await import('react')) as typeof import('react');
+  function findTriggerProp(children: ReactNode, prop: 'id' | 'data-testid'): string | undefined {
+    let value: string | undefined;
+    React.Children.forEach(children, (child) => {
+      if (
+        React.isValidElement<{ id?: string; 'data-testid'?: string }>(child) &&
+        typeof child.type === 'function' &&
+        (child.type as { displayName?: string; name?: string }).name === 'SelectTrigger'
+      ) {
+        value = child.props[prop];
+      }
+    });
+    return value;
+  }
+  function SelectTrigger() {
+    return null;
+  }
+  return {
+    Select: ({
+      value,
+      onValueChange,
+      children,
+      disabled,
+    }: {
+      value?: string;
+      onValueChange?: (v: string) => void;
+      children: ReactNode;
+      disabled?: boolean;
+    }) => (
+      <select
+        id={findTriggerProp(children, 'id')}
+        data-testid={findTriggerProp(children, 'data-testid')}
+        value={value ?? ''}
+        disabled={disabled}
+        onChange={(e) => onValueChange?.(e.target.value)}
+      >
+        <option value="" />
+        {children}
+      </select>
+    ),
+    SelectTrigger,
+    SelectValue: () => null,
+    SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+    SelectItem: ({
+      value,
+      children,
+      disabled,
+    }: {
+      value: string;
+      children: ReactNode;
+      disabled?: boolean;
+    }) => (
+      <option value={value} disabled={disabled}>
+        {children}
+      </option>
+    ),
+  };
+});
+
+const { RegisterClusterModal } = await import('@/components/clusters/register-cluster-modal');
 
 const API_BASE = 'http://api.test';
 
@@ -113,5 +179,19 @@ describe('RegisterClusterModal', () => {
       expect(screen.getByTestId('register-submit')).toHaveTextContent('Register'),
     );
     expect(closed).toBe(false);
+  });
+
+  it('renders the config-repo empty-state CTA when no repos exist (Story 2.3)', async () => {
+    server.use(configReposEmpty());
+    wrap(<RegisterClusterModal open={true} onOpenChange={() => {}} />);
+    await waitFor(() => {
+      expect(screen.getByRole('link', { name: 'Register a config repo' })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('link', { name: 'Register a config repo' })).toHaveAttribute(
+      'href',
+      '/clusters',
+    );
+    // The cl-repo control is always rendered now (no longer conditional).
+    expect(screen.getByLabelText('Config repo (optional)')).toBeInTheDocument();
   });
 });
