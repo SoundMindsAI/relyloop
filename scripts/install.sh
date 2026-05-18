@@ -70,7 +70,10 @@ docker compose config --quiet
 #    explicit build step, contributors who pull new code and re-run `make up`
 #    keep running the stale image (PR #4 first-run testing surfaced exactly
 #    this — a stale image missing newly-added Python deps).
-docker compose build api worker
+#    No-args = build every service that declares a `build:` block. The earlier
+#    hardcoded `api worker` list silently skipped the `ui` service after it
+#    joined Compose, leaving frontend changes invisible until manual rebuild.
+docker compose build
 
 # 7. Bring the stack up. `docker compose up -d` is itself idempotent.
 exec docker compose up -d
