@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
+import { EntitySelect } from '@/components/common/entity-select';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -14,13 +15,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useGenerateJudgments } from '@/lib/api/judgments';
 import { useTemplates } from '@/lib/api/query-templates';
@@ -115,21 +109,16 @@ export function GenerateJudgmentsDialog({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="gen-template">Current template</Label>
-            <Select
-              value={form.watch('current_template_id')}
-              onValueChange={(v) => form.setValue('current_template_id', v)}
-            >
-              <SelectTrigger id="gen-template">
-                <SelectValue placeholder="Choose a template" />
-              </SelectTrigger>
-              <SelectContent>
-                {(templates.data?.data ?? []).map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.name} (v{t.version})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EntitySelect
+              id="gen-template"
+              data-testid="gen-template"
+              query={templates}
+              getId={(t) => t.id}
+              getLabel={(t) => `${t.name} (v${t.version})`}
+              value={form.watch('current_template_id') || undefined}
+              onChange={(v) => form.setValue('current_template_id', v ?? '')}
+              placeholder="Choose a template"
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="gen-rubric">Rubric</Label>
