@@ -12,64 +12,13 @@ import { server } from '../../setup';
  * jsdom (Radix patchedFocus recursion). Same mock pattern as
  * create-study-modal.test.tsx, extended to forward data-testid.
  */
+// Radix `<Select>` crashes inside jsdom + Dialog (testing-library's
+// `patchedFocus` shim recurses through Radix's internal focus-trap).
+// Replace with a native `<select>` shim from the shared helper. Dynamic
+// `import()` inside the factory sidesteps vitest's vi.mock hoisting rule.
 vi.mock('@/components/ui/select', async () => {
-  const React = (await import('react')) as typeof import('react');
-  function findTriggerProp(children: ReactNode, prop: 'id' | 'data-testid'): string | undefined {
-    let value: string | undefined;
-    React.Children.forEach(children, (child) => {
-      if (
-        React.isValidElement<{ id?: string; 'data-testid'?: string }>(child) &&
-        typeof child.type === 'function' &&
-        (child.type as { displayName?: string; name?: string }).name === 'SelectTrigger'
-      ) {
-        value = child.props[prop];
-      }
-    });
-    return value;
-  }
-  function SelectTrigger() {
-    return null;
-  }
-  return {
-    Select: ({
-      value,
-      onValueChange,
-      children,
-      disabled,
-    }: {
-      value?: string;
-      onValueChange?: (v: string) => void;
-      children: ReactNode;
-      disabled?: boolean;
-    }) => (
-      <select
-        id={findTriggerProp(children, 'id')}
-        data-testid={findTriggerProp(children, 'data-testid')}
-        value={value ?? ''}
-        disabled={disabled}
-        onChange={(e) => onValueChange?.(e.target.value)}
-      >
-        <option value="" />
-        {children}
-      </select>
-    ),
-    SelectTrigger,
-    SelectValue: () => null,
-    SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-    SelectItem: ({
-      value,
-      children,
-      disabled,
-    }: {
-      value: string;
-      children: ReactNode;
-      disabled?: boolean;
-    }) => (
-      <option value={value} disabled={disabled}>
-        {children}
-      </option>
-    ),
-  };
+  const { mockShadcnSelect } = await import('../../helpers/shadcn-select-mock');
+  return mockShadcnSelect();
 });
 
 const { RegisterClusterModal } = await import('@/components/clusters/register-cluster-modal');
