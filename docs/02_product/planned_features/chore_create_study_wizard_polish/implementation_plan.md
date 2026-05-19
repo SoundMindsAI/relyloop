@@ -1144,8 +1144,8 @@ For a solo contributor (the typical RelyLoop pattern), the suggested sequence ab
 - [ ] Story 1.2 — Backend scoring-token unit test
 - [x] Story 2.1 — `search-space-defaults.ts` module + tests
 - [x] Story 2.2 — Glossary entries
-- [ ] Story 3.1 — Step-4 auto-fill + tooltips + validation + edges
-- [ ] Story 3.2 — Step-5 tri-state metric+k + parity tests
+- [x] Story 3.1 — Step-4 auto-fill + tooltips + validation + edges
+- [x] Story 3.2 — Step-5 tri-state metric+k + parity tests
 - [ ] Story 4.1 — E2E specs + documentation updates
 
 ### Blocked items

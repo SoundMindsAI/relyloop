@@ -44,7 +44,28 @@ import {
 } from '@/lib/enums';
 import { buildStarterSearchSpace } from '@/lib/search-space-defaults';
 
-const K_REQUIRED: ReadonlySet<ObjectiveMetric> = new Set(['ndcg', 'precision', 'recall']);
+// Source-of-truth: backend/app/api/v1/schemas.py:474 _K_REQUIRED_METRICS frozenset.
+// Asserted by ui/src/__tests__/components/studies/k-required.test.ts.
+export const K_REQUIRED: ReadonlySet<ObjectiveMetric> = new Set(['ndcg', 'precision', 'recall']);
+
+// Source-of-truth: backend/app/eval/scoring.py:32 (metric → pytrec_eval token mapper).
+// Asserted by backend/tests/unit/eval/test_scoring_metric_tokens.py and the
+// K_REQUIRED-membership contract test at
+// backend/tests/contract/test_k_required_membership.py.
+// Asserted on the frontend side by ui/src/__tests__/components/studies/k-ignored.test.ts.
+export const K_IGNORED: ReadonlySet<ObjectiveMetric> = new Set(['mrr', 'err']);
+
+// Sentinel value used by the optional-k "—" SelectItem (Radix SelectItem
+// rejects empty-string values).
+const K_CLEAR_SENTINEL = '__clear__';
+
+export type KTier = 'required' | 'optional' | 'ignored';
+
+export function kTier(metric: ObjectiveMetric): KTier {
+  if (K_REQUIRED.has(metric)) return 'required';
+  if (K_IGNORED.has(metric)) return 'ignored';
+  return 'optional';
+}
 
 const PLACEHOLDER_SENTINEL = '__placeholder__';
 const UNDO_TIMEOUT_MS = 10_000;
@@ -337,9 +358,9 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
       metric: values.metric,
       direction: values.direction,
     };
-    if (K_REQUIRED.has(values.metric) && values.k != null) {
-      objective.k = values.k;
-    } else if (!K_REQUIRED.has(values.metric) && values.k != null) {
+    // Include k for required + optional tiers when the user set one.
+    // K_IGNORED metrics (mrr / err) never carry k into the POST body.
+    if (!K_IGNORED.has(values.metric) && values.k != null) {
       objective.k = values.k;
     }
     type ConfigSpec = {
@@ -580,7 +601,17 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </div>
                   <Select
                     value={values.metric}
-                    onValueChange={(v) => form.setValue('metric', v as ObjectiveMetric)}
+                    onValueChange={(v) => {
+                      const newMetric = v as ObjectiveMetric;
+                      form.setValue('metric', newMetric);
+                      // Per spec FR-4 / AC-10a: clear k when the new metric is
+                      // in K_IGNORED so a stale k value doesn't leak into the
+                      // POST body. Preserved otherwise (AC-10b — map@10 is
+                      // meaningful when switching from ndcg@10).
+                      if (K_IGNORED.has(newMetric)) {
+                        form.setValue('k', undefined);
+                      }
+                    }}
                   >
                     <SelectTrigger id="cs-metric">
                       <SelectValue />
@@ -595,27 +626,64 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <div className="flex items-center gap-1">
-                    <Label htmlFor="cs-k">k</Label>
-                    <InfoTooltip glossaryKey="study.k" />
-                  </div>
-                  <Select
-                    value={values.k != null ? String(values.k) : ''}
-                    onValueChange={(v) =>
-                      form.setValue('k', v ? (Number(v) as ObjectiveK) : undefined)
+                  {(() => {
+                    const tier = kTier(metric);
+                    if (tier === 'ignored') {
+                      return (
+                        <p
+                          className="text-sm text-muted-foreground"
+                          data-testid="cs-k-ignored-caption"
+                        >
+                          {metric.toUpperCase()} evaluates the full ranked list — no cutoff used.
+                        </p>
+                      );
                     }
-                  >
-                    <SelectTrigger id="cs-k">
-                      <SelectValue placeholder={K_REQUIRED.has(metric) ? 'required' : 'optional'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {OBJECTIVE_K_VALUES.map((k) => (
-                        <SelectItem key={k} value={String(k)}>
-                          {k}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    return (
+                      <>
+                        <div className="flex items-center gap-1">
+                          <Label htmlFor="cs-k">k</Label>
+                          <InfoTooltip glossaryKey="study.k" />
+                        </div>
+                        <Select
+                          value={values.k != null ? String(values.k) : undefined}
+                          onValueChange={(v) => {
+                            if (v === K_CLEAR_SENTINEL) {
+                              form.setValue('k', undefined);
+                            } else {
+                              form.setValue('k', Number(v) as ObjectiveK);
+                            }
+                          }}
+                        >
+                          <SelectTrigger id="cs-k">
+                            <SelectValue
+                              placeholder={tier === 'required' ? 'required' : 'select (optional)…'}
+                            />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {tier === 'optional' && (
+                              <SelectItem
+                                key="clear"
+                                value={K_CLEAR_SENTINEL}
+                                data-testid="cs-k-clear"
+                              >
+                                — (full recall)
+                              </SelectItem>
+                            )}
+                            {OBJECTIVE_K_VALUES.map((k) => (
+                              <SelectItem key={k} value={String(k)}>
+                                {k}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-xs text-muted-foreground" data-testid="cs-k-sublabel">
+                          {tier === 'required'
+                            ? `Top-k cutoff (required for ${metric.toUpperCase()})`
+                            : `Top-k cutoff (optional — leave empty for full-recall ${metric.toUpperCase()})`}
+                        </p>
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1">
