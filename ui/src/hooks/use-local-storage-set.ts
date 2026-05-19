@@ -19,7 +19,7 @@
  * interface block proposed `{ value: string[], add, remove, toggle }` as
  * an early sketch — the consumer pattern that emerged during build-out
  * was Set-shaped. The shipped impl is the canonical contract; the plan
- * proposal is closed via `chore_data_table_primitive_followups` item 2.
+ * proposal is closed via `chore_data_table_columnvisibility_tanstack` item 2.
  */
 
 import { useCallback, useEffect, useState } from 'react';

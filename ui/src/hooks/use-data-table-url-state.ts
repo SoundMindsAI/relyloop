@@ -79,7 +79,7 @@ export function useDataTableUrlState<T extends { id: string }>(
 
   // Per-column wireValues allowlist for enum filters. fk-select filters
   // can't be validated at hook-time (their option IDs load async) so they
-  // pass through unchanged. Per `chore_data_table_primitive_followups`
+  // pass through unchanged. Per `chore_data_table_columnvisibility_tanstack`
   // item 6 — defense-in-depth: a direct URL with `?status=invented`
   // hydrates as an empty filter instead of being sent to the backend
   // and surfacing as 422 VALIDATION_ERROR.
@@ -95,7 +95,7 @@ export function useDataTableUrlState<T extends { id: string }>(
 
   // Sort-token allowlist: `<col>:<dir>` is only valid when `col` is the
   // `sortKey` (or `id`) of a sortable column AND `dir` is in that column's
-  // `sortDirections` (defaults to both `asc` + `desc`). Per `chore_data_table_primitive_followups`
+  // `sortDirections` (defaults to both `asc` + `desc`). Per `chore_data_table_columnvisibility_tanstack`
   // item 6 — direct URLs like `?sort=garbage:asc` or `?sort=name:upward`
   // hydrate as no sort instead of flowing to the backend (and either
   // 422-ing or silently no-op'ing).
@@ -157,7 +157,7 @@ export function useDataTableUrlState<T extends { id: string }>(
   const cursor = searchParams.get('cursor');
   // Page-size validation. When `pageSizeOptions` is provided, coerce
   // out-of-allowlist `?limit=` values to `defaultPageSize`. Per
-  // `chore_data_table_primitive_followups` item 4 — guards against
+  // `chore_data_table_columnvisibility_tanstack` item 4 — guards against
   // ad-hoc `?limit=99` URLs that produce inconsistent page sizes
   // across the surface; backend caps at 200 (api-conventions §Pagination)
   // but the frontend allowlist is typically much tighter.
