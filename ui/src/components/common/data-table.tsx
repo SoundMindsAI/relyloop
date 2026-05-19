@@ -19,7 +19,7 @@
  */
 
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 
 import { CursorPaginator } from '@/components/common/cursor-paginator';
 import { InfoTooltip } from '@/components/common/info-tooltip';
@@ -268,10 +268,14 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
   // directly, the hook re-renders, this `columnVisibility` record recomputes,
   // and TanStack re-renders with the new map. This keeps `useLocalStorageSet`
   // as the single source of truth for persisted visibility.
-  const columnVisibility = columns.reduce<Record<string, boolean>>((acc, c) => {
-    acc[c.id] = c.sticky || c.hideable === false || !hiddenColumns.has(c.id);
-    return acc;
-  }, {});
+  const columnVisibility = useMemo<Record<string, boolean>>(
+    () =>
+      columns.reduce<Record<string, boolean>>((acc, c) => {
+        acc[c.id] = c.sticky || c.hideable === false || !hiddenColumns.value.has(c.id);
+        return acc;
+      }, {}),
+    [columns, hiddenColumns.value],
+  );
   const table = useReactTable<T>({
     data: data as T[],
     // TanStack Table's `columns` prop is typed as a mutable `ColumnDef<T>[]`,
