@@ -27,10 +27,12 @@ import { describe, expect, it } from 'vitest';
 const COMPONENTS_ROOT = join(process.cwd(), 'src', 'components');
 const ENUMS_PATH = join(process.cwd(), 'src', 'lib', 'enums.ts');
 
-const SELECTITEM_IMPORT_RE = /import\s+(?:type\s+)?\{[^}]*\bSelectItem\b[^}]*\}\s+from\s+['"]@\/components\/ui\/select['"]/;
+const SELECTITEM_IMPORT_RE =
+  /import\s+(?:type\s+)?\{[^}]*\bSelectItem\b[^}]*\}\s+from\s+['"]@\/components\/ui\/select['"]/;
 const SELECTITEM_LITERAL_RE = /<SelectItem[^>]*\svalue=['"]([^'"]+)['"]/g;
 const ESCAPE_HATCH_RE = /\/\/\s*no-enum-import:(.*)$/m;
-const VALUES_BLOCK_RE = /export\s+const\s+[A-Z_][A-Z0-9_]*_VALUES\s*=\s*\[([\s\S]*?)\]\s*as\s+const/g;
+const VALUES_BLOCK_RE =
+  /export\s+const\s+[A-Z_][A-Z0-9_]*_VALUES\s*=\s*\[([\s\S]*?)\]\s*as\s+const/g;
 const STRING_OR_NUMBER_LITERAL_RE = /['"]([^'"]+)['"]|(\b\d+\b)/g;
 
 const EXCLUDED_DIR_SEGMENTS = new Set(['__tests__', 'common']);

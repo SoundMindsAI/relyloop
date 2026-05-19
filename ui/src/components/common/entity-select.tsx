@@ -106,8 +106,7 @@ export function EntitySelect<T>(props: EntitySelectProps<T>) {
     ? [...entities]
         .map((entity, index) => ({ entity, index, status: getStatus(entity) }))
         .sort(
-          (a, b) =>
-            STATUS_PRECEDENCE[a.status] - STATUS_PRECEDENCE[b.status] || a.index - b.index,
+          (a, b) => STATUS_PRECEDENCE[a.status] - STATUS_PRECEDENCE[b.status] || a.index - b.index,
         )
         .map(({ entity }) => entity)
     : entities;
@@ -171,10 +170,7 @@ export function EntitySelect<T>(props: EntitySelectProps<T>) {
 
   return (
     <div className="space-y-1">
-      <Select
-        value={value ?? ''}
-        onValueChange={(v) => onChange(v || undefined)}
-      >
+      <Select value={value ?? ''} onValueChange={(v) => onChange(v || undefined)}>
         <SelectTrigger id={id} data-testid={dataTestId}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
