@@ -253,18 +253,34 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
   // TanStack Table model. `getRowId: (row) => row.id` keys row identity on the
   // backend UUID rather than the row index — required for stable selection,
   // keyboard activation, and per-row testids when rows shift across pages.
-  // Story 2.10 — column visibility state derived from the localStorage set.
-  // Non-hideable columns (sticky OR hideable === false) are force-shown even
-  // if a tampered localStorage entry tries to hide them.
-  const visibleColumns = columns.filter(
-    (c) => c.sticky || c.hideable === false || !hiddenColumns.has(c.id),
-  );
+  //
+  // Story 2.10 + chore_data_table_columnvisibility_tanstack item 5 — column
+  // visibility flows through TanStack's `state.columnVisibility` API (the
+  // idiomatic v8+ shape) rather than pre-filtering the `columns` prop. The
+  // visibility map is derived from the same localStorage-backed
+  // `useLocalStorageSet`; toggles still write through that hook (see the
+  // `DataTableColumnVisibilityMenu`'s `onToggle` below). Non-hideable columns
+  // (sticky OR hideable === false) are force-shown even if a tampered
+  // localStorage entry tries to hide them.
+  //
+  // No `onColumnVisibilityChange` handler is passed because nothing inside
+  // TanStack mutates visibility — the menu calls `hiddenColumns.toggle(id)`
+  // directly, the hook re-renders, this `columnVisibility` record recomputes,
+  // and TanStack re-renders with the new map. This keeps `useLocalStorageSet`
+  // as the single source of truth for persisted visibility.
+  const columnVisibility = columns.reduce<Record<string, boolean>>((acc, c) => {
+    acc[c.id] = c.sticky || c.hideable === false || !hiddenColumns.has(c.id);
+    return acc;
+  }, {});
   const table = useReactTable<T>({
     data: data as T[],
     // TanStack Table's `columns` prop is typed as a mutable `ColumnDef<T>[]`,
     // but the consumer's column config is always a frozen `as const` array.
     // Cast to satisfy the API; the array is not mutated by TanStack.
-    columns: visibleColumns as unknown as import('@tanstack/react-table').ColumnDef<T>[],
+    columns: columns as unknown as import('@tanstack/react-table').ColumnDef<T>[],
+    state: {
+      columnVisibility,
+    },
     getCoreRowModel: getCoreRowModel(),
     getRowId: (row) => row.id,
   });
