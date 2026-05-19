@@ -49,7 +49,12 @@ async def _seed_minimum_for_post_studies() -> dict[str, str]:
             name=f"st-tmpl-{uuid.uuid4().hex[:8]}",
             engine_type="elasticsearch",
             body='{"query": {"match_all": {}}}',
-            declared_params={},
+            # Must declare every param used in _VALID_SEARCH_SPACE because the
+            # POST /studies handler now validates search_space.params keys
+            # against template.declared_params (chore_create_study_wizard_polish
+            # FR-2 + FR-3, Story 1.1). Empty declared_params would trigger
+            # SEARCH_SPACE_UNKNOWN_PARAM at create time.
+            declared_params={"bm25_k1": "float"},
             version=1,
         )
         query_set = await repo.create_query_set(

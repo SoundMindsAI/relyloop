@@ -56,7 +56,12 @@ from backend.app.api.v1.schemas import (
 from backend.app.db import repo
 from backend.app.db.models import Study
 from backend.app.db.session import get_db
-from backend.app.domain.study.search_space import SearchSpace
+from backend.app.domain.study.search_space import (
+    MissingDeclaredParamError,
+    SearchSpace,
+    UnknownSearchSpaceParamError,
+    validate_against_template,
+)
 from backend.app.services import study_state
 
 router = APIRouter()
@@ -201,6 +206,22 @@ async def create_study(
     template = await repo.get_query_template(db, body.template_id)
     if template is None:
         raise _err(404, "TEMPLATE_NOT_FOUND", f"template {body.template_id} not found", False)
+
+    # Validate search_space keys against template.declared_params at create time
+    # (chore_create_study_wizard_polish FR-2 + FR-3). Without this, typo'd / missing
+    # param keys would fail later inside adapter.render at trial-1 (see
+    # backend/app/adapters/elastic.py:493-495).
+    try:
+        validate_against_template(
+            SearchSpace.model_validate(body.search_space),
+            template.declared_params,
+            template.name,
+        )
+    except UnknownSearchSpaceParamError as exc:
+        raise _err(400, "SEARCH_SPACE_UNKNOWN_PARAM", str(exc), False) from exc
+    except MissingDeclaredParamError as exc:
+        raise _err(400, "SEARCH_SPACE_MISSING_DECLARED_PARAM", str(exc), False) from exc
+
     query_set = await repo.get_query_set(db, body.query_set_id)
     if query_set is None:
         raise _err(404, "QUERY_SET_NOT_FOUND", f"query set {body.query_set_id} not found", False)
