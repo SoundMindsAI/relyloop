@@ -7,7 +7,7 @@
  *   - `ui/src/__tests__/app/judgments/[id]/page.test.tsx`
  *   - `ui/src/__tests__/components/query-sets/queries-table.test.tsx`
  *
- * Origin: `chore_data_table_primitive_followups` item 1.
+ * Origin: `chore_data_table_columnvisibility_tanstack` item 1.
  *
  * ## Usage
  *

@@ -33,7 +33,7 @@ const columns: DataTableColumnDef<MockRow>[] = [
     filter: { kind: 'enum', wireValues: ['llm', 'human'], sourceOfTruth: 'test' },
   },
   // A sortable column used by the hydration test below — without one, the
-  // chore_data_table_primitive_followups item 6 sort-token validation
+  // chore_data_table_columnvisibility_tanstack item 6 sort-token validation
   // (added 2026-05-17) drops `?sort=name:asc` as "no such sortable column."
   { id: 'name', header: 'Name', sortable: true },
 ];
@@ -175,7 +175,7 @@ describe('useDataTableUrlState — anyMatcherActive', () => {
 });
 
 // ---------------------------------------------------------------------------
-// chore_data_table_primitive_followups item 6 — URL-state validation
+// chore_data_table_columnvisibility_tanstack item 6 — URL-state validation
 // ---------------------------------------------------------------------------
 describe('useDataTableUrlState — enum filter validation', () => {
   it('drops a filter value not in the column wireValues allowlist', () => {
@@ -247,7 +247,7 @@ describe('useDataTableUrlState — sort token validation', () => {
 });
 
 // ---------------------------------------------------------------------------
-// chore_data_table_primitive_followups item 4 — pageSize allowlist coercion
+// chore_data_table_columnvisibility_tanstack item 4 — pageSize allowlist coercion
 // ---------------------------------------------------------------------------
 describe('useDataTableUrlState — pageSize validation', () => {
   it('coerces ?limit= values outside pageSizeOptions to defaultPageSize', () => {
