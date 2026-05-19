@@ -16,7 +16,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { seedFullChain, seedStudy } from './helpers/seed';
+import { seedFullChain, seedStudy, seedStudyCompletedWithDigest } from './helpers/seed';
 
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
@@ -141,6 +141,84 @@ test.describe('/studies', () => {
     });
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('tooltip-body-study.best_metric')).not.toBeVisible();
+  });
+
+  test('contextual help — digest-panel triggers + AC-7 body + AC-11 Open PR enabled', async ({
+    page,
+  }) => {
+    // Seed a completed study with digest + pending proposal via the test-only
+    // endpoint so the digest panel renders against real backend rows. Component-
+    // level tests at `ui/src/__tests__/app/studies/[id]/page.test.tsx` cover the
+    // panel against a mocked completed study; this E2E covers the real-backend
+    // contract (the test-only endpoint + repo writes + digest panel render).
+    const chain = await seedFullChain(2);
+    const seeded = await seedStudyCompletedWithDigest({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      withPendingProposal: true,
+    });
+    await page.goto(`/studies/${seeded.studyId}`);
+
+    // Wait for the digest section to render (page resolves studyQ + digestQ).
+    await expect(page.getByTestId('digest-narrative')).toBeVisible({ timeout: 10_000 });
+
+    // AC-7 body content: the seeded narrative + recommended_config render.
+    await expect(page.getByTestId('digest-narrative')).toContainText('title.boost');
+
+    // Phase 1 FR digest-panel triggers — 5 InfoTooltip-default section labels
+    // expose their own `tooltip-trigger-<key>` testid (they render the
+    // built-in <button> with the lucide Info icon).
+    await expect(page.getByTestId('tooltip-trigger-digest.narrative')).toBeVisible();
+    await expect(page.getByTestId('tooltip-trigger-digest.parameter_importance')).toBeVisible();
+    await expect(page.getByTestId('tooltip-trigger-digest.metric_delta')).toBeVisible();
+    await expect(page.getByTestId('tooltip-trigger-digest.recommended_config')).toBeVisible();
+    await expect(page.getByTestId('tooltip-trigger-digest.suggested_followups')).toBeVisible();
+
+    // AC-11 — with a pending proposal the Open PR link renders (enabled branch).
+    await expect(page.getByTestId('open-pr-link')).toBeVisible();
+
+    // 6th digest-panel trigger (`digest.open_pr_button`) is rendered in
+    // InfoTooltip asChild mode — per info-tooltip.tsx, asChild mode does NOT
+    // set a `tooltip-trigger-*` testid (the caller's testid wins, since a DOM
+    // node can carry only one data-testid). Verify the wiring by hovering the
+    // Button and asserting the tooltip body appears (same pattern as the
+    // standalone InfoTooltip hover test above).
+    await page.getByTestId('open-pr-link').hover();
+    await expect(page.getByTestId('tooltip-body-digest.open_pr_button')).toBeVisible({
+      timeout: 2_000,
+    });
+  });
+
+  test('contextual help — Open PR aria-disabled branch surfaces tooltip (AC-11)', async ({
+    page,
+  }) => {
+    // Same shape as above but with `withPendingProposal: false`, so the
+    // proposal is absent and the digest panel renders the aria-disabled
+    // Open PR button + its dedicated tooltip key (`digest.open_pr_disabled`).
+    const chain = await seedFullChain(2);
+    const seeded = await seedStudyCompletedWithDigest({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      withPendingProposal: false,
+    });
+    await page.goto(`/studies/${seeded.studyId}`);
+
+    await expect(page.getByTestId('digest-narrative')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('open-pr-disabled')).toBeVisible();
+    // Per AC-11, the disabled button is aria-disabled (not native disabled)
+    // so it stays focusable and the tooltip can reveal on keyboard focus.
+    await expect(page.getByTestId('open-pr-disabled')).toHaveAttribute('aria-disabled', 'true');
+    // The `digest.open_pr_disabled` tooltip is wired via InfoTooltip asChild —
+    // no `tooltip-trigger-*` testid exists; verify by hovering the Button and
+    // asserting the tooltip body becomes visible.
+    await page.getByTestId('open-pr-disabled').hover();
+    await expect(page.getByTestId('tooltip-body-digest.open_pr_disabled')).toBeVisible({
+      timeout: 2_000,
+    });
   });
 
   test('cancel button fires POST /cancel on a cancellable study', async ({ page }) => {
