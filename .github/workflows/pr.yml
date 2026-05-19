@@ -253,6 +253,18 @@ jobs:
       - name: pnpm install
         run: pnpm --dir ui install --frozen-lockfile
 
+      - name: Format check (prettier)
+        # Mirrors the pre-commit `prettier-ui` hook entry in
+        # `.pre-commit-config.yaml` exactly. The pre-commit hook is the
+        # local-only gate; this CI step closes the gap when contributors
+        # bypass it (`--no-verify`, hosted edits, fresh checkout without
+        # `pre-commit install`). Argument list MUST stay in sync with the
+        # pre-commit hook — if the hook adds/removes a path here, mirror
+        # the change. Captured as chore_ci_prettier_check after PR #148
+        # surfaced PR #136 drift the pre-commit hook caught but CI had
+        # passed.
+        run: pnpm --dir ui exec prettier --check src package.json tsconfig.json eslint.config.mjs .prettierrc.json
+
       - name: ESLint (next lint)
         run: pnpm --dir ui lint
 
