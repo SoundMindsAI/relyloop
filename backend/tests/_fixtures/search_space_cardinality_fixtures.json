@@ -1,0 +1,100 @@
+{
+  "$comment": "Cardinality parity fixtures (chore_create_study_wizard_polish Story 2.1). Consumed by both ui/src/__tests__/lib/search-space-defaults.cardinality.test.ts and backend/tests/unit/domain/test_search_space_cardinality_parity.py. Source-of-truth math lives at backend/app/domain/study/search_space.py:177-196 (estimate_cardinality). Any drift between the TS port (ui/src/lib/search-space-defaults.ts) and the Python implementation will surface in one of the two tests.",
+  "fixtures": [
+    {
+      "name": "single_float",
+      "space": {
+        "params": {
+          "boost_title": {"type": "float", "low": 0.5, "high": 10.0, "log": true}
+        }
+      },
+      "expected": 100
+    },
+    {
+      "name": "single_int_six_choices",
+      "space": {
+        "params": {
+          "slop": {"type": "int", "low": 0, "high": 5}
+        }
+      },
+      "expected": 6
+    },
+    {
+      "name": "single_categorical_four",
+      "space": {
+        "params": {
+          "fuzziness": {"type": "categorical", "choices": ["AUTO", "0", "1", "2"]}
+        }
+      },
+      "expected": 4
+    },
+    {
+      "name": "single_bool_categorical",
+      "space": {
+        "params": {
+          "use_stemmer": {"type": "categorical", "choices": [true, false]}
+        }
+      },
+      "expected": 2
+    },
+    {
+      "name": "two_floats_product",
+      "space": {
+        "params": {
+          "boost_title": {"type": "float", "low": 0.5, "high": 10.0, "log": true},
+          "boost_body": {"type": "float", "low": 0.5, "high": 10.0, "log": true}
+        }
+      },
+      "expected": 10000
+    },
+    {
+      "name": "mixed_three_params",
+      "space": {
+        "params": {
+          "boost_title": {"type": "float", "low": 0.5, "high": 10.0, "log": true},
+          "min_should_match": {"type": "int", "low": 0, "high": 5},
+          "fuzziness": {"type": "categorical", "choices": ["AUTO", "0", "1", "2"]}
+        }
+      },
+      "expected": 2400
+    },
+    {
+      "name": "three_floats_one_million",
+      "space": {
+        "params": {
+          "a_weight": {"type": "float", "low": 0.0, "high": 1.0},
+          "b_weight": {"type": "float", "low": 0.0, "high": 1.0},
+          "c_weight": {"type": "float", "low": 0.0, "high": 1.0}
+        }
+      },
+      "expected": 1000000
+    },
+    {
+      "name": "tight_int_range",
+      "space": {
+        "params": {
+          "min_should_match": {"type": "int", "low": 2, "high": 2}
+        }
+      },
+      "expected": 1
+    },
+    {
+      "name": "broad_int_range_one_hundred",
+      "space": {
+        "params": {
+          "result_size": {"type": "int", "low": 1, "high": 100}
+        }
+      },
+      "expected": 100
+    },
+    {
+      "name": "categorical_int_choices",
+      "space": {
+        "params": {
+          "operator_mode": {"type": "categorical", "choices": [1, 2, 3]}
+        }
+      },
+      "expected": 3
+    }
+  ]
+}
