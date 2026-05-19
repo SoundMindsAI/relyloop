@@ -39,7 +39,7 @@ The seventh detail route — [`ui/src/app/chat/[id]/page.tsx`](../../../../ui/sr
 Adjacent duplication, surfaced but **out of scope** for this primitive:
 
 - **Back-link header.** All 6 in-scope pages (and `chat/[id]`) precede the three-state branch with a `<div><Link href="/{list}" className="text-sm text-blue-600 underline-offset-4 hover:underline">← All {entities}</Link></div>` block. The primitive could expose a `backHref?` / `backLabel?` slot — see Open question Q2.
-- **Suspense fallback** at `<Suspense fallback={<main className="mx-auto max-w-7xl p-6">Loading…</main>}>` appears in 3 of 6 in-scope pages: [`studies/[id]:116`](../../../../ui/src/app/studies/[id]/page.tsx), [`proposals/[id]:210`](../../../../ui/src/app/proposals/[id]/page.tsx), [`judgments/[id]:103`](../../../../ui/src/app/judgments/[id]/page.tsx). The other 3 (`clusters`, `templates`, `query-sets`) do not have a Suspense boundary. This is a page-level wrapper (Next.js App Router concern), not a query-level one, and it differs across the 6 pages — leave it alone in this PR. A separate idea can address if duplication grows.
+- **Suspense fallback** at `<Suspense fallback={<main className="mx-auto max-w-7xl p-6">Loading…</main>}>` appears in 3 of 6 in-scope pages: [`studies/[id]:116`](../../../../ui/src/app/studies/[id]/page.tsx), [`proposals/[id]:210`](../../../../ui/src/app/proposals/[id]/page.tsx), [`judgments/[id]:103`](../../../../ui/src/app/judgments/[id]/page.tsx). The other 3 (`clusters`, `templates`, `query-sets`) do not have a Suspense boundary. **The primitive cannot absorb this** — Next.js App Router requires a Suspense boundary around any component that calls `useSearchParams()` / `useParams()` during hydration, which is the reason the 3 affected pages have one. The Suspense wrapper serves Next.js's hydration contract, not the data-fetching loading state (that's `query.isPending`'s job). Leave the Suspense duplication alone in this PR; a separate idea can extract a `<PageSuspense>` wrapper if duplication grows.
 
 ## Proposed capability
 
@@ -50,9 +50,12 @@ Ship `ui/src/components/common/detail-page-shell.tsx` — a generic React compon
 ```tsx
 interface DetailPageShellProps<T> {
   query: UseQueryResult<T, ApiError>;
-  entityLabel: string;             // singular, e.g., "study", "proposal"; used in default copy
+  entityLabel: string;             // singular, e.g., "study", "proposal"; used in default message copy
+  entityTitle?: string;            // optional title override — defaults to title-case of entityLabel.
+                                   // Needed for cases like "Judgment list not found" where the
+                                   // title and message use different casing/wording.
   notFoundErrorCode: string;       // e.g., "STUDY_NOT_FOUND" — per backend error envelope
-  notFoundMessage?: string;        // optional override for the default copy
+  notFoundMessage?: string;        // optional override for the default "may have been deleted" copy
   unreachableMessage?: string;     // optional override for non-404 errors
   children: (data: T) => React.ReactNode;
 }
