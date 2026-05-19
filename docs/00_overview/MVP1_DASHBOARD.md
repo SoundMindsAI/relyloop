@@ -15,9 +15,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **40 / 40** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **4** items remaining (features + bugs + chores) |
+| Path to MVP1 | **5** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
-| Open chores | 4 (idea-stage debt) |
+| Open chores | 5 (idea-stage debt) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -89,11 +89,12 @@ _None._
 
 _None._
 
-### Idea (5)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [infra_e2e_wire_seed_helper_into_studies_spec](../02_product/planned_features/infra_e2e_wire_seed_helper_into_studies_spec/idea.md) | Infra | `infra_e2e_seed_completed_study` shipped `POST /api/v1/_test/studies/seed-completed` and the `seedStudyCompletedWithDigest` TypeScript helper. The two consuming E2E tests in `ui/tests/e2e/studies.spec | — | Idea — deferred from `infra_e2e_seed_completed_study` PR #130. The endpoint + helper landed cleanly; the 2 Playwright E2E tests that consume them caused the smoke CI lane to fail (root cause undiagnosed — agent environment had no access to GitHub Actions logs to debug the Playwright report). |
+| [chore_ci_prettier_check](../02_product/planned_features/chore_ci_prettier_check/idea.md) | Chore | `.github/workflows/pr.yml`'s `frontend` job runs: | — | Idea — surfaced during `/impl-execute --ad-hoc` of `infra_e2e_wire_seed_helper_into_studies_spec`. |
 | [chore_data_table_primitive_followups](../02_product/planned_features/chore_data_table_primitive_followups/idea.md) | Chore | `feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe | — | Partial — items 1, 2, 4, 6 shipped in PR (TBD) 2026-05-17. Items 3 + 5 remain open (larger refactors touching 8 DataTable consumers each). |
 | [chore_detail_page_shell_primitive](../02_product/planned_features/chore_detail_page_shell_primitive/idea.md) | Chore | Six of the seven `/{entity}/[id]` detail routes hand-roll the same three-state scaffold around their data query. The structure is **identical** down to the className strings, with two minor copy varia | — | Idea — surfaced during a UI-refactor audit run after [`chore_form_dropdown_primitive`](../../../00_overview/implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) (PR #136) and [`feat_data_table_primitive`](../../../00_overview/implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md) (PR #126) merged. |
 | [chore_extract_shadcn_select_test_mock](../02_product/planned_features/chore_extract_shadcn_select_test_mock/idea.md) | Chore | A factor-and-share refactor was attempted during `chore_form_dropdown_primitive` post-implementation. I extracted the mock to `ui/src/__tests__/helpers/shadcn-select-mock.tsx` exporting `mockShadcnSel | — | Idea — captured during `chore_form_dropdown_primitive` execution (PR pending). |
