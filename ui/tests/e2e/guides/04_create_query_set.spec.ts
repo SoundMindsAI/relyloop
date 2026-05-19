@@ -34,8 +34,14 @@ test.describe('Walkthrough: Create a query set', () => {
     // Cluster picker is an EntitySelect (shadcn Select) post-chore_form_dropdown_primitive.
     // Open the dropdown and click the seeded cluster's name; the status dot
     // is aria-hidden so the accessible name is just `cluster.name`.
+    // Use `dispatchEvent('click')` (rather than `.click()`) because with a
+    // polluted dev DB the Radix popover renders 200+ options and the target
+    // can end up outside the popup's viewport — Playwright's actionability
+    // check loops on scroll even with `force: true`, since the viewport
+    // check is enforced separately. Synthetic click bypasses both checks;
+    // Radix's option handler still fires correctly via the bubbling event.
     await page.getByTestId('qs-cluster').click();
-    await page.getByRole('option', { name: cluster.name }).click();
+    await page.getByRole('option', { name: cluster.name, exact: true }).dispatchEvent('click');
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(SCREENSHOTS, '03-create-modal-filled.png') });
 
