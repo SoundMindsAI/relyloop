@@ -345,6 +345,7 @@ async def list_proposals_endpoint(
     cluster_id: Annotated[str | None, Query()] = None,
     source: Annotated[ProposalSourceWire | None, Query()] = None,
     template_id: Annotated[UUID | None, Query()] = None,
+    study_id: Annotated[UUID | None, Query()] = None,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     sort: Annotated[ProposalSortKey | None, Query()] = None,
@@ -352,8 +353,10 @@ async def list_proposals_endpoint(
     """List proposals with cursor pagination + filters.
 
     ``?template_id=`` (Story 1.5) filters by ``proposals.template_id`` FK;
-    invalid UUIDs return 422 via FastAPI's UUID parsing. ``?sort=`` (Story
-    1.3) is a :data:`ProposalSortKey` value with sort-aware cursor.
+    ``?study_id=`` filters by ``proposals.study_id`` FK (used by the
+    study-detail page's pending-proposal lookup). Both reject invalid
+    UUIDs with 422 via FastAPI's UUID parsing. ``?sort=`` (Story 1.3) is
+    a :data:`ProposalSortKey` value with sort-aware cursor.
     """
     parsed_sort = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
     decoded_cursor: tuple[object, str] | None = None
@@ -365,6 +368,7 @@ async def list_proposals_endpoint(
         except Exception as exc:
             raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
     template_id_str = str(template_id) if template_id is not None else None
+    study_id_str = str(study_id) if study_id is not None else None
     rows = list(
         await repo.list_proposals_paginated(
             db,
@@ -374,6 +378,7 @@ async def list_proposals_endpoint(
             cluster_id=cluster_id,
             source=source,
             template_id=template_id_str,
+            study_id=study_id_str,
             sort=sort,
         )
     )
@@ -386,6 +391,7 @@ async def list_proposals_endpoint(
         cluster_id=cluster_id,
         source=source,
         template_id=template_id_str,
+        study_id=study_id_str,
     )
     response.headers["X-Total-Count"] = str(total)
     next_cursor: str | None = None

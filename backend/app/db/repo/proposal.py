@@ -149,6 +149,7 @@ async def list_proposals_paginated(
     cluster_id: str | None = None,
     source: ProposalSourceFilter | None = None,
     template_id: str | None = None,
+    study_id: str | None = None,
     sort: str | None = None,
 ) -> Sequence[Proposal]:
     """Cursor-paginated proposal list. Sort-aware (Story 1.3).
@@ -158,6 +159,8 @@ async def list_proposals_paginated(
     filter (Story 1.5) narrows by ``proposals.template_id`` FK.
     ``source`` filter (per chore_proposals_source_filter_server_side)
     is the server-side equivalent of the UI's three-state chip.
+    ``study_id`` filter narrows to proposals belonging to a single study
+    (used by the study-detail page's pending-proposal lookup).
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
     stmt = select(Proposal)
@@ -167,6 +170,8 @@ async def list_proposals_paginated(
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
     if template_id is not None:
         stmt = stmt.where(Proposal.template_id == template_id)
+    if study_id is not None:
+        stmt = stmt.where(Proposal.study_id == study_id)
     stmt = _apply_source_filter(stmt, source)
     if cursor is not None:
         cursor_value, cursor_id = cursor
@@ -192,10 +197,12 @@ async def count_proposals(
     cluster_id: str | None = None,
     source: ProposalSourceFilter | None = None,
     template_id: str | None = None,
+    study_id: str | None = None,
 ) -> int:
     """COUNT(*) for the ``X-Total-Count`` header on ``GET /api/v1/proposals``.
 
-    ``template_id`` filter (Story 1.5) narrows by FK.
+    ``template_id`` filter (Story 1.5) narrows by FK. ``study_id`` filter
+    narrows to a single study.
     """
     stmt = select(func.count()).select_from(Proposal)
     if status is not None:
@@ -204,6 +211,8 @@ async def count_proposals(
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
     if template_id is not None:
         stmt = stmt.where(Proposal.template_id == template_id)
+    if study_id is not None:
+        stmt = stmt.where(Proposal.study_id == study_id)
     stmt = _apply_source_filter(stmt, source)
     return int((await db.execute(stmt)).scalar_one())
 
