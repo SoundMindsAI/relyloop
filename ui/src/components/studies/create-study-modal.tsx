@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -27,7 +27,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useClusters, useClusterSchema } from '@/lib/api/clusters';
 import { useJudgmentLists } from '@/lib/api/judgments';
-import { useTemplates } from '@/lib/api/query-templates';
+import { useTemplates, useTemplate } from '@/lib/api/query-templates';
 import { useQuerySets } from '@/lib/api/query-sets';
 import { useCreateStudy } from '@/lib/api/studies';
 import {
@@ -42,8 +42,12 @@ import {
   type PrunerKind,
   type SamplerKind,
 } from '@/lib/enums';
+import { buildStarterSearchSpace } from '@/lib/search-space-defaults';
 
 const K_REQUIRED: ReadonlySet<ObjectiveMetric> = new Set(['ndcg', 'precision', 'recall']);
+
+const PLACEHOLDER_SENTINEL = '__placeholder__';
+const UNDO_TIMEOUT_MS = 10_000;
 
 interface FormValues {
   // Step 1
@@ -108,6 +112,7 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   const clusterId = form.watch('cluster_id');
   const target = form.watch('target');
   const querySetId = form.watch('query_set_id');
+  const templateId = form.watch('template_id');
   const metric = form.watch('metric');
 
   const clusters = useClusters({ limit: 200 });
@@ -122,10 +127,172 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
     engine_type: selectedCluster?.engine_type,
     limit: 200,
   });
+  // Fetch the full template body (with declared_params) as soon as the user
+  // picks one in Step 3. Used by the Step-4 auto-fill effect and the
+  // client-side validation mirror below.
+  const templateQuery = useTemplate(templateId || null);
+  const templateBody = templateQuery.data;
+  const templateError = templateQuery.error;
+
+  // Set of textarea contents previously emitted by buildStarterSearchSpace.
+  // Used to decide whether an auto-fill replacement requires an Undo toast
+  // (user-edited content) or can land silently (still matches an earlier
+  // auto-fill). Per spec FR-1 / AC-2.
+  const [autoFillSignatures, setAutoFillSignatures] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const autoFillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [searchSpaceError, setSearchSpaceError] = useState<string | null>(null);
+  const [placeholderWarning, setPlaceholderWarning] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (autoFillTimeoutRef.current) clearTimeout(autoFillTimeoutRef.current);
+    };
+  }, []);
+
+  // Whether the picked template has zero declared params — Step-3 Next is
+  // blocked in that case (spec §11 edge).
+  const templateHasNoDeclaredParams =
+    Boolean(templateBody) && Object.keys(templateBody?.declared_params ?? {}).length === 0;
+
+  // Surface for the template-detail GET error states. 404 bumps back to
+  // Step 3; transient (5xx / network) keeps Step 4 open with a Retry button.
+  // ApiError.status is 0 when the fetch never returned an HTTP envelope.
+  const templateFetchStatus: 'ok' | '404' | 'transient' | 'idle' = (() => {
+    if (!templateId) return 'idle';
+    if (!templateError) return templateQuery.isFetching || templateBody ? 'ok' : 'idle';
+    return templateError.status === 404 ? '404' : 'transient';
+  })();
+
+  // 404 recovery: bump the user back to Step 3 once and surface a toast.
+  // Keyed on (templateId, status) so the effect doesn't re-fire on every
+  // render while the user sits on Step 3 picking another template.
+  useEffect(() => {
+    if (templateFetchStatus === '404' && step >= 2) {
+      toast.error('The selected template is no longer available. Pick another.');
+      form.setValue('template_id', '');
+      if (step > 2) setStep(2);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateFetchStatus, templateId]);
+
+  // Step-3 → Step-4 auto-fill effect. Keyed on the fetched template body so
+  // template-change replacements re-fire even if the user came back to
+  // Step 3 and re-picked.
+  useEffect(() => {
+    if (!templateBody) return;
+    const declared = templateBody.declared_params ?? {};
+    const declaredKeys = Object.keys(declared);
+    if (declaredKeys.length === 0) return;
+
+    const auto = buildStarterSearchSpace(declared);
+    const autoJson = JSON.stringify(auto, null, 2);
+    const current = form.getValues('search_space_text');
+    const trimmed = (current ?? '').trim();
+    const isEmpty = trimmed === '' || trimmed === '{}';
+    const matchesPriorSignature = autoFillSignatures.has(current);
+
+    if (isEmpty || matchesPriorSignature) {
+      form.setValue('search_space_text', autoJson);
+      setAutoFillSignatures((prev) => {
+        const next = new Set(prev);
+        next.add(autoJson);
+        return next;
+      });
+      setSearchSpaceError(null);
+      setPlaceholderWarning(autoJson.includes(PLACEHOLDER_SENTINEL));
+      return;
+    }
+
+    // User edits exist — replace immediately, then show an Undo toast.
+    const priorText = current;
+    form.setValue('search_space_text', autoJson);
+    setAutoFillSignatures((prev) => {
+      const next = new Set(prev);
+      next.add(autoJson);
+      return next;
+    });
+    setSearchSpaceError(null);
+    setPlaceholderWarning(autoJson.includes(PLACEHOLDER_SENTINEL));
+    if (autoFillTimeoutRef.current) clearTimeout(autoFillTimeoutRef.current);
+    autoFillTimeoutRef.current = setTimeout(() => {
+      autoFillTimeoutRef.current = null;
+    }, UNDO_TIMEOUT_MS);
+    toast('Replaced your Step-4 content with defaults for the new template.', {
+      duration: UNDO_TIMEOUT_MS,
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          form.setValue('search_space_text', priorText);
+          if (autoFillTimeoutRef.current) {
+            clearTimeout(autoFillTimeoutRef.current);
+            autoFillTimeoutRef.current = null;
+          }
+          setPlaceholderWarning(priorText.includes(PLACEHOLDER_SENTINEL));
+        },
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templateBody]);
 
   // Child-select resets are handled inline in onValueChange below — no
   // useEffect needed (and an effect here would create a state-thrash loop
   // under React 19 + jsdom strict-mode rendering).
+
+  function validateSearchSpaceAgainstTemplate(): string | null {
+    if (!templateBody) return null;
+    const raw = form.getValues('search_space_text') ?? '';
+    let parsed: { params?: Record<string, unknown> };
+    try {
+      parsed = JSON.parse(raw || '{}');
+    } catch {
+      return 'Search space must be valid JSON.';
+    }
+    if (!parsed || typeof parsed !== 'object' || !parsed.params) {
+      return null;
+    }
+    const submittedKeys = Object.keys(parsed.params);
+    const declared = templateBody.declared_params ?? {};
+    const declaredKeys = Object.keys(declared);
+    const declaredSet = new Set(declaredKeys);
+    const unknown = submittedKeys.filter((k) => !declaredSet.has(k)).sort();
+    if (unknown[0] !== undefined) {
+      const firstUnknown = unknown[0];
+      const sortedDeclared = [...declaredKeys].sort();
+      return (
+        `Param '${firstUnknown}' is not declared by template '${templateBody.name}'. ` +
+        `Declared params: [${sortedDeclared.map((d) => `'${d}'`).join(', ')}].`
+      );
+    }
+    const submittedSet = new Set(submittedKeys);
+    const missing = declaredKeys.filter((k) => !submittedSet.has(k)).sort();
+    if (missing[0] !== undefined) {
+      return (
+        `Template '${templateBody.name}' declares param '${missing[0]}' but it is ` +
+        `missing from the search space. Add it or remove from the template.`
+      );
+    }
+    return null;
+  }
+
+  function refreshPlaceholderWarning(): void {
+    const raw = form.getValues('search_space_text') ?? '';
+    setPlaceholderWarning(raw.includes(PLACEHOLDER_SENTINEL));
+  }
+
+  function handleSearchSpaceBlur(): void {
+    setSearchSpaceError(validateSearchSpaceAgainstTemplate());
+    refreshPlaceholderWarning();
+  }
+
+  function handleStep4Next(): void {
+    const error = validateSearchSpaceAgainstTemplate();
+    setSearchSpaceError(error);
+    refreshPlaceholderWarning();
+    if (error) return;
+    setStep((s) => s + 1);
+  }
 
   function stepValid(s: number, values: FormValues): boolean {
     switch (s) {
@@ -134,7 +301,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
       case 1:
         return Boolean(values.query_set_id && values.judgment_list_id);
       case 2:
-        return Boolean(values.template_id);
+        // Block transition when the picked template has no tunable params;
+        // auto-fill cannot produce a valid SearchSpace from an empty
+        // declared_params dict (Pydantic min_length=1 on params).
+        return Boolean(values.template_id) && !templateHasNoDeclaredParams;
       case 3:
         if (!values.name) return false;
         try {
@@ -315,9 +485,23 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   getId={(t) => t.id}
                   getLabel={(t) => `${t.name} (v${t.version})`}
                   value={values.template_id || undefined}
-                  onChange={(v) => form.setValue('template_id', v ?? '')}
+                  onChange={(v) => {
+                    form.setValue('template_id', v ?? '');
+                    setSearchSpaceError(null);
+                  }}
                   placeholder="Choose a template"
                 />
+                {templateHasNoDeclaredParams && (
+                  <p
+                    role="alert"
+                    aria-live="polite"
+                    className="text-sm text-destructive"
+                    data-testid="cs-zero-declared-error"
+                  >
+                    This template has no tunable parameters. Pick a different template, or add
+                    params to this one before running a study.
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -328,13 +512,61 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                 <Input id="cs-name" {...form.register('name')} />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cs-space">Search space (JSON)</Label>
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="cs-space">Search space (JSON)</Label>
+                  <InfoTooltip glossaryKey="study.search_space" />
+                </div>
+                {templateQuery.isFetching && (
+                  <p className="text-xs text-muted-foreground" data-testid="cs-template-loading">
+                    Loading template…
+                  </p>
+                )}
                 <Textarea
                   id="cs-space"
                   rows={10}
-                  {...form.register('search_space_text')}
+                  {...form.register('search_space_text', {
+                    onBlur: handleSearchSpaceBlur,
+                  })}
                   data-testid="cs-search-space"
                 />
+                <div className="mt-1.5">
+                  <HelpPopover glossaryKey="study.search_space" />
+                </div>
+                {searchSpaceError && (
+                  <p
+                    role="alert"
+                    aria-live="polite"
+                    className="text-sm text-destructive"
+                    data-testid="cs-search-space-error"
+                  >
+                    {searchSpaceError}
+                  </p>
+                )}
+                {placeholderWarning && (
+                  <p
+                    className="text-sm text-amber-700 dark:text-amber-400"
+                    data-testid="cs-placeholder-warning"
+                  >
+                    Replace the &lsquo;__placeholder__&rsquo; value(s) before submitting — they are
+                    starter defaults for params with no inferable type.
+                  </p>
+                )}
+                {templateFetchStatus === 'transient' && (
+                  <div className="flex items-center gap-2" data-testid="cs-template-retry">
+                    <p className="text-sm text-muted-foreground">
+                      Couldn&rsquo;t load the template. Server-side validation will still catch
+                      typos on submit.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void templateQuery.refetch()}
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -518,7 +750,13 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
               <Button
                 type="button"
                 disabled={!stepValid(step, values)}
-                onClick={() => setStep((s) => s + 1)}
+                onClick={() => {
+                  if (step === 3) {
+                    handleStep4Next();
+                  } else {
+                    setStep((s) => s + 1);
+                  }
+                }}
                 data-testid="step-next"
               >
                 Next
