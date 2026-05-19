@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { use, useState } from 'react';
 
-import { EmptyState } from '@/components/common/empty-state';
+import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TemplateDetailView } from '@/components/templates/template-detail-view';
@@ -28,39 +28,33 @@ export default function TemplateDetailPage({ params }: RouteProps) {
           ← All templates
         </Link>
       </div>
-      {query.isPending ? (
-        <Card>
-          <CardContent>
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          </CardContent>
-        </Card>
-      ) : query.isError ? (
-        <EmptyState title="Template not found" message="The template may have been removed." />
-      ) : query.data ? (
-        <>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{query.data.name}</h1>
-              <p className="text-sm text-muted-foreground">
-                {query.data.engine_type} · v{query.data.version}
-                {query.data.parent_id && ' · forked'}
-              </p>
+      <DetailPageShell query={query} entityLabel="template" notFoundErrorCode="TEMPLATE_NOT_FOUND">
+        {(template) => (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight">{template.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {template.engine_type} · v{template.version}
+                  {template.parent_id && ' · forked'}
+                </p>
+              </div>
+              <Button onClick={() => setForkOpen(true)} data-testid="open-fork-modal">
+                Fork to v{template.version + 1}
+              </Button>
             </div>
-            <Button onClick={() => setForkOpen(true)} data-testid="open-fork-modal">
-              Fork to v{query.data.version + 1}
-            </Button>
-          </div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Template (read-only)</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TemplateDetailView template={query.data} />
-            </CardContent>
-          </Card>
-          <ForkTemplateModal open={forkOpen} onOpenChange={setForkOpen} parent={query.data} />
-        </>
-      ) : null}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Template (read-only)</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TemplateDetailView template={template} />
+              </CardContent>
+            </Card>
+            <ForkTemplateModal open={forkOpen} onOpenChange={setForkOpen} parent={template} />
+          </>
+        )}
+      </DetailPageShell>
     </main>
   );
 }

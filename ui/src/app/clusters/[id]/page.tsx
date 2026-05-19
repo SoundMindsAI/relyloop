@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { use } from 'react';
 
-import { EmptyState } from '@/components/common/empty-state';
+import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClusterActionBar } from '@/components/clusters/cluster-action-bar';
 import { ClusterDetailSummary } from '@/components/clusters/cluster-detail-summary';
@@ -23,28 +23,22 @@ export function ClusterDetailView({ clusterId }: { clusterId: string }) {
           ← All clusters
         </Link>
       </div>
-      {query.isPending ? (
-        <Card>
-          <CardContent>
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          </CardContent>
-        </Card>
-      ) : query.isError ? (
-        <EmptyState title="Cluster not found" message="The cluster may have been deleted." />
-      ) : query.data ? (
-        <>
-          <ClusterDetailSummary cluster={query.data} />
-          <ClusterActionBar cluster={query.data} />
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Studies using this cluster</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <StudiesByClusterTable clusterId={query.data.id} />
-            </CardContent>
-          </Card>
-        </>
-      ) : null}
+      <DetailPageShell query={query} entityLabel="cluster" notFoundErrorCode="CLUSTER_NOT_FOUND">
+        {(cluster) => (
+          <>
+            <ClusterDetailSummary cluster={cluster} />
+            <ClusterActionBar cluster={cluster} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Studies using this cluster</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <StudiesByClusterTable clusterId={cluster.id} />
+              </CardContent>
+            </Card>
+          </>
+        )}
+      </DetailPageShell>
     </main>
   );
 }

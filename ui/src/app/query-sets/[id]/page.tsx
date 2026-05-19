@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { use, useState } from 'react';
 
-import { EmptyState } from '@/components/common/empty-state';
+import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AddQueriesDialog } from '@/components/query-sets/add-queries-dialog';
@@ -30,67 +30,65 @@ export function QuerySetDetailView({ querySetId }: { querySetId: string }) {
           ← All query sets
         </Link>
       </div>
-      {query.isPending ? (
-        <Card>
-          <CardContent>
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          </CardContent>
-        </Card>
-      ) : query.isError ? (
-        <EmptyState title="Query set not found" message="The query set may have been deleted." />
-      ) : query.data ? (
-        <>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{query.data.name}</h1>
-              <p className="text-sm text-muted-foreground">
-                Cluster <span className="font-mono">{query.data.cluster_id}</span> ·{' '}
-                {query.data.query_count.toLocaleString()} queries
-              </p>
+      <DetailPageShell
+        query={query}
+        entityLabel="query set"
+        notFoundErrorCode="QUERY_SET_NOT_FOUND"
+      >
+        {(querySet) => (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold tracking-tight">{querySet.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  Cluster <span className="font-mono">{querySet.cluster_id}</span> ·{' '}
+                  {querySet.query_count.toLocaleString()} queries
+                </p>
+              </div>
+              <Button onClick={() => setAddQueriesOpen(true)} data-testid="open-add-queries">
+                Add queries
+              </Button>
             </div>
-            <Button onClick={() => setAddQueriesOpen(true)} data-testid="open-add-queries">
-              Add queries
-            </Button>
-          </div>
-          {query.data.description && (
+            {querySet.description && (
+              <Card>
+                <CardContent className="pt-6">
+                  <p className="text-sm">{querySet.description}</p>
+                </CardContent>
+              </Card>
+            )}
             <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm">{query.data.description}</p>
+              <CardHeader>
+                <CardTitle className="text-base">Queries</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <QueriesTable querySetId={querySet.id} />
               </CardContent>
             </Card>
-          )}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Queries</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <QueriesTable querySetId={query.data.id} />
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Associated judgment lists</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <AssociatedJudgmentLists
-                querySetId={query.data.id}
-                onGenerateClick={() => setGenerateOpen(true)}
-              />
-            </CardContent>
-          </Card>
-          <AddQueriesDialog
-            open={addQueriesOpen}
-            onOpenChange={setAddQueriesOpen}
-            querySetId={query.data.id}
-          />
-          <GenerateJudgmentsDialog
-            open={generateOpen}
-            onOpenChange={setGenerateOpen}
-            clusterId={query.data.cluster_id}
-            querySetId={query.data.id}
-          />
-        </>
-      ) : null}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Associated judgment lists</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AssociatedJudgmentLists
+                  querySetId={querySet.id}
+                  onGenerateClick={() => setGenerateOpen(true)}
+                />
+              </CardContent>
+            </Card>
+            <AddQueriesDialog
+              open={addQueriesOpen}
+              onOpenChange={setAddQueriesOpen}
+              querySetId={querySet.id}
+            />
+            <GenerateJudgmentsDialog
+              open={generateOpen}
+              onOpenChange={setGenerateOpen}
+              clusterId={querySet.cluster_id}
+              querySetId={querySet.id}
+            />
+          </>
+        )}
+      </DetailPageShell>
     </main>
   );
 }

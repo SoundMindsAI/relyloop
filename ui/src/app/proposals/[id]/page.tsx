@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, use, useCallback, useEffect, useRef, useState } from 'react';
 
+import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { MetricDelta } from '@/components/common/metric-delta';
-import { EmptyState } from '@/components/common/empty-state';
 import { ConfigDiffPanel } from '@/components/proposals/config-diff-panel';
 import { PrPanel } from '@/components/proposals/pr-panel';
 import { ProposalHeader } from '@/components/proposals/proposal-header';
@@ -135,71 +135,65 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
           ← All proposals
         </Link>
       </div>
-      {proposalQ.isPending ? (
-        <Card>
-          <CardContent>
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          </CardContent>
-        </Card>
-      ) : proposalQ.isError ? (
-        proposalQ.error?.errorCode === 'PROPOSAL_NOT_FOUND' ? (
-          <EmptyState title="Proposal not found" message="The proposal may have been deleted." />
-        ) : (
-          <EmptyState title="Backend unreachable" message="Refresh after re-launching the API." />
-        )
-      ) : proposalQ.data ? (
-        <>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold tracking-tight">Proposal detail</h1>
-          </div>
-          <ProposalHeader proposal={proposalQ.data} />
-          <ConfigDiffPanel diff={proposalQ.data.config_diff} />
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-1 text-base">
-                Metric delta
-                <InfoTooltip glossaryKey="proposal.metric_delta" />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {(() => {
-                const md = parseMetricDelta(proposalQ.data.metric_delta);
-                if (md && md.primary && md.baseline != null && md.best != null) {
-                  return (
-                    <div className="space-y-1">
-                      <p className="text-xs uppercase text-muted-foreground">{md.primary}</p>
-                      <MetricDelta baseline={md.baseline} achieved={md.best} />
-                    </div>
-                  );
-                }
-                return (
-                  <p className="text-sm text-muted-foreground" data-testid="metric-delta-empty">
-                    No metric delta recorded.
-                  </p>
-                );
-              })()}
-            </CardContent>
-          </Card>
-          <div className="flex items-start gap-3">
-            <div className="flex-1">
-              <PrPanel
-                proposal={proposalQ.data}
-                onOpenPR={fireOpenPR}
-                openPrIsPending={openPrMutationPending || effectivePollingFlag}
-              />
+      <DetailPageShell
+        query={proposalQ}
+        entityLabel="proposal"
+        notFoundErrorCode="PROPOSAL_NOT_FOUND"
+      >
+        {(proposal) => (
+          <>
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold tracking-tight">Proposal detail</h1>
             </div>
-            {proposalQ.data.status === 'pending' && (
-              <div className="pt-12">
-                <RejectDialog proposal={proposalQ.data} />
+            <ProposalHeader proposal={proposal} />
+            <ConfigDiffPanel diff={proposal.config_diff} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-1 text-base">
+                  Metric delta
+                  <InfoTooltip glossaryKey="proposal.metric_delta" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const md = parseMetricDelta(proposal.metric_delta);
+                  if (md && md.primary && md.baseline != null && md.best != null) {
+                    return (
+                      <div className="space-y-1">
+                        <p className="text-xs uppercase text-muted-foreground">{md.primary}</p>
+                        <MetricDelta baseline={md.baseline} achieved={md.best} />
+                      </div>
+                    );
+                  }
+                  return (
+                    <p className="text-sm text-muted-foreground" data-testid="metric-delta-empty">
+                      No metric delta recorded.
+                    </p>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+            <div className="flex items-start gap-3">
+              <div className="flex-1">
+                <PrPanel
+                  proposal={proposal}
+                  onOpenPR={fireOpenPR}
+                  openPrIsPending={openPrMutationPending || effectivePollingFlag}
+                />
               </div>
-            )}
-          </div>
-          {proposalQ.data.digest?.suggested_followups &&
-            proposalQ.data.digest.suggested_followups.length > 0 && (
-              <SuggestedFollowupsPanel followups={proposalQ.data.digest.suggested_followups} />
-            )}
-        </>
-      ) : null}
+              {proposal.status === 'pending' && (
+                <div className="pt-12">
+                  <RejectDialog proposal={proposal} />
+                </div>
+              )}
+            </div>
+            {proposal.digest?.suggested_followups &&
+              proposal.digest.suggested_followups.length > 0 && (
+                <SuggestedFollowupsPanel followups={proposal.digest.suggested_followups} />
+              )}
+          </>
+        )}
+      </DetailPageShell>
     </main>
   );
 }
