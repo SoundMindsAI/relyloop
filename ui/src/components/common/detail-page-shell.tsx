@@ -147,7 +147,11 @@ export function DetailPageShell<T>(props: DetailPageShellProps<T>) {
     );
   }
 
-  if (query.data === undefined) {
+  // Loose null check catches both `undefined` (initial fetch) and `null`
+  // (a 200 OK with a null body) — per Gemini PR #155 review, defense
+  // against accidentally invoking `children(null)` and crashing on
+  // property access in the consumer.
+  if (query.data == null) {
     return null;
   }
 
