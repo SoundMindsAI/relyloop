@@ -50,21 +50,32 @@ import { type ReactNode } from 'react';
 
 export const mockShadcnSelect = async () => {
   const React = (await import('react')) as typeof import('react');
-  function findTriggerProp(children: ReactNode, prop: 'id' | 'data-testid'): string | undefined {
-    let value: string | undefined;
+  function SelectTrigger() {
+    return null;
+  }
+  // Pull both `id` and `data-testid` off the inner `SelectTrigger` in a
+  // single React.Children pass. Prefers reference equality on
+  // `child.type === SelectTrigger` (robust against minifier name-mangling)
+  // and falls back to the `.name === 'SelectTrigger'` string check for the
+  // rare case where the SUT renders a wrapped/composed trigger.
+  function findTriggerProps(children: ReactNode): {
+    id: string | undefined;
+    'data-testid': string | undefined;
+  } {
+    let id: string | undefined;
+    let testId: string | undefined;
     React.Children.forEach(children, (child) => {
       if (
         React.isValidElement<{ id?: string; 'data-testid'?: string }>(child) &&
-        typeof child.type === 'function' &&
-        (child.type as { displayName?: string; name?: string }).name === 'SelectTrigger'
+        (child.type === SelectTrigger ||
+          (typeof child.type === 'function' &&
+            (child.type as { name?: string }).name === 'SelectTrigger'))
       ) {
-        value = child.props[prop];
+        id = child.props.id;
+        testId = child.props['data-testid'];
       }
     });
-    return value;
-  }
-  function SelectTrigger() {
-    return null;
+    return { id, 'data-testid': testId };
   }
   return {
     Select: ({
@@ -79,8 +90,7 @@ export const mockShadcnSelect = async () => {
       disabled?: boolean;
     }) => (
       <select
-        id={findTriggerProp(children, 'id')}
-        data-testid={findTriggerProp(children, 'data-testid')}
+        {...findTriggerProps(children)}
         value={value ?? ''}
         disabled={disabled}
         onChange={(e) => onValueChange?.(e.target.value)}
