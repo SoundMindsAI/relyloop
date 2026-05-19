@@ -384,7 +384,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">40 / 40</div>
+      <div class="value">41 / 41</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -407,7 +407,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      1 idea-only feat/infra folders (not yet scoped into MVP1)
+      0 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -428,19 +428,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">6</span></h3>
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_e2e_wire_seed_helper_into_studies_spec">E2E Wire Seed Helper Into Studies Spec</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">`infra_e2e_seed_completed_study` shipped `POST /api/v1/_test/studies/seed-completed` and the `seedStudyCompletedWithDigest` TypeScript helper. The two consuming E2E tests in `ui/tests/e2e/studies.spec</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">5</span></h3>
 
 <div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_ci_prettier_check">Ci Prettier Check</a></div>
@@ -519,7 +507,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">49</span></h3>
+  <h3>Done <span class="count">50</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -706,6 +694,18 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span>merged 2026-05-17</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_infra_e2e_wire_seed_helper_into_studies_spec">E2E Wire Seed Helper Into Studies Spec</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-19</span>
   </div>
   <div class="one-liner">Complete</div>
 
@@ -1201,6 +1201,8 @@ footer {
   class infra_e2e_seed_completed_study done;
   chore_form_dropdown_primitive[&quot;form dropdown primitive&quot;]
   class chore_form_dropdown_primitive done;
+  infra_e2e_wire_seed_helper_into_studies_spec[&quot;e2e wire seed helper into studies spec&quot;]
+  class infra_e2e_wire_seed_helper_into_studies_spec done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1222,6 +1224,7 @@ footer {
   infra_ci_smoke_makeup --&gt; chore_tutorial_polish
   infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
   infra_e2e_seed_completed_study --&gt; chore_tutorial_polish
+  infra_e2e_wire_seed_helper_into_studies_spec --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
@@ -1244,6 +1247,7 @@ footer {
   infra_ci_smoke_makeup --&gt; feat_chat_agent
   infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
   infra_e2e_seed_completed_study --&gt; feat_chat_agent
+  infra_e2e_wire_seed_helper_into_studies_spec --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_make_targets_split_backend_only --&gt; feat_chat_agent
@@ -1358,6 +1362,8 @@ footer {
   class infra_e2e_seed_completed_study done;
   chore_form_dropdown_primitive[&quot;form dropdown primitive&quot;]
   class chore_form_dropdown_primitive done;
+  infra_e2e_wire_seed_helper_into_studies_spec[&quot;e2e wire seed helper into studies spec&quot;]
+  class infra_e2e_wire_seed_helper_into_studies_spec done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1379,6 +1385,7 @@ footer {
   infra_ci_smoke_makeup --&gt; chore_tutorial_polish
   infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
   infra_e2e_seed_completed_study --&gt; chore_tutorial_polish
+  infra_e2e_wire_seed_helper_into_studies_spec --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
   infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
@@ -1401,6 +1408,7 @@ footer {
   infra_ci_smoke_makeup --&gt; feat_chat_agent
   infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
   infra_e2e_seed_completed_study --&gt; feat_chat_agent
+  infra_e2e_wire_seed_helper_into_studies_spec --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
   infra_make_targets_split_backend_only --&gt; feat_chat_agent

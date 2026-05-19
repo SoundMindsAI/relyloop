@@ -14,16 +14,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **40 / 40** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **41 / 41** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Path to MVP1 | **5** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
 | Open chores | 5 (idea-stage debt) |
-| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (49)
+### Done (50)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -43,6 +43,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_ci_smoke_makeup](implemented_features/2026_05_13_infra_ci_smoke_makeup/idea.md) | Infra | Complete | — | Complete |
 | [infra_dashboard_regen_pre_commit_conflict](implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict/idea.md) | Infra | Complete | — | Complete |
 | [infra_e2e_seed_completed_study](implemented_features/2026_05_17_infra_e2e_seed_completed_study/idea.md) | Infra | Complete | — | Complete |
+| [infra_e2e_wire_seed_helper_into_studies_spec](implemented_features/2026_05_19_infra_e2e_wire_seed_helper_into_studies_spec/idea.md) | Infra | Complete | — | Complete |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
 | [infra_make_targets_split_backend_only](implemented_features/2026_05_14_infra_make_targets_split_backend_only/idea.md) | Infra | Complete | — | Complete |
@@ -89,11 +90,10 @@ _None._
 
 _None._
 
-### Idea (6)
+### Idea (5)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [infra_e2e_wire_seed_helper_into_studies_spec](../02_product/planned_features/infra_e2e_wire_seed_helper_into_studies_spec/idea.md) | Infra | `infra_e2e_seed_completed_study` shipped `POST /api/v1/_test/studies/seed-completed` and the `seedStudyCompletedWithDigest` TypeScript helper. The two consuming E2E tests in `ui/tests/e2e/studies.spec | — | Idea — deferred from `infra_e2e_seed_completed_study` PR #130. The endpoint + helper landed cleanly; the 2 Playwright E2E tests that consume them caused the smoke CI lane to fail (root cause undiagnosed — agent environment had no access to GitHub Actions logs to debug the Playwright report). |
 | [chore_ci_prettier_check](../02_product/planned_features/chore_ci_prettier_check/idea.md) | Chore | `.github/workflows/pr.yml`'s `frontend` job runs: | — | Idea — surfaced during `/impl-execute --ad-hoc` of `infra_e2e_wire_seed_helper_into_studies_spec`. |
 | [chore_data_table_primitive_followups](../02_product/planned_features/chore_data_table_primitive_followups/idea.md) | Chore | `feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe | — | Partial — items 1, 2, 4, 6 shipped in PR (TBD) 2026-05-17. Items 3 + 5 remain open (larger refactors touching 8 DataTable consumers each). |
 | [chore_detail_page_shell_primitive](../02_product/planned_features/chore_detail_page_shell_primitive/idea.md) | Chore | Six of the seven `/{entity}/[id]` detail routes hand-roll the same three-state scaffold around their data query. The structure is **identical** down to the className strings, with two minor copy varia | — | Idea — surfaced during a UI-refactor audit run after [`chore_form_dropdown_primitive`](../../../00_overview/implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) (PR #136) and [`feat_data_table_primitive`](../../../00_overview/implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md) (PR #126) merged. |
@@ -191,6 +191,8 @@ graph LR
   class infra_e2e_seed_completed_study done;
   chore_form_dropdown_primitive["form dropdown primitive"]
   class chore_form_dropdown_primitive done;
+  infra_e2e_wire_seed_helper_into_studies_spec["e2e wire seed helper into studies spec"]
+  class infra_e2e_wire_seed_helper_into_studies_spec done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -212,6 +214,7 @@ graph LR
   infra_ci_smoke_makeup --> chore_tutorial_polish
   infra_dashboard_regen_pre_commit_conflict --> chore_tutorial_polish
   infra_e2e_seed_completed_study --> chore_tutorial_polish
+  infra_e2e_wire_seed_helper_into_studies_spec --> chore_tutorial_polish
   infra_foundation --> chore_tutorial_polish
   infra_frontend_stack_refresh --> chore_tutorial_polish
   infra_make_targets_split_backend_only --> chore_tutorial_polish
@@ -234,6 +237,7 @@ graph LR
   infra_ci_smoke_makeup --> feat_chat_agent
   infra_dashboard_regen_pre_commit_conflict --> feat_chat_agent
   infra_e2e_seed_completed_study --> feat_chat_agent
+  infra_e2e_wire_seed_helper_into_studies_spec --> feat_chat_agent
   infra_foundation --> feat_chat_agent
   infra_frontend_stack_refresh --> feat_chat_agent
   infra_make_targets_split_backend_only --> feat_chat_agent
