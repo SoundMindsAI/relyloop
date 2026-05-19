@@ -41,7 +41,7 @@ test.describe('Walkthrough: Create a query set', () => {
     // check is enforced separately. Synthetic click bypasses both checks;
     // Radix's option handler still fires correctly via the bubbling event.
     await page.getByTestId('qs-cluster').click();
-    await page.getByRole('option', { name: cluster.name }).dispatchEvent('click');
+    await page.getByRole('option', { name: cluster.name, exact: true }).dispatchEvent('click');
     await page.waitForTimeout(400);
     await page.screenshot({ path: path.join(SCREENSHOTS, '03-create-modal-filled.png') });
 
