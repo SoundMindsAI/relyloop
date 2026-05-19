@@ -14,16 +14,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **42 / 42** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **4** items remaining (features + bugs + chores) |
+| Scoped items done | **46 / 46** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **0** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
-| Open chores | 4 (idea-stage debt) |
+| Open chores | 0 (idea-stage debt) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (51)
+### Done (55)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -54,10 +54,14 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Complete | — | Complete |
+| [chore_ci_prettier_check](implemented_features/2026_05_19_chore_ci_prettier_check/idea.md) | Chore | Complete | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
 | [chore_data_table_columnvisibility_tanstack](implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack/idea.md) | Chore | Complete | — | Complete |
+| [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Complete | — | Complete |
 | [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | Complete | — | Complete |
 | [chore_env_guard_extend_deny_pattern](implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern/idea.md) | Chore | Complete | — | Complete |
+| [chore_extract_shadcn_select_test_mock](implemented_features/2026_05_19_chore_extract_shadcn_select_test_mock/idea.md) | Chore | Complete | — | Complete |
+| [chore_form_dropdown_guide_screenshot_refresh](implemented_features/2026_05_19_chore_form_dropdown_guide_screenshot_refresh/idea.md) | Chore | Complete | — | Complete |
 | [chore_form_dropdown_primitive](implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) | Chore | Ready for Execution | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
@@ -91,14 +95,9 @@ _None._
 
 _None._
 
-### Idea (4)
+### Idea (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [chore_ci_prettier_check](../02_product/planned_features/chore_ci_prettier_check/idea.md) | Chore | `.github/workflows/pr.yml`'s `frontend` job runs: | — | Idea — surfaced during `/impl-execute --ad-hoc` of `infra_e2e_wire_seed_helper_into_studies_spec`. |
-| [chore_detail_page_shell_primitive](../02_product/planned_features/chore_detail_page_shell_primitive/idea.md) | Chore | Six of the seven `/{entity}/[id]` detail routes hand-roll the same three-state scaffold around their data query. The structure is **identical** down to the className strings, with two minor copy varia | — | Idea — surfaced during a UI-refactor audit run after [`chore_form_dropdown_primitive`](../../../00_overview/implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) (PR #136) and [`feat_data_table_primitive`](../../../00_overview/implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md) (PR #126) merged. |
-| [chore_extract_shadcn_select_test_mock](../02_product/planned_features/chore_extract_shadcn_select_test_mock/idea.md) | Chore | A factor-and-share refactor was attempted during `chore_form_dropdown_primitive` post-implementation. I extracted the mock to `ui/src/__tests__/helpers/shadcn-select-mock.tsx` exporting `mockShadcnSel | — | Idea — captured during `chore_form_dropdown_primitive` execution (PR pending). |
-| [chore_form_dropdown_guide_screenshot_refresh](../02_product/planned_features/chore_form_dropdown_guide_screenshot_refresh/idea.md) | Chore | Each affected guide has a Playwright spec at `ui/tests/e2e/guides/*.spec.ts` that captures screenshots when run against the real backend. The PR's UI changes produce different screenshots: | — | Idea — captured during `chore_form_dropdown_primitive` post-implementation guide-impact assessment. |
+_None._
 
 ## Dependency graph
 
@@ -191,8 +190,16 @@ graph LR
   class infra_e2e_seed_completed_study done;
   chore_form_dropdown_primitive["form dropdown primitive"]
   class chore_form_dropdown_primitive done;
+  chore_ci_prettier_check["ci prettier check"]
+  class chore_ci_prettier_check done;
   chore_data_table_columnvisibility_tanstack["data table columnvisibility tanstack"]
   class chore_data_table_columnvisibility_tanstack done;
+  chore_detail_page_shell_primitive["detail page shell primitive"]
+  class chore_detail_page_shell_primitive done;
+  chore_extract_shadcn_select_test_mock["extract shadcn select test mock"]
+  class chore_extract_shadcn_select_test_mock done;
+  chore_form_dropdown_guide_screenshot_refresh["form dropdown guide screenshot refresh"]
+  class chore_form_dropdown_guide_screenshot_refresh done;
   infra_e2e_wire_seed_helper_into_studies_spec["e2e wire seed helper into studies spec"]
   class infra_e2e_wire_seed_helper_into_studies_spec done;
   feat_study_lifecycle --> feat_digest_proposal
