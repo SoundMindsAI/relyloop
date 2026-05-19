@@ -9,54 +9,14 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { server } from '../../setup';
 
 // Radix Select crashes inside jsdom's portal handling for this many-Select
-// modal — replace it with a thin native <select> shim so the test can drive
-// the form via change events. The CreateStudyRequest contract (the thing this
-// test is actually verifying) is unchanged.
+// modal — replace it with a native `<select>` shim from the shared helper.
+// The CreateStudyRequest contract (the thing this test verifies) is
+// unchanged. The helper's shim is a superset (data-testid forwarding +
+// disabled handling) of what this file originally inlined; the extra
+// capabilities don't affect this test's assertions.
 vi.mock('@/components/ui/select', async () => {
-  const React = (await import('react')) as typeof import('react');
-  // Find the SelectTrigger inside Select's children and pull its id; pass to <select>.
-  function findTriggerId(children: ReactNode): string | undefined {
-    let id: string | undefined;
-    React.Children.forEach(children, (child) => {
-      if (
-        React.isValidElement<{ id?: string }>(child) &&
-        typeof child.type === 'function' &&
-        (child.type as { displayName?: string; name?: string }).name === 'SelectTrigger'
-      ) {
-        id = child.props.id;
-      }
-    });
-    return id;
-  }
-  function SelectTrigger() {
-    return null;
-  }
-  return {
-    Select: ({
-      value,
-      onValueChange,
-      children,
-    }: {
-      value?: string;
-      onValueChange?: (v: string) => void;
-      children: ReactNode;
-    }) => (
-      <select
-        id={findTriggerId(children)}
-        value={value ?? ''}
-        onChange={(e) => onValueChange?.(e.target.value)}
-      >
-        <option value="" />
-        {children}
-      </select>
-    ),
-    SelectTrigger,
-    SelectValue: () => null,
-    SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
-    SelectItem: ({ value, children }: { value: string; children: ReactNode }) => (
-      <option value={value}>{children}</option>
-    ),
-  };
+  const { mockShadcnSelect } = await import('../../helpers/shadcn-select-mock');
+  return mockShadcnSelect();
 });
 
 const { CreateStudyModal } = await import('@/components/studies/create-study-modal');
