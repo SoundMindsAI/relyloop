@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { Suspense, use, useMemo, useState } from 'react';
 
-import { EmptyState } from '@/components/common/empty-state';
+import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CalibrationModal } from '@/components/judgments/calibration-modal';
@@ -55,44 +55,42 @@ export function JudgmentListView({ listId }: { listId: string }) {
           ← All judgment lists
         </Link>
       </div>
-      {list.isPending ? (
-        <Card>
-          <CardContent>
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          </CardContent>
-        </Card>
-      ) : list.isError ? (
-        <EmptyState title="Judgment list not found" message="The list may have been removed." />
-      ) : list.data ? (
-        <>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold tracking-tight">Judgment Review</h1>
-            <Button onClick={() => setCalibrationOpen(true)} data-testid="open-calibration">
-              Calibrate
-            </Button>
-          </div>
-          <JudgmentListHeader list={list.data} />
-          <Card>
-            <CardContent className="pt-6">
-              <JudgmentsTable
-                rows={judgments.data?.data ?? []}
-                listId={listId}
-                totalCount={judgments.data?.totalCount}
-                has_more={judgments.data?.has_more ?? false}
-                next_cursor={judgments.data?.next_cursor ?? null}
-                isLoading={judgments.isPending}
-                isError={judgments.isError}
-                urlState={urlState}
-              />
-            </CardContent>
-          </Card>
-          <CalibrationModal
-            open={calibrationOpen}
-            onOpenChange={setCalibrationOpen}
-            listId={listId}
-          />
-        </>
-      ) : null}
+      <DetailPageShell
+        query={list}
+        entityLabel="judgment list"
+        notFoundErrorCode="JUDGMENT_LIST_NOT_FOUND"
+      >
+        {(listData) => (
+          <>
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold tracking-tight">Judgment Review</h1>
+              <Button onClick={() => setCalibrationOpen(true)} data-testid="open-calibration">
+                Calibrate
+              </Button>
+            </div>
+            <JudgmentListHeader list={listData} />
+            <Card>
+              <CardContent className="pt-6">
+                <JudgmentsTable
+                  rows={judgments.data?.data ?? []}
+                  listId={listId}
+                  totalCount={judgments.data?.totalCount}
+                  has_more={judgments.data?.has_more ?? false}
+                  next_cursor={judgments.data?.next_cursor ?? null}
+                  isLoading={judgments.isPending}
+                  isError={judgments.isError}
+                  urlState={urlState}
+                />
+              </CardContent>
+            </Card>
+            <CalibrationModal
+              open={calibrationOpen}
+              onOpenChange={setCalibrationOpen}
+              listId={listId}
+            />
+          </>
+        )}
+      </DetailPageShell>
     </main>
   );
 }

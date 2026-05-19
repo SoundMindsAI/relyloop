@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { Suspense, use } from 'react';
 
-import { EmptyState } from '@/components/common/empty-state';
+import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
@@ -62,48 +62,42 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
           ← All studies
         </Link>
       </div>
-      {studyQ.isPending ? (
-        <Card>
-          <CardContent>
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
-          </CardContent>
-        </Card>
-      ) : studyQ.isError ? (
-        <EmptyState title="Study not found" message="The study may have been deleted." />
-      ) : studyQ.data ? (
-        <>
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold tracking-tight">Study detail</h1>
-            <StudyActionBar study={studyQ.data} />
-          </div>
-          <StudyHeader study={studyQ.data} />
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Trials</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <TrialsTable
-                rows={trialsQ.data?.data ?? []}
-                totalCount={trialsQ.data?.totalCount}
-                has_more={trialsQ.data?.has_more ?? false}
-                next_cursor={trialsQ.data?.next_cursor ?? null}
-                isLoading={trialsQ.isPending}
-                isError={trialsQ.isError}
-                urlState={urlState}
-                tableId={`trials-${studyId}`}
+      <DetailPageShell query={studyQ} entityLabel="study" notFoundErrorCode="STUDY_NOT_FOUND">
+        {(study) => (
+          <>
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-semibold tracking-tight">Study detail</h1>
+              <StudyActionBar study={study} />
+            </div>
+            <StudyHeader study={study} />
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Trials</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TrialsTable
+                  rows={trialsQ.data?.data ?? []}
+                  totalCount={trialsQ.data?.totalCount}
+                  has_more={trialsQ.data?.has_more ?? false}
+                  next_cursor={trialsQ.data?.next_cursor ?? null}
+                  isLoading={trialsQ.isPending}
+                  isError={trialsQ.isError}
+                  urlState={urlState}
+                  tableId={`trials-${studyId}`}
+                />
+              </CardContent>
+            </Card>
+            {study.status === 'completed' && digestQ.data && (
+              <DigestPanel
+                digest={digestQ.data}
+                baselineMetric={study.baseline_metric ?? null}
+                bestMetric={study.best_metric ?? null}
+                pendingProposal={proposalQ.data ?? null}
               />
-            </CardContent>
-          </Card>
-          {studyQ.data.status === 'completed' && digestQ.data && (
-            <DigestPanel
-              digest={digestQ.data}
-              baselineMetric={studyQ.data.baseline_metric ?? null}
-              bestMetric={studyQ.data.best_metric ?? null}
-              pendingProposal={proposalQ.data ?? null}
-            />
-          )}
-        </>
-      ) : null}
+            )}
+          </>
+        )}
+      </DetailPageShell>
     </main>
   );
 }

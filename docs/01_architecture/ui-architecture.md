@@ -261,7 +261,30 @@ The same SSE wire format (`event: <type>\ndata: <json>\n\n`) is used; only the t
 
 **Source-of-truth discipline (forms).** The vitest lint guard at [`ui/src/__tests__/components/common/form-select-discipline.test.tsx`](../../ui/src/__tests__/components/common/form-select-discipline.test.tsx) scans every form `*.tsx` under `ui/src/components/` (excluding `__tests__/`, `common/`, and `*.column-config.{ts,tsx}`) and fails when a file imports `SelectItem` from `'@/components/ui/select'` AND inlines `<SelectItem value="<literal>">` where `<literal>` matches any backend enum wire value defined in [`enums.ts`](../../ui/src/lib/enums.ts). Escape hatch: a top-of-file `// no-enum-import: <non-empty reason>` comment. This is the form-level complement to the DataTable column-discipline guard — together they cover every UI surface where the frontend ships a wire value back to the backend.
 
-**Modal-level testing.** The shadcn `<Select>` family crashes inside jsdom + Dialog focus traps (Radix `patchedFocus` infinite recursion). Every modal test that exercises an `<EntitySelect>` ships a `vi.mock('@/components/ui/select', ...)` block that replaces the Radix primitives with a native `<select>` shim — the canonical pattern is at the top of [`ui/src/__tests__/components/studies/create-study-modal.test.tsx`](../../ui/src/__tests__/components/studies/create-study-modal.test.tsx) (the form-side mock additionally forwards `data-testid`). The unit-level `<EntitySelect>` tests at [`ui/src/__tests__/components/common/entity-select.test.tsx`](../../ui/src/__tests__/components/common/entity-select.test.tsx) run against the real Radix primitives (no Dialog wrapper, no patchedFocus recursion).
+**Modal-level testing.** The shadcn `<Select>` family crashes inside jsdom + Dialog focus traps (Radix `patchedFocus` infinite recursion). Every modal test that exercises an `<EntitySelect>` ships a `vi.mock('@/components/ui/select', ...)` block that replaces the Radix primitives with a native `<select>` shim — the canonical helper lives at [`ui/src/__tests__/helpers/shadcn-select-mock.tsx`](../../ui/src/__tests__/helpers/shadcn-select-mock.tsx) (`chore_extract_shadcn_select_test_mock`, 2026-05-19) and the per-test usage pattern is a 3-line dynamic-`import()` inside `vi.mock` to sidestep vitest's hoisting rule. The unit-level `<EntitySelect>` tests at [`ui/src/__tests__/components/common/entity-select.test.tsx`](../../ui/src/__tests__/components/common/entity-select.test.tsx) run against the real Radix primitives (no Dialog wrapper, no patchedFocus recursion).
+
+## Detail page shell primitive
+
+`chore_detail_page_shell_primitive` (2026-05-19) consolidates the `isPending → isError → data` scaffolding shared by six `/{entity}/[id]` detail routes into one primitive at [`ui/src/components/common/detail-page-shell.tsx`](../../ui/src/components/common/detail-page-shell.tsx). Pre-migration, each of `clusters/[id]`, `studies/[id]`, `proposals/[id]`, `query-sets/[id]`, `templates/[id]`, and `judgments/[id]` hand-rolled the same ternary with identical className strings and slightly inconsistent copy ("deleted" vs "removed") — and only `proposals/[id]` bothered to discriminate 404 from network error. The primitive flattens that into one place.
+
+**Shape.** `<DetailPageShell<T>>` is generic over the resource type. Required props: `query: UseQueryResult<T, ApiError>` (the consumer's TanStack hook return), `entityLabel: string` (singular, e.g. `"study"`), `notFoundErrorCode: string` (e.g. `"STUDY_NOT_FOUND"` — matches the backend's `error_code` value, not HTTP status, per `api-errors.ts`). Optional props: `entityTitle?: string` (override default title-casing of `entityLabel`), `notFoundMessage?: string` and `unreachableMessage?: string` (override default copy). Children-as-function — consumer's render fires with the loaded data:
+
+```tsx
+<DetailPageShell query={studyQ} entityLabel="study" notFoundErrorCode="STUDY_NOT_FOUND">
+  {(study) => (
+    <>
+      <StudyHeader study={study} />
+      <TrialsTable studyId={study.id} />
+    </>
+  )}
+</DetailPageShell>
+```
+
+**Behavior.** `isPending` → `<Card><CardContent><p>Loading…</p></CardContent></Card>`. `isError && error.errorCode === notFoundErrorCode` → `<EmptyState title="{Entity} not found" message="The {entity} may have been deleted." />`. `isError && error.errorCode !== notFoundErrorCode` (network / 5xx) → `<EmptyState title="Backend unreachable" message="Refresh after re-launching the API." />`. Existing `<EmptyState>` primitive consumed unchanged.
+
+**Out of scope.** The `chat/[id]` detail route is structurally different (stream-rendered conversation, not a card-based scaffold) and not migrated. The shared back-link header (`<Link>← All {entities}</Link>`) is also not absorbed by this primitive — left as a per-page concern; revisit if a 7th detail route adds the same shape (Q2's deferred follow-up).
+
+**Source-of-truth discipline (detail pages).** The vitest lint guard at [`ui/src/__tests__/components/common/detail-page-shell-discipline.test.tsx`](../../ui/src/__tests__/components/common/detail-page-shell-discipline.test.tsx) scans every `src/app/<entity>/[id]/page.tsx` (excluding `chat/[id]`) and fails when a file uses both `isPending ?` and `isError ?` ternaries without importing `<DetailPageShell>`. Escape hatch: a `// detail-page-shell-allow: <non-empty reason>` comment. Companion to the DataTable column-discipline and form-select-discipline guards; together they pin the three primitive extractions against regression-by-inlining.
 
 ## Auth surface (MVP1)
 
