@@ -88,10 +88,6 @@ Each item was reviewed and adjudicated "non-regression follow-up" during the par
 - **Q1 — Item 3 scope.** ✅ **Locked 2026-05-19: close item 3 (won't fix), lock the flat-prop API as canonical, add a "Shipped contract" addendum to the historical implementation plan's Story 2.6 key-interface block.** See item 3 above for the full rationale.
 - **Q2 — Item 5 cleanup scope: just the primitive, or also the wrapper-level prop changes?** Migrating to TanStack `state.columnVisibility` is straightforward in [`data-table.tsx:259-267`](../../../../ui/src/components/common/data-table.tsx) (pre-filter → full columns + `state.columnVisibility` derived from the same `useLocalStorageSet`). Recommended default: **primitive-only.** The 8 thin wrappers don't touch column visibility today; the localStorage key + the `useLocalStorageSet` integration stay unchanged. Refactor is contained to the primitive's `useReactTable()` call and the `visibleColumns`/`columns` props passed downstream.
 
-## Folder-name note
-
-With Q1 locked (item 3 closed), the residual scope is item 5 only (TanStack `state.columnVisibility` migration) plus the historical-plan addendum. Current folder name `chore_data_table_primitive_followups` is now broader than the residual work. Candidate rename: **`chore_data_table_columnvisibility_tanstack`** (4 tokens, intent-clear). Rename requires explicit user confirmation per the preflight skill's folder-rename gate — not applied automatically.
-
 ## Relationship to other work
 
 - **Parent:** `feat_data_table_primitive` (PR #126).
