@@ -1,7 +1,7 @@
 # DataTable primitive — review-cycle follow-ups
 
 **Date:** 2026-05-16
-**Status:** Partial — items 1, 2, 4, 6 shipped in PR (TBD) 2026-05-17. Items 3 + 5 remain open (larger refactors touching 8 DataTable consumers each).
+**Status:** Partial — items 1, 2, 4, 6 shipped in PR #132 (squash commit `ee4c8d4`) 2026-05-17; item 3 closed 2026-05-19 (won't fix — flat-prop API locked as canonical, plan addendum required). Item 5 is the only residual implementation work: 1 primitive + (optionally) per-wrapper touch-ups.
 **Origin:** [`feat_data_table_primitive`](../../../00_overview/implemented_features/2026_05_16_feat_data_table_primitive/) review cycles. Specific cycle/finding references inline below.
 **Depends on:** `feat_data_table_primitive` (merged as PR #126).
 
@@ -26,6 +26,8 @@ Four test files duplicate the same ~25-line `searchParamsSubscribers` + `applyUr
 
 Factor into `ui/src/__tests__/helpers/data-table-url-mock.ts` exporting `setupDataTableUrlMock()` that returns `{ setSearch, getLastReplace, getLastPush }`. Next consumer that adds a DataTable URL-state test pulls the helper instead of duplicating.
 
+> *(The shipped helper exposes a `vi.mock`-friendly API instead — `makeNextNavigationMock` / `resetDataTableUrlMock` / `getDataTableUrlMockState` / `setMockedSearch` — see Resolution above. The `setupDataTableUrlMock` text here is the original sketch; trust the Resolution paragraph for the canonical API.)*
+
 ### 2. `useLocalStorageSet` return shape ✅ DONE 2026-05-17
 
 **Origin:** Epic 2 GPT-5.5 cycle 1 finding #14 (Low, deferred).
@@ -34,13 +36,18 @@ Plan Story 2.10 specifies `useLocalStorageSet` returns `{ value: string[], add(i
 
 **Resolution:** Locked the shipped Set-based shape as canonical. The plan's `string[]` proposal was an early sketch — the actual consumer (`<DataTable>` at `ui/src/components/common/data-table.tsx`) uses `.has(c.id)` + `.toggle(id)`, which are Set-shaped operations. Set provides O(1) membership; array would force `.includes()` (O(n)). Updated the hook's docstring at `ui/src/hooks/use-local-storage-set.ts` to lock in the contract and reference this idea. No code change.
 
-### 3. `DataTableProps` URL state aggregate prop
+### 3. `DataTableProps` URL state aggregate prop — ✅ CLOSED 2026-05-19 (won't fix — doc the chosen shape)
 
 **Origin:** Epic 2 GPT-5.5 cycle 1 finding #1 (High, deferred).
 
-Plan Story 2.6 key-interface block declares `DataTableProps` gaining required `urlState: DataTableUrlState` + `setSort`/`setFilter`/`setQ`/`setCursor`/`setPageSize` props after the URL hook lifts. The implementation kept the flat optional props (`sort?`, `onSortChange?`, etc.) from the 2.2-2.5 build-out — works as a controlled contract but doesn't match the plan's compact shape.
+**Resolution:** Locked the shipped flat-prop API as canonical. The implemented plan's Story 2.6 key-interface block sketched `urlState: DataTableUrlState` + a `setSort`/`setFilter`/`setQ`/`setCursor`/`setPageSize` setter bag, but the build-out in stories 2.2-2.5 produced 10 flat optional props on [`DataTableProps`](../../../../ui/src/components/common/types.ts) (`sort?`, `onSortChange?`, `filters?`, `onFilterChange?`, `q?`, `onQChange?`, `cursor?`, `onCursorChange?`, `onPageSizeChange?`, `sortCodec?`). Rationale for closing:
 
-Refactor would touch every Epic 3 consumer (8 thin wrappers). The flat-prop API is also slightly more idiomatic React; the question is whether the plan should be updated to reflect the chosen design or the code should be updated to reflect the plan.
+- The plan in `implemented_features/2026_05_16_feat_data_table_primitive/` is a historical record; the shipped code is the live contract that the 8 thin-wrapper consumers depend on.
+- The flat-prop API is idiomatic React + aligns with shadcn primitives (consumer passes value + onChange pairs directly).
+- All 8 consumers (`clusters/clusters-table.tsx`, `judgments/judgments-table.tsx`, `proposals/proposals-table.tsx`, `query-sets/queries-table.tsx`, `query-sets/query-sets-table.tsx`, `studies/studies-table.tsx`, `studies/trials-table.tsx`, `templates/templates-table.tsx`) work cleanly with the shipped shape.
+- Refactor cost (~250 LOC across 9 files) doesn't justify the marginal API-aesthetics gain.
+
+Companion patch to the historical plan: [`implemented_features/2026_05_16_feat_data_table_primitive/implementation_plan.md` Story 2.6 key-interface block](../../../00_overview/implemented_features/2026_05_16_feat_data_table_primitive/implementation_plan.md) gains a "Shipped contract" addendum noting the divergence from the sketched aggregate-prop shape and pointing back to this idea for the rationale.
 
 ### 4. `?limit=` coercion to `pageSizeOptions` allowlist ✅ DONE 2026-05-17
 
@@ -76,7 +83,17 @@ Direct URLs like `?status=invented` or `?sort=garbage:asc` currently pass throug
 
 Each item was reviewed and adjudicated "non-regression follow-up" during the parent PR's review cycles. None block correctness; each improves consistency, encapsulation, or defense-in-depth. Bundling into one chore folder so they ship together (or get dropped together) when picked up.
 
+## Open questions for /spec-gen
+
+- **Q1 — Item 3 scope.** ✅ **Locked 2026-05-19: close item 3 (won't fix), lock the flat-prop API as canonical, add a "Shipped contract" addendum to the historical implementation plan's Story 2.6 key-interface block.** See item 3 above for the full rationale.
+- **Q2 — Item 5 cleanup scope: just the primitive, or also the wrapper-level prop changes?** Migrating to TanStack `state.columnVisibility` is straightforward in [`data-table.tsx:259-267`](../../../../ui/src/components/common/data-table.tsx) (pre-filter → full columns + `state.columnVisibility` derived from the same `useLocalStorageSet`). Recommended default: **primitive-only.** The 8 thin wrappers don't touch column visibility today; the localStorage key + the `useLocalStorageSet` integration stay unchanged. Refactor is contained to the primitive's `useReactTable()` call and the `visibleColumns`/`columns` props passed downstream.
+
+## Folder-name note
+
+With Q1 locked (item 3 closed), the residual scope is item 5 only (TanStack `state.columnVisibility` migration) plus the historical-plan addendum. Current folder name `chore_data_table_primitive_followups` is now broader than the residual work. Candidate rename: **`chore_data_table_columnvisibility_tanstack`** (4 tokens, intent-clear). Rename requires explicit user confirmation per the preflight skill's folder-rename gate — not applied automatically.
+
 ## Relationship to other work
 
-- **Parent:** `feat_data_table_primitive`.
+- **Parent:** `feat_data_table_primitive` (PR #126).
 - **Adjacent deferred:** `feat_fts_rank_ordering_mvp2` (rank-ordered FTS) — different concern (backend ordering), no overlap.
+- **Sibling check (clean):** `chore_form_dropdown_primitive` (shipped, PR #136), `chore_detail_page_shell_primitive` (idea-stage, PR #147) — both touch different surfaces. `chore_ci_prettier_check` is the only sibling that *could* affect a future PR for this chore (catches `prettier` drift in changed files), but doesn't conflict.
