@@ -73,6 +73,10 @@ async def _seed_two_proposals_under_distinct_studies() -> tuple[str, str, str, s
             cluster_id=cluster.id,
             target="stub-index",
             current_template_id=template.id,
+            rubric="hand-built",
+            status="complete",
+            failed_reason=None,
+            calibration=None,
         )
         study_a = await repo.create_study(
             db,
