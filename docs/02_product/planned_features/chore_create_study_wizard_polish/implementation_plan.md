@@ -1146,7 +1146,7 @@ For a solo contributor (the typical RelyLoop pattern), the suggested sequence ab
 - [x] Story 2.2 — Glossary entries
 - [x] Story 3.1 — Step-4 auto-fill + tooltips + validation + edges
 - [x] Story 3.2 — Step-5 tri-state metric+k + parity tests
-- [ ] Story 4.1 — E2E specs + documentation updates
+- [x] Story 4.1 — E2E specs + documentation updates
 
 ### Blocked items
 

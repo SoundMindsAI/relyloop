@@ -311,6 +311,32 @@ The same SSE wire format (`event: <type>\ndata: <json>\n\n`) is used; only the t
 
 When adding new tooltips on existing surfaces (Phase 2 / Phase 3 work — see [`feat_contextual_help/phase2_idea.md`](../02_product/planned_features/feat_contextual_help/phase2_idea.md) and [`phase3_idea.md`](../02_product/planned_features/feat_contextual_help/phase3_idea.md)), extend `glossary.ts` with new keys following the same naming convention (dotted, lowercase, `<scope>.<aggregate>` or `<scope>.<aggregate>.<wire_value>`) and add a parity-test case for any new enum group.
 
+**Dual entries** (both `short` and `long` populated, type `GlossaryEntryDual`) feed both `InfoTooltip` and `HelpPopover` from a single key. The canonical example is `study.search_space` (added by `chore_create_study_wizard_polish`, 2026-05-19): the create-study wizard renders an `<InfoTooltip glossaryKey="study.search_space" />` adjacent to the Step-4 "Search space (JSON)" label and a `<HelpPopover glossaryKey="study.search_space" />` below the textarea — InfoTooltip reads `short`, HelpPopover reads `long`. Use this dual-entry pattern when a single concept benefits from both a label-adjacent one-liner AND a multi-paragraph reference body, rather than maintaining two separate keys with overlapping copy.
+
+### Step-4 auto-fill (`chore_create_study_wizard_polish`)
+
+The create-study wizard's Step 4 ("Search space") pre-fills the textarea from the selected template's `declared_params` using a deterministic naming-convention heuristic exported from [`ui/src/lib/search-space-defaults.ts`](../../ui/src/lib/search-space-defaults.ts) (`buildStarterSearchSpace`). The same module exports a TypeScript port of the backend's `estimate_cardinality()` (frozen against the Python source-of-truth via the shared JSON fixture at [`backend/tests/_fixtures/search_space_cardinality_fixtures.json`](../../backend/tests/_fixtures/search_space_cardinality_fixtures.json)), so the wizard guarantees its output validates against `SearchSpace.model_validate` (cardinality ≤ 10⁶) before the user ever clicks Next.
+
+New glossary keys (all under `study.search_space.*`):
+
+| Key | Shape | Surface |
+|---|---|---|
+| `study.search_space` | `GlossaryEntryDual` | Step-4 `<InfoTooltip>` (short) + `<HelpPopover>` (long) |
+| `study.search_space.param_spec` | `GlossaryEntryShort` | Forward-compat hook — not surfaced by this chore; reserved for `feat_create_study_search_space_builder`'s per-row tooltips |
+| `study.search_space.log` | `GlossaryEntryShort` | Same forward-compat hook |
+| `study.search_space.cardinality` | `GlossaryEntryShort` | Same forward-compat hook |
+
+The 6 existing `study.metric.<m>` entries gained a tier-specific k-applicability clause appended to `short`:
+
+- `ndcg` / `precision` / `recall` — "Requires a top-k cutoff."
+- `map` — "Top-k cutoff optional — set it for map@k, leave blank for full-recall MAP."
+- `mrr` / `err` — "Top-k cutoff is not used."
+
+These pair with the Step-5 tri-state k field, which renders required / optional (with a clearable "—" option) / hidden-with-caption based on a new `kTier(metric)` helper. Frontend / backend parity is locked by paired tests:
+
+- `K_REQUIRED` (frontend) ↔ `_K_REQUIRED_METRICS` ([`backend/app/api/v1/schemas.py:474`](../../backend/app/api/v1/schemas.py)) — asserted by `ui/src/__tests__/components/studies/k-required.test.ts` and `backend/tests/contract/test_k_required_membership.py`.
+- `K_IGNORED` (frontend) ↔ the metric token mapper at `backend/app/eval/scoring.py:32` — asserted by `ui/src/__tests__/components/studies/k-ignored.test.ts` and `backend/tests/unit/eval/test_scoring_metric_tokens.py`.
+
 ## Reserved for later releases
 
 | Capability | Activates at |
