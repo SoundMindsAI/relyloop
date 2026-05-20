@@ -276,6 +276,10 @@ Reply **"yes"**. The study queues immediately.
 
 The chat agent is one of two ways to create a study; you can also click
 **"Create study"** on [`/studies`](http://localhost:3000/studies) directly.
+The 5-step wizard auto-fills Step 4 ("Search space") from the selected
+template's declared params, so you only need to tweak the JSON if the
+defaults don't match the ranges you want to tune — no paste-from-file
+step required.
 
 ---
 

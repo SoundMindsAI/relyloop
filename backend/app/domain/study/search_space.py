@@ -129,6 +129,51 @@ class InvalidSearchSpaceError(ValueError):
     """
 
 
+class UnknownSearchSpaceParamError(ValueError):
+    """A search_space.params key is not declared by the selected template.
+
+    Message format (chore_create_study_wizard_polish spec FR-2)::
+
+        Param '{name}' is not declared by template '{template_name}'. \
+Declared params: {sorted_declared_names}.
+
+    Translated to HTTP 400 ``SEARCH_SPACE_UNKNOWN_PARAM`` at the router boundary.
+    """
+
+    def __init__(
+        self,
+        param_name: str,
+        template_name: str,
+        declared_param_names: list[str],
+    ) -> None:
+        """Format the spec-exact message and pass it through to ``ValueError``."""
+        msg = (
+            f"Param '{param_name}' is not declared by template "
+            f"'{template_name}'. Declared params: {sorted(declared_param_names)}."
+        )
+        super().__init__(msg)
+
+
+class MissingDeclaredParamError(ValueError):
+    """A declared_params key is missing from the submitted search_space.params.
+
+    Message format (chore_create_study_wizard_polish spec FR-3):
+      "Template '{template_name}' declares param '{name}' but it is missing from
+      the search space. Add it or remove from the template."
+
+    Translated to HTTP 400 ``SEARCH_SPACE_MISSING_DECLARED_PARAM`` at the router
+    boundary.
+    """
+
+    def __init__(self, param_name: str, template_name: str) -> None:
+        """Format the spec-exact message and pass it through to ``ValueError``."""
+        msg = (
+            f"Template '{template_name}' declares param '{param_name}' but it "
+            f"is missing from the search space. Add it or remove from the template."
+        )
+        super().__init__(msg)
+
+
 def estimate_cardinality(space: SearchSpace) -> int:
     """Estimate the combinatorial size of the search space.
 
@@ -149,6 +194,52 @@ def estimate_cardinality(space: SearchSpace) -> int:
         elif isinstance(spec, CategoricalParam):
             total *= len(spec.choices)
     return total
+
+
+def validate_against_template(
+    search_space: SearchSpace,
+    declared_params: dict[str, str],
+    template_name: str,
+) -> None:
+    """Verify ``search_space.params`` keys match ``declared_params`` exactly.
+
+    Ordering when both conditions apply (chore_create_study_wizard_polish spec AC-7):
+
+      1. Unknown-param raised first, on the lexicographically smallest offender.
+      2. Missing-declared-param raised only when no unknown params remain.
+
+    The ``template_name`` argument is required for the exception's message format
+    to match the spec's exact text (FR-2 / FR-3 / AC-5 / AC-6). Pure domain
+    function — no I/O, no DB, no async.
+
+    Args:
+        search_space: parsed ``SearchSpace`` (already validated by Pydantic).
+        declared_params: the template's ``declared_params`` dict, mapping
+            param name to type-name string (``"int"`` / ``"float"`` / ``"bool"``
+            / ``"string"``). Only the keys matter here; values are ignored.
+        template_name: human-readable template name for the error message.
+
+    Raises:
+        UnknownSearchSpaceParamError: a search_space key is not in declared_params.
+        MissingDeclaredParamError: a declared_params key is not in search_space.
+    """
+    declared_names = set(declared_params)
+    submitted_names = set(search_space.params)
+
+    unknown = sorted(submitted_names - declared_names)
+    if unknown:
+        raise UnknownSearchSpaceParamError(
+            param_name=unknown[0],
+            template_name=template_name,
+            declared_param_names=list(declared_names),
+        )
+
+    missing = sorted(declared_names - submitted_names)
+    if missing:
+        raise MissingDeclaredParamError(
+            param_name=missing[0],
+            template_name=template_name,
+        )
 
 
 def apply_search_space(trial: optuna.Trial, space: SearchSpace) -> dict[str, Any]:
