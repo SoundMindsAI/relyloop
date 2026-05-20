@@ -92,7 +92,7 @@ test.describe('/studies — create-study Step-4 builder (Story 4.1)', () => {
     await expect(page.getByTestId('step-5')).toBeVisible({ timeout: 5_000 });
 
     // Submit (Step-5 fields all have defaults from the form's defaultValues).
-    await page.getByTestId('step-submit').click();
+    await page.getByTestId('create-study-submit').click();
 
     // The submitted study should show up; wait for the modal to close.
     await expect(page.getByTestId('create-study-form')).not.toBeVisible({ timeout: 5_000 });
