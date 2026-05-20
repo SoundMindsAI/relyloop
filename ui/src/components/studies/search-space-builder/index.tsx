@@ -26,6 +26,7 @@ import * as React from 'react';
 
 import type { QueryTemplateDetail } from '@/lib/api/query-templates';
 
+import { AddCustomParam } from './add-custom-param';
 import { HeaderCardinality } from './cardinality';
 import { BuilderPlaceholder } from './placeholder';
 import { ParamRow } from './param-row';
@@ -328,6 +329,7 @@ export function SearchSpaceBuilder({
         />
       ))}
       {paramsMissing && <BuilderPlaceholder variant="missing-params-hint" />}
+      {templateId !== undefined && <AddCustomParam templateId={templateId} />}
     </div>
   );
 }

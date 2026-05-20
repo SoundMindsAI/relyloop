@@ -24,6 +24,11 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { QueryTemplateDetail } from '@/lib/api/query-templates';
 import { SearchSpaceBuilder } from '@/components/studies/search-space-builder';
 
+// Polyfill PointerEvent for Radix Popover/Dialog in jsdom (Story 2.4).
+if (typeof window !== 'undefined' && typeof window.PointerEvent === 'undefined') {
+  (window as unknown as { PointerEvent: typeof MouseEvent }).PointerEvent = MouseEvent as never;
+}
+
 function makeTemplate(declared_params: Record<string, string>): QueryTemplateDetail {
   return {
     id: 't1',
@@ -124,5 +129,33 @@ describe('SearchSpaceBuilder per-row rendering (Story 1.2)', () => {
     expect(
       screen.getByTestId('tooltip-trigger-study.search_space.cardinality'),
     ).toBeInTheDocument();
+  });
+
+  it('FR-10: Add custom param button has aria-disabled (NO native disabled) when templateId is present', () => {
+    mountBuilder({
+      declared_params: { boost: 'float' },
+      value: '{"params":{"boost":{"type":"float","low":0.5,"high":10}}}',
+    });
+
+    const button = screen.getByTestId('cs-add-custom-param');
+    expect(button).toBeInTheDocument();
+    expect(button).not.toBeDisabled(); // NO native `disabled` per FR-10
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('FR-10: Add custom param is suppressed when templateId is missing', () => {
+    render(
+      <TooltipProvider delayDuration={0}>
+        <SearchSpaceBuilder
+          value={'{"params":{}}'}
+          onChange={vi.fn()}
+          templateBody={makeTemplate({ boost: 'float' })}
+          templateId={undefined}
+          templateFetchStatus="idle"
+        />
+      </TooltipProvider>,
+    );
+
+    expect(document.querySelector('[data-testid="cs-add-custom-param"]')).toBeNull();
   });
 });
