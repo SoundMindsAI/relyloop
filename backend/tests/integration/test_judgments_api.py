@@ -410,6 +410,149 @@ async def test_list_judgment_lists_paginated_returns_total_count(
     assert body["next_cursor"] is not None
 
 
+async def test_list_judgment_lists_filters_by_query_set_id_and_cluster_id(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """``bug_judgment_lists_listing_ignores_query_set_filter`` —
+    ``GET /api/v1/judgment-lists?query_set_id=...&cluster_id=...`` must
+    return ONLY rows whose parent matches.
+
+    Seeds **two clusters**, two query-sets in cluster A, one query-set in
+    cluster B, and judgment-lists across all three (5 total). Probes the
+    endpoint unfiltered + each filter individually + combined matching +
+    combined mismatched. Asserts ``X-Total-Count`` and exact ``data[].id``
+    membership.
+
+    The two-cluster seed (GPT-5.5 review v2 finding) is what makes
+    cluster_id filtering independently provable — without it, an
+    implementation that ignored cluster_id but honored query_set_id
+    could still satisfy the current assertions.
+    """
+    seeded_a = await _seed_chain(num_queries=1)
+    cluster_a = seeded_a["cluster_id"]
+    qs_a1 = seeded_a["query_set_id"]
+    qry_a1 = seeded_a["query_ids"][0]
+
+    seeded_b = await _seed_chain(num_queries=1)
+    cluster_b = seeded_b["cluster_id"]
+    qs_b1 = seeded_b["query_set_id"]
+    qry_b1 = seeded_b["query_ids"][0]
+
+    # Second query-set in cluster A so query_set_id filtering can be tested
+    # independently inside a single cluster.
+    factory = get_session_factory()
+    async with factory() as db:
+        qs_a2_row = await repo.create_query_set(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"filt-qs-a2-{uuid.uuid4().hex[:6]}",
+            cluster_id=cluster_a,
+        )
+        qry_a2_row = await repo.create_query(
+            db,
+            id=str(uuid.uuid4()),
+            query_set_id=qs_a2_row.id,
+            query_text="filt-q-a2",
+        )
+        await db.commit()
+    qs_a2 = qs_a2_row.id
+    qry_a2 = qry_a2_row.id
+
+    # Seed judgment-lists: 2 in (A, qs_a1), 2 in (A, qs_a2), 1 in (B, qs_b1).
+    ids_a1: list[str] = []
+    ids_a2: list[str] = []
+    ids_b1: list[str] = []
+    seeds = [
+        (cluster_a, qs_a1, qry_a1, ids_a1),
+        (cluster_a, qs_a1, qry_a1, ids_a1),
+        (cluster_a, qs_a2, qry_a2, ids_a2),
+        (cluster_a, qs_a2, qry_a2, ids_a2),
+        (cluster_b, qs_b1, qry_b1, ids_b1),
+    ]
+    for i, (cl, qs, qry, dest) in enumerate(seeds):
+        resp = await async_client.post(
+            "/api/v1/judgment-lists/import",
+            json={
+                "name": f"filt-jl-{i}-{uuid.uuid4().hex[:6]}",
+                "query_set_id": qs,
+                "cluster_id": cl,
+                "target": "stub-index",
+                "rubric": "r",
+                "judgments": [{"query_id": qry, "doc_id": f"d-{i}", "rating": 1}],
+            },
+        )
+        assert resp.status_code == 201, resp.text
+        dest.append(resp.json()["id"])
+
+    all_ours = set(ids_a1 + ids_a2 + ids_b1)
+
+    # Unfiltered baseline: all 5 of ours visible (other tests may also seed).
+    response = await async_client.get("/api/v1/judgment-lists", params={"limit": 200})
+    assert response.status_code == 200
+    assert all_ours.issubset({row["id"] for row in response.json()["data"]})
+
+    # query_set_id=qs_a1: exactly the 2 lists in (A, qs_a1).
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"query_set_id": qs_a1, "limit": 200}
+    )
+    assert response.status_code == 200
+    assert {row["id"] for row in response.json()["data"]} == set(ids_a1)
+    assert response.headers["X-Total-Count"] == "2"
+
+    # query_set_id=qs_a2: exactly the 2 lists in (A, qs_a2).
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"query_set_id": qs_a2, "limit": 200}
+    )
+    assert response.status_code == 200
+    assert {row["id"] for row in response.json()["data"]} == set(ids_a2)
+    assert response.headers["X-Total-Count"] == "2"
+
+    # cluster_id=cluster_a: includes all A-cluster lists (a1 + a2 = 4 ours);
+    # EXCLUDES the B-cluster list. Other tests may add A-cluster lists, so
+    # assert (a1 + a2) subset + B-list NOT present + every row's cluster_id == A.
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"cluster_id": cluster_a, "limit": 200}
+    )
+    assert response.status_code == 200
+    a_filtered = response.json()["data"]
+    a_ids = {row["id"] for row in a_filtered}
+    assert set(ids_a1 + ids_a2).issubset(a_ids)
+    assert not (set(ids_b1) & a_ids), "cluster_id=A leaked rows from cluster B"
+    for row in a_filtered:
+        assert row["cluster_id"] == cluster_a
+
+    # cluster_id=cluster_b: includes the B-list, EXCLUDES all A-cluster lists.
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"cluster_id": cluster_b, "limit": 200}
+    )
+    assert response.status_code == 200
+    b_filtered = response.json()["data"]
+    b_ids = {row["id"] for row in b_filtered}
+    assert set(ids_b1).issubset(b_ids)
+    assert not (set(ids_a1 + ids_a2) & b_ids), "cluster_id=B leaked rows from cluster A"
+    for row in b_filtered:
+        assert row["cluster_id"] == cluster_b
+
+    # Combined match: query_set_id=qs_a1 AND cluster_id=cluster_a → same 2 rows.
+    response = await async_client.get(
+        "/api/v1/judgment-lists",
+        params={"query_set_id": qs_a1, "cluster_id": cluster_a, "limit": 200},
+    )
+    assert response.status_code == 200
+    assert {row["id"] for row in response.json()["data"]} == set(ids_a1)
+
+    # Combined MISMATCH: query_set_id=qs_a1 AND cluster_id=cluster_b → empty.
+    # qs_a1 belongs to cluster A; cluster B has no judgment-lists with that
+    # query_set_id, so the intersection is empty.
+    response = await async_client.get(
+        "/api/v1/judgment-lists",
+        params={"query_set_id": qs_a1, "cluster_id": cluster_b, "limit": 200},
+    )
+    assert response.status_code == 200
+    assert response.json()["data"] == []
+    assert response.headers["X-Total-Count"] == "0"
+
+
 async def test_detail_returns_404_on_unknown_id(async_client: httpx.AsyncClient) -> None:
     response = await async_client.get(f"/api/v1/judgment-lists/{uuid.uuid4()}")
     assert response.status_code == 404
