@@ -1,7 +1,7 @@
 # Implementation Plan — Create-Study Search-Space Builder
 
 **Date:** 2026-05-20
-**Status:** Draft
+**Status:** Complete (PR #163, squash commit `c703953`, merged 2026-05-20)
 **Primary spec:** [`feature_spec.md`](./feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) §"Enumerated Value Contract Discipline" + §"Frontend Conventions" · [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md) §"Form dropdown primitive" + §"DataTable primitive"
 
