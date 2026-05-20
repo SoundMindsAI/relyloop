@@ -27,6 +27,29 @@ describe('HEURISTIC_RULES — naming-convention table (chore_create_study_wizard
     });
   });
 
+  it('matches standalone `boost` and <field>_boost suffix as log-uniform float', () => {
+    // bug_tutorial_template_param_boost_naming: the tutorial template's
+    // declared_params use `title_boost` / `description_boost` /
+    // `bullet_points_boost` (suffix), and the E2E `seedTemplate()` fixture
+    // uses standalone `boost`. Before the rule extension all four fell
+    // through to the simple-form 'float' default → uniform [0, 1] instead of
+    // the [0.5, 10] log-uniform range the template comments document and
+    // the chat-agent path produces.
+    //
+    // Tested one name at a time so the cap-aware fallback doesn't fire
+    // (4 log-uniform floats would product 10^8 cardinality and force
+    // conversions). The per-rule assertion is what we're locking here.
+    for (const name of ['boost', 'title_boost', 'description_boost', 'bullet_points_boost']) {
+      const out = buildStarterSearchSpace({ [name]: 'float' });
+      expect(out.params[name]).toEqual({
+        type: 'float',
+        low: 0.5,
+        high: 10.0,
+        log: true,
+      });
+    }
+  });
+
   it('matches tie_breaker as uniform float in [0.0, 1.0]', () => {
     const out = buildStarterSearchSpace({ tie_breaker: 'float' });
     expect(out.params['tie_breaker']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
