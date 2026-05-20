@@ -287,3 +287,60 @@ describe('SearchSpaceBuilder edits — Story 2.1 (FR-2 + FR-3)', () => {
     expect(afterInvalidation.params.boost).toEqual({ type: 'float', low: 0, high: 1 });
   });
 });
+
+describe('SearchSpaceBuilder edits — Story 2.2 (FR-4 log toggle)', () => {
+  function mountFloatRow(opts: { low: number; high: number; log: boolean }) {
+    const onChange = vi.fn();
+    const value = JSON.stringify({ params: { boost: { type: 'float', ...opts } } }, null, 2);
+    render(
+      <TooltipProvider delayDuration={0}>
+        <SearchSpaceBuilder
+          value={value}
+          onChange={onChange}
+          templateBody={makeTemplate({ boost: 'float' })}
+          templateId="t1"
+          templateFetchStatus="ok"
+        />
+      </TooltipProvider>,
+    );
+    onChange.mockClear();
+    return { onChange };
+  }
+
+  it('#6a: clicking checkbox with low=0 refuses transition + surfaces row error + NO native disabled', () => {
+    const { onChange } = mountFloatRow({ low: 0, high: 10, log: false });
+
+    const cb = screen.getByTestId('cs-row-boost-log') as HTMLInputElement;
+    expect(cb).not.toBeDisabled(); // NO native `disabled`
+    expect(cb).toHaveAttribute('aria-disabled', 'true');
+    expect(cb).toHaveAttribute('title', 'Log scale requires low > 0');
+
+    fireEvent.click(cb);
+    vi.advanceTimersByTime(250);
+    expect(onChange).not.toHaveBeenCalled(); // refused
+    expect(cb.checked).toBe(false);
+    expect(screen.getByTestId('cs-row-error-boost-log')).toHaveTextContent(
+      'Log scale requires low > 0',
+    );
+  });
+
+  it('#6b: raising low to 0.1 clears aria-disabled and unlocks the transition', () => {
+    const { onChange } = mountFloatRow({ low: 0.1, high: 10, log: false });
+
+    const cb = screen.getByTestId('cs-row-boost-log') as HTMLInputElement;
+    expect(cb).not.toHaveAttribute('aria-disabled');
+    expect(cb).not.toHaveAttribute('title');
+
+    fireEvent.click(cb);
+    vi.advanceTimersByTime(250);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(onChange.mock.calls[0]![0]!).params.boost.log).toBe(true);
+  });
+
+  it('#6c: a row that starts {log:true, low:-1} renders row error (pre-existing invalid)', () => {
+    mountFloatRow({ low: -1, high: 10, log: true });
+    expect(screen.getByTestId('cs-row-error-boost-log')).toHaveTextContent(
+      'Log scale requires low > 0',
+    );
+  });
+});

@@ -16,6 +16,7 @@ import * as React from 'react';
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Label } from '@/components/ui/label';
 
+import { RowLogToggle } from './row-log-toggle';
 import { RowNumeric } from './row-numeric';
 import { RowTypeSelector } from './row-type-selector';
 import type { ParamSpec, StashMap } from './types';
@@ -27,6 +28,42 @@ export interface ParamRowProps {
   stashRef: React.MutableRefObject<StashMap>;
   onSpecChange: (paramName: string, next: ParamSpec) => void;
   onBlurFlush: () => void;
+}
+
+/**
+ * Holds the per-row `attemptedInvalidLogEnable` flag for the log toggle
+ * (Story 2.2). Lives in a small inner component so its `useState` is
+ * scoped per row + auto-cleared when the row unmounts. The flag is
+ * auto-cleared when `low > 0` via the effect below.
+ */
+function FloatLogControl({
+  paramName,
+  spec,
+  onSpecChange,
+}: {
+  paramName: string;
+  spec: ParamSpec & { type: 'float' };
+  onSpecChange: (paramName: string, next: ParamSpec) => void;
+}): React.ReactElement {
+  const [attempted, setAttempted] = React.useState(false);
+
+  // Derived auto-clear: when `low` becomes valid (> 0), the flag is
+  // effectively false regardless of the underlying state. This avoids
+  // the setState-in-effect anti-pattern.
+  const lowValid = typeof spec.low === 'number' && spec.low > 0;
+  const effectiveAttempted = attempted && !lowValid;
+
+  return (
+    <RowLogToggle
+      paramName={paramName}
+      log={spec.log === true}
+      low={spec.low}
+      attemptedInvalidLogEnable={effectiveAttempted}
+      onAttemptedInvalidLogEnable={() => setAttempted(true)}
+      onClearAttemptedInvalidLogEnable={() => setAttempted(false)}
+      onChange={(nextLog) => onSpecChange(paramName, { ...spec, log: nextLog })}
+    />
+  );
 }
 
 export function ParamRow({
@@ -95,20 +132,11 @@ export function ParamRow({
         />
       )}
 
-      {/* Log row: rendered for float only. Editable toggle arrives in Story 2.2. */}
+      {/* Log row (Story 2.2): editable toggle for float rows only.
+          Holds per-row `attemptedInvalidLogEnable` state so the row error
+          fires after a refused click even when `log` stays `false`. */}
       {spec?.type === 'float' && (
-        <div className="space-y-1">
-          <div className="flex items-center gap-1">
-            <Label>Log scale</Label>
-            <InfoTooltip glossaryKey="study.search_space.log" />
-          </div>
-          <span
-            data-testid={`cs-row-${paramName}-log-display`}
-            className="text-xs text-muted-foreground"
-          >
-            {spec.log ? 'true' : 'false'}
-          </span>
-        </div>
+        <FloatLogControl paramName={paramName} spec={spec} onSpecChange={onSpecChange} />
       )}
 
       {/* Per-row cardinality slot — wired in Story 2.3. */}

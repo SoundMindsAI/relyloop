@@ -1251,7 +1251,7 @@ None. The builder uses only React Hook Form state (existing) and component-local
 - [x] Story 1.1 — Builder shell + bidirectional round-trip
 - [x] Story 1.2 — Per-row rendering + tooltip slots
 - [x] Story 2.1 — Type selector + spinners + stash + parity test
-- [ ] Story 2.2 — Log toggle
+- [x] Story 2.2 — Log toggle
 - [ ] Story 2.3 — Categorical chip input + cardinality counters
 - [ ] Story 2.4 — Add-custom-param affordance
 - [ ] Story 3.1 — Responsive split/tab layout
