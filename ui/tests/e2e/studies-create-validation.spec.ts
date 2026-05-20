@@ -30,8 +30,10 @@ async function getName(path: string): Promise<string> {
 
 test.describe('/studies — create-study Step-4 client-side validation', () => {
   test('Step 4 auto-fills + inline unknown-param error blocks Step 5', async ({ page }) => {
-    // Seed cluster + query-set + template (declared_params: boost + query_text)
-    // + judgment list.
+    // Seed cluster + query-set + template (declared_params: { boost: 'float' })
+    // + judgment list. `query_text` is referenced in the Jinja template body
+    // but is not a search-space param — render() injects it from the query
+    // set at trial time.
     const chain = await seedFullChain(2);
     // FullChainSeed exposes IDs only for query-set / judgment-list — fetch
     // their names so we can click the right option in the Radix popups.
@@ -79,11 +81,10 @@ test.describe('/studies — create-study Step-4 client-side validation', () => {
     await expect(async () => {
       const v = await textarea.inputValue();
       expect(v.length).toBeGreaterThan(2);
-      // The seedTemplate fixture's declared_params include 'boost' (which falls
-      // through the heuristic to the simple-form 'float' default) and
-      // 'query_text' (string → __placeholder__ categorical).
+      // The seedTemplate fixture's declared_params is { boost: 'float' } —
+      // 'boost' (no underscore) falls through the heuristic to the simple-form
+      // 'float' default → uniform [0.0, 1.0].
       expect(v).toContain('boost');
-      expect(v).toContain('query_text');
     }).toPass({ timeout: 5_000 });
 
     // Fill the required Study name.

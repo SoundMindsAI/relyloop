@@ -198,7 +198,16 @@ export async function seedTemplate(
       name,
       engine_type: opts.engineType ?? 'elasticsearch',
       body: '{ "query": { "match": { "title": { "query": "{{ query_text }}", "boost": {{ boost }} } } } }',
-      declared_params: { boost: 'float', query_text: 'string' },
+      // declared_params describes TUNABLE search-space params only. The
+      // template body references `query_text` too, but render() injects it
+      // from the query-set at trial time (after the missing-keys check) —
+      // it does NOT belong in declared_params, which is the contract
+      // between the search space and the template. The Story 1.1
+      // create-time validator (chore_create_study_wizard_polish) enforces
+      // that the submitted search_space matches declared_params exactly,
+      // so including query_text here would force every caller of
+      // seedStudy() to add a placeholder param it doesn't actually tune.
+      declared_params: { boost: 'float' },
     },
   );
   return { id: tpl.id, name: tpl.name, version: tpl.version };
