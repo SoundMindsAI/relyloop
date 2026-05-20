@@ -41,7 +41,11 @@ async function getName(path: string): Promise<string> {
   return body.name;
 }
 
-async function pickEntity(page: Page, triggerTestId: string, optionName: RegExp): Promise<void> {
+async function pickEntity(
+  page: Page,
+  triggerTestId: string,
+  optionName: string | RegExp,
+): Promise<void> {
   const trigger: Locator = page.getByTestId(triggerTestId);
   // The first version of this helper used `.click()` which gates on
   // visible+enabled+stable. The cluster trigger fails the stability check
@@ -76,17 +80,17 @@ test.describe('/studies — create-study Step-4 client-side validation', () => {
     await expect(page.getByTestId('create-study-form')).toBeVisible({ timeout: 5_000 });
 
     // Step 1 — pick the seeded cluster + a target index name.
-    await pickEntity(page, 'cs-cluster', new RegExp(chain.clusterName));
+    await pickEntity(page, 'cs-cluster', chain.clusterName);
     await page.getByLabel('Target index / collection').fill('e2e-target');
     await page.getByTestId('step-next').click();
 
     // Step 2 — pick the seeded query set + judgment list.
-    await pickEntity(page, 'cs-qs', new RegExp(querySetName));
-    await pickEntity(page, 'cs-jl', new RegExp(judgmentListName));
+    await pickEntity(page, 'cs-qs', querySetName);
+    await pickEntity(page, 'cs-jl', judgmentListName);
     await page.getByTestId('step-next').click();
 
     // Step 3 — pick the seeded template.
-    await pickEntity(page, 'cs-tpl', new RegExp(chain.templateName));
+    await pickEntity(page, 'cs-tpl', chain.templateName);
     await page.getByTestId('step-next').click();
 
     // Step 4 — auto-fill has landed.
