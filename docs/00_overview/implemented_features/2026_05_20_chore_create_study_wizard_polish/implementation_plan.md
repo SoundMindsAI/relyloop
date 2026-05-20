@@ -1,7 +1,7 @@
 # Implementation Plan — Create-Study Wizard Polish
 
 **Date:** 2026-05-19
-**Status:** Draft
+**Status:** Complete (PR #157, merged 2026-05-20)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md), [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md), [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md)
 

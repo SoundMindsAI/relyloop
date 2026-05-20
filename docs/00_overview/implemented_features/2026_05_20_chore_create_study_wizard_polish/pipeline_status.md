@@ -29,5 +29,16 @@
 - Phases covered: single phase (all 7 FRs)
 
 ## Implementation
-- Status: Not started
-- Next: /impl-execute docs/02_product/planned_features/chore_create_study_wizard_polish/implementation_plan.md --all
+- Status: Complete
+- Date merged: 2026-05-20
+- PR: [#157](https://github.com/SoundMindsAI/relyloop/pull/157) — squash-merged as commit `075c46b`
+- CI: green (backend lint/typecheck/tests/coverage + frontend lint/typecheck/tests/build + Playwright smoke + docker buildx + gitleaks + secrets-files guard, all SUCCESS)
+- Stories completed: 7/7 (Story 1.1 + 1.2 from earlier on the branch; 2.1 + 2.2 + 3.1 + 3.2 + 4.1 in this run)
+- Tests added: 16 new test files (3 backend unit, 1 integration, 2 contract, 4 frontend unit, 6 frontend component, 1 E2E — 1 skipped pending stability follow-up) + 2 modified + 1 shared JSON fixture
+- Cross-model review:
+  - Gemini Code Assist: 2 medium findings, both rejected with cited counter-evidence (eslint-disable callsites guard documented state-thrash failure modes per CLAUDE.md).
+  - GPT-5.5 final pass (`gpt-5.5-2026-04-23`, 113.8K tokens): 7 findings — 2 rejected with counter-evidence, 5 deferred (4 as pre-existing Story 1.1/1.2 drift covered behaviorally by integration tests; 1 captured as `bug_err_metric_frontend_backend_drift`).
+- Follow-up ideas filed during implementation:
+  - `bug_tutorial_template_param_boost_naming` — tutorial template `<field>_boost` names don't match the heuristic's `boost_<field>` prefix.
+  - `chore_create_study_modal_e2e_stability` — re-enable the skipped Playwright validation spec once EntitySelect disabled gating stabilizes under chained TanStack refetches.
+  - `bug_err_metric_frontend_backend_drift` — `err` metric is selectable but unsupported by scoring.py; drop from OBJECTIVE_METRIC_VALUES until ERR@k lands.
