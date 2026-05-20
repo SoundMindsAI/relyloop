@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -25,7 +25,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useClusters, useClusterSchema } from '@/lib/api/clusters';
+import {
+  useClusters,
+  useClusterSchema,
+  useClusterTargets,
+  type TargetSummary,
+} from '@/lib/api/clusters';
 import { useJudgmentLists } from '@/lib/api/judgments';
 import { useTemplates, useTemplate } from '@/lib/api/query-templates';
 import { useQuerySets } from '@/lib/api/query-sets';
@@ -143,6 +148,44 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   const clusters = useClusters({ limit: 200 });
   const selectedCluster = clusters.data?.data.find((c) => c.id === clusterId);
   const schema = useClusterSchema(clusterId, target || undefined);
+  const targets = useClusterTargets(clusterId);
+  const [manualMode, setManualMode] = useState(false);
+
+  // FR-5 modal-open reset: <Dialog> (Radix) keeps this component mounted
+  // across open/close toggles, so useState alone does NOT reset on reopen.
+  // This effect is the authoritative reset for AC-12.
+  useEffect(() => {
+    if (open) {
+      setManualMode(false);
+    }
+  }, [open]);
+
+  // FR-5 auto-engage: when the targets query fails with TARGETS_FORBIDDEN,
+  // silently flip into manual mode. `open` is in BOTH the guard AND the
+  // dependency list (cycle-2 GPT-5.5 review #3) — without it, a cached
+  // TARGETS_FORBIDDEN error from a prior modal session would not re-fire
+  // the auto-engage on reopen because the [open] reset above would clobber
+  // manualMode back to false and React would not re-run this effect.
+  useEffect(() => {
+    if (open && targets.isError && targets.error?.errorCode === 'TARGETS_FORBIDDEN') {
+      setManualMode(true);
+    }
+  }, [open, targets.isError, targets.error?.errorCode]);
+
+  // FR-7 alphabetical sort by name (case-insensitive). Done at render time
+  // — the hook stays fetch-only. Wrap in a query-shaped object so
+  // <EntitySelect query={...}> consumes it without translation.
+  const sortedTargets = useMemo(() => {
+    const list = targets.data?.data ?? [];
+    return [...list].sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+    );
+  }, [targets.data?.data]);
+  const sortedTargetsQuery = {
+    ...targets,
+    data: targets.data ? { data: sortedTargets } : undefined,
+  } as typeof targets;
+
   const querySets = useQuerySets({ cluster_id: clusterId || undefined, limit: 200 });
   const judgmentLists = useJudgmentLists({
     query_set_id: querySetId || undefined,
@@ -442,9 +485,16 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   value={values.cluster_id || undefined}
                   onChange={(v) => {
                     form.setValue('cluster_id', v ?? '');
+                    // FR-4: target also resets on cluster change (was missing
+                    // from the prior cascade — stale target text would 404
+                    // immediately on the new cluster).
+                    form.setValue('target', '');
                     form.setValue('query_set_id', '');
                     form.setValue('judgment_list_id', '');
                     form.setValue('template_id', '');
+                    // FR-5 cluster-change reset: drop manual mode so the
+                    // new cluster's dropdown gets a chance to load.
+                    setManualMode(false);
                   }}
                   placeholder="Choose a cluster"
                 />
@@ -454,7 +504,54 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   <Label htmlFor="cs-target">Target index / collection</Label>
                   <InfoTooltip glossaryKey="study.target" />
                 </div>
-                <Input id="cs-target" {...form.register('target')} placeholder="products" />
+
+                {manualMode ? (
+                  // Manual-mode fallback (preserves the original Input behavior).
+                  <>
+                    <Input id="cs-target" {...form.register('target')} placeholder="products" />
+                    {targets.isError && targets.error?.errorCode === 'TARGETS_FORBIDDEN' && (
+                      <p className="text-xs text-amber-600">
+                        Cluster restricts index listing — enter the target name manually.
+                      </p>
+                    )}
+                  </>
+                ) : !clusterId ? (
+                  // FR-4: no cluster picked yet → disabled placeholder Select
+                  // matching the EntitySelect visual idiom. The targets query
+                  // is also enabled: false in this state (no GET fires).
+                  <Select value="" onValueChange={() => {}} disabled>
+                    <SelectTrigger id="cs-target" data-testid="cs-target" disabled>
+                      <SelectValue placeholder="Pick a cluster first" />
+                    </SelectTrigger>
+                  </Select>
+                ) : (
+                  // Dropdown mode (default, with a cluster picked).
+                  <EntitySelect
+                    id="cs-target"
+                    data-testid="cs-target"
+                    query={sortedTargetsQuery}
+                    getId={(t: TargetSummary) => t.name}
+                    getLabel={(t: TargetSummary) =>
+                      `${t.name} (${t.doc_count != null ? t.doc_count.toLocaleString() : '?'} docs)`
+                    }
+                    value={values.target || undefined}
+                    onChange={(v) => form.setValue('target', v ?? '')}
+                    placeholder="Choose a target"
+                    emptyState={{ message: 'No targets found on this cluster.' }}
+                  />
+                )}
+
+                {/* "Enter manually" / "Use dropdown" toggle — always visible at Step 1. */}
+                <button
+                  type="button"
+                  onClick={() => setManualMode((prev) => !prev)}
+                  className="text-xs text-muted-foreground underline"
+                  aria-pressed={manualMode}
+                  title="Type the target name instead of picking from the cluster's index list."
+                >
+                  {manualMode ? 'Use dropdown' : 'Enter manually'}
+                </button>
+
                 {schema.data && (
                   <p className="text-xs text-muted-foreground">
                     {schema.data.fields.length} fields discovered

@@ -205,3 +205,24 @@ class TestQueryTemplate:
                 body="{}",
                 declared_params={},
             )
+
+
+class TestAdapterErrors:
+    """feat_create_study_target_autocomplete Story B1: TargetsForbiddenError is
+    a distinct exception class so routers can translate ACL restrictions
+    (403 TARGETS_FORBIDDEN, retryable=false) separately from connection
+    failures (503 CLUSTER_UNREACHABLE, retryable=true).
+    """
+
+    def test_targets_forbidden_is_distinct_class(self) -> None:
+        from backend.app.adapters.errors import (
+            ClusterUnreachableError,
+            TargetNotFoundError,
+            TargetsForbiddenError,
+        )
+
+        # Not a subclass of either sibling — distinct dispatch in router.
+        assert not issubclass(TargetsForbiddenError, ClusterUnreachableError)
+        assert not issubclass(TargetsForbiddenError, TargetNotFoundError)
+        assert not issubclass(ClusterUnreachableError, TargetsForbiddenError)
+        assert not issubclass(TargetNotFoundError, TargetsForbiddenError)

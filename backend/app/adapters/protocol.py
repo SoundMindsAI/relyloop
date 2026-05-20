@@ -129,7 +129,14 @@ class SearchAdapter(Protocol):
         ...
 
     async def list_targets(self, *, request_id: str | None = None) -> list[TargetInfo]:
-        """List indices/collections on the cluster (excludes engine system indices)."""
+        """List indices/collections on the cluster (excludes engine system indices).
+
+        Concrete implementations raise ``TargetsForbiddenError`` when the engine
+        denies the listing call due to ACL (401/403), and ``ClusterUnreachableError``
+        for connection failures / 5xx. Mirrors ``get_schema``'s pattern of
+        404 → ``TargetNotFoundError``: per-failure exception classes let the
+        router translate to distinct ``error_code`` envelopes.
+        """
         ...
 
     async def get_schema(self, target: str, *, request_id: str | None = None) -> Schema:

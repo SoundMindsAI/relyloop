@@ -50,6 +50,13 @@ export interface paths {
     /**
      * List Clusters
      * @description List clusters with cursor pagination + ``X-Total-Count`` header.
+     *
+     *     ``?q=`` is a Postgres FTS match against the cluster's ``search_vector``
+     *     (name + base_url); 2–200 chars. Filter-only — ordering unchanged per
+     *     spec FR-1. ``?sort=`` is one of the values in
+     *     :data:`~backend.app.api.v1.schemas.ClusterSortKey`; the cursor is
+     *     sort-aware so the keyset predicate matches the active ORDER BY
+     *     (feat_data_table_primitive Stories 1.2 + 1.3).
      */
     get: operations['list_clusters_api_v1_clusters_get'];
     put?: never;
@@ -108,6 +115,38 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clusters/{cluster_id}/targets': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Cluster Targets
+     * @description List targets (indices/collections) on the cluster (FR-1 / AC-1).
+     *
+     *     Thin passthrough to ``ElasticAdapter.list_targets()`` (which filters out
+     *     system indices whose names start with ``.``). Mirrors the ``get_cluster_schema``
+     *     pattern: ``get_cluster`` → ``acquire_adapter`` async context → adapter call
+     *     → translate exceptions via the ``_err()`` helper to the spec §7.5 envelope.
+     *
+     *     Error mapping:
+     *     * cluster missing or soft-deleted → 404 ``CLUSTER_NOT_FOUND`` (retryable=false)
+     *     * adapter raises ``TargetsForbiddenError`` (ACL 401/403) → 403
+     *       ``TARGETS_FORBIDDEN`` (retryable=false) — frontend auto-engages manual mode
+     *     * adapter raises ``ClusterUnreachableError`` (5xx / connection failure) → 503
+     *       ``CLUSTER_UNREACHABLE`` (retryable=true)
+     */
+    get: operations['list_cluster_targets_api_v1_clusters__cluster_id__targets_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clusters/{cluster_id}/run_query': {
     parameters: {
       query?: never;
@@ -138,6 +177,9 @@ export interface paths {
     /**
      * List Query Templates
      * @description List query templates with cursor pagination + X-Total-Count header.
+     *
+     *     ``?q=`` FTS match (name). ``?sort=`` sort-aware cursor (Story 1.3).
+     *     ``?engine_type=`` filters by engine (Story 1.4).
      */
     get: operations['list_query_templates_api_v1_query_templates_get'];
     put?: never;
@@ -187,6 +229,9 @@ export interface paths {
     /**
      * List Query Sets
      * @description List query sets with cursor pagination + X-Total-Count.
+     *
+     *     ``?q=`` is FTS match against ``search_vector`` (name). ``?sort=`` is a
+     *     :data:`QuerySetSortKey` value; cursor is sort-aware.
      */
     get: operations['list_query_sets_api_v1_query_sets_get'];
     put?: never;
@@ -289,8 +334,10 @@ export interface paths {
      * @description List studies with cursor pagination + X-Total-Count.
      *
      *     ``?status=`` is typed as :data:`StudyStatusWire` so FastAPI returns
-     *     422 ``VALIDATION_ERROR`` for unsupported values rather than silently
-     *     returning an empty list (C3-F2 GPT-5.5 cycle-3 fix).
+     *     422 ``VALIDATION_ERROR`` for unsupported values. ``?q=`` is a Postgres
+     *     FTS match against ``search_vector`` (name + target). ``?sort=`` is a
+     *     :data:`StudySortKey` value (``<col>:<asc|desc>``); the cursor is
+     *     sort-aware (feat_data_table_primitive Stories 1.2 + 1.3).
      */
     get: operations['list_studies_api_v1_studies_get'];
     put?: never;
@@ -434,6 +481,19 @@ export interface paths {
     /**
      * List Judgment Lists Endpoint
      * @description List judgment lists, newest-first with cursor pagination.
+     *
+     *     ``?since=`` filters by ``created_at >= since`` (Story 1.5). ``?q=`` FTS
+     *     match against ``search_vector`` (name + target). ``?sort=`` is a
+     *     :data:`JudgmentListSortKey` value with sort-aware cursor (Story 1.3).
+     *     ``?query_set_id`` / ``?cluster_id`` filter to lists belonging to the
+     *     supplied parent (``bug_judgment_lists_listing_ignores_query_set_filter``
+     *     — required by the create-study modal's Step-2 dropdown so the user
+     *     can only pick judgment-lists valid for the chosen query-set + cluster;
+     *     without these filters the modal returns all rows and the user can
+     *     pick a mismatched pair, which the ``POST /api/v1/studies`` cross-
+     *     entity integrity check then rejects at create time with a confusing
+     *     422 ``VALIDATION_ERROR: "judgment_list query_set_id does not match
+     *     study query_set_id"``).
      */
     get: operations['list_judgment_lists_endpoint_api_v1_judgment_lists_get'];
     put?: never;
@@ -468,7 +528,13 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** List Judgments Endpoint */
+    /**
+     * List Judgments Endpoint
+     * @description List per-list judgments with cursor pagination.
+     *
+     *     ``?sort=`` is :data:`JudgmentRowSortKey` with sort-aware cursor
+     *     (feat_data_table_primitive Story 1.3).
+     */
     get: operations['list_judgments_endpoint_api_v1_judgment_lists__judgment_list_id__judgments_get'];
     put?: never;
     post?: never;
@@ -557,7 +623,13 @@ export interface paths {
     };
     /**
      * List Proposals Endpoint
-     * @description List proposals with cursor pagination + status + cluster_id + source filters.
+     * @description List proposals with cursor pagination + filters.
+     *
+     *     ``?template_id=`` (Story 1.5) filters by ``proposals.template_id`` FK;
+     *     ``?study_id=`` filters by ``proposals.study_id`` FK (used by the
+     *     study-detail page's pending-proposal lookup). Both reject invalid
+     *     UUIDs with 422 via FastAPI's UUID parsing. ``?sort=`` (Story 1.3) is
+     *     a :data:`ProposalSortKey` value with sort-aware cursor.
      */
     get: operations['list_proposals_endpoint_api_v1_proposals_get'];
     put?: never;
@@ -706,6 +778,10 @@ export interface paths {
     /**
      * List Conversations Endpoint
      * @description List conversations newest-first with per-row message_count + X-Total-Count header.
+     *
+     *     ``?since=`` (Story 1.5 — closes api-conventions.md drift) filters by
+     *     ``created_at >= since``. ``?q=`` (Story 1.2) is a Postgres FTS match
+     *     against ``search_vector`` (coalesce(title, '')); 2-200 chars.
      */
     get: operations['list_conversations_endpoint_api_v1_conversations_get'];
     put?: never;
@@ -766,6 +842,26 @@ export interface paths {
      *     driven by :func:`agent_chat.send_user_message`.
      */
     post: operations['post_message_endpoint_api_v1_conversations__conversation_id__messages_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/_test/studies/seed-completed': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Seed a completed study + digest + (optional) pending proposal
+     * @description Test-only endpoint. Returns 404 unless `ENVIRONMENT=development`. Inserts a study (driven through queued → running → completed via the legal state-machine transitions), 2 trials (one winner, one comparison), a digest, and optionally a pending proposal in a single transaction. Used by the Playwright E2E suite to cover the digest-panel surfaces (7 tooltip placements + AC-7 body content + AC-11 Open PR enabled/disabled branches) without waiting on the orchestrator + Optuna workers.
+     */
+    post: operations['seed_completed_study_api_v1__test_studies_seed_completed_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1023,6 +1119,17 @@ export interface components {
     /**
      * ConversationSummary
      * @description ``GET /api/v1/conversations`` row + ``POST`` 201 body.
+     *
+     *     ``last_message_preview`` is the most recent user / assistant message's
+     *     ``content.text``, truncated at the repo layer to 120 chars (with ``…``
+     *     suffix when cut). Tool-role rows and assistant rows whose ``content.kind``
+     *     is ``system_notice`` are skipped. ``None`` for brand-new conversations
+     *     with no qualifying messages — see ``chore_chat_last_message_preview``.
+     *
+     *     ``last_message_at`` is the ``created_at`` of that same row, or ``None``
+     *     for empty conversations. The list page uses it to render "when did
+     *     anyone last touch this thread" instead of the conversation's
+     *     ``created_at``.
      */
     ConversationSummary: {
       /** Id */
@@ -1037,12 +1144,9 @@ export interface components {
       /** Message Count */
       message_count: number;
       /** Last Message Preview */
-      last_message_preview: string | null;
-      /**
-       * Last Message At
-       * Format: date-time
-       */
-      last_message_at: string | null;
+      last_message_preview?: string | null;
+      /** Last Message At */
+      last_message_at?: string | null;
     };
     /**
      * ConversationsListResponse
@@ -1958,6 +2062,42 @@ export interface components {
       fields: components['schemas']['FieldSpec'][];
     };
     /**
+     * SeedCompletedStudyRequest
+     * @description Payload for ``POST /api/v1/_test/studies/seed-completed``.
+     *
+     *     All four FK fields are required; the caller is responsible for
+     *     seeding the parent rows first (typically via the public
+     *     ``seedFullChain`` E2E helper).
+     */
+    SeedCompletedStudyRequest: {
+      /** Cluster Id */
+      cluster_id: string;
+      /** Query Set Id */
+      query_set_id: string;
+      /** Template Id */
+      template_id: string;
+      /** Judgment List Id */
+      judgment_list_id: string;
+      /**
+       * With Pending Proposal
+       * @description When true (default), also insert a `status='pending'` proposal linked to the study so the digest panel's Open PR button renders enabled. Set false to test the AC-11 aria-disabled-button + tooltip path.
+       * @default true
+       */
+      with_pending_proposal: boolean;
+    };
+    /**
+     * SeedCompletedStudyResponse
+     * @description IDs of the inserted rows; mirrors :class:`SeededStudyTriple`.
+     */
+    SeedCompletedStudyResponse: {
+      /** Study Id */
+      study_id: string;
+      /** Digest Id */
+      digest_id: string;
+      /** Proposal Id */
+      proposal_id: string | null;
+    };
+    /**
      * SendMessageRequest
      * @description ``POST /api/v1/conversations/{id}/messages`` body (Story 3.2).
      */
@@ -2143,6 +2283,31 @@ export interface components {
       opensearch: 'reachable' | 'unreachable';
       /** @description Aggregate health of user-registered clusters (infra_adapter_elastic Story 3.5 / spec §2). registered=0 → all-zero counts; informational only — does NOT trigger overall `degraded`. */
       elasticsearch_clusters: components['schemas']['ClusterAggregateHealth'];
+    };
+    /**
+     * TargetInfo
+     * @description One target (index / collection) on a cluster.
+     */
+    TargetInfo: {
+      /** Name */
+      name: string;
+      /** Doc Count */
+      doc_count?: number | null;
+    };
+    /**
+     * TargetListResponse
+     * @description Response for ``GET /api/v1/clusters/{cluster_id}/targets`` (FR-1).
+     *
+     *     Unpaginated by design — see feature_spec.md §7.1 "pagination shape
+     *     rationale". The single-resource lookup pattern matches
+     *     ``/clusters/{id}/schema`` rather than the queryable ``/clusters`` list.
+     *     ``EntitySelectListPage<T>``'s ``next_cursor`` and ``has_more`` fields
+     *     are optional, so this bare ``data``-only shape consumes correctly on
+     *     the frontend without pretending to be a cursor endpoint.
+     */
+    TargetListResponse: {
+      /** Data */
+      data: components['schemas']['TargetInfo'][];
     };
     /**
      * TrialDetail
@@ -2377,6 +2542,19 @@ export interface operations {
         cursor?: string | null;
         limit?: number;
         since?: string | null;
+        q?: string | null;
+        sort?:
+          | (
+              | 'name:asc'
+              | 'name:desc'
+              | 'created_at:asc'
+              | 'created_at:desc'
+              | 'environment:asc'
+              | 'environment:desc'
+            )
+          | null;
+        engine_type?: ('elasticsearch' | 'opensearch') | null;
+        environment?: ('prod' | 'staging' | 'dev') | null;
       };
       header?: never;
       path?: never;
@@ -2530,6 +2708,37 @@ export interface operations {
       };
     };
   };
+  list_cluster_targets_api_v1_clusters__cluster_id__targets_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cluster_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['TargetListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   run_query_api_v1_clusters__cluster_id__run_query_post: {
     parameters: {
       query?: {
@@ -2573,6 +2782,20 @@ export interface operations {
         cursor?: string | null;
         limit?: number;
         since?: string | null;
+        q?: string | null;
+        sort?:
+          | (
+              | 'name:asc'
+              | 'name:desc'
+              | 'created_at:asc'
+              | 'created_at:desc'
+              | 'engine_type:asc'
+              | 'engine_type:desc'
+              | 'version:asc'
+              | 'version:desc'
+            )
+          | null;
+        engine_type?: ('elasticsearch' | 'opensearch') | null;
       };
       header?: never;
       path?: never;
@@ -2670,6 +2893,8 @@ export interface operations {
         cursor?: string | null;
         limit?: number;
         since?: string | null;
+        q?: string | null;
+        sort?: ('name:asc' | 'name:desc' | 'created_at:asc' | 'created_at:desc') | null;
       };
       header?: never;
       path?: never;
@@ -2909,6 +3134,21 @@ export interface operations {
         limit?: number;
         since?: string | null;
         status?: ('queued' | 'running' | 'completed' | 'cancelled' | 'failed') | null;
+        q?: string | null;
+        sort?:
+          | (
+              | 'name:asc'
+              | 'name:desc'
+              | 'created_at:asc'
+              | 'created_at:desc'
+              | 'completed_at:asc'
+              | 'completed_at:desc'
+              | 'best_metric:asc'
+              | 'best_metric:desc'
+              | 'status:asc'
+              | 'status:desc'
+            )
+          | null;
       };
       header?: never;
       path?: never;
@@ -3138,6 +3378,20 @@ export interface operations {
       query?: {
         cursor?: string | null;
         limit?: number;
+        since?: string | null;
+        q?: string | null;
+        sort?:
+          | (
+              | 'name:asc'
+              | 'name:desc'
+              | 'created_at:asc'
+              | 'created_at:desc'
+              | 'status:asc'
+              | 'status:desc'
+            )
+          | null;
+        query_set_id?: string | null;
+        cluster_id?: string | null;
       };
       header?: never;
       path?: never;
@@ -3202,6 +3456,16 @@ export interface operations {
         source?: ('llm' | 'human') | null;
         cursor?: string | null;
         limit?: number;
+        sort?:
+          | (
+              | 'created_at:asc'
+              | 'created_at:desc'
+              | 'rating:asc'
+              | 'rating:desc'
+              | 'source:asc'
+              | 'source:desc'
+            )
+          | null;
       };
       header?: never;
       path: {
@@ -3339,8 +3603,20 @@ export interface operations {
         status?: ('pending' | 'pr_opened' | 'pr_merged' | 'rejected') | null;
         cluster_id?: string | null;
         source?: ('study' | 'manual') | null;
+        template_id?: string | null;
+        study_id?: string | null;
         cursor?: string | null;
         limit?: number;
+        sort?:
+          | (
+              | 'created_at:asc'
+              | 'created_at:desc'
+              | 'status:asc'
+              | 'status:desc'
+              | 'pr_state:asc'
+              | 'pr_state:desc'
+            )
+          | null;
       };
       header?: never;
       path?: never;
@@ -3599,6 +3875,8 @@ export interface operations {
       query?: {
         cursor?: string | null;
         limit?: number;
+        since?: string | null;
+        q?: string | null;
       };
       header?: never;
       path?: never;
@@ -3741,6 +4019,39 @@ export interface operations {
         };
         content: {
           'application/json': unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  seed_completed_study_api_v1__test_studies_seed_completed_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SeedCompletedStudyRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SeedCompletedStudyResponse'];
         };
       };
       /** @description Validation Error */
