@@ -94,7 +94,10 @@ test.describe('/studies — create-study Step-4 builder (Story 4.1)', () => {
     // Step 5: stepValid(4, ...) requires max_trials > 0 OR time_budget_min > 0
     // (see create-study-modal.tsx stepValid case 4). The form's defaultValues
     // don't seed either, so the submit button stays disabled until we fill one.
-    await page.getByLabel('Max trials').fill('10');
+    // getByLabel('Max trials') is strict-mode-ambiguous because the field's
+    // InfoTooltip emits its own aria-label "More information about max trials"
+    // — use the input's spinbutton role to disambiguate.
+    await page.getByRole('spinbutton', { name: 'Max trials' }).fill('10');
 
     // Submit.
     await page.getByTestId('create-study-submit').click();
