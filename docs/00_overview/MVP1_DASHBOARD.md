@@ -21,8 +21,8 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **49 / 50** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **3** items remaining (features + bugs + chores) |
-| Open bugs | 1 |
+| Path to MVP1 | **4** items remaining (features + bugs + chores) |
+| Open bugs | 2 |
 | Open chores | 1 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
@@ -107,7 +107,7 @@ _None._
 
 _None._
 
-### Idea (5)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -116,6 +116,7 @@ _None._
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [bug_e2e_target_dropdown_flake](../02_product/planned_features/bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Idea — surfaced during `feat_create_study_target_autocomplete` Story F2 implementation; the new E2E happy-path spec is currently `test.skip`'d. |
+| [bug_get_schema_unhandled_connect_error](../02_product/planned_features/bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | **Bundled-and-fixed** in the same PR as `feat_create_study_target_autocomplete` (per user direction during post-implementation sweep — the inline-over-defer rubric tipped the right way once both buggy methods were inventoried: `get_schema` + `explain` = 2 methods, ~10 LOC + 2 regression tests, same `ElasticAdapter` subsystem as B1, no product decision). Originally captured as a separate idea per CLAUDE.md tangential-discoveries rule before the user asked "should we fix now?". |
 
 ## Dependency graph
 
