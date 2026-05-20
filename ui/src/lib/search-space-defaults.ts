@@ -98,8 +98,15 @@ export function simpleFormSpec(typeName: string): ParamSpec | null {
  */
 export function estimateParamCardinality(spec: ParamSpec): number {
   if (spec.type === 'float') return 100;
-  if (spec.type === 'int') return spec.high - spec.low + 1;
-  return spec.choices.length;
+  if (spec.type === 'int') {
+    // Math.max(0, ...) guards against textarea-supplied inverted bounds
+    // (low > high) producing a negative cardinality in the header counter.
+    // The row error fires separately via <RowNumeric>'s bound check.
+    return Math.max(0, spec.high - spec.low + 1);
+  }
+  // Optional chaining defends against runtime-malformed JSON where
+  // `choices` is undefined despite the TypeScript discriminator.
+  return spec.choices?.length ?? 0;
 }
 
 /**

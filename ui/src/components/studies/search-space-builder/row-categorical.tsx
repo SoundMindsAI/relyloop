@@ -30,7 +30,10 @@ export interface RowCategoricalProps {
 function coerce(raw: string): Choice {
   if (raw === 'true') return true;
   if (raw === 'false') return false;
-  if (/^-?\d+(\.\d+)?$/.test(raw)) return Number(raw);
+  // Use Number()/isNaN to accept the same numeric formats JSON.parse does
+  // (decimals, scientific notation, leading-dot, negative). Guard against
+  // empty string because Number('') is 0, not NaN.
+  if (raw !== '' && !Number.isNaN(Number(raw))) return Number(raw);
   return raw;
 }
 

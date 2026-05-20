@@ -115,21 +115,18 @@ export function ParamRow({
           paramType={spec.type}
           low={spec.low}
           high={spec.high}
-          onChange={(next) => {
-            if (spec.type === 'float') {
-              onSpecChange(paramName, {
-                ...spec,
-                low: next.low ?? spec.low,
-                high: next.high ?? spec.high,
-              });
-            } else {
-              onSpecChange(paramName, {
-                ...spec,
-                low: next.low ?? spec.low,
-                high: next.high ?? spec.high,
-              });
-            }
-          }}
+          onChange={(next) =>
+            // Both FloatParam + IntParam share the low/high shape, so the
+            // spread is type-safe without splitting on `spec.type`. The
+            // chore_search_space_builder_paramrow_numeric_dedup idea
+            // captured this; applied inline after Gemini Code Assist
+            // surfaced the same dedup opportunity in PR review.
+            onSpecChange(paramName, {
+              ...spec,
+              low: next.low ?? spec.low,
+              high: next.high ?? spec.high,
+            })
+          }
           onBlurFlush={onBlurFlush}
         />
       )}
