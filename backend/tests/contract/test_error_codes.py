@@ -158,6 +158,23 @@ class TestErrorCodes:
         assert resp.status_code == 404
         _assert_envelope(resp.json()["detail"], "TARGET_NOT_FOUND")
 
+    async def test_targets_cluster_not_found(
+        self, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """feat_create_study_target_autocomplete B2: missing/soft-deleted cluster
+        on the targets endpoint → 404 CLUSTER_NOT_FOUND envelope.
+
+        Sibling cases (TARGETS_FORBIDDEN, CLUSTER_UNREACHABLE) require the
+        adapter to raise specific exceptions — covered with monkeypatch on
+        ``acquire_adapter`` at the integration layer in
+        ``test_clusters_api_targets_errors.py`` (the local ES stack runs with
+        security disabled per docs/01_architecture/deployment.md, so 401/403
+        cannot be produced against the real engine).
+        """
+        resp = await app_client.get("/api/v1/clusters/missing-id/targets")
+        assert resp.status_code == 404
+        _assert_envelope(resp.json()["detail"], "CLUSTER_NOT_FOUND")
+
     async def test_cluster_unreachable(
         self, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:

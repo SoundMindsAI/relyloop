@@ -13,6 +13,7 @@ lives at ``test_error_codes.py``.
 
 from __future__ import annotations
 
+from backend.app.adapters.protocol import TargetInfo
 from backend.app.api.v1.schemas import (
     ClusterDetail,
     ClusterListResponse,
@@ -21,6 +22,7 @@ from backend.app.api.v1.schemas import (
     HealthCheckResult,
     RunQueryRequest,
     RunQueryResponse,
+    TargetListResponse,
 )
 
 
@@ -33,6 +35,28 @@ def test_response_schemas_importable() -> None:
     assert HealthCheckResult is not None
     assert RunQueryRequest is not None
     assert RunQueryResponse is not None
+    assert TargetListResponse is not None
+
+
+def test_target_list_response_is_bare_data_shape() -> None:
+    """feat_create_study_target_autocomplete B2 / spec §7.1: TargetListResponse
+    is the bare ``{ data: TargetInfo[] }`` shape — NO ``next_cursor`` or
+    ``has_more`` fields.
+
+    The decision is documented in feature_spec.md §7.1 "pagination shape
+    rationale" (cycle-1 GPT-5.5 review fix): EntitySelectListPage<T>'s
+    cursor fields are optional, so the bare data shape consumes correctly
+    on the frontend without pretending to be a cursor endpoint.
+    """
+    declared = set(TargetListResponse.model_fields.keys())
+    assert declared == {"data"}, f"unexpected extra fields: {declared - {'data'}}"
+
+    # Round-trip a happy-path payload through the model to lock the shape.
+    payload = {"data": [{"name": "products", "doc_count": 42}]}
+    resp = TargetListResponse.model_validate(payload)
+    assert resp.data == [TargetInfo(name="products", doc_count=42)]
+    # Serialized form matches the wire contract.
+    assert resp.model_dump() == payload
 
 
 def test_create_cluster_request_validates_scheme() -> None:

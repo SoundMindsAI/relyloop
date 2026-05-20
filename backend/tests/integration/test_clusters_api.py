@@ -389,6 +389,59 @@ class TestSchemaEndpoint:
 
 @pytest.mark.integration
 @pytest.mark.parametrize("engine", ENGINE_PARAMS)
+class TestTargetsEndpoint:
+    """feat_create_study_target_autocomplete Story B2 / FR-1.
+
+    Happy-path coverage against real ES + real OpenSearch — seeds two
+    user-facing indices + one system index, asserts the response excludes
+    the system index and matches the bare ``{ data }`` shape. Error-path
+    coverage (CLUSTER_NOT_FOUND, TARGETS_FORBIDDEN, CLUSTER_UNREACHABLE)
+    lives in ``test_clusters_api_targets_errors.py`` (monkeypatch on
+    ``acquire_adapter``) because the local stack runs ES with security
+    disabled — 401/403 cannot be produced against the real engine.
+    """
+
+    async def test_lists_user_facing_targets_against_real_engine(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """FR-1 / AC-1: response contains seeded user-facing indices, no
+        system indices (names starting with `.`)."""
+        base_url = _ENGINE_BASE_URL[engine]
+        auth = _ENGINE_RAW_AUTH[engine]
+        # Seed two user-facing indices on the real engine.
+        seeded = [f"e2e-target-{engine}-a", f"e2e-target-{engine}-b"]
+        async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+            for name in seeded:
+                await c.put(
+                    f"{base_url}/{name}",
+                    json={"mappings": {"properties": {"title": {"type": "text"}}}},
+                )
+        try:
+            post_resp = await app_client.post(
+                "/api/v1/clusters", json=_cluster_body(engine_type=engine)
+            )
+            cluster_id = post_resp.json()["id"]
+            resp = await app_client.get(f"/api/v1/clusters/{cluster_id}/targets")
+            assert resp.status_code == 200, resp.text
+            payload = resp.json()
+            # Spec §7.1 / cycle-1 GPT-5.5 review: bare data-only shape, no
+            # next_cursor / has_more.
+            assert set(payload.keys()) == {"data"}, payload.keys()
+            names = [t["name"] for t in payload["data"]]
+            # Membership — engine returns engine-defined order; the
+            # alphabetical sort is done frontend-side per FR-7.
+            assert all(s in names for s in seeded), names
+            # No system indices leaked through (e.g., the engine's own
+            # `.security`, `.kibana_1`, `.opendistro_*`).
+            assert not any(n.startswith(".") for n in names), names
+        finally:
+            async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+                for name in seeded:
+                    await c.delete(f"{base_url}/{name}")
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("engine", ENGINE_PARAMS)
 class TestRunQuery:
     async def test_run_query_happy_path(
         self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
