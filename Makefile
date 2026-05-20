@@ -154,6 +154,16 @@ seed-es:  ## Seed local-es 'products' index from samples/products.json (idempote
 	}
 	docker compose exec -T api python -m backend.app.scripts.seed_es
 
+seed-demo:  ## DESTRUCTIVE: TRUNCATE demo state + reseed 4 meaningful scenarios (FORCE=1 to skip prompt)
+	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \
+	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
+	}
+	@if [ "$(FORCE)" = "1" ]; then \
+	  python3 scripts/seed_meaningful_demos.py --force; \
+	else \
+	  python3 scripts/seed_meaningful_demos.py; \
+	fi
+
 migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs inside api container; pins sequential rev-id)
 	@if [ -z "$(name)" ]; then \
 		echo "ERROR: name=<slug> required (e.g., make migrate-create name=add_studies_table)"; \
