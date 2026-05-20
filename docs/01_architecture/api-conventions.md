@@ -69,6 +69,13 @@ These are reserved across all features:
 
 Feature-specific codes (e.g., `CLUSTER_UNREACHABLE`, `INVALID_QUERY_DSL`) are documented in the feature's spec.
 
+The studies endpoint surfaces two template-mismatch codes (added by `chore_create_study_wizard_polish`, 2026-05-19):
+
+| Code | HTTP Status | Meaning |
+|---|---|---|
+| `SEARCH_SPACE_UNKNOWN_PARAM` | 400 | A key in `search_space.params` is not declared by the selected template. Message format: `"Param '{name}' is not declared by template '{template_name}'. Declared params: [...]."` `retryable: false`. |
+| `SEARCH_SPACE_MISSING_DECLARED_PARAM` | 400 | A key in the template's `declared_params` is missing from the submitted `search_space.params`. Message format: `"Template '{template_name}' declares param '{name}' but it is missing from the search space. Add it or remove from the template."` `retryable: false`. |
+
 ### Auth errors (MVP4+)
 
 When auth arrives, auth failures use a separate envelope:

@@ -51,6 +51,48 @@ export const glossary = {
     ariaLabel: 'More information about query template',
   },
 
+  // -------------------------------------------------------------------------
+  // Create-study Step-4 search space (chore_create_study_wizard_polish FR-5)
+  //
+  // The parent `study.search_space` entry is dual — InfoTooltip reads `short`,
+  // HelpPopover reads `long`. The three subkeys (`.param_spec`, `.log`,
+  // `.cardinality`) are short-only forward-compatibility hooks for
+  // `feat_create_study_search_space_builder` per spec §11 decision log.
+  // -------------------------------------------------------------------------
+  'study.search_space': {
+    short:
+      'The query parameters the study will tune, with a type (float / int / categorical) and bounds for each. Pre-filled from the template.',
+    long: [
+      'A search space defines **which** query parameters the study will tune and **what values** to try for each.',
+      '',
+      'Each parameter has a type and bounds:',
+      '',
+      '- `float` — continuous value between `low` and `high`. Add `log: true` for log-scale sampling.',
+      '- `int` — whole number between `low` and `high` (inclusive on both ends).',
+      '- `categorical` — pick from a fixed `choices` list (strings, numbers, or booleans).',
+      '',
+      '**Log scale** helps when the range spans more than 10× (e.g. boosts from 0.5 to 10) — it samples small values as densely as large ones.',
+      '',
+      '**Cardinality cap:** the total number of combinations must stay under 1,000,000. Floats count as 100 each, ints as `high - low + 1`, categoricals as the number of choices. The product across all parameters must fit under the cap.',
+    ].join('\n'),
+    ariaLabel: 'More information about the search space',
+  },
+  'study.search_space.param_spec': {
+    short:
+      'Each parameter is float (continuous), int (whole numbers), or categorical (pick from a fixed list).',
+    ariaLabel: 'More information about parameter types',
+  },
+  'study.search_space.log': {
+    short:
+      'Use log scale when the range spans more than 10× (e.g. 0.5–10). It samples small values as densely as large ones.',
+    ariaLabel: 'More information about log-scale sampling',
+  },
+  'study.search_space.cardinality': {
+    short:
+      'Total combinations must stay under 1,000,000. Floats count as 100; ints as high - low + 1; categoricals as the number of choices.',
+    ariaLabel: 'More information about the cardinality cap',
+  },
+
   // Source-of-truth: backend/app/api/v1/schemas.py ObjectiveMetric
   // (mirrored in ui/src/lib/enums.ts OBJECTIVE_METRIC_VALUES). FR-4 parity
   // test enforces key parity against OBJECTIVE_METRIC_VALUES.
@@ -69,27 +111,27 @@ export const glossary = {
   },
   'study.metric.ndcg': {
     short:
-      'NDCG rewards placing the most relevant docs at the top. Best default for ranked retrieval.',
+      'NDCG rewards placing the most relevant docs at the top. Best default for ranked retrieval. Requires a top-k cutoff.',
   },
   'study.metric.map': {
     short:
-      'Mean Average Precision. Averages precision at each relevant-doc position. Good for recall + ordering.',
+      'Mean Average Precision over relevant-doc ranks. Top-k cutoff optional — set it for map@k, leave blank for full-recall MAP.',
   },
   'study.metric.precision': {
     short:
-      'Fraction of top-k docs that are relevant. Use when "any relevant doc in top-k" matters more than order.',
+      'Fraction of top-k docs that are relevant. Use when "any relevant doc in top-k" matters most. Requires a top-k cutoff.',
   },
   'study.metric.recall': {
     short:
-      'Fraction of relevant docs that make it into top-k. Use when missing a relevant doc is costly.',
+      'Fraction of relevant docs in top-k. Use when missing a relevant doc is costly. Requires a top-k cutoff.',
   },
   'study.metric.mrr': {
     short:
-      'Mean Reciprocal Rank. Rewards finding the first relevant doc quickly. Best for known-item search.',
+      'Mean Reciprocal Rank. Rewards finding the first relevant doc quickly. Best for known-item search. Top-k cutoff is not used.',
   },
   'study.metric.err': {
     short:
-      'Expected Reciprocal Rank. Models a user who stops at the first useful doc; penalizes redundancy.',
+      'Expected Reciprocal Rank. Models a user who stops at the first useful doc; penalizes redundancy. Top-k cutoff is not used.',
   },
 
   // Source-of-truth: backend/app/api/v1/schemas.py ObjectiveK

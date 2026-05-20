@@ -42,13 +42,17 @@ export function useTemplates(
   });
 }
 
-export function useTemplate(id: string): UseQueryResult<QueryTemplateDetail, ApiError> {
+export function useTemplate(
+  id: string | null | undefined,
+): UseQueryResult<QueryTemplateDetail, ApiError> {
   return useQuery<QueryTemplateDetail, ApiError>({
-    queryKey: ['query-templates', id],
+    queryKey: ['query-templates', id ?? ''],
     queryFn: async () => {
       const { data } = await apiClient.get<QueryTemplateDetail>(`/api/v1/query-templates/${id}`);
       return data;
     },
+    enabled: Boolean(id),
+    retry: false,
   });
 }
 
