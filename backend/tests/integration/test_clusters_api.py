@@ -540,6 +540,39 @@ class TestTargetsEndpoint:
                 for name in seeded:
                     await c.delete(f"{base_url}/{name}")
 
+    async def test_targets_endpoint_applies_filter(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """feat_cluster_target_filter AC-9: stored target_filter scopes
+        the targets endpoint against a real engine + multi-prefix seed."""
+        base_url = _ENGINE_BASE_URL[engine]
+        auth = _ENGINE_RAW_AUTH[engine]
+        matching = [f"e2e-tf-products-{engine}-a", f"e2e-tf-products-{engine}-b"]
+        non_matching = [f"e2e-tf-docs-{engine}-a", f"e2e-tf-jobs-{engine}-b"]
+        async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+            for name in [*matching, *non_matching]:
+                await c.delete(f"{base_url}/{name}")
+                await c.put(
+                    f"{base_url}/{name}",
+                    json={"mappings": {"properties": {"title": {"type": "text"}}}},
+                )
+        try:
+            body = _cluster_body(engine_type=engine, target_filter=f"e2e-tf-products-{engine}-*")
+            post_resp = await app_client.post("/api/v1/clusters", json=body)
+            assert post_resp.status_code == 201, post_resp.text
+            cluster_id = post_resp.json()["id"]
+            resp = await app_client.get(f"/api/v1/clusters/{cluster_id}/targets")
+            assert resp.status_code == 200, resp.text
+            names = {t["name"] for t in resp.json()["data"]}
+            assert set(matching) <= names, f"missing matching: {set(matching) - names}"
+            assert not (set(non_matching) & names), (
+                f"leaked non-matching: {set(non_matching) & names}"
+            )
+        finally:
+            async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+                for name in [*matching, *non_matching]:
+                    await c.delete(f"{base_url}/{name}")
+
 
 @pytest.mark.integration
 @pytest.mark.parametrize("engine", ENGINE_PARAMS)

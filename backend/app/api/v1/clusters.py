@@ -354,7 +354,9 @@ async def list_cluster_targets(
         raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id} not found", False)
     try:
         async with cluster_svc.acquire_adapter(cluster) as adapter:
-            targets = await adapter.list_targets()
+            # feat_cluster_target_filter FR-3: when the cluster has a stored
+            # target_filter, scope list_targets() to matching index names.
+            targets = await adapter.list_targets(target_filter=cluster.target_filter)
             return TargetListResponse(data=targets)
     except TargetsForbiddenError as exc:
         raise _err(403, "TARGETS_FORBIDDEN", str(exc), False) from exc

@@ -130,7 +130,13 @@ class _StubAdapter:
     def __init__(self, raise_with: Exception) -> None:
         self._raise = raise_with
 
-    async def list_targets(self, *, request_id: str | None = None) -> list[Any]:
+    async def list_targets(
+        self,
+        *,
+        request_id: str | None = None,
+        target_filter: str | None = None,
+    ) -> list[Any]:
+        del target_filter  # accepted to match Protocol; unused in error-injection stub
         raise self._raise
 
     async def aclose(self) -> None:
