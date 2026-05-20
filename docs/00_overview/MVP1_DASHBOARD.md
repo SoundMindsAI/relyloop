@@ -6,33 +6,30 @@ _Reflects feature-folder state as of **2026-05-20** (latest mtime of any planned
 
 ## Next up
 
-**[feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_create_study_search_space_builder/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **48 / 49** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **3** items remaining (features + bugs + chores) |
-| Open bugs | 1 |
+| Scoped items done | **49 / 49** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **1** items remaining (features + bugs + chores) |
+| Open bugs | 0 |
 | Open chores | 1 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (57)
+### Done (59)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_agent_propose_search_space` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_clone_from_previous` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_contextual_help](implemented_features/2026_05_15_feat_contextual_help/feature_spec.md) | Feature | a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam | — | [PR #122](https://github.com/SoundMindsAI/relyloop/pull/122) merged 2026-05-15 |
+| [feat_create_study_search_space_builder](implemented_features/2026_05_20_feat_create_study_search_space_builder/feature_spec.md) | Feature | Complete (PR #163, squash commit `c703953`, merged 2026-05-20) | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) merged 2026-05-20 |
 | [feat_data_table_primitive](implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md) | Feature | Complete (PR #126, merged 2026-05-16) | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
@@ -84,6 +81,7 @@ Plan approved; run /impl-execute to ship
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
 | [bug_env_file_corrupted_during_session](implemented_features/2026_05_13_bug_env_file_corrupted_during_session/idea.md) | Bug | Complete | — | Complete |
+| [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | Complete | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | Complete | — | Complete |
 | [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | Complete | — | Complete |
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | Complete | — | Complete |
@@ -93,17 +91,15 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md) | Feature |  | — | [PR #157](https://github.com/SoundMindsAI/relyloop/pull/157) merged 2026-05-20 |
+_None._
 
 ### Spec (0)
 
 _None._
 
-### Idea (5)
+### Idea (4)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -111,7 +107,6 @@ _None._
 | [feat_create_study_target_autocomplete](../02_product/planned_features/feat_create_study_target_autocomplete/idea.md) | Feature | The "Target index / collection" field at Step 1 of the create-study modal is a free-text `<Input id="cs-target">` (see [`ui/src/components/studies/create-study-modal.tsx:457`](../../ui/src/components/ | — | Idea — surfaced during local verification of PR #163 (`feat_create_study_search_space_builder`) on 2026-05-20. Step 4 builder verification required walking through Step 1, where the UX gap surfaced. |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [bug_judgment_lists_listing_ignores_query_set_filter](../02_product/planned_features/bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment | — | Bug — surfaced during local verification of PR #163 (`feat_create_study_search_space_builder`). Pre-existing since `feat_llm_judgments` (PR #35, 2026-05-11); not introduced by PR #163. |
 
 ## Dependency graph
 
@@ -124,8 +119,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_create_study_search_space_builder["create study search space builder"]
-  class feat_create_study_search_space_builder plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -222,6 +215,8 @@ graph LR
   class chore_create_study_modal_e2e_stability done;
   chore_create_study_wizard_polish["create study wizard polish"]
   class chore_create_study_wizard_polish done;
+  feat_create_study_search_space_builder["create study search space builder"]
+  class feat_create_study_search_space_builder done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
