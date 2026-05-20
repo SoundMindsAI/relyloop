@@ -6,22 +6,16 @@ _Reflects feature-folder state as of **2026-05-20** (latest mtime of any planned
 
 ## Next up
 
-**[chore_create_study_wizard_polish](../02_product/planned_features/chore_create_study_wizard_polish/feature_spec.md)** — Chore, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> Step 4 auto-fills from the template's `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary entries.
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/chore_create_study_wizard_polish/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **46 / 47** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **5** items remaining (features + bugs + chores) |
+| Scoped items done | **47 / 47** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **4** items remaining (features + bugs + chores) |
 | Open bugs | 2 |
 | Open chores | 2 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
@@ -29,7 +23,7 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (55)
+### Done (56)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -62,6 +56,7 @@ Plan approved; run /impl-execute to ship
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_prettier_check](implemented_features/2026_05_19_chore_ci_prettier_check/idea.md) | Chore | Complete | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
+| [chore_create_study_wizard_polish](implemented_features/2026_05_20_chore_create_study_wizard_polish/feature_spec.md) | Chore | Step 4 auto-fills from the template's `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en | — | [PR #157](https://github.com/SoundMindsAI/relyloop/pull/157) merged 2026-05-20 |
 | [chore_data_table_columnvisibility_tanstack](implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack/idea.md) | Chore | Complete | — | Complete |
 | [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Complete | — | Complete |
 | [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | Complete | — | Complete |
@@ -93,11 +88,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [chore_create_study_wizard_polish](../02_product/planned_features/chore_create_study_wizard_polish/feature_spec.md) | Chore | Step 4 auto-fills from the template's `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en | — | [PR #153](https://github.com/SoundMindsAI/relyloop/pull/153) |
+_None._
 
 ### Spec (0)
 
@@ -126,8 +119,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_create_study_wizard_polish["create study wizard polish"]
-  class chore_create_study_wizard_polish plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -220,6 +211,8 @@ graph LR
   class chore_form_dropdown_guide_screenshot_refresh done;
   infra_e2e_wire_seed_helper_into_studies_spec["e2e wire seed helper into studies spec"]
   class infra_e2e_wire_seed_helper_into_studies_spec done;
+  chore_create_study_wizard_polish["create study wizard polish"]
+  class chore_create_study_wizard_polish done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
