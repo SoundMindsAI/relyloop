@@ -27,6 +27,7 @@ import * as React from 'react';
 import type { QueryTemplateDetail } from '@/lib/api/query-templates';
 
 import { BuilderPlaceholder } from './placeholder';
+import { ParamRow } from './param-row';
 import type { ParamSpec, SearchSpaceJson, StashMap } from './types';
 
 const DEBOUNCE_MS = 200;
@@ -237,28 +238,14 @@ export function SearchSpaceBuilder({
         Story 1.2"). Real row markup, the type selector, low/high inputs,
         log toggle, chip input, and cardinality counters arrive in 1.2 + 2.x.
       */}
-      {declaredKeys.map((paramName) => {
-        const spec = rowSpec(parseResult, paramName);
-        return (
-          <div
-            key={paramName}
-            data-testid={`cs-param-row-${paramName}`}
-            className="rounded-md border border-border bg-card p-3 text-sm space-y-1"
-          >
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-xs px-1.5 py-0.5 rounded border border-border bg-background">
-                {paramName}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                ({declared[paramName] ?? 'unknown'})
-              </span>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              type: <span className="font-mono">{spec?.type ?? 'unset'}</span>
-            </div>
-          </div>
-        );
-      })}
+      {declaredKeys.map((paramName) => (
+        <ParamRow
+          key={paramName}
+          paramName={paramName}
+          declaredType={declared[paramName] ?? 'unknown'}
+          spec={rowSpec(parseResult, paramName)}
+        />
+      ))}
       {paramsMissing && <BuilderPlaceholder variant="missing-params-hint" />}
     </div>
   );

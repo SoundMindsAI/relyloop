@@ -17,6 +17,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { QueryTemplateDetail } from '@/lib/api/query-templates';
 import {
   SearchSpaceBuilder,
@@ -100,27 +101,27 @@ const NORMALIZATION_FIXTURES: Fixture[] = [
 
 const TEMPLATE: QueryTemplateDetail = {
   id: 't1',
-  cluster_id: 'c1',
   name: 'test-template',
   engine_type: 'elasticsearch',
-  version: 1,
   body: '{}',
   declared_params: { boost: 'float', operator: 'string' },
-  description: null,
+  version: 1,
+  parent_id: null,
   created_at: '2026-05-20T00:00:00Z',
-  updated_at: '2026-05-20T00:00:00Z',
-} as QueryTemplateDetail;
+};
 
 function mount(value: string): { spy: ReturnType<typeof vi.fn>; unmount: () => void } {
   const spy = vi.fn();
   const { unmount } = render(
-    <SearchSpaceBuilder
-      value={value}
-      onChange={spy}
-      templateBody={TEMPLATE}
-      templateId="t1"
-      templateFetchStatus="ok"
-    />,
+    <TooltipProvider delayDuration={0}>
+      <SearchSpaceBuilder
+        value={value}
+        onChange={spy}
+        templateBody={TEMPLATE}
+        templateId="t1"
+        templateFetchStatus="ok"
+      />
+    </TooltipProvider>,
   );
   return { spy, unmount };
 }
