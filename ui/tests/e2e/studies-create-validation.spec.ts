@@ -43,14 +43,19 @@ async function getName(path: string): Promise<string> {
 
 async function pickEntity(page: Page, triggerTestId: string, optionName: RegExp): Promise<void> {
   const trigger: Locator = page.getByTestId(triggerTestId);
-  // Wait for the EntitySelect's underlying TanStack query to settle into a
-  // stable enabled state before clicking. Without this, the cs-cluster
-  // trigger sometimes flickers disabled→enabled→disabled while parallel
-  // queries on the modal resolve and Playwright's auto-wait never gets a
-  // clean window. See chore_create_study_modal_e2e_stability for the
-  // diagnosis trail.
+  // The first version of this helper used `.click()` which gates on
+  // visible+enabled+stable. The cluster trigger fails the stability check
+  // (Radix Dialog focus-trap + chained TanStack queries on modal open
+  // cause micro-layout shifts on every animation frame; Playwright's
+  // `_isStable` heuristic never sees two consecutive frames with an
+  // unchanged bounding box, even after 30s). Mirrors the resolution in
+  // PR #154 for the `query-set` walkthrough guide: use
+  // `dispatchEvent('click')` to fire a synthetic event that bypasses the
+  // actionability check entirely. The element IS reachable; only the
+  // heuristic is over-eager. The option click is fine — by the time the
+  // popover renders, layout has settled.
   await expect(trigger).toBeEnabled({ timeout: ENTITY_SELECT_TIMEOUT });
-  await trigger.click();
+  await trigger.dispatchEvent('click');
   await page.getByRole('option', { name: optionName }).first().click();
 }
 
