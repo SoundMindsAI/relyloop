@@ -98,7 +98,7 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Register cluster</DialogTitle>
           <DialogDescription>
