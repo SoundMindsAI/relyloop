@@ -155,6 +155,13 @@ export function EntitySelect<T>(props: EntitySelectProps<T>) {
             <SelectValue placeholder={emptyMessage} />
           </SelectTrigger>
         </Select>
+        {/* feat_cluster_target_filter F2: also render the message as a sibling
+            <p> so it's visible when the disabled-trigger placeholder is hidden
+            (e.g., screen readers, jsdom test environments). The trigger still
+            holds the placeholder for the sighted-user happy path. */}
+        <p className="text-xs text-muted-foreground" data-testid={`${dataTestId ?? id}-empty`}>
+          {emptyMessage}
+        </p>
         {emptyState?.cta && (
           <p className="text-xs">
             <Link href={emptyState.cta.href} className="underline">

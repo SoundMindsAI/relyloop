@@ -537,7 +537,11 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                     value={values.target || undefined}
                     onChange={(v) => form.setValue('target', v ?? '')}
                     placeholder="Choose a target"
-                    emptyState={{ message: 'No targets found on this cluster.' }}
+                    emptyState={{
+                      message: selectedCluster?.target_filter
+                        ? `No targets match filter "${selectedCluster.target_filter}" on this cluster. To change the filter, delete and re-register the cluster — MVP1 has no in-place edit for cluster registrations.`
+                        : 'No targets found on this cluster.',
+                    }}
                   />
                 )}
 
