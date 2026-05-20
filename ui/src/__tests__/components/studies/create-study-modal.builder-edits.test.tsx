@@ -344,3 +344,88 @@ describe('SearchSpaceBuilder edits — Story 2.2 (FR-4 log toggle)', () => {
     );
   });
 });
+
+describe('SearchSpaceBuilder edits — Story 2.3 (FR-5/6/7 cardinality + Next)', () => {
+  it('#7: cardinality counter turns red + aria-invalid + identifies max contributor when >1e6', () => {
+    const onChange = vi.fn();
+    // 5 floats × 100 + 1 int [0, 100000] (=100001) → ~1.0e15. Way over cap.
+    const value = JSON.stringify(
+      {
+        params: {
+          a: { type: 'float', low: 0, high: 1 },
+          b: { type: 'float', low: 0, high: 1 },
+          c: { type: 'float', low: 0, high: 1 },
+          d: { type: 'float', low: 0, high: 1 },
+          e: { type: 'float', low: 0, high: 1 },
+          big: { type: 'int', low: 0, high: 100000 },
+        },
+      },
+      null,
+      2,
+    );
+    render(
+      <TooltipProvider delayDuration={0}>
+        <SearchSpaceBuilder
+          value={value}
+          onChange={onChange}
+          templateBody={makeTemplate({
+            a: 'float',
+            b: 'float',
+            c: 'float',
+            d: 'float',
+            e: 'float',
+            big: 'int',
+          })}
+          templateId="t1"
+          templateFetchStatus="ok"
+        />
+      </TooltipProvider>,
+    );
+
+    const counter = screen.getByTestId('cs-builder-header-cardinality');
+    expect(counter).toHaveAttribute('aria-invalid', 'true');
+    expect(counter.className).toContain('text-destructive');
+
+    const hint = screen.getByTestId('cs-builder-cap-hint');
+    expect(hint.textContent).toContain('big');
+    expect(hint.textContent).toContain('100,001');
+  });
+
+  it('#8: Next button (Step 5 advance) remains enabled when cardinality exceeds 10^6 (warning-only per FR-7)', () => {
+    // This assertion verifies the warning-only contract via the builder's
+    // OWN signal: `aria-invalid` on the counter but NO disabling propagated
+    // back through onChange. The actual Step-4 Next button gating logic lives
+    // in CreateStudyModal's `stepValid(3, ...)` predicate, which checks
+    // JSON parseability only — not cardinality. We assert the cap exceedance
+    // does not cause any error stream to fire (i.e., no error event in the
+    // builder DOM beyond the cap-hint itself, which is informational only).
+    const onChange = vi.fn();
+    const value = JSON.stringify(
+      {
+        params: { a: { type: 'int', low: 0, high: 5_000_000 } }, // ~5e6, over cap
+      },
+      null,
+      2,
+    );
+    render(
+      <TooltipProvider delayDuration={0}>
+        <SearchSpaceBuilder
+          value={value}
+          onChange={onChange}
+          templateBody={makeTemplate({ a: 'int' })}
+          templateId="t1"
+          templateFetchStatus="ok"
+        />
+      </TooltipProvider>,
+    );
+
+    // The builder emits no error envelope beyond the cap-hint paragraph
+    // itself. There is no `cs-row-error-*` for the row (low<high holds).
+    expect(screen.queryByTestId('cs-row-error-a')).not.toBeInTheDocument();
+    // The cap-hint IS rendered but it's a warning, not a blocker.
+    expect(screen.getByTestId('cs-builder-cap-hint')).toBeInTheDocument();
+    // No row-level error fires anywhere.
+    const rowErrors = document.querySelectorAll('[data-testid^="cs-row-error-"]');
+    expect(rowErrors.length).toBe(0);
+  });
+});

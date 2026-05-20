@@ -16,6 +16,8 @@ import * as React from 'react';
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Label } from '@/components/ui/label';
 
+import { RowCardinality } from './cardinality';
+import { RowCategorical } from './row-categorical';
 import { RowLogToggle } from './row-log-toggle';
 import { RowNumeric } from './row-numeric';
 import { RowTypeSelector } from './row-type-selector';
@@ -132,25 +134,38 @@ export function ParamRow({
         />
       )}
 
-      {/* Log row (Story 2.2): editable toggle for float rows only.
-          Holds per-row `attemptedInvalidLogEnable` state so the row error
-          fires after a refused click even when `log` stays `false`. */}
+      {/* Log row (Story 2.2): editable toggle for float rows only. */}
       {spec?.type === 'float' && (
         <FloatLogControl paramName={paramName} spec={spec} onSpecChange={onSpecChange} />
       )}
 
-      {/* Per-row cardinality slot — wired in Story 2.3. */}
+      {/* Categorical chip input (Story 2.3, FR-5). */}
+      {spec?.type === 'categorical' && (
+        <RowCategorical
+          paramName={paramName}
+          choices={spec.choices}
+          onChange={(nextChoices) =>
+            onSpecChange(paramName, { type: 'categorical', choices: nextChoices })
+          }
+        />
+      )}
+
+      {/* Per-row cardinality counter (Story 2.3, FR-6). */}
       <div className="space-y-1">
         <div className="flex items-center gap-1">
           <Label>Cardinality</Label>
           <InfoTooltip glossaryKey="study.search_space.cardinality" />
         </div>
-        <span
-          data-testid={`cs-row-${paramName}-cardinality`}
-          className="text-xs text-muted-foreground"
-        >
-          —
-        </span>
+        {spec !== undefined ? (
+          <RowCardinality paramName={paramName} spec={spec} />
+        ) : (
+          <span
+            data-testid={`cs-row-${paramName}-cardinality`}
+            className="text-xs text-muted-foreground"
+          >
+            —
+          </span>
+        )}
       </div>
 
       {/* Empty/unset row hint when spec is undefined. */}

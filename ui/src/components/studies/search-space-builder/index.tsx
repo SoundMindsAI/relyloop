@@ -26,6 +26,7 @@ import * as React from 'react';
 
 import type { QueryTemplateDetail } from '@/lib/api/query-templates';
 
+import { HeaderCardinality } from './cardinality';
 import { BuilderPlaceholder } from './placeholder';
 import { ParamRow } from './param-row';
 import { stashClearAll, stashClearRow } from './stash';
@@ -309,14 +310,12 @@ export function SearchSpaceBuilder({
   const declaredKeys = Object.keys(declared);
   const data = parseResult.data as SearchSpaceJson;
   const paramsMissing = data.params === undefined && declaredKeys.length > 0;
+  // Normalize for HeaderCardinality so it never crashes on missing `params`.
+  const normalizedSpace: SearchSpaceJson = { params: data.params ?? {} };
 
   return (
     <div className="space-y-2" data-testid="cs-search-space-builder">
-      {/*
-        Story 1.1: rows are placeholder containers ("row content arrives in
-        Story 1.2"). Real row markup, the type selector, low/high inputs,
-        log toggle, chip input, and cardinality counters arrive in 1.2 + 2.x.
-      */}
+      <HeaderCardinality space={normalizedSpace} />
       {declaredKeys.map((paramName) => (
         <ParamRow
           key={paramName}
