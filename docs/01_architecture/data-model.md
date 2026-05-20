@@ -77,12 +77,15 @@ CREATE TABLE clusters (
     config_path     TEXT,                              -- nullable; populated by feat_github_pr_worker
     engine_config   JSONB,                             -- e.g., {"api_version": "9"}
     notes           TEXT,
+    target_filter   VARCHAR(256),                      -- nullable; fnmatch.fnmatchcase glob scoping list_targets()
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
     deleted_at      TIMESTAMPTZ
 );
 ```
 
 `auth_kind = opensearch_sigv4` is a reserved enum value but rejected at the API layer with `AUTH_KIND_NOT_SUPPORTED` in MVP1 — AWS managed OpenSearch support lands at MVP3.
+
+`target_filter` (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/<date>_feat_cluster_target_filter/) at Alembic `0014`) is an optional operator-supplied glob pattern that scopes `GET /clusters/{id}/targets` to matching index/collection names. NULL = no filter (default, backward-compat for pre-`0014` rows). Pattern syntax: `*`, `?`, `[seq]`, `[!seq]` via Python `fnmatch.fnmatchcase` — no brace expansion. Trimmed at the API layer; stored verbatim otherwise. MVP1 is create-only: to change the filter, DELETE + re-register (no PATCH endpoint).
 
 ### `config_repos` (owned by `infra_adapter_elastic`)
 

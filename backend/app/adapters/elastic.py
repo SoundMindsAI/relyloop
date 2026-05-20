@@ -21,6 +21,7 @@ module — services consume the unified ``SearchAdapter`` Protocol.
 from __future__ import annotations
 
 import base64
+import fnmatch
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -355,11 +356,22 @@ class ElasticAdapter:
                 f"{OPENSEARCH_MIN_VERSION[0]}.{OPENSEARCH_MIN_VERSION[1]}"
             )
 
-    async def list_targets(self, *, request_id: str | None = None) -> list[TargetInfo]:
+    async def list_targets(
+        self,
+        *,
+        request_id: str | None = None,
+        target_filter: str | None = None,
+    ) -> list[TargetInfo]:
         """List indices on the cluster via ``_cat/indices?format=json``.
 
         System indices (those whose name starts with ``.``) are filtered out
         so the operator sees only user-facing collections.
+
+        When ``target_filter`` is provided (feat_cluster_target_filter FR-3),
+        the result is further restricted to names where
+        ``fnmatch.fnmatchcase(name, target_filter)`` returns True. The system-
+        index exclusion runs FIRST so operators cannot re-expose ``.kibana*``
+        via a permissive filter.
 
         ``translate_errors=False`` is used so the per-status mapping below can
         distinguish ACL-restricted clusters (401/403 → ``TargetsForbiddenError``)
@@ -400,7 +412,9 @@ class ElasticAdapter:
         for row in rows:
             name = row.get("index")
             if not name or name.startswith("."):
-                continue
+                continue  # system-index exclusion — runs FIRST
+            if target_filter is not None and not fnmatch.fnmatchcase(name, target_filter):
+                continue  # operator glob filter — runs SECOND
             doc_count_raw = row.get("docs.count")
             doc_count: int | None
             if doc_count_raw is None or doc_count_raw == "":

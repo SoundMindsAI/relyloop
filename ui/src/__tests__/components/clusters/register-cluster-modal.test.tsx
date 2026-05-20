@@ -130,6 +130,88 @@ describe('RegisterClusterModal', () => {
     expect(closed).toBe(false);
   });
 
+  it('forwards target_filter on submit when the field is non-empty (AC-11)', async () => {
+    let captured: { target_filter?: unknown } = {};
+    server.use(
+      configReposEmpty(),
+      http.post(`${API_BASE}/api/v1/clusters`, async ({ request }) => {
+        captured = (await request.json()) as { target_filter?: unknown };
+        return HttpResponse.json({
+          id: 'c1',
+          name: 'prod-es',
+          engine_type: 'elasticsearch',
+          environment: 'dev',
+          base_url: 'http://localhost:9200',
+          auth_kind: 'es_apikey',
+          engine_config: null,
+          notes: null,
+          target_filter: 'products*',
+          created_at: '2026-05-20T00:00:00Z',
+          health_check: {
+            status: 'green',
+            version: '9.4.0',
+            checked_at: '2026-05-20T00:00:00Z',
+            error: null,
+          },
+        });
+      }),
+    );
+    wrap(<RegisterClusterModal open={true} onOpenChange={() => {}} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'prod-es' } });
+    fireEvent.change(screen.getByLabelText('Base URL'), {
+      target: { value: 'http://localhost:9200' },
+    });
+    fireEvent.change(screen.getByLabelText('Credentials ref (./secrets/<name>)'), {
+      target: { value: 'es-apikey' },
+    });
+    fireEvent.change(screen.getByLabelText('Target filter (optional)'), {
+      target: { value: 'products*' },
+    });
+    fireEvent.click(screen.getByTestId('register-submit'));
+    await waitFor(() => expect(captured.target_filter).toBe('products*'));
+  });
+
+  it('submits target_filter as null when only whitespace is entered (AC-12)', async () => {
+    let captured: { target_filter?: unknown } = {};
+    server.use(
+      configReposEmpty(),
+      http.post(`${API_BASE}/api/v1/clusters`, async ({ request }) => {
+        captured = (await request.json()) as { target_filter?: unknown };
+        return HttpResponse.json({
+          id: 'c1',
+          name: 'prod-es',
+          engine_type: 'elasticsearch',
+          environment: 'dev',
+          base_url: 'http://localhost:9200',
+          auth_kind: 'es_apikey',
+          engine_config: null,
+          notes: null,
+          target_filter: null,
+          created_at: '2026-05-20T00:00:00Z',
+          health_check: {
+            status: 'green',
+            version: '9.4.0',
+            checked_at: '2026-05-20T00:00:00Z',
+            error: null,
+          },
+        });
+      }),
+    );
+    wrap(<RegisterClusterModal open={true} onOpenChange={() => {}} />);
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'prod-es' } });
+    fireEvent.change(screen.getByLabelText('Base URL'), {
+      target: { value: 'http://localhost:9200' },
+    });
+    fireEvent.change(screen.getByLabelText('Credentials ref (./secrets/<name>)'), {
+      target: { value: 'es-apikey' },
+    });
+    fireEvent.change(screen.getByLabelText('Target filter (optional)'), {
+      target: { value: '   ' },
+    });
+    fireEvent.click(screen.getByTestId('register-submit'));
+    await waitFor(() => expect(captured.target_filter).toBeNull());
+  });
+
   it('renders the config-repo empty-state CTA when no repos exist (Story 2.3)', async () => {
     server.use(configReposEmpty());
     wrap(<RegisterClusterModal open={true} onOpenChange={() => {}} />);

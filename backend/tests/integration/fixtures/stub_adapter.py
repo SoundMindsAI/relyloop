@@ -54,7 +54,15 @@ class StubAdapter:
             checked_at=datetime.now(UTC).isoformat(),
         )
 
-    async def list_targets(self, *, request_id: str | None = None) -> list[TargetInfo]:
+    async def list_targets(
+        self,
+        *,
+        request_id: str | None = None,
+        target_filter: str | None = None,
+    ) -> list[TargetInfo]:
+        # `target_filter` accepted to match Protocol signature (feat_cluster_target_filter
+        # FR-3); stub returns hardcoded data so the kwarg is intentionally unused.
+        del target_filter  # silence unused-arg lint
         return [TargetInfo(name="stub-index", doc_count=100)]
 
     async def get_schema(self, target: str, *, request_id: str | None = None) -> Schema:

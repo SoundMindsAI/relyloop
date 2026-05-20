@@ -23,7 +23,7 @@ class SearchAdapter(Protocol):
     engine_type: str  # "elasticsearch" | "opensearch" | "lucidworks_fusion" | "solr"
 
     def health_check(self) -> HealthStatus: ...
-    def list_targets(self) -> list[TargetInfo]: ...
+    def list_targets(self, *, target_filter: str | None = None) -> list[TargetInfo]: ...
     def get_schema(self, target: str) -> Schema: ...
     def list_query_parsers(self) -> list[str]: ...
 
@@ -61,6 +61,8 @@ class SearchAdapter(Protocol):
 | `get_schema` | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` | `TargetNotFoundError` → 404 `TARGET_NOT_FOUND` | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` |
 
 The asymmetry on 401/403 (`list_targets` distinguishes; `get_schema` conflates with 5xx) is intentional: ACL-restricted listing has a UX-distinct remediation (manual-mode target entry) that ACL-restricted schema lookup does not have at this point in the wizard. See [`feat_create_study_target_autocomplete`](../00_overview/implemented_features/<date>_feat_create_study_target_autocomplete/) for the rationale.
+
+**`list_targets` filter semantics** (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/<date>_feat_cluster_target_filter/)). When the caller passes `target_filter="<glob>"`, the adapter restricts the result to names where `fnmatch.fnmatchcase(name, glob)` returns True. Glob syntax: `*`, `?`, `[seq]`, `[!seq]` — no brace expansion. Case-sensitive via `fnmatchcase` (avoids platform-dependent `os.path.normcase` in `fnmatch.fnmatch`). **Order of operations:** the engine's system-index `.` exclusion runs FIRST; the glob filter runs SECOND. Operators cannot re-expose `.kibana_1` or similar via a permissive filter. The router resolves `cluster.target_filter` from the DB row before calling the adapter — `target_filter` is per-cluster metadata, not a per-request query parameter.
 
 The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py`, future `backend/app/adapters/fusion.py`, etc.).
 
