@@ -118,6 +118,29 @@ test in the project that scans the live source tree for a static invariant.
 Five regression cases pin the failure-message contract so the next contributor
 sees a useful diagnostic on a real violation.
 
+### Frontend-specific: Pydantic-discriminator parity (`feat_create_study_search_space_builder`)
+
+Some wire-value enums live in a Pydantic discriminated union rather than in
+[`ui/src/lib/enums.ts`](../../ui/src/lib/enums.ts) — the `form-select-discipline.test.tsx`
+lint guard above does NOT catch drift in those cases because the values aren't
+imported from `enums.ts`. The canonical example is
+`ParamSpec.type` (`float` / `int` / `categorical`) which lives in
+[`backend/app/domain/study/search_space.py`](../../backend/app/domain/study/search_space.py)'s
+discriminated union over `FloatParam | IntParam | CategoricalParam`.
+
+For these cases, the source-of-truth gate is a dedicated parity test that reads
+the backend file at runtime, extracts the `Literal["..."]` values via regex,
+and asserts the frontend's option array matches one-for-one. The canonical
+first instance is
+[`ui/src/__tests__/components/studies/search-space-builder/param-spec-discriminator.parity.test.tsx`](../../ui/src/__tests__/components/studies/search-space-builder/param-spec-discriminator.parity.test.tsx).
+
+Pattern: use `fs.readFileSync(path.join(process.cwd(), '..', 'backend/...py'), 'utf-8')`
+(vitest cwd is `ui/`, so `..` resolves to repo root), then
+`source.matchAll(/type:\s*Literal\["([^"]+)"\]/g)`. Assert against the typed
+array imported from the frontend component. Any future spec that adds a new
+variant to the discriminated union must update both sides in the same PR, or
+the parity test fails on next CI run.
+
 ## Benchmarks (opt-in)
 
 Performance budgets are enforced by benchmark tests under

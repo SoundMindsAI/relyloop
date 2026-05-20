@@ -344,12 +344,23 @@ async def list_judgment_lists_endpoint(
     since: Annotated[datetime | None, Query()] = None,
     q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
     sort: Annotated[JudgmentListSortKey | None, Query()] = None,
+    query_set_id: Annotated[str | None, Query(min_length=1, max_length=36)] = None,
+    cluster_id: Annotated[str | None, Query(min_length=1, max_length=36)] = None,
 ) -> JudgmentListListResponse:
     """List judgment lists, newest-first with cursor pagination.
 
     ``?since=`` filters by ``created_at >= since`` (Story 1.5). ``?q=`` FTS
     match against ``search_vector`` (name + target). ``?sort=`` is a
     :data:`JudgmentListSortKey` value with sort-aware cursor (Story 1.3).
+    ``?query_set_id`` / ``?cluster_id`` filter to lists belonging to the
+    supplied parent (``bug_judgment_lists_listing_ignores_query_set_filter``
+    — required by the create-study modal's Step-2 dropdown so the user
+    can only pick judgment-lists valid for the chosen query-set + cluster;
+    without these filters the modal returns all rows and the user can
+    pick a mismatched pair, which the ``POST /api/v1/studies`` cross-
+    entity integrity check then rejects at create time with a confusing
+    422 ``VALIDATION_ERROR: "judgment_list query_set_id does not match
+    study query_set_id"``).
     """
     parsed_sort = parse_sort(sort, _JUDGMENT_LIST_SORT_COLUMNS)
     decoded_cursor: tuple[object, str] | None = None
@@ -361,12 +372,21 @@ async def list_judgment_lists_endpoint(
         except Exception as exc:
             raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
     rows = await repo.list_judgment_lists(
-        db, cursor=decoded_cursor, limit=limit + 1, since=since, q=q, sort=sort
+        db,
+        cursor=decoded_cursor,
+        limit=limit + 1,
+        since=since,
+        q=q,
+        sort=sort,
+        query_set_id=query_set_id,
+        cluster_id=cluster_id,
     )
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
-    total = await repo.count_judgment_lists(db, since=since, q=q)
+    total = await repo.count_judgment_lists(
+        db, since=since, q=q, query_set_id=query_set_id, cluster_id=cluster_id
+    )
     response.headers["X-Total-Count"] = str(total)
     next_cursor: str | None = None
     if has_more and rows:

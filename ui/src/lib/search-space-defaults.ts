@@ -64,8 +64,13 @@ const DEFAULT_FALLBACK: ParamSpec = { type: 'float', low: 0.0, high: 1.0 };
  * `'string'` case emits a degenerate single-choice categorical with a
  * `__placeholder__` sentinel — the modal renders a non-blocking amber
  * warning so the user replaces it before submitting (spec FR-1, AC-1).
+ *
+ * Exported (`feat_create_study_search_space_builder` Story 2.1) so the
+ * builder can seed initial spec values for declared-but-unset rows. Note
+ * that this is NOT used for the cross-type stash fallback — type-switch
+ * uses target-type-only `defaultSpecForType(nextType)` defaults instead.
  */
-function simpleFormSpec(typeName: string): ParamSpec | null {
+export function simpleFormSpec(typeName: string): ParamSpec | null {
   switch (typeName) {
     case 'int':
       return { type: 'int', low: 0, high: 5 };
@@ -81,10 +86,33 @@ function simpleFormSpec(typeName: string): ParamSpec | null {
 }
 
 /**
+ * Per-param cardinality contribution.
+ *
+ * Float counted as 100 (matches the Python source-of-truth at
+ * `backend/app/domain/study/search_space.py:191`); Int counted as
+ * `high - low + 1`; Categorical counted as `len(choices)`.
+ *
+ * Extracted from `estimateCardinality()`'s loop body in
+ * `feat_create_study_search_space_builder` Story 2.3 so the builder
+ * can render per-row contribution counters that match the total.
+ */
+export function estimateParamCardinality(spec: ParamSpec): number {
+  if (spec.type === 'float') return 100;
+  if (spec.type === 'int') {
+    // Math.max(0, ...) guards against textarea-supplied inverted bounds
+    // (low > high) producing a negative cardinality in the header counter.
+    // The row error fires separately via <RowNumeric>'s bound check.
+    return Math.max(0, spec.high - spec.low + 1);
+  }
+  // Optional chaining defends against runtime-malformed JSON where
+  // `choices` is undefined despite the TypeScript discriminator.
+  return spec.choices?.length ?? 0;
+}
+
+/**
  * TypeScript port of
  * `backend/app/domain/study/search_space.py:estimate_cardinality`.
- * Float counted as 100; Int counted as `high - low + 1`; Categorical
- * counted as `len(choices)`. Product across all params.
+ * Product of `estimateParamCardinality` across every param.
  *
  * Returns at least 1 (an empty space would have been rejected by
  * Pydantic's `min_length=1` on `params`).
@@ -92,13 +120,7 @@ function simpleFormSpec(typeName: string): ParamSpec | null {
 export function estimateCardinality(space: SearchSpaceJson): number {
   let total = 1;
   for (const spec of Object.values(space.params)) {
-    if (spec.type === 'float') {
-      total *= 100;
-    } else if (spec.type === 'int') {
-      total *= spec.high - spec.low + 1;
-    } else {
-      total *= spec.choices.length;
-    }
+    total *= estimateParamCardinality(spec);
   }
   return total;
 }
