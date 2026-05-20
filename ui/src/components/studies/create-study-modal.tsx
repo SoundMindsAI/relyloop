@@ -53,7 +53,8 @@ export const K_REQUIRED: ReadonlySet<ObjectiveMetric> = new Set(['ndcg', 'precis
 // K_REQUIRED-membership contract test at
 // backend/tests/contract/test_k_required_membership.py.
 // Asserted on the frontend side by ui/src/__tests__/components/studies/k-ignored.test.ts.
-export const K_IGNORED: ReadonlySet<ObjectiveMetric> = new Set(['mrr', 'err']);
+// ERR@k is reserved for MVP2 (infra_optuna_eval §13); when it lands, add 'err' back here.
+export const K_IGNORED: ReadonlySet<ObjectiveMetric> = new Set(['mrr']);
 
 // Sentinel value used by the optional-k "—" SelectItem (Radix SelectItem
 // rejects empty-string values).

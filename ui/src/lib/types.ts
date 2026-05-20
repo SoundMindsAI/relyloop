@@ -1559,7 +1559,7 @@ export interface components {
        * Metric
        * @enum {string}
        */
-      metric: 'ndcg' | 'map' | 'precision' | 'recall' | 'mrr' | 'err';
+      metric: 'ndcg' | 'map' | 'precision' | 'recall' | 'mrr';
       /** K */
       k?: (1 | 3 | 5 | 10 | 20 | 50 | 100) | null;
       /**

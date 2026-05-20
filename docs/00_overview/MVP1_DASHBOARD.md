@@ -15,8 +15,8 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **47 / 47** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **4** items remaining (features + bugs + chores) |
-| Open bugs | 2 |
+| Path to MVP1 | **2** items remaining (features + bugs + chores) |
+| Open bugs | 0 |
 | Open chores | 2 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
@@ -96,7 +96,7 @@ _None._
 
 _None._
 
-### Idea (7)
+### Idea (5)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -105,8 +105,6 @@ _None._
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_create_study_modal_e2e_stability](../02_product/planned_features/chore_create_study_modal_e2e_stability/idea.md) | Chore | The Playwright smoke lane runs every `ui/tests/e2e/*.spec.ts` against a real-backend stack. The create-study modal's Step-1 cluster trigger (rendered by [`EntitySelect`](../../ui/src/components/common | — | Idea — deferred from chore_create_study_wizard_polish PR #157 |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [bug_err_metric_frontend_backend_drift](../02_product/planned_features/bug_err_metric_frontend_backend_drift/idea.md) | Bug | `OBJECTIVE_METRIC_VALUES` (frontend at `ui/src/lib/enums.ts:66`) and `ObjectiveMetric` Literal (backend at `backend/app/api/v1/schemas.py`) both contain `err`. But the scoring layer's `SUPPORTED_METRI | — | Idea — surfaced during GPT-5.5 review of chore_create_study_wizard_polish PR #157 |
-| [bug_tutorial_template_param_boost_naming](../02_product/planned_features/bug_tutorial_template_param_boost_naming/idea.md) | Bug | A tutorial user following [`docs/08_guides/tutorial-first-study.md`](../08_guides/tutorial-first-study.md) Step 8 ("Open `/chat` and ask the agent to tune") gets the canonical `0.5–10` log-uniform ran | — | Idea — surfaced during chore_create_study_wizard_polish implementation |
 
 ## Dependency graph
 

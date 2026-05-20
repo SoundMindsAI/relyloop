@@ -63,14 +63,9 @@ export const PRUNER_VALUES = ['median', 'none'] as const;
 export type PrunerKind = (typeof PRUNER_VALUES)[number];
 
 // Values must match backend/app/api/v1/schemas.py ObjectiveMetric.
-export const OBJECTIVE_METRIC_VALUES = [
-  'ndcg',
-  'map',
-  'precision',
-  'recall',
-  'mrr',
-  'err',
-] as const;
+// ERR@k is deferred to MVP2 per infra_optuna_eval feature_spec.md §3 / §FR-3 / §13;
+// add it back here when scoring.py SUPPORTED_METRICS grows the entry.
+export const OBJECTIVE_METRIC_VALUES = ['ndcg', 'map', 'precision', 'recall', 'mrr'] as const;
 export type ObjectiveMetric = (typeof OBJECTIVE_METRIC_VALUES)[number];
 
 // Values must match backend/app/api/v1/schemas.py ObjectiveK.
