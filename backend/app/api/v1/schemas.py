@@ -22,6 +22,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from backend.app.adapters.protocol import TargetInfo
 from backend.app.core.settings import get_settings
 
 EngineType = Literal["elasticsearch", "opensearch"]
@@ -125,6 +126,20 @@ class ClusterListResponse(BaseModel):
     data: list[ClusterSummary]
     next_cursor: str | None
     has_more: bool
+
+
+class TargetListResponse(BaseModel):
+    """Response for ``GET /api/v1/clusters/{cluster_id}/targets`` (FR-1).
+
+    Unpaginated by design — see feature_spec.md §7.1 "pagination shape
+    rationale". The single-resource lookup pattern matches
+    ``/clusters/{id}/schema`` rather than the queryable ``/clusters`` list.
+    ``EntitySelectListPage<T>``'s ``next_cursor`` and ``has_more`` fields
+    are optional, so this bare ``data``-only shape consumes correctly on
+    the frontend without pretending to be a cursor endpoint.
+    """
+
+    data: list[TargetInfo]
 
 
 class RunQueryRequest(BaseModel):

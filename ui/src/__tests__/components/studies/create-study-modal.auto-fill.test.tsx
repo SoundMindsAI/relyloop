@@ -71,6 +71,9 @@ function mockStep1to3(templateDetail: { declared_params: Record<string, string>;
       ),
     ),
     http.get(`${API_BASE}/api/v1/clusters/c1/schema`, () => HttpResponse.json({ fields: [] })),
+    http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () =>
+      HttpResponse.json({ data: [{ name: 'products', doc_count: 42 }] }),
+    ),
     http.get(`${API_BASE}/api/v1/query-sets`, () =>
       HttpResponse.json(
         {
@@ -137,6 +140,9 @@ function mockStep1to3(templateDetail: { declared_params: Record<string, string>;
 async function walkSteps1to3(): Promise<void> {
   await waitFor(() => expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument());
   fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+  await waitFor(() =>
+    expect(screen.queryAllByRole('option', { name: /products/ }).length).toBeGreaterThan(0),
+  );
   fireEvent.change(screen.getByLabelText('Target index / collection'), {
     target: { value: 'products' },
   });
@@ -245,6 +251,9 @@ describe('CreateStudyModal — Step-4 auto-fill (chore_create_study_wizard_polis
         ),
       ),
       http.get(`${API_BASE}/api/v1/clusters/c1/schema`, () => HttpResponse.json({ fields: [] })),
+      http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () =>
+        HttpResponse.json({ data: [{ name: 'products', doc_count: 42 }] }),
+      ),
       http.get(`${API_BASE}/api/v1/query-sets`, () =>
         HttpResponse.json(
           {
@@ -333,6 +342,9 @@ describe('CreateStudyModal — Step-4 auto-fill (chore_create_study_wizard_polis
       expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument(),
     );
     fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+    await waitFor(() =>
+      expect(screen.queryAllByRole('option', { name: /products/ }).length).toBeGreaterThan(0),
+    );
     fireEvent.change(screen.getByLabelText('Target index / collection'), {
       target: { value: 'products' },
     });

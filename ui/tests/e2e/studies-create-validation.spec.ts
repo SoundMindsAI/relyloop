@@ -81,6 +81,10 @@ test.describe('/studies — create-study Step-4 client-side validation', () => {
 
     // Step 1 — pick the seeded cluster + a target index name.
     await pickEntity(page, 'cs-cluster', chain.clusterName);
+    // feat_create_study_target_autocomplete F2: target field is an EntitySelect
+    // by default. Flip into manual mode so the existing fill() path works
+    // without this test needing to seed an ES index.
+    await page.getByRole('button', { name: 'Enter manually' }).click();
     await page.getByLabel('Target index / collection').fill('e2e-target');
     await page.getByTestId('step-next').click();
 

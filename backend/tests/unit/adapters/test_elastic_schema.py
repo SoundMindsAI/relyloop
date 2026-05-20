@@ -23,7 +23,11 @@ import httpx
 import pytest
 
 from backend.app.adapters.elastic import ElasticAdapter
-from backend.app.adapters.errors import ClusterUnreachableError, TargetNotFoundError
+from backend.app.adapters.errors import (
+    ClusterUnreachableError,
+    TargetNotFoundError,
+    TargetsForbiddenError,
+)
 from backend.app.core.settings import get_settings
 
 
@@ -184,6 +188,23 @@ class TestGetSchemaErrors:
         finally:
             await adapter.aclose()
 
+    async def test_connection_error_raises_unreachable(self) -> None:
+        """bug_get_schema_unhandled_connect_error (bundled with
+        feat_create_study_target_autocomplete): connection failure → translated
+        to ClusterUnreachableError instead of leaking the raw httpx exception
+        as 500 INTERNAL_ERROR. Mirrors the list_targets pattern from B1.
+        """
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(ClusterUnreachableError):
+                await adapter.get_schema("products")
+        finally:
+            await adapter.aclose()
+
 
 class TestListTargets:
     async def test_filters_system_indices(self) -> None:
@@ -207,6 +228,81 @@ class TestListTargets:
         by_name = {t.name: t for t in targets}
         assert by_name["products"].doc_count == 42
         assert by_name["orders"].doc_count is None
+
+    # ------------------------------------------------------------------
+    # feat_create_study_target_autocomplete Story B1 — error mapping
+    # ------------------------------------------------------------------
+
+    async def test_401_raises_targets_forbidden(self) -> None:
+        """FR-2 / AC-5: 401 from _cat/indices → TargetsForbiddenError."""
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            return httpx.Response(401, text="auth required")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(TargetsForbiddenError):
+                await adapter.list_targets()
+        finally:
+            await adapter.aclose()
+
+    async def test_403_raises_targets_forbidden(self) -> None:
+        """FR-2 / AC-5: 403 from _cat/indices → TargetsForbiddenError."""
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            return httpx.Response(403, text="forbidden")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(TargetsForbiddenError):
+                await adapter.list_targets()
+        finally:
+            await adapter.aclose()
+
+    async def test_500_raises_unreachable(self) -> None:
+        """FR-2 / AC-5: 5xx from _cat/indices → ClusterUnreachableError."""
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            return httpx.Response(500, text="internal error")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(ClusterUnreachableError):
+                await adapter.list_targets()
+        finally:
+            await adapter.aclose()
+
+    async def test_503_raises_unreachable(self) -> None:
+        """FR-2 / AC-5: 503 from _cat/indices → ClusterUnreachableError."""
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            return httpx.Response(503, text="service unavailable")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(ClusterUnreachableError):
+                await adapter.list_targets()
+        finally:
+            await adapter.aclose()
+
+    async def test_connection_error_raises_unreachable(self) -> None:
+        """FR-2 / AC-5: connection failure → ClusterUnreachableError (not raw httpx).
+
+        Without the explicit try/except httpx.HTTPError in list_targets(),
+        translate_errors=False would let the raw httpx.ConnectError propagate
+        and surface as 500 INTERNAL_ERROR at the router instead of 503
+        CLUSTER_UNREACHABLE. This test locks that defensive translation.
+        """
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(ClusterUnreachableError):
+                await adapter.list_targets()
+        finally:
+            await adapter.aclose()
 
 
 class TestListQueryParsers:

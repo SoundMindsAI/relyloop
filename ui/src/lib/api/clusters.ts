@@ -7,8 +7,9 @@ import {
   type UseQueryResult,
 } from '@tanstack/react-query';
 
+import type { EntitySelectListPage } from '@/components/common/entity-select';
 import { apiClient } from '@/lib/api-client';
-import type { ApiError } from '@/lib/api-errors';
+import { isApiError, type ApiError } from '@/lib/api-errors';
 import type { components } from '@/lib/types';
 
 export type ClusterSummary = components['schemas']['ClusterSummary'];
@@ -16,6 +17,28 @@ export type ClusterDetail = components['schemas']['ClusterDetail'];
 export type ClusterListResponse = components['schemas']['ClusterListResponse'];
 export type CreateClusterRequest = components['schemas']['CreateClusterRequest'];
 export type Schema = components['schemas']['Schema'];
+
+/**
+ * Re-export the generated TargetInfo type so frontend callers don't reach into
+ * the generated `components['schemas']` namespace directly.
+ * Source of truth: backend/app/adapters/protocol.py TargetInfo class.
+ */
+export type TargetSummary = components['schemas']['TargetInfo'];
+
+/**
+ * Shared retry predicate (FR-3 / FR-6). Short-circuits on permanent failures
+ * (TARGETS_FORBIDDEN, TARGET_NOT_FOUND, CLUSTER_NOT_FOUND) where the
+ * backend-supplied `retryable: false` signals retry won't help. Without
+ * this, TanStack's default `retry: 3` would fire 4 GETs per misspelled
+ * keystroke in manual mode or per ACL-restricted cluster pick.
+ *
+ * Mocking-layer note: tests asserting "exactly one call" or "up to 4 calls"
+ * mock at the `apiClient.get` layer to isolate TanStack's retry from the
+ * api-client's own internal 503 retry loop.
+ */
+function retryOnRetryableError(failureCount: number, error: unknown): boolean {
+  return isApiError(error) ? Boolean(error.retryable) && failureCount < 3 : failureCount < 3;
+}
 
 export type ClusterListPage = ClusterListResponse & { totalCount: number };
 
@@ -104,5 +127,47 @@ export function useClusterSchema(
       });
       return data;
     },
+    // FR-6: short-circuit retries on TARGET_NOT_FOUND (retryable: false).
+    // Without this, TanStack's default retry: 3 fires 4 GETs per misspelled
+    // keystroke when the operator types into the manual-mode <Input>.
+    retry: retryOnRetryableError,
+    // FR-6: silence the global toast for misspelled target names. The
+    // "{N} fields discovered" hint not-rendering is sufficient signal that
+    // the target name is wrong.
+    meta: { suppressErrorCodes: ['TARGET_NOT_FOUND'] },
+  });
+}
+
+/**
+ * List the indices/collections on a registered cluster (FR-3).
+ *
+ * Returns `EntitySelectListPage<TargetSummary>` so the result can be passed
+ * directly to `<EntitySelect query={q}>` without translation. The backend
+ * response is the bare `{ data: TargetSummary[] }` shape; `next_cursor` /
+ * `has_more` are optional on EntitySelectListPage so this consumes correctly.
+ *
+ * `enabled: Boolean(clusterId)` prevents firing a GET before the operator
+ * has picked a cluster — `useClusterTargets("")` returns an idle query with
+ * `data === undefined`, no network call.
+ *
+ * On `TARGETS_FORBIDDEN`: fires exactly one GET (retry predicate
+ * short-circuits) and the global error toast is suppressed via
+ * `meta.suppressErrorCodes` — the modal's FR-5 inline amber hint is the
+ * only user-facing signal for ACL-restricted clusters.
+ */
+export function useClusterTargets(
+  clusterId: string,
+): UseQueryResult<EntitySelectListPage<TargetSummary>, ApiError> {
+  return useQuery<EntitySelectListPage<TargetSummary>, ApiError>({
+    queryKey: ['clusters', clusterId, 'targets'],
+    enabled: Boolean(clusterId),
+    queryFn: async () => {
+      const { data } = await apiClient.get<EntitySelectListPage<TargetSummary>>(
+        `/api/v1/clusters/${clusterId}/targets`,
+      );
+      return data;
+    },
+    retry: retryOnRetryableError,
+    meta: { suppressErrorCodes: ['TARGETS_FORBIDDEN'] },
   });
 }

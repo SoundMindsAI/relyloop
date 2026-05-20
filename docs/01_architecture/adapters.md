@@ -53,6 +53,15 @@ class SearchAdapter(Protocol):
 
 `search_batch` is the **only hot-path method** during a study (called once per Optuna trial). Every other method is define-time (`get_schema`, `list_targets` — called during cluster registration and study creation) or debug-time (`explain` — called from the UI when a user wants to see why a doc ranked where it did).
 
+**Per-method exception contract.** Concrete adapter implementations translate engine HTTP status codes to named exceptions so routers can dispatch each to a distinct `error_code` envelope:
+
+| Method | 401/403 | 404 | 5xx / connection failure |
+|---|---|---|---|
+| `list_targets` | `TargetsForbiddenError` → 403 `TARGETS_FORBIDDEN` (`retryable=false`; UI auto-engages manual mode) | (n/a) | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` |
+| `get_schema` | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` | `TargetNotFoundError` → 404 `TARGET_NOT_FOUND` | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` |
+
+The asymmetry on 401/403 (`list_targets` distinguishes; `get_schema` conflates with 5xx) is intentional: ACL-restricted listing has a UX-distinct remediation (manual-mode target entry) that ACL-restricted schema lookup does not have at this point in the wizard. See [`feat_create_study_target_autocomplete`](../00_overview/implemented_features/<date>_feat_create_study_target_autocomplete/) for the rationale.
+
 The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py`, future `backend/app/adapters/fusion.py`, etc.).
 
 ## ElasticAdapter (MVP1)

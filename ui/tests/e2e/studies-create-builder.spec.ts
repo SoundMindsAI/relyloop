@@ -83,6 +83,10 @@ async function walkToStep4(page: Page): Promise<{
   await expect(page.getByTestId('create-study-form')).toBeVisible({ timeout: 5_000 });
 
   await pickEntity(page, 'cs-cluster', chain.clusterName);
+  // feat_create_study_target_autocomplete F2: target is an EntitySelect by
+  // default. Flip into manual mode so the fill() path still works without
+  // requiring this test to seed an ES index for the dropdown.
+  await page.getByRole('button', { name: 'Enter manually' }).click();
   await page.getByLabel('Target index / collection').fill('e2e-builder-target');
   await page.getByTestId('step-next').click();
 

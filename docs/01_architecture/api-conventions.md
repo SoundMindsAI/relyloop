@@ -76,6 +76,12 @@ The studies endpoint surfaces two template-mismatch codes (added by `chore_creat
 | `SEARCH_SPACE_UNKNOWN_PARAM` | 400 | A key in `search_space.params` is not declared by the selected template. Message format: `"Param '{name}' is not declared by template '{template_name}'. Declared params: [...]."` `retryable: false`. |
 | `SEARCH_SPACE_MISSING_DECLARED_PARAM` | 400 | A key in the template's `declared_params` is missing from the submitted `search_space.params`. Message format: `"Template '{template_name}' declares param '{name}' but it is missing from the search space. Add it or remove from the template."` `retryable: false`. |
 
+The clusters endpoint surfaces an ACL-restriction code on the targets sub-resource (added by `feat_create_study_target_autocomplete`, 2026-05-20):
+
+| Code | HTTP Status | Meaning |
+|---|---|---|
+| `TARGETS_FORBIDDEN` | 403 | Cluster denied the listing call (typically the Elasticsearch security plugin returning 401/403 on `GET /_cat/indices`). `retryable: false` — the UI auto-engages manual-mode target entry on this code rather than retrying. Distinguishes from `CLUSTER_UNREACHABLE` because retry won't help when the cluster's ACL is the cause. |
+
 ### Auth errors (MVP4+)
 
 When auth arrives, auth failures use a separate envelope:

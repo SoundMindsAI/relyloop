@@ -135,3 +135,23 @@ class TestExplainErrors:
                 )
         finally:
             await adapter.aclose()
+
+    async def test_connection_error_raises_unreachable(self) -> None:
+        """bug_get_schema_unhandled_connect_error (bundled): connection
+        failure → translated to ClusterUnreachableError instead of leaking
+        the raw httpx exception as 500 INTERNAL_ERROR.
+        """
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(ClusterUnreachableError):
+                await adapter.explain(
+                    "products",
+                    NativeQuery(query_id="q", body={}),
+                    "doc-1",
+                )
+        finally:
+            await adapter.aclose()

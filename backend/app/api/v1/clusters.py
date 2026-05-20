@@ -7,6 +7,7 @@ Endpoints (per spec §7.1, FR-5/FR-4/FR-6):
 * ``GET    /api/v1/clusters/{cluster_id}``          — detail
 * ``DELETE /api/v1/clusters/{cluster_id}``          — soft-delete
 * ``GET    /api/v1/clusters/{cluster_id}/schema``   — schema introspection
+* ``GET    /api/v1/clusters/{cluster_id}/targets``  — list indices/collections
 * ``POST   /api/v1/clusters/{cluster_id}/run_query``— ad-hoc DSL execution
 
 Service exceptions are translated into the spec §7.5 error envelope here
@@ -31,6 +32,7 @@ from backend.app.adapters.errors import (
     InvalidQueryDSLError,
     QueryTimeoutError,
     TargetNotFoundError,
+    TargetsForbiddenError,
 )
 from backend.app.adapters.protocol import HealthStatus
 from backend.app.adapters.protocol import Schema as AdapterSchema
@@ -47,6 +49,7 @@ from backend.app.api.v1.schemas import (
     RunQueryHit,
     RunQueryRequest,
     RunQueryResponse,
+    TargetListResponse,
 )
 from backend.app.db import repo
 from backend.app.db.models import Cluster
@@ -311,6 +314,47 @@ async def get_cluster_schema(
             return await adapter.get_schema(target)
     except TargetNotFoundError as exc:
         raise _err(404, "TARGET_NOT_FOUND", f"target {exc.target!r} not found", False) from exc
+    except (ClusterUnreachable, ClusterUnreachableError) as exc:
+        raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
+
+
+# ---------------------------------------------------------------------------
+# feat_create_study_target_autocomplete Story B2 — Target list
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/clusters/{cluster_id}/targets",
+    response_model=TargetListResponse,
+    tags=["clusters"],
+)
+async def list_cluster_targets(
+    cluster_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> TargetListResponse:
+    """List targets (indices/collections) on the cluster (FR-1 / AC-1).
+
+    Thin passthrough to ``ElasticAdapter.list_targets()`` (which filters out
+    system indices whose names start with ``.``). Mirrors the ``get_cluster_schema``
+    pattern: ``get_cluster`` → ``acquire_adapter`` async context → adapter call
+    → translate exceptions via the ``_err()`` helper to the spec §7.5 envelope.
+
+    Error mapping:
+    * cluster missing or soft-deleted → 404 ``CLUSTER_NOT_FOUND`` (retryable=false)
+    * adapter raises ``TargetsForbiddenError`` (ACL 401/403) → 403
+      ``TARGETS_FORBIDDEN`` (retryable=false) — frontend auto-engages manual mode
+    * adapter raises ``ClusterUnreachableError`` (5xx / connection failure) → 503
+      ``CLUSTER_UNREACHABLE`` (retryable=true)
+    """
+    cluster = await repo.get_cluster(db, cluster_id)
+    if cluster is None:
+        raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id} not found", False)
+    try:
+        async with cluster_svc.acquire_adapter(cluster) as adapter:
+            targets = await adapter.list_targets()
+            return TargetListResponse(data=targets)
+    except TargetsForbiddenError as exc:
+        raise _err(403, "TARGETS_FORBIDDEN", str(exc), False) from exc
     except (ClusterUnreachable, ClusterUnreachableError) as exc:
         raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
 

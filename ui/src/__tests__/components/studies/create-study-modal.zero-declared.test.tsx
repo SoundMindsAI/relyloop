@@ -61,6 +61,9 @@ describe('CreateStudyModal — zero-declared-params template blocks Step-3 → S
         ),
       ),
       http.get(`${API_BASE}/api/v1/clusters/c1/schema`, () => HttpResponse.json({ fields: [] })),
+      http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () =>
+        HttpResponse.json({ data: [{ name: 'products', doc_count: 42 }] }),
+      ),
       http.get(`${API_BASE}/api/v1/query-sets`, () =>
         HttpResponse.json(
           {
@@ -132,6 +135,9 @@ describe('CreateStudyModal — zero-declared-params template blocks Step-3 → S
       expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument(),
     );
     fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+    await waitFor(() =>
+      expect(screen.queryAllByRole('option', { name: /products/ }).length).toBeGreaterThan(0),
+    );
     fireEvent.change(screen.getByLabelText('Target index / collection'), {
       target: { value: 'products' },
     });
