@@ -62,6 +62,35 @@ class CreateClusterRequest(BaseModel):
     credentials_ref: str = Field(min_length=1, max_length=128)
     engine_config: dict[str, Any] | None = None
     notes: str | None = Field(default=None, max_length=2000)
+    target_filter: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=256,
+        description=(
+            "Optional glob pattern (fnmatch.fnmatchcase: *, ?, [seq], [!seq]; "
+            "no brace expansion). Scopes GET /clusters/{id}/targets to "
+            "matching index names. Null = no filter."
+        ),
+    )
+
+    @field_validator("target_filter", mode="before")
+    @classmethod
+    def strip_target_filter(cls, v: Any) -> Any:
+        """Strip whitespace BEFORE min_length/max_length run (feat_cluster_target_filter FR-2).
+
+        Pydantic v2 default validator mode is ``after`` — that would let a
+        padded valid filter like ``"  " + "x"*256`` fail max_length=256 even
+        though the stripped value is exactly 256 chars. ``mode="before"`` runs
+        the strip first; ``min_length=1`` then catches the empty/whitespace-only
+        case and ``max_length=256`` runs on the stripped value.
+
+        Glob syntax is NOT validated — Python ``fnmatch`` is permissive (every
+        non-empty string is a valid glob). A pattern that matches nothing at
+        runtime surfaces via the create-study modal's empty-state, not a 422.
+        """
+        if isinstance(v, str):
+            return v.strip()
+        return v
 
     @field_validator("base_url")
     @classmethod
@@ -103,6 +132,7 @@ class ClusterDetail(BaseModel):
     auth_kind: AuthKind
     engine_config: dict[str, Any] | None = None
     notes: str | None = None
+    target_filter: str | None = None
     created_at: datetime
     health_check: HealthCheckResult
 
@@ -116,6 +146,7 @@ class ClusterSummary(BaseModel):
     environment: Environment
     base_url: str
     auth_kind: AuthKind
+    target_filter: str | None = None
     created_at: datetime
     health_check: HealthCheckResult
 

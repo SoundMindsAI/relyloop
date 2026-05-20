@@ -75,6 +75,69 @@ def test_create_cluster_request_validates_scheme() -> None:
         )
 
 
+def _make_cluster_request(**overrides: object) -> CreateClusterRequest:
+    """Build a minimal valid CreateClusterRequest for validator-focused tests."""
+    fields: dict[str, object] = {
+        "name": "cluster",
+        "engine_type": "elasticsearch",
+        "environment": "dev",
+        "base_url": "http://elasticsearch:9200",
+        "auth_kind": "es_basic",
+        "credentials_ref": "ref",
+    }
+    fields.update(overrides)
+    return CreateClusterRequest(**fields)
+
+
+class TestTargetFilterValidator:
+    """feat_cluster_target_filter Story B3 — request validator (FR-2 + Finding #5)."""
+
+    def test_omitted_defaults_to_none(self) -> None:
+        req = _make_cluster_request()
+        assert req.target_filter is None
+
+    def test_valid_pattern_accepted(self) -> None:
+        req = _make_cluster_request(target_filter="products*")
+        assert req.target_filter == "products*"
+
+    def test_padded_string_strips_to_canonical(self) -> None:
+        """Finding #5: mode='before' validator strips before min/max_length run."""
+        req = _make_cluster_request(target_filter="  products*  ")
+        assert req.target_filter == "products*"
+
+    def test_padded_at_max_length_boundary_passes(self) -> None:
+        """Padded 256-char filter MUST pass — proves max_length sees stripped value.
+
+        Without mode='before' the leading/trailing whitespace would push the
+        wire length past 256 and falsely 422.
+        """
+        padded = "  " + ("x" * 256) + "  "
+        req = _make_cluster_request(target_filter=padded)
+        assert req.target_filter == "x" * 256
+
+    def test_empty_string_rejected(self) -> None:
+        import pytest
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            _make_cluster_request(target_filter="")
+
+    def test_whitespace_only_rejected(self) -> None:
+        """Whitespace strips to empty, then min_length=1 catches it."""
+        import pytest
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            _make_cluster_request(target_filter="   ")
+
+    def test_over_256_chars_rejected(self) -> None:
+        import pytest
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            _make_cluster_request(target_filter="x" * 257)
+
+
 def test_run_query_request_caps_top_k_at_1000() -> None:
     """``top_k`` is bounded at 1000 (spec FR-6 / Decision Log 2026-05-09)."""
     import pytest

@@ -92,6 +92,7 @@ async def register_cluster(
     credentials_ref: str,
     engine_config: dict[str, Any] | None,
     notes: str | None,
+    target_filter: str | None = None,
 ) -> tuple[Cluster, HealthStatus]:
     """Probe → insert (or revive) → cache. Reject if the cluster is unreachable.
 
@@ -167,6 +168,7 @@ async def register_cluster(
             credentials_ref=credentials_ref,
             engine_config=cfg or None,
             notes=notes,
+            target_filter=target_filter,
         )
     else:
         cluster = await repo.create_cluster(
@@ -180,6 +182,7 @@ async def register_cluster(
             credentials_ref=credentials_ref,
             engine_config=cfg or None,
             notes=notes,
+            target_filter=target_filter,
         )
     await db.commit()
     await write_cached_health(redis, cluster.id, health)

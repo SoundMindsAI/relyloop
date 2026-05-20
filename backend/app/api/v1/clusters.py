@@ -124,6 +124,7 @@ def _summary(cluster: Cluster, health: HealthStatus) -> ClusterSummary:
         environment=cluster.environment,
         base_url=cluster.base_url,
         auth_kind=cluster.auth_kind,
+        target_filter=cluster.target_filter,
         created_at=cluster.created_at,
         health_check=HealthCheckResult.model_validate(health.model_dump()),
     )
@@ -139,6 +140,7 @@ def _detail(cluster: Cluster, health: HealthStatus) -> ClusterDetail:
         auth_kind=cluster.auth_kind,
         engine_config=cluster.engine_config,
         notes=cluster.notes,
+        target_filter=cluster.target_filter,
         created_at=cluster.created_at,
         health_check=HealthCheckResult.model_validate(health.model_dump()),
     )
@@ -173,6 +175,7 @@ async def create_cluster(
             credentials_ref=body.credentials_ref,
             engine_config=body.engine_config,
             notes=body.notes,
+            target_filter=body.target_filter,
         )
     except EngineTypeNotSupported as exc:
         raise _err(400, "ENGINE_NOT_SUPPORTED", str(exc), False) from exc
