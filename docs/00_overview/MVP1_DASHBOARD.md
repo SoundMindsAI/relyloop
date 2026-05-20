@@ -6,12 +6,12 @@ _Reflects feature-folder state as of **2026-05-20** (latest mtime of any planned
 
 ## Next up
 
-**[feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md)** — Feature, currently in **Plan**
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_create_study_search_space_builder --auto
+/impl-execute docs/02_product/planned_features/feat_create_study_search_space_builder/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -93,15 +93,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md) | Feature |  | — | [PR #157](https://github.com/SoundMindsAI/relyloop/pull/157) merged 2026-05-20 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (3)
 
@@ -123,7 +123,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_create_study_search_space_builder["create study search space builder"]
-  class feat_create_study_search_space_builder spec;
+  class feat_create_study_search_space_builder plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
