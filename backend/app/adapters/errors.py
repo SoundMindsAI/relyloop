@@ -7,6 +7,11 @@ failures to spec §7.5 error codes consistently.
   ``CLUSTER_UNREACHABLE`` at the router (Story 2.1).
 * ``TargetNotFoundError`` — index/collection 404 → 404 ``TARGET_NOT_FOUND``
   at the router (Story 2.3 extension).
+* ``TargetsForbiddenError`` — cluster denied the listing call (401/403 from
+  ``_cat/indices``) → 403 ``TARGETS_FORBIDDEN`` at the router
+  (``feat_create_study_target_autocomplete`` Story B1). Distinct from
+  ``ClusterUnreachableError`` so the frontend can route ACL-restricted
+  clusters to manual-mode input rather than retrying.
 * ``InvalidQueryDSLError`` — per-query parse failure when the caller passes
   ``strict_errors=True`` (run_query API path) → 400 ``INVALID_QUERY_DSL``
   at the router (Story 2.5 extension).
@@ -32,6 +37,15 @@ class TargetNotFoundError(LookupError):
         """Capture the missing ``target`` name for downstream router translation."""
         super().__init__(target)
         self.target = target
+
+
+class TargetsForbiddenError(Exception):
+    """Cluster denied the listing call (401/403 from ``_cat/indices``).
+
+    Maps to 403 TARGETS_FORBIDDEN, ``retryable=false`` at the router. The
+    frontend auto-engages manual-mode target entry on this code; retrying
+    will not help because the cluster's ACL is the cause.
+    """
 
 
 class InvalidQueryDSLError(Exception):

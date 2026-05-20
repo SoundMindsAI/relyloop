@@ -28,7 +28,11 @@ from typing import Any
 import httpx
 
 from backend.app.adapters.credentials import resolve_credentials
-from backend.app.adapters.errors import ClusterUnreachableError, TargetNotFoundError
+from backend.app.adapters.errors import (
+    ClusterUnreachableError,
+    TargetNotFoundError,
+    TargetsForbiddenError,
+)
 from backend.app.adapters.protocol import (
     EngineType,
     ExplainTree,
@@ -356,14 +360,41 @@ class ElasticAdapter:
 
         System indices (those whose name starts with ``.``) are filtered out
         so the operator sees only user-facing collections.
+
+        ``translate_errors=False`` is used so the per-status mapping below can
+        distinguish ACL-restricted clusters (401/403 → ``TargetsForbiddenError``)
+        from unreachable clusters (5xx / connection failures →
+        ``ClusterUnreachableError``). The frontend uses this distinction to
+        auto-engage manual-mode target entry on ACL restriction
+        (``feat_create_study_target_autocomplete`` FR-2 / FR-5).
+
+        Raises:
+            TargetsForbiddenError: when the cluster returns HTTP 401 or 403.
+            ClusterUnreachableError: connection failures (after the one
+                internal retry in ``_request``) or any non-2xx response other
+                than 401/403.
         """
-        resp = await self._request(
-            "GET",
-            "/_cat/indices",
-            params={"format": "json", "h": "index,docs.count"},
-            request_id=request_id,
-        )
-        resp.raise_for_status()
+        try:
+            resp = await self._request(
+                "GET",
+                "/_cat/indices",
+                params={"format": "json", "h": "index,docs.count"},
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            # _request with translate_errors=False re-raises httpx
+            # connection-class exceptions (ConnectError, RemoteProtocolError,
+            # ConnectTimeout, ReadTimeout) AFTER its one internal retry. We
+            # translate here so the router emits 503 CLUSTER_UNREACHABLE
+            # instead of letting the raw exception surface as 500.
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code in (401, 403):
+            raise TargetsForbiddenError(
+                f"cluster denied listing call (HTTP {resp.status_code} from /_cat/indices)"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /_cat/indices")
         rows: list[dict[str, Any]] = resp.json()
         out: list[TargetInfo] = []
         for row in rows:
