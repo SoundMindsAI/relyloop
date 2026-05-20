@@ -14,7 +14,7 @@
 ## 1) Purpose
 
 - **Problem:** `ElasticAdapter.list_targets()` at [`elastic.py:358-411`](../../../../backend/app/adapters/elastic.py#L358-L411) returns every user-facing index the engine credential can see. When multiple logical RelyLoop "clusters" point at one physical engine (multi-team shared ES; the demo's 1-engine-3-clusters state surfaced 2026-05-20 during demo re-seeding), the create-study Step-1 target dropdown cross-pollinates — every cluster shows every cluster's indices.
-- **Outcome:** Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-{en,fr}-*`) that scopes `list_targets()` to the matching subset. Default `null` = today's behavior (every user-facing index). Real-world payoff: enterprise ops register one cluster registration per team's index family without spinning up separate physical engines.
+- **Outcome:** Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset. Default `null` = today's behavior (every user-facing index). Real-world payoff: enterprise ops register one cluster registration per team's index family without spinning up separate physical engines.
 - **Non-goal:** Per-credential ACL filtering (that's an ES security plugin concern). Edit-after-registration (`PATCH /clusters/{id}` for `target_filter`) — deferred to a follow-up `chore_cluster_update_target_filter` per idea Locked Decision #3.
 
 ## 2) Current state audit
@@ -63,8 +63,8 @@ None. No new pages, no URL changes. The new field surfaces inside the existing `
 ### In scope
 
 - (FR-1) Add `target_filter: VARCHAR(256) NULL` column to `clusters` via Alembic migration `0014_clusters_target_filter`.
-- (FR-2) Extend `CreateClusterRequest` Pydantic with optional `target_filter: str | None`, max_length=256, validated via `fnmatch.translate()`.
-- (FR-3) `ElasticAdapter.list_targets()` accepts an optional `target_filter: str | None` parameter; when set, applies `fnmatch.fnmatch(name, target_filter)` AFTER the existing system-index filter. Router passes `cluster.target_filter` through.
+- (FR-2) Extend `CreateClusterRequest` Pydantic with optional `target_filter: str | None`, `min_length=1`, `max_length=256`, plus a `@field_validator(mode="before")` that strips whitespace so empty/whitespace-only payloads collapse before bound checks. Python `fnmatch` is permissive — every non-empty string is a valid glob — so there is no syntax-validation path; a pattern matching nothing at runtime surfaces via the create-study modal's empty-state message (FR-5), not a 422.
+- (FR-3) `SearchAdapter.list_targets()` Protocol + `ElasticAdapter.list_targets()` + `StubAdapter.list_targets()` all accept an optional `target_filter: str | None = None` parameter; when set, the ElasticAdapter applies `fnmatch.fnmatchcase(name, target_filter)` AFTER the existing system-index `.` exclusion (security: operators cannot re-expose `.kibana_1` via `*`). `fnmatchcase` is used over `fnmatch.fnmatch` to avoid platform-dependent `os.path.normcase` (case-folding on Windows). Router passes `cluster.target_filter` through.
 - (FR-4) Frontend register-cluster modal adds an optional "Target filter (optional)" input between `Notes` and the submit row, with helper text + glob example.
 - (FR-5) Create-study Step-1 modal's `<EntitySelect>` `emptyState.message` differentiates: cluster has zero targets vs filter excludes everything. Requires fetching `cluster.target_filter` from `/api/v1/clusters/{id}` detail (already returned by `ClusterDetail` if we add the field).
 - (FR-6) The new column appears on `ClusterDetail` + `ClusterSummary` response models so the UI can read it.
@@ -83,7 +83,7 @@ None. No new pages, no URL changes. The new field surfaces inside the existing `
 - **Endpoint prefix:** No new endpoints. Existing `GET /api/v1/clusters/{cluster_id}/targets` is the only consumer.
 - **Router file:** `backend/app/api/v1/clusters.py` (existing modifications).
 - **Non-auth error envelope:** No new error codes. Existing `CLUSTER_NOT_FOUND` / `CLUSTER_UNREACHABLE` / `TARGETS_FORBIDDEN` cover the targets endpoint.
-- **`target_filter` validation failure on POST /clusters:** Pydantic `VALIDATION_ERROR` (422) via `Field(max_length=256)` + a `@field_validator` calling `fnmatch.translate()`.
+- **`target_filter` validation failure on POST /clusters:** Pydantic `VALIDATION_ERROR` (422) via `Field(min_length=1, max_length=256)` + a `@field_validator(mode="before")` that strips whitespace before bound checks (so padded-but-otherwise-valid values pass and whitespace-only payloads collapse to empty before `min_length=1` catches them). No glob-syntax validation — `fnmatch` is permissive; only length + non-empty-after-trim are enforced.
 - **Pagination:** N/A (targets endpoint is unpaginated per `feat_create_study_target_autocomplete` spec §7.1).
 
 ### Phase boundaries
@@ -94,14 +94,14 @@ Single-phase feature. No deferred phases tracked. PATCH support (the one omitted
 
 - **Backward compatible:** `target_filter=null` (the default for existing rows in the migration) preserves today's behavior exactly. No existing study breaks. No existing cluster registration breaks. Migration up-and-downgrade round-trips without data loss.
 - **Filter applies AFTER system-index exclusion.** Order: `(not name.startswith('.')) AND fnmatch(name, filter)`. Operators cannot accidentally re-expose `.kibana_1` via a `*` filter.
-- **Single source of truth for filter semantics:** Python `fnmatch.fnmatch` (case-sensitive, supports `*`, `?`, `[seq]`, `[!seq]`). Documented in the new field's helper text + API field description.
+- **Single source of truth for filter semantics:** Python `fnmatch.fnmatchcase` (case-sensitive, supports `*`, `?`, `[seq]`, `[!seq]`; no brace expansion). `fnmatchcase` is chosen over `fnmatch.fnmatch` to avoid platform-dependent `os.path.normcase` (case-folding on Windows file systems). Documented in the new field's helper text + API field description.
 - **CLAUDE.md Absolute Rule #4** (engine-specific code lives in adapter): the filter logic lives in `ElasticAdapter.list_targets()`. The router passes the filter string through without interpretation.
 - **CLAUDE.md Absolute Rule #5** (migrations include `downgrade()` + round-trip cleanly): `0014` adds the column with default `NULL`; downgrade drops it.
 
 ### Anti-patterns
 
 - **Do not** apply the filter in the router instead of the adapter. The adapter is where engine-specific name-handling lives (different engines may apply filters differently when we add Fusion/Solr); filtering in the router would split engine concerns across two layers.
-- **Do not** validate at registration that the filter matches at least one current index. The cluster's index inventory changes over time; a filter that matches nothing today may match everything next week. Validate syntax only (`fnmatch.translate()`); leave content-emptiness to the empty-state UI message.
+- **Do not** validate at registration that the filter matches at least one current index. The cluster's index inventory changes over time; a filter that matches nothing today may match everything next week. There is no glob-syntax validation either (`fnmatch` is permissive — every non-empty string is a valid glob); only length + non-empty-after-trim are enforced. Leave content-emptiness to the empty-state UI message.
 - **Do not** introduce a `cluster.PATCH` endpoint as part of this feature. Per Locked Decision #3, that's scope creep; defer to a sibling chore. Operators who need to change a filter today can DELETE + re-register.
 - **Do not** add a `target_filter` field to existing studies. `studies.target` is a free-text column; if the filter later excludes that target, the study keeps working (Locked Decision #4 — no cascade). The filter is a picker-scoping concern, not a study-validity concern.
 - **Do not** combine multiple filter patterns into one column (`products*,docs*`). Single glob only. If operators need OR-of-globs, they register two clusters.
@@ -191,7 +191,7 @@ No new endpoints. Two existing endpoints gain a new field/parameter:
 
 | Method | Path | Change | Key error codes |
 |---|---|---|---|
-| `POST` | `/api/v1/clusters` | New optional body field `target_filter: str` | `VALIDATION_ERROR` (422) if pattern is invalid glob OR length > 256 OR empty string |
+| `POST` | `/api/v1/clusters` | New optional body field `target_filter: str` | `VALIDATION_ERROR` (422) when length > 256, empty string, or whitespace-only (strips to empty then fails `min_length=1`) |
 | `GET` | `/api/v1/clusters/{cluster_id}` | Response gains `target_filter` field | No change |
 | `GET` | `/api/v1/clusters` | Each `ClusterSummary` gains `target_filter` field | No change |
 | `GET` | `/api/v1/clusters/{cluster_id}/targets` | Server-side: filter applied when cluster has one set | No change (same `TargetListResponse` shape) |
@@ -199,7 +199,7 @@ No new endpoints. Two existing endpoints gain a new field/parameter:
 ### 7.2 Contract rules
 
 - The `target_filter` field is **optional** on the request and **always present** on the response (as `null` when not set). Frontend code must handle both `null` and string values.
-- Pattern validation is **syntactic only** (must be parseable by `fnmatch.translate()`). Content-matching is not validated at registration.
+- Pattern validation enforces **length + non-empty-after-trim only**. Python `fnmatch` accepts every non-empty string as a valid glob, so there is no syntax-validation path. Content-matching against the cluster's current index inventory is not validated at registration (the index set changes over time; a filter that matches nothing today may match everything next week — and vice-versa).
 - When `target_filter` is set, the targets endpoint response shape is unchanged — same `{data: TargetInfo[]}`. Operators downstream can't distinguish a filter-zero-match from a no-indices result via the response shape; only via the field on `ClusterDetail`.
 
 ### 7.3 Response examples
@@ -338,15 +338,14 @@ N/A — registration is one-shot; the filter is just a column value.
    - Target dropdown loads via `GET /clusters/{id}/targets` — only `products` + `products-v2` appear (filter excluded `docs-articles` and `job-listings`)
 3. **Filter-zero-match edge case:**
    - Operator registered cluster with `target_filter="non-matching-*"` accidentally
-   - In the create-study modal: target dropdown shows `<EntitySelect>` empty-state: `"No targets match filter \"non-matching-*\" on this cluster. Update the cluster's target filter to relax it."`
+   - In the create-study modal: target dropdown shows `<EntitySelect>` empty-state: `"No targets match filter \"non-matching-*\" on this cluster. To change the filter, delete and re-register the cluster — MVP1 has no in-place edit for cluster registrations."`
    - Operator's recovery: DELETE the cluster + re-register without the bad filter (no PATCH affordance in MVP per Locked Decision #3)
 
 ### Edge/error flows
 
-- **Operator submits invalid glob:** Pydantic 422 → toast `"target_filter: invalid glob pattern ... — fnmatch.translate raised: ..."` → form stays open, operator corrects + re-submits.
-- **Operator submits empty-string filter:** Pydantic 422 → toast surfaces the constraint → operator clears the field entirely (null) or types a real pattern.
-- **Operator submits whitespace-only filter:** Frontend trims → submits `null` → no error. (Server doesn't see whitespace.)
-- **Operator registers cluster with filter, ES has zero matching indices today:** Registration succeeds (filter is syntactically valid; content-emptiness is not checked at registration). The empty-state surfaces only when the operator later opens the create-study modal.
+- **Operator submits whitespace-only filter:** Frontend trims; if the trimmed value is empty, the modal submits `target_filter: null` (no error). If the operator bypasses the frontend (direct API call), the backend's `mode="before"` validator strips whitespace before `min_length=1` runs, so `"   "` collapses to `""` and surfaces as 422 `VALIDATION_ERROR`.
+- **Operator submits empty-string filter:** Pydantic `min_length=1` rejects with 422 `VALIDATION_ERROR` → toast surfaces the standard envelope → operator clears the field entirely (null) or types a real pattern.
+- **Operator registers cluster with filter, ES has zero matching indices today:** Registration succeeds — every non-empty string is a valid glob (Python `fnmatch` accepts all of them), and content-emptiness is not checked at registration. The empty-state surfaces only when the operator later opens the create-study modal.
 
 ## 12) Given/When/Then acceptance criteria
 

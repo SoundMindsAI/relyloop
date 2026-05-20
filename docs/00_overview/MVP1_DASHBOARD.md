@@ -8,7 +8,7 @@ _Reflects feature-folder state as of **2026-05-20** (latest mtime of any planned
 
 **[feat_cluster_target_filter](../02_product/planned_features/feat_cluster_target_filter/feature_spec.md)** — Feature, currently in **Plan**
 
-> Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-{en,fr}-*`) that scopes `list_targets()` to the matching subset.
+> Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset.
 
 Plan approved; run /impl-execute to ship
 
@@ -103,7 +103,7 @@ _None._
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_cluster_target_filter](../02_product/planned_features/feat_cluster_target_filter/feature_spec.md) | Feature | Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-{en,fr}-*`) that scopes `list_targets()` to the matching subset. | — | [PR #165](https://github.com/SoundMindsAI/relyloop/pull/165) |
+| [feat_cluster_target_filter](../02_product/planned_features/feat_cluster_target_filter/feature_spec.md) | Feature | Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset. | — | [PR #165](https://github.com/SoundMindsAI/relyloop/pull/165) |
 
 ### Spec (0)
 

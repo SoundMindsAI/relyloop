@@ -89,6 +89,39 @@ def _make_cluster_request(**overrides: object) -> CreateClusterRequest:
     return CreateClusterRequest(**fields)
 
 
+def test_target_filter_present_on_cluster_pydantic_schemas() -> None:
+    """feat_cluster_target_filter plan §3.3: the new ``target_filter`` field
+    must appear in the JSON schemas of CreateClusterRequest, ClusterDetail,
+    and ClusterSummary. Validator-only tests (below) prove runtime behavior;
+    this test locks the public schema surface so a future regression that
+    drops the field from one of the response models fails the contract
+    suite, not just the downstream UI types-regen step.
+
+    Reads ``model_json_schema()`` directly — equivalent to the OpenAPI shape
+    FastAPI emits for these Pydantic models, without needing to instantiate
+    the FastAPI app (which would require Settings + DATABASE_URL_FILE).
+    """
+    req = CreateClusterRequest.model_json_schema()["properties"]["target_filter"]
+    # Nullable str — Pydantic v2 emits anyOf[{type: string}, {type: null}]
+    assert any(
+        opt.get("type") == "string" and opt.get("maxLength") == 256 for opt in req["anyOf"]
+    ), f"CreateClusterRequest.target_filter missing string/maxLength=256: {req}"
+    assert any(opt.get("type") == "null" for opt in req["anyOf"]), (
+        f"CreateClusterRequest.target_filter not nullable: {req}"
+    )
+
+    for cls, name in ((ClusterDetail, "ClusterDetail"), (ClusterSummary, "ClusterSummary")):
+        props = cls.model_json_schema()["properties"]
+        assert "target_filter" in props, f"{name} missing target_filter property"
+        opts = props["target_filter"]["anyOf"]
+        assert any(opt.get("type") == "string" for opt in opts), (
+            f"{name}.target_filter missing string type: {opts}"
+        )
+        assert any(opt.get("type") == "null" for opt in opts), (
+            f"{name}.target_filter not nullable: {opts}"
+        )
+
+
 class TestTargetFilterValidator:
     """feat_cluster_target_filter Story B3 — request validator (FR-2 + Finding #5)."""
 
