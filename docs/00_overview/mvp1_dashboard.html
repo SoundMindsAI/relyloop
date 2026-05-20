@@ -369,12 +369,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md">Create Study Search Space Builder</a></div>
+    <div class="one-liner"></div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/feat_create_study_search_space_builder --auto</code>
   </div>
 </section>
 
@@ -382,15 +382,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">48 / 48</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">48 / 49</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">1</div>
+      <div class="value">2</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi ">
@@ -407,7 +407,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      3 idea-only feat/infra folders (not yet scoped into MVP1)
+      2 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -428,7 +428,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">4</span></h3>
+  <h3>Idea <span class="count">3</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_agent_propose_search_space">Agent Propose Search Space</a></div>
@@ -437,18 +437,6 @@ footer {
 
   </div>
   <div class="one-liner">The agent surface is the marketing front door — &quot;describe your relevance problem in chat, get a tuned config.&quot; Today the chat agent&#x27;s `create_study` tool takes a `search_space` argument as if it were </div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_create_study_search_space_builder">Create Study Search Space Builder</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">Today Step 4 is a JSON textarea ([`ui/src/components/studies/create-study-modal.tsx:538-552`](../../ui/src/components/studies/create-study-modal.tsx#L538-L552), post-`chore_create_study_wizard_polish`</div>
 
 
 </div>
@@ -480,7 +468,18 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md">Create Study Search Space Builder</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/157">PR #157</a><span>merged 2026-05-20</span>
+  </div>
+  <div class="one-liner"></div>
+
+
+</div>
 
 </div>
 
@@ -1193,6 +1192,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_create_study_search_space_builder[&quot;create study search space builder&quot;]
+  class feat_create_study_search_space_builder spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1296,6 +1297,7 @@ footer {
   feat_study_lifecycle --&gt; feat_llm_judgments
   feat_chat_agent --&gt; chore_tutorial_polish
   feat_contextual_help --&gt; chore_tutorial_polish
+  feat_create_study_search_space_builder --&gt; chore_tutorial_polish
   feat_data_table_primitive --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
@@ -1319,6 +1321,7 @@ footer {
   infra_per_trial_timeout --&gt; chore_tutorial_polish
   infra_structlog_test_helpers --&gt; chore_tutorial_polish
   feat_contextual_help --&gt; feat_chat_agent
+  feat_create_study_search_space_builder --&gt; feat_chat_agent
   feat_data_table_primitive --&gt; feat_chat_agent
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
@@ -1368,6 +1371,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_create_study_search_space_builder[&quot;create study search space builder&quot;]
+  class feat_create_study_search_space_builder spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1471,6 +1476,7 @@ footer {
   feat_study_lifecycle --&gt; feat_llm_judgments
   feat_chat_agent --&gt; chore_tutorial_polish
   feat_contextual_help --&gt; chore_tutorial_polish
+  feat_create_study_search_space_builder --&gt; chore_tutorial_polish
   feat_data_table_primitive --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
@@ -1494,6 +1500,7 @@ footer {
   infra_per_trial_timeout --&gt; chore_tutorial_polish
   infra_structlog_test_helpers --&gt; chore_tutorial_polish
   feat_contextual_help --&gt; feat_chat_agent
+  feat_create_study_search_space_builder --&gt; feat_chat_agent
   feat_data_table_primitive --&gt; feat_chat_agent
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent

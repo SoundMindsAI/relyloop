@@ -6,19 +6,23 @@ _Reflects feature-folder state as of **2026-05-20** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md)** — Feature, currently in **Spec**
 
-Pull from the Idea backlog or capture a new feature spec.
+Spec exists; run /pipeline to generate the implementation plan + ship
+
+```bash
+/pipeline docs/02_product/planned_features/feat_create_study_search_space_builder --auto
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **48 / 48** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **1** items remaining (features + bugs + chores) |
+| Scoped items done | **48 / 49** (98%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **2** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
 | Open chores | 1 (idea-stage debt) |
-| Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -93,16 +97,17 @@ _None._
 
 _None._
 
-### Spec (0)
+### Spec (1)
 
-_None._
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
+| [feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/feature_spec.md) | Feature |  | — | [PR #157](https://github.com/SoundMindsAI/relyloop/pull/157) merged 2026-05-20 |
 
-### Idea (4)
+### Idea (3)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/idea.md) | Feature | The agent surface is the marketing front door — "describe your relevance problem in chat, get a tuned config." Today the chat agent's `create_study` tool takes a `search_space` argument as if it were  | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/idea.md) | Feature | Today Step 4 is a JSON textarea ([`ui/src/components/studies/create-study-modal.tsx:538-552`](../../ui/src/components/studies/create-study-modal.tsx#L538-L552), post-`chore_create_study_wizard_polish` | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. Foundational chore merged 2026-05-20; this idea is now unblocked for `/pipeline`. |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 
@@ -117,6 +122,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_create_study_search_space_builder["create study search space builder"]
+  class feat_create_study_search_space_builder spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -220,6 +227,7 @@ graph LR
   feat_study_lifecycle --> feat_llm_judgments
   feat_chat_agent --> chore_tutorial_polish
   feat_contextual_help --> chore_tutorial_polish
+  feat_create_study_search_space_builder --> chore_tutorial_polish
   feat_data_table_primitive --> chore_tutorial_polish
   feat_digest_proposal --> chore_tutorial_polish
   feat_github_pr_worker --> chore_tutorial_polish
@@ -243,6 +251,7 @@ graph LR
   infra_per_trial_timeout --> chore_tutorial_polish
   infra_structlog_test_helpers --> chore_tutorial_polish
   feat_contextual_help --> feat_chat_agent
+  feat_create_study_search_space_builder --> feat_chat_agent
   feat_data_table_primitive --> feat_chat_agent
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
