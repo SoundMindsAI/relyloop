@@ -15,7 +15,13 @@
 - Phases: 1 total, 1 covered by spec (single-phase feature — PATCH deferred to follow-up `chore_cluster_update_target_filter`)
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-20
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 (`gpt-5.5`) — 2 cycles to convergence
+  - Cycle 1: 5 findings → all 5 accepted (story reorder B1→B3→B2; added TestListClusters case for F2 plumbing; added service+router plumb-through for register_cluster; envelope assertions on all 422s; validator mode="before" + padded-valid case)
+  - Cycle 2: 0 findings → convergence
+- Stories: 5 (3 backend + 2 frontend); single-PR feature; no phase gates
 
 ## Implementation
 - Status: Not started

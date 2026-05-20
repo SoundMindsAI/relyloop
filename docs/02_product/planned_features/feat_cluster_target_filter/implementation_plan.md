@@ -32,8 +32,8 @@ No deferred phases.
 
 **Epic → Story → Tasks → DoD.** Two epics, five stories.
 
-- **Epic 1 — Backend** (B1, B2, B3). Sequence: B1 → B2 || B3 (B2 + B3 are parallelizable once B1 lands; B3 depends only on the column existing, B2 depends only on the Protocol signature being free to change). For a single-developer flow, the natural order is B1 → B2 → B3.
-- **Epic 2 — Frontend** (F1, F2). Both depend on B3 being merged (or at least available on the branch — F1 needs the `CreateClusterRequest` shape update; F2 needs `ClusterDetail` to expose `target_filter`). F1 and F2 are independent of each other.
+- **Epic 1 — Backend** (B1, B3, B2 — note: B3 ships BEFORE B2). Sequence rationale: B1 ships the column; B3 ships the request schema (so API can accept `target_filter` on POST) + response shape; B2 wires the adapter to consume it. **B2's integration test depends on B3 because it registers a cluster via the API with `target_filter="products*"` and asserts the filter is applied — that POST is impossible until B3's Pydantic schema accepts the field.** Reordering avoids B2 having to seed the cluster via direct DB writes.
+- **Epic 2 — Frontend** (F1, F2). Both depend on B3 being merged (or at least available on the branch — F1 needs the `CreateClusterRequest` shape update; F2 needs `ClusterSummary` to expose `target_filter` because `useClusters` returns `ClusterSummary[]`, not `ClusterDetail`). F1 and F2 are independent of each other.
 
 ### Conventions
 
@@ -46,7 +46,7 @@ No deferred phases.
 ### AI Agent Execution Protocol (applies to every story)
 
 0. Read `CLAUDE.md`, `architecture.md`, `state.md`, `feature_spec.md`, this plan before starting story 1.
-1. Implement stories in declared order: B1 → B2 → B3 → F1 → F2.
+1. Implement stories in declared order: B1 → B3 → B2 → F1 → F2. (Note: B3 ships before B2 so B2's integration test can register a filtered cluster through the real API surface.)
 2. Backend stories first; after each backend story run `make test-unit && make lint && make typecheck` (and `make test-integration && make test-contract` if the story touches the DB or API surface).
 3. After B3 (when the OpenAPI schema changes), regenerate types: `cd ui && pnpm types:gen` (or use the dump-from-app fallback documented in `feat_create_study_target_autocomplete` if Docker isn't running).
 4. Frontend stories after B3; `cd ui && pnpm typecheck && pnpm lint && pnpm test && pnpm build` after each.
@@ -267,9 +267,9 @@ None.
 
 ---
 
-### Story B3 — API surface: Pydantic schemas + validator + response exposure
+### Story B3 — API surface: Pydantic schemas + validator + response exposure + service plumb-through
 
-**Outcome:** `CreateClusterRequest` accepts `target_filter: str | None` with a trim-then-non-empty validator. `ClusterDetail` and `ClusterSummary` expose `target_filter`. Existing `register_cluster` service handles it via the existing `**fields` pattern (no service-layer change needed beyond the field landing on the Pydantic model that becomes `body.model_dump()`).
+**Outcome:** `CreateClusterRequest` accepts `target_filter: str | None` with a `mode="before"` trim validator (so `min_length`/`max_length` see the stripped value). `ClusterDetail` and `ClusterSummary` expose `target_filter`. **The `register_cluster` service signature gains the kwarg and forwards it to both `repo.create_cluster()` and `repo.revive_cluster()`**, and the `POST /clusters` router passes `body.target_filter` through. (Verified at plan time: `register_cluster` uses explicit kwargs, NOT `**fields` — silent-drop risk if the kwarg isn't added.)
 
 **New files**
 
@@ -279,10 +279,11 @@ None.
 
 | File | Change |
 |---|---|
-| `backend/app/api/v1/schemas.py` | (a) `CreateClusterRequest` at line 50: add `target_filter: str \| None = Field(default=None, min_length=1, max_length=256)` + a `@field_validator('target_filter')` for trim-and-reject-post-trim-empty. (b) `ClusterDetail` at line 94: add `target_filter: str \| None = None`. (c) `ClusterSummary` at line 109: add `target_filter: str \| None = None`. |
-| `backend/app/api/v1/clusters.py` | `_summary()` helper at line 116 + the detail builder: populate the new field from `cluster.target_filter`. |
-| `backend/tests/contract/test_clusters_api_contract.py` | Extend the import-smoke + add a `test_create_cluster_request_target_filter_validation` case for trim semantics. |
-| `backend/tests/integration/test_clusters_api.py` | Extend `TestPostCluster` with 4 new cases (AC-2, AC-3, AC-4, AC-5) — valid filter accepted; whitespace rejected; empty-string rejected; omitted field defaults to NULL. Extend `TestGetCluster` with 1 case asserting `target_filter` appears in `ClusterDetail` response (AC-10). |
+| `backend/app/api/v1/schemas.py` | (a) `CreateClusterRequest` at line 50: add `target_filter: str \| None = Field(default=None, min_length=1, max_length=256)` + a `@field_validator('target_filter', mode='before')` that strips whitespace BEFORE `min_length`/`max_length` run. (b) `ClusterDetail` at line 94: add `target_filter: str \| None = None`. (c) `ClusterSummary` at line 109: add `target_filter: str \| None = None`. |
+| `backend/app/api/v1/clusters.py` | (a) `create_cluster` router at line 158-176: add `target_filter=body.target_filter` to the `register_cluster(...)` call. (b) `_summary()` helper at line 116 + the detail builder: populate the new field from `cluster.target_filter`. |
+| `backend/app/services/cluster.py` | `register_cluster` signature at line 83-94: add `target_filter: str \| None` after `notes`. In the `revive_cluster(...)` call at line 160-170, add `target_filter=target_filter`. In the `create_cluster(...)` call at line 172-183, add `target_filter=target_filter`. (Both repo functions already accept arbitrary kwargs — no repo change needed.) |
+| `backend/tests/contract/test_clusters_api_contract.py` | Extend the import-smoke + add a `test_create_cluster_request_target_filter_validation` case for trim semantics (including padded-valid case proving `mode="before"` works). |
+| `backend/tests/integration/test_clusters_api.py` | Extend `TestPostCluster` with 5 new cases (AC-2, AC-3, AC-4, AC-5, padded-valid for Finding #5) — valid filter accepted; whitespace rejected; empty-string rejected; omitted field defaults to NULL; padded `"  products*  "` persists as `"products*"`. Extend `TestGetCluster` with 1 case asserting `target_filter` appears in `ClusterDetail` response (AC-10). Extend `TestListClusters` (or add it) with 1 case asserting `target_filter` appears in each `ClusterSummary` row from `GET /clusters` (Finding #2 — F2's data plumbing dependency). All 422 cases assert the standard envelope: `detail.error_code == "VALIDATION_ERROR"` AND `detail.retryable is false` (Finding #4). |
 
 **Endpoints**
 
@@ -313,10 +314,16 @@ class CreateClusterRequest(BaseModel):
 
     # ... existing base_url validator unchanged ...
 
-    @field_validator("target_filter")
+    @field_validator("target_filter", mode="before")
     @classmethod
-    def validate_target_filter(cls, v: str | None) -> str | None:
-        """Strip leading/trailing whitespace; reject post-strip empty.
+    def strip_target_filter(cls, v: Any) -> Any:
+        """Strip leading/trailing whitespace BEFORE min_length/max_length run.
+
+        Pydantic v2 default validator mode is ``after`` — that would let a
+        padded valid filter like ``"  " + "x"*256`` fail max_length=256 even
+        though the stripped value is 256 chars. ``mode="before"`` runs the
+        strip first; ``min_length=1`` then catches the empty/whitespace-only
+        case AND ``max_length=256`` runs on the stripped value.
 
         Glob syntax is NOT validated — Python ``fnmatch`` is permissive and
         accepts every non-empty string (unmatched ``[`` becomes literal, lone
@@ -325,15 +332,9 @@ class CreateClusterRequest(BaseModel):
         runtime surfaces via the create-study modal's empty-state message
         (FR-5), not a 422.
         """
-        if v is None:
-            return None
-        stripped = v.strip()
-        if not stripped:
-            raise ValueError(
-                "target_filter must be a non-empty string after trimming "
-                "whitespace, or omit the field entirely for no filter"
-            )
-        return stripped
+        if isinstance(v, str):
+            return v.strip()
+        return v  # let core validation handle None / non-strings
 
 
 # ClusterDetail addition (after `notes` field at line 104):
@@ -363,23 +364,27 @@ def _summary(cluster: Cluster, health: HealthStatus) -> ClusterSummary:
 
 **Tasks**
 
-1. Update `CreateClusterRequest` in `schemas.py` with the new field + `@field_validator`.
+1. Update `CreateClusterRequest` in `schemas.py` with the new field + `@field_validator(..., mode="before")`.
 2. Update `ClusterDetail` + `ClusterSummary` to include `target_filter: str | None = None`.
-3. Update `_summary()` helper in `clusters.py:116` + the detail builder to populate `target_filter` from `cluster.target_filter`.
-4. Add validator tests in `test_clusters_api_contract.py` (trim semantics, empty rejection, max-length).
-5. Add integration cases in `test_clusters_api.py::TestPostCluster` (4 new) + `TestGetCluster` (1 new for AC-10).
-6. Regenerate UI types: `cd ui && pnpm types:gen` (requires backend running) so `CreateClusterRequest` + `ClusterDetail` + `ClusterSummary` reflect the new field in `ui/src/lib/types.ts`. Document the fallback: dump via `python3 -c "from backend.app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/openapi.json` then `pnpm exec openapi-typescript file:///tmp/openapi.json -o src/lib/types.ts && pnpm exec prettier --write src/lib/types.ts`, restoring the banner manually.
-7. Run `make test-integration && make test-contract && make lint && make typecheck`.
+3. Update `register_cluster()` in `backend/app/services/cluster.py:83`: add `target_filter: str | None` to signature; forward to `repo.create_cluster(target_filter=...)` AND `repo.revive_cluster(target_filter=...)`.
+4. Update `create_cluster` router in `backend/app/api/v1/clusters.py:158-176`: add `target_filter=body.target_filter` to the `register_cluster(...)` call.
+5. Update `_summary()` helper in `clusters.py:116` + the detail builder to populate `target_filter` from `cluster.target_filter`.
+6. Add validator tests in `test_clusters_api_contract.py` (trim semantics, empty rejection, max-length, padded-valid).
+7. Add integration cases in `test_clusters_api.py::TestPostCluster` (5 new) + `TestGetCluster` (1 new for AC-10) + `TestListClusters` (1 new for F2 plumbing).
+8. Regenerate UI types: `cd ui && pnpm types:gen` (requires backend running) so `CreateClusterRequest` + `ClusterDetail` + `ClusterSummary` reflect the new field in `ui/src/lib/types.ts`. Document the fallback: dump via `python3 -c "from backend.app.main import app; import json; print(json.dumps(app.openapi()))" > /tmp/openapi.json` then `pnpm exec openapi-typescript file:///tmp/openapi.json -o src/lib/types.ts && pnpm exec prettier --write src/lib/types.ts`, restoring the banner manually.
+9. Run `make test-integration && make test-contract && make lint && make typecheck`.
 
 **Definition of Done**
 
-- [ ] `CreateClusterRequest.target_filter` accepted (AC-2 — `"products*"` → 201 with the field round-tripped).
-- [ ] Whitespace-only `"   "` rejected as 422 (AC-3).
-- [ ] Empty-string `""` rejected as 422 by Pydantic `min_length=1` (AC-4).
+- [ ] `CreateClusterRequest.target_filter` accepted (AC-2 — `"products*"` → 201 with the field round-tripped and **persisted to the DB row**, not just echoed by the API).
+- [ ] Whitespace-only `"   "` rejected as 422 with envelope `{detail: {error_code: "VALIDATION_ERROR", retryable: false, ...}}` (AC-3 + Finding #4).
+- [ ] Empty-string `""` rejected as 422 with the same envelope (AC-4 + Finding #4).
 - [ ] Omitted field → `target_filter: null` in response, `NULL` in DB (AC-5).
+- [ ] Padded `"  products*  "` persists as `"products*"` (no max_length false positive on whitespace) — proves `mode="before"` (Finding #5).
 - [ ] `GET /clusters/{id}` returns `target_filter: "products*"` for a cluster registered with the filter (AC-10).
-- [ ] `GET /clusters` list response — each `ClusterSummary` includes `target_filter` field (always present, `null` when not set).
-- [ ] `ui/src/lib/types.ts` regenerated; `components['schemas']['CreateClusterRequest'].target_filter` exists.
+- [ ] `GET /clusters` list response — each `ClusterSummary` includes `target_filter` field populated from the DB row, not just declared in the schema (Finding #2 — F2's data plumbing dependency).
+- [ ] `register_cluster()` integration test (or assertion in the existing case) confirms `cluster.target_filter` in the returned `Cluster` ORM row matches the request input (catches silent-drop regressions per Finding #3).
+- [ ] `ui/src/lib/types.ts` regenerated; `components['schemas']['CreateClusterRequest'].target_filter` and `components['schemas']['ClusterSummary'].target_filter` both exist.
 - [ ] `make test-integration && make test-contract && make lint && make typecheck` green.
 
 ---
@@ -620,13 +625,16 @@ None. All form state is React state via react-hook-form (cleared on modal close)
 
 **Backend integration** (`backend/tests/integration/`):
 
-- [ ] **B3 — `test_clusters_api.py::TestPostCluster`** (extend): 4 new cases
-  - `test_post_with_target_filter` — valid pattern → 201 + field round-tripped (AC-2).
-  - `test_post_target_filter_whitespace_only_422` — `"   "` → 422 `VALIDATION_ERROR` (AC-3).
-  - `test_post_target_filter_empty_string_422` — `""` → 422 (AC-4).
-  - `test_post_omits_target_filter_defaults_null` — field absent from body → 201 with `target_filter: null` in response (AC-5).
+- [ ] **B3 — `test_clusters_api.py::TestPostCluster`** (extend): 5 new cases
+  - `test_post_with_target_filter` — valid pattern → 201 + field round-tripped to API response AND persisted in DB row (AC-2 + Finding #3 silent-drop guard).
+  - `test_post_target_filter_whitespace_only_422` — `"   "` → 422; assert `detail.error_code == "VALIDATION_ERROR"` AND `detail.retryable is False` (AC-3 + Finding #4).
+  - `test_post_target_filter_empty_string_422` — `""` → 422 with same envelope (AC-4 + Finding #4).
+  - `test_post_omits_target_filter_defaults_null` — field absent from body → 201 with `target_filter: null` in response and `NULL` in DB (AC-5).
+  - `test_post_target_filter_padded_strips_to_canonical` — `"  products*  "` → 201; DB row has `target_filter == "products*"` (Finding #5 — proves `mode="before"` validator).
 - [ ] **B3 — `test_clusters_api.py::TestGetCluster`** (extend): 1 new case
   - `test_get_cluster_exposes_target_filter` — register with filter, GET detail, assert `target_filter` in response (AC-10).
+- [ ] **B3 — `test_clusters_api.py::TestListClusters`** (extend, or add the class if absent): 1 new case
+  - `test_list_clusters_summary_includes_target_filter` — register one cluster with `target_filter="products*"` and one without; `GET /clusters` returns both; assert the filtered cluster's `ClusterSummary` row has `target_filter == "products*"` and the other has `target_filter is None`. This guards F2's data plumbing — without it, `_summary()` could omit the field and the OpenAPI schema would still validate (Finding #2).
 - [ ] **B2 — `test_clusters_api.py::TestTargetsEndpoint`** (extend): 1 new case
   - `test_targets_endpoint_applies_filter` — register a cluster with `target_filter="products*"` against real ES; seed 2 matching + 2 non-matching indices (`products`, `products-v2`, `docs-articles`, `job-listings`); assert `GET /clusters/{id}/targets` returns only the 2 matching (AC-9). Use the existing `ENGINE_PARAMS` parametrize so the test runs against ES AND OpenSearch.
 - [ ] **B1 — migration round-trip** — add a `test_0014_migration_round_trip` case to either `test_clusters_api.py` or a new `test_migrations.py` that exercises `alembic upgrade head → downgrade -1 → upgrade head` on a populated DB and asserts no data loss on the other 13 columns (AC-1).
@@ -746,17 +754,17 @@ None new for this feature. The existing `studies-create-target-dropdown.spec.ts`
 ### Suggested sequence
 
 1. **B1** — migration + ORM column (must land first; everything else depends on the column existing).
-2. **B2** — adapter contract change (Protocol + ElasticAdapter + StubAdapter + router pass-through). Can land in parallel with B3.
-3. **B3** — Pydantic + validator + response shape (depends only on B1's column; doesn't need B2's filter-application change to land).
+2. **B3** — Pydantic + validator + response shape + **service/router plumb-through** (depends only on B1's column). Ships BEFORE B2 so B2's integration test can register a filtered cluster via the real API.
+3. **B2** — adapter contract change (Protocol + ElasticAdapter + StubAdapter + router consumption of `cluster.target_filter`).
 4. **F1** — register modal (depends on B3 for the request shape).
-5. **F2** — empty-state branching (depends on B3 for `selectedCluster.target_filter`).
+5. **F2** — empty-state branching (depends on B3 for `selectedCluster.target_filter` on `ClusterSummary`).
 
-In practice (single-developer flow): B1 → B2 → B3 → F1 → F2, with B2 and B3 squashable in either order after B1.
+In practice (single-developer flow): B1 → B3 → B2 → F1 → F2.
 
 ### Parallelization opportunities
 
-- **B2 || B3** — adapter change and API surface change touch different files and don't depend on each other once B1's column exists.
 - **F1 || F2** — register modal and create-study modal are completely independent; only ordering constraint is "both after B3."
+- **B3 || B2** is technically possible since they touch disjoint files, but the test plan for B2 requires API-level cluster creation with `target_filter`, so practically B3 ships first.
 
 ---
 
@@ -810,6 +818,22 @@ Before marking any story complete:
 ---
 
 ## 11) Plan consistency review
+
+### Cross-model review log
+
+**Cycle 1 (GPT-5.5 2026-05-20):** 5 findings raised across Pass A (3) + Pass B (2). All 5 accepted with patches applied to this plan:
+
+| # | Severity | Pass | Finding | Resolution |
+|---|---|---|---|---|
+| 1 | Medium | B | B2's integration test depends on API-level cluster creation with `target_filter`, which requires B3's Pydantic schema | Reordered stories to B1 → B3 → B2 (§2, §7, AI Agent Execution Protocol). |
+| 2 | High | A | F2 reads `selectedCluster.target_filter` from `useClusters` (returns `ClusterSummary[]`), but the plan only tested `ClusterDetail`. Schema-shape check alone doesn't prove `_summary()` populates the field at runtime | Added `TestListClusters::test_list_clusters_summary_includes_target_filter` to B3 (§3.2). Updated F2 dependency wording to cite `ClusterSummary`, not `ClusterDetail` (§2). |
+| 3 | Medium | A | `register_cluster()` uses explicit kwargs (NOT `**fields` as the plan assumed). API + Pydantic would accept the field but the service would silently drop it. Verified at `backend/app/services/cluster.py:83-94` | Added `backend/app/services/cluster.py` and the `create_cluster` router callsite (line 158-176) to B3's Modified files table. New plumb-through task in B3 Tasks list. New DoD assertion: "`register_cluster()` integration test confirms `cluster.target_filter` in the returned `Cluster` ORM row matches the request input." |
+| 4 | Low | A | 422 cases didn't explicitly assert the project-standard envelope (`error_code: VALIDATION_ERROR`, `retryable: false`) | All 422 test cases in B3 now assert envelope shape (§3.2). |
+| 5 | Low | B | Default Pydantic v2 `@field_validator` runs AFTER `min_length`/`max_length`, so a padded valid filter like `"  " + "x"*256` would fail max_length even though the stripped value is exactly 256 chars | Switched validator to `mode="before"` so strip runs first. Added `test_post_target_filter_padded_strips_to_canonical` to integration suite (§3.2). |
+
+No High findings remain unresolved. **Convergence:** the changes touch the same surfaces already under review (B3's Pydantic + service plumb-through; story sequencing); no new API contract was added. Per impl-plan-gen Step 7 convergence rules, no cycle 2 is required for this scope of corrections — they sharpen the existing plan rather than introducing new contract surface that GPT-5.5 hasn't seen.
+
+### Internal checks
 
 Performed inline during plan generation:
 
