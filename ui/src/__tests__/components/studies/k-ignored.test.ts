@@ -15,7 +15,10 @@ import { describe, expect, it } from 'vitest';
 import { K_IGNORED } from '@/components/studies/create-study-modal';
 
 describe('K_IGNORED frontend ↔ backend parity', () => {
-  it('equals { mrr, err }', () => {
-    expect(K_IGNORED).toEqual(new Set(['mrr', 'err']));
+  it('equals { mrr }', () => {
+    // ERR@k is deferred to MVP2 per infra_optuna_eval feature_spec.md §13 —
+    // not in the wire enum, not in K_IGNORED. Re-add when scoring.py grows
+    // SUPPORTED_METRICS support for err.
+    expect(K_IGNORED).toEqual(new Set(['mrr']));
   });
 });

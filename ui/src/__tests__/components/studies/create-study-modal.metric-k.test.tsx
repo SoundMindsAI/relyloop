@@ -160,12 +160,14 @@ async function walkToStep5(): Promise<void> {
 
 describe('kTier helper', () => {
   it('classifies ndcg as required, map as optional, mrr as ignored', () => {
+    // ERR@k is deferred to MVP2 (infra_optuna_eval §13) — not in
+    // OBJECTIVE_METRIC_VALUES, not in K_IGNORED. Re-assert kTier('err') here
+    // when ERR support actually lands.
     expect(kTier('ndcg')).toBe('required');
     expect(kTier('map')).toBe('optional');
     expect(kTier('precision')).toBe('required');
     expect(kTier('recall')).toBe('required');
     expect(kTier('mrr')).toBe('ignored');
-    expect(kTier('err')).toBe('ignored');
   });
 });
 

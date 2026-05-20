@@ -50,11 +50,12 @@ describe('HelpPopover happy paths (real glossary)', () => {
     render(<HelpPopover glossaryKey="study.metric" />);
     await user.click(screen.getByTestId('popover-trigger-study.metric'));
     const body = await screen.findByTestId('popover-body-study.metric');
-    // study.metric body lists 6 metric definitions as `- item` Markdown bullets.
+    // study.metric body lists 5 metric definitions as `- item` Markdown bullets
+    // (err entry deferred to MVP2 per infra_optuna_eval §13).
     const ul = body.querySelector('ul');
     expect(ul).not.toBeNull();
     const lis = body.querySelectorAll('li');
-    expect(lis.length).toBeGreaterThanOrEqual(6);
+    expect(lis.length).toBeGreaterThanOrEqual(5);
   });
 
   it('renders PopoverContent with motion-reduce:animate-none class (AC-8)', async () => {

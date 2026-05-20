@@ -91,9 +91,12 @@ def test_objective_metric_key_mrr_ignores_k_when_present():
 
 
 def test_objective_metric_key_rejects_unknown_metric():
-    """err / nonsense → ValueError."""
+    """Any name outside SUPPORTED_METRICS → ValueError. (`err` is no longer in
+    the wire enum — Pydantic rejects it before this function sees it — so we
+    use a clearly synthetic sentinel here to exercise the unknown-metric
+    branch directly.)"""
     with pytest.raises(ValueError, match=r"unknown objective.metric"):
-        objective_metric_key({"metric": "err", "k": 10})
+        objective_metric_key({"metric": "made_up_metric", "k": 10})
 
 
 def test_objective_metric_key_requires_k_for_ndcg():

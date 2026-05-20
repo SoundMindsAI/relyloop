@@ -124,17 +124,18 @@ async def test_map_with_or_without_k_passes_body_validation(
 
 
 # ----------------------------------------------------------------------------
-# Ignored-k tier: mrr/err accept k=None and k=10 at the body-parse layer.
-# (mrr scoring drops k; err scoring isn't implemented yet — both pass create-time.)
+# Ignored-k tier: mrr accepts k=None and k=10 at the body-parse layer.
+# (mrr scoring drops k; err is reserved for MVP2 per infra_optuna_eval §13
+# and is not in the wire enum.)
 # ----------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("metric", ["mrr", "err"])
+@pytest.mark.parametrize("metric", ["mrr"])
 @pytest.mark.parametrize("k", [None, 10])
 async def test_ignored_k_metric_passes_body_validation(
     async_client: httpx.AsyncClient, metric: str, k: int | None
 ) -> None:
-    """Ignored-k tier (mrr/err): k is silently accepted at create time (scoring layer drops it)."""
+    """Ignored-k tier (mrr): k is silently accepted at create time (scoring layer drops it)."""
     resp = await async_client.post("/api/v1/studies", json=_post_body(metric, k))
     assert resp.status_code == 404, resp.text
     assert resp.json()["detail"]["error_code"] == "CLUSTER_NOT_FOUND"
