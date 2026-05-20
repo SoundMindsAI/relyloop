@@ -199,10 +199,13 @@ class TestPostCluster:
     async def test_engine_type_solr_returns_400(
         self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
     ) -> None:
-        resp = await app_client.post(
-            "/api/v1/clusters",
-            json=_cluster_body(engine_type="solr"),  # override regardless of parametrize
-        )
+        # Build a valid body shape from the parametrized engine, then override
+        # engine_type to the unsupported value — `_cluster_body` keys off
+        # engine_type to derive name/base_url/auth_kind, so passing "solr"
+        # directly to it raises KeyError before the test reaches the router.
+        body = _cluster_body(engine_type=engine)
+        body["engine_type"] = "solr"
+        resp = await app_client.post("/api/v1/clusters", json=body)
         assert resp.status_code == 400
         detail = resp.json()["detail"]
         assert detail["error_code"] == "ENGINE_NOT_SUPPORTED"
@@ -279,6 +282,73 @@ class TestPostCluster:
         assert second.status_code == 409
         assert second.json()["detail"]["error_code"] == "CLUSTER_NAME_TAKEN"
 
+    # ------------------------------------------------------------------
+    # feat_cluster_target_filter Story B3 — request schema + validator +
+    # service plumb-through (AC-2 through AC-5 + Findings #3, #4, #5).
+    # ------------------------------------------------------------------
+
+    async def test_post_with_target_filter_persists_to_db(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """AC-2 + Finding #3 silent-drop guard: response field AND DB row both set."""
+        body = _cluster_body(engine_type=engine, target_filter="products*")
+        resp = await app_client.post("/api/v1/clusters", json=body)
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["target_filter"] == "products*"
+        # Round-trip via GET to prove the service persisted it (not just echoed).
+        detail = await app_client.get(f"/api/v1/clusters/{resp.json()['id']}")
+        assert detail.json()["target_filter"] == "products*"
+
+    async def test_post_target_filter_whitespace_only_returns_422(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """AC-3 + Finding #4: whitespace-only strips to empty, fails min_length=1."""
+        resp = await app_client.post(
+            "/api/v1/clusters", json=_cluster_body(engine_type=engine, target_filter="   ")
+        )
+        assert resp.status_code == 422
+        detail = resp.json()["detail"]
+        assert detail["error_code"] == "VALIDATION_ERROR"
+        assert detail["retryable"] is False
+
+    async def test_post_target_filter_empty_string_returns_422(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """AC-4 + Finding #4: empty string fails min_length=1."""
+        resp = await app_client.post(
+            "/api/v1/clusters", json=_cluster_body(engine_type=engine, target_filter="")
+        )
+        assert resp.status_code == 422
+        detail = resp.json()["detail"]
+        assert detail["error_code"] == "VALIDATION_ERROR"
+        assert detail["retryable"] is False
+
+    async def test_post_omits_target_filter_defaults_null(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """AC-5: omitted field is allowed; response + DB hold NULL."""
+        resp = await app_client.post("/api/v1/clusters", json=_cluster_body(engine_type=engine))
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["target_filter"] is None
+        detail = await app_client.get(f"/api/v1/clusters/{resp.json()['id']}")
+        assert detail.json()["target_filter"] is None
+
+    async def test_post_target_filter_padded_strips_to_canonical(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """Finding #5: validator runs in mode='before' so strip beats max_length=256.
+
+        A padded value like ``"  products*  "`` must persist as ``"products*"``
+        — proves min_length/max_length see the stripped string. Without
+        ``mode="before"``, padding at the 256-char boundary would falsely 422.
+        """
+        resp = await app_client.post(
+            "/api/v1/clusters",
+            json=_cluster_body(engine_type=engine, target_filter="  products*  "),
+        )
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["target_filter"] == "products*"
+
 
 @pytest.mark.integration
 class TestGetListAndDetail:
@@ -308,6 +378,33 @@ class TestGetListAndDetail:
         resp = await app_client.get("/api/v1/clusters/missing-id")
         assert resp.status_code == 404
         assert resp.json()["detail"]["error_code"] == "CLUSTER_NOT_FOUND"
+
+    # ------------------------------------------------------------------
+    # feat_cluster_target_filter — F2 data plumbing (Finding #2).
+    # `useClusters` returns ClusterSummary[]; the create-study modal reads
+    # `selectedCluster.target_filter` to branch the empty-state message.
+    # If _summary() omits the field, F2's filter-aware empty state never
+    # fires even though `GET /clusters/{id}` works.
+    # ------------------------------------------------------------------
+
+    async def test_list_summary_includes_target_filter(
+        self, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """Both Summary rows expose target_filter — populated from the DB row,
+        not just declared in the schema."""
+        with_filter = _cluster_body(target_filter="products*")
+        without_filter = _cluster_body()
+        without_filter["name"] = "test-es-no-filter"
+        r1 = await app_client.post("/api/v1/clusters", json=with_filter)
+        r2 = await app_client.post("/api/v1/clusters", json=without_filter)
+        assert r1.status_code == 201, r1.text
+        assert r2.status_code == 201, r2.text
+
+        list_resp = await app_client.get("/api/v1/clusters")
+        assert list_resp.status_code == 200
+        rows = {r["name"]: r for r in list_resp.json()["data"]}
+        assert rows["test-es"]["target_filter"] == "products*"
+        assert rows["test-es-no-filter"]["target_filter"] is None
 
 
 @pytest.mark.integration
@@ -345,6 +442,10 @@ class TestSchemaEndpoint:
         base_url = _ENGINE_BASE_URL[engine]
         auth = _ENGINE_RAW_AUTH[engine]
         async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+            # Delete first — demo-seed data or a prior test run may have
+            # created `products` with a different schema; PUT on existing
+            # returns 400 and the test silently uses the wrong mapping.
+            await c.delete(f"{base_url}/products")
             await c.put(
                 f"{base_url}/products",
                 json={
@@ -437,6 +538,39 @@ class TestTargetsEndpoint:
         finally:
             async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
                 for name in seeded:
+                    await c.delete(f"{base_url}/{name}")
+
+    async def test_targets_endpoint_applies_filter(
+        self, engine: str, app_client: httpx.AsyncClient, clean_clusters: None
+    ) -> None:
+        """feat_cluster_target_filter AC-9: stored target_filter scopes
+        the targets endpoint against a real engine + multi-prefix seed."""
+        base_url = _ENGINE_BASE_URL[engine]
+        auth = _ENGINE_RAW_AUTH[engine]
+        matching = [f"e2e-tf-products-{engine}-a", f"e2e-tf-products-{engine}-b"]
+        non_matching = [f"e2e-tf-docs-{engine}-a", f"e2e-tf-jobs-{engine}-b"]
+        async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+            for name in [*matching, *non_matching]:
+                await c.delete(f"{base_url}/{name}")
+                await c.put(
+                    f"{base_url}/{name}",
+                    json={"mappings": {"properties": {"title": {"type": "text"}}}},
+                )
+        try:
+            body = _cluster_body(engine_type=engine, target_filter=f"e2e-tf-products-{engine}-*")
+            post_resp = await app_client.post("/api/v1/clusters", json=body)
+            assert post_resp.status_code == 201, post_resp.text
+            cluster_id = post_resp.json()["id"]
+            resp = await app_client.get(f"/api/v1/clusters/{cluster_id}/targets")
+            assert resp.status_code == 200, resp.text
+            names = {t["name"] for t in resp.json()["data"]}
+            assert set(matching) <= names, f"missing matching: {set(matching) - names}"
+            assert not (set(non_matching) & names), (
+                f"leaked non-matching: {set(non_matching) & names}"
+            )
+        finally:
+            async with httpx.AsyncClient(auth=auth, timeout=10.0) as c:
+                for name in [*matching, *non_matching]:
                     await c.delete(f"{base_url}/{name}")
 
 

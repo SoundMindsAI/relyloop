@@ -75,6 +75,11 @@ class Cluster(Base):
     notes: Mapped[str | None] = mapped_column(String, nullable=True)
     """Operator notes (free-form, max 2000 chars at the API layer)."""
 
+    target_filter: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    """Operator-supplied glob pattern (``fnmatch.fnmatchcase`` syntax) scoping
+    ``list_targets()`` to matching index names. ``NULL`` = no filter (default,
+    backward-compatible). Trimmed at the API layer; stored verbatim otherwise."""
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

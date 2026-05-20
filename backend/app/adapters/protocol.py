@@ -128,8 +128,23 @@ class SearchAdapter(Protocol):
         """Probe cluster reachability + engine version. See ``HealthStatus`` for shape."""
         ...
 
-    async def list_targets(self, *, request_id: str | None = None) -> list[TargetInfo]:
+    async def list_targets(
+        self,
+        *,
+        request_id: str | None = None,
+        target_filter: str | None = None,
+    ) -> list[TargetInfo]:
         """List indices/collections on the cluster (excludes engine system indices).
+
+        When ``target_filter`` is provided, the result is further restricted to
+        names where ``fnmatch.fnmatchcase(name, target_filter)`` returns True
+        (feat_cluster_target_filter FR-3). Glob syntax: ``*``, ``?``, ``[seq]``,
+        ``[!seq]`` — no brace expansion (pure Python ``fnmatch``). Case-sensitive
+        via ``fnmatchcase`` (avoids platform-dependent ``os.path.normcase`` in
+        ``fnmatch.fnmatch``).
+
+        Order of operations: system-index ``.`` exclusion → glob filter.
+        Operators cannot re-expose system indices via a permissive filter.
 
         Concrete implementations raise ``TargetsForbiddenError`` when the engine
         denies the listing call due to ACL (401/403), and ``ClusterUnreachableError``

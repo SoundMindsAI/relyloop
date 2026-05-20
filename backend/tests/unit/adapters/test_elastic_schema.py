@@ -19,6 +19,8 @@ Cases:
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import httpx
 import pytest
 
@@ -228,6 +230,69 @@ class TestListTargets:
         by_name = {t.name: t for t in targets}
         assert by_name["products"].doc_count == 42
         assert by_name["orders"].doc_count is None
+
+    # ------------------------------------------------------------------
+    # feat_cluster_target_filter Story B2 — target_filter glob application
+    # (FR-3 + AC-6 / AC-7 / AC-8 / Finding-#5 case sensitivity).
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _multi_index_handler() -> Callable[[httpx.Request], httpx.Response]:
+        def handler(req: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json=[
+                    {"index": "products", "docs.count": "10"},
+                    {"index": "products-v2", "docs.count": "20"},
+                    {"index": "docs-articles", "docs.count": "30"},
+                    {"index": ".kibana_1", "docs.count": "5"},
+                ],
+            )
+
+        return handler
+
+    async def test_filter_null_is_passthrough(self) -> None:
+        """AC-7: target_filter=None preserves today's behavior (regression-safe)."""
+        adapter = _build_adapter(self._multi_index_handler())
+        try:
+            targets = await adapter.list_targets(target_filter=None)
+        finally:
+            await adapter.aclose()
+        assert [t.name for t in targets] == ["products", "products-v2", "docs-articles"]
+
+    async def test_filter_matches_subset(self) -> None:
+        """AC-6: glob "products*" returns only matching user-facing indices."""
+        adapter = _build_adapter(self._multi_index_handler())
+        try:
+            targets = await adapter.list_targets(target_filter="products*")
+        finally:
+            await adapter.aclose()
+        assert [t.name for t in targets] == ["products", "products-v2"]
+
+    async def test_filter_is_case_sensitive(self) -> None:
+        """AC-6: fnmatchcase is case-sensitive — UPPERCASE pattern matches nothing.
+
+        Locks against accidental regression to ``fnmatch.fnmatch``, which would
+        call ``os.path.normcase`` and become case-insensitive on Windows file-
+        systems (platform-dependent semantics).
+        """
+        adapter = _build_adapter(self._multi_index_handler())
+        try:
+            targets = await adapter.list_targets(target_filter="PRODUCTS*")
+        finally:
+            await adapter.aclose()
+        assert targets == []
+
+    async def test_filter_cannot_reexpose_system_indices(self) -> None:
+        """AC-8: system-index ``.`` exclusion runs FIRST; a permissive ``*``
+        filter still excludes ``.kibana_1``."""
+        adapter = _build_adapter(self._multi_index_handler())
+        try:
+            targets = await adapter.list_targets(target_filter="*")
+        finally:
+            await adapter.aclose()
+        assert [t.name for t in targets] == ["products", "products-v2", "docs-articles"]
+        assert all(not t.name.startswith(".") for t in targets)
 
     # ------------------------------------------------------------------
     # feat_create_study_target_autocomplete Story B1 — error mapping

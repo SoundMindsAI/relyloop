@@ -124,6 +124,7 @@ def _summary(cluster: Cluster, health: HealthStatus) -> ClusterSummary:
         environment=cluster.environment,
         base_url=cluster.base_url,
         auth_kind=cluster.auth_kind,
+        target_filter=cluster.target_filter,
         created_at=cluster.created_at,
         health_check=HealthCheckResult.model_validate(health.model_dump()),
     )
@@ -139,6 +140,7 @@ def _detail(cluster: Cluster, health: HealthStatus) -> ClusterDetail:
         auth_kind=cluster.auth_kind,
         engine_config=cluster.engine_config,
         notes=cluster.notes,
+        target_filter=cluster.target_filter,
         created_at=cluster.created_at,
         health_check=HealthCheckResult.model_validate(health.model_dump()),
     )
@@ -173,6 +175,7 @@ async def create_cluster(
             credentials_ref=body.credentials_ref,
             engine_config=body.engine_config,
             notes=body.notes,
+            target_filter=body.target_filter,
         )
     except EngineTypeNotSupported as exc:
         raise _err(400, "ENGINE_NOT_SUPPORTED", str(exc), False) from exc
@@ -351,7 +354,9 @@ async def list_cluster_targets(
         raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id} not found", False)
     try:
         async with cluster_svc.acquire_adapter(cluster) as adapter:
-            targets = await adapter.list_targets()
+            # feat_cluster_target_filter FR-3: when the cluster has a stored
+            # target_filter, scope list_targets() to matching index names.
+            targets = await adapter.list_targets(target_filter=cluster.target_filter)
             return TargetListResponse(data=targets)
     except TargetsForbiddenError as exc:
         raise _err(403, "TARGETS_FORBIDDEN", str(exc), False) from exc

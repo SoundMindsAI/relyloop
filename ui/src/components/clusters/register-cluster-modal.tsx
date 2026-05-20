@@ -45,6 +45,7 @@ interface RegisterClusterFormValues {
   credentials_ref: string;
   config_repo_id?: string;
   notes?: string;
+  target_filter?: string;
 }
 
 export interface RegisterClusterModalProps {
@@ -66,6 +67,7 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
       credentials_ref: '',
       config_repo_id: undefined,
       notes: '',
+      target_filter: '',
     },
   });
 
@@ -81,6 +83,7 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
         credentials_ref: values.credentials_ref,
         engine_config: null,
         notes: values.notes || null,
+        target_filter: values.target_filter?.trim() || null,
       },
       {
         onSuccess: (cluster) => {
@@ -95,7 +98,7 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Register cluster</DialogTitle>
           <DialogDescription>
@@ -229,6 +232,22 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
           <div className="space-y-1.5">
             <Label htmlFor="cl-notes">Notes</Label>
             <Textarea id="cl-notes" rows={3} {...form.register('notes')} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="cl-target-filter">Target filter (optional)</Label>
+            <Input
+              id="cl-target-filter"
+              {...form.register('target_filter')}
+              placeholder="products*"
+            />
+            <p className="text-xs text-muted-foreground">
+              Glob pattern restricting which indices appear in the target picker for this cluster.
+              Supports <code>*</code> (any chars), <code>?</code> (single char), and{' '}
+              <code>[seq]</code> / <code>[!seq]</code> character classes. Example:{' '}
+              <code>products*</code> matches every index starting with <em>products</em>. Brace
+              expansion (<code>{'{a,b}'}</code>) is NOT supported — register two clusters if you
+              need OR-of-globs. Leave blank to show every user-facing index.
+            </p>
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
