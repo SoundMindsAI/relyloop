@@ -125,6 +125,46 @@ async def test_patch_override_response_model_is_judgment_row(
     assert ref.endswith("JudgmentRow"), ref
 
 
+@_skip_if_no_pg
+async def test_list_judgment_lists_endpoint_declares_filter_query_params(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """``bug_judgment_lists_listing_ignores_query_set_filter`` contract gate.
+
+    Asserts that the OpenAPI schema for ``GET /api/v1/judgment-lists``
+    declares ``query_set_id`` and ``cluster_id`` as query parameters. Both
+    are constrained to 1–36 chars (UUIDv7). Without these declarations,
+    FastAPI silently dropped the params from the frontend ``useJudgmentLists``
+    hook, leaving the create-study modal's Step-2 dropdown unfiltered and
+    forcing the user to a confusing 422 at ``POST /api/v1/studies``.
+    """
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    params = schema["paths"]["/api/v1/judgment-lists"]["get"].get("parameters", [])
+    by_name = {p["name"]: p for p in params if p.get("in") == "query"}
+
+    assert "query_set_id" in by_name, (
+        f"GET /judgment-lists missing `query_set_id` query param; got {sorted(by_name)}"
+    )
+    assert "cluster_id" in by_name, (
+        f"GET /judgment-lists missing `cluster_id` query param; got {sorted(by_name)}"
+    )
+    # Both should be optional strings (UUIDv7 → max 36 chars).
+    for name in ("query_set_id", "cluster_id"):
+        spec = by_name[name]["schema"]
+        # Optional → anyOf [string, null] or `nullable: true` depending on
+        # FastAPI's emitted shape.
+        if "anyOf" in spec:
+            string_branch = next((s for s in spec["anyOf"] if s.get("type") == "string"), None)
+            assert string_branch is not None, f"{name}: no string branch in anyOf"
+            assert string_branch.get("maxLength") == 36, (
+                f"{name}: maxLength != 36 (got {string_branch.get('maxLength')})"
+            )
+        else:
+            assert spec.get("type") == "string", f"{name}: not a string"
+            assert spec.get("maxLength") == 36, f"{name}: maxLength != 36"
+
+
 def test_all_spec_error_codes_referenced_in_router_source() -> None:
     """Every spec/drift error code appears as a literal in the router OR its dispatch helper.
 

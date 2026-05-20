@@ -410,6 +410,114 @@ async def test_list_judgment_lists_paginated_returns_total_count(
     assert body["next_cursor"] is not None
 
 
+async def test_list_judgment_lists_filters_by_query_set_id_and_cluster_id(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """``bug_judgment_lists_listing_ignores_query_set_filter`` —
+    ``GET /api/v1/judgment-lists?query_set_id=...&cluster_id=...`` must
+    return ONLY rows whose parent matches.
+
+    Seeds one cluster + two query-sets (A, B) in that cluster + 2
+    judgment-lists each (4 total). Then probes the endpoint with no
+    filter, with ``?query_set_id=A``, with ``?query_set_id=B``, and with
+    ``?cluster_id=...``. Asserts ``X-Total-Count`` and ``data[].id``
+    membership for each.
+    """
+    seeded_a = await _seed_chain(num_queries=1)
+    cluster_id = seeded_a["cluster_id"]
+    qs_a = seeded_a["query_set_id"]
+
+    factory = get_session_factory()
+    async with factory() as db:
+        qs_b_row = await repo.create_query_set(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"filt-qs-b-{uuid.uuid4().hex[:6]}",
+            cluster_id=cluster_id,
+        )
+        q_b = await repo.create_query(
+            db,
+            id=str(uuid.uuid4()),
+            query_set_id=qs_b_row.id,
+            query_text="filt-q-b",
+        )
+        await db.commit()
+    qs_b = qs_b_row.id
+    q_b_id = q_b.id
+
+    ids_a: list[str] = []
+    ids_b: list[str] = []
+    for i in range(2):
+        for qs_id, qry_id, dest in (
+            (qs_a, seeded_a["query_ids"][0], ids_a),
+            (qs_b, q_b_id, ids_b),
+        ):
+            resp = await async_client.post(
+                "/api/v1/judgment-lists/import",
+                json={
+                    "name": f"filt-jl-{i}-{uuid.uuid4().hex[:6]}",
+                    "query_set_id": qs_id,
+                    "cluster_id": cluster_id,
+                    "target": "stub-index",
+                    "rubric": "r",
+                    "judgments": [{"query_id": qry_id, "doc_id": f"d-{i}", "rating": 1}],
+                },
+            )
+            assert resp.status_code == 201, resp.text
+            dest.append(resp.json()["id"])
+
+    # Unfiltered baseline: all 4 lists visible. (Other tests may also seed lists
+    # in this DB; assert at-least semantics + that ours are present.)
+    response = await async_client.get("/api/v1/judgment-lists", params={"limit": 200})
+    assert response.status_code == 200
+    unfiltered_ids = {row["id"] for row in response.json()["data"]}
+    assert set(ids_a + ids_b).issubset(unfiltered_ids)
+
+    # Filter by query_set_id=A: exactly the 2 A-lists.
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"query_set_id": qs_a, "limit": 200}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    returned_ids = [row["id"] for row in body["data"]]
+    assert set(returned_ids) == set(ids_a), (
+        f"query_set_id=A returned {returned_ids}; expected exactly {ids_a}"
+    )
+    assert response.headers["X-Total-Count"] == "2"
+
+    # Filter by query_set_id=B: exactly the 2 B-lists.
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"query_set_id": qs_b, "limit": 200}
+    )
+    assert response.status_code == 200
+    returned_ids = [row["id"] for row in response.json()["data"]]
+    assert set(returned_ids) == set(ids_b), (
+        f"query_set_id=B returned {returned_ids}; expected exactly {ids_b}"
+    )
+    assert response.headers["X-Total-Count"] == "2"
+
+    # Filter by cluster_id: returns at least our 4 (other tests may add too).
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"cluster_id": cluster_id, "limit": 200}
+    )
+    assert response.status_code == 200
+    cluster_filtered_data = response.json()["data"]
+    cluster_filtered_ids = {row["id"] for row in cluster_filtered_data}
+    assert set(ids_a + ids_b).issubset(cluster_filtered_ids)
+    # And every returned row actually belongs to the requested cluster.
+    for row in cluster_filtered_data:
+        assert row["cluster_id"] == cluster_id
+
+    # Combined filter: query_set_id=A AND cluster_id=<same>: same 2 rows.
+    response = await async_client.get(
+        "/api/v1/judgment-lists",
+        params={"query_set_id": qs_a, "cluster_id": cluster_id, "limit": 200},
+    )
+    assert response.status_code == 200
+    returned_ids = [row["id"] for row in response.json()["data"]]
+    assert set(returned_ids) == set(ids_a)
+
+
 async def test_detail_returns_404_on_unknown_id(async_client: httpx.AsyncClient) -> None:
     response = await async_client.get(f"/api/v1/judgment-lists/{uuid.uuid4()}")
     assert response.status_code == 404
