@@ -61,6 +61,14 @@ function mockBackend() {
       ),
     ),
     http.get(`${API_BASE}/api/v1/clusters/c1/schema`, () => HttpResponse.json({ fields: [] })),
+    http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () =>
+      HttpResponse.json({
+        data: [
+          { name: 'products', doc_count: 42 },
+          { name: 'orders', doc_count: 12 },
+        ],
+      }),
+    ),
     http.get(`${API_BASE}/api/v1/query-sets`, () =>
       HttpResponse.json(
         {
@@ -130,6 +138,11 @@ describe('CreateStudyModal', () => {
       expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument(),
     );
     fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+    // After cluster pick, the target dropdown loads via /clusters/c1/targets.
+    // Wait for the 'products' option to render before selecting it.
+    await waitFor(() =>
+      expect(screen.queryAllByRole('option', { name: /products/ }).length).toBeGreaterThan(0),
+    );
     fireEvent.change(screen.getByLabelText('Target index / collection'), {
       target: { value: 'products' },
     });
@@ -190,5 +203,220 @@ describe('CreateStudyModal', () => {
         pruner: 'median',
       },
     });
+  });
+});
+
+// ----------------------------------------------------------------------------
+// feat_create_study_target_autocomplete Story F2 — target picker UX tests
+// ----------------------------------------------------------------------------
+
+describe('CreateStudyModal — Step 1 target picker (F2)', () => {
+  it('renders a disabled "Pick a cluster first" placeholder and fires no targets GET before a cluster is picked', async () => {
+    mockBackend();
+    let targetsCalls = 0;
+    server.use(
+      http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () => {
+        targetsCalls += 1;
+        return HttpResponse.json({ data: [{ name: 'products', doc_count: 42 }] });
+      }),
+    );
+
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+
+    // Wait for cluster dropdown to be ready (proxy for "modal mounted").
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument(),
+    );
+
+    // Before any cluster is picked, the target trigger is disabled and no GET fired.
+    const targetField = screen.getByLabelText('Target index / collection');
+    expect(targetField).toBeDisabled();
+    // Give the network a moment to NOT fire.
+    await new Promise((r) => setTimeout(r, 20));
+    expect(targetsCalls).toBe(0);
+  });
+
+  it('renders targets alphabetically sorted (FR-7) once a cluster is picked', async () => {
+    mockBackend();
+    server.use(
+      http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () =>
+        HttpResponse.json({
+          // Engine returns creation order; the frontend sorts alphabetically.
+          data: [
+            { name: 'reviews', doc_count: 1 },
+            { name: 'orders', doc_count: 2 },
+            { name: 'products', doc_count: 3 },
+          ],
+        }),
+      ),
+    );
+
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument(),
+    );
+    fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+
+    // Wait for all three target options to render.
+    await waitFor(() => {
+      expect(screen.queryAllByRole('option', { name: /products/ }).length).toBeGreaterThan(0);
+      expect(screen.queryAllByRole('option', { name: /orders/ }).length).toBeGreaterThan(0);
+      expect(screen.queryAllByRole('option', { name: /reviews/ }).length).toBeGreaterThan(0);
+    });
+
+    // Find the target select element and read its options in DOM order.
+    const targetField = screen.getByLabelText('Target index / collection') as HTMLSelectElement;
+    const optionNames = Array.from(targetField.options)
+      .map((o) => o.textContent ?? o.value)
+      .filter((s) => s && !s.startsWith('Choose'));
+    // Alphabetical order: orders, products, reviews.
+    expect(optionNames.slice(0, 3)).toEqual([
+      expect.stringContaining('orders'),
+      expect.stringContaining('products'),
+      expect.stringContaining('reviews'),
+    ]);
+  });
+
+  it('toggles between dropdown and manual mode via the "Enter manually" button (AC-9)', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument(),
+    );
+    fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+
+    // Default: dropdown mode → toggle reads "Enter manually".
+    const toggle = await screen.findByRole('button', { name: 'Enter manually' });
+    fireEvent.click(toggle);
+
+    // After click: input rendered, toggle label flips.
+    const targetField = await screen.findByLabelText('Target index / collection');
+    expect(targetField.tagName.toLowerCase()).toBe('input');
+    expect(screen.getByRole('button', { name: 'Use dropdown' })).toBeInTheDocument();
+  });
+
+  it('auto-engages manual mode + shows amber hint on TARGETS_FORBIDDEN, no toast (AC-10 + AC-13 modal-level)', async () => {
+    mockBackend();
+    // Override the targets endpoint to return 403 TARGETS_FORBIDDEN.
+    server.use(
+      http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () =>
+        HttpResponse.json(
+          {
+            detail: {
+              error_code: 'TARGETS_FORBIDDEN',
+              message: 'cluster denied listing call',
+              retryable: false,
+            },
+          },
+          { status: 403 },
+        ),
+      ),
+    );
+
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument(),
+    );
+    fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+
+    // After the 403 lands, the modal auto-flips into manual mode and renders
+    // the amber inline hint.
+    await waitFor(() =>
+      expect(screen.getByText(/Cluster restricts index listing/)).toBeInTheDocument(),
+    );
+    const targetField = screen.getByLabelText('Target index / collection');
+    expect(targetField.tagName.toLowerCase()).toBe('input');
+    // Toggle now reads "Use dropdown".
+    expect(screen.getByRole('button', { name: 'Use dropdown' })).toBeInTheDocument();
+  });
+
+  it('cluster change resets target + manual-mode + clears amber hint (AC-8)', async () => {
+    mockBackend();
+    // Add a second cluster that DOES permit listing.
+    server.use(
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          {
+            data: [
+              {
+                id: 'c1',
+                name: 'restricted',
+                engine_type: 'elasticsearch',
+                environment: 'dev',
+                base_url: 'http://localhost:9200',
+                auth_kind: 'es_apikey',
+                created_at: '2026-05-12T00:00:00Z',
+                health_check: {
+                  status: 'green',
+                  version: '9.4.0',
+                  checked_at: '2026-05-12T00:00:00Z',
+                  error: null,
+                },
+              },
+              {
+                id: 'c2',
+                name: 'open',
+                engine_type: 'elasticsearch',
+                environment: 'dev',
+                base_url: 'http://localhost:9200',
+                auth_kind: 'es_apikey',
+                created_at: '2026-05-12T00:00:00Z',
+                health_check: {
+                  status: 'green',
+                  version: '9.4.0',
+                  checked_at: '2026-05-12T00:00:00Z',
+                  error: null,
+                },
+              },
+            ],
+            next_cursor: null,
+            has_more: false,
+          },
+          { headers: { 'X-Total-Count': '2' } },
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/clusters/c1/targets`, () =>
+        HttpResponse.json(
+          {
+            detail: {
+              error_code: 'TARGETS_FORBIDDEN',
+              message: 'cluster denied listing call',
+              retryable: false,
+            },
+          },
+          { status: 403 },
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/clusters/c2/targets`, () =>
+        HttpResponse.json({ data: [{ name: 'products', doc_count: 42 }] }),
+      ),
+    );
+
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /restricted/ })).toBeInTheDocument(),
+    );
+    fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
+
+    // c1 → TARGETS_FORBIDDEN auto-engages manual mode + amber hint.
+    await waitFor(() =>
+      expect(screen.getByText(/Cluster restricts index listing/)).toBeInTheDocument(),
+    );
+
+    // Switch to c2 (open cluster) → manualMode resets, hint disappears,
+    // dropdown re-engages.
+    fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c2' } });
+
+    await waitFor(() =>
+      expect(screen.queryByText(/Cluster restricts index listing/)).not.toBeInTheDocument(),
+    );
+    // Toggle is back to "Enter manually" (dropdown mode).
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Enter manually' })).toBeInTheDocument(),
+    );
   });
 });
