@@ -38,11 +38,11 @@ export type SearchSpaceJson = { params: Record<string, ParamSpec> };
 export const HEURISTIC_RULES: ReadonlyArray<{ match: RegExp; spec: ParamSpec }> = [
   // field-boost-like (prefix) → log-uniform float in [0.5, 10.0]
   { match: /^(field_boost|boost_)/, spec: { type: 'float', low: 0.5, high: 10.0, log: true } },
-  // field-boost-like (<field>_boost suffix — ES multi_match per-field convention; added
-  // by bug_tutorial_template_param_boost_naming so tutorial templates whose declared
-  // params are named title_boost / description_boost / etc. get the same [0.5, 10]
-  // log-uniform range as the chat-agent path)
-  { match: /^.+_boost$/, spec: { type: 'float', low: 0.5, high: 10.0, log: true } },
+  // field-boost-like (standalone `boost` OR `<field>_boost` suffix — ES multi_match
+  // per-field convention). Pairs with the prefix rule above so all four common
+  // boost-naming variants (`boost`, `boost_<x>`, `field_boost_<x>`, `<x>_boost`)
+  // produce the same log-uniform [0.5, 10] range.
+  { match: /^(boost|.+_boost)$/, spec: { type: 'float', low: 0.5, high: 10.0, log: true } },
   // tie-breaker / weight → uniform float in [0.0, 1.0]
   { match: /^(tie_breaker|.*_weight)$/, spec: { type: 'float', low: 0.0, high: 1.0 } },
   // slop / min_should_match / *_size → small int in [0, 5]
