@@ -44,6 +44,8 @@ import {
 } from '@/lib/enums';
 import { buildStarterSearchSpace } from '@/lib/search-space-defaults';
 
+import { SearchSpaceBuilder } from './search-space-builder';
+
 // Source-of-truth: backend/app/api/v1/schemas.py:474 _K_REQUIRED_METRICS frozenset.
 // Asserted by ui/src/__tests__/components/studies/k-required.test.ts.
 export const K_REQUIRED: ReadonlySet<ObjectiveMetric> = new Set(['ndcg', 'precision', 'recall']);
@@ -533,6 +535,13 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                 <Label htmlFor="cs-name">Study name</Label>
                 <Input id="cs-name" {...form.register('name')} />
               </div>
+              <SearchSpaceBuilder
+                value={values.search_space_text}
+                onChange={(next) => form.setValue('search_space_text', next)}
+                templateBody={templateBody ?? null}
+                templateId={values.template_id || undefined}
+                templateFetchStatus={templateFetchStatus}
+              />
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1">
                   <Label htmlFor="cs-space">Search space (JSON)</Label>
