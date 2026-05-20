@@ -91,7 +91,12 @@ test.describe('/studies — create-study Step-4 builder (Story 4.1)', () => {
     await page.getByTestId('step-next').click();
     await expect(page.getByTestId('step-5')).toBeVisible({ timeout: 5_000 });
 
-    // Submit (Step-5 fields all have defaults from the form's defaultValues).
+    // Step 5: stepValid(4, ...) requires max_trials > 0 OR time_budget_min > 0
+    // (see create-study-modal.tsx stepValid case 4). The form's defaultValues
+    // don't seed either, so the submit button stays disabled until we fill one.
+    await page.getByLabel('Max trials').fill('10');
+
+    // Submit.
     await page.getByTestId('create-study-submit').click();
 
     // The submitted study should show up; wait for the modal to close.
