@@ -163,17 +163,96 @@ class TestErrorCodes:
     ) -> None:
         """feat_create_study_target_autocomplete B2: missing/soft-deleted cluster
         on the targets endpoint → 404 CLUSTER_NOT_FOUND envelope.
-
-        Sibling cases (TARGETS_FORBIDDEN, CLUSTER_UNREACHABLE) require the
-        adapter to raise specific exceptions — covered with monkeypatch on
-        ``acquire_adapter`` at the integration layer in
-        ``test_clusters_api_targets_errors.py`` (the local ES stack runs with
-        security disabled per docs/01_architecture/deployment.md, so 401/403
-        cannot be produced against the real engine).
         """
         resp = await app_client.get("/api/v1/clusters/missing-id/targets")
         assert resp.status_code == 404
         _assert_envelope(resp.json()["detail"], "CLUSTER_NOT_FOUND")
+
+    async def test_targets_forbidden(
+        self,
+        app_client: httpx.AsyncClient,
+        clean_clusters: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """feat_create_study_target_autocomplete B2 (cycle-2 GPT-5.5 final
+        review #2): adapter raises TargetsForbiddenError → 403 TARGETS_FORBIDDEN
+        envelope at the wire. Local ES runs with security disabled, so 401/403
+        cannot be produced against the real engine — monkeypatch the
+        ``acquire_adapter`` context manager to inject a stub that raises.
+        """
+        from contextlib import asynccontextmanager
+
+        from backend.app.adapters.errors import TargetsForbiddenError
+        from backend.app.services import cluster as cluster_svc
+
+        post = await app_client.post("/api/v1/clusters", json=_body())
+        if post.status_code != 201:
+            pytest.skip("Could not register cluster — ES likely unreachable")
+        cid = post.json()["id"]
+
+        @asynccontextmanager
+        async def _stub_acquire(cluster):
+            class _Stub:
+                async def list_targets(self, *, request_id: str | None = None):
+                    raise TargetsForbiddenError("cluster denied listing call")
+
+                async def aclose(self) -> None:
+                    return None
+
+            stub = _Stub()
+            try:
+                yield stub
+            finally:
+                await stub.aclose()
+
+        monkeypatch.setattr(cluster_svc, "acquire_adapter", _stub_acquire)
+        resp = await app_client.get(f"/api/v1/clusters/{cid}/targets")
+        assert resp.status_code == 403
+        _assert_envelope(resp.json()["detail"], "TARGETS_FORBIDDEN")
+        assert resp.json()["detail"]["retryable"] is False
+
+    async def test_targets_unreachable_via_adapter(
+        self,
+        app_client: httpx.AsyncClient,
+        clean_clusters: None,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """feat_create_study_target_autocomplete B2 (cycle-2 GPT-5.5 final
+        review #2): adapter raises ClusterUnreachableError on the targets
+        endpoint → 503 CLUSTER_UNREACHABLE envelope. Distinct from
+        ``test_cluster_unreachable`` above, which exercises the registration
+        path; this one covers the targets-endpoint path explicitly.
+        """
+        from contextlib import asynccontextmanager
+
+        from backend.app.adapters.errors import ClusterUnreachableError
+        from backend.app.services import cluster as cluster_svc
+
+        post = await app_client.post("/api/v1/clusters", json=_body())
+        if post.status_code != 201:
+            pytest.skip("Could not register cluster — ES likely unreachable")
+        cid = post.json()["id"]
+
+        @asynccontextmanager
+        async def _stub_acquire(cluster):
+            class _Stub:
+                async def list_targets(self, *, request_id: str | None = None):
+                    raise ClusterUnreachableError("HTTP 503 from /_cat/indices")
+
+                async def aclose(self) -> None:
+                    return None
+
+            stub = _Stub()
+            try:
+                yield stub
+            finally:
+                await stub.aclose()
+
+        monkeypatch.setattr(cluster_svc, "acquire_adapter", _stub_acquire)
+        resp = await app_client.get(f"/api/v1/clusters/{cid}/targets")
+        assert resp.status_code == 503
+        _assert_envelope(resp.json()["detail"], "CLUSTER_UNREACHABLE")
+        assert resp.json()["detail"]["retryable"] is True
 
     async def test_cluster_unreachable(
         self, app_client: httpx.AsyncClient, clean_clusters: None
