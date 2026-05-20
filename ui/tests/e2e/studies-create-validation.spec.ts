@@ -10,16 +10,29 @@
  *      blocks the Step-4 → Step-5 transition.
  *
  * The server-side rejection envelope is exercised by the backend contract
- * test at `backend/tests/contract/test_studies_error_codes.py` (Story 1.1).
- * The client-side mirror's message format matches what the server returns,
- * so the inline-error assertion below doubles as a parity check on the
- * cross-layer message text.
+ * test at `backend/tests/contract/test_studies_error_codes.py`. The client-
+ * side mirror's message format matches what the server returns, so the
+ * inline-error assertion below doubles as a parity check on cross-layer
+ * message text consistency.
+ *
+ * Stability note (chore_create_study_modal_e2e_stability): the create-study
+ * modal opens with five chained TanStack queries firing in parallel
+ * (`useClusters`, `useClusterSchema`, `useQuerySets`, `useJudgmentLists`,
+ * `useTemplates`). The first run of this spec saw the cs-cluster trigger
+ * toggle disabled→enabled→disabled fast enough that Playwright's `click`
+ * auto-wait never got a clickable + stable window. Fix: gate every
+ * `EntitySelect` interaction with an explicit `.toBeEnabled({ timeout })`
+ * precondition. That gives the underlying query enough time to settle into
+ * a stable enabled state before Playwright commits to the click, without
+ * touching the shared `EntitySelect` primitive's `isLoading`-vs-`isFetching`
+ * gating.
  */
-import { expect, test } from '@playwright/test';
+import { type Locator, type Page, expect, test } from '@playwright/test';
 
 import { seedFullChain } from './helpers/seed';
 
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
+const ENTITY_SELECT_TIMEOUT = 10_000;
 
 async function getName(path: string): Promise<string> {
   const resp = await fetch(`${API_BASE}${path}`);
@@ -28,24 +41,21 @@ async function getName(path: string): Promise<string> {
   return body.name;
 }
 
+async function pickEntity(page: Page, triggerTestId: string, optionName: RegExp): Promise<void> {
+  const trigger: Locator = page.getByTestId(triggerTestId);
+  // Wait for the EntitySelect's underlying TanStack query to settle into a
+  // stable enabled state before clicking. Without this, the cs-cluster
+  // trigger sometimes flickers disabled→enabled→disabled while parallel
+  // queries on the modal resolve and Playwright's auto-wait never gets a
+  // clean window. See chore_create_study_modal_e2e_stability for the
+  // diagnosis trail.
+  await expect(trigger).toBeEnabled({ timeout: ENTITY_SELECT_TIMEOUT });
+  await trigger.click();
+  await page.getByRole('option', { name: optionName }).first().click();
+}
+
 test.describe('/studies — create-study Step-4 client-side validation', () => {
-  // SKIPPED: the cluster trigger button in the create-study modal toggles
-  // disabled→enabled→disabled as the underlying TanStack Query refetches the
-  // cluster list (useClusters has no staleTime override and multiple
-  // dependent queries fire on open). The Playwright `click` action's
-  // auto-wait gates on the button being stable, so the click ends up timing
-  // out at 30s against the real backend. Tracked separately at
-  // `docs/02_product/planned_features/chore_create_study_modal_e2e_stability/idea.md`
-  // — the fix is to settle the useClusters query (or refactor the
-  // EntitySelect's disabled gating) before re-enabling this spec.
-  //
-  // The contract this spec was meant to assert is already covered by:
-  //   - backend/tests/contract/test_studies_error_codes.py (server-side
-  //     SEARCH_SPACE_UNKNOWN_PARAM envelope shape — Story 1.1)
-  //   - ui/src/__tests__/components/studies/create-study-modal.client-validation.test.tsx
-  //     (client-side mirror produces the same message format — Story 3.1)
-  // So skipping this E2E is a coverage no-op, just a parity-belt missing.
-  test.skip('Step 4 auto-fills + inline unknown-param error blocks Step 5', async ({ page }) => {
+  test('Step 4 auto-fills + inline unknown-param error blocks Step 5', async ({ page }) => {
     // Seed cluster + query-set + template (declared_params: { boost: 'float' })
     // + judgment list. `query_text` is referenced in the Jinja template body
     // but is not a search-space param — render() injects it from the query
@@ -61,33 +71,17 @@ test.describe('/studies — create-study Step-4 client-side validation', () => {
     await expect(page.getByTestId('create-study-form')).toBeVisible({ timeout: 5_000 });
 
     // Step 1 — pick the seeded cluster + a target index name.
-    await page.getByTestId('cs-cluster').click();
-    await page
-      .getByRole('option', { name: new RegExp(chain.clusterName) })
-      .first()
-      .click();
+    await pickEntity(page, 'cs-cluster', new RegExp(chain.clusterName));
     await page.getByLabel('Target index / collection').fill('e2e-target');
     await page.getByTestId('step-next').click();
 
     // Step 2 — pick the seeded query set + judgment list.
-    await page.getByTestId('cs-qs').click();
-    await page
-      .getByRole('option', { name: new RegExp(querySetName) })
-      .first()
-      .click();
-    await page.getByTestId('cs-jl').click();
-    await page
-      .getByRole('option', { name: new RegExp(judgmentListName) })
-      .first()
-      .click();
+    await pickEntity(page, 'cs-qs', new RegExp(querySetName));
+    await pickEntity(page, 'cs-jl', new RegExp(judgmentListName));
     await page.getByTestId('step-next').click();
 
     // Step 3 — pick the seeded template.
-    await page.getByTestId('cs-tpl').click();
-    await page
-      .getByRole('option', { name: new RegExp(chain.templateName) })
-      .first()
-      .click();
+    await pickEntity(page, 'cs-tpl', new RegExp(chain.templateName));
     await page.getByTestId('step-next').click();
 
     // Step 4 — auto-fill has landed.
@@ -97,9 +91,9 @@ test.describe('/studies — create-study Step-4 client-side validation', () => {
     await expect(async () => {
       const v = await textarea.inputValue();
       expect(v.length).toBeGreaterThan(2);
-      // The seedTemplate fixture's declared_params is { boost: 'float' } —
-      // 'boost' (no underscore) falls through the heuristic to the simple-form
-      // 'float' default → uniform [0.0, 1.0].
+      // The seedTemplate fixture's declared_params is { boost: 'float' };
+      // after PR #159's heuristic extension `boost` matches the
+      // `^(boost|.+_boost)$` rule → log-uniform [0.5, 10].
       expect(v).toContain('boost');
     }).toPass({ timeout: 5_000 });
 
