@@ -1003,6 +1003,8 @@ export interface components {
       } | null;
       /** Notes */
       notes?: string | null;
+      /** Target Filter */
+      target_filter?: string | null;
       /**
        * Created At
        * Format: date-time
@@ -1048,6 +1050,8 @@ export interface components {
        * @enum {string}
        */
       auth_kind: 'es_apikey' | 'es_basic' | 'opensearch_basic' | 'opensearch_sigv4';
+      /** Target Filter */
+      target_filter?: string | null;
       /**
        * Created At
        * Format: date-time
@@ -1188,6 +1192,11 @@ export interface components {
       } | null;
       /** Notes */
       notes?: string | null;
+      /**
+       * Target Filter
+       * @description Optional glob pattern (fnmatch.fnmatchcase: *, ?, [seq], [!seq]; no brace expansion). Scopes GET /clusters/{id}/targets to matching index names. Null = no filter.
+       */
+      target_filter?: string | null;
     };
     /**
      * CreateConfigRepoRequest
