@@ -45,6 +45,7 @@ import {
 import { buildStarterSearchSpace } from '@/lib/search-space-defaults';
 
 import { SearchSpaceBuilder } from './search-space-builder';
+import { ResponsiveLayout } from './search-space-builder/responsive-layout';
 
 // Source-of-truth: backend/app/api/v1/schemas.py:474 _K_REQUIRED_METRICS frozenset.
 // Asserted by ui/src/__tests__/components/studies/k-required.test.ts.
@@ -535,70 +536,79 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                 <Label htmlFor="cs-name">Study name</Label>
                 <Input id="cs-name" {...form.register('name')} />
               </div>
-              <SearchSpaceBuilder
-                value={values.search_space_text}
-                onChange={(next) => form.setValue('search_space_text', next)}
-                templateBody={templateBody ?? null}
-                templateId={values.template_id || undefined}
-                templateFetchStatus={templateFetchStatus}
-              />
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-1">
-                  <Label htmlFor="cs-space">Search space (JSON)</Label>
-                  <InfoTooltip glossaryKey="study.search_space" />
-                </div>
-                {templateQuery.isFetching && (
-                  <p className="text-xs text-muted-foreground" data-testid="cs-template-loading">
-                    Loading template…
-                  </p>
-                )}
-                <Textarea
-                  id="cs-space"
-                  rows={10}
-                  {...form.register('search_space_text', {
-                    onBlur: handleSearchSpaceBlur,
-                  })}
-                  data-testid="cs-search-space"
-                />
-                <div className="mt-1.5">
-                  <HelpPopover glossaryKey="study.search_space" />
-                </div>
-                {searchSpaceError && (
-                  <p
-                    role="alert"
-                    aria-live="polite"
-                    className="text-sm text-destructive"
-                    data-testid="cs-search-space-error"
-                  >
-                    {searchSpaceError}
-                  </p>
-                )}
-                {placeholderWarning && (
-                  <p
-                    className="text-sm text-amber-700 dark:text-amber-400"
-                    data-testid="cs-placeholder-warning"
-                  >
-                    Replace the &lsquo;__placeholder__&rsquo; value(s) before submitting — they are
-                    starter defaults for params with no inferable type.
-                  </p>
-                )}
-                {templateFetchStatus === 'transient' && (
-                  <div className="flex items-center gap-2" data-testid="cs-template-retry">
-                    <p className="text-sm text-muted-foreground">
-                      Couldn&rsquo;t load the template. Server-side validation will still catch
-                      typos on submit.
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => void templateQuery.refetch()}
-                    >
-                      Retry
-                    </Button>
+              <ResponsiveLayout
+                builder={
+                  <SearchSpaceBuilder
+                    value={values.search_space_text}
+                    onChange={(next) => form.setValue('search_space_text', next)}
+                    templateBody={templateBody ?? null}
+                    templateId={values.template_id || undefined}
+                    templateFetchStatus={templateFetchStatus}
+                  />
+                }
+                textarea={
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="cs-space">Search space (JSON)</Label>
+                      <InfoTooltip glossaryKey="study.search_space" />
+                    </div>
+                    {templateQuery.isFetching && (
+                      <p
+                        className="text-xs text-muted-foreground"
+                        data-testid="cs-template-loading"
+                      >
+                        Loading template…
+                      </p>
+                    )}
+                    <Textarea
+                      id="cs-space"
+                      rows={10}
+                      {...form.register('search_space_text', {
+                        onBlur: handleSearchSpaceBlur,
+                      })}
+                      data-testid="cs-search-space"
+                    />
+                    <div className="mt-1.5">
+                      <HelpPopover glossaryKey="study.search_space" />
+                    </div>
+                    {searchSpaceError && (
+                      <p
+                        role="alert"
+                        aria-live="polite"
+                        className="text-sm text-destructive"
+                        data-testid="cs-search-space-error"
+                      >
+                        {searchSpaceError}
+                      </p>
+                    )}
+                    {placeholderWarning && (
+                      <p
+                        className="text-sm text-amber-700 dark:text-amber-400"
+                        data-testid="cs-placeholder-warning"
+                      >
+                        Replace the &lsquo;__placeholder__&rsquo; value(s) before submitting — they
+                        are starter defaults for params with no inferable type.
+                      </p>
+                    )}
+                    {templateFetchStatus === 'transient' && (
+                      <div className="flex items-center gap-2" data-testid="cs-template-retry">
+                        <p className="text-sm text-muted-foreground">
+                          Couldn&rsquo;t load the template. Server-side validation will still catch
+                          typos on submit.
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => void templateQuery.refetch()}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                }
+              />
             </div>
           )}
           {step === 4 && (
