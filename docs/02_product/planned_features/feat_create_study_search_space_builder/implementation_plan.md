@@ -1250,7 +1250,7 @@ None. The builder uses only React Hook Form state (existing) and component-local
 ### Current sprint
 - [x] Story 1.1 — Builder shell + bidirectional round-trip
 - [x] Story 1.2 — Per-row rendering + tooltip slots
-- [ ] Story 2.1 — Type selector + spinners + stash + parity test
+- [x] Story 2.1 — Type selector + spinners + stash + parity test
 - [ ] Story 2.2 — Log toggle
 - [ ] Story 2.3 — Categorical chip input + cardinality counters
 - [ ] Story 2.4 — Add-custom-param affordance

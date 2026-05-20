@@ -64,8 +64,13 @@ const DEFAULT_FALLBACK: ParamSpec = { type: 'float', low: 0.0, high: 1.0 };
  * `'string'` case emits a degenerate single-choice categorical with a
  * `__placeholder__` sentinel — the modal renders a non-blocking amber
  * warning so the user replaces it before submitting (spec FR-1, AC-1).
+ *
+ * Exported (`feat_create_study_search_space_builder` Story 2.1) so the
+ * builder can seed initial spec values for declared-but-unset rows. Note
+ * that this is NOT used for the cross-type stash fallback — type-switch
+ * uses target-type-only `defaultSpecForType(nextType)` defaults instead.
  */
-function simpleFormSpec(typeName: string): ParamSpec | null {
+export function simpleFormSpec(typeName: string): ParamSpec | null {
   switch (typeName) {
     case 'int':
       return { type: 'int', low: 0, high: 5 };

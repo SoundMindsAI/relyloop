@@ -28,6 +28,7 @@ import type { QueryTemplateDetail } from '@/lib/api/query-templates';
 
 import { BuilderPlaceholder } from './placeholder';
 import { ParamRow } from './param-row';
+import { stashClearAll, stashClearRow } from './stash';
 import type { ParamSpec, SearchSpaceJson, StashMap } from './types';
 
 const DEBOUNCE_MS = 200;
@@ -103,12 +104,28 @@ export function SearchSpaceBuilder({
   const lastBuilderWriteRef = React.useRef<string | null>(null);
 
   /**
-   * Cross-type stash (Story 2.1). Initialized here so siblings can read/
-   * write via `stash.ts` helpers without each constructing their own ref.
+   * Cross-type stash (Story 2.1). Held in a `Map<string, StashEntry>`
+   * passed by ref to each `<ParamRow>` so siblings share the same map
+   * across the builder's lifetime. Invalidation rules in §4 are
+   * enforced via the `lastBuilderWriteRef`-guarded effect below.
    */
   const stashRef = React.useRef<StashMap>(new Map());
-  // Silence unused warning until Story 2.1 wires it; deliberate.
-  void stashRef;
+
+  /**
+   * Snapshot of the prior `value` prop. Used by the stash-invalidation
+   * effect to identify which rows changed externally (textarea-driven)
+   * and clear their stash entries. Builder-originated writes are
+   * filtered out via `lastBuilderWriteRef`.
+   */
+  const priorValueRef = React.useRef<string>(value);
+
+  /**
+   * Pending `SearchSpaceJson` currently scheduled for debounced emit.
+   * `flushBuilderWrite()` reads this so onBlur emits the latest keystroke
+   * even though `value` (and therefore `parseResult`) hasn't yet
+   * propagated through React's re-render cycle.
+   */
+  const pendingWriteRef = React.useRef<SearchSpaceJson | null>(null);
 
   /** Memoized parse of the current `value`. */
   const parseResult = React.useMemo<ParseResult>(() => parseSearchSpace(value), [value]);
@@ -126,11 +143,13 @@ export function SearchSpaceBuilder({
   /** Schedule a debounced canonical write. Last call wins. */
   const scheduleBuilderWrite = React.useCallback(
     (next: SearchSpaceJson): void => {
+      pendingWriteRef.current = next;
       if (debounceRef.current !== null) {
         clearTimeout(debounceRef.current);
       }
       debounceRef.current = setTimeout(() => {
         debounceRef.current = null;
+        pendingWriteRef.current = null;
         emitBuilderWrite(stringifySearchSpace(next));
       }, DEBOUNCE_MS);
     },
@@ -139,22 +158,43 @@ export function SearchSpaceBuilder({
 
   /**
    * Synchronously cancel any pending debounce and emit the latest canonical
-   * write. Used by `<RowNumeric>`'s `onBlurFlush` callback in Story 2.1.
+   * write. Called from `<RowNumeric>`'s `onBlur` to make onBlur writes
+   * synchronous per FR-3. Reads from `pendingWriteRef` so the latest
+   * keystroke's `next` is emitted even though `value` hasn't yet
+   * propagated through React's re-render cycle.
    */
-  const flushBuilderWrite = React.useCallback(
-    (next: SearchSpaceJson): void => {
-      if (debounceRef.current !== null) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-      emitBuilderWrite(stringifySearchSpace(next));
+  const flushBuilderWrite = React.useCallback((): void => {
+    if (debounceRef.current === null || pendingWriteRef.current === null) return;
+    clearTimeout(debounceRef.current);
+    debounceRef.current = null;
+    const next = pendingWriteRef.current;
+    pendingWriteRef.current = null;
+    emitBuilderWrite(stringifySearchSpace(next));
+  }, [emitBuilderWrite]);
+
+  /**
+   * Row-level change handler passed to `<ParamRow>` via prop drilling.
+   * Composes the new `SearchSpaceJson` from the prior parsed value +
+   * the row mutation, then schedules a debounced canonical write.
+   */
+  const onSpecChange = React.useCallback(
+    (paramName: string, nextSpec: ParamSpec): void => {
+      if (!parseResult.ok) return;
+      const data = parseResult.data as SearchSpaceJson;
+      const nextParams = { ...(data.params ?? {}), [paramName]: nextSpec };
+      const next: SearchSpaceJson = { ...data, params: nextParams };
+      scheduleBuilderWrite(next);
     },
-    [emitBuilderWrite],
+    [parseResult, scheduleBuilderWrite],
   );
 
-  // Suppress "unused" lint until Stories 1.2 / 2.1 consume these helpers.
-  void scheduleBuilderWrite;
-  void flushBuilderWrite;
+  /**
+   * `onBlurFlush` propagates `<RowNumeric>`'s blur event up to the
+   * builder, which cancels the pending debounce and emits the latest
+   * canonical write synchronously. Per FR-3, on-blur writes are
+   * synchronous (not debounced).
+   */
+  const onBlurFlush = flushBuilderWrite;
 
   // ---- Effects -----------------------------------------------------------
 
@@ -172,13 +212,52 @@ export function SearchSpaceBuilder({
    * Cancel any pending debounce when `value` changes externally (textarea-
    * driven update). Last-edit-wins per FR-9: a textarea keystroke
    * supersedes the builder's pending write.
+   *
+   * Also performs stash invalidation per FR-2 / §4 invalidation rules:
+   *   - If the incoming `value` matches `lastBuilderWriteRef.current`,
+   *     it's a builder-originated round-trip — skip invalidation entirely.
+   *   - Otherwise (textarea/Undo/auto-fill external write), diff prior
+   *     vs current parsed params and `stashClearRow` for every key whose
+   *     spec changed externally.
    */
   React.useEffect(() => {
     if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
     }
+
+    const isBuilderRoundTrip = value === lastBuilderWriteRef.current;
+    if (isBuilderRoundTrip) {
+      priorValueRef.current = value;
+      return;
+    }
+
+    // External write — invalidate per-row stash for any spec that changed.
+    const priorParsed = parseSearchSpace(priorValueRef.current);
+    const currentParsed = parseSearchSpace(value);
+    if (priorParsed.ok && currentParsed.ok) {
+      const priorParams = (priorParsed.data as SearchSpaceJson).params ?? {};
+      const currentParams = (currentParsed.data as SearchSpaceJson).params ?? {};
+      const allKeys = new Set([...Object.keys(priorParams), ...Object.keys(currentParams)]);
+      for (const key of allKeys) {
+        const before = JSON.stringify(priorParams[key]);
+        const after = JSON.stringify(currentParams[key]);
+        if (before !== after) {
+          stashClearRow(stashRef.current, key);
+        }
+      }
+    } else {
+      // If either side is unparseable, conservatively clear all stash.
+      stashClearAll(stashRef.current);
+    }
+
+    priorValueRef.current = value;
   }, [value]);
+
+  /** Clear the entire stash on template change (different param namespace). */
+  React.useEffect(() => {
+    stashClearAll(stashRef.current);
+  }, [templateBody]);
 
   /**
    * Canonicalize-on-mount: if the current `value` is parseable but its
@@ -244,6 +323,9 @@ export function SearchSpaceBuilder({
           paramName={paramName}
           declaredType={declared[paramName] ?? 'unknown'}
           spec={rowSpec(parseResult, paramName)}
+          stashRef={stashRef}
+          onSpecChange={onSpecChange}
+          onBlurFlush={onBlurFlush}
         />
       ))}
       {paramsMissing && <BuilderPlaceholder variant="missing-params-hint" />}
