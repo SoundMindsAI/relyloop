@@ -19,9 +19,9 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **48 / 49** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **2** items remaining (features + bugs + chores) |
+| Path to MVP1 | **3** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
-| Open chores | 1 (idea-stage debt) |
+| Open chores | 2 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -103,12 +103,13 @@ _None._
 
 _None._
 
-### Idea (3)
+### Idea (4)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/idea.md) | Feature | The agent surface is the marketing front door — "describe your relevance problem in chat, get a tuned config." Today the chat agent's `create_study` tool takes a `search_space` argument as if it were  | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| [chore_search_space_builder_paramrow_numeric_dedup](../02_product/planned_features/chore_search_space_builder_paramrow_numeric_dedup/idea.md) | Chore | The two branches inside `<ParamRow>`'s `<RowNumeric onChange>` callback look like this: | — | Idea — surfaced during `feat_create_study_search_space_builder` Story 2.1 implementation (post-impl tangential-observations sweep, 2026-05-20). |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 
 ## Dependency graph
