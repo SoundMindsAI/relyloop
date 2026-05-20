@@ -1255,7 +1255,7 @@ None. The builder uses only React Hook Form state (existing) and component-local
 - [x] Story 2.3 — Categorical chip input + cardinality counters
 - [x] Story 2.4 — Add-custom-param affordance
 - [x] Story 3.1 — Responsive split/tab layout
-- [ ] Story 4.1 — A11y + e2e + docs
+- [x] Story 4.1 — A11y + e2e + docs
 
 ### Blocked items
 - (none)
