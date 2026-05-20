@@ -14,6 +14,12 @@ Observed symptoms:
 - The 4 existing `studies-create-builder.spec.ts` cases pass against the same rebuilt stack (with my F2's manual-mode-flip prepended).
 - Page snapshot at timeout shows the operator already navigated back to `/studies` — modal is closed. Not clear whether the modal closed on a stray click during dispatch, or whether the snapshot is post-timeout cleanup state.
 
+## Suggested execution path
+
+`/impl-execute --ad-hoc` is the right route for this fix — small (single E2E spec, ≤200 LOC modify-in-place), test-infrastructure only (no product code changes), no spec/plan ceremony needed. Alternatively `/bug-fix` if the debugger wants to write up a structured Problem / Repro / Root cause / Fix-design artifact for the eventual `bug_fix.md` record.
+
+**Don't** use `/pipeline` — the scaffolding overhead (spec + plan + 3 GPT-5.5 cycles each) is disproportionate for a one-file test-infra bug.
+
 ## Why deferred
 
 - Story F2's spec was bounded; the failure mode is in the test infrastructure, not the product code. The dropdown-mode hook + modal logic is independently covered by 14 vitest cases.
@@ -39,12 +45,12 @@ If the root cause is general (re: `cs-target` render branch timing), factor a he
 
 - **Backend:** N/A — the endpoint is correct (proven by the unit + integration + contract tests + the manual `curl` against the rebuilt stack).
 - **Frontend:** N/A — modal renders correctly (proven by the 6 vitest modal cases against jsdom).
-- **E2E only:** 1 spec file. ~140 LOC including the cleanup helpers; the spec body is ~100 LOC.
+- **E2E only:** 1 spec file. 169 LOC total including cleanup helpers + the doc-block explaining why it's currently skipped; the spec body itself is ~100 LOC.
 - **Migration:** None.
 - **Config:** None.
 - **Audit events:** N/A (MVP1, pre-audit_log).
 
 ## Relationship to other work
 
-- **Independent of** [`feat_create_study_target_autocomplete`](../../00_overview/implemented_features/<YYYY_MM_DD>_feat_create_study_target_autocomplete/) (this idea's parent — will move post-merge).
+- **Independent of** [`feat_create_study_target_autocomplete`](../../00_overview/implemented_features/2026_05_20_feat_create_study_target_autocomplete/) (this idea's parent — shipped as PR #165 squash `bd4516a`, finalization PR #166 squash `21a75e1`).
 - **Sibling pattern to** the prior `chore_create_study_modal_e2e_stability` (PR #161) which un-skipped a different create-study modal Playwright flake via the `dispatchEvent('click')` swap. Same family of issues; likely the same fix family.

@@ -38,25 +38,14 @@ async function deleteIndex(request: APIRequestContext, name: string): Promise<vo
   await request.delete(`${ES_HOST}/${name}`);
 }
 
-// SKIPPED pending bug_e2e_target_dropdown_flake follow-up — see
-// docs/02_product/planned_features/bug_e2e_target_dropdown_flake/idea.md.
-//
-// The dropdown happy path is exercised end-to-end against the F1/F2 code by:
-//   - 6 modal vitest cases in
-//     src/__tests__/components/studies/create-study-modal.test.tsx
-//     (FR-3 hook → EntitySelect → sort → cluster cascade → toggle →
-//     TARGETS_FORBIDDEN auto-engage → AC-11 modal-level)
-//   - 8 hook vitest cases in src/__tests__/lib/api/clusters.test.tsx
-//     (AC-6, AC-13 hook-level; retry + meta behavior)
-//   - The existing real-backend builder + validation specs both flip into
-//     manual mode (post-F2 update) and submit successfully, proving the
-//     manual-mode side of FR-4 + FR-5 end-to-end.
-//
-// What's NOT covered end-to-end: the dropdown-mode happy path (pick target
-// from the Radix popover instead of typing it). Captured as a follow-up
-// because the spec body below times out reliably and live-debugging the
-// browser-side EntitySelect interaction needs a separate session.
-test.skip('Step-1 target picker loads from the cluster, sorts alphabetically, and persists the picked target (AC-1 + AC-6 + AC-7)', async ({
+// Real-backend dropdown-mode happy path for the Step-1 target picker
+// (feat_create_study_target_autocomplete AC-1 + AC-6 + AC-7). Pairs with the
+// unit-layer dropdown coverage:
+//   - 8 hook cases in src/__tests__/lib/api/clusters.test.tsx
+//   - 6 modal cases in src/__tests__/components/studies/create-study-modal.test.tsx
+// The existing builder + validation specs flip into manual mode (post-F2);
+// this spec is the only one that exercises the dropdown end-to-end.
+test('Step-1 target picker loads from the cluster, sorts alphabetically, and persists the picked target (AC-1 + AC-6 + AC-7)', async ({
   page,
   request,
 }) => {
@@ -135,14 +124,19 @@ test.skip('Step-1 target picker loads from the cluster, sorts alphabetically, an
     await pickEntity('cs-tpl', chain.templateName);
     await page.getByTestId('step-next').click();
 
-    // Step 4: search-space auto-fill carries the alpha target through; just
-    // advance.
+    // Step 4: fill Study name (gates Step-4 Next per stepValid at
+    // create-study-modal.tsx:376-383 — both `values.name` AND parseable
+    // search-space JSON are required) + advance. Search-space auto-fill
+    // from the picked template carries the JSON.
     await expect(page.getByTestId('step-4')).toBeVisible({ timeout: 5_000 });
-    await page.getByTestId('step-next').click();
-
-    // Step 5: fill name + submit.
     const studyName = `e2e-target-dropdown-${suffix}`;
     await page.getByLabel('Study name').fill(studyName);
+    await page.getByTestId('step-next').click();
+
+    // Step 5: fill Max trials (gates Submit via stopOk in stepValid case 4)
+    // and submit.
+    await expect(page.getByTestId('step-5')).toBeVisible({ timeout: 5_000 });
+    await page.getByRole('spinbutton', { name: 'Max trials' }).fill('10');
     await page.getByTestId('create-study-submit').click();
 
     // The modal closes on success; verify via API that the study persisted
@@ -150,16 +144,20 @@ test.skip('Step-1 target picker loads from the cluster, sorts alphabetically, an
     await expect(page.getByTestId('create-study-form')).not.toBeVisible({ timeout: 10_000 });
 
     // The study list page should be back in focus. Find the created study via
-    // the API and verify its target.
+    // the list endpoint (returns StudySummary which omits `target`), then fetch
+    // the detail endpoint to read the persisted `target`.
     const studiesResp = await request.get(`${API_BASE}/api/v1/studies?q=${studyName}&limit=10`);
     expect(studiesResp.ok()).toBe(true);
     const studies = (await studiesResp.json()) as {
-      data: Array<{ id: string; target: string; name: string }>;
+      data: Array<{ id: string; name: string }>;
     };
     const created = studies.data.find((s) => s.name === studyName);
     expect(created).toBeDefined();
     if (created) {
-      expect(created.target).toBe(seededTargets[1]); // alpha
+      const detailResp = await request.get(`${API_BASE}/api/v1/studies/${created.id}`);
+      expect(detailResp.ok()).toBe(true);
+      const detail = (await detailResp.json()) as { target: string };
+      expect(detail.target).toBe(seededTargets[1]); // alpha
     }
   } finally {
     for (const name of seededTargets) {

@@ -15,15 +15,15 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **50 / 50** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **4** items remaining (features + bugs + chores) |
-| Open bugs | 2 |
+| Path to MVP1 | **3** items remaining (features + bugs + chores) |
+| Open bugs | 1 |
 | Open chores | 2 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (60)
+### Done (61)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -82,6 +82,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
 | [bug_env_file_corrupted_during_session](implemented_features/2026_05_13_bug_env_file_corrupted_during_session/idea.md) | Bug | Complete | — | Complete |
+| [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | Complete | — | Complete |
 | [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | Complete | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | Complete | — | Complete |
 | [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | Complete | — | Complete |
@@ -100,7 +101,7 @@ _None._
 
 _None._
 
-### Idea (7)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -110,7 +111,6 @@ _None._
 | [chore_guide_06_screenshot_refresh_target_picker](../02_product/planned_features/chore_guide_06_screenshot_refresh_target_picker/idea.md) | Chore | The walkthrough guide 06 ("Create and monitor a study") shows the operator opening the create-study modal as part of the wizard tour. The single Step-1 screenshot now disagrees with shipped UI — opera | — | Idea — surfaced during `feat_create_study_target_autocomplete` post-impl guide-impact assessment. |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [bug_e2e_target_dropdown_flake](../02_product/planned_features/bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Idea — surfaced during `feat_create_study_target_autocomplete` Story F2 implementation; the new E2E happy-path spec is currently `test.skip`'d. |
-| [bug_get_schema_unhandled_connect_error](../02_product/planned_features/bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | **Bundled-and-fixed** in the same PR as `feat_create_study_target_autocomplete` (per user direction during post-implementation sweep — the inline-over-defer rubric tipped the right way once both buggy methods were inventoried: `get_schema` + `explain` = 2 methods, ~10 LOC + 2 regression tests, same `ElasticAdapter` subsystem as B1, no product decision). Originally captured as a separate idea per CLAUDE.md tangential-discoveries rule before the user asked "should we fix now?". |
 
 ## Dependency graph
 
