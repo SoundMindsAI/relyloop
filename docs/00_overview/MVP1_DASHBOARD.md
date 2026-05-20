@@ -19,8 +19,8 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **48 / 49** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **2** items remaining (features + bugs + chores) |
-| Open bugs | 0 |
+| Path to MVP1 | **3** items remaining (features + bugs + chores) |
+| Open bugs | 1 |
 | Open chores | 1 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
@@ -103,7 +103,7 @@ _None._
 
 _None._
 
-### Idea (4)
+### Idea (5)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -111,6 +111,7 @@ _None._
 | [feat_create_study_target_autocomplete](../02_product/planned_features/feat_create_study_target_autocomplete/idea.md) | Feature | The "Target index / collection" field at Step 1 of the create-study modal is a free-text `<Input id="cs-target">` (see [`ui/src/components/studies/create-study-modal.tsx:457`](../../ui/src/components/ | — | Idea — surfaced during local verification of PR #163 (`feat_create_study_search_space_builder`) on 2026-05-20. Step 4 builder verification required walking through Step 1, where the UX gap surfaced. |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| [bug_judgment_lists_listing_ignores_query_set_filter](../02_product/planned_features/bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment | — | Bug — surfaced during local verification of PR #163 (`feat_create_study_search_space_builder`). Pre-existing since `feat_llm_judgments` (PR #35, 2026-05-11); not introduced by PR #163. |
 
 ## Dependency graph
 
