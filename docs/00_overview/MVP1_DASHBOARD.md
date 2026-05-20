@@ -14,16 +14,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **47 / 47** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **2** items remaining (features + bugs + chores) |
+| Scoped items done | **48 / 48** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **1** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
-| Open chores | 2 (idea-stage debt) |
+| Open chores | 1 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (56)
+### Done (57)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -56,6 +56,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_prettier_check](implemented_features/2026_05_19_chore_ci_prettier_check/idea.md) | Chore | Complete | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
+| [chore_create_study_modal_e2e_stability](implemented_features/2026_05_20_chore_create_study_modal_e2e_stability/idea.md) | Chore | Complete | — | Complete |
 | [chore_create_study_wizard_polish](implemented_features/2026_05_20_chore_create_study_wizard_polish/feature_spec.md) | Chore | Step 4 auto-fills from the template's `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en | — | [PR #157](https://github.com/SoundMindsAI/relyloop/pull/157) merged 2026-05-20 |
 | [chore_data_table_columnvisibility_tanstack](implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack/idea.md) | Chore | Complete | — | Complete |
 | [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Complete | — | Complete |
@@ -96,14 +97,13 @@ _None._
 
 _None._
 
-### Idea (5)
+### Idea (4)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/idea.md) | Feature | The agent surface is the marketing front door — "describe your relevance problem in chat, get a tuned config." Today the chat agent's `create_study` tool takes a `search_space` argument as if it were  | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [feat_create_study_search_space_builder](../02_product/planned_features/feat_create_study_search_space_builder/idea.md) | Feature | Today Step 4 is a JSON textarea ([`ui/src/components/studies/create-study-modal.tsx:331-337`](../../ui/src/components/studies/create-study-modal.tsx#L331-L337)). After `chore_create_study_wizard_polis | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [chore_create_study_modal_e2e_stability](../02_product/planned_features/chore_create_study_modal_e2e_stability/idea.md) | Chore | The Playwright smoke lane runs every `ui/tests/e2e/*.spec.ts` against a real-backend stack. The create-study modal's Step-1 cluster trigger (rendered by [`EntitySelect`](../../ui/src/components/common | — | Idea — deferred from chore_create_study_wizard_polish PR #157 |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 
 ## Dependency graph
@@ -209,6 +209,8 @@ graph LR
   class chore_form_dropdown_guide_screenshot_refresh done;
   infra_e2e_wire_seed_helper_into_studies_spec["e2e wire seed helper into studies spec"]
   class infra_e2e_wire_seed_helper_into_studies_spec done;
+  chore_create_study_modal_e2e_stability["create study modal e2e stability"]
+  class chore_create_study_modal_e2e_stability done;
   chore_create_study_wizard_polish["create study wizard polish"]
   class chore_create_study_wizard_polish done;
   feat_study_lifecycle --> feat_digest_proposal
