@@ -164,7 +164,8 @@ EngineTypeWire = Literal["elasticsearch", "opensearch"]
 StudyStatusWire = Literal["queued", "running", "completed", "cancelled", "failed"]
 
 # Values must match backend/app/eval/scoring.py SUPPORTED_METRICS frozenset.
-ObjectiveMetric = Literal["ndcg", "map", "precision", "recall", "mrr", "err"]
+# ERR@k is deferred to MVP2 per infra_optuna_eval feature_spec.md §3 / §FR-3 / §13.
+ObjectiveMetric = Literal["ndcg", "map", "precision", "recall", "mrr"]
 
 # Values must match backend/app/eval/scoring.py SUPPORTED_K_VALUES frozenset.
 ObjectiveK = Literal[1, 3, 5, 10, 20, 50, 100]

@@ -60,7 +60,7 @@ describe('wire-value arrays match documented spec table', () => {
     [
       'OBJECTIVE_METRIC_VALUES',
       OBJECTIVE_METRIC_VALUES,
-      ['ndcg', 'map', 'precision', 'recall', 'mrr', 'err'],
+      ['ndcg', 'map', 'precision', 'recall', 'mrr'],
     ],
     ['OBJECTIVE_K_VALUES', OBJECTIVE_K_VALUES, [1, 3, 5, 10, 20, 50, 100]],
     ['OBJECTIVE_DIRECTION_VALUES', OBJECTIVE_DIRECTION_VALUES, ['maximize', 'minimize']],

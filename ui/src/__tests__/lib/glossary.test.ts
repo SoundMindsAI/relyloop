@@ -177,7 +177,7 @@ describe('listGlossaryKeysWithPrefix helper', () => {
     const studyMetricKeys = listGlossaryKeysWithPrefix('study.metric');
     expect(studyMetricKeys).not.toContain('study.metric');
     expect(studyMetricKeys).toContain('study.metric.ndcg');
-    expect(studyMetricKeys).toContain('study.metric.err');
+    expect(studyMetricKeys).toContain('study.metric.mrr');
   });
 
   it('returns empty array for an unknown prefix', () => {

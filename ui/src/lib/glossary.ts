@@ -105,7 +105,6 @@ export const glossary = {
       '- `precision` — Fraction of top-k docs that are relevant. Use when "any relevant doc in top-k" matters more than order.',
       '- `recall` — Fraction of relevant docs in top-k. Use when missing a relevant doc is costly.',
       '- `mrr` — Mean Reciprocal Rank. Rewards finding the first relevant doc quickly. Best for known-item search.',
-      '- `err` — Expected Reciprocal Rank. Models a user who stops at the first useful doc; penalizes redundancy.',
     ].join('\n'),
     ariaLabel: 'More information about metrics',
   },
@@ -128,10 +127,6 @@ export const glossary = {
   'study.metric.mrr': {
     short:
       'Mean Reciprocal Rank. Rewards finding the first relevant doc quickly. Best for known-item search. Top-k cutoff is not used.',
-  },
-  'study.metric.err': {
-    short:
-      'Expected Reciprocal Rank. Models a user who stops at the first useful doc; penalizes redundancy. Top-k cutoff is not used.',
   },
 
   // Source-of-truth: backend/app/api/v1/schemas.py ObjectiveK
