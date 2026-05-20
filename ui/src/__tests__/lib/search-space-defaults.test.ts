@@ -27,6 +27,28 @@ describe('HEURISTIC_RULES — naming-convention table (chore_create_study_wizard
     });
   });
 
+  it('matches <field>_boost suffix as log-uniform float (per-field ES multi_match convention)', () => {
+    // bug_tutorial_template_param_boost_naming: the tutorial template's
+    // declared_params use `title_boost`, `description_boost`,
+    // `bullet_points_boost` (suffix convention). Before this rule was added
+    // they fell through to the simple-form 'float' default — uniform [0,1]
+    // instead of the [0.5, 10] log-uniform range the template comment says
+    // it tunes.
+    const out = buildStarterSearchSpace({
+      title_boost: 'float',
+      description_boost: 'float',
+      bullet_points_boost: 'float',
+    });
+    for (const name of ['title_boost', 'description_boost', 'bullet_points_boost']) {
+      expect(out.params[name]).toEqual({
+        type: 'float',
+        low: 0.5,
+        high: 10.0,
+        log: true,
+      });
+    }
+  });
+
   it('matches tie_breaker as uniform float in [0.0, 1.0]', () => {
     const out = buildStarterSearchSpace({ tie_breaker: 'float' });
     expect(out.params['tie_breaker']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
