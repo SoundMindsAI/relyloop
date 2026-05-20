@@ -1,12 +1,12 @@
 # RelyLoop — Release Roadmap
 
-_Top-level index across MVP1 → GA v1+ as of **2026-05-19**. Click a release name to drill into the per-release dashboard. Theme labels sourced from [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md). For the rich local view, open [`dashboard.html`](dashboard.html) in a browser._
+_Top-level index across MVP1 → GA v1+ as of **2026-05-20**. Click a release name to drill into the per-release dashboard. Theme labels sourced from [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md). For the rich local view, open [`dashboard.html`](dashboard.html) in a browser._
 
 ## Releases
 
 | Release | Theme | Progress | Status |
 |---|---|---|---|
-| [MVP1 / v0.1](MVP1_DASHBOARD.md) | The Loop | 46 / 47 scoped done · 3 remaining | **In progress** |
+| [MVP1 / v0.1](MVP1_DASHBOARD.md) | The Loop | 46 / 47 scoped done · 4 remaining | **In progress** |
 | [MVP2 / v0.2](MVP2_DASHBOARD.md) | Observable | 1 / 1 scoped done · 1 remaining | **In progress** |
 | MVP3 / v0.3 | Production Stacks | — | **Not yet scoped** |
 | MVP4 / v0.4 | Multi-tenant, Multi-LLM | — | **Not yet scoped** |
