@@ -155,11 +155,13 @@ export function EntitySelect<T>(props: EntitySelectProps<T>) {
             <SelectValue placeholder={emptyMessage} />
           </SelectTrigger>
         </Select>
-        {/* feat_cluster_target_filter F2: also render the message as a sibling
-            <p> so it's visible when the disabled-trigger placeholder is hidden
-            (e.g., screen readers, jsdom test environments). The trigger still
-            holds the placeholder for the sighted-user happy path. */}
-        <p className="text-xs text-muted-foreground" data-testid={`${dataTestId ?? id}-empty`}>
+        {/* feat_cluster_target_filter F2: render the message as a sibling
+            sr-only <p> so it's reachable by screen readers AND jsdom tests
+            (where the shadcn-select-mock returns null from <SelectValue> and
+            drops the placeholder). Hidden visually so sighted users see the
+            message only once via the disabled-trigger placeholder above.
+            (Gemini Code Assist feedback: avoid visual duplication.) */}
+        <p className="sr-only" data-testid={`${dataTestId ?? id}-empty`}>
           {emptyMessage}
         </p>
         {emptyState?.cta && (
