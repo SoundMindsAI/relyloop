@@ -1,7 +1,7 @@
 # Implementation Plan — Create-Study Step 1 Target Autocomplete
 
 **Date:** 2026-05-20
-**Status:** Draft
+**Status:** Complete (PR [#165](https://github.com/SoundMindsAI/relyloop/pull/165), merged 2026-05-20 as squash commit `bd4516a`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`docs/01_architecture/adapters.md`](../../../01_architecture/adapters.md), [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md), [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md), [`CLAUDE.md`](../../../../CLAUDE.md) (Absolute Rule #4 — engine-specific code only in adapters).
 

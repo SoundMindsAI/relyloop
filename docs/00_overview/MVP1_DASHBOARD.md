@@ -6,22 +6,16 @@ _Reflects feature-folder state as of **2026-05-20** (latest mtime of any planned
 
 ## Next up
 
-**[feat_create_study_target_autocomplete](../02_product/planned_features/feat_create_study_target_autocomplete/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> Operator selects a cluster → an autocomplete dropdown lists the user-visible targets on that cluster (name + doc count), pre-sorted alphabetically.
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_create_study_target_autocomplete/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **49 / 50** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **5** items remaining (features + bugs + chores) |
+| Scoped items done | **50 / 50** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **4** items remaining (features + bugs + chores) |
 | Open bugs | 2 |
 | Open chores | 2 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
@@ -29,13 +23,14 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (59)
+### Done (60)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_agent_propose_search_space` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_clone_from_previous` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_contextual_help](implemented_features/2026_05_15_feat_contextual_help/feature_spec.md) | Feature | a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam | — | [PR #122](https://github.com/SoundMindsAI/relyloop/pull/122) merged 2026-05-15 |
 | [feat_create_study_search_space_builder](implemented_features/2026_05_20_feat_create_study_search_space_builder/feature_spec.md) | Feature | Complete (PR #163, squash commit `c703953`, merged 2026-05-20) | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) merged 2026-05-20 |
+| [feat_create_study_target_autocomplete](implemented_features/2026_05_20_feat_create_study_target_autocomplete/feature_spec.md) | Feature | Operator selects a cluster → an autocomplete dropdown lists the user-visible targets on that cluster (name + doc count), pre-sorted alphabetically. | — | [PR #165](https://github.com/SoundMindsAI/relyloop/pull/165) merged 2026-05-20 |
 | [feat_data_table_primitive](implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md) | Feature | Complete (PR #126, merged 2026-05-16) | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
@@ -97,11 +92,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_create_study_target_autocomplete](../02_product/planned_features/feat_create_study_target_autocomplete/feature_spec.md) | Feature | Operator selects a cluster → an autocomplete dropdown lists the user-visible targets on that cluster (name + doc count), pre-sorted alphabetically. | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) |
+_None._
 
 ### Spec (0)
 
@@ -130,8 +123,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_create_study_target_autocomplete["create study target autocomplete"]
-  class feat_create_study_target_autocomplete plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -230,6 +221,8 @@ graph LR
   class chore_create_study_wizard_polish done;
   feat_create_study_search_space_builder["create study search space builder"]
   class feat_create_study_search_space_builder done;
+  feat_create_study_target_autocomplete["create study target autocomplete"]
+  class feat_create_study_target_autocomplete done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments

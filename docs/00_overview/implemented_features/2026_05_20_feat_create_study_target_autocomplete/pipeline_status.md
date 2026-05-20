@@ -29,4 +29,16 @@
 - Branch: `feat/create-study-target-autocomplete`
 
 ## Implementation
-- Status: Not started
+- Status: **Complete**
+- Date: 2026-05-20
+- PR: [#165](https://github.com/SoundMindsAI/relyloop/pull/165)
+- Squash commit: `bd4516a` on `main`
+- CI: pr 8m9s + secrets-defense 15s, both green (twice — initial + post-cycle-2 push)
+- Stories completed: 4/4 (B1 adapter, B2 endpoint, F1 hooks, F2 modal)
+- Bundled bug fix: `bug_get_schema_unhandled_connect_error` (closed-in-bundle via the same PR's defensive httpx.HTTPError catches on `get_schema` + `explain`)
+- Reviews: Gemini Code Assist 1 finding rejected with cited counter-evidence; GPT-5.5 final 2 findings (1 accepted in `19d9d51`, 1 deferred with citation to lower test layers)
+- Follow-ups filed in-PR: `bug_e2e_target_dropdown_flake` (dropdown E2E flake; Radix popover Playwright interaction), `chore_guide_06_screenshot_refresh_target_picker` (post-merge screenshot regen)
+
+## Done
+- Status: Deployed (MVP1 has no remote staging — merge to main IS the deploy)
+- Date: 2026-05-20
