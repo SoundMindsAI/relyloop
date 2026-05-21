@@ -64,6 +64,18 @@ async def create_trial(db: AsyncSession, **fields: object) -> Trial:
     return trial
 
 
+async def get_trial(db: AsyncSession, trial_id: str) -> Trial | None:
+    """Fetch a single trial by primary key. Returns ``None`` if not found.
+
+    Parallel to :func:`backend.app.db.repo.study.get_study`. Added in
+    ``feat_agent_propose_search_space`` Story 2.1 so the
+    ``propose_search_space`` agent tool can fetch a prior study's winning
+    trial via ``Study.best_trial_id → repo.get_trial``.
+    """
+    stmt = select(Trial).where(Trial.id == trial_id)
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+
 async def list_trials_for_study(db: AsyncSession, study_id: str) -> Sequence[Trial]:
     """List every trial in a study, ordered by Optuna trial number ASC.
 

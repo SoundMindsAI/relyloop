@@ -6,19 +6,25 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/feature_spec.md)** — Feature, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same heuristic table that powers the create-
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/02_product/planned_features/feat_agent_propose_search_space/implementation_plan.md --all
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **53 / 53** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **4** items remaining (features + bugs + chores) |
+| Scoped items done | **53 / 54** (98%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **5** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 3 (idea-stage debt) |
-| Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -96,19 +102,20 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|
+| [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/feature_spec.md) | Feature | A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same | — | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) |
 
 ### Spec (0)
 
 _None._
 
-### Idea (7)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/idea.md) | Feature | The agent surface is the marketing front door — "describe your relevance problem in chat, get a tuned config." Today the chat agent's `create_study` tool takes a `search_space` argument as if it were  | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [feat_pr_metric_confidence](../02_product/planned_features/feat_pr_metric_confidence/idea.md) | Feature | When the operator's approver opens a study-backed PR in the central search-config repo, the only confidence signal in the PR body is two scalar point estimates. From [`_render_pr_body_study_backed`](. | — | Idea — surfaced during a 2026-05-20 conversation reviewing two outside articles for relevance to RelyLoop ([Doug Turnbull, "Autoresearching a better MSMarco BM25", 2026-05-17](https://softwaredoug.com/blog/2026/05/17/autoresearching-a-better-msmarco-bm25) and [Li/Wang/Wang, "Choosing the Better Bandit Algorithm under Data Sharing", arXiv:2507.11891v2](https://arxiv.org/pdf/2507.11891)). The articles themselves are not directly material to RelyLoop's roadmap; what surfaced as material — after several rounds of honest filtering — is the underlying question they prompted: **how confident should the approver be in the metric reported on the PR?** |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_guide_01_screenshot_refresh_target_filter](../02_product/planned_features/chore_guide_01_screenshot_refresh_target_filter/idea.md) | Chore | The guide is still operationally correct — the new field is optional, defaults to null, and doesn't change the happy-path flow described in the guide. But: | — | Idea — captured during `feat_cluster_target_filter` impl |
@@ -127,6 +134,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_agent_propose_search_space["agent propose search space"]
+  class feat_agent_propose_search_space plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -238,6 +247,7 @@ graph LR
   infra_foundation --> feat_llm_judgments
   infra_adapter_elastic --> feat_llm_judgments
   feat_study_lifecycle --> feat_llm_judgments
+  feat_agent_propose_search_space --> chore_tutorial_polish
   feat_chat_agent --> chore_tutorial_polish
   feat_cluster_target_filter --> chore_tutorial_polish
   feat_contextual_help --> chore_tutorial_polish
@@ -266,6 +276,7 @@ graph LR
   infra_per_trial_timeout --> chore_tutorial_polish
   infra_structlog_test_helpers --> chore_tutorial_polish
   infra_uv_sync_drops_precommit --> chore_tutorial_polish
+  feat_agent_propose_search_space --> feat_chat_agent
   feat_cluster_target_filter --> feat_chat_agent
   feat_contextual_help --> feat_chat_agent
   feat_create_study_search_space_builder --> feat_chat_agent

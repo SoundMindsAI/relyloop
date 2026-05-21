@@ -113,6 +113,11 @@ from backend.app.agent.tools.studies.get_study import (
     GetStudyArgs,
     get_study_impl,
 )
+from backend.app.agent.tools.studies.propose_search_space import (
+    PROPOSE_SEARCH_SPACE_TOOL,
+    ProposeSearchSpaceArgs,
+    propose_search_space_impl,
+)
 from backend.app.agent.tools.templates.get_template import (
     GET_TEMPLATE_TOOL,
     GetTemplateArgs,
@@ -153,7 +158,8 @@ TOOLS: list[ChatCompletionToolParam] = [
     GENERATE_JUDGMENTS_LLM_TOOL,
     GET_CALIBRATION_TOOL,
     RUN_QUERY_TOOL,
-    # Studies (Story 2.3)
+    # Studies (Story 2.3 + feat_agent_propose_search_space)
+    PROPOSE_SEARCH_SPACE_TOOL,
     CREATE_STUDY_TOOL,
     GET_STUDY_TOOL,
     CANCEL_STUDY_TOOL,
@@ -179,7 +185,8 @@ TOOL_REGISTRY: dict[str, ToolImpl] = {
     "generate_judgments_llm": generate_judgments_llm_impl,
     "get_calibration": get_calibration_impl,
     "run_query": run_query_impl,
-    # Story 2.3
+    # Story 2.3 + feat_agent_propose_search_space
+    "propose_search_space": propose_search_space_impl,
     "create_study": create_study_impl,
     "get_study": get_study_impl,
     "cancel_study": cancel_study_impl,
@@ -205,7 +212,8 @@ TOOL_ARG_MODELS: dict[str, type[BaseModel]] = {
     "generate_judgments_llm": GenerateJudgmentsLLMArgs,
     "get_calibration": GetCalibrationArgs,
     "run_query": RunQueryArgs,
-    # Story 2.3
+    # Story 2.3 + feat_agent_propose_search_space
+    "propose_search_space": ProposeSearchSpaceArgs,
     "create_study": CreateStudyArgs,
     "get_study": GetStudyArgs,
     "cancel_study": CancelStudyArgs,

@@ -29,6 +29,21 @@ export type ParamSpec =
 export type SearchSpaceJson = { params: Record<string, ParamSpec> };
 
 /**
+ * Return shape of `buildStarterSearchSpace` (feat_agent_propose_search_space
+ * Story 1.2). Pairs the validated search-space JSON with cap-aware-fallback
+ * metadata so the agent's `propose_search_space` tool can populate
+ * `grounding.cap_aware_fallback_param_names` without duplicating fallback
+ * logic at the tool layer. The Python sibling at
+ * `backend/app/domain/study/search_space_defaults.py` returns the equivalent
+ * `StarterSearchSpace` dataclass and the TS↔Python parity fixture asserts
+ * byte-identical output for the `space` field.
+ */
+export type StarterSearchSpace = {
+  space: SearchSpaceJson;
+  capAwareFallbackParamNames: string[];
+};
+
+/**
  * Naming-convention heuristic table (spec FR-1 §7).
  *
  * Names are tested top-to-bottom; the first matching rule wins.
@@ -143,8 +158,26 @@ export function estimateCardinality(space: SearchSpaceJson): number {
  * Categoricals (e.g. `fuzziness`) and ints are never converted.
  *
  * Emits `console.warn` whenever the cap-aware fallback fires.
+ *
+ * **Throws** `Error("empty declared_params: …")` when `declaredParams` is `{}`.
+ *
+ * **Throws** `Error("cap-aware fallback exhausted: …")` when even after
+ * converting every float to `int[0, 5]` the cardinality is still > 10⁶
+ * (e.g., 8 fall-through floats → `6⁸ = 1_679_616 > 10⁶`).
+ *
+ * Both throws match the Python sibling at
+ * `backend/app/domain/study/search_space_defaults.py` which raises
+ * `InvalidSearchSpaceError` under the same conditions; the parity test at
+ * `ui/src/__tests__/lib/search-space-defaults.parity.test.ts` enforces
+ * symmetric behavior.
  */
-export function buildStarterSearchSpace(declaredParams: Record<string, string>): SearchSpaceJson {
+export function buildStarterSearchSpace(
+  declaredParams: Record<string, string>,
+): StarterSearchSpace {
+  if (Object.keys(declaredParams).length === 0) {
+    throw new Error('empty declared_params: at least one declared param is required');
+  }
+
   const params: Record<string, ParamSpec> = {};
   // Track which param names got their spec from the regex table (vs. the
   // fall-through default) so cap-aware fallback can prefer to convert
@@ -164,7 +197,7 @@ export function buildStarterSearchSpace(declaredParams: Record<string, string>):
 
   const candidate: SearchSpaceJson = { params };
   if (estimateCardinality(candidate) <= 1_000_000) {
-    return candidate;
+    return { space: candidate, capAwareFallbackParamNames: [] };
   }
 
   // Cap-aware fallback. Convert fall-through floats first, then regex-matched
@@ -176,23 +209,32 @@ export function buildStarterSearchSpace(declaredParams: Record<string, string>):
     .filter((n) => params[n]!.type === 'float' && regexMatched.has(n))
     .sort();
 
-  const converted: string[] = [];
+  const capAwareFallbackParamNames: string[] = [];
   for (const name of [...fallThroughFloats, ...regexFloats]) {
     params[name] = { type: 'int', low: 0, high: 5 };
-    converted.push(name);
+    capAwareFallbackParamNames.push(name);
     if (estimateCardinality(candidate) <= 1_000_000) {
       break;
     }
   }
 
-  // eslint-disable-next-line no-console
-  console.warn(
-    `[search-space-defaults] cap-aware fallback fired: converted float param(s) ` +
-      `${converted.map((n) => `'${n}'`).join(', ')} to int [0, 5] to stay under the ` +
-      `10^6 cardinality cap.`,
-  );
+  if (capAwareFallbackParamNames.length > 0) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[search-space-defaults] cap-aware fallback fired: converted float param(s) ` +
+        `${capAwareFallbackParamNames.map((n) => `'${n}'`).join(', ')} to int [0, 5] to stay ` +
+        `under the 10^6 cardinality cap.`,
+    );
+  }
 
-  return candidate;
+  if (estimateCardinality(candidate) > 1_000_000) {
+    throw new Error(
+      `cap-aware fallback exhausted: cardinality=${estimateCardinality(candidate)} > 10^6 ` +
+        `for declared_params=${JSON.stringify(Object.keys(declaredParams).sort())}`,
+    );
+  }
+
+  return { space: candidate, capAwareFallbackParamNames };
 }
 
 function matchHeuristicRule(name: string): ParamSpec | null {

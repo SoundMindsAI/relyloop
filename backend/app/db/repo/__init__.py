@@ -117,6 +117,7 @@ from backend.app.db.repo.trial import (
     aggregate_trials_summary,
     count_trials,
     create_trial,
+    get_trial,
     list_trials_for_study,
     list_trials_paginated,
 )
@@ -220,6 +221,8 @@ __all__ = [
     "count_queries_for_set",
     "delete_query",
     "get_query",
+    # feat_agent_propose_search_space Story 2.1
+    "get_trial",
     "list_queries_for_set_cursor",
     "update_query",
 ]

@@ -167,12 +167,42 @@ Subsequent turns suppress the notice (it's persisted as a
   helper is missing or broken — see `_wrap_tool_result_for_llm` in
   `orchestrator.py`.
 
+## 5. Measure propose → create chain adherence (feat_agent_propose_search_space)
+
+The agent is instructed to call `propose_search_space` before `create_study` so the search space is grounded in the parity-locked heuristic instead of LLM intuition. Adherence is observable offline by correlating two structlog INFO events on `conversation_id`.
+
+```bash
+# All propose calls for one conversation
+make logs | grep "agent.search_space_proposed" | grep "conversation_id=conv-abc-xyz"
+
+# All create_study calls for that same conversation
+make logs | grep "agent.create_study.invoked" | grep "conversation_id=conv-abc-xyz"
+```
+
+Aggregate adherence ratio over a time window:
+
+```bash
+# Count of unique conversations that called propose
+make logs | grep "agent.search_space_proposed" | grep -oE "conversation_id=[^ ]+" | sort -u | wc -l
+
+# Count of unique conversations that called create_study
+make logs | grep "agent.create_study.invoked" | grep -oE "conversation_id=[^ ]+" | sort -u | wc -l
+```
+
+A conversation that emits `agent.create_study.invoked` without a prior `agent.search_space_proposed` indicates the LLM invented the bounds inline. Spec §FR-6 calls this "encourage + observe" — ratchet to server-side enforcement only if adherence drops below ~80%.
+
+WARN events fired by the propose tool surface degrade paths the operator may want to investigate:
+
+- `agent.propose_search_space.prior_template_mismatch` — operator referenced a prior study whose `template_id` didn't match the requested template. Output degrades to heuristic-only.
+- `agent.propose_search_space.missing_winner_trial` — `Study.best_trial_id` set but `trials` row gone (cascade-delete race). Output degrades to heuristic-only.
+- `search_space_defaults.cap_aware_fallback fired` — heuristic produced > 10⁶ cardinality; some floats converted to `int[0, 5]`. Emitted by the domain helper, not the tool.
+
 ---
 
 ## See also
 
 - [`docs/01_architecture/agent-tools.md`](../01_architecture/agent-tools.md)
-  — the canonical 19-tool inventory.
+  — the canonical 20-tool inventory.
 - [`docs/01_architecture/llm-orchestration.md`](../01_architecture/llm-orchestration.md)
   — capability check + budget gate.
 - [`docs/04_security/llm-data-flow.md`](../04_security/llm-data-flow.md)

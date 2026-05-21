@@ -9,7 +9,7 @@ import {
 describe('HEURISTIC_RULES — naming-convention table (chore_create_study_wizard_polish FR-1)', () => {
   it('matches boost_<field> as log-uniform float in [0.5, 10.0]', () => {
     const out = buildStarterSearchSpace({ boost_title: 'float' });
-    expect(out.params['boost_title']).toEqual({
+    expect(out.space.params['boost_title']).toEqual({
       type: 'float',
       low: 0.5,
       high: 10.0,
@@ -19,7 +19,7 @@ describe('HEURISTIC_RULES — naming-convention table (chore_create_study_wizard
 
   it('matches field_boost_<field> as log-uniform float', () => {
     const out = buildStarterSearchSpace({ field_boost_title: 'float' });
-    expect(out.params['field_boost_title']).toEqual({
+    expect(out.space.params['field_boost_title']).toEqual({
       type: 'float',
       low: 0.5,
       high: 10.0,
@@ -41,7 +41,7 @@ describe('HEURISTIC_RULES — naming-convention table (chore_create_study_wizard
     // conversions). The per-rule assertion is what we're locking here.
     for (const name of ['boost', 'title_boost', 'description_boost', 'bullet_points_boost']) {
       const out = buildStarterSearchSpace({ [name]: 'float' });
-      expect(out.params[name]).toEqual({
+      expect(out.space.params[name]).toEqual({
         type: 'float',
         low: 0.5,
         high: 10.0,
@@ -52,32 +52,32 @@ describe('HEURISTIC_RULES — naming-convention table (chore_create_study_wizard
 
   it('matches tie_breaker as uniform float in [0.0, 1.0]', () => {
     const out = buildStarterSearchSpace({ tie_breaker: 'float' });
-    expect(out.params['tie_breaker']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
+    expect(out.space.params['tie_breaker']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
   });
 
   it('matches *_weight names as uniform float in [0.0, 1.0]', () => {
     const out = buildStarterSearchSpace({ phrase_weight: 'float' });
-    expect(out.params['phrase_weight']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
+    expect(out.space.params['phrase_weight']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
   });
 
   it('matches slop as int in [0, 5]', () => {
     const out = buildStarterSearchSpace({ slop: 'int' });
-    expect(out.params['slop']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(out.space.params['slop']).toEqual({ type: 'int', low: 0, high: 5 });
   });
 
   it('matches min_should_match as int in [0, 5]', () => {
     const out = buildStarterSearchSpace({ min_should_match: 'int' });
-    expect(out.params['min_should_match']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(out.space.params['min_should_match']).toEqual({ type: 'int', low: 0, high: 5 });
   });
 
   it('matches *_size names as int in [0, 5]', () => {
     const out = buildStarterSearchSpace({ window_size: 'int' });
-    expect(out.params['window_size']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(out.space.params['window_size']).toEqual({ type: 'int', low: 0, high: 5 });
   });
 
   it('matches fuzziness as categorical AUTO/0/1/2', () => {
     const out = buildStarterSearchSpace({ fuzziness: 'string' });
-    expect(out.params['fuzziness']).toEqual({
+    expect(out.space.params['fuzziness']).toEqual({
       type: 'categorical',
       choices: ['AUTO', '0', '1', '2'],
     });
@@ -91,12 +91,12 @@ describe('HEURISTIC_RULES — naming-convention table (chore_create_study_wizard
 describe('buildStarterSearchSpace — simple-form fallbacks', () => {
   it('int → small int range', () => {
     const out = buildStarterSearchSpace({ exotic_int_param: 'int' });
-    expect(out.params['exotic_int_param']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(out.space.params['exotic_int_param']).toEqual({ type: 'int', low: 0, high: 5 });
   });
 
   it('float → uniform float 0..1', () => {
     const out = buildStarterSearchSpace({ exotic_float_param: 'float' });
-    expect(out.params['exotic_float_param']).toEqual({
+    expect(out.space.params['exotic_float_param']).toEqual({
       type: 'float',
       low: 0.0,
       high: 1.0,
@@ -105,7 +105,7 @@ describe('buildStarterSearchSpace — simple-form fallbacks', () => {
 
   it('bool → categorical [true, false]', () => {
     const out = buildStarterSearchSpace({ use_stemmer: 'bool' });
-    expect(out.params['use_stemmer']).toEqual({
+    expect(out.space.params['use_stemmer']).toEqual({
       type: 'categorical',
       choices: [true, false],
     });
@@ -113,7 +113,7 @@ describe('buildStarterSearchSpace — simple-form fallbacks', () => {
 
   it("string → degenerate '__placeholder__' categorical sentinel", () => {
     const out = buildStarterSearchSpace({ some_string_param: 'string' });
-    expect(out.params['some_string_param']).toEqual({
+    expect(out.space.params['some_string_param']).toEqual({
       type: 'categorical',
       choices: ['__placeholder__'],
     });
@@ -121,7 +121,7 @@ describe('buildStarterSearchSpace — simple-form fallbacks', () => {
 
   it('unknown simple-form value falls through to DEFAULT_FALLBACK (uniform float 0..1)', () => {
     const out = buildStarterSearchSpace({ exotic: 'unknown_type' });
-    expect(out.params['exotic']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
+    expect(out.space.params['exotic']).toEqual({ type: 'float', low: 0.0, high: 1.0 });
   });
 });
 
@@ -133,7 +133,7 @@ describe('buildStarterSearchSpace — happy path multi-param', () => {
       min_should_match: 'int',
       fuzziness: 'string',
     });
-    expect(out).toEqual({
+    expect(out.space).toEqual({
       params: {
         boost_title: { type: 'float', low: 0.5, high: 10.0, log: true },
         boost_body: { type: 'float', low: 0.5, high: 10.0, log: true },
@@ -141,6 +141,7 @@ describe('buildStarterSearchSpace — happy path multi-param', () => {
         fuzziness: { type: 'categorical', choices: ['AUTO', '0', '1', '2'] },
       },
     });
+    expect(out.capAwareFallbackParamNames).toEqual([]);
   });
 });
 
@@ -167,15 +168,15 @@ describe('buildStarterSearchSpace — cap-aware fallback (spec FR-1)', () => {
       arbitrary_b: 'float',
     });
 
-    expect(out.params['boost_title']).toEqual({
+    expect(out.space.params['boost_title']).toEqual({
       type: 'float',
       low: 0.5,
       high: 10.0,
       log: true,
     });
-    expect(out.params['arbitrary_a']).toEqual({ type: 'int', low: 0, high: 5 });
-    expect(out.params['arbitrary_b']).toEqual({ type: 'int', low: 0, high: 5 });
-    expect(estimateCardinality(out)).toBeLessThanOrEqual(1_000_000);
+    expect(out.space.params['arbitrary_a']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(out.space.params['arbitrary_b']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(estimateCardinality(out.space)).toBeLessThanOrEqual(1_000_000);
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -189,9 +190,9 @@ describe('buildStarterSearchSpace — cap-aware fallback (spec FR-1)', () => {
       boost_d: 'float',
       boost_e: 'float',
     });
-    expect(estimateCardinality(out)).toBeLessThanOrEqual(1_000_000);
+    expect(estimateCardinality(out.space)).toBeLessThanOrEqual(1_000_000);
     // boost_a was the first converted (lexicographic order)
-    expect(out.params['boost_a']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(out.space.params['boost_a']).toEqual({ type: 'int', low: 0, high: 5 });
     expect(warnSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -206,17 +207,52 @@ describe('buildStarterSearchSpace — cap-aware fallback (spec FR-1)', () => {
       slop: 'int',
       fuzziness: 'string',
     });
-    expect(out.params['fuzziness']).toEqual({
+    expect(out.space.params['fuzziness']).toEqual({
       type: 'categorical',
       choices: ['AUTO', '0', '1', '2'],
     });
-    expect(out.params['slop']).toEqual({ type: 'int', low: 0, high: 5 });
-    expect(estimateCardinality(out)).toBeLessThanOrEqual(1_000_000);
+    expect(out.space.params['slop']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(estimateCardinality(out.space)).toBeLessThanOrEqual(1_000_000);
   });
 
   it('does not fire when candidate cardinality is already within cap', () => {
     buildStarterSearchSpace({ boost_title: 'float' });
     expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it('populates capAwareFallbackParamNames with the converted names when fallback fires', () => {
+    // 4 fall-through floats. Lex order: alpha, beta, delta, gamma. After
+    // converting alpha + beta to int[0,5]: 6*6*100*100 = 360_000 ≤ 10^6.
+    const out = buildStarterSearchSpace({
+      alpha: 'float',
+      beta: 'float',
+      gamma: 'float',
+      delta: 'float',
+    });
+    expect(out.capAwareFallbackParamNames).toEqual(['alpha', 'beta']);
+    expect(out.space.params['alpha']).toEqual({ type: 'int', low: 0, high: 5 });
+    expect(out.space.params['gamma']).toEqual({ type: 'float', low: 0, high: 1 });
+  });
+
+  it('throws when cap-aware fallback exhausts all float conversions (8 floats → 6^8 > 10^6)', () => {
+    expect(() =>
+      buildStarterSearchSpace({
+        a: 'float',
+        b: 'float',
+        c: 'float',
+        d: 'float',
+        e: 'float',
+        f: 'float',
+        g: 'float',
+        h: 'float',
+      }),
+    ).toThrow(/cap-aware fallback exhausted/);
+  });
+});
+
+describe('buildStarterSearchSpace — empty input', () => {
+  it('throws on empty declared_params (mirrors Python InvalidSearchSpaceError)', () => {
+    expect(() => buildStarterSearchSpace({})).toThrow(/empty declared_params/);
   });
 });
 

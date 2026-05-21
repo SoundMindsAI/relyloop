@@ -128,6 +128,17 @@ response = await client.chat.completions.create(
 
 The tool-dispatch loop lives in `backend/agent/orchestrator.py`: receive a user message, call OpenAI with tools, dispatch any returned tool calls to local functions, loop until the model returns a non-tool response.
 
+### Propose-then-create chain (feat_agent_propose_search_space)
+
+The agent's `create_study` tool requires a fully-formed `SearchSpace` at call time. Rather than letting the LLM invent bounds from training-data intuition, the orchestrator's system prompt directs the LLM to call `propose_search_space(template_id, cluster_id, prior_study_id?)` first — a read-only tool that returns a deterministic, code-generated search space drawn from the same TS+Python parity-locked heuristic that powers the create-study wizard's auto-fill ([`ui/src/lib/search-space-defaults.ts`](../../ui/src/lib/search-space-defaults.ts) + [`backend/app/domain/study/search_space_defaults.py`](../../backend/app/domain/study/search_space_defaults.py)). The LLM passes `result.search_space` verbatim into `create_study`'s `search_space` argument and cites the `grounding` fields (template name, narrowed param names, cap-aware fallback names) in its chat reply.
+
+Adherence is observed offline via paired structlog INFO events tagged with `ToolContext.conversation_id`:
+
+- `agent.search_space_proposed` — emitted from `propose_search_space_impl` on every successful invocation. Fields: `conversation_id`, `template_id`, `cluster_id`, `judgment_list_id`, `prior_study_id`, `param_names`, `cardinality`, `narrowed_param_names`.
+- `agent.create_study.invoked` — emitted from `create_study_impl` after search-space validation, before FK resolution. Fields: `conversation_id`, `study_id_pending` (pre-INSERT UUIDv7), `template_id`, `cluster_id`, `search_space_param_names`, `search_space_cardinality`.
+
+Correlating the two streams by `conversation_id` measures the chain adherence ratio without per-call state tracking. See [`docs/03_runbooks/agent-debugging.md`](../03_runbooks/agent-debugging.md) for the operator-facing grep recipe.
+
 ## Per-task LLM calls (MVP1)
 
 | Task | Owning feature | Pattern | Model | Notes |

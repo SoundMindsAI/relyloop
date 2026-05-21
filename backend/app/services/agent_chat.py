@@ -241,7 +241,13 @@ async def send_user_message(
                 degraded_notice_already_sent = True
 
     # 4. Build orchestrator deps + run the turn.
-    ctx = ToolContext(db=db, redis=redis, arq_pool=arq_pool, settings=settings)
+    ctx = ToolContext(
+        db=db,
+        conversation_id=conversation_id,
+        redis=redis,
+        arq_pool=arq_pool,
+        settings=settings,
+    )
     openai_client = AsyncOpenAI(
         base_url=settings.openai_base_url,
         api_key=settings.openai_api_key or "",
