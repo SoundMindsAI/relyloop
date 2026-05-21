@@ -37,6 +37,8 @@ from typing import Any, Literal
 import numpy as np
 from pydantic import BaseModel
 
+from backend.app.eval.scoring import objective_metric_key
+
 # ---------------------------------------------------------------------------
 # Locked constants — every value is referenced from FR-4 / FR-4a.
 # Source of truth: feature_spec.md §19 Decision log (feat_pr_metric_confidence).
@@ -389,7 +391,14 @@ def compute_outcome_summary(
     Improved/unchanged/regressed buckets use the FR-4a per-metric threshold
     table. Returned candidates are sorted by ``abs(delta)`` descending,
     capped at ``TOP_REGRESSORS_CAP``. Returns ``None`` when either input
-    dict is empty or ``metric`` is not in :data:`REGRESSOR_THRESHOLDS`.
+    dict is empty or ``metric``'s base name is not in
+    :data:`REGRESSOR_THRESHOLDS`.
+
+    ``metric`` is the per-query lookup key as persisted by the worker
+    (``backend.app.eval.scoring.score`` writes user-facing tokens — e.g.
+    ``"ndcg@10"``, ``"map@10"``, ``"map"``, ``"mrr"``). The threshold
+    table is keyed by metric *base* names (``ndcg``, ``map``, etc.), so
+    the helper strips any ``@<k>`` suffix before the lookup.
 
     Cycle-1 GPT-5.5 F7 fix: this helper does NOT take ``query_text_by_id`` —
     candidates carry only ``query_id``. The orchestrator runs Q4 of the
@@ -398,7 +407,9 @@ def compute_outcome_summary(
     """
     if not winner_per_query or not comparison_per_query:
         return None
-    threshold = REGRESSOR_THRESHOLDS.get(metric)
+    # Strip any @<k> suffix so "ndcg@10" → "ndcg", "map@10" → "map", and
+    # bare "mrr" / "map" / "ndcg" still work. See REGRESSOR_THRESHOLDS keys.
+    threshold = REGRESSOR_THRESHOLDS.get(metric.partition("@")[0])
     if threshold is None:
         return None
 
@@ -525,6 +536,18 @@ def compute_study_confidence(
     if k is not None and not isinstance(k, int):
         k = None
 
+    # Compute the per-query lookup key. The worker persists what
+    # :func:`backend.app.eval.scoring.score` emits — user-facing tokens
+    # like ``ndcg@10``, ``map@10``, ``map``, ``mrr``. Bug captured in
+    # ``bug_confidence_per_query_metric_key_drift`` and fixed inline on
+    # ``feat_pr_metric_confidence``.
+    try:
+        per_query_key = objective_metric_key(study_objective)
+    except ValueError:
+        # Malformed objective (missing required k, unsupported metric, …):
+        # graceful degrade to whole-object None per FR-7 invariant.
+        return None
+
     # Headline value comes from study.best_metric (denormalized winner
     # primary_metric); the n_queries comes from the winner's per_query
     # dict when present.
@@ -535,7 +558,9 @@ def compute_study_confidence(
     )
     winner_per_query = winner_trial.per_query_metrics or {}
     winner_values_for_metric = [
-        float(v[metric]) for v in winner_per_query.values() if isinstance(v, dict) and metric in v
+        float(v[per_query_key])
+        for v in winner_per_query.values()
+        if isinstance(v, dict) and per_query_key in v
     ]
     n_queries: int | None = len(winner_values_for_metric) if winner_per_query else None
 
@@ -574,7 +599,7 @@ def compute_study_confidence(
         outcome = compute_outcome_summary(
             winner_per_query=winner_per_query,
             comparison_per_query=runner_up_trial.per_query_metrics,
-            metric=metric,
+            metric=per_query_key,
         )
         if outcome is not None:
             regressor_rows = build_regressor_rows(

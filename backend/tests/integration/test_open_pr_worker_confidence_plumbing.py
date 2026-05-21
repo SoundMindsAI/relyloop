@@ -118,11 +118,13 @@ async def _seed_completed_study_with_per_query_metrics(
         )
         # Winner trial — high per-query metrics + 1 designed regressor.
         winner_per_query = {
-            qid: {"ndcg": 0.85 - (0.01 * i) if i != 0 else 0.40} for i, qid in enumerate(query_ids)
+            qid: {"ndcg@10": 0.85 - (0.01 * i) if i != 0 else 0.40}
+            for i, qid in enumerate(query_ids)
         }
         # Runner-up trial — qid 0 scored higher (so winner regresses on it).
         runner_up_per_query = {
-            qid: {"ndcg": 0.95 if i == 0 else 0.84 - (0.01 * i)} for i, qid in enumerate(query_ids)
+            qid: {"ndcg@10": 0.95 if i == 0 else 0.84 - (0.01 * i)}
+            for i, qid in enumerate(query_ids)
         }
         # Trial 0 = winner.
         winner_trial = await repo.create_trial(

@@ -27,6 +27,7 @@ from backend.app.domain.study.confidence import (
     compute_outcome_summary,
     compute_study_confidence,
 )
+from backend.app.eval.scoring import objective_metric_key
 
 
 async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceShape | None:
@@ -74,26 +75,27 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
     # Q4 (conditional): query_text for regressor candidates.
     # The pure orchestrator runs compute_outcome_summary again internally —
     # the second call is cheap (dict-key iteration on ≤100 queries) and keeps
-    # the pure-helper contract clean for unit tests.
+    # the pure-helper contract clean for unit tests. The per-query lookup key
+    # must match what backend.app.eval.scoring.score persists (user-facing
+    # @<k>-suffixed tokens), not the bare metric base name.
     query_text_by_id: dict[str, str] = {}
     study_objective = study.objective if isinstance(study.objective, dict) else {}
-    metric = study_objective.get("metric")
-    if (
-        isinstance(metric, str)
-        and runner_up is not None
-        and winner.per_query_metrics
-        and runner_up.per_query_metrics
-    ):
-        outcome = compute_outcome_summary(
-            winner_per_query=winner.per_query_metrics,
-            comparison_per_query=runner_up.per_query_metrics,
-            metric=metric,
-        )
-        if outcome is not None and outcome.regressor_candidates:
-            qids = [qid for (qid, *_) in outcome.regressor_candidates]
-            q_stmt = select(Query.id, Query.query_text).where(Query.id.in_(qids))
-            for qid, qtext in (await db.execute(q_stmt)).all():
-                query_text_by_id[qid] = qtext
+    if runner_up is not None and winner.per_query_metrics and runner_up.per_query_metrics:
+        try:
+            per_query_key = objective_metric_key(study_objective)
+        except ValueError:
+            per_query_key = None
+        if per_query_key is not None:
+            outcome = compute_outcome_summary(
+                winner_per_query=winner.per_query_metrics,
+                comparison_per_query=runner_up.per_query_metrics,
+                metric=per_query_key,
+            )
+            if outcome is not None and outcome.regressor_candidates:
+                qids = [qid for (qid, *_) in outcome.regressor_candidates]
+                q_stmt = select(Query.id, Query.query_text).where(Query.id.in_(qids))
+                for qid, qtext in (await db.execute(q_stmt)).all():
+                    query_text_by_id[qid] = qtext
 
     return compute_study_confidence(
         study_objective=study_objective,

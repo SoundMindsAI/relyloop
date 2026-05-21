@@ -248,7 +248,7 @@ async def test_ac4_bootstrap_ci_is_reproducible_across_calls(
     # Winner: per_query_metrics carries an ndcg value for each of 20 queries.
     # Use deterministic floats spread across [0.6, 0.95] for a non-degenerate CI.
     winner_per_query = {
-        qid: {"ndcg": 0.6 + (i * 0.018), "map": 0.5, "precision": 0.5, "recall": 0.5, "mrr": 0.5}
+        qid: {"ndcg@10": 0.6 + (i * 0.018), "map": 0.5, "precision": 0.5, "recall": 0.5, "mrr": 0.5}
         for i, qid in enumerate(qids)
     }
     # Need ≥10 trials so all aggregate signals populate.
@@ -442,12 +442,12 @@ async def test_ac10_per_query_regressor_includes_query_text(
     # Winner: qA scored 0.41 (will regress vs runner-up's 0.92);
     # qB scored 0.85 (unchanged vs runner-up's 0.85).
     winner_per_query = {
-        qA: {"ndcg": 0.41},
-        qB: {"ndcg": 0.85},
+        qA: {"ndcg@10": 0.41},
+        qB: {"ndcg@10": 0.85},
     }
     runner_up_per_query = {
-        qA: {"ndcg": 0.92},
-        qB: {"ndcg": 0.85},
+        qA: {"ndcg@10": 0.92},
+        qB: {"ndcg@10": 0.85},
     }
     winner_id = await _insert_trial(
         study_id=ctx["study_id"],
@@ -490,7 +490,7 @@ async def test_ac15_bootstrap_ci_null_when_fewer_than_five_queries(
 ) -> None:
     ctx = await _seed_study(best_metric=0.8, seed_queries=4)
     qids = ctx["query_ids"]
-    winner_per_query = {qid: {"ndcg": 0.7 + i * 0.02} for i, qid in enumerate(qids)}
+    winner_per_query = {qid: {"ndcg@10": 0.7 + i * 0.02} for i, qid in enumerate(qids)}
     winner_id = await _insert_trial(
         study_id=ctx["study_id"],
         optuna_trial_number=0,
@@ -519,7 +519,7 @@ async def test_ac16_single_complete_trial_suppresses_runner_up_signals(
     """Only 1 complete trial → per_query_outcomes + runner_up_gap null; CI still populates."""
     ctx = await _seed_study(best_metric=0.8, seed_queries=6)
     qids = ctx["query_ids"]
-    winner_per_query = {qid: {"ndcg": 0.7 + i * 0.02} for i, qid in enumerate(qids)}
+    winner_per_query = {qid: {"ndcg@10": 0.7 + i * 0.02} for i, qid in enumerate(qids)}
     winner_id = await _insert_trial(
         study_id=ctx["study_id"],
         optuna_trial_number=0,

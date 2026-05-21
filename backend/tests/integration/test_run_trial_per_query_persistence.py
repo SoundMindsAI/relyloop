@@ -96,8 +96,12 @@ async def test_successful_trial_writes_per_query_metrics(
         f"got={persisted_qids}, expected={expected_qids}"
     )
 
-    # Every value is a dict keyed by user-facing metric names.
-    expected_metric_keys = {"ndcg", "map", "precision", "recall", "mrr"}
+    # Every value is a dict keyed by user-facing metric tokens. The score()
+    # function emits user-facing tokens with the @<k> cutoff preserved for
+    # metrics that take a cutoff (ndcg@10, map@10, precision@10, recall@10)
+    # and bare names for cutoff-free metrics (mrr, plain map). The base
+    # name (everything before any @) must be in MetricCatalog.
+    expected_metric_bases = {"ndcg", "map", "precision", "recall", "mrr"}
     for qid, per_metric in t.per_query_metrics.items():
         assert isinstance(per_metric, dict), (
             f"per_query_metrics[{qid}] must be a dict, got {type(per_metric)}"
@@ -108,10 +112,11 @@ async def test_successful_trial_writes_per_query_metrics(
         # keys leak through (e.g., "ndcg_cut.10", "P_10").
         assert per_metric, f"per_query_metrics[{qid}] is empty"
         for metric_key in per_metric:
-            assert metric_key in expected_metric_keys, (
+            base = metric_key.partition("@")[0]
+            assert base in expected_metric_bases, (
                 f"unexpected metric key {metric_key!r} in per_query_metrics[{qid}]; "
-                f"score() should remap pytrec_eval wire names to "
-                f"{sorted(expected_metric_keys)}"
+                f"base name {base!r} not in {sorted(expected_metric_bases)} — "
+                f"score() should remap pytrec_eval wire names to user-facing tokens"
             )
             assert isinstance(per_metric[metric_key], (int, float)), (
                 f"per_query_metrics[{qid}][{metric_key}] must be numeric, "

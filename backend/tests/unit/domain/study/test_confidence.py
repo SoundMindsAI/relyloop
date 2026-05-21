@@ -379,15 +379,21 @@ class TestComputeStudyConfidence:
 
     def test_full_shape_with_all_data(self) -> None:
         """All sub-fields populated when winner + runner-up both have
-        per_query_metrics, ≥10 complete trials, ≥5 queries."""
-        per_query = {f"q{i}": {"ndcg": 0.8 + 0.01 * i} for i in range(10)}
+        per_query_metrics, ≥10 complete trials, ≥5 queries.
+
+        Per-query data uses ``ndcg@10`` to match what
+        :func:`backend.app.eval.scoring.score` actually persists for a
+        study with ``objective={metric: ndcg, k: 10}`` — the orchestrator
+        resolves the lookup key via ``objective_metric_key``.
+        """
+        per_query = {f"q{i}": {"ndcg@10": 0.8 + 0.01 * i} for i in range(10)}
         winner = _trial(
             optuna_trial_number=0,  # winner appears in summary keys
             primary_metric=0.85,
             per_query_metrics=per_query,
         )
         # Runner-up's per_query is shifted slightly so most queries improved.
-        runner_up_pq = {f"q{i}": {"ndcg": 0.7 + 0.01 * i} for i in range(10)}
+        runner_up_pq = {f"q{i}": {"ndcg@10": 0.7 + 0.01 * i} for i in range(10)}
         runner_up = _trial(
             optuna_trial_number=10,
             primary_metric=0.75,
@@ -423,7 +429,7 @@ class TestComputeStudyConfidence:
         """AC-16: 1-complete-trial case — winner has per_query but no
         runner-up → ci_95 + headline.n_queries populate from winner alone,
         per_query_outcomes + runner_up_gap suppressed."""
-        per_query = {f"q{i}": {"ndcg": 0.8 + 0.01 * i} for i in range(10)}
+        per_query = {f"q{i}": {"ndcg@10": 0.8 + 0.01 * i} for i in range(10)}
         winner = _trial(
             optuna_trial_number=0,
             primary_metric=0.85,

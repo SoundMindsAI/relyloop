@@ -497,10 +497,10 @@ Tooltip implementation reuses the existing [`InfoTooltip`](../../../../ui/src/co
 
 - Given a study with `template_id` declaring `title_boost: 'float'`, a query set of 5 queries, and a judgment list with judgments for those queries
 - When the orchestrator runs 5 Optuna trials and all 5 complete successfully
-- Then `SELECT per_query_metrics FROM trials WHERE study_id = ?` returns 5 non-NULL JSONB rows, each shaped `{qid: {ndcg: float, map: float, precision: float, recall: float, mrr: float}}` (the 5 metric keys from `MetricCatalog`)
+- Then `SELECT per_query_metrics FROM trials WHERE study_id = ?` returns 5 non-NULL JSONB rows, each shaped `{qid: {<user-facing-metric>: float, ...}}` where the keys are the user-facing metric tokens emitted by `backend.app.eval.scoring.score()` — i.e., the @-suffixed form for cutoff-aware metrics (`ndcg@10`, `map@10`, `precision@10`, `recall@10`) and bare names for cutoff-free metrics (`mrr`, plain `map`). Base names are constrained to `MetricCatalog` (`ndcg`, `map`, `precision`, `recall`, `mrr`).
 - Example values:
-  - Input: `study_id="01931..."`, `max_trials=5`, judgment list with `query_ids=["q1","q2","q3","q4","q5"]`
-  - Expected: 5 rows, each with `per_query_metrics["q1"]["ndcg"]` populated as a float between 0.0 and 1.0
+  - Input: `study_id="01931..."`, `max_trials=5`, `objective={metric: "ndcg", k: 10}`, judgment list with `query_ids=["q1","q2","q3","q4","q5"]`
+  - Expected: 5 rows, each with `per_query_metrics["q1"]["ndcg@10"]` populated as a float between 0.0 and 1.0
 
 ### AC-2: Failed trial does not write per_query_metrics
 
@@ -571,8 +571,8 @@ Tooltip implementation reuses the existing [`InfoTooltip`](../../../../ui/src/co
 
 ### AC-10: Per-query regressor naming with thresholded comparison
 
-- Given a completed study with NDCG objective, winner trial `per_query_metrics`, and runner-up #2 with per_query, where for `query_id="qA"` the winner scored 0.41 and the runner-up scored 0.92 (delta=-0.51, below the -0.01 threshold for NDCG)
-- And for `query_id="qB"` the winner scored 0.85 and the runner-up scored 0.85 (delta=0, within ±0.01 unchanged window)
+- Given a completed study with `objective={metric: "ndcg", k: 10}`, winner trial `per_query_metrics` keyed by user-facing token (`ndcg@10`), and runner-up #2 with per_query, where for `query_id="qA"` the winner's `per_query_metrics[qA]["ndcg@10"] == 0.41` and the runner-up's is `0.92` (delta=-0.51, below the -0.01 threshold for NDCG)
+- And for `query_id="qB"` the winner's `ndcg@10` is `0.85` and the runner-up's is `0.85` (delta=0, within ±0.01 unchanged window)
 - When `GET /api/v1/studies/{id}` is called
 - Then `confidence.per_query_outcomes.top_regressors` contains a row for `query_id="qA"` with `query_text` joined from the queries table, `winner_score=0.41`, `comparison_score=0.92`, `delta=-0.51`
 - And `confidence.per_query_outcomes.regressed == 1`
