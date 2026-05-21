@@ -83,6 +83,21 @@ STAGE_LABELS = {
 }
 
 
+PRIORITY_VALUES: tuple[str, ...] = ("P0", "P1", "P2", "Backlog")
+"""Operator-curated priority tiers parsed from the idea-template's
+``**Priority:**`` line. P0 = do next; P1 = high-value scoped, ready to
+execute when P0 clears; P2 = important enough to file, not blocking
+(default when omitted); Backlog = captured for record, not actively
+planned. Folders ending ``_mvpN`` are auto-classified to that release
+independent of this value."""
+
+_PRIORITY_ORDER: dict[str, int] = {p: i for i, p in enumerate(PRIORITY_VALUES)}
+"""Sort key — lower number = higher priority. Done features sort to the
+back regardless of priority (see ``_dashboard_sort_key``)."""
+
+DEFAULT_PRIORITY = "P2"
+
+
 @dataclass
 class Feature:
     folder: str  # full folder name (e.g., "feat_study_lifecycle")
@@ -98,6 +113,7 @@ class Feature:
     merged_date: str | None = None
     deferred_phase: str | None = None  # human note if a phase*_idea.md is present
     release: str = DEFAULT_RELEASE  # "mvp1" | "mvp2" | "mvp3" | ...
+    priority: str = DEFAULT_PRIORITY  # one of PRIORITY_VALUES
 
     @property
     def display_name(self) -> str:
@@ -173,6 +189,29 @@ def _extract_status_line(text: str) -> str:
     """Pull the `**Status:**` value from a markdown header block."""
     m = re.search(r"^\*\*Status:\*\*\s*(.+)$", text, flags=re.MULTILINE)
     return m.group(1).strip() if m else ""
+
+
+def _extract_priority(text: str) -> str | None:
+    """Pull the `**Priority:**` value (P0 / P1 / P2 / Backlog) from a
+    markdown header block. Returns ``None`` when the field is absent
+    (so callers can fall through to a different artifact); returns
+    :data:`DEFAULT_PRIORITY` only when the field is present but its
+    value is unrecognized (e.g., the chevron-placeholder
+    ``<P0 | P1 | ...>`` in the template file itself).
+    """
+    m = re.search(r"^\*\*Priority:\*\*\s*([^\n<]+?)\s*$", text, flags=re.MULTILINE)
+    if not m:
+        return None
+    raw = m.group(1).strip()
+    # Tolerate "P0 — do next" and similar embellishments by taking the
+    # first whitespace-delimited token.
+    token = raw.split()[0] if raw else ""
+    if token in PRIORITY_VALUES:
+        return token
+    # Common alternatives.
+    if token.lower() in ("backlog", "icebox", "deferred"):
+        return "Backlog"
+    return DEFAULT_PRIORITY
 
 
 def _extract_one_liner(text: str, source_dir: Path | None = None) -> str:
@@ -507,6 +546,20 @@ def _load_planned(folder_path: Path) -> Feature | None:
         else _extract_idea_problem(idea, idea_dir=folder_path)
     )
 
+    # Priority is most informative on the idea (operator authors it at
+    # capture time); spec/plan inherit by default. Walk the artifacts in
+    # most-authoritative-first order: a spec/plan that explicitly
+    # restates the priority wins over the idea (operator may have
+    # re-scored during planning). When no artifact carries the field,
+    # fall back to DEFAULT_PRIORITY at the end so the dashboard never
+    # sees None.
+    priority = (
+        _extract_priority(spec)
+        or _extract_priority(plan)
+        or _extract_priority(idea)
+        or DEFAULT_PRIORITY
+    )
+
     feature = Feature(
         folder=folder,
         prefix=prefix,
@@ -521,6 +574,7 @@ def _load_planned(folder_path: Path) -> Feature | None:
         merged_date=_extract_merged_date(pipe + plan + spec),
         deferred_phase=deferred,
         release=_target_release(short, status_line + " " + (idea or "")),
+        priority=priority,
     )
     return feature
 
@@ -847,6 +901,19 @@ section > h2 {
 .badge.chore { background: #f1f5f9; color: #475569; }
 .badge.bug   { background: #fee2e2; color: #991b1b; }
 .badge.epic  { background: #e0f2fe; color: #075985; }
+/* Priority chip — color-coded so P0 jumps out on visual scan. */
+.badge.priority[data-priority="P0"] {
+  background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+}
+.badge.priority[data-priority="P1"] {
+  background: #fed7aa; color: #9a3412; border: 1px solid #fdba74;
+}
+.badge.priority[data-priority="P2"] {
+  background: #e0f2fe; color: #075985; border: 1px solid #bae6fd;
+}
+.badge.priority[data-priority="Backlog"] {
+  background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;
+}
 
 .card .pr {
   display: inline-block;
@@ -1078,6 +1145,21 @@ def _classify_kpi(features: list[Feature]) -> dict[str, int]:
         "open_chores_idea": 0,  # idea-only chore_* (debt, not MVP1 scope)
         "backlog_ideas": 0,  # idea-only feat_/infra_ (not yet scoped)
         "remaining": 0,  # scoped not-done + open bugs + open chores-idea
+        # Priority breakdown across EVERY not-done item (regardless of
+        # prefix), so the headline KPI can no longer hide feat/infra ideas
+        # under "backlog." Operators see "P0: N · P1: N · P2: N · Backlog:
+        # N" alongside the legacy single-number Path. Done items are
+        # excluded — they don't need priority.
+        "priority_p0": 0,
+        "priority_p1": 0,
+        "priority_p2": 0,
+        "priority_backlog": 0,
+    }
+    priority_keys = {
+        "P0": "priority_p0",
+        "P1": "priority_p1",
+        "P2": "priority_p2",
+        "Backlog": "priority_backlog",
     }
     for f in features:
         if f.prefix in ("feat", "infra", "chore", "epic"):
@@ -1086,15 +1168,26 @@ def _classify_kpi(features: list[Feature]) -> dict[str, int]:
                     kpi["open_chores_idea"] += 1
                 else:
                     kpi["backlog_ideas"] += 1
+                kpi[priority_keys.get(f.priority, "priority_p2")] += 1
                 continue
             kpi["scoped_features"] += 1
             if f.stage == "done":
                 kpi["done_features"] += 1
+            else:
+                kpi[priority_keys.get(f.priority, "priority_p2")] += 1
         elif f.prefix == "bug":
             if f.stage != "done":
                 kpi["open_bugs"] += 1
+                kpi[priority_keys.get(f.priority, "priority_p2")] += 1
     kpi["remaining"] = (
         (kpi["scoped_features"] - kpi["done_features"]) + kpi["open_bugs"] + kpi["open_chores_idea"]
+    )
+    # `total_pending` is the honest "things you might want to work on"
+    # count — every not-done item across feat/infra/chore/epic/bug,
+    # including feat_ + infra_ at idea stage that the original `remaining`
+    # KPI excluded. This is what most operators expect from "Path to MVP1."
+    kpi["total_pending"] = (
+        kpi["priority_p0"] + kpi["priority_p1"] + kpi["priority_p2"] + kpi["priority_backlog"]
     )
     return kpi
 
@@ -1124,12 +1217,23 @@ def _card_html(f: Feature) -> str:
     if f.deferred_phase:
         deferred_html = f'<div class="deferred">deferred: {html.escape(f.deferred_phase)}</div>'
 
+    # Priority chip — only render for not-done items (done features
+    # don't need a priority signal; they've shipped). Color-coded via
+    # the data-priority attribute + matching CSS so P0 visually pops.
+    priority_html = ""
+    if f.stage != "done":
+        prio_label = html.escape(f.priority)
+        priority_html = (
+            f'<span class="badge priority" data-priority="{prio_label}">{prio_label}</span>'
+        )
+
     one_liner = (f.one_liner or f.status_line)[:200]
     return f"""
-<div class="card {f.prefix}" data-prefix="{f.prefix}">
+<div class="card {f.prefix}" data-prefix="{f.prefix}" data-priority="{html.escape(f.priority)}">
   <div class="name"><a href="{html.escape(href)}">{html.escape(f.display_name)}</a></div>
   <div class="meta">
     <span class="badge {f.prefix}">{html.escape(PREFIX_LABELS.get(f.prefix, f.prefix))}</span>
+    {priority_html}
     {pr_html}{merged_html}
   </div>
   <div class="one-liner">{html.escape(one_liner)}</div>
@@ -1311,10 +1415,26 @@ def render_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
     for f in features:
         by_stage[f.stage].append(f)
 
-    # Inside each stage, prioritize feat/infra over chore/bug for visual scan.
+    # Inside each stage, sort by:
+    # 1. Operator-curated priority (P0 → P1 → P2 → Backlog) — surfaces
+    #    the highest-leverage idea first regardless of folder name.
+    # 2. Type — feat/infra over chore/bug (visual scan order).
+    # 3. Alphabetical (deterministic tiebreaker).
+    # Done features are excluded from the priority signal entirely (already
+    # shipped) and just sort by name.
     type_order = {"feat": 0, "infra": 1, "epic": 2, "chore": 3, "bug": 4}
+
+    def _sort_key(f: Feature) -> tuple[int, int, str]:
+        if f.stage == "done":
+            return (99, type_order.get(f.prefix, 99), f.short_name)
+        return (
+            _PRIORITY_ORDER.get(f.priority, _PRIORITY_ORDER[DEFAULT_PRIORITY]),
+            type_order.get(f.prefix, 99),
+            f.short_name,
+        )
+
     for s in STAGES:
-        by_stage[s].sort(key=lambda f: (type_order.get(f.prefix, 99), f.short_name))
+        by_stage[s].sort(key=_sort_key)
 
     columns = "".join(_column_html(s, by_stage[s]) for s in STAGES)
     mermaid = _mermaid_graph(features)
@@ -1359,20 +1479,42 @@ def render_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
       <div class="sub">{pct}% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:{pct}%"></span></div>
     </div>
-    <div class="kpi {"warn" if kpi["remaining"] else "complete"}">
-      <div class="label">Path to {release_label}</div>
-      <div class="value">{kpi["remaining"]}</div>
-      <div class="sub">items left = features + bugs + chores</div>
+    <div class="kpi {"warn" if kpi["total_pending"] else "complete"}">
+      <div class="label">Pending work</div>
+      <div class="value">{kpi["total_pending"]}</div>
+      <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi {"bug" if kpi["open_bugs"] else ""}">
       <div class="label">Open bugs</div>
       <div class="value">{kpi["open_bugs"]}</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
-    <div class="kpi {"warn" if kpi["open_chores_idea"] else ""}">
-      <div class="label">Open chores</div>
-      <div class="value">{kpi["open_chores_idea"]}</div>
-      <div class="sub">idea-stage chore_* (debt)</div>
+    <div class="kpi {"warn" if kpi["priority_p0"] else ""}">
+      <div class="label">P0 — do next</div>
+      <div class="value">{kpi["priority_p0"]}</div>
+      <div class="sub">unblocking / paying daily cost</div>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="label">P1</div>
+      <div class="value">{kpi["priority_p1"]}</div>
+      <div class="sub">high-value, ready when P0 clears</div>
+    </div>
+    <div class="kpi">
+      <div class="label">P2 (default)</div>
+      <div class="value">{kpi["priority_p2"]}</div>
+      <div class="sub">important to file, not blocking</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Backlog</div>
+      <div class="value">{kpi["priority_backlog"]}</div>
+      <div class="sub">captured for record, not planned</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Legacy "Path to {release_label}"</div>
+      <div class="value">{kpi["remaining"]}</div>
+      <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
@@ -1497,21 +1639,46 @@ def _md_deps_cell(f: Feature) -> str:
 def _md_stage_section(stage: str, features: list[Feature]) -> str:
     if not features:
         return f"### {STAGE_LABELS[stage]} (0)\n\n_None._\n"
-    rows = ["| Feature | Type | One-liner | Depends on | Status |", "|---|---|---|---|---|"]
-    for f in features:
-        rows.append(
-            "| "
-            + " | ".join(
-                [
-                    _md_feature_link(f),
-                    PREFIX_LABELS.get(f.prefix, f.prefix),
-                    _md_escape_cell((f.one_liner or f.status_line)[:200]),
-                    _md_deps_cell(f),
-                    _md_status_cell(f),
-                ]
+    # Done features don't need a priority column — they've shipped.
+    if stage == "done":
+        rows = [
+            "| Feature | Type | One-liner | Depends on | Status |",
+            "|---|---|---|---|---|",
+        ]
+        for f in features:
+            rows.append(
+                "| "
+                + " | ".join(
+                    [
+                        _md_feature_link(f),
+                        PREFIX_LABELS.get(f.prefix, f.prefix),
+                        _md_escape_cell((f.one_liner or f.status_line)[:200]),
+                        _md_deps_cell(f),
+                        _md_status_cell(f),
+                    ]
+                )
+                + " |"
             )
-            + " |"
-        )
+    else:
+        rows = [
+            "| Priority | Feature | Type | One-liner | Depends on | Status |",
+            "|---|---|---|---|---|---|",
+        ]
+        for f in features:
+            rows.append(
+                "| "
+                + " | ".join(
+                    [
+                        f.priority,
+                        _md_feature_link(f),
+                        PREFIX_LABELS.get(f.prefix, f.prefix),
+                        _md_escape_cell((f.one_liner or f.status_line)[:200]),
+                        _md_deps_cell(f),
+                        _md_status_cell(f),
+                    ]
+                )
+                + " |"
+            )
     return f"### {STAGE_LABELS[stage]} ({len(features)})\n\n" + "\n".join(rows) + "\n"
 
 
@@ -1531,8 +1698,18 @@ def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> 
     for f in features:
         by_stage[f.stage].append(f)
     type_order = {"feat": 0, "infra": 1, "epic": 2, "chore": 3, "bug": 4}
+
+    def _md_sort_key(f: Feature) -> tuple[int, int, str]:
+        if f.stage == "done":
+            return (99, type_order.get(f.prefix, 99), f.short_name)
+        return (
+            _PRIORITY_ORDER.get(f.priority, _PRIORITY_ORDER[DEFAULT_PRIORITY]),
+            type_order.get(f.prefix, 99),
+            f.short_name,
+        )
+
     for s in STAGES:
-        by_stage[s].sort(key=lambda f: (type_order.get(f.prefix, 99), f.short_name))
+        by_stage[s].sort(key=_md_sort_key)
 
     asof = _data_freshness().strftime("%Y-%m-%d")
     mermaid = _mermaid_graph(features)
@@ -1590,11 +1767,18 @@ def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> 
         f"— feat_/infra_/chore_/epic_ past idea stage |"
     )
     lines.append(
-        f"| Path to {release_label} | **{kpi['remaining']}** "
-        "items remaining (features + bugs + chores) |"
+        f"| Pending work | **{kpi['total_pending']}** items "
+        "(every not-done feat/infra/chore/bug across all priorities) |"
     )
+    lines.append(f"| → P0 — do next | **{kpi['priority_p0']}** unblocking / paying daily cost |")
+    lines.append(f"| → P1 | **{kpi['priority_p1']}** high-value, ready when P0 clears |")
+    lines.append(f"| → P2 (default) | {kpi['priority_p2']} important to file, not blocking |")
+    lines.append(f"| → Backlog | {kpi['priority_backlog']} captured for record, not planned |")
     lines.append(f"| Open bugs | {kpi['open_bugs']} |")
-    lines.append(f"| Open chores | {kpi['open_chores_idea']} (idea-stage debt) |")
+    lines.append(
+        f'| Legacy "Path to {release_label}" | {kpi["remaining"]} '
+        "items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |"
+    )
     lines.append(
         f"| Backlog ideas | {kpi['backlog_ideas']} idea-only feat/infra "
         f"(not yet scoped into {release_label}) |"

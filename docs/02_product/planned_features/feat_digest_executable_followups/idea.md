@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — surfaced during the 2026-05-21 Karpathy-loop audit.
+**Priority:** P2 — turns LLM-suggested followups from dead text into actionable proposals. Medium-scope feature; needs an LLM-output schema change + new UI affordance. High value once it lands but no immediate pain pushing it now.
 **Origin:** Standalone audit at `~/.claude/plans/compressed-sparking-hamming.md` — recommendation #4. The audit observation: the digest worker's LLM output already includes `suggested_followups`, but the field is shaped as plain strings, rendered in the proposals UI as bullet text, and has no path back into `create_study` or `propose_search_space`. Operators read suggestions like "narrow the title_boost range to [0.5, 3.0]" and have to manually translate them into a new study configuration.
 **Depends on:** None. Composes with [`feat_auto_followup_studies`](../feat_auto_followup_studies/idea.md) (which automates the deterministic followup); this feature handles the **LLM-suggested** followups separately.
 

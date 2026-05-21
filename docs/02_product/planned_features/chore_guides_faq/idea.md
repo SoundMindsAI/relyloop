@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review
+**Priority:** P1 — pairs with the Glossary route; operator-judgment-shaped Q&A surface for questions tooltips can't carry. Should land *after* the glossary so FAQ entries can deep-link into definitions.
 **Origin:** Audit question from operator during the metric-key-drift fix conversation — "do we need an FAQ in the Guides section?" The header of [`docs/08_guides/README.md`](../../../03_runbooks/) line 3 *mentions* "FAQs" as one of the documented content types, but no FAQ file exists in the repo and no FAQ surface exists in the UI — that's stale ambition from when the Guides directory was first sketched.
 **Depends on:** None.
 
