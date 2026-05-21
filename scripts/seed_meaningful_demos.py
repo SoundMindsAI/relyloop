@@ -51,6 +51,7 @@ import argparse
 import json
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 
@@ -772,6 +773,76 @@ def confirm_wipe() -> bool:
     return resp in ("y", "yes")
 
 
+def count_existing_clusters(*, max_attempts: int = 30, backoff_s: float = 1.0) -> int | None:
+    """Return the count of rows in the ``clusters`` table, or ``None`` if the
+    table can't be reached after ``max_attempts`` retries. Used by
+    ``--if-empty`` to decide whether to seed.
+
+    Bounded retry handles two transient races on a fresh ``make up``:
+      * postgres container is healthy but psql connections briefly refuse
+        immediately after start.
+      * The ``relyloop-migrate-1`` one-shot service is still applying
+        alembic migrations, so the ``clusters`` table doesn't exist yet
+        (psql exits non-zero with ``relation "clusters" does not exist``).
+
+    The default 30 attempts × 1s = 30s ceiling comfortably exceeds the
+    typical fresh-stack migration window (~5-10s on a warm uv cache).
+    GPT-5.5 PR #182 review finding #2 fix — without the retry, an empty
+    fresh stack would emit "skipping (postgres not reachable)" and leave
+    the operator on an empty stack with no auto-seed.
+
+    Direct SQL via the existing ``_psql`` plumbing keeps this in lockstep
+    with how the rest of the script reaches the DB; no extra deps needed.
+    """
+    last_err: str | None = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            result = subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "exec",
+                    "-T",
+                    "postgres",
+                    "psql",
+                    "-U",
+                    "relyloop",
+                    "-d",
+                    "relyloop",
+                    "-tA",  # -t: tuples only, -A: unaligned
+                    "-c",
+                    "SELECT COUNT(*) FROM clusters;",
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return int(result.stdout.strip())
+        except subprocess.CalledProcessError as exc:
+            stderr = (exc.stderr or "").strip()
+            last_err = stderr or repr(exc)
+            # The two failure modes we want to retry past: (a) connection
+            # refused / role missing while postgres warms up, (b) "relation
+            # 'clusters' does not exist" while migrate is still running.
+            # Other failures (auth misconfig, dropped DB) won't recover from
+            # waiting, but the bounded ceiling + non-fatal return ensures
+            # we exit cleanly anyway.
+            if attempt < max_attempts:
+                time.sleep(backoff_s)
+                continue
+            print(
+                f"seed-demo: clusters count probe failed after {max_attempts} "
+                f"attempts; last error: {last_err}",
+                file=sys.stderr,
+            )
+            return None
+        except ValueError:
+            # stdout wasn't an integer — psql succeeded but returned garbage;
+            # treat as unrecoverable.
+            return None
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument(
@@ -779,7 +850,38 @@ def main() -> int:
         action="store_true",
         help="Skip the destructive-action prompt (use in automation / CI).",
     )
+    ap.add_argument(
+        "--if-empty",
+        action="store_true",
+        help=(
+            "Only seed when the ``clusters`` table is empty. Used by "
+            "``scripts/install.sh`` to auto-populate meaningful demo data on "
+            "fresh stacks without clobbering an operator's existing state. "
+            "Exits 0 with a notice when clusters already exist; exits 0 "
+            "(non-fatal) when the DB isn't reachable yet."
+        ),
+    )
     args = ap.parse_args()
+
+    if args.if_empty:
+        existing = count_existing_clusters()
+        if existing is None:
+            # DB unreachable / schema not yet present / postgres still
+            # starting. Don't fail `make up`; the operator can always run
+            # `make seed-demo FORCE=1` manually after the stack stabilizes.
+            print("seed-demo: skipping — postgres not reachable yet.")
+            return 0
+        if existing > 0:
+            print(
+                f"seed-demo: skipping — {existing} cluster(s) already exist. "
+                "Use `make seed-demo FORCE=1` to wipe + reseed.",
+            )
+            return 0
+        # Fresh stack: fall through with implicit force (TRUNCATE on an empty
+        # table is a no-op, so the destructive prompt would just confuse the
+        # `make up` first-run experience).
+        print("seed-demo: stack is empty — auto-seeding meaningful demo data…")
+        args.force = True
 
     if not args.force and not confirm_wipe():
         print("aborted.")
@@ -793,6 +895,29 @@ def main() -> int:
             results.append(seed_scenario(s))
         except Exception as exc:
             print(f"\n!! scenario {s['slug']} FAILED: {exc!r}")
+            # GPT-5.5 PR #182 review finding #1 fix — partial-seed self-heal.
+            # In --if-empty mode (auto-seed from `make up`), a mid-seed
+            # failure would leave the `clusters` table non-empty, which
+            # would make every subsequent `make up` skip the seed and
+            # leave the operator on a broken half-seeded stack. Roll back
+            # any rows we inserted so the next `make up` retries cleanly.
+            # In explicit `make seed-demo` mode, leave the partial state
+            # in place so the operator can inspect what landed before
+            # re-running with --force.
+            if args.if_empty:
+                print(
+                    "seed-demo: --if-empty mode — rolling back partial state "
+                    "so the next `make up` can retry cleanly…",
+                    file=sys.stderr,
+                )
+                try:
+                    truncate_demo_state()
+                except Exception as cleanup_exc:
+                    print(
+                        f"seed-demo: rollback also failed: {cleanup_exc!r}. "
+                        "Run `make seed-demo FORCE=1` manually to recover.",
+                        file=sys.stderr,
+                    )
             return 1
 
     apply_study_renames(results)
