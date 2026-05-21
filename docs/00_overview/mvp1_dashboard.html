@@ -234,6 +234,19 @@ section > h2 {
 .badge.chore { background: #f1f5f9; color: #475569; }
 .badge.bug   { background: #fee2e2; color: #991b1b; }
 .badge.epic  { background: #e0f2fe; color: #075985; }
+/* Priority chip — color-coded so P0 jumps out on visual scan. */
+.badge.priority[data-priority="P0"] {
+  background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+}
+.badge.priority[data-priority="P1"] {
+  background: #fed7aa; color: #9a3412; border: 1px solid #fdba74;
+}
+.badge.priority[data-priority="P2"] {
+  background: #e0f2fe; color: #075985; border: 1px solid #bae6fd;
+}
+.badge.priority[data-priority="Backlog"] {
+  background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;
+}
 
 .card .pr {
   display: inline-block;
@@ -389,9 +402,9 @@ footer {
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
-      <div class="label">Path to MVP1</div>
-      <div class="value">6</div>
-      <div class="sub">items left = features + bugs + chores</div>
+      <div class="label">Pending work</div>
+      <div class="value">14</div>
+      <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi ">
       <div class="label">Open bugs</div>
@@ -399,9 +412,31 @@ footer {
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi warn">
-      <div class="label">Open chores</div>
+      <div class="label">P0 — do next</div>
+      <div class="value">2</div>
+      <div class="sub">unblocking / paying daily cost</div>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="label">P1</div>
       <div class="value">6</div>
-      <div class="sub">idea-stage chore_* (debt)</div>
+      <div class="sub">high-value, ready when P0 clears</div>
+    </div>
+    <div class="kpi">
+      <div class="label">P2 (default)</div>
+      <div class="value">6</div>
+      <div class="sub">important to file, not blocking</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Backlog</div>
+      <div class="value">0</div>
+      <div class="sub">captured for record, not planned</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Legacy "Path to MVP1"</div>
+      <div class="value">6</div>
+      <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
@@ -430,94 +465,11 @@ footer {
 <div class="col idea">
   <h3>Idea <span class="count">14</span></h3>
 
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_auto_followup_studies">Auto Followup Studies</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">Karpathy&#x27;s autoresearch loop runs hundreds of experiments overnight and **compounds** improvements: each accepted change becomes the new baseline for the next experiment. RelyLoop&#x27;s equivalent…</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking">Config Repo Baseline Tracking</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">RelyLoop does not track which configuration is currently live in production. When a proposal&#x27;s PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:187-191`](../../backend/app/api/webh</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_digest_executable_followups">Digest Executable Followups</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">The digest worker&#x27;s LLM contract at [`backend/workers/digest.py:168-189`](../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`:</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_home_first_run_demo_nudge">Home First Run Demo Nudge</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">The auto-seed chore solves the &quot;fresh stack = empty dropdowns&quot; problem. It does NOT solve:</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_orchestrator_zero_streak_abort">Orchestrator Zero Streak Abort</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">The two create-time guards close the bulk of the &quot;all 1000 trials score 0&quot; surface, but they don&#x27;t cover every path:</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_clone_from_previous">Study Clone From Previous</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">A relevance engineer&#x27;s normal workflow after the first study completes:</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_preflight_overlap_probe">Study Preflight Overlap Probe</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-  </div>
-  <div class="one-liner">The target-mismatch guard catches a string-equality mismatch. It misses these legitimate-looking-but-still-broken cases:</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P0">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_study_target_judgment_mismatch_guard">Study Target Judgment Mismatch Guard</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P0">P0</span>
 
   </div>
   <div class="one-liner">The existing POST `/studies` validator at [`backend/app/api/v1/studies.py:238`](../../backend/app/api/v1/studies.py#L238) enforces `judgment_list.query_set_id == body.query_set_id` (cross-set anti-enu</div>
@@ -526,10 +478,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P0">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_test_rows_isolation">E2E Test Rows Isolation</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P0">P0</span>
 
   </div>
   <div class="one-liner">Multiple seed paths emit rows into the operator-visible `clusters` / `query_sets` / `query_templates` / `judgment_lists` / `studies` tables:</div>
@@ -538,10 +491,50 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card feat" data-prefix="feat" data-priority="P1">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_home_first_run_demo_nudge">Home First Run Demo Nudge</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+
+  </div>
+  <div class="one-liner">The auto-seed chore solves the &quot;fresh stack = empty dropdowns&quot; problem. It does NOT solve:</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P1">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_orchestrator_zero_streak_abort">Orchestrator Zero Streak Abort</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+
+  </div>
+  <div class="one-liner">The two create-time guards close the bulk of the &quot;all 1000 trials score 0&quot; surface, but they don&#x27;t cover every path:</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P1">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_preflight_overlap_probe">Study Preflight Overlap Probe</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+
+  </div>
+  <div class="one-liner">The target-mismatch guard catches a string-equality mismatch. It misses these legitimate-looking-but-still-broken cases:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P1">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel">Guide 06 Screenshot Refresh Confidence Panel</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
   <div class="one-liner">The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai</div>
@@ -550,10 +543,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P1">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_guides_faq">Guides Faq</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
   <div class="one-liner">Tooltips and the glossary answer &quot;**what does X mean?**&quot; within a 1–2 sentence budget. They don&#x27;t carry the operator-judgment-shaped questions that come up *after* the term is understood:</div>
@@ -562,10 +556,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P1">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_guides_glossary_route">Guides Glossary Route</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
   <div class="one-liner">The glossary is a load-bearing terminology source-of-truth (cited 100+ times across the codebase, parity-tested against backend Literal enums, locked by source-of-truth comments). But operators can on</div>
@@ -574,10 +569,63 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_auto_followup_studies">Auto Followup Studies</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Karpathy&#x27;s autoresearch loop runs hundreds of experiments overnight and **compounds** improvements: each accepted change becomes the new baseline for the next experiment. RelyLoop&#x27;s equivalent…</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking">Config Repo Baseline Tracking</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">RelyLoop does not track which configuration is currently live in production. When a proposal&#x27;s PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:187-191`](../../backend/app/api/webh</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_digest_executable_followups">Digest Executable Followups</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">The digest worker&#x27;s LLM contract at [`backend/workers/digest.py:168-189`](../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`:</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_clone_from_previous">Study Clone From Previous</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">A relevance engineer&#x27;s normal workflow after the first study completes:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_study_default_stop_conditions">Study Default Stop Conditions</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
   <div class="one-liner">The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` —</div>
@@ -586,10 +634,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_template_library_expansion">Template Library Expansion</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
   <div class="one-liner">Three connected gaps:</div>
@@ -617,10 +666,11 @@ footer {
 <div class="col done">
   <h3>Done <span class="count">69</span></h3>
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/175">PR #175</a><span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same</div>
@@ -629,10 +679,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/60">PR #60</a><span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
@@ -641,10 +692,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_feat_cluster_target_filter/feature_spec.md">Cluster Target Filter</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/168">PR #168</a><span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset.</div>
@@ -653,10 +705,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help/feature_spec.md">Contextual Help</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/122">PR #122</a><span>merged 2026-05-15</span>
   </div>
   <div class="one-liner">a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam</div>
@@ -665,10 +718,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_feat_create_study_search_space_builder/feature_spec.md">Create Study Search Space Builder</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/163">PR #163</a><span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Complete (PR #163, squash commit `c703953`, merged 2026-05-20)</div>
@@ -677,10 +731,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_feat_create_study_target_autocomplete/feature_spec.md">Create Study Target Autocomplete</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/165">PR #165</a><span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Operator selects a cluster → an autocomplete dropdown lists the user-visible targets on that cluster (name + doc count), pre-sorted alphabetically.</div>
@@ -689,10 +744,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md">Data Table Primitive</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/126">PR #126</a><span>merged 2026-05-16</span>
   </div>
   <div class="one-liner">Complete (PR #126, merged 2026-05-16)</div>
@@ -701,10 +757,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md">Digest Proposal</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/41">PR #41</a><span>merged 2026-05-11</span>
   </div>
   <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
@@ -713,10 +770,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md">Github Pr Worker</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/45">PR #45</a><span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">`POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches </div>
@@ -725,10 +783,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_github_webhook/feature_spec.md">Github Webhook</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a><span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
@@ -737,10 +796,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/feature_spec.md">Judgments Periodic Resume Sweep</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/104">PR #104</a><span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status=&#x27;generating&#x27;` row via deterministi</div>
@@ -749,10 +809,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md">Llm Judgments</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/35">PR #35</a><span>merged 2026-05-11</span>
   </div>
   <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
@@ -761,10 +822,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_pr_metric_confidence/feature_spec.md">Pr Metric Confidence</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/180">PR #180</a><span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Approvers reading a study-backed PR see a &quot;## Confidence&quot; section directly between the existing &quot;## Metric delta&quot; and &quot;## Config diff&quot; sections.</div>
@@ -773,10 +835,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_proposals_ui/feature_spec.md">Proposals Ui</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/58">PR #58</a><span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + &quot;Open PR&quot; button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app.</div>
@@ -785,10 +848,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_feat_query_inline_crud/feature_spec.md">Query Inline Crud</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/101">PR #101</a><span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.</div>
@@ -797,10 +861,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/feature_spec.md">Studies Ui</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/50">PR #50</a><span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §&quot;Routes (MVP1)&quot;](../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgment re</div>
@@ -809,10 +874,11 @@ footer {
 </div>
 
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md">Study Lifecycle</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/18">PR #18</a><span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond</div>
@@ -821,10 +887,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md">Adapter Elastic</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/16">PR #16</a><span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column.</div>
@@ -833,10 +900,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_infra_ci_smoke_makeup">Ci Smoke Makeup</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -845,10 +913,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict">Dashboard Regen Pre Commit Conflict</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -857,10 +926,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_17_infra_e2e_seed_completed_study">E2E Seed Completed Study</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-17</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -869,10 +939,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_infra_e2e_wire_seed_helper_into_studies_spec">E2E Wire Seed Helper Into Studies Spec</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-19</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -881,10 +952,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_09_infra_foundation/feature_spec.md">Foundation</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a><span>merged 2026-05-09</span>
   </div>
   <div class="one-liner">A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in &lt;60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag</div>
@@ -893,10 +965,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_infra_frontend_stack_refresh">Frontend Stack Refresh</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -905,10 +978,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_infra_make_targets_split_backend_only">Make Targets Split Backend Only</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -917,10 +991,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_infra_nvmrc">Nvmrc</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -929,10 +1004,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md">Optuna Eval</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/23">PR #23</a><span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
@@ -941,10 +1017,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_infra_per_trial_timeout">Per Trial Timeout</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -953,10 +1030,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_infra_structlog_test_helpers">Structlog Test Helpers</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -965,10 +1043,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_infra_uv_sync_drops_precommit">Uv Sync Drops Precommit</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+
     <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -977,10 +1056,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_chore_chat_last_message_preview">Chat Last Message Preview</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -989,10 +1069,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap">Ci Gitignore Paths Ignore Gap</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1001,10 +1082,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step">Ci Gitleaks Workflow Step</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1013,10 +1095,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_ci_prettier_check">Ci Prettier Check</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-19</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1025,10 +1108,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_cluster_delete_ui">Cluster Delete Ui</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1037,10 +1121,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_chore_create_study_modal_e2e_stability">Create Study Modal E2E Stability</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1049,10 +1134,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_chore_create_study_wizard_polish/feature_spec.md">Create Study Wizard Polish</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/157">PR #157</a><span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Step 4 auto-fills from the template&#x27;s `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en</div>
@@ -1061,10 +1147,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack">Data Table Columnvisibility Tanstack</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-19</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1073,10 +1160,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_detail_page_shell_primitive">Detail Page Shell Primitive</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-19</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1085,10 +1173,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_chore_digest_worker_narrow_except">Digest Worker Narrow Except</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1097,10 +1186,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern">Env Guard Extend Deny Pattern</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1109,10 +1199,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_extract_shadcn_select_test_mock">Extract Shadcn Select Test Mock</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-19</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1121,10 +1212,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_form_dropdown_guide_screenshot_refresh">Form Dropdown Guide Screenshot Refresh</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-19</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1133,10 +1225,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md">Form Dropdown Primitive</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/126">PR #126</a><span>merged 2026-05-16</span>
   </div>
   <div class="one-liner">Ready for Execution</div>
@@ -1145,10 +1238,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_chore_guide_01_screenshot_refresh_target_filter">Guide 01 Screenshot Refresh Target Filter</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1157,10 +1251,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_chore_guide_06_screenshot_refresh_target_picker">Guide 06 Screenshot Refresh Target Picker</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1169,10 +1264,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement">Infra Foundation Github Token File Retirement</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1181,10 +1277,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_openapi_contract_validation">Openapi Contract Validation</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1193,10 +1290,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_chore_precommit_node_path_resolution">Precommit Node Path Resolution</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1205,10 +1303,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test">Proposals List Wire Param E2E Test</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1217,10 +1316,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_proposals_page_usememo_deps">Proposals Page Usememo Deps</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1229,10 +1329,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_proposals_source_filter_server_side">Proposals Source Filter Server Side</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1241,10 +1342,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_spec_trial_created_at_drift">Spec Trial Created At Drift</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1253,10 +1355,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_starlette_422_deprecation">Starlette 422 Deprecation</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1265,10 +1368,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_test_both_engines">Test Both Engines</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1277,10 +1381,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_trial_summary_single_query">Trial Summary Single Query</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1289,10 +1394,11 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore">
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md">Tutorial Polish</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
+
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/64">PR #64</a><span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
@@ -1301,10 +1407,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_bug_capability_check_test_isolation">Capability Check Test Isolation</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1313,10 +1420,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_17_bug_cursor_decode_value_validation">Cursor Decode Value Validation</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-17</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1325,10 +1433,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_digest_param_importance_seam">Digest Param Importance Seam</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1337,10 +1446,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_dockerfile_missing_prompts">Dockerfile Missing Prompts</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1349,10 +1459,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_bug_e2e_target_dropdown_flake">E2E Target Dropdown Flake</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1361,10 +1472,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_env_file_corrupted_during_session">Env File Corrupted During Session</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1373,10 +1485,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error">Get Schema Unhandled Connect Error</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1385,10 +1498,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter">Judgment Lists Listing Ignores Query Set Filter</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1397,10 +1511,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_judgment_template_default_params_contract">Judgment Template Default Params Contract</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1409,10 +1524,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision">Query Inline Crud Since Filter Uuidv7 Ms Collision</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1421,10 +1537,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_test_smoke_requires_env_vars">Test Smoke Requires Env Vars</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>
@@ -1433,10 +1550,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_bug_worker_optuna_init_race">Worker Optuna Init Race</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">Complete</div>

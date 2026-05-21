@@ -2,8 +2,17 @@
 
 **Date:** <YYYY-MM-DD>
 **Status:** Idea — <origin context, e.g., "deferred from Phase 1 implementation" or "identified during Wave X planning">
+**Priority:** <P0 | P1 | P2 | Backlog — see priority guidance below>
 **Origin:** <Pointer to source — e.g., "Deferred Phase 2 work from `feature_spec.md` (lines N-M)" or "User request during sprint planning">
 **Depends on:** <What must be merged/deployed first, or "None">
+
+> **Priority guidance:**
+> - **P0** — do next. Actively unblocking a felt incident, paying daily cost, or otherwise the most-leveraged thing to ship right now.
+> - **P1** — high-value scoped work, ready to execute when P0 is clear. Most "next batch" items live here.
+> - **P2** — important enough to file, not blocking. Default when unsure. Speculative product surface or longer-lived debt.
+> - **Backlog** — captured for record but not actively planned. May graduate to P2+ when context changes.
+>
+> Folders ending `_mvp2` / `_mvp3` are auto-classified to that release; their `Priority` value applies within that release's dashboard. Defaults to **P2** when omitted.
 
 ## Problem
 

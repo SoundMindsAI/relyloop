@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — defense-in-depth tier behind the create-time fail-fast guards
+**Priority:** P1 — third tier of fail-fast (mid-flight). Mirrors the existing 5-consecutive-failures lifecycle guard; ~50 LOC. Catches everything the two create-time guards miss.
 **Origin:** Same operator session as [`feat_study_target_judgment_mismatch_guard`](../feat_study_target_judgment_mismatch_guard/idea.md). Even with the two create-time guards (`target` mismatch + judgment-overlap preflight), there's a residual class of "study cannot produce signal" pathologies the orchestrator could catch mid-flight — for the same per-trial cost as the existing "5 consecutive failures → fail study" guard.
 **Depends on:** None (composes with `feat_study_lifecycle`'s existing terminal-state guard).
 

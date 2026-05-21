@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-19
 **Status:** Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19.
+**Priority:** P2 — UX nicety. Unblocks "tune any parameter" without forcing operators to write Jinja from scratch, but the current single-template tutorial works; not a felt blocker.
 **Origin:** Parameter-tuning UX review (conversation 2026-05-19). The MVP1 sample set ships exactly one template — [`samples/templates/product_search.j2`](../../../../samples/templates/product_search.j2) — built for the tutorial's narrow demonstration (`tie_breaker` + `fuzziness` only, intentionally tiny to stay under the 10⁶ cardinality cap). Adding a parameter that isn't already on a template means writing a Jinja template from scratch. Without a curated library that covers the common shapes (basic lexical, function-score, hybrid lexical+vector, knn-only, knn-hybrid), the "tune any parameter you need" pitch is technically true but practically blocked behind a research project per new tuning surface.
 **Depends on:** None for the templates themselves (the `query_templates` resource is shipped). Optional pairing with `chore_create_study_wizard_polish` for the glossary deep-links into the cheatsheet doc.
 

@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21 (revised after empirical measurement)
 **Status:** Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB.
+**Priority:** P2 — sensible-defaults tweak. No felt cost today (operators pick their own values); landing this saves a few minutes per study setup. Worth the next quiet-friction sweep.
 **Origin:** Standalone audit at `~/.claude/plans/compressed-sparking-hamming.md`. Verified live via grep of [`backend/app/api/v1/schemas.py:550-580`](../../../../backend/app/api/v1/schemas.py) + [`ui/src/components/studies/create-study-modal.tsx:98-100`](../../../../ui/src/components/studies/create-study-modal.tsx); recommendation calibrated against `SELECT percentile_cont` on `trials.duration_ms` from the seeded dev DB (data section below).
 **Depends on:** None. Pure decision-support change at the create-study surfaces; no schema migration, no service-layer behavior change.
 

@@ -1,6 +1,7 @@
 # bug_chat_long_conversation_truncation_mvp2
 
 **Status:** Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap).
+**Priority:** Backlog — explicitly deferred to MVP2 by the 2026-05-13 scope-lock decision. Re-evaluate when MVP2 work begins.
 
 **Type:** bug (latent — pre-MVP2)
 **Date:** 2026-05-12

@@ -234,6 +234,19 @@ section > h2 {
 .badge.chore { background: #f1f5f9; color: #475569; }
 .badge.bug   { background: #fee2e2; color: #991b1b; }
 .badge.epic  { background: #e0f2fe; color: #075985; }
+/* Priority chip — color-coded so P0 jumps out on visual scan. */
+.badge.priority[data-priority="P0"] {
+  background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+}
+.badge.priority[data-priority="P1"] {
+  background: #fed7aa; color: #9a3412; border: 1px solid #fdba74;
+}
+.badge.priority[data-priority="P2"] {
+  background: #e0f2fe; color: #075985; border: 1px solid #bae6fd;
+}
+.badge.priority[data-priority="Backlog"] {
+  background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;
+}
 
 .card .pr {
   display: inline-block;
