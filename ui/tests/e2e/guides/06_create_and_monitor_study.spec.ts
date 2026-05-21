@@ -7,25 +7,31 @@
  * modal is intentionally captured at one screen — it's a wizard with too
  * many micro-steps to walk through slide-by-slide. The detail page is
  * where the operator spends actual time.
+ *
+ * Uses the **acme-products-prod** scenario from
+ * `scripts/seed_meaningful_demos.py` so the screenshots look like a real
+ * production e-commerce tuning workflow rather than `e2e-*` dev-test
+ * artifacts. Mirrors the guide-01 precedent (PR #177). The spec is
+ * self-contained — it does NOT depend on `make seed-demo` having run.
+ *
+ * Usage:
+ *   cd ui
+ *   pnpm playwright test -c playwright.demo.config.ts \
+ *     tests/e2e/guides/06_create_and_monitor_study.spec.ts
+ *
+ * Prerequisite: `make up` stack running (UI at :3000, API at :8000).
  */
 import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
-import { seedFullChain, seedStudy } from '../helpers/seed';
+import { seedAcmeProductsChain } from '../helpers/seed';
 
 const SCREENSHOTS = path.resolve(__dirname, '../../../public/guides/06_create_and_monitor_study');
 
 test.describe('Walkthrough: Create and monitor a study', () => {
   test('captures the studies list + create modal + monitoring view', async ({ page }) => {
-    const chain = await seedFullChain(3);
-    const study = await seedStudy({
-      clusterId: chain.clusterId,
-      querySetId: chain.querySetId,
-      templateId: chain.templateId,
-      judgmentListId: chain.judgmentListId,
-      maxTrials: 2,
-    });
+    const chain = await seedAcmeProductsChain();
 
     // 01: Studies list.
     await page.goto('/studies');
@@ -44,7 +50,11 @@ test.describe('Walkthrough: Create and monitor a study', () => {
       fullPage: false,
     });
 
-    // 03: Open the Create study modal (its first step).
+    // 03: Open the Create study modal (its first step). The target field
+    // is now a disabled <Select> with "Pick a cluster first" placeholder
+    // until a cluster is chosen, plus an "Enter manually" toggle below
+    // (feat_create_study_target_autocomplete, PR #179). Capture the empty
+    // Step-1 state so the new picker UI is visible.
     await page.getByTestId('filter-chip-status-all').click();
     await page.waitForTimeout(200);
     await page.getByTestId('open-create-study').click();
@@ -60,8 +70,10 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await page.waitForTimeout(300);
 
     // 04: Monitor the seeded study.
-    await page.goto(`/studies/${study.id}`);
-    await expect(page.getByTestId('study-name')).toContainText(study.name, { timeout: 10_000 });
+    await page.goto(`/studies/${chain.studyId}`);
+    await expect(page.getByTestId('study-name')).toContainText(chain.studyName, {
+      timeout: 10_000,
+    });
     await page.waitForTimeout(700);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '04-study-detail.png'),
