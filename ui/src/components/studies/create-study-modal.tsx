@@ -254,8 +254,24 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
     const declaredKeys = Object.keys(declared);
     if (declaredKeys.length === 0) return;
 
-    const auto = buildStarterSearchSpace(declared);
-    const autoJson = JSON.stringify(auto, null, 2);
+    // feat_agent_propose_search_space Story 1.2 — buildStarterSearchSpace now
+    // returns { space, capAwareFallbackParamNames } and may throw on empty
+    // input or cap-aware overflow. Surface throws via the existing modal
+    // error-toast path; capAwareFallbackParamNames is intentionally ignored
+    // here (no new wizard UI — spec keeps v1 backend-only). The wrapper's
+    // own `console.warn` still fires when the safe fallback path runs.
+    let space;
+    try {
+      ({ space } = buildStarterSearchSpace(declared));
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? `Could not auto-fill search space: ${err.message}`
+          : 'Could not auto-fill search space.',
+      );
+      return;
+    }
+    const autoJson = JSON.stringify(space, null, 2);
     const current = form.getValues('search_space_text');
     const trimmed = (current ?? '').trim();
     const isEmpty = trimmed === '' || trimmed === '{}';

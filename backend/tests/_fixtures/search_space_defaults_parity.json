@@ -1,0 +1,182 @@
+{
+  "_description": "Shared TS<->Python parity fixture for build_starter_search_space (feat_agent_propose_search_space Story 1.3). Both backend/tests/unit/domain/test_search_space_defaults_parity.py and ui/src/__tests__/lib/search-space-defaults.parity.test.ts iterate this file; any drift between the two implementations fails one of the two tests. Rows with `expected_search_space` assert byte-identical output; rows with `expected_error` assert symmetric throws (Python InvalidSearchSpaceError, TS Error). The `cap_aware_fallback_param_names` field is asserted on every happy row (empty list when fallback didn't fire).",
+  "fixtures": [
+    {
+      "name": "heuristic_field_boost_prefix",
+      "declared_params": { "field_boost_title": "float" },
+      "expected_search_space": {
+        "params": {
+          "field_boost_title": { "type": "float", "low": 0.5, "high": 10.0, "log": true }
+        }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_boost_underscore_prefix",
+      "declared_params": { "boost_title": "float" },
+      "expected_search_space": {
+        "params": { "boost_title": { "type": "float", "low": 0.5, "high": 10.0, "log": true } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_boost_standalone",
+      "declared_params": { "boost": "float" },
+      "expected_search_space": {
+        "params": { "boost": { "type": "float", "low": 0.5, "high": 10.0, "log": true } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_field_boost_suffix",
+      "declared_params": { "title_boost": "float" },
+      "expected_search_space": {
+        "params": { "title_boost": { "type": "float", "low": 0.5, "high": 10.0, "log": true } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_tie_breaker",
+      "declared_params": { "tie_breaker": "float" },
+      "expected_search_space": {
+        "params": { "tie_breaker": { "type": "float", "low": 0.0, "high": 1.0 } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_weight_suffix",
+      "declared_params": { "phrase_weight": "float" },
+      "expected_search_space": {
+        "params": { "phrase_weight": { "type": "float", "low": 0.0, "high": 1.0 } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_min_should_match",
+      "declared_params": { "min_should_match": "int" },
+      "expected_search_space": {
+        "params": { "min_should_match": { "type": "int", "low": 0, "high": 5 } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_size_suffix",
+      "declared_params": { "window_size": "int" },
+      "expected_search_space": {
+        "params": { "window_size": { "type": "int", "low": 0, "high": 5 } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "heuristic_fuzziness",
+      "declared_params": { "fuzziness": "string" },
+      "expected_search_space": {
+        "params": {
+          "fuzziness": { "type": "categorical", "choices": ["AUTO", "0", "1", "2"] }
+        }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "simple_form_int_fallback",
+      "declared_params": { "unknown_int": "int" },
+      "expected_search_space": {
+        "params": { "unknown_int": { "type": "int", "low": 0, "high": 5 } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "simple_form_float_fallback",
+      "declared_params": { "unknown_float": "float" },
+      "expected_search_space": {
+        "params": { "unknown_float": { "type": "float", "low": 0.0, "high": 1.0 } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "simple_form_bool",
+      "declared_params": { "flag": "bool" },
+      "expected_search_space": {
+        "params": { "flag": { "type": "categorical", "choices": [true, false] } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "simple_form_string",
+      "declared_params": { "text_field": "string" },
+      "expected_search_space": {
+        "params": { "text_field": { "type": "categorical", "choices": ["__placeholder__"] } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "default_fallback_unknown_type",
+      "declared_params": { "exotic": "matrix" },
+      "expected_search_space": {
+        "params": { "exotic": { "type": "float", "low": 0.0, "high": 1.0 } }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "multi_param_no_fallback",
+      "declared_params": {
+        "boost_title": "float",
+        "min_should_match": "int",
+        "fuzziness": "string"
+      },
+      "expected_search_space": {
+        "params": {
+          "boost_title": { "type": "float", "low": 0.5, "high": 10.0, "log": true },
+          "min_should_match": { "type": "int", "low": 0, "high": 5 },
+          "fuzziness": { "type": "categorical", "choices": ["AUTO", "0", "1", "2"] }
+        }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "cap_aware_fires_safe_four_fall_through_floats",
+      "_math": "4 fall-through floats -> 100^4 = 10^8 > 10^6. Convert 2 in lex order -> 6^2 * 100^2 = 360_000 <= 10^6. Lex order: alpha, beta, delta, gamma.",
+      "declared_params": {
+        "alpha": "float",
+        "beta": "float",
+        "gamma": "float",
+        "delta": "float"
+      },
+      "expected_search_space": {
+        "params": {
+          "alpha": { "type": "int", "low": 0, "high": 5 },
+          "beta": { "type": "int", "low": 0, "high": 5 },
+          "gamma": { "type": "float", "low": 0.0, "high": 1.0 },
+          "delta": { "type": "float", "low": 0.0, "high": 1.0 }
+        }
+      },
+      "expected_cap_aware_fallback_param_names": ["alpha", "beta"]
+    },
+    {
+      "name": "cap_aware_overflow_throws_eight_fall_through_floats",
+      "_math": "8 fall-through floats -> after all 8 converted to int[0,5], cardinality is 6^8 = 1_679_616 > 10^6. Helper must throw.",
+      "declared_params": {
+        "a": "float",
+        "b": "float",
+        "c": "float",
+        "d": "float",
+        "e": "float",
+        "f": "float",
+        "g": "float",
+        "h": "float"
+      },
+      "expected_error": {
+        "kind": "invalid_search_space",
+        "message_substring": "cap-aware fallback exhausted"
+      }
+    },
+    {
+      "name": "empty_declared_params_throws",
+      "declared_params": {},
+      "expected_error": {
+        "kind": "invalid_search_space",
+        "message_substring": "empty declared_params"
+      }
+    }
+  ]
+}

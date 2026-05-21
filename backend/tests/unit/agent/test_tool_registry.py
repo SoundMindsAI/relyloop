@@ -20,7 +20,7 @@ from backend.app.agent.tools import (
     TOOLS,
 )
 
-EXPECTED_TOOL_COUNT_MVP1 = 19
+EXPECTED_TOOL_COUNT_MVP1 = 20
 
 
 # Canonical MVP1 inventory — kept verbatim with `docs/01_architecture/agent-tools.md`
@@ -43,6 +43,7 @@ CANONICAL_MVP1_TOOL_NAMES: frozenset[str] = frozenset(
         # Quick experiments
         "run_query",
         # Studies
+        "propose_search_space",
         "create_study",
         "get_study",
         "cancel_study",
@@ -57,14 +58,14 @@ CANONICAL_MVP1_TOOL_NAMES: frozenset[str] = frozenset(
 
 
 def test_tool_registry_count_at_mvp1_complete() -> None:
-    """Story 2.4 brings the registry to the full 19-tool MVP1 surface."""
+    """Story 2.4 + feat_agent_propose_search_space brings the MVP1 surface to 20 tools."""
     assert len(TOOLS) == EXPECTED_TOOL_COUNT_MVP1
     assert len(TOOL_REGISTRY) == EXPECTED_TOOL_COUNT_MVP1
     assert len(TOOL_ARG_MODELS) == EXPECTED_TOOL_COUNT_MVP1
 
 
 def test_tool_inventory_matches_agent_tools_md() -> None:
-    """The 19 tool names must match the canonical inventory in agent-tools.md.
+    """The 20 tool names must match the canonical inventory in agent-tools.md.
 
     Drift here (typo, dropped tool, renamed tool) is caught at unit-test time
     so the orchestrator's confirmation guard list (Story 2.5) and the system
