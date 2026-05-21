@@ -14,16 +14,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **51 / 51** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **52 / 52** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Path to MVP1 | **5** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 4 (idea-stage debt) |
-| Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
+| Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (62)
+### Done (63)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -54,6 +54,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
 | [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | Complete | — | Complete |
 | [infra_structlog_test_helpers](implemented_features/2026_05_14_infra_structlog_test_helpers/idea.md) | Infra | Complete | — | Complete |
+| [infra_uv_sync_drops_precommit](implemented_features/2026_05_21_infra_uv_sync_drops_precommit/idea.md) | Infra | Complete | — | Complete |
 | [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | Complete | — | Complete |
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Complete | — | Complete |
@@ -102,14 +103,13 @@ _None._
 
 _None._
 
-### Idea (9)
+### Idea (8)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/idea.md) | Feature | The agent surface is the marketing front door — "describe your relevance problem in chat, get a tuned config." Today the chat agent's `create_study` tool takes a `search_space` argument as if it were  | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [feat_pr_metric_confidence](../02_product/planned_features/feat_pr_metric_confidence/idea.md) | Feature | When the operator's approver opens a study-backed PR in the central search-config repo, the only confidence signal in the PR body is two scalar point estimates. From [`_render_pr_body_study_backed`](. | — | Idea — surfaced during a 2026-05-20 conversation reviewing two outside articles for relevance to RelyLoop ([Doug Turnbull, "Autoresearching a better MSMarco BM25", 2026-05-17](https://softwaredoug.com/blog/2026/05/17/autoresearching-a-better-msmarco-bm25) and [Li/Wang/Wang, "Choosing the Better Bandit Algorithm under Data Sharing", arXiv:2507.11891v2](https://arxiv.org/pdf/2507.11891)). The articles themselves are not directly material to RelyLoop's roadmap; what surfaced as material — after several rounds of honest filtering — is the underlying question they prompted: **how confident should the approver be in the metric reported on the PR?** |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [infra_uv_sync_drops_precommit](../02_product/planned_features/infra_uv_sync_drops_precommit/idea.md) | Infra | Idea — captured during feat_cluster_target_filter impl session; root cause re-grounded after preflight | — | Idea — captured during feat_cluster_target_filter impl session; root cause re-grounded after preflight |
 | [chore_guide_01_screenshot_refresh_target_filter](../02_product/planned_features/chore_guide_01_screenshot_refresh_target_filter/idea.md) | Chore | The guide is still operationally correct — the new field is optional, defaults to null, and doesn't change the happy-path flow described in the guide. But: | — | Idea — captured during `feat_cluster_target_filter` impl |
 | [chore_guide_06_screenshot_refresh_target_picker](../02_product/planned_features/chore_guide_06_screenshot_refresh_target_picker/idea.md) | Chore | The walkthrough guide 06 ("Create and monitor a study") shows the operator opening the create-study modal as part of the wizard tour. The single Step-1 screenshot now disagrees with shipped UI — opera | — | Idea — surfaced during `feat_create_study_target_autocomplete` post-impl guide-impact assessment. |
 | [chore_precommit_node_path_resolution](../02_product/planned_features/chore_precommit_node_path_resolution/idea.md) | Chore | Every UI-touching commit fails at the eslint-ui pre-commit hook unless the developer remembers to inject the nvm Node into PATH manually. The error message is clear, but the friction is constant. | — | Idea — captured during feat_cluster_target_filter impl session |
@@ -229,6 +229,8 @@ graph LR
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete["create study target autocomplete"]
   class feat_create_study_target_autocomplete done;
+  infra_uv_sync_drops_precommit["uv sync drops precommit"]
+  class infra_uv_sync_drops_precommit done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -261,6 +263,7 @@ graph LR
   infra_optuna_eval --> chore_tutorial_polish
   infra_per_trial_timeout --> chore_tutorial_polish
   infra_structlog_test_helpers --> chore_tutorial_polish
+  infra_uv_sync_drops_precommit --> chore_tutorial_polish
   feat_cluster_target_filter --> feat_chat_agent
   feat_contextual_help --> feat_chat_agent
   feat_create_study_search_space_builder --> feat_chat_agent
@@ -287,6 +290,7 @@ graph LR
   infra_optuna_eval --> feat_chat_agent
   infra_per_trial_timeout --> feat_chat_agent
   infra_structlog_test_helpers --> feat_chat_agent
+  infra_uv_sync_drops_precommit --> feat_chat_agent
   infra_foundation --> feat_github_pr_worker
   infra_adapter_elastic --> feat_github_pr_worker
   feat_study_lifecycle --> feat_github_pr_worker
