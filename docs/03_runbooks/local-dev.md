@@ -7,7 +7,7 @@
 | Tool | Min version | Why |
 |---|---|---|
 | Docker | 24+ with Compose v2 | `services.depends_on: condition: service_healthy` requires Compose v2 |
-| Python | 3.13+ | `uv` install fails on older versions; `pyproject.toml` `requires-python = ">=3.13"` (bumped from 3.12 on 2026-05-12) |
+| Python | **3.13** (soft-pinned via `.python-version`) | `pyproject.toml` `requires-python = ">=3.13"` is the floor; `.python-version` at repo root soft-pins **3.13** specifically so the host's `.venv` matches the dev-deps container's `ghcr.io/astral-sh/uv:python3.13-bookworm` image. uv auto-fetches Python 3.13 if your system doesn't have it. See [Local Python version](#local-python-version) below for why a newer Python on the host causes the in-container `uv sync` to silently rebuild `.venv` with broken symlinks (`infra_uv_sync_drops_precommit`). |
 | Node | 20.18+ | Next.js 16 minimum (bumped from 18+ on 2026-05-12). Run `nvm use` from the repo root before `pnpm install` / `pnpm dev` — the `.nvmrc` selects Node 22, and `ui/.npmrc`'s `engine-strict=true` makes `pnpm install` hard-fail on the wrong Node. |
 | pnpm | 9+ | Frontend package manager |
 | 16 GB RAM | — | ES + OpenSearch each consume ~1 GB heap (`-Xms512m -Xmx512m`) |
@@ -18,6 +18,32 @@ If you don't have `uv` and `pnpm`:
 curl -LsSf https://astral.sh/uv/install.sh | sh   # uv
 brew install pnpm                                  # pnpm (macOS)
 ```
+
+### Local Python version
+
+The repo's `.python-version` file pins local-dev Python to **3.13** to match
+the dev-deps container image (`ghcr.io/astral-sh/uv:python3.13-bookworm`).
+`uv sync` reads `.python-version`, fetches Python 3.13 if your system doesn't
+have it, and creates `.venv` against it.
+
+**Why the pin matters:** if your host runs a newer Python (say 3.14) and you
+run the in-container integration-test pattern (per
+[`bug_capability_check_test_isolation/idea.md`](../00_overview/implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md)),
+the container's `uv sync` rebuilds `.venv` against its own 3.13 with
+container-only symlinks. When the container exits, your host's `git commit`
+hits `No module named pre_commit` (and every other module in `.venv` is
+similarly broken). Pinning host + container to the same Python eliminates
+the rebuild.
+
+**Migrating from an older `.venv`** (run once if you previously had `.venv`
+built against a different Python):
+
+```bash
+rm -rf .venv
+uv sync                # uv reads .python-version, fetches 3.13, rebuilds
+```
+
+Captured in [`infra_uv_sync_drops_precommit`](../02_product/planned_features/infra_uv_sync_drops_precommit/idea.md).
 
 ## First-run quickstart (AC-1)
 
@@ -98,7 +124,37 @@ docker compose exec postgres psql -U relyloop -d relyloop -c '\dt'   # confirm a
 
 This exercises the same code path as the CI test (`alembic upgrade head` → `alembic_version` row at `0001`) without needing host-side Postgres.
 
-If you want the round-trip test to actually run from your shell, you'd need to either expose Postgres on `127.0.0.1:5432` (changes spec — don't ship that) or run the test inside the api container after installing dev deps (out of scope for MVP1).
+If you want the round-trip test to actually run from your shell, you'd need to either expose Postgres on `127.0.0.1:5432` (changes spec — don't ship that) or run via the dev-deps container pattern below.
+
+### In-container integration tests (canonical pattern)
+
+When the host-skip rows above need to actually run (typically while debugging
+a feature that touches DB or HTTP), use this command — it gives you a
+one-shot Python 3.13 container with the project mounted and on the Compose
+network so it can reach `postgres`, `elasticsearch`, and `opensearch`:
+
+```bash
+docker run --rm --network relyloop_default \
+  -v "$(pwd):/app" -v /app/.venv -w /app \
+  -e DATABASE_URL_FILE=/app/secrets/database_url \
+  -e POSTGRES_PASSWORD_FILE=/app/secrets/postgres_password \
+  ghcr.io/astral-sh/uv:python3.13-bookworm \
+  bash -c 'uv sync --quiet && uv run pytest -m integration backend/tests/integration/'
+```
+
+**The `-v /app/.venv` flag is load-bearing** (per
+[`infra_uv_sync_drops_precommit`](../02_product/planned_features/infra_uv_sync_drops_precommit/idea.md)).
+It mounts an anonymous Docker volume at `/app/.venv` *inside the container*,
+masking the host's bind-mounted `.venv` for the duration of the run. Without
+it, the container's `uv sync` rewrites the venv's `pyvenv.cfg` + script
+shebangs (`#!/app/.venv/bin/python`) — those paths don't exist on the host,
+so the next host-side `git commit` dies with `No module named pre_commit`
+(and every other module is similarly broken until you `uv sync` again from
+the host).
+
+The trade: each container run does a fresh `uv sync` against the package
+cache (~10-20s vs the bind-mount-and-reuse pattern's ~0s). Mount
+`~/.cache/uv:/root/.cache/uv` if you want to share the wheel cache.
 
 ## Daily-use Make targets
 
