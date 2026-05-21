@@ -1,7 +1,7 @@
 # Implementation Plan — Per-cluster target filter
 
 **Date:** 2026-05-20
-**Status:** Draft
+**Status:** Complete (PR #168, merged 2026-05-20 as squash `57d3ba0`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`docs/01_architecture/adapters.md`](../../../01_architecture/adapters.md), [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md), [`CLAUDE.md`](../../../../CLAUDE.md) (Absolute Rule #4 engine-specific code, Rule #5 migration discipline).
 
