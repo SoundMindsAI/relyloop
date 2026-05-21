@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-19
 **Status:** Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19.
+**Priority:** P2 — UX nicety. Removes the "rebuild entire create-study form for every follow-up" friction. Pure frontend, no backend, but operators are working around it today.
 **Origin:** Parameter-tuning UX review (conversation 2026-05-19). The relevance-tuning loop is iterative — engineers run a study, read the digest, then run a follow-up with narrower bounds or a different objective. Today every follow-up rebuilds the entire create-study form from scratch even though 90% of the fields are identical.
 **Depends on:** `feat_studies_ui` (shipped — the create-study modal exists at [`ui/src/components/studies/create-study-modal.tsx`](../../../../ui/src/components/studies/create-study-modal.tsx)). No backend work required beyond a tiny GET helper.
 

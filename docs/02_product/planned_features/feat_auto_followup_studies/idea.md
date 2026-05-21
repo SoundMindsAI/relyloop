@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — surfaced during the 2026-05-21 Karpathy-loop audit. The highest-leverage recommendation from the audit's "across studies" section.
+**Priority:** P2 — large-scope cross-study compounding feature. High potential value but needs `feat_config_repo_baseline_tracking` as substrate first + design pass on the depth-cap + autonomous-action semantics. Multi-PR effort.
 **Origin:** Standalone audit at `~/.claude/plans/compressed-sparking-hamming.md` — recommendation #3. The audit's central finding: RelyLoop has a strong *within-study* loop but no *across-study* compounding. After a study completes, the operator must manually read the digest, decide to chain a followup, and configure it by hand. The agent doesn't observe study completion.
 **Depends on:** [`feat_config_repo_baseline_tracking`](../feat_config_repo_baseline_tracking/idea.md) (substrate — tells the followup what config is currently live). Composes well with [`chore_study_default_stop_conditions`](../chore_study_default_stop_conditions/idea.md) and [`feat_digest_executable_followups`](../feat_digest_executable_followups/idea.md).
 

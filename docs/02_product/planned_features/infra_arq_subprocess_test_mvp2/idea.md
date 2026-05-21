@@ -3,6 +3,7 @@
 **Date:** 2026-05-10
 **Preflighted:** 2026-05-14 — confirmed test functions still exist at cited paths; `_subprocess_helpers/` directory already in place from PR #20 precedent; arq still at `>=0.26` (`0.28.0` in `uv.lock`); two crons now registered in `WorkerSettings.cron_jobs` (added context note).
 **Status:** Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard.
+**Priority:** Backlog — explicitly held for MVP2 (folder name suffix). Trigger-locked per the idea body: arq pin bump, third cron, or MVP3 hardening opt-in.
 **Origin:** GPT-5.5 final-review finding #8 on PR #25 — Story 2.3 task 4 called for a subprocess fixture that spawns `arq backend.workers.all.WorkerSettings`, runs N seconds, SIGTERMs, then restarts, and asserts trials continue. PR #25 shipped the in-process equivalent because spawning a real Arq worker requires Redis + DB connectivity from the test process and stable lifecycle hooks.
 
 ## Why deferred

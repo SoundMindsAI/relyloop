@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — surfaced during the 2026-05-21 Karpathy-loop audit.
+**Priority:** P2 — substrate for `feat_auto_followup_studies`. Modest schema work (one column on `config_repos`, one webhook handler patch); valuable independently because it unblocks the comparison-against-real-baseline story.
 **Origin:** Standalone audit at `~/.claude/plans/compressed-sparking-hamming.md` — the "across studies" gap section. Verified live via grep of [`backend/app/db/models/config_repo.py`](../../../../backend/app/db/models/config_repo.py) (no `last_merged_*` field) + [`backend/app/api/webhooks/github.py:183-191`](../../../../backend/app/api/webhooks/github.py) (the merge webhook stamps `pr_merged_at` on the *proposal* but does not propagate that to the config repo).
 **Depends on:** [`feat_github_webhook`](../../../00_overview/implemented_features/2026_05_12_feat_github_webhook/) (shipped 2026-05-12) — provides the merge event that this feature consumes.
 

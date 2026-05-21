@@ -234,6 +234,19 @@ section > h2 {
 .badge.chore { background: #f1f5f9; color: #475569; }
 .badge.bug   { background: #fee2e2; color: #991b1b; }
 .badge.epic  { background: #e0f2fe; color: #075985; }
+/* Priority chip — color-coded so P0 jumps out on visual scan. */
+.badge.priority[data-priority="P0"] {
+  background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+}
+.badge.priority[data-priority="P1"] {
+  background: #fed7aa; color: #9a3412; border: 1px solid #fdba74;
+}
+.badge.priority[data-priority="P2"] {
+  background: #e0f2fe; color: #075985; border: 1px solid #bae6fd;
+}
+.badge.priority[data-priority="Backlog"] {
+  background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;
+}
 
 .card .pr {
   display: inline-block;
@@ -389,9 +402,9 @@ footer {
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
-      <div class="label">Path to MVP2</div>
-      <div class="value">1</div>
-      <div class="sub">items left = features + bugs + chores</div>
+      <div class="label">Pending work</div>
+      <div class="value">3</div>
+      <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
@@ -399,9 +412,31 @@ footer {
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
-      <div class="label">Open chores</div>
+      <div class="label">P0 — do next</div>
       <div class="value">0</div>
-      <div class="sub">idea-stage chore_* (debt)</div>
+      <div class="sub">unblocking / paying daily cost</div>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="label">P1</div>
+      <div class="value">0</div>
+      <div class="sub">high-value, ready when P0 clears</div>
+    </div>
+    <div class="kpi">
+      <div class="label">P2 (default)</div>
+      <div class="value">0</div>
+      <div class="sub">important to file, not blocking</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Backlog</div>
+      <div class="value">3</div>
+      <div class="sub">captured for record, not planned</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Legacy "Path to MVP2"</div>
+      <div class="value">1</div>
+      <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
@@ -430,10 +465,11 @@ footer {
 <div class="col idea">
   <h3>Idea <span class="count">3</span></h3>
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="Backlog">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_fts_rank_ordering_mvp2">Fts Rank Ordering</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
 
   </div>
   <div class="one-liner">`feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery(&#x27;english&#x27;, &#x27;foo&#x27;)` is true but orders results by `created_at DESC, id DESC` (the def</div>
@@ -442,10 +478,11 @@ footer {
 </div>
 
 
-<div class="card infra" data-prefix="infra">
+<div class="card infra" data-prefix="infra" data-priority="Backlog">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_arq_subprocess_test_mvp2">Arq Subprocess Test</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
 
   </div>
   <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; </div>
@@ -454,10 +491,11 @@ footer {
 </div>
 
 
-<div class="card bug" data-prefix="bug">
+<div class="card bug" data-prefix="bug" data-priority="Backlog">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_chat_long_conversation_truncation_mvp2">Chat Long Conversation Truncation</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
 
   </div>
   <div class="one-liner">[`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages…</div>
@@ -485,10 +523,11 @@ footer {
 <div class="col done">
   <h3>Done <span class="count">1</span></h3>
 
-<div class="card feat" data-prefix="feat">
+<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
+
     <span>merged 2026-05-15</span>
   </div>
   <div class="one-liner">Complete</div>

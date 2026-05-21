@@ -15,9 +15,13 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **1 / 1** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP2 | **1** items remaining (features + bugs + chores) |
+| Pending work | **3** items (every not-done feat/infra/chore/bug across all priorities) |
+| → P0 — do next | **0** unblocking / paying daily cost |
+| → P1 | **0** high-value, ready when P0 clears |
+| → P2 (default) | 0 important to file, not blocking |
+| → Backlog | 3 captured for record, not planned |
 | Open bugs | 1 |
-| Open chores | 0 (idea-stage debt) |
+| Legacy "Path to MVP2" | 1 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -43,11 +47,11 @@ _None._
 
 ### Idea (3)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_fts_rank_ordering_mvp2](../02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
-| [infra_arq_subprocess_test_mvp2](../02_product/planned_features/infra_arq_subprocess_test_mvp2/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| [bug_chat_long_conversation_truncation_mvp2](../02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
+| Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|
+| Backlog | [feat_fts_rank_ordering_mvp2](../02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
+| Backlog | [infra_arq_subprocess_test_mvp2](../02_product/planned_features/infra_arq_subprocess_test_mvp2/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
+| Backlog | [bug_chat_long_conversation_truncation_mvp2](../02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/02_product/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
 
 ## Dependency graph
 

@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review
+**Priority:** P1 — operator-facing terminology surface; cheap to ship (~200 LOC of UI render, 0 backend, no migration). Operator explicitly asked about this on 2026-05-21. Prereq for `chore_guides_faq`.
 **Origin:** Audit question from operator during the metric-key-drift fix conversation — "do we need a Glossary in the Guides section?" The audit confirmed [`ui/src/lib/glossary.ts`](../../../../ui/src/lib/glossary.ts) has 103+ entries today and grows with every feature (6 more land with `feat_pr_metric_confidence` Story 2.2). The keys are only discoverable via hover on inline `<InfoTooltip>` / `<HelpPopover>` triggers — there's no canonical reference surface.
 **Depends on:** None (glossary data structure already exists; this is purely a render layer + route).
 

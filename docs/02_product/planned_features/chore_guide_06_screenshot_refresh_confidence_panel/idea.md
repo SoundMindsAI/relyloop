@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — captured during `feat_pr_metric_confidence` Epic 2 guide-impact assessment
+**Priority:** P1 — guide-06 screenshots are stale relative to the shipped ConfidencePanel. Small bounded refresh (~15-30 min). Bundle with the next guide-screenshot sweep.
 **Origin:** Step 3 (Guide impact assessment) of /impl-execute for `feat_pr_metric_confidence` Epic 2. The new `<ConfidencePanel>` renders on `/studies/[id]` between `<StudyHeader>` and the trials table. Guide 06 (`06_create_and_monitor_study`) captures study-detail screenshots at [`ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`](../../../../ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts) lines 73 / 78 / 88 / 96 against a study seeded via `seedStudyCompletedWithDigest()` (no per_query_metrics on the seeded trials).
 **Depends on:** None — purely a screenshot regeneration.
 

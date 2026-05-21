@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — surfaced post-merge of `feat_pr_metric_confidence` as the defense-in-depth tier behind the target-mismatch guard
+**Priority:** P1 — second tier of fail-fast, hardens residual cases the target-mismatch guard can't catch (re-indexed corpus, stale judgments). Ready when P0 clears.
 **Origin:** Same operator session as [`feat_study_target_judgment_mismatch_guard`](../feat_study_target_judgment_mismatch_guard/idea.md). The deterministic target-name check catches the most common pathology (judgment list authored against a different index), but it doesn't catch the case where the judgment list's nominal `target` matches the study's `target` yet the doc IDs in the judgments are entirely disjoint from what the index can return. That happens after re-indexing with new doc IDs, after a `_reindex` with a transform, or whenever the operator regenerates an index without bumping its name.
 **Depends on:** [`feat_study_target_judgment_mismatch_guard`](../feat_study_target_judgment_mismatch_guard/idea.md) (this is the layer behind it).
 

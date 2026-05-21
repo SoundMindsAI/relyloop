@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — surfaced post-merge of `feat_pr_metric_confidence`
+**Priority:** P0 — actively unblocking the "study cannot produce signal" failure class. ~80 LOC deterministic create-time reject; closes the literal study2 incident.
 **Origin:** Operator created study `019e4be6-207e-7c32-9889-f6c3003f57c2` ("study2") which ran 1000 trials in 4.5 minutes with `best_metric=0.0`, `n_queries=2`, all confidence sub-fields populated correctly per FR-7 — but every trial scored exactly 0.0. Root cause: `study.target = "docs-articles"` but `judgment_list.target = "e2e-target"` (the judgment list was an E2E-test leftover generated against a different ES index). The judgment doc IDs had zero overlap with what `docs-articles` could return, so pytrec_eval scored 0 on every (params, query) pair — by construction.
 **Depends on:** None — the field comparison runs purely against data already in memory at `POST /studies`.
 

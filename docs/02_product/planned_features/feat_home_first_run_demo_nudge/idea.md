@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — product-design-shaped follow-up paired with the auto-seed-on-make-up chore
+**Priority:** P1 — polish layer on the auto-seed shipped in PR #182; needs a small design pass (banner copy, badge styling, StartHereChecklist interaction) before it lands.
 **Origin:** Same operator session as the four study-no-signal fail-fast follow-ups. Auto-seeding meaningful demo data into a fresh `make up` (now implemented on PR #182) handles the bootstrap path — but it doesn't address the operator who comes back to a longer-lived dev stack, finds an empty `/studies` listing, and isn't sure whether to (a) run their tutorial through `make seed-demo FORCE=1`, (b) author their own cluster + judgments, or (c) pick from the meaningful demo clusters that already exist.
 **Depends on:** The auto-seed implementation shipped in PR #182 (`scripts/install.sh` + `scripts/seed_meaningful_demos.py --if-empty`). No corresponding planned-feature folder exists because the auto-seed was implemented in-line on PR #182 rather than scaffolded as a separate spec. This idea is the *next* layer of first-run UX. Coordinates with `feat_contextual_help` Phase 3's existing `StartHereChecklist` component.
 

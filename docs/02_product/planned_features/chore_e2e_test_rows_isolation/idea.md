@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-21
 **Status:** Idea — root cause behind the "study2 ran 1000 zero-metric trials" incident
+**Priority:** P0 — upstream of the target-mismatch guard. Stops `e2e-*` rows from polluting operator UI in the first place. Recurring symptom across multiple recent PRs.
 **Origin:** While verifying `feat_pr_metric_confidence` Epic 2 end-to-end, the operator created a study via the UI and discovered the create-study modal offered `e2e-jl-54b2bb64` as a selectable judgment list. The operator chose it; the study burned 4.5 minutes on 1000 zero-metric trials because that judgment list was authored against a different ES index (`e2e-target`, not `docs-articles`). The downstream fix is at the validator layer ([`feat_study_target_judgment_mismatch_guard`](../feat_study_target_judgment_mismatch_guard/idea.md)) — but the *upstream* question is why the E2E-test artifact was visible in the operator's UI in the first place.
 **Depends on:** None.
 
