@@ -22,4 +22,11 @@
 - Phases covered: single phase
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-21
+- PR: #184 (merged squash `ce3fcf4`)
+- CI: green on final commit `a358a71` (5/5 jobs incl. 70-test smoke)
+- Stories completed: 3 / 3 (1.1 backend listing + 1.2 backend validators + 2.1 frontend filter)
+- Cross-model reviews: spec 3 cycles (17 findings, all accepted, 1 rejected); plan 3 cycles (16 findings, all accepted, 1 rejected); Gemini Code Assist (2 findings — 1 accepted in `035af0a`, 1 rejected with precedent counter-evidence); final GPT-5.5 (10 findings — 2 accepted in `a358a71`, 8 rejected with cited counter-evidence including 5 truncation false positives)
+- Drive-by fix bundled in PR: E2E seed helpers (`seedJudgmentList`, `seedFullChain`, `seedStudy`) gain optional `target` overrides; 3 specs updated to align target values so the new FR-1 validator doesn't reject chained POSTs
+- Tests at merge: backend unit 1040, integration +7 cases, contract +2 cases; UI vitest 567 → 572 (+5)
