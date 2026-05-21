@@ -1,7 +1,7 @@
 # Implementation Plan — feat_study_target_judgment_mismatch_guard
 
 **Date:** 2026-05-21
-**Status:** Draft
+**Status:** Complete (PR #184, squash-merged `ce3fcf4` on 2026-05-21)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [api-conventions.md](../../../01_architecture/api-conventions.md), [CLAUDE.md](../../../../CLAUDE.md)
 

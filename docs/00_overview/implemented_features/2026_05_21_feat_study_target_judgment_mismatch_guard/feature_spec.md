@@ -1,7 +1,7 @@
 # Feature Specification — feat_study_target_judgment_mismatch_guard
 
 **Date:** 2026-05-21
-**Status:** Draft
+**Status:** Implemented (PR #184, squash-merged `ce3fcf4` on 2026-05-21)
 **Owners:** RelyLoop maintainers
 **Related docs:**
 - [idea.md](idea.md)
