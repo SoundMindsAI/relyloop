@@ -18,8 +18,16 @@
   - Phase 2 (deferred — tracked in [`phase2_idea.md`](phase2_idea.md)): orchestrator baseline-trial work + `studies.baseline_trial_id` column; switches comparison to true production baseline when available
 
 ## Plan
-- Status: Not started
-- Next: `/impl-plan-gen docs/02_product/planned_features/feat_pr_metric_confidence/feature_spec.md`
+- Status: Approved (pending user review of the SPEC→PLAN advance)
+- Date: 2026-05-21
+- File: [`implementation_plan.md`](implementation_plan.md)
+- Cross-model review: GPT-5.5 converged at cycle 3 (17 findings total across 3 cycles — 2 High + 8 Medium + 7 Low — all accepted and patched)
+  - Cycle 1: 11 findings (2 High sequencing/architecture, 6 Medium, 3 Low)
+  - Cycle 2: 3 findings (2 High — import cycle + CI gating bug introduced by cycle-1 patches; 1 Medium drift)
+  - Cycle 3: 3 findings, all Low — convergence (no High, no Medium = stop)
+- Stories: 9 total across 2 epics (Epic 1: 6 backend stories — migration → worker write → domain helper → API enrichment → PR body → digest prompt; Epic 2: 3 frontend stories — types → ConfidencePanel → E2E)
+- Phases covered: Phase 1 only (Phase 2 baseline-trial work deferred per [`phase2_idea.md`](phase2_idea.md))
+- Next: User approval, then `/impl-execute` on this branch.
 
 ## Implementation
 - Status: Not started

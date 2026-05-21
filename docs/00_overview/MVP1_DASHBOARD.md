@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-**[feat_pr_metric_confidence](../02_product/planned_features/feat_pr_metric_confidence/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_pr_metric_confidence](../02_product/planned_features/feat_pr_metric_confidence/feature_spec.md)** — Feature, currently in **Plan**
 
 > Approvers reading a study-backed PR see a "## Confidence" section directly between the existing "## Metric delta" and "## Config diff" sections.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_pr_metric_confidence --auto
+/impl-execute docs/02_product/planned_features/feat_pr_metric_confidence/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -106,15 +106,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_pr_metric_confidence](../02_product/planned_features/feat_pr_metric_confidence/feature_spec.md) | Feature | Approvers reading a study-backed PR see a "## Confidence" section directly between the existing "## Metric delta" and "## Config diff" sections. | — | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (6)
 
@@ -139,7 +139,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_pr_metric_confidence["pr metric confidence"]
-  class feat_pr_metric_confidence spec;
+  class feat_pr_metric_confidence plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
