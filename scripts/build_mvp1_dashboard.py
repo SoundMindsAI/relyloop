@@ -199,15 +199,23 @@ def _extract_priority(text: str) -> str | None:
     value is unrecognized (e.g., the chevron-placeholder
     ``<P0 | P1 | ...>`` in the template file itself).
     """
-    m = re.search(r"^\*\*Priority:\*\*\s*([^\n<]+?)\s*$", text, flags=re.MULTILINE)
-    if not m:
+    # Match the full line, then explicitly skip the template's chevron
+    # placeholder (`<P0 | P1 | P2 | Backlog — …>`). The earlier
+    # `[^\n<]+?` form excluded any priority description that legitimately
+    # contained a `<` (e.g., "P1 < 2 weeks effort") — Gemini Code Assist
+    # PR #183 review finding #2 fix.
+    m = re.search(r"^\*\*Priority:\*\*\s*(.+?)\s*$", text, flags=re.MULTILINE)
+    if not m or "<P0" in m.group(1):
         return None
     raw = m.group(1).strip()
     # Tolerate "P0 — do next" and similar embellishments by taking the
-    # first whitespace-delimited token.
+    # first whitespace-delimited token. Case-insensitive for the Px
+    # tiers so an idea authored with lowercase `p0` doesn't silently
+    # fall through to the default (Gemini Code Assist PR #183 review
+    # finding #1 fix).
     token = raw.split()[0] if raw else ""
-    if token in PRIORITY_VALUES:
-        return token
+    if token.upper() in ("P0", "P1", "P2"):
+        return token.upper()
     # Common alternatives.
     if token.lower() in ("backlog", "icebox", "deferred"):
         return "Backlog"
