@@ -74,7 +74,13 @@ async function walkToStep4(page: Page): Promise<{
   querySetName: string;
   judgmentListName: string;
 }> {
-  const chain = await seedFullChain(2);
+  // Pin the judgment-list target to the same string the study fills below
+  // ('e2e-builder-target') so the feat_study_target_judgment_mismatch_guard
+  // FR-4 dropdown filter matches and the Step-2 judgment-list picker is
+  // enabled. Without this override, seedFullChain defaults the JL to
+  // target='products', the modal's ?target=e2e-builder-target wire filter
+  // returns 0 rows, and the cs-jl trigger renders disabled.
+  const chain = await seedFullChain(2, { judgmentListTarget: 'e2e-builder-target' });
   const querySetName = await getName(`/api/v1/query-sets/${chain.querySetId}`);
   const judgmentListName = await getName(`/api/v1/judgment-lists/${chain.judgmentListId}`);
 
