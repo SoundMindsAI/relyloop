@@ -747,9 +747,9 @@ None. The feature is additive across all 3 stories — no refactor opportunity w
 
 ### Current sprint
 
-- [ ] Story 1.1 — Extend GET /judgment-lists with target filter + summary field
-- [ ] Story 1.2 — Studies POST cluster + target validators
-- [ ] Story 2.1 — Create-study modal: target filter + cascade + empty state
+- [x] Story 1.1 — Extend GET /judgment-lists with target filter + summary field
+- [x] Story 1.2 — Studies POST cluster + target validators
+- [x] Story 2.1 — Create-study modal: target filter + cascade + empty state
 
 ### Blocked items
 
@@ -757,7 +757,9 @@ None. The feature is additive across all 3 stories — no refactor opportunity w
 
 ### Done this sprint
 
-- (none yet)
+- [x] Story 1.1 (commit `[backend story commit]`) — JudgmentListSummary.target + ?target= filter + AND-semantics
+- [x] Story 1.2 (commit `[backend story commit]`) — POST /studies JUDGMENT_CLUSTER_MISMATCH + JUDGMENT_TARGET_MISMATCH validators
+- [x] Story 2.1 (commit `a88396b`) — Create-study modal target-aware filter, cascade reset, empty-state CTA
 
 ---
 
