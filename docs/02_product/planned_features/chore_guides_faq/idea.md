@@ -63,3 +63,46 @@ Also worth deferring until [`chore_guides_glossary_route`](../chore_guides_gloss
 - **Sibling:** [`chore_guides_glossary_route`](../chore_guides_glossary_route/idea.md) — different content axis (Glossary = "what does X mean?", FAQ = "what should I do about X?"). The Glossary should land first because the FAQ deep-links into it.
 - **Supersedes:** the stale "FAQs" mention in [`docs/08_guides/README.md`](../../../08_guides/README.md) line 3, which is currently aspirational with no concrete artifact.
 - **Coordinates with:** the existing operator-facing runbooks under [`docs/03_runbooks/`](../../../03_runbooks/) (webhook debugging, PR-open debugging, agent debugging, judgment debugging) — those are SRE-level; the FAQ would link to them for operators who need to escalate.
+
+## Process integration — keeping the FAQ current as features ship
+
+FAQ entries are different from glossary entries in two important ways: (a) they're **operator-judgment-shaped** ("should I X?", "why is Y?", "when does Z?") rather than definitional, and (b) they tend to surface *during implementation* — when the implementer notices an edge case that operators will ask about — rather than at spec-time. That means the leverage points differ from the [Glossary route's process integration](../chore_guides_glossary_route/idea.md#process-integration--keeping-the-glossary-current-as-the-codebase-grows). **Recommendation: two coordinated edits, in leverage order.**
+
+### 1. `.claude/skills/impl-execute/SKILL.md` — Step 2.5 (Tangential observations sweep) — primary catch-net
+
+Step 2.5 is already a **BLOCKING** step before push, designed to flush noticed-but-uncaptured issues. It has 5 prompts today (pre-existing failures, flaky tests, deferred coverage, stale paths, "someday" thoughts). Add a 6th prompt explicitly shaped for FAQ candidates:
+
+- **"Did I notice during implementation any operator-judgment-shaped question that has no canonical answer in the current docs?"** Examples: *"What happens if I X?"* / *"Should I trust Y in case Z?"* / *"My pipeline shows N — is that a bug or expected?"* If yes, either (a) file a focused `chore_faq_<slug>/idea.md` capturing the question + draft answer + the spec/AC citation that backs the answer, OR (b) if `chore_guides_faq` has already shipped, draft the entry directly under `docs/08_guides/faq/<category>.md` in this PR. Tooltips/glossary are NOT the right surface — they're definitional, not judgment-shaped.
+
+This is the **single most leveraged edit** because Step 2.5 is where the implementer is already walking back through their session looking for things to capture. FAQ-shaped questions are exactly the kind of "I noticed but didn't act" item it's designed to catch.
+
+### 2. `.claude/skills/impl-execute/SKILL.md` — Step 3 (Guide impact assessment) — feature-level coverage check
+
+Step 3 already evaluates whether walkthrough guides need regeneration. Add a third class of impact:
+
+- **"Does this feature introduce a new operator decision point** (e.g., a new status the operator must adjudicate, a new error code that requires a judgment call, a new metric that informs a tuning choice, a new failure mode that operators will hit and not know how to interpret)? If yes, evaluate whether an FAQ entry is needed in addition to (or instead of) a tooltip/glossary entry. The rubric: *tooltip if 1–2 sentences suffice; glossary if it's a definitional term; FAQ if the answer requires balancing trade-offs or citing operator context.*"
+
+### Why not earlier in the pipeline (spec-gen / impl-plan-gen)?
+
+We considered putting an FAQ check in `spec-gen` Step 3 (alongside the tooltip inventory in #11) and `impl-plan-gen` (alongside the tooltip plan requirement at line 111), but rejected both:
+
+- **`spec-gen`** — operator-judgment questions are usually *discovered* during implementation, not predicted from the spec. The spec author can list anticipated questions but they tend to be too generic to be useful FAQ entries until the actual edge cases surface in code.
+- **`impl-plan-gen`** — same reason as spec-gen. Pre-planning FAQ entries leads to either over-planning (entries that don't match real operator confusion) or hollow placeholders.
+
+The right model is: spec/plan identify *anticipated* questions in their "edge cases" or "operator concerns" sections (which they already do); implementation **catches and captures** the actual ones via Step 2.5 + Step 3.
+
+### What NOT to update
+
+- **`spec-gen/SKILL.md`** — see above; the existing "edge cases" + "error flows" sections already serve as the anticipated-FAQ surface. No new check needed.
+- **`impl-plan-gen/SKILL.md`** — same reasoning.
+- **`bug-fix/SKILL.md`** — bug fixes routinely surface "ohh that's why" questions that *are* FAQ-shaped. But `/bug-fix` chains into `/impl-execute --ad-hoc` per SKILL.md line 769, which runs Step 2.5 + Step 3 in ad-hoc mode — so the catch-net already covers bug-fix output without a dedicated edit.
+- **`guide-gen/SKILL.md`** — generates walkthrough screenshots, not FAQ entries.
+- **`idea-preflight/SKILL.md`** — audits a *single* idea file against the codebase; not a general process gate.
+- **A new `faq-gen` skill** — same reasoning as the parallel decision on the Glossary route. FAQ entries are short prose; the friction is *noticing* the question, not authoring it. Gates beat tools.
+
+### Acceptance criterion for this idea
+
+This idea is "done" when:
+1. The `/guide/faq` route ships per "Proposed capabilities" above with the initial 15–20 curated entries, AND
+2. The two `impl-execute` SKILL.md edits above are applied, AND
+3. The next post-edit feature merge demonstrably runs the new questionnaire (verified by a one-line "FAQ delta: N entries added (or 'no operator-judgment surface added')" note in the PR description). Silence is acceptable when there's genuinely nothing to add; the discipline is the explicit assertion, not the count.
