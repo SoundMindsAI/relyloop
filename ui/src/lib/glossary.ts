@@ -566,6 +566,56 @@ export const glossary = {
     short: 'Select all rows on this page. Selection clears when you change page.',
     ariaLabel: 'More information about row selection',
   },
+
+  // ---------------------------------------------------------------------------
+  // feat_pr_metric_confidence Story 2.2 — 6 confidence-panel entries.
+  // Text lifted verbatim from feature_spec.md §11 "Tooltips and contextual
+  // help" so reviewers can spot drift without leaving the glossary.
+  // Source-of-truth comment per CLAUDE.md "Enumerated Value Contract
+  // Discipline" — keys map to ConfidenceShape sub-fields exposed on
+  // StudyDetail.
+  // ---------------------------------------------------------------------------
+  'confidence.ci_95': {
+    short:
+      'Bootstrap 95% confidence interval on the headline metric. 1000 resamples with replacement over per-query scores.',
+    ariaLabel: 'More information about the 95% confidence interval',
+  },
+  'confidence.runner_up_gap': {
+    short:
+      'How close other top trials came to the winner. Robust plateau = many near-equivalents; sharp peak = winner isolated.',
+    long: [
+      '**Robust plateau** — the top min(10, complete trials) are all within 0.005 of the winner. Many near-equivalent configs exist; the winning lift is reproducible across small perturbations.',
+      '',
+      '**Sharp peak** — at least one trial in that top set is farther than 0.005 below the winner. The winner is isolated and the result is sensitive to small parameter changes.',
+    ].join('\n'),
+    ariaLabel: 'More information about the runner-up gap',
+  },
+  'confidence.late_trial_stddev': {
+    short:
+      'Standard deviation of the primary metric over the last 20% of completed trials — the empirical noise floor.',
+    ariaLabel: 'More information about the late-trial noise floor',
+  },
+  'confidence.convergence_regime': {
+    short: 'How the winning trial sits in the optimization budget.',
+    long: [
+      '**Early-and-held** — best found in the first half of the trial budget AND at least one trial in the last 25% finished within 0.005 of the winner (plateau held). Strong signal.',
+      '',
+      '**Late-rising** — best found in the last 10% of the budget. More trials may still help; the optimizer was still improving.',
+      '',
+      '**Noisy** — neither pattern holds. No clear convergence; consider re-running with a different sampler or wider search space.',
+    ].join('\n'),
+    ariaLabel: 'More information about the convergence regime',
+  },
+  'confidence.per_query_outcomes': {
+    short:
+      'Per-query metric vs the runner-up. Threshold: NDCG/P/R = 0.01; MAP/MRR = 0.02. Within → Unchanged.',
+    ariaLabel: 'More information about per-query outcomes',
+  },
+  'confidence.comparison_against': {
+    short:
+      'Reference for per-query comparison. Runner-up = second-best trial. Baseline = no-tuning trial (Phase 2).',
+    ariaLabel: 'More information about the comparison reference',
+  },
 } as const satisfies Record<string, GlossaryEntry>;
 
 // =============================================================================

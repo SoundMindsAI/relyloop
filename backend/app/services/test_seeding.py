@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import uuid_utils
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -45,6 +46,8 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
     template_id: str,
     judgment_list_id: str,
     with_pending_proposal: bool = True,
+    winner_per_query: dict[str, dict[str, Any]] | None = None,
+    runner_up_per_query: dict[str, dict[str, Any]] | None = None,
 ) -> SeededStudyTriple:
     """Insert a complete study + 2 trials + digest (+ optional pending proposal).
 
@@ -103,6 +106,17 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
     # the same answer the orchestrator's writer would have produced.
     winning_trial_id = str(uuid_utils.uuid7())
     losing_trial_id = str(uuid_utils.uuid7())
+    # feat_pr_metric_confidence Story 2.3: when both per_query dicts are
+    # supplied, attach them so the ConfidencePanel + PR body confidence
+    # section render against real backend rows. None defaults preserve the
+    # pre-feature behavior (NULL per_query_metrics, partial ConfidenceShape).
+    winner_kwargs: dict[str, Any] = {}
+    runner_up_kwargs: dict[str, Any] = {}
+    if winner_per_query is not None:
+        winner_kwargs["per_query_metrics"] = winner_per_query
+    if runner_up_per_query is not None:
+        runner_up_kwargs["per_query_metrics"] = runner_up_per_query
+
     await repo.create_trial(
         db,
         id=winning_trial_id,
@@ -116,6 +130,7 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         error=None,
         started_at=started,
         ended_at=started + timedelta(milliseconds=1200),
+        **winner_kwargs,
     )
     await repo.create_trial(
         db,
@@ -130,6 +145,7 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         error=None,
         started_at=started + timedelta(milliseconds=1300),
         ended_at=started + timedelta(milliseconds=2400),
+        **runner_up_kwargs,
     )
 
     await study_state.complete_study(

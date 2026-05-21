@@ -1057,10 +1057,10 @@ None planned. The feature is purely additive across all surfaces.
 - [x] Story 1.5 — PR body section + worker plumbing
 - [x] Story 1.6 — Digest narrative prompt extension
 - [x] **Epic 1 gate**
-- [ ] Story 2.1 — TypeScript types + enums
-- [ ] Story 2.2 — `<ConfidencePanel>` component + glossary + page mount
-- [ ] Story 2.3 — Playwright E2E
-- [ ] **Epic 2 gate**
+- [x] Story 2.1 — TypeScript types + enums
+- [x] Story 2.2 — `<ConfidencePanel>` component + glossary + page mount
+- [x] Story 2.3 — Playwright E2E
+- [x] **Epic 2 gate**
 - [ ] Final state.md + architecture.md update
 
 ### Blocked items

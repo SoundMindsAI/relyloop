@@ -68,6 +68,24 @@ export type PrunerKind = (typeof PRUNER_VALUES)[number];
 export const OBJECTIVE_METRIC_VALUES = ['ndcg', 'map', 'precision', 'recall', 'mrr'] as const;
 export type ObjectiveMetric = (typeof OBJECTIVE_METRIC_VALUES)[number];
 
+// Values must match backend/app/domain/study/confidence.py ConvergenceRegime.
+// Three regimes for the optimization convergence call-out on the
+// ConfidencePanel + PR body's ## Confidence section.
+export const CONVERGENCE_REGIME_VALUES = ['early_held', 'late_rising', 'noisy'] as const;
+export type ConvergenceRegime = (typeof CONVERGENCE_REGIME_VALUES)[number];
+
+// Values must match backend/app/domain/study/confidence.py RunnerUpClassification.
+// Indicates whether the winner trial sits on a robust plateau (many
+// near-equivalent configs in the top-10) or a sharp peak (winner isolated).
+export const RUNNER_UP_CLASSIFICATION_VALUES = ['robust_plateau', 'sharp_peak'] as const;
+export type RunnerUpClassification = (typeof RUNNER_UP_CLASSIFICATION_VALUES)[number];
+
+// Values must match backend/app/domain/study/confidence.py ComparisonAgainst.
+// Phase 1 always emits `runner_up`; `baseline` is reserved for Phase 2
+// when the orchestrator runs a no-tuning baseline trial.
+export const COMPARISON_AGAINST_VALUES = ['runner_up', 'baseline'] as const;
+export type ComparisonAgainst = (typeof COMPARISON_AGAINST_VALUES)[number];
+
 // Values must match backend/app/api/v1/schemas.py ObjectiveK.
 export const OBJECTIVE_K_VALUES = [1, 3, 5, 10, 20, 50, 100] as const;
 export type ObjectiveK = (typeof OBJECTIVE_K_VALUES)[number];

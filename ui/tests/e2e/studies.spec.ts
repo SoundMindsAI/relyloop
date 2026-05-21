@@ -16,7 +16,12 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { seedFullChain, seedStudy, seedStudyCompletedWithDigest } from './helpers/seed';
+import {
+  seedFullChain,
+  seedStudy,
+  seedStudyCompletedWithDigest,
+  seedStudyCompletedWithPerQueryMetrics,
+} from './helpers/seed';
 
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
@@ -264,5 +269,62 @@ test.describe('/studies', () => {
       const body = await apiResp.json();
       expect(['completed', 'failed', 'cancelled']).toContain(body.status);
     }
+  });
+
+  // ---------------------------------------------------------------------------
+  // feat_pr_metric_confidence Story 2.3 — ConfidencePanel real-backend coverage
+  // (AC-13). Two cases: panel renders for completed study with per_query_metrics,
+  // panel renders nothing for a queued/running study where study.confidence is
+  // null whole-object.
+  // ---------------------------------------------------------------------------
+
+  test('ConfidencePanel renders for a completed study with per_query_metrics', async ({
+    page,
+  }) => {
+    const chain = await seedFullChain(8);
+    const seeded = await seedStudyCompletedWithPerQueryMetrics({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      queryIds: chain.queryIds,
+      withPendingProposal: false,
+    });
+    await page.goto(`/studies/${seeded.studyId}`);
+
+    const panel = page.getByTestId('confidence-panel');
+    await expect(panel).toBeVisible({ timeout: 10_000 });
+    // Section heading.
+    await expect(panel.getByText('Confidence', { exact: true })).toBeVisible();
+    // Headline carries metric@k + value.
+    await expect(page.getByTestId('confidence-headline')).toContainText('NDCG@10');
+    await expect(page.getByTestId('confidence-headline')).toContainText('0.487');
+    // Per-query outcome chips are present.
+    await expect(page.getByTestId('outcome-improved')).toBeVisible();
+    await expect(page.getByTestId('outcome-regressed')).toBeVisible();
+    // The designed regressor (qid 0) shows up in the named-regressors table.
+    await expect(page.getByTestId('confidence-regressors')).toBeVisible();
+  });
+
+  test('ConfidencePanel renders nothing for a queued study (confidence=null)', async ({
+    page,
+  }) => {
+    const chain = await seedFullChain(2);
+    const study = await seedStudy({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      maxTrials: 1,
+    });
+    await page.goto(`/studies/${study.id}`);
+
+    // The study header card mounts (study row exists).
+    await expect(page.getByRole('heading', { name: 'Study detail' })).toBeVisible({
+      timeout: 10_000,
+    });
+    // ConfidencePanel returns null when study.confidence is null whole-object,
+    // so the panel container must be absent (no empty-state shell — AC-3a).
+    await expect(page.getByTestId('confidence-panel')).toHaveCount(0);
   });
 });
