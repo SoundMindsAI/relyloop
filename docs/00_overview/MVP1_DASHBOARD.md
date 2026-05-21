@@ -21,9 +21,9 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **56 / 57** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **5** items remaining (features + bugs + chores) |
+| Path to MVP1 | **6** items remaining (features + bugs + chores) |
 | Open bugs | 0 |
-| Open chores | 4 (idea-stage debt) |
+| Open chores | 5 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -116,7 +116,7 @@ _None._
 
 _None._
 
-### Idea (8)
+### Idea (9)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -124,6 +124,7 @@ _None._
 | [feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/idea.md) | Feature | RelyLoop does not track which configuration is currently live in production. When a proposal's PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:187-191`](../../backend/app/api/webh | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
 | [feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/idea.md) | Feature | The digest worker's LLM contract at [`backend/workers/digest.py:168-189`](../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`: | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| [chore_guide_06_screenshot_refresh_confidence_panel](../02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai | — | Idea — captured during `feat_pr_metric_confidence` Epic 2 guide-impact assessment |
 | [chore_guides_faq](../02_product/planned_features/chore_guides_faq/idea.md) | Chore | Tooltips and the glossary answer "**what does X mean?**" within a 1–2 sentence budget. They don't carry the operator-judgment-shaped questions that come up *after* the term is understood: | — | Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review |
 | [chore_guides_glossary_route](../02_product/planned_features/chore_guides_glossary_route/idea.md) | Chore | The glossary is a load-bearing terminology source-of-truth (cited 100+ times across the codebase, parity-tested against backend Literal enums, locked by source-of-truth comments). But operators can on | — | Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review |
 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
