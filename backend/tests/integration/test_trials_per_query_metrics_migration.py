@@ -231,7 +231,7 @@ class TestTrialsPerQueryMetricsMigration:
                         text(
                             "INSERT INTO judgment_lists (id, name, query_set_id, "
                             "cluster_id, target, rubric, status) VALUES "
-                            "(:id, :name, :qs, :cid, 'idx', 'r', 'ready')"
+                            "(:id, :name, :qs, :cid, 'idx', 'r', 'complete')"
                         ),
                         {
                             "id": jl_id,
@@ -270,14 +270,13 @@ class TestTrialsPerQueryMetricsMigration:
                                 "INSERT INTO trials (id, study_id, optuna_trial_number, "
                                 "params, metrics, status, per_query_metrics) VALUES "
                                 "(:id, :sid, 0, :params, :metrics, 'complete', "
-                                ":pq::jsonb)"
+                                "'[]'::jsonb)"
                             ),
                             {
                                 "id": trial_id,
                                 "sid": study_id,
                                 "params": json.dumps({}),
                                 "metrics": json.dumps({"ndcg": 0.5}),
-                                "pq": "[]",
                             },
                         )
 

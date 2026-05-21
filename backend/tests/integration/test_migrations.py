@@ -123,8 +123,9 @@ class TestBaselineMigration:
                 # Baseline is "0001" per migrations/versions/0001_baseline.py.
                 # Head extended by feat_data_table_primitive migrations
                 # 0008–0013 (search_vector columns + GIN indexes on 6 tables);
-                # 0014 adds clusters.target_filter (feat_cluster_target_filter).
-                assert row[0] == "0014"
+                # 0014 adds clusters.target_filter (feat_cluster_target_filter);
+                # 0015 adds trials.per_query_metrics (feat_pr_metric_confidence).
+                assert row[0] == "0015"
         finally:
             engine.dispose()
 
@@ -139,16 +140,16 @@ class TestBaselineMigration:
         """Downgrade by one revision and re-upgrade returns cleanly to head."""
         _alembic("upgrade", "head")
         _alembic("downgrade", "-1")
-        # After downgrade -1 from head (0014) we land at 0013. Re-upgrade
-        # re-applies 0014 cleanly per CLAUDE.md Absolute Rule #5.
+        # After downgrade -1 from head (0015) we land at 0014. Re-upgrade
+        # re-applies 0015 cleanly per CLAUDE.md Absolute Rule #5.
         _alembic("upgrade", "head")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
                 row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 assert row is not None
-                # Head: 0014 (feat_cluster_target_filter — clusters.target_filter).
-                assert row[0] == "0014"
+                # Head: 0015 (feat_pr_metric_confidence — trials.per_query_metrics).
+                assert row[0] == "0015"
         finally:
             engine.dispose()
 

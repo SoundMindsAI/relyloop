@@ -85,7 +85,9 @@ from backend.app.domain.git import (
     validate_config_path,
     validate_repo_url,
 )
+from backend.app.domain.study.confidence import ConfidenceShape
 from backend.app.git import HTTP_TIMEOUT_S, github_request
+from backend.app.services.study_confidence import fetch_study_confidence
 
 logger = structlog.get_logger(__name__)
 
@@ -485,6 +487,52 @@ def _render_chart_png(parameter_importance: dict[str, float], target_path: Path)
     plt.close(fig)
 
 
+def _render_confidence_section(confidence: ConfidenceShape) -> list[str]:
+    """Render the ``## Confidence`` section as a list of markdown lines.
+
+    Each sub-block (CI line, per-query block, named regressors, runner-up
+    gap, late-trial 1σ, convergence) is independently gated on its
+    sub-field being non-null (FR-7 / AC-3 partial-render path). Includes
+    a trailing blank line for cleanly separating from the next section.
+    """
+    lines: list[str] = ["## Confidence"]
+    headline = confidence.headline
+    metric_label = f"{headline.metric}@{headline.k}" if headline.k is not None else headline.metric
+    if confidence.ci_95 is not None:
+        ci = confidence.ci_95
+        n_q = headline.n_queries if headline.n_queries is not None else ci.n_samples
+        lines.append(
+            f"- {metric_label}: {headline.value:.3f} "
+            f"(95% CI {ci.low:.3f}-{ci.high:.3f}, N={n_q} queries)"
+        )
+    if confidence.per_query_outcomes is not None:
+        outcomes = confidence.per_query_outcomes
+        lines.append(
+            f"- Queries: {outcomes.improved} improved · "
+            f"{outcomes.unchanged} unchanged · "
+            f"{outcomes.regressed} regressed (vs {outcomes.comparison_against})"
+        )
+        if outcomes.regressed > 0 and outcomes.top_regressors:
+            regressor_chunks = [
+                f"`{row.query_text}` ({row.comparison_score:.3f} → {row.winner_score:.3f})"
+                for row in outcomes.top_regressors
+            ]
+            lines.append("- Queries that regressed: " + " · ".join(regressor_chunks))
+    if confidence.runner_up_gap is not None:
+        gap = confidence.runner_up_gap
+        lines.append(f"- Runner-up gap {gap.value:.3f} ({gap.classification})")
+    if confidence.late_trial_stddev is not None:
+        lines.append(f"- Late-trial 1σ = {confidence.late_trial_stddev.value:.3f}")
+    if confidence.convergence is not None:
+        conv = confidence.convergence
+        lines.append(
+            f"- Convergence: {conv.regime} "
+            f"(best at trial {conv.best_at_trial} of {conv.total_trials})"
+        )
+    lines.append("")
+    return lines
+
+
 def _render_pr_body_study_backed(
     *,
     proposal: Any,
@@ -493,8 +541,16 @@ def _render_pr_body_study_backed(
     config_diff: dict[str, Any],
     chart_md: str,
     base_url: str | None,
+    confidence: ConfidenceShape | None = None,
 ) -> str:
-    """Markdown body for a study-backed proposal."""
+    """Markdown body for a study-backed proposal.
+
+    The optional ``confidence`` shape (feat_pr_metric_confidence FR-5b)
+    drives an additional ``## Confidence`` section between ``## Metric
+    delta`` and ``## Config diff``. When ``confidence is None`` the
+    section is omitted entirely (AC-12). When sub-fields are null they
+    are skipped individually (FR-7 / AC-3 partial-render path).
+    """
     lines: list[str] = ["# RelyLoop proposal", ""]
     lines.append(f"**Study:** {study.name} (`{study.id}`)")
     if base_url:
@@ -509,6 +565,8 @@ def _render_pr_body_study_backed(
             pct_str = f" ({pct:+.1f}%)" if pct is not None else ""
             lines.append(f"- `{metric}`: {baseline} → {achieved}{pct_str}")
         lines.append("")
+    if confidence is not None:
+        lines.extend(_render_confidence_section(confidence))
     lines.append("## Config diff")
     lines.append("")
     lines.append("| Param | From | To |")
@@ -901,6 +959,10 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
         chart_md = ""
         if chart_render_failed and digest is not None:
             chart_md = _render_chart_markdown_fallback(digest.parameter_importance)
+        # feat_pr_metric_confidence Story 1.5 (FR-5d): fetch per-study
+        # confidence analytics before rendering so the body carries the
+        # ## Confidence section.
+        confidence = await fetch_study_confidence(db, study) if study is not None else None
         body = _render_pr_body_study_backed(
             proposal=proposal,
             study=study,
@@ -908,6 +970,7 @@ async def _do_open_pr(  # noqa: PLR0915, PLR0912, C901 — the worker contract i
             config_diff=proposal.config_diff,
             chart_md=chart_md,
             base_url=settings.relyloop_base_url,
+            confidence=confidence,
         )
         study_name = study.name if study is not None else proposal.study_id
         title = f"RelyLoop: {study_name}"
