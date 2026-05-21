@@ -30,6 +30,7 @@ export type JudgmentsPage = JudgmentListJudgmentsResponse & { totalCount: number
 export interface JudgmentListsFilter {
   query_set_id?: string | undefined;
   cluster_id?: string | undefined;
+  target?: string | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
 }
@@ -37,13 +38,13 @@ export interface JudgmentListsFilter {
 export function useJudgmentLists(
   filter: JudgmentListsFilter = {},
 ): UseQueryResult<JudgmentListsPage, ApiError> {
-  const { query_set_id, cluster_id, cursor, limit } = filter;
+  const { query_set_id, cluster_id, target, cursor, limit } = filter;
   return useQuery<JudgmentListsPage, ApiError>({
-    queryKey: ['judgment-lists', { query_set_id, cluster_id, cursor, limit }],
+    queryKey: ['judgment-lists', { query_set_id, cluster_id, target, cursor, limit }],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<JudgmentListListResponse>(
         '/api/v1/judgment-lists',
-        { params: { query_set_id, cluster_id, cursor, limit } },
+        { params: { query_set_id, cluster_id, target, cursor, limit } },
       );
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },

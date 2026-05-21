@@ -187,8 +187,15 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   } as typeof targets;
 
   const querySets = useQuerySets({ cluster_id: clusterId || undefined, limit: 200 });
+  // feat_study_target_judgment_mismatch_guard FR-4: filter judgment-lists by
+  // both the chosen cluster AND the chosen target so the dropdown only shows
+  // valid pairings. The backend's POST /studies validators (FR-1 + FR-1b) are
+  // the contract; this client-side filter is the UX prefetch so the operator
+  // can't even submit a mismatch.
   const judgmentLists = useJudgmentLists({
     query_set_id: querySetId || undefined,
+    cluster_id: clusterId || undefined,
+    target: target || undefined,
     limit: 200,
   });
   const templates = useTemplates({
@@ -523,14 +530,33 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
 
                 {manualMode ? (
                   // Manual-mode fallback (preserves the original Input behavior).
-                  <>
-                    <Input id="cs-target" {...form.register('target')} placeholder="products" />
-                    {targets.isError && targets.error?.errorCode === 'TARGETS_FORBIDDEN' && (
-                      <p className="text-xs text-amber-600">
-                        Cluster restricts index listing — enter the target name manually.
-                      </p>
-                    )}
-                  </>
+                  // feat_study_target_judgment_mismatch_guard FR-4: hoist
+                  // form.register('target') so we can keep RHF's name/ref/
+                  // onBlur/validate wiring intact while extending onChange to
+                  // cascade-reset judgment_list_id (mirror line ~596 query-set
+                  // pattern). Do NOT replace with bare value/onChange — that
+                  // breaks RHF dirty/touched/validation state.
+                  (() => {
+                    const targetReg = form.register('target');
+                    return (
+                      <>
+                        <Input
+                          id="cs-target"
+                          {...targetReg}
+                          onChange={(e) => {
+                            targetReg.onChange(e);
+                            form.setValue('judgment_list_id', '');
+                          }}
+                          placeholder="products"
+                        />
+                        {targets.isError && targets.error?.errorCode === 'TARGETS_FORBIDDEN' && (
+                          <p className="text-xs text-amber-600">
+                            Cluster restricts index listing — enter the target name manually.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()
                 ) : !clusterId ? (
                   // FR-4: no cluster picked yet → disabled placeholder Select
                   // matching the EntitySelect visual idiom. The targets query
@@ -542,6 +568,9 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </Select>
                 ) : (
                   // Dropdown mode (default, with a cluster picked).
+                  // feat_study_target_judgment_mismatch_guard FR-4: cascade
+                  // reset judgment_list_id on target change so the Step-2
+                  // dropdown re-fetches under the new filter.
                   <EntitySelect
                     id="cs-target"
                     data-testid="cs-target"
@@ -551,7 +580,10 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                       `${t.name} (${t.doc_count != null ? t.doc_count.toLocaleString() : '?'} docs)`
                     }
                     value={values.target || undefined}
-                    onChange={(v) => form.setValue('target', v ?? '')}
+                    onChange={(v) => {
+                      form.setValue('target', v ?? '');
+                      form.setValue('judgment_list_id', '');
+                    }}
                     placeholder="Choose a target"
                     emptyState={{
                       message: selectedCluster?.target_filter
@@ -609,6 +641,14 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   value={values.judgment_list_id || undefined}
                   onChange={(v) => form.setValue('judgment_list_id', v ?? '')}
                   placeholder="Choose a judgment list"
+                  // feat_study_target_judgment_mismatch_guard FR-4: Step-2 is
+                  // target-gated (line 384 advance gate requires target set
+                  // before this dropdown renders), so the empty-state copy
+                  // is unconditional — no "no target yet" fallback branch.
+                  emptyState={{
+                    message: `No judgment lists for target "${target}" on this cluster + query set. Generate a new one from /judgments.`,
+                    cta: { label: 'Generate judgments', href: '/judgments' },
+                  }}
                 />
               </div>
             </div>

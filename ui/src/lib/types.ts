@@ -494,6 +494,13 @@ export interface paths {
      *     entity integrity check then rejects at create time with a confusing
      *     422 ``VALIDATION_ERROR: "judgment_list query_set_id does not match
      *     study query_set_id"``).
+     *
+     *     ``?target=`` filters by exact target index/collection name
+     *     (``feat_study_target_judgment_mismatch_guard`` FR-2 — pairs with the
+     *     ``POST /studies`` ``JUDGMENT_TARGET_MISMATCH`` 422 so the create-study
+     *     modal can pre-filter the dropdown to only lists matching the chosen
+     *     study target). Bounded by the ES/OpenSearch index-name ceiling
+     *     (255 bytes).
      */
     get: operations['list_judgment_lists_endpoint_api_v1_judgment_lists_get'];
     put?: never;
@@ -1650,6 +1657,8 @@ export interface components {
       query_set_id: string;
       /** Cluster Id */
       cluster_id: string;
+      /** Target */
+      target: string;
       /**
        * Status
        * @enum {string}
@@ -2230,6 +2239,24 @@ export interface components {
        * @default true
        */
       with_pending_proposal: boolean;
+      /**
+       * Winner Per Query
+       * @description Optional per-query metrics dict to populate on the winner trial. Shape: `{query_id: {metric_token: float}}` where metric_token matches what `scoring.score()` emits (e.g. `ndcg@10`). Set alongside `runner_up_per_query` to drive the ConfidencePanel happy path on `/studies/[id]`. When omitted, the seeded trials have `per_query_metrics IS NULL` (the pre-feat_pr_metric_confidence shape).
+       */
+      winner_per_query?: {
+        [key: string]: {
+          [key: string]: unknown;
+        };
+      } | null;
+      /**
+       * Runner Up Per Query
+       * @description Optional per-query metrics for the runner-up trial; pairs with `winner_per_query`.
+       */
+      runner_up_per_query?: {
+        [key: string]: {
+          [key: string]: unknown;
+        };
+      } | null;
     };
     /**
      * SeedCompletedStudyResponse
@@ -3540,6 +3567,7 @@ export interface operations {
           | null;
         query_set_id?: string | null;
         cluster_id?: string | null;
+        target?: string | null;
       };
       header?: never;
       path?: never;
