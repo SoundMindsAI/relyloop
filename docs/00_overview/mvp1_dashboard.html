@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Chore, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md">E2E Test Rows Isolation</a></div>
+    <div class="one-liner">Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the registry in FK-safe order at the end of the</div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/chore_e2e_test_rows_isolation --auto</code>
   </div>
 </section>
 
@@ -395,11 +395,11 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">58 / 58</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">58 / 59</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">13</span></h3>
-
-<div class="card chore" data-prefix="chore" data-priority="P0">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_test_rows_isolation">E2E Test Rows Isolation</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P0">P0</span>
-
-  </div>
-  <div class="one-liner">Multiple seed paths emit rows into the operator-visible `clusters` / `query_sets` / `query_templates` / `judgment_lists` / `studies` tables:</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">12</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P1">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_home_first_run_demo_nudge">Home First Run Demo Nudge</a></div>
@@ -636,7 +623,19 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card chore" data-prefix="chore" data-priority="P0">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md">E2E Test Rows Isolation</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P0">P0</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/182">PR #182</a>
+  </div>
+  <div class="one-liner">Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg</div>
+
+
+</div>
 
 </div>
 
@@ -1575,6 +1574,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_e2e_test_rows_isolation[&quot;e2e test rows isolation&quot;]
+  class chore_e2e_test_rows_isolation spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1784,6 +1785,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_e2e_test_rows_isolation[&quot;e2e test rows isolation&quot;]
+  class chore_e2e_test_rows_isolation spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]

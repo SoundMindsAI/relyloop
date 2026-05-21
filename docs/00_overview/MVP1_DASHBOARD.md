@@ -6,15 +6,21 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md)** — Chore, currently in **Spec**
 
-Pull from the Idea backlog or capture a new feature spec.
+> Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the registry in FK-safe order at the end of the
+
+Spec exists; run /pipeline to generate the implementation plan + ship
+
+```bash
+/pipeline docs/02_product/planned_features/chore_e2e_test_rows_isolation --auto
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **58 / 58** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **58 / 59** (98%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **1** unblocking / paying daily cost |
 | → P1 | **6** high-value, ready when P0 clears |
@@ -110,15 +116,16 @@ _None._
 
 _None._
 
-### Spec (0)
-
-_None._
-
-### Idea (13)
+### Spec (1)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
-| P0 | [chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/idea.md) | Chore | Multiple seed paths emit rows into the operator-visible `clusters` / `query_sets` / `query_templates` / `judgment_lists` / `studies` tables: | — | Idea — root cause behind the "study2 ran 1000 zero-metric trials" incident |
+| P0 | [chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md) | Chore | Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg | — | [PR #182](https://github.com/SoundMindsAI/relyloop/pull/182) |
+
+### Idea (12)
+
+| Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|
 | P1 | [feat_home_first_run_demo_nudge](../02_product/planned_features/feat_home_first_run_demo_nudge/idea.md) | Feature | The auto-seed chore solves the "fresh stack = empty dropdowns" problem. It does NOT solve: | — | Idea — product-design-shaped follow-up paired with the auto-seed-on-make-up chore |
 | P1 | [feat_orchestrator_zero_streak_abort](../02_product/planned_features/feat_orchestrator_zero_streak_abort/idea.md) | Feature | The two create-time guards close the bulk of the "all 1000 trials score 0" surface, but they don't cover every path: | — | Idea — defense-in-depth tier behind the create-time fail-fast guards |
 | P1 | [feat_study_preflight_overlap_probe](../02_product/planned_features/feat_study_preflight_overlap_probe/idea.md) | Feature | The target-mismatch guard catches a string-equality mismatch. It misses these legitimate-looking-but-still-broken cases: | — | Idea — surfaced post-merge of `feat_pr_metric_confidence` as the defense-in-depth tier behind the target-mismatch guard |
@@ -143,6 +150,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_e2e_test_rows_isolation["e2e test rows isolation"]
+  class chore_e2e_test_rows_isolation spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
