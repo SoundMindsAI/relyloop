@@ -104,13 +104,14 @@ PR. Both ship together as `infra_local_dev_venv_isolation`.
    pulling the `.python-version` file, so uv rebuilds the venv against
    3.13. uv handles this transparently if `.python-version` says `3.13`.
 
-**Why this is the right call** (and why the alternatives lose):
+**Final option disposition** (re-evaluated after the smoke-test surprise — Gemini PR #171 caught the previous version of this table contradicting the "Locked decision" header):
 
-| Option | Why rejected |
+| Option | Disposition |
 |---|---|
-| B — narrow bind-mount (anonymous `.venv` volume) | Adds 20-60s/run for fresh sync on every integration test invocation. The cumulative cost across a session would exceed the one-time pain of pinning Python. |
-| C — pre-baked `relyloop/dev-deps` image | Right answer for MVP3 deployment work, but builds + publishes + cache-invalidation logic is way beyond this friction's scope. |
-| D — host-side recovery wrapper | Too clever; easy to forget the wrapper; doesn't fix the underlying mismatch. |
+| A — pin host Python via `.python-version` | **Bundled into this PR.** Necessary but not sufficient on its own; provides forward consistency with the container. |
+| B — narrow bind-mount (anonymous `-v /app/.venv` volume) | **Bundled into this PR.** Smoke test proved this is what actually stops the host-side `.venv` from being rewritten. Trade: ~10-20s fresh sync per container run. |
+| C — pre-baked `relyloop/dev-deps` image | **Rejected.** Right answer for MVP3 deployment work, but builds + publishes + cache-invalidation logic is way beyond this friction's scope. |
+| D — host-side recovery wrapper | **Rejected.** Too clever; easy to forget the wrapper; doesn't fix the underlying issue. |
 
 The `requires-python = ">=3.13"` floor at [`pyproject.toml:7`](../../../../pyproject.toml#L7)
 stays — that's a hard floor for CI + production. The `.python-version`
