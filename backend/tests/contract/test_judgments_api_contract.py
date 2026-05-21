@@ -149,7 +149,11 @@ async def test_list_judgment_lists_endpoint_declares_filter_query_params(
     assert "cluster_id" in by_name, (
         f"GET /judgment-lists missing `cluster_id` query param; got {sorted(by_name)}"
     )
-    # Both should be optional strings (UUIDv7 → max 36 chars).
+    # feat_study_target_judgment_mismatch_guard FR-2: new ?target= wire param.
+    assert "target" in by_name, (
+        f"GET /judgment-lists missing `target` query param; got {sorted(by_name)}"
+    )
+    # All three should be optional strings.
     for name in ("query_set_id", "cluster_id"):
         spec = by_name[name]["schema"]
         # Optional → anyOf [string, null] or `nullable: true` depending on
@@ -163,6 +167,46 @@ async def test_list_judgment_lists_endpoint_declares_filter_query_params(
         else:
             assert spec.get("type") == "string", f"{name}: not a string"
             assert spec.get("maxLength") == 36, f"{name}: maxLength != 36"
+    # target is free-form (not UUIDv7) — bound by the ES/OpenSearch index-name
+    # ceiling (255 bytes) per feat_study_target_judgment_mismatch_guard FR-2.
+    target_spec = by_name["target"]["schema"]
+    if "anyOf" in target_spec:
+        target_string = next((s for s in target_spec["anyOf"] if s.get("type") == "string"), None)
+        assert target_string is not None, "target: no string branch in anyOf"
+        assert target_string.get("maxLength") == 255, (
+            f"target: maxLength != 255 (got {target_string.get('maxLength')})"
+        )
+        assert target_string.get("minLength") == 1, (
+            f"target: minLength != 1 (got {target_string.get('minLength')})"
+        )
+    else:
+        assert target_spec.get("type") == "string", "target: not a string"
+        assert target_spec.get("maxLength") == 255, "target: maxLength != 255"
+        assert target_spec.get("minLength") == 1, "target: minLength != 1"
+
+
+@_skip_if_no_pg
+async def test_judgment_list_summary_includes_target_field(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """``feat_study_target_judgment_mismatch_guard`` FR-3 — the OpenAPI
+    schema for ``JudgmentListSummary`` declares ``target`` as a required
+    string field (additive, non-breaking from a tolerant-JSON-client
+    perspective, but the generated TS types and OpenAPI snapshot must
+    update or `pnpm typecheck` breaks).
+    """
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    summary = schema["components"]["schemas"]["JudgmentListSummary"]
+    assert "target" in summary["properties"], (
+        f"JudgmentListSummary missing `target` property; got {sorted(summary['properties'])}"
+    )
+    target_spec = summary["properties"]["target"]
+    assert target_spec.get("type") == "string", target_spec
+    assert "target" in summary.get("required", []), (
+        "`target` is not in JudgmentListSummary.required — the column is "
+        "Text NOT NULL, so the Pydantic field must be required."
+    )
 
 
 def test_all_spec_error_codes_referenced_in_router_source() -> None:

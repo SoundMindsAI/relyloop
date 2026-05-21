@@ -162,7 +162,11 @@ export async function seedQuerySet(
       name: `e2e-jl-${suffix}`,
       query_set_id: qs.id,
       cluster_id: cluster.id,
-      target: 'e2e-target',
+      // Must match `seedStudy()`'s default `target` ('products') so the
+      // FR-1 JUDGMENT_TARGET_MISMATCH guard at POST /studies doesn't
+      // reject the chained create. See
+      // `feat_study_target_judgment_mismatch_guard`.
+      target: 'products',
       rubric: 'e2e-rubric-v1',
       judgments: [
         {
@@ -223,8 +227,16 @@ export async function seedJudgmentList(args: {
   querySetId: string;
   queryIds: string[];
   ratingPerQuery?: 0 | 1 | 2 | 3;
+  /**
+   * Target index/collection the judgments are authored against. Defaults to
+   * `'products'` so chained `seedStudy()` calls (which also default to
+   * `'products'`) pass the FR-1 `JUDGMENT_TARGET_MISMATCH` guard at
+   * `POST /api/v1/studies`. Override only when a test deliberately wants
+   * to exercise the mismatch rejection.
+   */
+  target?: string;
 }): Promise<JudgmentListSeed> {
-  const { clusterId, querySetId, queryIds, ratingPerQuery = 2 } = args;
+  const { clusterId, querySetId, queryIds, ratingPerQuery = 2, target = 'products' } = args;
   const suffix = randomUUID().slice(0, 8);
   const judgments = queryIds.map((qid, i) => ({
     query_id: qid,
@@ -238,7 +250,7 @@ export async function seedJudgmentList(args: {
       name: `e2e-jl-${suffix}`,
       query_set_id: querySetId,
       cluster_id: clusterId,
-      target: 'e2e-target',
+      target,
       rubric: 'e2e-rubric-v1 — rate relevance 0-3.',
       judgments,
     },
@@ -249,14 +261,25 @@ export async function seedJudgmentList(args: {
 /**
  * Seed cluster + query-set + N queries + template + imported judgment list —
  * the full chain a study needs as FKs. Useful for studies / proposals tests.
+ *
+ * `opts.judgmentListTarget` overrides the judgment-list's `target` field
+ * (default `'products'` — matches `seedStudy()`'s default so the FR-1
+ * `JUDGMENT_TARGET_MISMATCH` guard passes when both helpers are chained).
+ * Specs that pick a non-`products` target on the study (e.g.,
+ * `studies-create-target-dropdown.spec.ts`) MUST pass the same target here
+ * so the chained POST /studies isn't rejected.
  */
-export async function seedFullChain(numQueries = 3): Promise<FullChainSeed> {
+export async function seedFullChain(
+  numQueries = 3,
+  opts: { judgmentListTarget?: string } = {},
+): Promise<FullChainSeed> {
   const qs = await seedQuerySet(numQueries);
   const tpl = await seedTemplate();
   const jl = await seedJudgmentList({
     clusterId: qs.clusterId,
     querySetId: qs.querySetId,
     queryIds: qs.queryIds,
+    ...(opts.judgmentListTarget !== undefined ? { target: opts.judgmentListTarget } : {}),
   });
   // Re-fetch the cluster name (seedQuerySet doesn't return it).
   const cluster = await get<{ name: string }>(`/api/v1/clusters/${qs.clusterId}`);
@@ -446,14 +469,29 @@ export async function seedStudy(args: {
   templateId: string;
   judgmentListId: string;
   maxTrials?: number;
+  /**
+   * Target index/collection the study queries. Defaults to `'products'` so
+   * the chained judgment-list (which `seedFullChain` / `seedJudgmentList`
+   * also default to `'products'`) passes the FR-1 `JUDGMENT_TARGET_MISMATCH`
+   * guard at POST /studies. Override only when the test deliberately sets
+   * a non-default target on both the JL and the study.
+   */
+  target?: string;
 }): Promise<StudySeed> {
-  const { clusterId, querySetId, templateId, judgmentListId, maxTrials = 2 } = args;
+  const {
+    clusterId,
+    querySetId,
+    templateId,
+    judgmentListId,
+    maxTrials = 2,
+    target = 'products',
+  } = args;
   const suffix = randomUUID().slice(0, 8);
   const name = `e2e-study-${suffix}`;
   const study = await post<{ id: string; name: string }>('/api/v1/studies', {
     name,
     cluster_id: clusterId,
-    target: 'products',
+    target,
     template_id: templateId,
     query_set_id: querySetId,
     judgment_list_id: judgmentListId,
