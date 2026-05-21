@@ -196,6 +196,30 @@ describe('<ConfidencePanel>', () => {
     expect(screen.getByTestId('callout-convergence').textContent).toContain('Late-rising');
   });
 
+  it('wires the 6 InfoTooltip glossary triggers per spec §11 (FR-5c tooltip inventory)', () => {
+    // Story 2.2 DoD: each contextual-help anchor on the panel must mount
+    // an `<InfoTooltip>` resolving against the matching glossary key.
+    // The primitive emits `tooltip-trigger-<glossary-key>` test IDs.
+    // We assert each of the six confidence-prefixed keys mounts at least
+    // one trigger so a future refactor that drops a label can't silently
+    // strip the tooltip surface.
+    mount(makeConfidence());
+    const expectedKeys = [
+      'confidence.ci_95',
+      'confidence.per_query_outcomes',
+      'confidence.comparison_against',
+      'confidence.runner_up_gap',
+      'confidence.late_trial_stddev',
+      'confidence.convergence_regime',
+    ];
+    for (const key of expectedKeys) {
+      expect(
+        screen.getByTestId(`tooltip-trigger-${key}`),
+        `missing InfoTooltip for ${key}`,
+      ).toBeTruthy();
+    }
+  });
+
   it('renders partial shape gracefully — ci_95 + per_query_outcomes null, aggregate signals only (AC-3)', () => {
     mount(
       makeConfidence({
