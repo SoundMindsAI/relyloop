@@ -59,7 +59,14 @@ repos:
         # 2026-05-12: `eslint.config.mjs` replaces the deleted legacy
         # `.eslintrc.json` (ESLint 9 flat config); checked here so the
         # config file itself stays prettier-formatted.
-        entry: pnpm --dir ui exec prettier --check
+        # `scripts/run-pnpm.sh` sources nvm (when present) so the hook
+        # subshell picks up the .nvmrc-pinned Node 22, not whatever stale
+        # `nvm use` the parent shell happens to have active. Without it,
+        # devs whose nvm default is <20.18 hit ERR_PNPM_UNSUPPORTED_ENGINE
+        # on every UI-touching commit (chore_precommit_node_path_resolution).
+        # Falls back to bare `pnpm` on CI (no nvm — Node provisioned by
+        # actions/setup-node@v4).
+        entry: scripts/run-pnpm.sh --dir ui exec prettier --check
           src
           package.json
           tsconfig.json
@@ -74,7 +81,8 @@ repos:
         name: eslint (ui/, flat config)
         # 2026-05-12: Next 16 removed `next lint`; the `pnpm lint` script now
         # runs `eslint .` directly against the flat config in eslint.config.mjs.
-        entry: pnpm --dir ui lint
+        # See prettier-ui above for the run-pnpm.sh rationale.
+        entry: scripts/run-pnpm.sh --dir ui lint
         language: system
         files: ^ui/src/.*\.(ts|tsx|js|jsx|mjs)$
         pass_filenames: false
