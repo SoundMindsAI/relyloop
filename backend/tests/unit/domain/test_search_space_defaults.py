@@ -291,6 +291,51 @@ class TestNarrowBoundsAroundWinner:
         # Same SearchSpace instance is acceptable since the function short-circuits.
         assert narrowed is space or narrowed.params == space.params
 
+    def test_negative_winner_float_narrows_symmetric(self) -> None:
+        """Negative winner uses ``|winner| × bracket`` for symmetric narrowing.
+
+        Regression for Gemini #1/#2 on PR #175: naive ``winner * 0.5 / winner * 1.5``
+        inverts bounds for negative winners. The ``abs(winner)`` fix produces
+        a valid bracket centered on the winner regardless of sign.
+        """
+        space = SearchSpace(params={"offset": FloatParam(type="float", low=-10.0, high=0.0)})
+        narrowed, names = narrow_bounds_around_winner(space, {"offset": -2.0})
+        assert names == ["offset"]
+        spec = narrowed.params["offset"]
+        assert isinstance(spec, FloatParam)
+        # winner = -2.0, bracket = 0.5 → half_width = 1.0 → [-3.0, -1.0]
+        assert spec.low == pytest.approx(-3.0)
+        assert spec.high == pytest.approx(-1.0)
+
+    def test_negative_winner_int_narrows_symmetric(self) -> None:
+        """IntParam with negative winner narrows around |winner| × bracket."""
+        space = SearchSpace(params={"shift": IntParam(type="int", low=-10, high=10)})
+        narrowed, names = narrow_bounds_around_winner(space, {"shift": -4})
+        assert names == ["shift"]
+        spec = narrowed.params["shift"]
+        assert isinstance(spec, IntParam)
+        # winner = -4, bracket = 0.5 → half_width = 2.0 → floor(-6), ceil(-2) → [-6, -2]
+        assert spec.low == -6 and spec.high == -2
+
+    def test_bracket_argument_actually_used(self) -> None:
+        """``bracket=0.25`` produces tighter bounds than the default 0.5."""
+        space = SearchSpace(params={"x": FloatParam(type="float", low=0.0, high=10.0)})
+        # bracket=0.25, winner=4 → half_width=1.0 → [3.0, 5.0]
+        narrowed, _ = narrow_bounds_around_winner(space, {"x": 4.0}, bracket=0.25)
+        spec = narrowed.params["x"]
+        assert isinstance(spec, FloatParam)
+        assert spec.low == pytest.approx(3.0)
+        assert spec.high == pytest.approx(5.0)
+
+    def test_bracket_argument_does_not_affect_log_path(self) -> None:
+        """Log-uniform stays at √2 regardless of bracket (spec FR-3 locks log factor)."""
+        space = SearchSpace(params={"x": FloatParam(type="float", low=0.5, high=10.0, log=True)})
+        narrowed_default, _ = narrow_bounds_around_winner(space, {"x": 2.0})
+        narrowed_tight, _ = narrow_bounds_around_winner(space, {"x": 2.0}, bracket=0.1)
+        # Both paths use √2 — bounds identical.
+        assert narrowed_default.params["x"].low == narrowed_tight.params["x"].low  # type: ignore[union-attr]
+        assert narrowed_default.params["x"].high == narrowed_tight.params["x"].high  # type: ignore[union-attr]
+
     def test_cardinality_non_increasing(self) -> None:
         """FR-4 invariant: cardinality_after <= cardinality_before for every input."""
         space = SearchSpace(

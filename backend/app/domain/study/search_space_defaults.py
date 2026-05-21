@@ -223,30 +223,48 @@ def build_starter_search_space(declared_params: dict[str, str]) -> StarterSearch
     )
 
 
-def _narrow_float_bounds(spec: FloatParam, winner: float) -> FloatParam | None:
-    """Return the narrowed FloatParam, or None if winner is out of bounds."""
+def _narrow_float_bounds(spec: FloatParam, winner: float, bracket: float) -> FloatParam | None:
+    """Return the narrowed FloatParam, or None if winner is out of bounds.
+
+    Linear path uses ``winner ± |winner| × bracket`` so negative winners get a
+    valid (non-inverted) bracket. The ``abs(winner)`` symmetry was a Gemini
+    Code Assist finding on PR #175 — without it, a winner of -2.0 with the
+    naive ``winner * 0.5 / winner * 1.5`` formula produces ``new_low=-1.0,
+    new_high=-3.0`` which is inverted and gets skipped.
+
+    Log path uses a fixed √2 geometric factor regardless of ``bracket`` — the
+    spec FR-3 locks √2 for log-uniform floats because the bracket parameter
+    is linear-scale-only; widening or narrowing the log bracket independently
+    would require a separate arg in a future revision.
+    """
     if winner <= spec.low or winner >= spec.high:
         return None
     if spec.log:
-        # Geometric bracket: winner / sqrt(2) ↔ winner * sqrt(2).
+        # Geometric bracket — fixed at √2 per spec FR-3.
         factor = math.sqrt(2.0)
         new_low = max(spec.low, winner / factor)
         new_high = min(spec.high, winner * factor)
     else:
-        # Linear bracket: ±50% of the winning value.
-        new_low = max(spec.low, winner * 0.5)
-        new_high = min(spec.high, winner * 1.5)
+        # Linear bracket — symmetric in absolute value so negatives narrow correctly.
+        half_width = abs(winner) * bracket
+        new_low = max(spec.low, winner - half_width)
+        new_high = min(spec.high, winner + half_width)
     if new_low >= new_high:
         return None
     return FloatParam(type="float", low=new_low, high=new_high, log=spec.log)
 
 
-def _narrow_int_bounds(spec: IntParam, winner: int) -> IntParam | None:
-    """Return the narrowed IntParam, or None if winner is out of bounds."""
+def _narrow_int_bounds(spec: IntParam, winner: int, bracket: float) -> IntParam | None:
+    """Return the narrowed IntParam, or None if winner is out of bounds.
+
+    Uses ``winner ± |winner| × bracket`` for sign symmetry (see
+    :func:`_narrow_float_bounds` for the negative-value Gemini finding).
+    """
     if winner <= spec.low or winner >= spec.high:
         return None
-    new_low = max(spec.low, math.floor(winner * 0.5))
-    new_high = min(spec.high, math.ceil(winner * 1.5))
+    half_width = abs(winner) * bracket
+    new_low = max(spec.low, math.floor(winner - half_width))
+    new_high = min(spec.high, math.ceil(winner + half_width))
     if new_low > new_high:
         return None
     return IntParam(type="int", low=new_low, high=new_high)
@@ -260,12 +278,17 @@ def narrow_bounds_around_winner(
     """Narrow each numeric param's bounds around the prior winner.
 
     For each ``name`` in ``winning_params`` that also appears in ``space.params``:
-    - **FloatParam linear**: new bounds = ``[winner * (1 - bracket), winner * (1 + bracket)]``
-      clamped to original bounds. Skipped if winner is at/outside original bounds.
-    - **FloatParam log-uniform**: geometric bracket using ``sqrt(2)``. Skipped if
-      winner is at/outside original bounds.
-    - **IntParam**: linear bracket, then ``floor``/``ceil`` clamped to original.
+    - **FloatParam linear**: new bounds = ``[winner − |winner| × bracket,
+      winner + |winner| × bracket]`` clamped to original bounds. Sign-symmetric
+      so negative winners narrow correctly. Skipped if winner is at/outside
+      original bounds.
+    - **FloatParam log-uniform**: geometric bracket using a fixed ``sqrt(2)``
+      factor (spec FR-3 — log narrowing doesn't compose linearly with
+      ``bracket``; a future revision can expose a separate arg if needed).
       Skipped if winner is at/outside original bounds.
+    - **IntParam**: same sign-symmetric ``winner ± |winner| × bracket`` math,
+      then ``floor``/``ceil`` clamped to original. Skipped if winner is
+      at/outside original bounds.
     - **CategoricalParam**: not narrowed (FR-3 — removing options can hide
       useful signal; the math isn't symmetric with the numeric path).
     - **Non-numeric winner value** (FR-3 type guard): skipped (no exception).
@@ -276,12 +299,10 @@ def narrow_bounds_around_winner(
     at 100 regardless of bound width, and IntParam cardinality can only shrink
     under bracket clamping. Categoricals are untouched.
 
-    The ``bracket`` argument is accepted for forward compatibility; v1
-    hardcodes ±50% / √2 internally. (The interface is locked here so
-    ``feat_study_clone_from_previous`` can adopt the same helper.)
+    The ``bracket`` argument controls the linear narrowing width; spec FR-3
+    locks the default at 0.5. The log-uniform geometric factor stays at
+    √2 regardless (documented above).
     """
-    del bracket  # v1: bracket is locked at 0.5 / sqrt(2); arg kept for future use.
-
     new_params: dict[str, ParamSpec] = dict(space.params)
     narrowed: list[str] = []
 
@@ -292,7 +313,7 @@ def narrow_bounds_around_winner(
         if isinstance(current_spec, FloatParam):
             if not isinstance(winner_value, (int, float)) or isinstance(winner_value, bool):
                 continue
-            narrowed_spec = _narrow_float_bounds(current_spec, float(winner_value))
+            narrowed_spec = _narrow_float_bounds(current_spec, float(winner_value), bracket)
             if narrowed_spec is None:
                 continue
             new_params[name] = narrowed_spec
@@ -300,7 +321,7 @@ def narrow_bounds_around_winner(
         elif isinstance(current_spec, IntParam):
             if not isinstance(winner_value, int) or isinstance(winner_value, bool):
                 continue
-            narrowed_spec_int = _narrow_int_bounds(current_spec, winner_value)
+            narrowed_spec_int = _narrow_int_bounds(current_spec, winner_value, bracket)
             if narrowed_spec_int is None:
                 continue
             new_params[name] = narrowed_spec_int
