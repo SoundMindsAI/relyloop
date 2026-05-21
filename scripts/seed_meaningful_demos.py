@@ -772,6 +772,40 @@ def confirm_wipe() -> bool:
     return resp in ("y", "yes")
 
 
+def count_existing_clusters() -> int | None:
+    """Return the count of rows in the ``clusters`` table, or ``None`` if the
+    table isn't reachable yet (fresh stack mid-migration, postgres not healthy,
+    etc.). Used by ``--if-empty`` to decide whether to seed.
+
+    Direct SQL via the existing ``_psql`` plumbing keeps this in lockstep with
+    how the rest of the script reaches the DB; no extra deps needed.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "docker",
+                "compose",
+                "exec",
+                "-T",
+                "postgres",
+                "psql",
+                "-U",
+                "relyloop",
+                "-d",
+                "relyloop",
+                "-tA",  # -t: tuples only, -A: unaligned
+                "-c",
+                "SELECT COUNT(*) FROM clusters;",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return int(result.stdout.strip())
+    except (subprocess.CalledProcessError, ValueError):
+        return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument(
@@ -779,7 +813,38 @@ def main() -> int:
         action="store_true",
         help="Skip the destructive-action prompt (use in automation / CI).",
     )
+    ap.add_argument(
+        "--if-empty",
+        action="store_true",
+        help=(
+            "Only seed when the ``clusters`` table is empty. Used by "
+            "``scripts/install.sh`` to auto-populate meaningful demo data on "
+            "fresh stacks without clobbering an operator's existing state. "
+            "Exits 0 with a notice when clusters already exist; exits 0 "
+            "(non-fatal) when the DB isn't reachable yet."
+        ),
+    )
     args = ap.parse_args()
+
+    if args.if_empty:
+        existing = count_existing_clusters()
+        if existing is None:
+            # DB unreachable / schema not yet present / postgres still
+            # starting. Don't fail `make up`; the operator can always run
+            # `make seed-demo FORCE=1` manually after the stack stabilizes.
+            print("seed-demo: skipping — postgres not reachable yet.")
+            return 0
+        if existing > 0:
+            print(
+                f"seed-demo: skipping — {existing} cluster(s) already exist. "
+                "Use `make seed-demo FORCE=1` to wipe + reseed.",
+            )
+            return 0
+        # Fresh stack: fall through with implicit force (TRUNCATE on an empty
+        # table is a no-op, so the destructive prompt would just confuse the
+        # `make up` first-run experience).
+        print("seed-demo: stack is empty — auto-seeding meaningful demo data…")
+        args.force = True
 
     if not args.force and not confirm_wipe():
         print("aborted.")
