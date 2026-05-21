@@ -135,9 +135,15 @@ def fake_db() -> Any:
 
 @pytest.fixture
 def fake_ctx(fake_db: Any, fake_redis: Any, fake_settings: Any) -> ToolContext:
-    """ToolContext with all four dependencies stubbed."""
+    """ToolContext with all dependencies stubbed.
+
+    ``conversation_id`` defaults to a stable fixture value so telemetry
+    assertions can match against it. Tests that need a different value can
+    override by constructing a fresh ToolContext inline.
+    """
     return ToolContext(
         db=fake_db,
+        conversation_id="test-conversation-fixture",
         redis=fake_redis,
         arq_pool=None,
         settings=fake_settings,
