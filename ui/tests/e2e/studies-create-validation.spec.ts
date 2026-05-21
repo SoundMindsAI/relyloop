@@ -85,7 +85,10 @@ test.describe('/studies — create-study Step-4 client-side validation', () => {
     // by default. Flip into manual mode so the existing fill() path works
     // without this test needing to seed an ES index.
     await page.getByRole('button', { name: 'Enter manually' }).click();
-    await page.getByLabel('Target index / collection').fill('e2e-target');
+    // Must match `seedFullChain()`'s judgment-list target default
+    // ('products') so the FR-1 JUDGMENT_TARGET_MISMATCH guard at POST
+    // /studies doesn't reject this happy-path flow.
+    await page.getByLabel('Target index / collection').fill('products');
     await page.getByTestId('step-next').click();
 
     // Step 2 — pick the seeded query set + judgment list.
