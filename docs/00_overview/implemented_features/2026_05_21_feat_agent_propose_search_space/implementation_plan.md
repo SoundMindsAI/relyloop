@@ -1,7 +1,7 @@
 # Implementation Plan — `propose_search_space` agent tool
 
 **Date:** 2026-05-21
-**Status:** Draft
+**Status:** Complete (PR [#175](https://github.com/SoundMindsAI/relyloop/pull/175), merged 2026-05-21)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):**
 - [`CLAUDE.md`](../../../../CLAUDE.md)
