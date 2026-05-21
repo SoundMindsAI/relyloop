@@ -288,6 +288,7 @@ async def list_studies(
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     since: Annotated[datetime | None, Query()] = None,
     study_status: Annotated[StudyStatusWire | None, Query(alias="status")] = None,
+    cluster_id: Annotated[str | None, Query(min_length=1, max_length=36)] = None,
     q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
     sort: Annotated[StudySortKey | None, Query()] = None,
 ) -> StudyListResponse:
@@ -327,10 +328,13 @@ async def list_studies(
         limit=limit,
         since=since,
         status=status_filter,
+        cluster_id=cluster_id,
         q=q,
         sort=sort,
     )
-    total = await repo.count_studies(db, since=since, status=status_filter, q=q)
+    total = await repo.count_studies(
+        db, since=since, status=status_filter, cluster_id=cluster_id, q=q
+    )
     response.headers["X-Total-Count"] = str(total)
 
     next_cursor: str | None = None

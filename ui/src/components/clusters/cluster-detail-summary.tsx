@@ -52,6 +52,12 @@ export function ClusterDetailSummary({ cluster }: ClusterDetailSummaryProps) {
               <dd>{cluster.notes}</dd>
             </div>
           )}
+          <div>
+            <dt className="text-xs uppercase text-muted-foreground">Target filter</dt>
+            <dd className="font-mono text-xs">
+              {cluster.target_filter ?? <span className="text-muted-foreground">—</span>}
+            </dd>
+          </div>
         </dl>
       </CardContent>
     </Card>
