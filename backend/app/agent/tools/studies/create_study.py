@@ -6,6 +6,7 @@ confirmation guard requires an affirmative user message before dispatch.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import uuid_utils
@@ -16,7 +17,9 @@ from pydantic import ValidationError
 from backend.app.agent.context import ToolContext
 from backend.app.api.v1.schemas import CreateStudyRequest
 from backend.app.db import repo
-from backend.app.domain.study.search_space import SearchSpace
+from backend.app.domain.study.search_space import SearchSpace, estimate_cardinality
+
+logger = logging.getLogger(__name__)
 
 # Re-export so the registry's TOOL_ARG_MODELS table can reference it.
 CreateStudyArgs = CreateStudyRequest
@@ -34,7 +37,7 @@ async def create_study_impl(args: CreateStudyArgs, ctx: ToolContext) -> dict[str
     """
     # 1. SearchSpace validation.
     try:
-        SearchSpace.model_validate(args.search_space)
+        validated_space = SearchSpace.model_validate(args.search_space)
     except ValidationError as exc:
         raise HTTPException(
             status_code=400,
@@ -44,6 +47,28 @@ async def create_study_impl(args: CreateStudyArgs, ctx: ToolContext) -> dict[str
                 "retryable": False,
             },
         ) from exc
+
+    # 1.5. Generate study_id early so the telemetry event below can include
+    # it as study_id_pending. The same id is reused at step 5's INSERT.
+    study_id = str(uuid_utils.uuid7())
+
+    # 1.6. Adherence telemetry (spec FR-6) — INFO event, swallowed on failure.
+    # Correlated offline with `agent.search_space_proposed` on conversation_id
+    # to measure propose→create chain adherence.
+    try:
+        logger.info(
+            "agent.create_study.invoked "
+            "conversation_id=%s study_id_pending=%s template_id=%s cluster_id=%s "
+            "search_space_param_names=%s search_space_cardinality=%d",
+            ctx.conversation_id,
+            study_id,
+            args.template_id,
+            args.cluster_id,
+            sorted(validated_space.params.keys()),
+            estimate_cardinality(validated_space),
+        )
+    except Exception:  # noqa: BLE001, S110 — telemetry must not block dispatch (spec FR-6)
+        pass
 
     # 2. FK resolution.
     cluster = await repo.get_cluster(ctx.db, args.cluster_id)
@@ -101,8 +126,8 @@ async def create_study_impl(args: CreateStudyArgs, ctx: ToolContext) -> dict[str
     # 4. Serialize config (parity with router).
     config_payload = args.config.model_dump(exclude_none=True, exclude_unset=True)
 
-    # 5. UUIDv7 + INSERT + commit.
-    study_id = str(uuid_utils.uuid7())
+    # 5. INSERT + commit. study_id was generated at step 1.5 above so the
+    # telemetry event could include it.
     row = await repo.create_study(
         ctx.db,
         id=study_id,
