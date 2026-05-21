@@ -1,9 +1,17 @@
 /**
  * Walkthrough: Register your first cluster (guide 01).
  *
- * Captures the operator's first-time cluster-registration journey:
- * land on /clusters → open the modal → fill the form → submit → see the
- * new row in the list with health status.
+ * Captures the operator's first-time cluster-registration journey using the
+ * **acme-products-prod** scenario from `scripts/seed_meaningful_demos.py` so
+ * the screenshots look like a real production e-commerce cluster rather than
+ * a `walkthrough-{6hex}` dev-test artifact. The Target filter input
+ * (`feat_cluster_target_filter`, PR #168) is filled with `products*` to teach
+ * the per-cluster index-scoping feature.
+ *
+ * The spec is self-contained — it does NOT depend on `make seed-demo` having
+ * run; it just borrows the scenario's naming + field values. The cluster name
+ * is suffixed with `randomUUID().slice(0, 6)` so reruns and seeded state don't
+ * collide.
  *
  * Usage:
  *   cd ui
@@ -21,7 +29,13 @@ const SCREENSHOTS = path.resolve(__dirname, '../../../public/guides/01_register_
 
 test.describe('Walkthrough: Register your first cluster', () => {
   test('captures the full cluster-registration journey', async ({ page }) => {
-    const name = `walkthrough-${randomUUID().slice(0, 6)}`;
+    // Mirror scripts/seed_meaningful_demos.py SCENARIOS[0] (acme-products-prod)
+    // with a UUID suffix so reruns and the already-seeded canonical cluster
+    // don't collide. Everything else (engine, URL, auth, creds, env, target
+    // filter) comes verbatim from the seed scenario.
+    const name = `acme-products-prod-${randomUUID().slice(0, 6)}`;
+    const notes = 'Production Elasticsearch cluster — e-commerce product search.';
+    const targetFilter = 'products*';
 
     // ── 01: Land on /clusters list ─────────────────────────────────────
     await page.goto('/clusters');
@@ -42,19 +56,31 @@ test.describe('Walkthrough: Register your first cluster', () => {
       fullPage: false,
     });
 
-    // ── 03: Fill the form ──────────────────────────────────────────────
+    // ── 03: Fill the form (acme-products-prod realistic values) ───────
     await page.getByLabel('Name', { exact: true }).fill(name);
     await page.getByLabel('Base URL', { exact: true }).fill('http://elasticsearch:9200');
     await page.getByLabel(/^Credentials ref/).fill('local-es');
+
+    // The acme scenario uses Production environment.
+    await page.locator('#cl-env').click();
+    await page.getByRole('option', { name: 'prod' }).click();
 
     // local-es credentials are username+password; switch auth_kind to match.
     await page.locator('#cl-auth').click();
     await page.getByRole('option', { name: 'es_basic' }).click();
 
+    // Notes: describe the scenario in operator-relatable language.
+    await page.getByLabel('Notes', { exact: true }).fill(notes);
+
+    // Target filter: scope this cluster's index picker to the e-commerce
+    // products family. The caption for this step teaches the new feature.
+    await page.getByLabel(/^Target filter/).fill(targetFilter);
+
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(400);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '03-register-modal-filled.png'),
-      fullPage: false,
+      fullPage: true,
     });
 
     // ── 04: Submit + wait for the 201 ─────────────────────────────────

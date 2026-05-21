@@ -42,6 +42,56 @@ so the create-study modal only shows matching indices for this cluster").
 Scope estimate: ~30 minutes (Playwright run is ~2min, caption edits ~10min,
 review ~10min).
 
+### Use realistic seed-scenario data (NOT `walkthrough-{6chars}` placeholders)
+
+The current spec at
+[`ui/tests/e2e/guides/01_register_first_cluster.spec.ts:25`](../../../../ui/tests/e2e/guides/01_register_first_cluster.spec.ts#L25)
+generates a throwaway cluster name like `walkthrough-a3b9c1` and uses
+`local-es` for the credentials ref. That works mechanically but the
+resulting screenshots look like dev-test artifacts, not a real operator's
+first cluster. The screenshot reader's first impression should be **a
+relatable production-style scenario**, mirroring what `make seed-demo`
+already plants into a fresh dev DB ([`scripts/seed_meaningful_demos.py`](../../../../scripts/seed_meaningful_demos.py)).
+
+When `/guide-gen 01 --regen` runs, update the spec to use the
+**acme-products-prod** scenario verbatim from the seed file (the first
+e-commerce scenario — most relatable for the first-touch screenshot).
+Keep a `randomUUID().slice(0, 6)` suffix on the cluster name so the
+test doesn't collide with an already-seeded `acme-products-prod` row;
+everything else should match the seed:
+
+| Field | Value | Source |
+|---|---|---|
+| Name | `acme-products-prod-${uuid6}` | mirrors seed slug + collision suffix |
+| Engine type | `elasticsearch` | seed |
+| Base URL | `http://elasticsearch:9200` | seed (host-network alias inside the Compose network) |
+| Auth kind | `es_basic` | seed |
+| Credentials ref | `local-es` | seed |
+| Environment | `prod` | seed |
+| Notes | `"Production Elasticsearch cluster — e-commerce product search."` | new, infers from seed's "e-commerce" framing |
+| **Target filter** | `products*` | seed — the whole point of this guide refresh |
+
+The Step 6 detail-page screenshot then shows a realistic operator landing
+page with the target filter glob visible — which is exactly what the
+caption update should call out.
+
+**Caption update for the new Target filter step** (between Step 03 and 04 in the existing guide):
+
+> "**Optional: restrict this cluster's index picker.** Many production
+> Elasticsearch clusters host indices for multiple products or teams.
+> Set Target filter to a glob like `products*` so when you later
+> create a study against this cluster, the index picker only shows
+> matching indices instead of every index on the box. Brace expansion
+> isn't supported (`docs-{en,fr}*` won't work); use multiple registrations
+> or a wider glob like `docs-*`."
+
+**Important — keep the test self-contained.** The Playwright spec
+shouldn't depend on `make seed-demo` having run; it just borrows the
+seed scenario's *naming + field values* to produce believable screenshots.
+The spec still creates its own cluster via the modal (with the
+collision-suffixed name) so a clean dev stack will render the guide
+correctly without any prerequisite seed step.
+
 ## Sibling coordination
 
 Pairs with the (now-merged)
