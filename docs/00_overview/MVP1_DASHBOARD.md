@@ -6,23 +6,29 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_study_target_judgment_mismatch_guard](../02_product/planned_features/feat_study_target_judgment_mismatch_guard/feature_spec.md)** — Feature, currently in **Spec**
 
-Pull from the Idea backlog or capture a new feature spec.
+> `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422).
+
+Spec exists; run /pipeline to generate the implementation plan + ship
+
+```bash
+/pipeline docs/02_product/planned_features/feat_study_target_judgment_mismatch_guard --auto
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **57 / 57** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **57 / 58** (98%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **2** unblocking / paying daily cost |
 | → P1 | **6** high-value, ready when P0 clears |
 | → P2 (default) | 6 important to file, not blocking |
 | → Backlog | 0 captured for record, not planned |
 | Open bugs | 0 |
-| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP1) |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -109,15 +115,16 @@ _None._
 
 _None._
 
-### Spec (0)
-
-_None._
-
-### Idea (14)
+### Spec (1)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
-| P0 | [feat_study_target_judgment_mismatch_guard](../02_product/planned_features/feat_study_target_judgment_mismatch_guard/idea.md) | Feature | The existing POST `/studies` validator at [`backend/app/api/v1/studies.py:238`](../../backend/app/api/v1/studies.py#L238) enforces `judgment_list.query_set_id == body.query_set_id` (cross-set anti-enu | — | Idea — surfaced post-merge of `feat_pr_metric_confidence` |
+| P0 | [feat_study_target_judgment_mismatch_guard](../02_product/planned_features/feat_study_target_judgment_mismatch_guard/feature_spec.md) | Feature | `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422). | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) |
+
+### Idea (13)
+
+| Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|
 | P0 | [chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/idea.md) | Chore | Multiple seed paths emit rows into the operator-visible `clusters` / `query_sets` / `query_templates` / `judgment_lists` / `studies` tables: | — | Idea — root cause behind the "study2 ran 1000 zero-metric trials" incident |
 | P1 | [feat_home_first_run_demo_nudge](../02_product/planned_features/feat_home_first_run_demo_nudge/idea.md) | Feature | The auto-seed chore solves the "fresh stack = empty dropdowns" problem. It does NOT solve: | — | Idea — product-design-shaped follow-up paired with the auto-seed-on-make-up chore |
 | P1 | [feat_orchestrator_zero_streak_abort](../02_product/planned_features/feat_orchestrator_zero_streak_abort/idea.md) | Feature | The two create-time guards close the bulk of the "all 1000 trials score 0" surface, but they don't cover every path: | — | Idea — defense-in-depth tier behind the create-time fail-fast guards |
@@ -143,6 +150,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_target_judgment_mismatch_guard["study target judgment mismatch guard"]
+  class feat_study_target_judgment_mismatch_guard spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -279,6 +288,7 @@ graph LR
   feat_query_inline_crud --> chore_tutorial_polish
   feat_studies_ui --> chore_tutorial_polish
   feat_study_lifecycle --> chore_tutorial_polish
+  feat_study_target_judgment_mismatch_guard --> chore_tutorial_polish
   infra_adapter_elastic --> chore_tutorial_polish
   infra_ci_smoke_makeup --> chore_tutorial_polish
   infra_dashboard_regen_pre_commit_conflict --> chore_tutorial_polish
@@ -308,6 +318,7 @@ graph LR
   feat_query_inline_crud --> feat_chat_agent
   feat_studies_ui --> feat_chat_agent
   feat_study_lifecycle --> feat_chat_agent
+  feat_study_target_judgment_mismatch_guard --> feat_chat_agent
   infra_adapter_elastic --> feat_chat_agent
   infra_ci_smoke_makeup --> feat_chat_agent
   infra_dashboard_regen_pre_commit_conflict --> feat_chat_agent
