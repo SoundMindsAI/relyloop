@@ -15,9 +15,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **54 / 54** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **6** items remaining (features + bugs + chores) |
-| Open bugs | 2 |
-| Open chores | 4 (idea-stage debt) |
+| Path to MVP1 | **4** items remaining (features + bugs + chores) |
+| Open bugs | 1 |
+| Open chores | 3 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -105,17 +105,15 @@ _None._
 
 _None._
 
-### Idea (8)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_pr_metric_confidence](../02_product/planned_features/feat_pr_metric_confidence/idea.md) | Feature | When the operator's approver opens a study-backed PR in the central search-config repo, the only confidence signal in the PR body is two scalar point estimates. From [`_render_pr_body_study_backed`](. | — | Idea — surfaced during a 2026-05-20 conversation reviewing two outside articles for relevance to RelyLoop ([Doug Turnbull, "Autoresearching a better MSMarco BM25", 2026-05-17](https://softwaredoug.com/blog/2026/05/17/autoresearching-a-better-msmarco-bm25) and [Li/Wang/Wang, "Choosing the Better Bandit Algorithm under Data Sharing", arXiv:2507.11891v2](https://arxiv.org/pdf/2507.11891)). The articles themselves are not directly material to RelyLoop's roadmap; what surfaced as material — after several rounds of honest filtering — is the underlying question they prompted: **how confident should the approver be in the metric reported on the PR?** |
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [chore_cluster_detail_show_target_filter](../02_product/planned_features/chore_cluster_detail_show_target_filter/idea.md) | Chore | `feat_cluster_target_filter` (PR #168) shipped the column in the DB and the input on the register modal, but the cluster detail page wasn't updated to display the value. Operators can: - See it in the | — | Idea — identified by guide-gen visual audit (guide 01 regen) |
 | [chore_guide_01_screenshot_refresh_target_filter](../02_product/planned_features/chore_guide_01_screenshot_refresh_target_filter/idea.md) | Chore | The guide is still operationally correct — the new field is optional, defaults to null, and doesn't change the happy-path flow described in the guide. But: | — | Idea — captured during `feat_cluster_target_filter` impl |
 | [chore_guide_06_screenshot_refresh_target_picker](../02_product/planned_features/chore_guide_06_screenshot_refresh_target_picker/idea.md) | Chore | The walkthrough guide 06 ("Create and monitor a study") shows the operator opening the create-study modal as part of the wizard tour. The single Step-1 screenshot now disagrees with shipped UI — opera | — | Idea — surfaced during `feat_create_study_target_autocomplete` post-impl guide-impact assessment. |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [bug_cluster_detail_studies_unfiltered](../02_product/planned_features/bug_cluster_detail_studies_unfiltered/idea.md) | Bug | - **User confusion:** the heading says "Studies using this cluster" but shows studies from every cluster. - **Information leak (mild):** a low-privilege user on the cluster detail page sees studies th | — | Bug — identified by guide-gen visual audit (guide 01 regen) |
 | [bug_e2e_target_dropdown_flake](../02_product/planned_features/bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Idea — surfaced during `feat_create_study_target_autocomplete` Story F2 implementation; the new E2E happy-path spec is currently `test.skip`'d. |
 
 ## Dependency graph

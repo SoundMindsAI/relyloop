@@ -271,6 +271,169 @@ export async function seedFullChain(numQueries = 3): Promise<FullChainSeed> {
   };
 }
 
+interface AcmeProductsChainSeed {
+  clusterId: string;
+  clusterName: string;
+  querySetId: string;
+  queryIds: string[];
+  templateId: string;
+  templateName: string;
+  judgmentListId: string;
+  judgmentListName: string;
+  studyId: string;
+  studyName: string;
+}
+
+/**
+ * Seed the **acme-products-prod** scenario chain (cluster + query-set +
+ * queries + template + judgment-list + study) using realistic e-commerce
+ * naming from `scripts/seed_meaningful_demos.py` SCENARIOS[0]. Used by
+ * guide-06's walkthrough spec so the screenshots look like a real production
+ * tuning workflow rather than `e2e-*` dev-test artifacts.
+ *
+ * Self-contained: does NOT depend on `make seed-demo` having run. Every
+ * entity name carries a `randomUUID().slice(0, 6)` suffix to avoid colliding
+ * with the canonical `acme-products-prod` rows that `make seed-demo` writes —
+ * `query_sets.name` and `judgment_lists.name` carry global unique constraints,
+ * and re-running without a suffix on the template would bump its version on
+ * every spec invocation. The suffix is the same across all five entities so
+ * the relationship is visually obvious in the studies-list screenshot.
+ *
+ * Does NOT seed the ES index — registers only the Postgres rows. The target
+ * picker dropdown on Step 1 of the create-study modal will therefore show
+ * an empty state (or whatever ES indices happen to exist) when this
+ * cluster is selected; the "Enter manually" toggle is the fallback path
+ * the captions teach.
+ */
+export async function seedAcmeProductsChain(): Promise<AcmeProductsChainSeed> {
+  const suffix = randomUUID().slice(0, 6);
+  const clusterName = `acme-products-prod-${suffix}`;
+  const templateName = `multi-match-title-boost-v1-${suffix}`;
+  const querySetName = `top-product-searches-q4-2025-${suffix}`;
+  const judgmentListName = `acme-products-relevance-2025-12-${suffix}`;
+  const studyName = `tune-product-title-boost-baseline-${suffix}`;
+
+  const cluster = await post<{ id: string }>('/api/v1/clusters', {
+    name: clusterName,
+    engine_type: 'elasticsearch',
+    environment: 'prod',
+    base_url: 'http://elasticsearch:9200',
+    auth_kind: 'es_basic',
+    credentials_ref: 'local-es',
+    target_filter: 'products*',
+  });
+
+  const qset = await post<{ id: string }>('/api/v1/query-sets', {
+    name: querySetName,
+    cluster_id: cluster.id,
+  });
+
+  const queryTexts = [
+    'wireless noise cancelling headphones',
+    'womens running shoes',
+    'kitchen knife set',
+    'sony headphones',
+    'noise cancelling over ear',
+  ];
+  const bulk = await post<{ added: number }>(`/api/v1/query-sets/${qset.id}/queries`, {
+    queries: queryTexts.map((t) => ({
+      query_text: t,
+      reference_answer: null,
+      query_metadata: null,
+    })),
+  });
+  if (bulk.added !== queryTexts.length) {
+    throw new Error(`Expected ${queryTexts.length} queries, got ${bulk.added}`);
+  }
+  const listBody = await get<{ data: Array<{ id: string }> }>(
+    `/api/v1/query-sets/${qset.id}/queries?limit=50`,
+  );
+  const queryIds = listBody.data.map((r) => r.id);
+
+  const templateBody = JSON.stringify({
+    query: {
+      multi_match: {
+        query: '{{ query_text }}',
+        fields: ['title^{{ title_boost }}', 'description', 'brand^2'],
+        type: 'best_fields',
+      },
+    },
+  });
+  const tpl = await post<{ id: string; name: string; version: number }>(
+    '/api/v1/query-templates',
+    {
+      name: templateName,
+      engine_type: 'elasticsearch',
+      body: templateBody,
+      declared_params: { title_boost: 'float' },
+    },
+  );
+
+  // Subset of SCENARIOS[0].judgments_map — ten ratings spanning queries 0-3.
+  const judgmentTuples: Array<[number, string, 0 | 1 | 2 | 3]> = [
+    [0, 'p1001', 3],
+    [0, 'p1002', 3],
+    [0, 'p2001', 0],
+    [1, 'p2001', 3],
+    [1, 'p2002', 3],
+    [1, 'p1001', 0],
+    [2, 'p3001', 3],
+    [2, 'p1001', 0],
+    [3, 'p1001', 3],
+    [3, 'p1002', 1],
+  ];
+  const judgments = judgmentTuples.map(([qi, docId, rating]) => {
+    const queryId = queryIds[qi];
+    if (queryId === undefined) {
+      throw new Error(`Query index ${qi} out of bounds (have ${queryIds.length} queries)`);
+    }
+    return {
+      query_id: queryId,
+      doc_id: docId,
+      rating,
+      notes: null,
+    };
+  });
+  const jl = await post<{ id: string }>('/api/v1/judgment-lists/import', {
+    name: judgmentListName,
+    query_set_id: qset.id,
+    cluster_id: cluster.id,
+    target: 'products',
+    rubric:
+      'Rate 0=irrelevant, 1=partial, 2=relevant, 3=highly relevant by intent match (brand, product type, key feature).',
+    judgments,
+  });
+
+  const study = await post<{ id: string; name: string }>('/api/v1/studies', {
+    name: studyName,
+    cluster_id: cluster.id,
+    target: 'products',
+    template_id: tpl.id,
+    query_set_id: qset.id,
+    judgment_list_id: jl.id,
+    search_space: {
+      params: {
+        title_boost: { type: 'float', low: 0.5, high: 10.0, log: true },
+      },
+    },
+    objective: { metric: 'ndcg', k: 10, direction: 'maximize' },
+    config: { max_trials: 2, sampler: 'tpe', pruner: 'none' },
+  });
+
+  return {
+    clusterId: cluster.id,
+    clusterName,
+    querySetId: qset.id,
+    queryIds,
+    templateId: tpl.id,
+    templateName: tpl.name,
+    judgmentListId: jl.id,
+    judgmentListName,
+    studyId: study.id,
+    studyName: study.name,
+  };
+}
+
 /**
  * Create a study against an existing chain. Enqueues the orchestrator worker;
  * the study transitions through queued → running → (completed | failed) per
