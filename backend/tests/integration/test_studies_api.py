@@ -359,3 +359,75 @@ async def test_get_study_unknown_id_returns_404(
     resp = await async_client.get("/api/v1/studies/00000000-0000-0000-0000-000000000000")
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "STUDY_NOT_FOUND"
+
+
+# ---------------------------------------------------------------------------
+# cluster_id filter (bug_cluster_detail_studies_unfiltered fix)
+# ---------------------------------------------------------------------------
+
+
+async def test_list_studies_filters_by_cluster_id(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """GET /studies?cluster_id={id} scopes to that cluster only.
+
+    Regression for the bug surfaced during guide 01 audit: the frontend's
+    "Studies using this cluster" section sent ?cluster_id= but the backend
+    silently ignored it (no Query param declared) → unfiltered global list.
+
+    Seeds two independent clusters (each with its own template/query-set/
+    judgment-list/study), then asserts GET /studies?cluster_id=A returns
+    only A's study and excludes B's.
+    """
+    ids_a = await _seed_minimum_for_post_studies()
+    ids_b = await _seed_minimum_for_post_studies()
+
+    body_a = {
+        "name": f"study-a-{uuid.uuid4().hex[:8]}",
+        "cluster_id": ids_a["cluster_id"],
+        "target": "stub-index",
+        "template_id": ids_a["template_id"],
+        "query_set_id": ids_a["query_set_id"],
+        "judgment_list_id": ids_a["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 5},
+    }
+    body_b = {
+        **body_a,
+        "name": f"study-b-{uuid.uuid4().hex[:8]}",
+        "cluster_id": ids_b["cluster_id"],
+        "template_id": ids_b["template_id"],
+        "query_set_id": ids_b["query_set_id"],
+        "judgment_list_id": ids_b["judgment_list_id"],
+    }
+    post_a = await async_client.post("/api/v1/studies", json=body_a)
+    post_b = await async_client.post("/api/v1/studies", json=body_b)
+    assert post_a.status_code == 201
+    assert post_b.status_code == 201
+    study_a_id = post_a.json()["id"]
+    study_b_id = post_b.json()["id"]
+
+    # Scoped to A: returns A's study, excludes B's.
+    resp_a = await async_client.get(f"/api/v1/studies?cluster_id={ids_a['cluster_id']}")
+    assert resp_a.status_code == 200
+    ids_returned_a = {row["id"] for row in resp_a.json()["data"]}
+    assert study_a_id in ids_returned_a
+    assert study_b_id not in ids_returned_a
+    # X-Total-Count parity — also scoped.
+    total_a = int(resp_a.headers["X-Total-Count"])
+    assert total_a == len(ids_returned_a)
+
+    # Scoped to B: mirrors.
+    resp_b = await async_client.get(f"/api/v1/studies?cluster_id={ids_b['cluster_id']}")
+    assert resp_b.status_code == 200
+    ids_returned_b = {row["id"] for row in resp_b.json()["data"]}
+    assert study_b_id in ids_returned_b
+    assert study_a_id not in ids_returned_b
+
+    # No cluster_id filter → both studies visible (global list still works).
+    resp_all = await async_client.get("/api/v1/studies")
+    assert resp_all.status_code == 200
+    ids_returned_all = {row["id"] for row in resp_all.json()["data"]}
+    assert study_a_id in ids_returned_all
+    assert study_b_id in ids_returned_all

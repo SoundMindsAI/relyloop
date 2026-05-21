@@ -1,33 +1,33 @@
 {
   "title": "Register your first cluster",
-  "description": "Add an Elasticsearch or OpenSearch cluster to RelyLoop and verify the connection probe succeeds.",
+  "description": "Add an Elasticsearch or OpenSearch cluster to RelyLoop, scope its index picker with the optional Target filter, and verify the connection probe succeeds.",
   "order": 1,
   "tags": [
     "getting-started",
     "clusters",
     "setup"
   ],
-  "estimated_time": "2 minutes",
+  "estimated_time": "3 minutes",
   "screenshots": [
     {
       "file": "01-clusters-list.png",
-      "caption": "Open the Clusters page. The list shows every registered Elasticsearch and OpenSearch cluster \u2014 empty on a fresh install. Click 'Register cluster' in the top right to begin."
+      "caption": "Open the Clusters page. The list shows every registered Elasticsearch and OpenSearch cluster — here, four meaningful demo scenarios already seeded by `make seed-demo`. Click 'Register cluster' in the top right to add your own."
     },
     {
       "file": "02-register-modal-empty.png",
-      "caption": "The registration modal opens with sensible defaults: Engine = elasticsearch, Environment = dev, Auth kind = es_apikey. Fill the Name, Base URL, and Credentials ref fields."
+      "caption": "The registration modal opens with sensible defaults: Engine = elasticsearch, Environment = dev, Auth kind = es_apikey. Fill the Name, Base URL, and Credentials ref fields — and scroll down within the modal to reveal the Notes and Target filter inputs further below."
     },
     {
       "file": "03-register-modal-filled.png",
-      "caption": "For the local Compose stack: Base URL is http://elasticsearch:9200 and Credentials ref is local-es. Switch Auth kind to es_basic \u2014 the local-es secret stores username + password, not an API key. (The placeholder credentials are pre-mounted by `make up`.)"
+      "caption": "Fill in realistic values for a production e-commerce cluster: Name = acme-products-prod-*, Base URL = http://elasticsearch:9200, Credentials ref = local-es, Environment = prod, Auth kind = es_basic. Set the optional Target filter to a glob like `products*` so this cluster's index picker (used later by the create-study modal) only shows matching indices instead of every index on the box. Brace expansion (`docs-{en,fr}*`) isn't supported — use a wider glob like `docs-*` or register multiple clusters. Scroll to the Register button and click it."
     },
     {
       "file": "04-cluster-registered.png",
-      "caption": "Click Register. RelyLoop fires a connection probe through the engine adapter \u2014 if the cluster is reachable, it's added to the list with a green health badge. CLUSTER_UNREACHABLE means the URL or credentials are wrong."
+      "caption": "RelyLoop fires a connection probe through the engine adapter. If the cluster is reachable, it's added to the list with a health badge (green when healthy, yellow when only partially reachable, red on `CLUSTER_UNREACHABLE`). The toast in the bottom right confirms the registration and the probe result."
     },
     {
       "file": "05-cluster-detail.png",
-      "caption": "Click the cluster row to open its detail page. From here you can see the live health probe result, the credentials reference, and any studies that have run against this cluster."
+      "caption": "Click the new cluster row to open its detail page. You see the live health probe result, version, base URL, auth kind, notes, and the Target filter you set (here `products*` scopes this cluster's index picker). The 'Studies using this cluster' section underneath is empty for a fresh cluster — it fills in once you start running studies against it. Guide 06 walks you through creating one."
     }
   ],
   "video": "walkthrough.webm"
