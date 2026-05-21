@@ -14,7 +14,12 @@
 - Major changes vs idea: added FR-1b `JUDGMENT_CLUSTER_MISMATCH` cross-check (cycle-1 High finding closed the cross-cluster judgment-list reuse gap); +2 ACs (AC-11 + AC-12); +1 follow-up boundary documented (`bug_studies_query_set_cluster_consistency`).
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-21
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 — 3 cycles (12 + 3 + 1 findings raised; **all 16 accepted, 0 rejected**)
+- Stories: 3 across 1 epic (1.1 backend listing surface, 1.2 backend validators, 2.1 frontend filter + cascade + empty-state)
+- Phases covered: single phase
 
 ## Implementation
 - Status: Not started

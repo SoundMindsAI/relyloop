@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-**[feat_study_target_judgment_mismatch_guard](../02_product/planned_features/feat_study_target_judgment_mismatch_guard/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_study_target_judgment_mismatch_guard](../02_product/planned_features/feat_study_target_judgment_mismatch_guard/feature_spec.md)** — Feature, currently in **Plan**
 
 > `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422).
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_study_target_judgment_mismatch_guard --auto
+/impl-execute docs/02_product/planned_features/feat_study_target_judgment_mismatch_guard/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -111,15 +111,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
 | P0 | [feat_study_target_judgment_mismatch_guard](../02_product/planned_features/feat_study_target_judgment_mismatch_guard/feature_spec.md) | Feature | `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422). | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (13)
 
@@ -151,7 +151,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_study_target_judgment_mismatch_guard["study target judgment mismatch guard"]
-  class feat_study_target_judgment_mismatch_guard spec;
+  class feat_study_target_judgment_mismatch_guard plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
