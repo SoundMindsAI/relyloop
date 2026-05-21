@@ -14,16 +14,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **52 / 52** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **5** items remaining (features + bugs + chores) |
+| Scoped items done | **53 / 53** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **4** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
-| Open chores | 4 (idea-stage debt) |
+| Open chores | 3 (idea-stage debt) |
 | Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (63)
+### Done (64)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -71,6 +71,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_form_dropdown_primitive](implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) | Chore | Ready for Execution | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
+| [chore_precommit_node_path_resolution](implemented_features/2026_05_21_chore_precommit_node_path_resolution/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_source_filter_server_side](implemented_features/2026_05_13_chore_proposals_source_filter_server_side/idea.md) | Chore | Complete | — | Complete |
@@ -103,7 +104,7 @@ _None._
 
 _None._
 
-### Idea (8)
+### Idea (7)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -112,7 +113,6 @@ _None._
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_guide_01_screenshot_refresh_target_filter](../02_product/planned_features/chore_guide_01_screenshot_refresh_target_filter/idea.md) | Chore | The guide is still operationally correct — the new field is optional, defaults to null, and doesn't change the happy-path flow described in the guide. But: | — | Idea — captured during `feat_cluster_target_filter` impl |
 | [chore_guide_06_screenshot_refresh_target_picker](../02_product/planned_features/chore_guide_06_screenshot_refresh_target_picker/idea.md) | Chore | The walkthrough guide 06 ("Create and monitor a study") shows the operator opening the create-study modal as part of the wizard tour. The single Step-1 screenshot now disagrees with shipped UI — opera | — | Idea — surfaced during `feat_create_study_target_autocomplete` post-impl guide-impact assessment. |
-| [chore_precommit_node_path_resolution](../02_product/planned_features/chore_precommit_node_path_resolution/idea.md) | Chore | Every UI-touching commit fails at the eslint-ui pre-commit hook unless the developer remembers to inject the nvm Node into PATH manually. The error message is clear, but the friction is constant. | — | Idea — captured during feat_cluster_target_filter impl session; verified still recurring during PR #171 implementation |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [bug_e2e_target_dropdown_flake](../02_product/planned_features/bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Idea — surfaced during `feat_create_study_target_autocomplete` Story F2 implementation; the new E2E happy-path spec is currently `test.skip`'d. |
 
@@ -229,6 +229,8 @@ graph LR
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete["create study target autocomplete"]
   class feat_create_study_target_autocomplete done;
+  chore_precommit_node_path_resolution["precommit node path resolution"]
+  class chore_precommit_node_path_resolution done;
   infra_uv_sync_drops_precommit["uv sync drops precommit"]
   class infra_uv_sync_drops_precommit done;
   feat_study_lifecycle --> feat_digest_proposal
