@@ -72,6 +72,7 @@ from backend.app.llm.cost_model import (
     known_models,
 )
 from backend.app.llm.digest_prompt import load_digest_prompts, render_digest_user_prompt
+from backend.app.services.study_confidence import fetch_study_confidence
 
 logger = structlog.get_logger(__name__)
 
@@ -686,6 +687,14 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                 rubric_summary = rubric_text[:280] + ("..." if len(rubric_text) > 280 else "")
                 if not rubric_summary:
                     rubric_summary = "(see judgment list rubric)"
+                # feat_pr_metric_confidence Story 1.6 (FR-6): assemble the
+                # per-study ConfidenceShape and serialize for the jinja
+                # ``<confidence>`` + ``<per_query_outcomes>`` blocks. Returns
+                # ``None`` on degraded paths (FR-7) so the blocks skip cleanly.
+                confidence_shape = await fetch_study_confidence(db, study)
+                confidence_payload = (
+                    confidence_shape.model_dump() if confidence_shape is not None else None
+                )
                 user_prompt = render_digest_user_prompt(
                     study_name=study.name,
                     cluster_name=cluster_name,
@@ -701,6 +710,7 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     recommended_config=recommended_config,
                     dropped_template_params=dropped,
                     include_recommendation=structured_output_enabled and not all_dropped,
+                    confidence=confidence_payload,
                 )
                 bundle = load_digest_prompts()
                 openai_client = AsyncOpenAI(api_key=api_key, base_url=settings.openai_base_url)

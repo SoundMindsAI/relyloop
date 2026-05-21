@@ -109,10 +109,20 @@ backend/
                   judgment.py from feat_llm_judgments)
     services/    use-case orchestrators — cluster.py from infra_adapter_elastic;
                  study_state.py (state machine + FR-7 protection listener,
-                 feat_study_lifecycle Phase 2)
+                 feat_study_lifecycle Phase 2);
+                 study_confidence.py (async glue that runs the 4-query
+                 read pattern from feat_pr_metric_confidence FR-2 and
+                 hands pre-fetched data to the pure orchestrator —
+                 consumed by studies._detail, the open_pr worker, and
+                 the digest worker)
     domain/      pure business logic — query/render.py from
                  infra_adapter_elastic; study/{search_space,template_validator,
                  csv_parser}.py from feat_study_lifecycle Phase 2;
+                 study/confidence.py (feat_pr_metric_confidence —
+                 ConfidenceShape Pydantic model + 7 sub-shapes + bootstrap
+                 CI / runner-up gap / late-trial 1σ / convergence regime /
+                 per-query outcome helpers; pure-Python orchestrator
+                 returning None on every FR-7 degraded path);
                  git/{redaction,validation}.py from feat_github_pr_worker
                  (GitHub PAT redaction + repo_url + config_path validators)
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
@@ -180,7 +190,10 @@ migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters
                  + 0003 study_lifecycle_schema + 0004_judgments + 0005_digests
                  + 0006 proposals_pr_url_idx + 0007 conversations_messages +
                  0008–0013 search_vector + GIN indexes from
-                 feat_data_table_primitive)
+                 feat_data_table_primitive + 0014 clusters_target_filter
+                 from feat_cluster_target_filter + 0015 trials_per_query_metrics
+                 from feat_pr_metric_confidence — nullable JSONB column +
+                 CHECK constraint enforcing IS NULL OR jsonb_typeof = 'object')
 docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
                  04_security / 05_quality / 08_guides
 ```

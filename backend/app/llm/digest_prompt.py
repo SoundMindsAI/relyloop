@@ -80,6 +80,7 @@ def render_digest_user_prompt(
     recommended_config: Mapping[str, Any],
     dropped_template_params: Sequence[str],
     include_recommendation: bool = True,
+    confidence: Mapping[str, Any] | None = None,
 ) -> str:
     """Render the per-study user message for the digest narrative call.
 
@@ -105,6 +106,12 @@ def render_digest_user_prompt(
         include_recommendation: cycle-3 F3 toggle. ``True`` (default) emits
             the full structured prompt; ``False`` emits the degraded /
             narrative-only variant for the capability-fallback path.
+        confidence: serialized ``ConfidenceShape`` (via
+            ``ConfidenceShape.model_dump()``) per feat_pr_metric_confidence
+            FR-6. ``None`` (default) skips both the ``<confidence>`` and
+            ``<per_query_outcomes>`` jinja blocks; a partial shape (some
+            sub-fields ``None``) emits only the populated sub-lines via the
+            template's per-sub-field ``{% if %}`` guards.
 
     Returns:
         The rendered user message string, ready to send as the OpenAI
@@ -127,6 +134,7 @@ def render_digest_user_prompt(
         recommended_config=recommended_config,
         dropped_template_params=dropped_template_params,
         include_recommendation=include_recommendation,
+        confidence=confidence,
     )
 
 

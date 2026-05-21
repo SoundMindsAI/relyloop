@@ -540,6 +540,64 @@ export async function seedStudyCompletedWithDigest(args: {
 }
 
 /**
+ * Seed a completed study where the winner + runner-up trials carry
+ * realistic per_query_metrics. Drives the `<ConfidencePanel>` happy path
+ * on `/studies/[id]` end-to-end.
+ *
+ * The query_ids passed in must match the queries already seeded under
+ * the query_set (the caller is responsible — typically via
+ * `seedFullChain` followed by `seedQuerySet(..., numQueries=N)`).
+ *
+ * Backed by the test-only endpoint at
+ * `POST /api/v1/_test/studies/seed-completed` (extended in
+ * feat_pr_metric_confidence Story 2.3 to accept `winner_per_query` +
+ * `runner_up_per_query`).
+ */
+export async function seedStudyCompletedWithPerQueryMetrics(args: {
+  clusterId: string;
+  querySetId: string;
+  templateId: string;
+  judgmentListId: string;
+  queryIds: string[];
+  withPendingProposal?: boolean;
+}): Promise<CompletedStudySeed> {
+  const {
+    clusterId,
+    querySetId,
+    templateId,
+    judgmentListId,
+    queryIds,
+    withPendingProposal = true,
+  } = args;
+  // Winner: high CI; qid 0 designed to regress vs runner-up.
+  const winnerPerQuery: Record<string, Record<string, number>> = {};
+  const runnerUpPerQuery: Record<string, Record<string, number>> = {};
+  queryIds.forEach((qid, i) => {
+    // Use the @k-suffixed key shape that backend.app.eval.scoring.score()
+    // actually emits — the orchestrator looks up `ndcg@10` not bare `ndcg`.
+    winnerPerQuery[qid] = { 'ndcg@10': i === 0 ? 0.4 : 0.85 - 0.01 * i };
+    runnerUpPerQuery[qid] = { 'ndcg@10': i === 0 ? 0.95 : 0.84 - 0.01 * i };
+  });
+  const result = await post<{ study_id: string; digest_id: string; proposal_id: string | null }>(
+    '/api/v1/_test/studies/seed-completed',
+    {
+      cluster_id: clusterId,
+      query_set_id: querySetId,
+      template_id: templateId,
+      judgment_list_id: judgmentListId,
+      with_pending_proposal: withPendingProposal,
+      winner_per_query: winnerPerQuery,
+      runner_up_per_query: runnerUpPerQuery,
+    },
+  );
+  return {
+    studyId: result.study_id,
+    digestId: result.digest_id,
+    proposalId: result.proposal_id,
+  };
+}
+
+/**
  * Create a chat conversation. Title is optional; messages are NOT sent —
  * tests can navigate to `/chat/{id}` and exercise the page shell without
  * triggering LLM calls.

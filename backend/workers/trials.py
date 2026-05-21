@@ -430,6 +430,12 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
                 os._exit(1)
 
             # N. INSERT the trials row.
+            # feat_pr_metric_confidence Story 1.2: persist scored["per_query"]
+            # alongside the aggregate so confidence analytics
+            # (backend.app.domain.study.confidence) can compute bootstrap CI +
+            # named regressors without re-scoring. Failed/pruned trials below
+            # leave per_query_metrics unset (NULL — see DB CHECK constraint
+            # trials_per_query_metrics_object_check from migration 0015).
             await repo.create_trial(
                 db,
                 id=trial_id,
@@ -438,6 +444,7 @@ async def run_trial(ctx: dict[str, Any], study_id: str, optuna_trial_number: int
                 params=snapshot.params,
                 primary_metric=primary,
                 metrics=scored["aggregate"],
+                per_query_metrics=scored["per_query"],
                 duration_ms=duration_ms,
                 status="complete",
                 error=None,
