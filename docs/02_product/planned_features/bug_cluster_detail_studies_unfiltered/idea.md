@@ -28,9 +28,9 @@ effectively unfiltered.
 - **User confusion:** the heading says "Studies using this cluster" but
   shows studies from every cluster.
 - **Information leak (mild):** a low-privilege user on the cluster detail
-  page sees studies they shouldn't necessarily be associated with that
-  cluster. MVP1 is single-tenant so this is cosmetic, but the contract
-  is wrong.
+  page sees studies that shouldn't be visible on this cluster's detail
+  page. MVP1 is single-tenant so this is cosmetic, but the contract is
+  wrong.
 
 ## Proposed fix
 
