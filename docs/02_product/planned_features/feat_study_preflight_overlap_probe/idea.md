@@ -21,7 +21,7 @@ All three look fine at create time: `judgment_list.target == study.target`, `jud
 
 After the create-study validators pass, before staging the study row + enqueueing `start_study`:
 
-1. Pick a representative query from the query set (the first query by `id` ascending — deterministic + cheap).
+1. Pick a representative query from the query set (the first query by `id` ascending **that has at least one judgment in the list** — deterministic + cheap, and avoids false-negative-overlap when query 0 happens to be unjudged). Implementation: a single `SELECT q.id, q.query_text FROM queries q JOIN judgments j ON j.query_id = q.id WHERE q.query_set_id = ? AND j.judgment_list_id = ? ORDER BY q.id ASC LIMIT 1`.
 2. Use the cluster's `SearchAdapter` to render the query template + execute a single search at `top_k = min(50, max_judgments_per_qid * 5)`.
 3. Pull all `judgments.doc_id` rows for that qid in the judgment list.
 4. Compute the intersection between the returned doc IDs and the judged doc IDs.

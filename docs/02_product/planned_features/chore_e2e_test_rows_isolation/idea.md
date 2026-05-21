@@ -23,7 +23,7 @@ Three approaches, in increasing order of intrusiveness. Pick one or layer them.
 
 ### A. Auto-cleanup at test teardown (simplest, recommended)
 
-Extend the existing Playwright seed helpers to register every row they create against a `cleanupRegistry` in `ui/tests/e2e/helpers/seed.ts`. After each spec file runs, `playwright.config.ts`'s `globalTeardown` walks the registry and DELETEs in FK-safe order via the public API.
+Extend the existing Playwright seed helpers to register every row they create against a `cleanupRegistry` in `ui/tests/e2e/helpers/seed.ts`. After the suite runs, `playwright.config.ts`'s `globalTeardown` walks the registry and DELETEs in FK-safe order via the public API. (Note: Playwright's `globalTeardown` is a once-per-suite hook, not per-spec. For per-spec cleanup, use a project `teardown` or an `afterAll` in a shared base test.)
 
 - **Pros:** No backend changes. Existing seeds keep working unchanged. Cleanup runs only on E2E exit, so a failed test still leaves rows behind for debugging — but the *next* successful run cleans them up.
 - **Cons:** Requires every helper to register cleanup; future seed helpers must remember to register. A globalTeardown crash leaves rows behind.
@@ -53,13 +53,13 @@ Approach A handles the accumulation. The mismatch guard handles the case where r
 
 ## Scope signals
 
-- **Backend:** none for approach A. For approach B, ~5 column migrations + ~5 endpoint filters.
+- **Backend:** approach A requires adding DELETE endpoints for entities that don't have them today (`studies`, `judgment_lists`, full `query_sets` — only `queries` has a per-row DELETE per [`backend/app/api/v1/query_sets.py:483`](../../../../backend/app/api/v1/query_sets.py#L483)). Estimate ~80 LOC + contract tests + integration tests + a per-entity decision on whether DELETE is operator-facing or test-only-gated. For approach B, ~5 column migrations + ~5 endpoint filters.
 - **Frontend:** none for A. ~30 LOC per dropdown for B.
 - **Test code:** ~80 LOC of cleanup registry + globalTeardown for A. Per-helper registration calls scattered across 6 helpers (~30 LOC).
 - **Migration:** none for A or C; 5+ migrations for B.
 - **Config:** none.
 - **Audit events:** N/A (only test-only rows; not user-mutations).
-- **Estimated size (approach A):** small-to-medium — 90-150 LOC + ~30 minutes to wire teardown + register every existing helper. The mechanical lift of writing per-helper cleanup registrations dominates.
+- **Estimated size (approach A):** medium — ~80 LOC backend (DELETE endpoints not present today) + ~90-150 LOC of cleanup-registry + teardown wiring + ~120 LOC of contract/integration tests for the new DELETEs. 2-3 hours total. The backend DELETE endpoints are the discovery cost that initially looked free; once they land they're also reusable by other test-cleanup paths.
 
 ## Why this matters beyond the one incident
 

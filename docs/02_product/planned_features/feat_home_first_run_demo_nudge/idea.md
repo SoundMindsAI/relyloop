@@ -3,7 +3,7 @@
 **Date:** 2026-05-21
 **Status:** Idea — product-design-shaped follow-up paired with the auto-seed-on-make-up chore
 **Origin:** Same operator session as the four study-no-signal fail-fast follow-ups. Auto-seeding meaningful demo data into a fresh `make up` (now implemented on PR #182) handles the bootstrap path — but it doesn't address the operator who comes back to a longer-lived dev stack, finds an empty `/studies` listing, and isn't sure whether to (a) run their tutorial through `make seed-demo FORCE=1`, (b) author their own cluster + judgments, or (c) pick from the meaningful demo clusters that already exist.
-**Depends on:** `chore_make_up_auto_seed_meaningful_demos` (the implementation piece on PR #182) — this idea is the *next* layer of first-run UX. Coordinates with `feat_contextual_help` Phase 3's existing `StartHereChecklist` component.
+**Depends on:** The auto-seed implementation shipped in PR #182 (`scripts/install.sh` + `scripts/seed_meaningful_demos.py --if-empty`). No corresponding planned-feature folder exists because the auto-seed was implemented in-line on PR #182 rather than scaffolded as a separate spec. This idea is the *next* layer of first-run UX. Coordinates with `feat_contextual_help` Phase 3's existing `StartHereChecklist` component.
 
 ## Problem
 
@@ -73,7 +73,7 @@ The remaining 20% is a product-design surface (banner copy, badge styling, banne
 
 ## Relationship to other work
 
-- **Depends on:** `chore_make_up_auto_seed_meaningful_demos` (PR #182 implementation piece) — the demo data must reliably exist before the home page can call attention to it.
+- **Depends on:** the PR #182 auto-seed implementation (`scripts/install.sh` step 8 + `seed_meaningful_demos.py --if-empty`) — the demo data must reliably exist before the home page can call attention to it.
 - **Coordinates with:** `feat_contextual_help` Phase 3's `StartHereChecklist` ([`ui/src/components/home/start-here-checklist.tsx`](../../../../ui/src/components/home/start-here-checklist.tsx)) — needs to know about demo-authored vs operator-authored data so the checklist doesn't falsely-claim-complete on auto-seeded rows.
 - **Composes with:** [`chore_e2e_test_rows_isolation`](../chore_e2e_test_rows_isolation/idea.md) — the demo-tag badge surface could double as the `e2e-test` filter (path 1 of B would just be one more tag value).
 - **Composes with:** [`chore_guides_glossary_route`](../chore_guides_glossary_route/idea.md) + [`chore_guides_faq`](../chore_guides_faq/idea.md) — first-run nudges naturally link to glossary terms + FAQ entries.
