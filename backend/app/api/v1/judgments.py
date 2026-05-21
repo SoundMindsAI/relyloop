@@ -117,6 +117,7 @@ def _summary(row: JudgmentList) -> JudgmentListSummary:
         description=row.description,
         query_set_id=row.query_set_id,
         cluster_id=row.cluster_id,
+        target=row.target,
         status=row.status,  # str narrowed via CHECK constraint
         created_at=row.created_at,
     )
@@ -346,6 +347,7 @@ async def list_judgment_lists_endpoint(
     sort: Annotated[JudgmentListSortKey | None, Query()] = None,
     query_set_id: Annotated[str | None, Query(min_length=1, max_length=36)] = None,
     cluster_id: Annotated[str | None, Query(min_length=1, max_length=36)] = None,
+    target: Annotated[str | None, Query(min_length=1, max_length=255)] = None,
 ) -> JudgmentListListResponse:
     """List judgment lists, newest-first with cursor pagination.
 
@@ -361,6 +363,13 @@ async def list_judgment_lists_endpoint(
     entity integrity check then rejects at create time with a confusing
     422 ``VALIDATION_ERROR: "judgment_list query_set_id does not match
     study query_set_id"``).
+
+    ``?target=`` filters by exact target index/collection name
+    (``feat_study_target_judgment_mismatch_guard`` FR-2 — pairs with the
+    ``POST /studies`` ``JUDGMENT_TARGET_MISMATCH`` 422 so the create-study
+    modal can pre-filter the dropdown to only lists matching the chosen
+    study target). Bounded by the ES/OpenSearch index-name ceiling
+    (255 bytes).
     """
     parsed_sort = parse_sort(sort, _JUDGMENT_LIST_SORT_COLUMNS)
     decoded_cursor: tuple[object, str] | None = None
@@ -380,12 +389,18 @@ async def list_judgment_lists_endpoint(
         sort=sort,
         query_set_id=query_set_id,
         cluster_id=cluster_id,
+        target=target,
     )
     has_more = len(rows) > limit
     if has_more:
         rows = rows[:limit]
     total = await repo.count_judgment_lists(
-        db, since=since, q=q, query_set_id=query_set_id, cluster_id=cluster_id
+        db,
+        since=since,
+        q=q,
+        query_set_id=query_set_id,
+        cluster_id=cluster_id,
+        target=target,
     )
     response.headers["X-Total-Count"] = str(total)
     next_cursor: str | None = None

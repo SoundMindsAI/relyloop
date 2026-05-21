@@ -765,6 +765,7 @@ class JudgmentListSummary(BaseModel):
     description: str | None
     query_set_id: str
     cluster_id: str
+    target: str
     status: JudgmentListStatusWire
     created_at: datetime
 

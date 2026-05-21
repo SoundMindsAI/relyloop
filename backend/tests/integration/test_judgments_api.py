@@ -553,6 +553,172 @@ async def test_list_judgment_lists_filters_by_query_set_id_and_cluster_id(
     assert response.headers["X-Total-Count"] == "0"
 
 
+async def test_list_judgment_lists_filters_by_target_and_combined(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """``feat_study_target_judgment_mismatch_guard`` FR-2 + plan §3.2 case 5 —
+    ``GET /api/v1/judgment-lists?target=...`` must filter by exact target,
+    combine with ``query_set_id`` + ``cluster_id`` via AND semantics, and
+    keep ``X-Total-Count`` consistent with the filtered row count.
+
+    Seeds 4 judgment-lists spanning 2 clusters × 2 query-sets × shared
+    target ``products``, plus one (A, qs_a1) list with target ``articles``
+    for unambiguous target filtering. Probes:
+
+    * ``?target=products`` returns all rows with that target across both
+      clusters and query-sets.
+    * ``?target=articles`` returns only the one ``articles`` row.
+    * ``?target=products&cluster_id=C1&query_set_id=Q1`` returns exactly
+      the single AND-matching row (this is the regression-locker — catches
+      a bug where the filter applies to ``list_judgment_lists`` but not
+      ``count_judgment_lists``, or vice versa).
+    """
+    seeded_a = await _seed_chain(num_queries=1)
+    cluster_a = seeded_a["cluster_id"]
+    qs_a1 = seeded_a["query_set_id"]
+    qry_a1 = seeded_a["query_ids"][0]
+
+    seeded_b = await _seed_chain(num_queries=1)
+    cluster_b = seeded_b["cluster_id"]
+    qs_b1 = seeded_b["query_set_id"]
+    qry_b1 = seeded_b["query_ids"][0]
+
+    factory = get_session_factory()
+    async with factory() as db:
+        qs_a2_row = await repo.create_query_set(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"tgt-qs-a2-{uuid.uuid4().hex[:6]}",
+            cluster_id=cluster_a,
+        )
+        qry_a2_row = await repo.create_query(
+            db,
+            id=str(uuid.uuid4()),
+            query_set_id=qs_a2_row.id,
+            query_text="tgt-q-a2",
+        )
+        await db.commit()
+    qs_a2 = qs_a2_row.id
+    qry_a2 = qry_a2_row.id
+
+    # Seed five judgment-lists:
+    #   1. (A, qs_a1, products)  ← AND-match row for the 3-way filter
+    #   2. (A, qs_a2, products)
+    #   3. (B, qs_b1, products)
+    #   4. (A, qs_a1, products)  ← second products list on the same coord, for total
+    #   5. (A, qs_a1, articles)  ← isolates the target filter
+    seed_rows: list[tuple[str, str, str, str]] = [
+        (cluster_a, qs_a1, qry_a1, "products"),
+        (cluster_a, qs_a2, qry_a2, "products"),
+        (cluster_b, qs_b1, qry_b1, "products"),
+        (cluster_a, qs_a1, qry_a1, "products"),
+        (cluster_a, qs_a1, qry_a1, "articles"),
+    ]
+    ids: list[str] = []
+    for i, (cl, qs, qry, tgt) in enumerate(seed_rows):
+        resp = await async_client.post(
+            "/api/v1/judgment-lists/import",
+            json={
+                "name": f"tgt-jl-{i}-{uuid.uuid4().hex[:6]}",
+                "query_set_id": qs,
+                "cluster_id": cl,
+                "target": tgt,
+                "rubric": "r",
+                "judgments": [{"query_id": qry, "doc_id": f"d-{i}", "rating": 1}],
+            },
+        )
+        assert resp.status_code == 201, resp.text
+        ids.append(resp.json()["id"])
+    products_ids = {ids[0], ids[1], ids[2], ids[3]}
+    articles_ids = {ids[4]}
+    and_match_ids = {ids[0], ids[3]}  # both rows in (A, qs_a1, products)
+
+    # ?target=articles: only the one articles row visible.
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"target": "articles", "limit": 200}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    returned = {row["id"] for row in body["data"]}
+    assert articles_ids.issubset(returned)
+    # Confirm none of the products rows leaked into the articles filter.
+    assert not (products_ids & returned), "?target=articles leaked products rows"
+    # Every row in the response carries the right target.
+    for row in body["data"]:
+        assert row["target"] == "articles"
+
+    # ?target=products: all 4 products rows visible (other tests may add more).
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"target": "products", "limit": 200}
+    )
+    assert response.status_code == 200
+    products_filtered = response.json()["data"]
+    products_returned = {row["id"] for row in products_filtered}
+    assert products_ids.issubset(products_returned)
+    assert not (articles_ids & products_returned), "?target=products leaked articles row"
+    for row in products_filtered:
+        assert row["target"] == "products"
+
+    # AND-semantics: target=products & cluster_id=A & query_set_id=qs_a1 →
+    # exactly the 2 rows at that coordinate, and X-Total-Count matches.
+    response = await async_client.get(
+        "/api/v1/judgment-lists",
+        params={
+            "target": "products",
+            "cluster_id": cluster_a,
+            "query_set_id": qs_a1,
+            "limit": 200,
+        },
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert {row["id"] for row in body["data"]} == and_match_ids
+    assert response.headers["X-Total-Count"] == "2"
+    # Confirm none of the other seed rows leak through.
+    for row in body["data"]:
+        assert row["cluster_id"] == cluster_a
+        assert row["query_set_id"] == qs_a1
+        assert row["target"] == "products"
+
+    # Empty target string → 422 VALIDATION_ERROR via the canonical envelope
+    # (FastAPI RequestValidationError translated by backend/app/api/errors.py).
+    response = await async_client.get("/api/v1/judgment-lists", params={"target": "", "limit": 200})
+    assert response.status_code == 422
+    assert response.json()["detail"]["error_code"] == "VALIDATION_ERROR"
+
+
+async def test_judgment_list_summary_includes_target_field(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """``feat_study_target_judgment_mismatch_guard`` FR-3 — every row in
+    ``GET /api/v1/judgment-lists`` carries the ``target`` field on the
+    summary (additive — required when present)."""
+    seeded = await _seed_chain(num_queries=1)
+    resp = await async_client.post(
+        "/api/v1/judgment-lists/import",
+        json={
+            "name": f"tgt-summary-{uuid.uuid4().hex[:6]}",
+            "query_set_id": seeded["query_set_id"],
+            "cluster_id": seeded["cluster_id"],
+            "target": "summary-probe-target",
+            "rubric": "r",
+            "judgments": [{"query_id": seeded["query_ids"][0], "doc_id": "d-0", "rating": 1}],
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    new_id = resp.json()["id"]
+
+    response = await async_client.get(
+        "/api/v1/judgment-lists",
+        params={"target": "summary-probe-target", "limit": 200},
+    )
+    assert response.status_code == 200
+    rows = response.json()["data"]
+    new_row = next(row for row in rows if row["id"] == new_id)
+    assert new_row["target"] == "summary-probe-target"
+    assert isinstance(new_row["target"], str)
+
+
 async def test_detail_returns_404_on_unknown_id(async_client: httpx.AsyncClient) -> None:
     response = await async_client.get(f"/api/v1/judgment-lists/{uuid.uuid4()}")
     assert response.status_code == 404
