@@ -11,7 +11,7 @@
 
 ## MVP1 tool inventory
 
-The MVP1 agent ships these **19** tools in `backend/app/agent/tools/` (counted across the 6 categories below: 3 + 2 + 5 + 1 + 3 + 5 = 19):
+The MVP1 agent ships these **20** tools in `backend/app/agent/tools/` (counted across the 6 categories below: 3 + 2 + 5 + 1 + 4 + 5 = 20). The 20th tool — `propose_search_space` — landed in [`feat_agent_propose_search_space`](../00_overview/implemented_features/) and is read-only: the orchestrator's system prompt directs the LLM to call it before `create_study` so the search-space bounds are grounded in the same heuristic that powers the create-study wizard's auto-fill.
 
 | Category | Tool | Description | Backing endpoint / function |
 |---|---|---|---|
@@ -26,7 +26,8 @@ The MVP1 agent ships these **19** tools in `backend/app/agent/tools/` (counted a
 | | `generate_judgments_llm(query_set_id, cluster_id, target, current_template_id, rubric)` → `JudgmentList` | Kick off LLM judgment generation | `POST /api/v1/judgments/generate` |
 | | `get_calibration(judgment_list_id)` → `CalibrationStats` | Read calibration stats from a judgment list | `GET /api/v1/judgment-lists/{id}` (calibration field) |
 | Quick experiments | `run_query(cluster_id, target, query_dsl)` → `[Hit]` | Execute one query, return top-K | `POST /api/v1/clusters/{id}/run_query` |
-| Studies | `create_study(...)` → `Study` | Create + start a study | `POST /api/v1/studies` |
+| Studies | `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?)` → `{search_space, grounding}` | Build a deterministic starter search space (heuristic + optional ±50% narrowing around a prior winner). Read-only — no REST equivalent; consumed only by the chat agent. | _(agent-only tool — no public REST surface; mirrors `ui/src/lib/search-space-defaults.ts` via the shared parity test)_ |
+| | `create_study(...)` → `Study` | Create + start a study | `POST /api/v1/studies` |
 | | `get_study(study_id)` → `StudyDetail` | Study detail with `trials_summary` | `GET /api/v1/studies/{id}` |
 | | `cancel_study(study_id)` → `Study` | Cancel a queued/running study | `POST /api/v1/studies/{id}/cancel` |
 | Proposals & PRs | `list_proposals(filter?)` → `[ProposalSummary]` | List proposals | `GET /api/v1/proposals?status={...}` |
