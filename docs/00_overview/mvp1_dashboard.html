@@ -384,7 +384,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">51 / 51</div>
+      <div class="value">52 / 52</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -407,7 +407,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      4 idea-only feat/infra folders (not yet scoped into MVP1)
+      3 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -428,7 +428,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">9</span></h3>
+  <h3>Idea <span class="count">8</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_agent_propose_search_space">Agent Propose Search Space</a></div>
@@ -461,18 +461,6 @@ footer {
 
   </div>
   <div class="one-liner">A relevance engineer&#x27;s normal workflow after the first study completes:</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_uv_sync_drops_precommit">Uv Sync Drops Precommit</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-  </div>
-  <div class="one-liner">Idea — captured during feat_cluster_target_filter impl session; root cause re-grounded after preflight</div>
 
 
 </div>
@@ -555,7 +543,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">62</span></h3>
+  <h3>Done <span class="count">63</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -874,6 +862,18 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span>merged 2026-05-14</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_infra_uv_sync_drops_precommit">Uv Sync Drops Precommit</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
 
@@ -1415,6 +1415,8 @@ footer {
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete[&quot;create study target autocomplete&quot;]
   class feat_create_study_target_autocomplete done;
+  infra_uv_sync_drops_precommit[&quot;uv sync drops precommit&quot;]
+  class infra_uv_sync_drops_precommit done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1447,6 +1449,7 @@ footer {
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
   infra_structlog_test_helpers --&gt; chore_tutorial_polish
+  infra_uv_sync_drops_precommit --&gt; chore_tutorial_polish
   feat_cluster_target_filter --&gt; feat_chat_agent
   feat_contextual_help --&gt; feat_chat_agent
   feat_create_study_search_space_builder --&gt; feat_chat_agent
@@ -1473,6 +1476,7 @@ footer {
   infra_optuna_eval --&gt; feat_chat_agent
   infra_per_trial_timeout --&gt; feat_chat_agent
   infra_structlog_test_helpers --&gt; feat_chat_agent
+  infra_uv_sync_drops_precommit --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
@@ -1602,6 +1606,8 @@ footer {
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete[&quot;create study target autocomplete&quot;]
   class feat_create_study_target_autocomplete done;
+  infra_uv_sync_drops_precommit[&quot;uv sync drops precommit&quot;]
+  class infra_uv_sync_drops_precommit done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1634,6 +1640,7 @@ footer {
   infra_optuna_eval --&gt; chore_tutorial_polish
   infra_per_trial_timeout --&gt; chore_tutorial_polish
   infra_structlog_test_helpers --&gt; chore_tutorial_polish
+  infra_uv_sync_drops_precommit --&gt; chore_tutorial_polish
   feat_cluster_target_filter --&gt; feat_chat_agent
   feat_contextual_help --&gt; feat_chat_agent
   feat_create_study_search_space_builder --&gt; feat_chat_agent
@@ -1660,6 +1667,7 @@ footer {
   infra_optuna_eval --&gt; feat_chat_agent
   infra_per_trial_timeout --&gt; feat_chat_agent
   infra_structlog_test_helpers --&gt; feat_chat_agent
+  infra_uv_sync_drops_precommit --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
