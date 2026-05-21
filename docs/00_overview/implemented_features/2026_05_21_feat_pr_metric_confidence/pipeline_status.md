@@ -30,8 +30,14 @@
 - Next: User approval, then `/impl-execute` on this branch.
 
 ## Implementation
-- Status: Not started
+- Status: Complete (PR #180, merged 2026-05-21 as squash `d0a8358`)
+- Stories shipped: 9 of 9 across 2 epics
+- CI: both `pr` + `secrets-defense` workflows green on the final commit
+- Reviews:
+  - Gemini Code Assist: clean pass (no line-level comments, no review findings)
+  - GPT-5.5 cycle 1 (Epic 1 gate): 12 findings — 5 rejected with cited counter-evidence (truncated-diff false positives), 2 deferred (plan/code interface drift; full-worker integration test), 5 accepted + fixed inline in `0814700`
+  - GPT-5.5 final review (cumulative `main..HEAD`): 3 Low findings — all accepted + fixed inline in `6c34a5b`
+- Adjudication summary posted at https://github.com/SoundMindsAI/relyloop/pull/180
 
 ## Branch context
-- Working on: `feat_pr_metric_confidence` (branch created at spec-gen start)
-- Carries: bug_e2e_target_dropdown_flake folder rename (uncommitted, from earlier preflight) + feat_pr_metric_confidence/idea.md preflight patch + feature_spec.md (new) + phase2_idea.md (new) + this file (new)
+- Shipped via PR #180 (squash `d0a8358`); finalization docs branch is `docs/finalize-pr-metric-confidence`
