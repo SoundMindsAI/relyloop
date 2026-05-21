@@ -85,8 +85,6 @@ async def _seed_query_set(db: AsyncSession, cluster_id: str) -> str:
         id=_uuid(),
         name=f"qs-{_uuid()[:8]}",
         cluster_id=cluster_id,
-        target="idx",
-        source="manual",
     )
     return qs.id
 
@@ -96,11 +94,11 @@ async def _seed_judgment_list(db: AsyncSession, cluster_id: str, query_set_id: s
         db,
         id=_uuid(),
         name=f"jl-{_uuid()[:8]}",
-        cluster_id=cluster_id,
         query_set_id=query_set_id,
+        cluster_id=cluster_id,
         target="idx",
-        source="manual",
-        status="ready",
+        rubric="rubric text",
+        status="complete",
     )
     return jl.id
 
