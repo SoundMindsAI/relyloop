@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-**[feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/feature_spec.md)** — Feature, currently in **Plan**
 
 > A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same heuristic table that powers the create-
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_agent_propose_search_space --auto
+/impl-execute docs/02_product/planned_features/feat_agent_propose_search_space/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -102,15 +102,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/feature_spec.md) | Feature | A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same | — | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (6)
 
@@ -135,7 +135,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_agent_propose_search_space["agent propose search space"]
-  class feat_agent_propose_search_space spec;
+  class feat_agent_propose_search_space plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
