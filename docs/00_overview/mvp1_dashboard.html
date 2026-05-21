@@ -369,12 +369,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_pr_metric_confidence/feature_spec.md">Pr Metric Confidence</a></div>
+    <div class="one-liner">Approvers reading a study-backed PR see a &quot;## Confidence&quot; section directly between the existing &quot;## Metric delta&quot; and &quot;## Config diff&quot; sections.</div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/feat_pr_metric_confidence --auto</code>
   </div>
 </section>
 
@@ -382,15 +382,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">56 / 56</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">56 / 57</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">2</div>
+      <div class="value">4</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -400,14 +400,14 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">1</div>
+      <div class="value">2</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      2 idea-only feat/infra folders (not yet scoped into MVP1)
+      4 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -428,15 +428,39 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">4</span></h3>
+  <h3>Idea <span class="count">7</span></h3>
 
 <div class="card feat" data-prefix="feat">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_pr_metric_confidence">Pr Metric Confidence</a></div>
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_auto_followup_studies">Auto Followup Studies</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
 
   </div>
-  <div class="one-liner">When the operator&#x27;s approver opens a study-backed PR in the central search-config repo, the only confidence signal in the PR body is two scalar point estimates. From [`_render_pr_body_study_backed`](.</div>
+  <div class="one-liner">Karpathy&#x27;s autoresearch loop runs hundreds of experiments overnight and **compounds** improvements: each accepted change becomes the new baseline for the next experiment. RelyLoop&#x27;s equivalent…</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking">Config Repo Baseline Tracking</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">RelyLoop does not track which configuration is currently live in production. When a proposal&#x27;s PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:187-191`](../../backend/app/api/webh</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_digest_executable_followups">Digest Executable Followups</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+  </div>
+  <div class="one-liner">The digest worker&#x27;s LLM contract at [`backend/workers/digest.py:168-189`](../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`:</div>
 
 
 </div>
@@ -449,6 +473,18 @@ footer {
 
   </div>
   <div class="one-liner">A relevance engineer&#x27;s normal workflow after the first study completes:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_study_default_stop_conditions">Study Default Stop Conditions</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+  </div>
+  <div class="one-liner">The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` —</div>
 
 
 </div>
@@ -480,7 +516,18 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_pr_metric_confidence/feature_spec.md">Pr Metric Confidence</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/41">PR #41</a><span>merged 2026-05-11</span>
+  </div>
+  <div class="one-liner">Approvers reading a study-backed PR see a &quot;## Confidence&quot; section directly between the existing &quot;## Metric delta&quot; and &quot;## Config diff&quot; sections.</div>
+  <div class="deferred">deferred: Phase 2</div>
+
+</div>
 
 </div>
 
@@ -495,7 +542,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">67</span></h3>
+  <h3>Done <span class="count">68</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -517,7 +564,7 @@ footer {
   </div>
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
 </div>
 
 
@@ -1165,7 +1212,7 @@ footer {
   </div>
   <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
 </div>
 
 
@@ -1210,6 +1257,18 @@ footer {
   <div class="meta">
     <span class="badge bug">Bug</span>
     <span>merged 2026-05-13</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_bug_e2e_target_dropdown_flake">E2E Target Dropdown Flake</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Complete</div>
 
@@ -1313,6 +1372,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_pr_metric_confidence[&quot;pr metric confidence&quot;]
+  class feat_pr_metric_confidence spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1442,6 +1503,7 @@ footer {
   feat_github_webhook --&gt; chore_tutorial_polish
   feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
+  feat_pr_metric_confidence --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
   feat_query_inline_crud --&gt; chore_tutorial_polish
   feat_studies_ui --&gt; chore_tutorial_polish
@@ -1470,6 +1532,7 @@ footer {
   feat_github_webhook --&gt; feat_chat_agent
   feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
+  feat_pr_metric_confidence --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
   feat_query_inline_crud --&gt; feat_chat_agent
   feat_studies_ui --&gt; feat_chat_agent
@@ -1514,6 +1577,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_pr_metric_confidence[&quot;pr metric confidence&quot;]
+  class feat_pr_metric_confidence spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1643,6 +1708,7 @@ footer {
   feat_github_webhook --&gt; chore_tutorial_polish
   feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
+  feat_pr_metric_confidence --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
   feat_query_inline_crud --&gt; chore_tutorial_polish
   feat_studies_ui --&gt; chore_tutorial_polish
@@ -1671,6 +1737,7 @@ footer {
   feat_github_webhook --&gt; feat_chat_agent
   feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
+  feat_pr_metric_confidence --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
   feat_query_inline_crud --&gt; feat_chat_agent
   feat_studies_ui --&gt; feat_chat_agent
