@@ -133,9 +133,43 @@ is absent (the case for `map` without a cut, or `mrr` which ignores k).
 
 **Failure modes** persisted to `trials.status` and `trials.error`:
 
-- `complete` — successful trial; metrics in `trials.metrics`
-- `failed` — adapter raised, scoring raised, or render raised; `error` field captures the exception
+- `complete` — successful trial; metrics in `trials.metrics`, per-query in `trials.per_query_metrics`
+- `failed` — adapter raised, scoring raised, or render raised; `error` field captures the exception; `per_query_metrics` stays NULL
 - `pruned` — Optuna's pruner short-circuited the trial mid-evaluation (only on multi-step trials, which MVP1 doesn't have — reserved for MVP2 when intermediate pruning checkpoints arrive)
+
+## Per-study confidence analytics (owned by `feat_pr_metric_confidence`)
+
+On successful trials, the `run_trial` worker persists `scored["per_query"]`
+(from `backend/app/eval/scoring.py::score()`) verbatim into
+`trials.per_query_metrics`. The values are keyed by user-facing metric
+tokens — `ndcg@10`, `map@10`, `mrr`, etc. — matching what
+`objective_metric_key(study.objective)` resolves to.
+
+Read-side enrichment lives at
+[`backend/app/services/study_confidence.py::fetch_study_confidence`](../../backend/app/services/study_confidence.py) —
+an async wrapper that runs the FR-2 4-query read pattern (winner trial,
+runner-up trial, complete-trials projection by `optuna_trial_number`,
+conditional `query_text` lookup for named regressors) and hands the
+pre-fetched data to the pure-Python orchestrator
+[`backend/app/domain/study/confidence.py::compute_study_confidence`](../../backend/app/domain/study/confidence.py).
+The orchestrator returns a `ConfidenceShape` (bootstrap 95% CI on the
+winner's per-query values, runner-up gap classification, late-trial 1σ,
+convergence regime, per-query outcome counts) or `None` on every degraded
+path per FR-7 — no raises. Three consumers compose this:
+
+- `GET /api/v1/studies/{id}` — `_detail()` attaches the shape to
+  `StudyDetail.confidence`.
+- The `open_pr` Arq worker — emits a `## Confidence` PR-body section
+  between `## Metric delta` and `## Config diff`.
+- The digest narrative worker — serializes via `model_dump()` and feeds
+  the two new `<confidence>` + `<per_query_outcomes>` Jinja blocks.
+
+Locked thresholds (bootstrap N=1000, seed=42, plateau band 0.005,
+late-trial window 20% / min 5, etc.) and regressor-classification deltas
+live as module constants in
+`backend/app/domain/study/confidence.py`. The full ConfidenceShape
+contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../02_product/planned_features/feat_pr_metric_confidence/feature_spec.md)
+§7 (FR-4 / FR-4a) and §12 (AC-3 through AC-17).
 
 ## Cross-references
 

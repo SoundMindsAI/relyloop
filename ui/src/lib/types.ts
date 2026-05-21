@@ -910,6 +910,23 @@ export interface components {
       added: number;
     };
     /**
+     * CIShape
+     * @description Bootstrap percentile CI on the winner's per-query metric values.
+     */
+    CIShape: {
+      /** Low */
+      low: number;
+      /** High */
+      high: number;
+      /**
+       * Method
+       * @constant
+       */
+      method: 'bootstrap_n1000';
+      /** N Samples */
+      n_samples: number;
+    };
+    /**
      * CalibrationResponse
      * @description Calibration endpoint response.
      *
@@ -1060,6 +1077,23 @@ export interface components {
       health_check: components['schemas']['HealthCheckResult'];
     };
     /**
+     * ConfidenceShape
+     * @description The top-level shape exposed via ``StudyDetail.confidence``.
+     *
+     *     Every sub-field is independently nullable per FR-7 — degraded paths
+     *     suppress only the sub-fields they affect, never the whole shape (the
+     *     orchestrator returns whole-object ``None`` only when the winner trial
+     *     row itself is missing).
+     */
+    ConfidenceShape: {
+      headline: components['schemas']['HeadlineShape'];
+      ci_95: components['schemas']['CIShape'] | null;
+      runner_up_gap: components['schemas']['RunnerUpGapShape'] | null;
+      late_trial_stddev: components['schemas']['LateTrialStddevShape'] | null;
+      convergence: components['schemas']['ConvergenceShape'] | null;
+      per_query_outcomes: components['schemas']['PerQueryOutcomesShape'] | null;
+    };
+    /**
      * ConfigRepoDetail
      * @description ``GET /api/v1/config-repos/{id}`` response + ``POST`` 201 body.
      */
@@ -1102,6 +1136,21 @@ export interface components {
       next_cursor: string | null;
       /** Has More */
       has_more: boolean;
+    };
+    /**
+     * ConvergenceShape
+     * @description Where the winner sits in the Optuna trial sequence + the classified regime.
+     */
+    ConvergenceShape: {
+      /** Best At Trial */
+      best_at_trial: number;
+      /** Total Trials */
+      total_trials: number;
+      /**
+       * Regime
+       * @enum {string}
+       */
+      regime: 'early_held' | 'late_rising' | 'noisy';
     };
     /**
      * ConversationDetail
@@ -1406,6 +1455,26 @@ export interface components {
       detail?: components['schemas']['ValidationError'][];
     };
     /**
+     * HeadlineShape
+     * @description Top-line metric value + N(queries) used in the CI.
+     *
+     *     ``metric`` uses ``str`` (not ``ObjectiveMetric``) to avoid a circular
+     *     import: ``schemas.py`` imports ``ConfidenceShape`` from here, so this
+     *     module cannot import back from ``schemas.py``. The upstream value is
+     *     already validated by the existing ``ObjectiveMetric`` Literal at the
+     *     create-study endpoint (``schemas.py:214``).
+     */
+    HeadlineShape: {
+      /** Metric */
+      metric: string;
+      /** Value */
+      value: number;
+      /** K */
+      k: number | null;
+      /** N Queries */
+      n_queries: number | null;
+    };
+    /**
      * HealthCheckResult
      * @description Wire shape of the per-cluster health probe (mirrors ``HealthStatus``).
      */
@@ -1628,6 +1697,18 @@ export interface components {
       created_at: string;
     };
     /**
+     * LateTrialStddevShape
+     * @description Sample stddev of ``primary_metric`` over the late-trial window.
+     */
+    LateTrialStddevShape: {
+      /** Value */
+      value: number;
+      /** Window Size */
+      window_size: number;
+      /** Min Window Required */
+      min_window_required: number;
+    };
+    /**
      * MessageWire
      * @description One row of ``GET /api/v1/conversations/{id}.messages``.
      */
@@ -1739,6 +1820,25 @@ export interface components {
       rating: number;
       /** Notes */
       notes?: string | null;
+    };
+    /**
+     * PerQueryOutcomesShape
+     * @description Per-query outcome counts + the top-5 named regressors.
+     */
+    PerQueryOutcomesShape: {
+      /** Improved */
+      improved: number;
+      /** Unchanged */
+      unchanged: number;
+      /** Regressed */
+      regressed: number;
+      /**
+       * Comparison Against
+       * @enum {string}
+       */
+      comparison_against: 'runner_up' | 'baseline';
+      /** Top Regressors */
+      top_regressors: components['schemas']['RegressorRowShape'][];
     };
     /**
      * ProposalDetail
@@ -2014,6 +2114,22 @@ export interface components {
       created_at: string;
     };
     /**
+     * RegressorRowShape
+     * @description One row in the named-regressors table.
+     */
+    RegressorRowShape: {
+      /** Query Id */
+      query_id: string;
+      /** Query Text */
+      query_text: string;
+      /** Winner Score */
+      winner_score: number;
+      /** Comparison Score */
+      comparison_score: number;
+      /** Delta */
+      delta: number;
+    };
+    /**
      * RejectProposalRequest
      * @description Body of ``POST /api/v1/proposals/{id}/reject`` (FR-4 / AC-5).
      */
@@ -2059,6 +2175,27 @@ export interface components {
     RunQueryResponse: {
       /** Hits */
       hits: components['schemas']['RunQueryHit'][];
+    };
+    /**
+     * RunnerUpGapShape
+     * @description Runner-up trial's metric vs the winner.
+     *
+     *     The whole shape is suppressed to ``None`` when there are <2 complete
+     *     trials (FR-2 + FR-7); ``classification`` is non-null whenever this shape
+     *     is present.
+     */
+    RunnerUpGapShape: {
+      /** Value */
+      value: number;
+      /**
+       * Classification
+       * @enum {string}
+       */
+      classification: 'robust_plateau' | 'sharp_peak';
+      /** Top10 Within */
+      top10_within: number;
+      /** Runner Up Metric */
+      runner_up_metric: number;
     };
     /**
      * Schema
@@ -2216,6 +2353,7 @@ export interface components {
       /** Completed At */
       completed_at: string | null;
       trials_summary: components['schemas']['TrialsSummaryShape'];
+      confidence?: components['schemas']['ConfidenceShape'] | null;
     };
     /**
      * StudyListResponse
@@ -3143,6 +3281,7 @@ export interface operations {
         limit?: number;
         since?: string | null;
         status?: ('queued' | 'running' | 'completed' | 'cancelled' | 'failed') | null;
+        cluster_id?: string | null;
         q?: string | null;
         sort?:
           | (

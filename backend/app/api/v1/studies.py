@@ -63,6 +63,7 @@ from backend.app.domain.study.search_space import (
     validate_against_template,
 )
 from backend.app.services import study_state
+from backend.app.services.study_confidence import fetch_study_confidence
 
 router = APIRouter()
 
@@ -117,6 +118,7 @@ def _decode_trial_cursor(raw: str, sort_key: str) -> tuple[Any, str]:
 
 async def _detail(db: AsyncSession, row: Study) -> StudyDetail:
     summary = await repo.aggregate_trials_summary(db, row.id)
+    confidence = await fetch_study_confidence(db, row)
     return StudyDetail(
         id=row.id,
         name=row.name,
@@ -145,6 +147,7 @@ async def _detail(db: AsyncSession, row: Study) -> StudyDetail:
             pruned=summary.pruned,
             best_primary_metric=summary.best_primary_metric,
         ),
+        confidence=confidence,
     )
 
 

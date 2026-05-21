@@ -24,15 +24,32 @@ The user message contains XML-delimited blocks:
 7. `<degraded_mode>` (only when `include_recommendation=False`) — the operator's
    OpenAI endpoint failed the structured-output capability probe. Return free-
    form prose narrative only — no JSON, no recommendations, no follow-ups.
+8. `<confidence>` (only when the orchestrator computed a non-null
+   `ConfidenceShape` for the study) — bootstrap 95% CI on the headline metric
+   (`ci_low`/`ci_high`/`n_queries`) plus aggregate signals (`runner_up_gap`,
+   `late_trial_stddev`, `convergence`). Each sub-line is omitted independently
+   when its sub-field is null (FR-7 graceful-degradation contract). For
+   studies still running, or studies whose winner trial predates the
+   `per_query_metrics` migration, the block may be absent or partial.
+9. `<per_query_outcomes>` (only when both the winner trial and the runner-up
+   trial have per-query metrics) — `improved` / `unchanged` / `regressed`
+   counts, the `comparison_against` reference (`runner_up` in MVP1; `baseline`
+   when Phase 2 ships), and up to 5 named regressor rows
+   (`query_text: winner_score → comparison_score (delta)`). Omitted entirely
+   when the comparison data isn't available.
 
 For the **structured** path (default, `include_recommendation=True`), return a
 JSON object with exactly two fields:
 
 - `narrative` — a markdown string (~200–600 words). Open with the headline
-  metric delta. Then explain *why* the recommendation works, citing the
-  `<parameter_importance>` map and 2–3 top trials. Reference the
-  `<recommended_config>` literal params + values where useful, but do NOT
-  reprint the full config — the data layer already has it.
+  metric delta, immediately followed by a one-sentence confidence framing that
+  mentions the CI band (when `<confidence>` is present), the per-query outcome
+  counts (when `<per_query_outcomes>` is present), and the worst-regressed
+  query by name (when `<per_query_outcomes>` has regressors). Then explain
+  *why* the recommendation works, citing the `<parameter_importance>` map and
+  2–3 top trials. Reference the `<recommended_config>` literal params + values
+  where useful, but do NOT reprint the full config — the data layer already
+  has it.
 - `suggested_followups` — a JSON array of at most 5 short strings, each a
   concrete next action the engineer can take (e.g. "Re-run with a wider
   `tie_breaker` range", "Add a judgment for query 'wireless headphones' to

@@ -12,7 +12,24 @@ baseline_metric: {{ baseline_metric if baseline_metric is not none else 'N/A (no
 achieved_metric: {{ achieved_metric }}
 </baseline_vs_achieved>
 
-<top_trials>
+{% if confidence %}<confidence>
+{% if confidence.ci_95 %}ci_low: {{ confidence.ci_95.low }}
+ci_high: {{ confidence.ci_95.high }}
+{% endif %}n_queries: {{ confidence.headline.n_queries }}
+{% if confidence.runner_up_gap %}runner_up_gap: {{ confidence.runner_up_gap.value }} ({{ confidence.runner_up_gap.classification or 'unclassified' }})
+{% endif %}{% if confidence.late_trial_stddev %}late_trial_stddev: {{ confidence.late_trial_stddev.value }}
+{% endif %}{% if confidence.convergence %}convergence: {{ confidence.convergence.regime }} (best at trial {{ confidence.convergence.best_at_trial }} of {{ confidence.convergence.total_trials }})
+{% endif %}</confidence>
+
+{% endif %}{% if confidence and confidence.per_query_outcomes %}<per_query_outcomes>
+improved: {{ confidence.per_query_outcomes.improved }}
+unchanged: {{ confidence.per_query_outcomes.unchanged }}
+regressed: {{ confidence.per_query_outcomes.regressed }}
+comparison_against: {{ confidence.per_query_outcomes.comparison_against }}
+{% for r in confidence.per_query_outcomes.top_regressors %}- {{ r.query_text }}: {{ r.winner_score }} → {{ r.comparison_score }} ({{ r.delta }})
+{% endfor %}</per_query_outcomes>
+
+{% endif %}<top_trials>
 {% for t in top_trials %}trial #{{ t.number }} — primary_metric={{ t.primary_metric }}, params={{ t.params }}
 {% endfor %}</top_trials>
 

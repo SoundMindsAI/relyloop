@@ -16,7 +16,7 @@ insertion path).
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field
@@ -77,6 +77,24 @@ class SeedCompletedStudyRequest(BaseModel):
             "aria-disabled-button + tooltip path."
         ),
     )
+    winner_per_query: dict[str, dict[str, Any]] | None = Field(
+        default=None,
+        description=(
+            "Optional per-query metrics dict to populate on the winner "
+            "trial. Shape: `{query_id: {metric_token: float}}` where "
+            "metric_token matches what `scoring.score()` emits (e.g. "
+            "`ndcg@10`). Set alongside `runner_up_per_query` to drive the "
+            "ConfidencePanel happy path on `/studies/[id]`. When omitted, "
+            "the seeded trials have `per_query_metrics IS NULL` (the "
+            "pre-feat_pr_metric_confidence shape)."
+        ),
+    )
+    runner_up_per_query: dict[str, dict[str, Any]] | None = Field(
+        default=None,
+        description=(
+            "Optional per-query metrics for the runner-up trial; pairs with `winner_per_query`."
+        ),
+    )
 
 
 class SeedCompletedStudyResponse(BaseModel):
@@ -125,6 +143,8 @@ async def seed_completed_study(  # pragma: no cover  - integration only
         template_id=body.template_id,
         judgment_list_id=body.judgment_list_id,
         with_pending_proposal=body.with_pending_proposal,
+        winner_per_query=body.winner_per_query,
+        runner_up_per_query=body.runner_up_per_query,
     )
     await db.commit()
     return SeedCompletedStudyResponse(

@@ -213,17 +213,22 @@ CREATE TABLE trials (
     params              JSONB NOT NULL,
     primary_metric      REAL,                          -- denormalized from `metrics` for fast sort
     metrics             JSONB NOT NULL,                -- {ndcg@10: ..., map: ..., p@10: ...}
+    per_query_metrics   JSONB,                         -- {qid: {ndcg@10: ..., map@10: ..., ...}} — feat_pr_metric_confidence (0015)
     duration_ms         INT,
     status              TEXT NOT NULL CHECK (status IN ('complete', 'failed', 'pruned')),
     error               TEXT,
     started_at          TIMESTAMPTZ,
-    ended_at            TIMESTAMPTZ
+    ended_at            TIMESTAMPTZ,
+    CONSTRAINT trials_per_query_metrics_object_check
+        CHECK (per_query_metrics IS NULL OR jsonb_typeof(per_query_metrics) = 'object')
 );
 
 CREATE INDEX trials_study_metric ON trials (study_id, primary_metric DESC NULLS LAST);
 ```
 
 `trials` is hard-delete only (no `deleted_at`) — when a study is removed, trials cascade-delete with it; trial history is regenerable from Optuna's RDB if needed.
+
+`per_query_metrics` (added by [`feat_pr_metric_confidence`](../00_overview/implemented_features/<date>_feat_pr_metric_confidence/) at Alembic `0015`) carries the per-query pytrec_eval scores from `backend/app/eval/scoring.py::score()`'s `per_query` dict, keyed by the user-facing metric tokens it emits (e.g. `ndcg@10`, `map@10`, `mrr`). NULL for trials predating the migration or for failed/pruned trials. The DB-level CHECK constraint enforces NULL-or-object at the persistence boundary since the write path is the Arq `run_trial` worker, not a Pydantic-validated HTTP request. Consumed by `backend/app/services/study_confidence.py::fetch_study_confidence` (the FR-2 4-query read pattern) to assemble `ConfidenceShape` on the `StudyDetail` response, the PR body's `## Confidence` section, and the digest narrative's `<confidence>` / `<per_query_outcomes>` Jinja blocks. Per-sub-field FR-7 degradation paths suppress only the per-query-dependent surfaces (`ci_95`, `headline.n_queries`, `per_query_outcomes`) when this column is NULL.
 
 ### `digests`, `proposals` (owned by `feat_digest_proposal` + `feat_github_pr_worker`)
 

@@ -4,6 +4,7 @@ import { Suspense, use } from 'react';
 
 import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ConfidencePanel } from '@/components/studies/confidence-panel';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
 import { StudyHeader } from '@/components/studies/study-header';
@@ -70,6 +71,7 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               <StudyActionBar study={study} />
             </div>
             <StudyHeader study={study} />
+            <ConfidencePanel confidence={study.confidence} />
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Trials</CardTitle>
