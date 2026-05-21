@@ -76,4 +76,22 @@ docker compose config --quiet
 docker compose build
 
 # 7. Bring the stack up. `docker compose up -d` is itself idempotent.
-exec docker compose up -d
+#    `--wait` blocks until every container's healthcheck passes (or fails) —
+#    needed by step 8 below, which runs the seed against a healthy stack.
+docker compose up -d --wait
+
+# 8. Auto-seed meaningful demo data when the stack is empty (idempotent —
+#    `--if-empty` is a no-op when clusters already exist, so re-running
+#    `make up` against a populated stack preserves operator-mutable state).
+#    Fixes the first-run UX where `make up` would land the operator on an
+#    empty stack with no path to create a meaningful study until they
+#    discovered `make seed-demo` on their own. Operators who explicitly
+#    want to wipe + reseed still call `make seed-demo FORCE=1`.
+#
+#    The auto-seed is non-fatal: a failure here doesn't roll back the
+#    stack startup. The operator can re-run `make seed-demo FORCE=1`
+#    manually once the failure is understood.
+echo "Checking demo state…"
+if ! python3 scripts/seed_meaningful_demos.py --if-empty; then
+  echo "Warning: auto-seed failed (non-fatal). Run 'make seed-demo FORCE=1' manually."
+fi
