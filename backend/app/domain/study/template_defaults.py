@@ -1,5 +1,11 @@
 """Default-value picker for query-template params (feat_digest_proposal Story 2.1).
 
+Sibling module: :mod:`backend.app.domain.study.search_space_defaults` picks
+*ParamSpec ranges* (``{type, low, high, log}``) for Optuna search bounds —
+this module picks *single concrete values* (midpoints, first categorical)
+for template rendering at digest / judgment time. Different concerns; do
+not merge or refactor either to imply they're the same.
+
 Originally inlined as ``_compute_default_params`` in
 :mod:`backend.workers.judgments` (feat_llm_judgments Story 2.1, GPT-5.5
 cycle 2 F2). Lifted here in feat_digest_proposal so both the judgments
