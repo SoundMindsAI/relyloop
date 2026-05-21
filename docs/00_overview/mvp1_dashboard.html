@@ -384,13 +384,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">52 / 52</div>
+      <div class="value">53 / 53</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Path to MVP1</div>
-      <div class="value">5</div>
+      <div class="value">4</div>
       <div class="sub">items left = features + bugs + chores</div>
     </div>
     <div class="kpi bug">
@@ -400,7 +400,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Open chores</div>
-      <div class="value">4</div>
+      <div class="value">3</div>
       <div class="sub">idea-stage chore_* (debt)</div>
     </div>
   </div>
@@ -428,7 +428,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">8</span></h3>
+  <h3>Idea <span class="count">7</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_agent_propose_search_space">Agent Propose Search Space</a></div>
@@ -491,18 +491,6 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_precommit_node_path_resolution">Precommit Node Path Resolution</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-
-  </div>
-  <div class="one-liner">Every UI-touching commit fails at the eslint-ui pre-commit hook unless the developer remembers to inject the nvm Node into PATH manually. The error message is clear, but the friction is constant.</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_template_library_expansion">Template Library Expansion</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -543,7 +531,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">63</span></h3>
+  <h3>Done <span class="count">64</span></h3>
 
 <div class="card feat" data-prefix="feat">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md">Chat Agent</a></div>
@@ -1074,6 +1062,18 @@ footer {
 
 
 <div class="card chore" data-prefix="chore">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_chore_precommit_node_path_resolution">Precommit Node Path Resolution</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span>merged 2026-05-21</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test">Proposals List Wire Param E2E Test</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1415,6 +1415,8 @@ footer {
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete[&quot;create study target autocomplete&quot;]
   class feat_create_study_target_autocomplete done;
+  chore_precommit_node_path_resolution[&quot;precommit node path resolution&quot;]
+  class chore_precommit_node_path_resolution done;
   infra_uv_sync_drops_precommit[&quot;uv sync drops precommit&quot;]
   class infra_uv_sync_drops_precommit done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -1606,6 +1608,8 @@ footer {
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete[&quot;create study target autocomplete&quot;]
   class feat_create_study_target_autocomplete done;
+  chore_precommit_node_path_resolution[&quot;precommit node path resolution&quot;]
+  class chore_precommit_node_path_resolution done;
   infra_uv_sync_drops_precommit[&quot;uv sync drops precommit&quot;]
   class infra_uv_sync_drops_precommit done;
   feat_study_lifecycle --&gt; feat_digest_proposal

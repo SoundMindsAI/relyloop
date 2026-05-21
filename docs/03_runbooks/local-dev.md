@@ -73,7 +73,7 @@ that `actions/setup-node@v4` provisions.
 If you're not using nvm, install Node 22 directly (e.g.,
 `brew install node@22`) and put it ahead of any other Node on PATH.
 
-Captured in [`chore_precommit_node_path_resolution`](../02_product/planned_features/chore_precommit_node_path_resolution/idea.md).
+Captured in [`chore_precommit_node_path_resolution`](../00_overview/implemented_features/2026_05_21_chore_precommit_node_path_resolution/idea.md).
 
 ## First-run quickstart (AC-1)
 
