@@ -21,8 +21,8 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **56 / 57** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **4** items remaining (features + bugs + chores) |
-| Open bugs | 1 |
+| Path to MVP1 | **3** items remaining (features + bugs + chores) |
+| Open bugs | 0 |
 | Open chores | 2 (idea-stage debt) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
@@ -116,7 +116,7 @@ _None._
 |---|---|---|---|---|
 | [feat_pr_metric_confidence](../02_product/planned_features/feat_pr_metric_confidence/feature_spec.md) | Feature | Approvers reading a study-backed PR see a "## Confidence" section directly between the existing "## Metric delta" and "## Config diff" sections. | — | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 
-### Idea (7)
+### Idea (6)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -126,7 +126,6 @@ _None._
 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit of the Studies workflow. |
 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| [bug_e2e_target_dropdown_flake](../02_product/planned_features/bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Idea — surfaced during `feat_create_study_target_autocomplete` Story F2 implementation; the new E2E happy-path spec is currently `test.skip`'d. |
 
 ## Dependency graph
 
