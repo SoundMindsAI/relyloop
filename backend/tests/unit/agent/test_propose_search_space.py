@@ -119,6 +119,18 @@ class TestRegistrySanity:
         """propose_search_space is read-only and must NOT require confirmation."""
         assert "propose_search_space" not in MUTATING_TOOL_NAMES
 
+    def test_args_model_rejects_extra_fields(self) -> None:
+        """``ProposeSearchSpaceArgs`` uses ``ConfigDict(extra='forbid')`` so a
+        hallucinated LLM arg fails validation loudly (GPT-5.5 F6 on PR #175)."""
+        import pydantic
+
+        with pytest.raises(pydantic.ValidationError):
+            ProposeSearchSpaceArgs(
+                template_id=uuid4(),
+                cluster_id=uuid4(),
+                hallucinated_arg="oops",  # type: ignore[call-arg]
+            )
+
 
 # ---------------------------------------------------------------------------
 # Error codes (AC-6, AC-12, AC-13)

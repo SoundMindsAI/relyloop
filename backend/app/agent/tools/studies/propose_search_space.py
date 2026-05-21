@@ -27,7 +27,7 @@ from uuid import UUID
 
 from fastapi import HTTPException
 from openai.types.chat import ChatCompletionToolParam
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from backend.app.agent.context import ToolContext
 from backend.app.db import repo
@@ -45,7 +45,14 @@ logger = logging.getLogger(__name__)
 
 
 class ProposeSearchSpaceArgs(BaseModel):
-    """Arguments for the ``propose_search_space`` tool."""
+    """Arguments for the ``propose_search_space`` tool.
+
+    Strict — extra fields are rejected so a hallucinated LLM arg surfaces as a
+    Pydantic ``ValidationError`` at the orchestrator's arg-validation step
+    rather than being silently dropped.
+    """
+
+    model_config = ConfigDict(extra="forbid")
 
     template_id: UUID = Field(description="The template's UUIDv7 — the param universe.")
     cluster_id: UUID = Field(description="The cluster's UUIDv7 — validated to exist.")
