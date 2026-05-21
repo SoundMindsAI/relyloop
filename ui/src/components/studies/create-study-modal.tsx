@@ -145,6 +145,13 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   const templateId = form.watch('template_id');
   const metric = form.watch('metric');
 
+  // feat_study_target_judgment_mismatch_guard FR-4: hoist the RHF
+  // registration for `target` so the manual-mode <Input> can keep name/ref/
+  // onBlur/validate wiring AND tack the judgment_list_id cascade reset onto
+  // onChange without an IIFE in JSX. Used at the Step-1 manual-mode branch
+  // below.
+  const targetReg = form.register('target');
+
   const clusters = useClusters({ limit: 200 });
   const selectedCluster = clusters.data?.data.find((c) => c.id === clusterId);
   const schema = useClusterSchema(clusterId, target || undefined);
@@ -530,33 +537,28 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
 
                 {manualMode ? (
                   // Manual-mode fallback (preserves the original Input behavior).
-                  // feat_study_target_judgment_mismatch_guard FR-4: hoist
-                  // form.register('target') so we can keep RHF's name/ref/
-                  // onBlur/validate wiring intact while extending onChange to
-                  // cascade-reset judgment_list_id (mirror line ~596 query-set
-                  // pattern). Do NOT replace with bare value/onChange — that
-                  // breaks RHF dirty/touched/validation state.
-                  (() => {
-                    const targetReg = form.register('target');
-                    return (
-                      <>
-                        <Input
-                          id="cs-target"
-                          {...targetReg}
-                          onChange={(e) => {
-                            targetReg.onChange(e);
-                            form.setValue('judgment_list_id', '');
-                          }}
-                          placeholder="products"
-                        />
-                        {targets.isError && targets.error?.errorCode === 'TARGETS_FORBIDDEN' && (
-                          <p className="text-xs text-amber-600">
-                            Cluster restricts index listing — enter the target name manually.
-                          </p>
-                        )}
-                      </>
-                    );
-                  })()
+                  // feat_study_target_judgment_mismatch_guard FR-4: uses the
+                  // hoisted `targetReg` so RHF's name/ref/onBlur/validate
+                  // wiring stays intact while onChange ALSO cascade-resets
+                  // judgment_list_id (mirror of line ~596 query-set pattern).
+                  // Do NOT replace with bare value/onChange — that breaks
+                  // RHF dirty/touched/validation state.
+                  <>
+                    <Input
+                      id="cs-target"
+                      {...targetReg}
+                      onChange={(e) => {
+                        targetReg.onChange(e);
+                        form.setValue('judgment_list_id', '');
+                      }}
+                      placeholder="products"
+                    />
+                    {targets.isError && targets.error?.errorCode === 'TARGETS_FORBIDDEN' && (
+                      <p className="text-xs text-amber-600">
+                        Cluster restricts index listing — enter the target name manually.
+                      </p>
+                    )}
+                  </>
                 ) : !clusterId ? (
                   // FR-4: no cluster picked yet → disabled placeholder Select
                   // matching the EntitySelect visual idiom. The targets query
