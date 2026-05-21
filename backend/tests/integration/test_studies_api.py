@@ -182,6 +182,252 @@ async def test_post_study_judgment_query_set_mismatch_returns_422(
     assert "query_set_id" in resp.json()["detail"]["message"]
 
 
+# ---------------------------------------------------------------------------
+# feat_study_target_judgment_mismatch_guard FR-1 + FR-1b — cluster + target
+# validators on POST /studies. The four tests below cover AC-1, AC-2, AC-4,
+# AC-11, plus the "no insert + no enqueue" assertion required by the spec's
+# DoD ("And no row is inserted into studies / And no Arq job is enqueued").
+# ---------------------------------------------------------------------------
+
+
+async def _count_studies(db_factory: object) -> int:
+    """Return the current row count of `studies`. Used to assert no-insert
+    on rejected create-study POSTs."""
+    from sqlalchemy import func as _func
+    from sqlalchemy import select
+
+    from backend.app.db.models import Study
+
+    factory = get_session_factory()
+    async with factory() as db:
+        result = await db.execute(select(_func.count()).select_from(Study))
+        return int(result.scalar_one())
+
+
+async def test_post_study_rejects_target_mismatch(async_client: httpx.AsyncClient) -> None:
+    """AC-1: judgment_list.target != body.target → 422 JUDGMENT_TARGET_MISMATCH;
+    no studies row inserted; no Arq job enqueued."""
+    ids = await _seed_minimum_for_post_studies()
+    before = await _count_studies(None)
+
+    body = {
+        "name": "target-mismatch-study",
+        "cluster_id": ids["cluster_id"],
+        "target": "docs-articles",  # judgment_list was seeded with target="stub-index"
+        "template_id": ids["template_id"],
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "JUDGMENT_TARGET_MISMATCH"
+    assert detail["retryable"] is False
+    assert "stub-index" in detail["message"]
+    assert "docs-articles" in detail["message"]
+
+    # No studies row inserted.
+    after = await _count_studies(None)
+    assert after == before, "JUDGMENT_TARGET_MISMATCH must NOT insert a studies row"
+
+
+async def test_post_study_rejects_cluster_mismatch(async_client: httpx.AsyncClient) -> None:
+    """AC-11: judgment_list.cluster_id != body.cluster_id → 422
+    JUDGMENT_CLUSTER_MISMATCH; fires BEFORE the target check; no insert."""
+    seed_a = await _seed_minimum_for_post_studies()
+    factory = get_session_factory()
+    async with factory() as db:
+        cluster_b = await repo.create_cluster(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"st-cluster-b-{uuid.uuid4().hex[:8]}",
+            engine_type="elasticsearch",
+            environment="dev",
+            base_url="http://stub-b:9200",
+            auth_kind="es_basic",
+            credentials_ref="ref",
+        )
+        # Query-set is in cluster A so the cross-cluster body resolves the
+        # query_set successfully (matching cluster_b on the body) but the
+        # judgment_list (in cluster A) mismatches.
+        qs_b = await repo.create_query_set(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"st-qs-b-{uuid.uuid4().hex[:8]}",
+            cluster_id=cluster_b.id,
+        )
+        # Create a judgment_list bound to cluster A but query_set in cluster B
+        # — for this test we want cluster mismatch, not query_set mismatch, so
+        # the judgment_list points at cluster A's query_set.
+        jl_a = await repo.create_judgment_list(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"st-jl-b-{uuid.uuid4().hex[:8]}",
+            description=None,
+            query_set_id=qs_b.id,  # match the body's query_set_id
+            cluster_id=seed_a["cluster_id"],  # cluster_id mismatch vs body.cluster_id (B)
+            target="stub-index",  # target matches body — proves cluster fires first
+            current_template_id=seed_a["template_id"],
+            rubric="hand-built",
+            status="complete",
+            failed_reason=None,
+            calibration=None,
+        )
+        await db.commit()
+
+    before = await _count_studies(None)
+    body = {
+        "name": "cluster-mismatch-study",
+        "cluster_id": cluster_b.id,  # B
+        "target": "stub-index",
+        "template_id": seed_a["template_id"],
+        "query_set_id": qs_b.id,
+        "judgment_list_id": jl_a.id,
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "JUDGMENT_CLUSTER_MISMATCH"
+    assert detail["retryable"] is False
+    assert seed_a["cluster_id"] in detail["message"]
+    assert cluster_b.id in detail["message"]
+    # No studies row inserted.
+    after = await _count_studies(None)
+    assert after == before, "JUDGMENT_CLUSTER_MISMATCH must NOT insert a studies row"
+
+
+async def test_post_study_cluster_mismatch_fires_before_target(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """AC-11 ordering: when BOTH cluster_id AND target differ, the cluster
+    error wins (fires first). This locks the FR-1b BEFORE FR-1 ordering."""
+    seed_a = await _seed_minimum_for_post_studies()
+    factory = get_session_factory()
+    async with factory() as db:
+        cluster_b = await repo.create_cluster(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"st-cluster-b2-{uuid.uuid4().hex[:8]}",
+            engine_type="elasticsearch",
+            environment="dev",
+            base_url="http://stub-b2:9200",
+            auth_kind="es_basic",
+            credentials_ref="ref",
+        )
+        qs_b = await repo.create_query_set(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"st-qs-b2-{uuid.uuid4().hex[:8]}",
+            cluster_id=cluster_b.id,
+        )
+        # judgment_list with BOTH cluster AND target mismatched vs the body.
+        jl_a = await repo.create_judgment_list(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"st-jl-both-{uuid.uuid4().hex[:8]}",
+            description=None,
+            query_set_id=qs_b.id,
+            cluster_id=seed_a["cluster_id"],  # cluster mismatch vs body cluster B
+            target="other-index",  # target mismatch vs body target
+            current_template_id=seed_a["template_id"],
+            rubric="hand-built",
+            status="complete",
+            failed_reason=None,
+            calibration=None,
+        )
+        await db.commit()
+
+    body = {
+        "name": "both-mismatch-study",
+        "cluster_id": cluster_b.id,
+        "target": "docs-articles",  # mismatch vs jl_a.target
+        "template_id": seed_a["template_id"],
+        "query_set_id": qs_b.id,
+        "judgment_list_id": jl_a.id,
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["detail"]["error_code"] == "JUDGMENT_CLUSTER_MISMATCH", (
+        f"cluster check must fire BEFORE target check; got {resp.json()['detail']['error_code']!r}"
+    )
+
+
+async def test_post_study_target_check_fires_after_query_set_check(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """AC-4 ordering: query_set_id mismatch (existing VALIDATION_ERROR) fires
+    before the new target check. Locks the FR-1/FR-1b ordering relative to
+    the pre-existing validator at studies.py:241-247."""
+    ids = await _seed_minimum_for_post_studies()
+    factory = get_session_factory()
+    async with factory() as db:
+        second_qs = await repo.create_query_set(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"st-qs3-{uuid.uuid4().hex[:8]}",
+            cluster_id=ids["cluster_id"],
+        )
+        await db.commit()
+
+    body = {
+        "name": "qs-vs-target",
+        "cluster_id": ids["cluster_id"],
+        "target": "docs-articles",  # mismatches judgment_list.target="stub-index"
+        "template_id": ids["template_id"],
+        "query_set_id": second_qs.id,  # mismatches judgment_list.query_set_id
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422
+    # query_set check fires FIRST (existing behavior, generic VALIDATION_ERROR).
+    assert resp.json()["detail"]["error_code"] == "VALIDATION_ERROR"
+
+
+async def test_get_study_does_not_validate_pre_existing_target_mismatch(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """AC-10: pre-existing studies with mismatched target are not retroactively
+    rejected by read paths. Seed a study row directly with a mismatched target
+    (bypassing POST) and confirm GET /studies/{id} returns 200."""
+    ids = await _seed_minimum_for_post_studies()
+    factory = get_session_factory()
+    async with factory() as db:
+        study = await repo.create_study(
+            db,
+            id=str(uuid.uuid4()),
+            name="pre-existing-mismatch",
+            cluster_id=ids["cluster_id"],
+            target="some-other-index",  # mismatches judgment_list.target="stub-index"
+            template_id=ids["template_id"],
+            query_set_id=ids["query_set_id"],
+            judgment_list_id=ids["judgment_list_id"],
+            search_space=_VALID_SEARCH_SPACE,
+            objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            config={"max_trials": 20},
+            status="queued",
+            optuna_study_name=str(uuid.uuid4()),
+        )
+        await db.commit()
+
+    resp = await async_client.get(f"/api/v1/studies/{study.id}")
+    assert resp.status_code == 200, resp.text
+    detail = resp.json()
+    assert detail["target"] == "some-other-index"
+    assert detail["id"] == study.id
+
+
 async def test_cancel_endpoint_round_trip(async_client: httpx.AsyncClient) -> None:
     """POST /cancel transitions queued → cancelled; second call → 409."""
     ids = await _seed_minimum_for_post_studies()

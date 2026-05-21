@@ -246,6 +246,42 @@ async def create_study(
             False,
         )
 
+    # 3a. judgment_list ↔ cluster consistency (feat_study_target_judgment_mismatch_guard
+    # FR-1b). Doc IDs are scoped to the cluster they were authored on; same
+    # target name on two clusters still produces zero overlap. Fires BEFORE
+    # the target check (3b) because cluster mismatch is the broader failure.
+    if judgment_list.cluster_id != body.cluster_id:
+        raise _err(
+            422,
+            "JUDGMENT_CLUSTER_MISMATCH",
+            (
+                f"judgment_list cluster_id={judgment_list.cluster_id!r} does not "
+                f"match study cluster_id={body.cluster_id!r}; judgments are scoped "
+                f"to the cluster they were authored on. Pick a judgment list "
+                f"created against cluster {body.cluster_id!r} or change the "
+                f"study's cluster."
+            ),
+            False,
+        )
+
+    # 3b. judgment_list ↔ target consistency (feat_study_target_judgment_mismatch_guard
+    # FR-1). When targets differ, judgment doc IDs cannot overlap with search
+    # results from the study's target — pytrec_eval scores 0 on every trial by
+    # construction. Closes the literal study2 incident (1000 trials, 0 signal).
+    if judgment_list.target != body.target:
+        raise _err(
+            422,
+            "JUDGMENT_TARGET_MISMATCH",
+            (
+                f"judgment_list target={judgment_list.target!r} does not match "
+                f"study target={body.target!r}; judgments would have no overlap "
+                f"with search results from the study's target. Use a judgment "
+                f"list generated against {body.target!r} or change study.target "
+                f"to {judgment_list.target!r}."
+            ),
+            False,
+        )
+
     # 4. Serialize config with exclude_none + exclude_unset (C3-F1 + Story 1.5).
     config_payload = body.config.model_dump(exclude_none=True, exclude_unset=True)
 

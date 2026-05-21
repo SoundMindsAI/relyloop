@@ -54,7 +54,10 @@ test('Step-1 target picker loads from the cluster, sorts alphabetically, and per
 
   // Setup: seed full chain (cluster, query-set, template, judgment-list), then
   // create two ES indices on the cluster so the targets dropdown has data.
-  const chain = await seedFullChain(2);
+  // The judgment-list target must match the target the test picks (the alpha
+  // one) so the chained POST /studies passes feat_study_target_judgment_mismatch_guard
+  // FR-1.
+  const chain = await seedFullChain(2, { judgmentListTarget: seededTargets[1] });
   for (const name of seededTargets) {
     await createIndex(request, name);
   }

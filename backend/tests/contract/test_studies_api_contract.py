@@ -177,3 +177,37 @@ def test_bulk_queries_request_caps_at_10k() -> None:
 def test_bulk_queries_request_requires_min_one() -> None:
     with pytest.raises(ValidationError):
         BulkQueriesJsonRequest(queries=[])
+
+
+def test_studies_router_declares_judgment_mismatch_error_codes() -> None:
+    """``feat_study_target_judgment_mismatch_guard`` FR-1 + FR-1b — source-
+    presence guard that both new error codes appear as literals in the
+    studies router AND fire in the expected order.
+
+    Hermetic (no DB needed). Catches a rename of the error_code strings
+    without an accompanying spec/contract update — the integration tests
+    at ``test_studies_api.py`` exercise the runtime envelope shape; this
+    test exists so a refactor that renames ``JUDGMENT_TARGET_MISMATCH`` →
+    something else fails CI even if integration coverage was the
+    refactor's own test (chicken-and-egg).
+    """
+    from pathlib import Path
+
+    source = Path("backend/app/api/v1/studies.py").read_text(encoding="utf-8")
+    assert '"JUDGMENT_CLUSTER_MISMATCH"' in source, (
+        "JUDGMENT_CLUSTER_MISMATCH literal missing from backend/app/api/v1/studies.py"
+    )
+    assert '"JUDGMENT_TARGET_MISMATCH"' in source, (
+        "JUDGMENT_TARGET_MISMATCH literal missing from backend/app/api/v1/studies.py"
+    )
+    # Lock the firing order: cluster check must appear BEFORE the target
+    # check in the source (handler executes top-down). This catches a
+    # refactor that accidentally swaps the two blocks.
+    cluster_pos = source.index('"JUDGMENT_CLUSTER_MISMATCH"')
+    target_pos = source.index('"JUDGMENT_TARGET_MISMATCH"')
+    assert cluster_pos < target_pos, (
+        "FR-1b ordering violation: JUDGMENT_CLUSTER_MISMATCH must appear in "
+        "studies.py BEFORE JUDGMENT_TARGET_MISMATCH (cluster check fires "
+        "first). Got cluster_pos="
+        f"{cluster_pos}, target_pos={target_pos}."
+    )

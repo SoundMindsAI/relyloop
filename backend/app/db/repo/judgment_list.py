@@ -65,6 +65,7 @@ async def list_judgment_lists(
     sort: str | None = None,
     query_set_id: str | None = None,
     cluster_id: str | None = None,
+    target: str | None = None,
 ) -> list[JudgmentList]:
     """Cursor-paginated list of judgment lists, sort-aware (Story 1.3).
 
@@ -72,13 +73,15 @@ async def list_judgment_lists(
     to ``<col>:<dir>`` with explicit NULLS handling. ``since`` filters
     by ``created_at >= since``. ``q`` is FTS match against
     ``search_vector`` (name + target). ``query_set_id`` / ``cluster_id``
-    filter to judgment lists that belong to the supplied parent
-    (``bug_judgment_lists_listing_ignores_query_set_filter`` —
-    the create-study modal's Step-2 dropdown relies on these to
-    surface only valid judgment-list ↔ query-set pairs; without the
-    filters the modal lets the user pick a mismatched pair, which the
-    ``POST /api/v1/studies`` cross-entity integrity check then rejects
-    at create time with a confusing 422).
+    / ``target`` filter to judgment lists that belong to the supplied
+    parent and/or share the exact target index name
+    (``bug_judgment_lists_listing_ignores_query_set_filter`` for the
+    first two; ``feat_study_target_judgment_mismatch_guard`` FR-2 for
+    ``target``). The create-study modal's Step-2 dropdown relies on
+    all three so it surfaces only the judgment lists valid for the
+    chosen study cluster + query set + target — without these filters
+    the modal lets the user pick a mismatched pair and ``POST
+    /api/v1/studies`` then rejects at create time with a confusing 422.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _JUDGMENT_LIST_SORT_COLUMNS)
     stmt = select(JudgmentList)
@@ -88,6 +91,8 @@ async def list_judgment_lists(
         stmt = stmt.where(JudgmentList.query_set_id == query_set_id)
     if cluster_id is not None:
         stmt = stmt.where(JudgmentList.cluster_id == cluster_id)
+    if target is not None:
+        stmt = stmt.where(JudgmentList.target == target)
     fts = fts_predicate(q)
     if fts is not None:
         stmt = stmt.where(fts)
@@ -119,11 +124,13 @@ async def count_judgment_lists(
     q: str | None = None,
     query_set_id: str | None = None,
     cluster_id: str | None = None,
+    target: str | None = None,
 ) -> int:
     """Total count for ``X-Total-Count`` header on ``GET /api/v1/judgment-lists``.
 
-    ``query_set_id`` / ``cluster_id`` mirror :func:`list_judgment_lists` so the
-    header count and the row count stay consistent under the same filters.
+    ``query_set_id`` / ``cluster_id`` / ``target`` mirror
+    :func:`list_judgment_lists` so the header count and the row count stay
+    consistent under the same filters.
     """
     from sqlalchemy import func as _func
 
@@ -134,6 +141,8 @@ async def count_judgment_lists(
         stmt = stmt.where(JudgmentList.query_set_id == query_set_id)
     if cluster_id is not None:
         stmt = stmt.where(JudgmentList.cluster_id == cluster_id)
+    if target is not None:
+        stmt = stmt.where(JudgmentList.target == target)
     fts = fts_predicate(q)
     if fts is not None:
         stmt = stmt.where(fts)
