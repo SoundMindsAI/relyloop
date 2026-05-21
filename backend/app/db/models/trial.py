@@ -13,6 +13,15 @@ trial — even on failure (``status='failed'`` with ``error`` populated).
 The ``trials_study_metric`` index on ``(study_id, primary_metric DESC NULLS
 LAST)`` is created in the migration (Story 1.2) — not declared at the ORM
 level — so the ``DESC NULLS LAST`` ordering survives ``--autogenerate``.
+
+The ``per_query_metrics`` JSONB column (nullable; added by migration
+``0015_trials_per_query_metrics`` for feat_pr_metric_confidence) carries the
+per-query pytrec_eval scores from ``scoring.py::score()``'s ``per_query``
+dict. Shape: ``{query_id: {metric_name: float}}`` where ``metric_name`` is one
+of the user-facing names (``ndcg``, ``map``, ``precision``, ``recall``,
+``mrr``). The ``trials_per_query_metrics_object_check`` CHECK constraint
+enforces NULL-or-object at the DB level (since the write path is the Arq
+``run_trial`` worker, not a Pydantic-validated HTTP request).
 """
 
 from __future__ import annotations
@@ -35,6 +44,10 @@ class Trial(Base):
         CheckConstraint(
             "status IN ('complete', 'failed', 'pruned')",
             name="trials_status_check",
+        ),
+        CheckConstraint(
+            "per_query_metrics IS NULL OR jsonb_typeof(per_query_metrics) = 'object'",
+            name="trials_per_query_metrics_object_check",
         ),
     )
 
@@ -62,6 +75,15 @@ class Trial(Base):
     """``{ndcg@10: ..., map: ..., p@10: ...}`` — every metric the study's
     objective enumerated, scored by ``backend/eval/scoring.py`` (lands in
     ``infra_optuna_eval``)."""
+    per_query_metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    """Per-query pytrec_eval scores from ``scoring.py::score()``'s
+    ``per_query`` dict, persisted on every successful trial (NULL on
+    failure/pruned and on trials predating migration 0015). Shape:
+    ``{query_id: {metric_name: float}}`` using user-facing metric names
+    (``ndcg``, ``map``, ``precision``, ``recall``, ``mrr``). Consumed by
+    ``backend.app.domain.study.confidence`` to compute the
+    ``ConfidenceShape`` surfaced on ``StudyDetail`` + PR body + digest
+    narrative (feat_pr_metric_confidence)."""
     duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
     """Wall-clock from ``study.ask()`` to ``study.tell()`` for this trial."""
     status: Mapped[str] = mapped_column(Text, nullable=False)
