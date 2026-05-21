@@ -92,7 +92,12 @@ def _basic(auth: tuple[str, str]) -> str:
     return "Basic " + base64.b64encode(f"{auth[0]}:{auth[1]}".encode()).decode()
 
 
-def http(method: str, url: str, body: dict | None = None, auth=None) -> dict:
+def http(
+    method: str,
+    url: str,
+    body: dict | None = None,
+    auth: tuple[str, str] | None = None,
+) -> dict:
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if body is not None else {}
     if auth:
