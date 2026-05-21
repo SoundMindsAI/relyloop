@@ -6,22 +6,16 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-**[feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same heuristic table that powers the create-
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_agent_propose_search_space/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **53 / 54** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Path to MVP1 | **5** items remaining (features + bugs + chores) |
+| Scoped items done | **54 / 54** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Path to MVP1 | **4** items remaining (features + bugs + chores) |
 | Open bugs | 1 |
 | Open chores | 3 (idea-stage debt) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
@@ -29,10 +23,11 @@ Plan approved; run /impl-execute to ship
 
 ## Pipeline
 
-### Done (64)
+### Done (65)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
+| [feat_agent_propose_search_space](implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md) | Feature | A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same | — | [PR #175](https://github.com/SoundMindsAI/relyloop/pull/175) merged 2026-05-21 |
 | [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_agent_propose_search_space` `feat_cluster_target_filter` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_clone_from_previous` `feat_study_lifecycle` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` `infra_uv_sync_drops_precommit` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_cluster_target_filter](implemented_features/2026_05_20_feat_cluster_target_filter/feature_spec.md) | Feature | Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset. | — | [PR #168](https://github.com/SoundMindsAI/relyloop/pull/168) merged 2026-05-20 |
 | [feat_contextual_help](implemented_features/2026_05_15_feat_contextual_help/feature_spec.md) | Feature | a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam | — | [PR #122](https://github.com/SoundMindsAI/relyloop/pull/122) merged 2026-05-15 |
@@ -102,11 +97,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|
-| [feat_agent_propose_search_space](../02_product/planned_features/feat_agent_propose_search_space/feature_spec.md) | Feature | A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same | — | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) |
+_None._
 
 ### Spec (0)
 
@@ -134,8 +127,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_agent_propose_search_space["agent propose search space"]
-  class feat_agent_propose_search_space plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -240,6 +231,8 @@ graph LR
   class feat_create_study_target_autocomplete done;
   chore_precommit_node_path_resolution["precommit node path resolution"]
   class chore_precommit_node_path_resolution done;
+  feat_agent_propose_search_space["agent propose search space"]
+  class feat_agent_propose_search_space done;
   infra_uv_sync_drops_precommit["uv sync drops precommit"]
   class infra_uv_sync_drops_precommit done;
   feat_study_lifecycle --> feat_digest_proposal
