@@ -1,7 +1,7 @@
 # Implementation Plan — PR Metric Confidence (Phase 1)
 
 **Date:** 2026-05-21
-**Status:** Draft (pending GPT-5.5 cross-model review)
+**Status:** Complete (PR #180, merged 2026-05-21 as squash `d0a8358`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md), [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md), [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md), [`docs/01_architecture/optimization.md`](../../../01_architecture/optimization.md)
 
@@ -1061,7 +1061,7 @@ None planned. The feature is purely additive across all surfaces.
 - [x] Story 2.2 — `<ConfidencePanel>` component + glossary + page mount
 - [x] Story 2.3 — Playwright E2E
 - [x] **Epic 2 gate**
-- [ ] Final state.md + architecture.md update
+- [x] Final state.md + architecture.md update
 
 ### Blocked items
 
