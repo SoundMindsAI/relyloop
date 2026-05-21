@@ -352,9 +352,20 @@ def classify_convergence_regime(
     n = len(primary_metrics_by_trial_number)
     if n < CONVERGENCE_MIN_COMPLETE:
         return None
+    # Defense in depth (FR-7 invariant): if the winner trial isn't in the
+    # complete-trials summary — e.g., a cascade-delete race or a
+    # best_trial_id pointing at a failed/pruned trial — fall through to
+    # whole-object None for convergence rather than raising KeyError.
+    if winner_trial_number not in primary_metrics_by_trial_number:
+        return None
     winner_metric = primary_metrics_by_trial_number[winner_trial_number]
     max_trial_number = max(primary_metrics_by_trial_number.keys())
-    total_trials = n
+    # Spec example: "best at trial 200 of 1000" for a 1000-trial Optuna
+    # budget. Optuna trial numbers are 0-indexed (0..max), so the budget /
+    # denominator is max_trial_number + 1. GPT-5.5 review finding #6 fixed
+    # this — previously total_trials used the count of complete trials,
+    # which understated the budget for studies with failed/pruned trials.
+    total_trials = max_trial_number + 1
 
     if winner_trial_number >= LATE_RISING_TRIAL_NUMBER_FRAC * max_trial_number:
         regime: ConvergenceRegime = "late_rising"

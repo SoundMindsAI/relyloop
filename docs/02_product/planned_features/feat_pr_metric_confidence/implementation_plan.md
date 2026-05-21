@@ -1056,7 +1056,7 @@ None planned. The feature is purely additive across all surfaces.
 - [x] Story 1.4 — `ConfidenceShape` + StudyDetail enrichment
 - [x] Story 1.5 — PR body section + worker plumbing
 - [x] Story 1.6 — Digest narrative prompt extension
-- [ ] **Epic 1 gate**
+- [x] **Epic 1 gate**
 - [ ] Story 2.1 — TypeScript types + enums
 - [ ] Story 2.2 — `<ConfidencePanel>` component + glossary + page mount
 - [ ] Story 2.3 — Playwright E2E

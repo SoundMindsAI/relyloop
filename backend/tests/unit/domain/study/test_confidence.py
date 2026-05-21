@@ -183,7 +183,13 @@ class TestConvergenceRegime:
         assert result is not None
         assert result.regime == "early_held"
         assert result.best_at_trial == 200
-        assert result.total_trials == len(metrics_by_trial)
+        # GPT-5.5 review finding #6 fix: total_trials is the Optuna budget
+        # (max_trial_number + 1 for 0-indexed trials), not the count of
+        # complete trials. For sparse trial-number distributions
+        # (failed/pruned trials thinning the dict), the budget interpretation
+        # is what the operator reads in the PR body / panel
+        # ("best at trial 200 of 1001").
+        assert result.total_trials == max(metrics_by_trial.keys()) + 1
 
     def test_late_rising_at_90pct(self) -> None:
         """AC-9: winner at 95% → late_rising."""

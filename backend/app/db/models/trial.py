@@ -17,11 +17,15 @@ level — so the ``DESC NULLS LAST`` ordering survives ``--autogenerate``.
 The ``per_query_metrics`` JSONB column (nullable; added by migration
 ``0015_trials_per_query_metrics`` for feat_pr_metric_confidence) carries the
 per-query pytrec_eval scores from ``scoring.py::score()``'s ``per_query``
-dict. Shape: ``{query_id: {metric_name: float}}`` where ``metric_name`` is one
-of the user-facing names (``ndcg``, ``map``, ``precision``, ``recall``,
-``mrr``). The ``trials_per_query_metrics_object_check`` CHECK constraint
-enforces NULL-or-object at the DB level (since the write path is the Arq
-``run_trial`` worker, not a Pydantic-validated HTTP request).
+dict. Shape: ``{query_id: {metric_token: float}}`` where ``metric_token`` is
+the user-facing token emitted by :func:`backend.app.eval.scoring.score` —
+i.e. ``@<k>``-suffixed for cutoff-aware metrics (``ndcg@10``, ``map@10``,
+``precision@10``, ``recall@10``) and bare names for cutoff-free metrics
+(``mrr``, plain ``map``). The base name (everything before any ``@``) is
+constrained to ``MetricCatalog`` (``ndcg``, ``map``, ``precision``,
+``recall``, ``mrr``). The ``trials_per_query_metrics_object_check`` CHECK
+constraint enforces NULL-or-object at the DB level (since the write path is
+the Arq ``run_trial`` worker, not a Pydantic-validated HTTP request).
 """
 
 from __future__ import annotations

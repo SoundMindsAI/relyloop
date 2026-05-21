@@ -203,6 +203,8 @@ async def test_ac3_old_study_returns_partial_confidence_with_aggregate_signals(
     assert confidence["late_trial_stddev"] is not None
     assert confidence["convergence"] is not None
     assert confidence["convergence"]["best_at_trial"] == 0
+    # 12 trials at optuna_trial_number 0..11 → max+1 = 12 (matches count when
+    # trial numbers are sequential, which is the seed shape here).
     assert confidence["convergence"]["total_trials"] == 12
 
 
@@ -395,6 +397,12 @@ async def test_ac8_convergence_regime_early_held(async_client: httpx.AsyncClient
     assert conv is not None
     assert conv["regime"] == "early_held"
     assert conv["best_at_trial"] == 200
+    # Sparse trial numbers (0, 100, …, 1000) — 7 complete trials but the
+    # Optuna budget is 1001 (max trial number 1000 + 1 for 0-indexed
+    # numbering). GPT-5.5 review finding #6: total_trials must reflect
+    # the budget, not the count, so the PR body reads "best at trial
+    # 200 of 1001" rather than "200 of 7".
+    assert conv["total_trials"] == 1001
 
 
 # ---------------------------------------------------------------------------

@@ -173,6 +173,139 @@ class TestTrialsPerQueryMetricsMigration:
         finally:
             engine.dispose()
 
+    def test_existing_trial_row_stays_null_across_upgrade(self, restore_head: None) -> None:
+        """A pre-0015 trial row (inserted while at revision 0014) survives the
+        upgrade to head with ``per_query_metrics IS NULL``.
+
+        GPT-5.5 Epic 1 review finding #9 — proves the no-backfill contract
+        from Story 1.1: old trial rows aren't touched by the migration, and
+        the column is added as NULL by default. The orchestrator then routes
+        these rows through the FR-7 partial-shape path (no CI, no
+        per_query_outcomes; aggregate signals still compute).
+        """
+        # Land at the pre-migration state so we can seed a row that genuinely
+        # predates the per_query_metrics column.
+        _alembic("upgrade", "head")
+        _alembic("downgrade", "0014")
+
+        engine = create_engine(_sync_database_url(), future=True)
+        try:
+            suffix = uuid.uuid4().hex[:8]
+            cluster_id = str(uuid.uuid4())
+            qs_id = str(uuid.uuid4())
+            tpl_id = str(uuid.uuid4())
+            jl_id = str(uuid.uuid4())
+            study_id = str(uuid.uuid4())
+            trial_id = str(uuid.uuid4())
+
+            # Seed the minimum FK chain + one trial without per_query_metrics —
+            # the column doesn't exist on 0014, so the INSERT uses only the
+            # pre-0015 column set.
+            with engine.connect() as conn, conn.begin():
+                conn.execute(
+                    text(
+                        "INSERT INTO clusters (id, name, engine_type, environment, "
+                        "base_url, auth_kind, credentials_ref) VALUES "
+                        "(:id, :name, 'elasticsearch', 'dev', "
+                        "'http://elasticsearch:9200', 'es_basic', 'local-es')"
+                    ),
+                    {"id": cluster_id, "name": f"pre-0015-{suffix}"},
+                )
+                conn.execute(
+                    text("INSERT INTO query_sets (id, name, cluster_id) VALUES (:id, :name, :cid)"),
+                    {"id": qs_id, "name": f"qs-{suffix}", "cid": cluster_id},
+                )
+                conn.execute(
+                    text(
+                        "INSERT INTO query_templates (id, name, engine_type, body, "
+                        "declared_params) VALUES (:id, :name, 'elasticsearch', "
+                        ":body, :params)"
+                    ),
+                    {
+                        "id": tpl_id,
+                        "name": f"tpl-{suffix}",
+                        "body": '{"query":{"match_all":{}}}',
+                        "params": json.dumps({}),
+                    },
+                )
+                conn.execute(
+                    text(
+                        "INSERT INTO judgment_lists (id, name, query_set_id, "
+                        "cluster_id, target, rubric, status) VALUES "
+                        "(:id, :name, :qs, :cid, 'idx', 'r', 'complete')"
+                    ),
+                    {
+                        "id": jl_id,
+                        "name": f"jl-{suffix}",
+                        "qs": qs_id,
+                        "cid": cluster_id,
+                    },
+                )
+                conn.execute(
+                    text(
+                        "INSERT INTO studies (id, name, cluster_id, target, "
+                        "template_id, query_set_id, judgment_list_id, search_space, "
+                        "objective, config, status, optuna_study_name) VALUES "
+                        "(:id, :name, :cid, 'idx', :tpl, :qs, :jl, "
+                        ":space, :obj, :cfg, 'queued', :osn)"
+                    ),
+                    {
+                        "id": study_id,
+                        "name": f"study-{suffix}",
+                        "cid": cluster_id,
+                        "tpl": tpl_id,
+                        "qs": qs_id,
+                        "jl": jl_id,
+                        "space": json.dumps({"params": {}}),
+                        "obj": json.dumps({"metric": "ndcg", "k": 10, "direction": "maximize"}),
+                        "cfg": json.dumps({"max_trials": 1}),
+                        "osn": study_id,
+                    },
+                )
+                conn.execute(
+                    text(
+                        "INSERT INTO trials (id, study_id, optuna_trial_number, "
+                        "params, metrics, status) VALUES "
+                        "(:id, :sid, 0, :params, :metrics, 'complete')"
+                    ),
+                    {
+                        "id": trial_id,
+                        "sid": study_id,
+                        "params": json.dumps({}),
+                        "metrics": json.dumps({"ndcg": 0.5}),
+                    },
+                )
+        finally:
+            engine.dispose()
+
+        # Apply 0015. The column is added with NO backfill — the seeded row
+        # should still exist with per_query_metrics NULL.
+        _alembic("upgrade", "head")
+
+        engine = create_engine(_sync_database_url(), future=True)
+        try:
+            with engine.connect() as conn:
+                row = conn.execute(
+                    text("SELECT per_query_metrics FROM trials WHERE id = :id"),
+                    {"id": trial_id},
+                ).fetchone()
+                assert row is not None, "pre-0015 trial row was lost across the upgrade"
+                assert row[0] is None, (
+                    f"per_query_metrics should be NULL on a pre-0015 row, got {row[0]!r}"
+                )
+
+            # Cleanup the seeded FK chain (best-effort) in a fresh connection so
+            # we don't collide with the SELECT's autobegun transaction above.
+            with engine.connect() as conn, conn.begin():
+                conn.execute(text("DELETE FROM trials WHERE id = :id"), {"id": trial_id})
+                conn.execute(text("DELETE FROM studies WHERE id = :id"), {"id": study_id})
+                conn.execute(text("DELETE FROM judgment_lists WHERE id = :id"), {"id": jl_id})
+                conn.execute(text("DELETE FROM query_templates WHERE id = :id"), {"id": tpl_id})
+                conn.execute(text("DELETE FROM query_sets WHERE id = :id"), {"id": qs_id})
+                conn.execute(text("DELETE FROM clusters WHERE id = :id"), {"id": cluster_id})
+        finally:
+            engine.dispose()
+
     def test_check_constraint_rejects_non_object_jsonb(self, restore_head: None) -> None:
         """``per_query_metrics`` must be NULL or a JSON object — arrays, scalars,
         and booleans MUST be rejected by the CHECK constraint.
