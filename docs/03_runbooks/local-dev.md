@@ -8,7 +8,7 @@
 |---|---|---|
 | Docker | 24+ with Compose v2 | `services.depends_on: condition: service_healthy` requires Compose v2 |
 | Python | **3.13** (soft-pinned via `.python-version`) | `pyproject.toml` `requires-python = ">=3.13"` is the floor; `.python-version` at repo root soft-pins **3.13** specifically so the host's `.venv` matches the dev-deps container's `ghcr.io/astral-sh/uv:python3.13-bookworm` image. uv auto-fetches Python 3.13 if your system doesn't have it. See [Local Python version](#local-python-version) below for why a newer Python on the host causes the in-container `uv sync` to silently rebuild `.venv` with broken symlinks (`infra_uv_sync_drops_precommit`). |
-| Node | 20.18+ | Next.js 16 minimum (bumped from 18+ on 2026-05-12). Run `nvm use` from the repo root before `pnpm install` / `pnpm dev` — the `.nvmrc` selects Node 22, and `ui/.npmrc`'s `engine-strict=true` makes `pnpm install` hard-fail on the wrong Node. |
+| Node | **22** (soft-pinned via `.nvmrc`) | Next.js 16 minimum is 20.18+; `.nvmrc` pins **22** specifically. Run `nvm use` from the repo root before `pnpm install` / `pnpm dev`, and `ui/.npmrc`'s `engine-strict=true` makes `pnpm install` hard-fail on the wrong Node. See [Local Node version](#local-node-version) below for why pre-commit hooks need help finding Node when the shell's PATH has a stale nvm-pinned older version. |
 | pnpm | 9+ | Frontend package manager |
 | 16 GB RAM | — | ES + OpenSearch each consume ~1 GB heap (`-Xms512m -Xmx512m`) |
 
@@ -44,6 +44,36 @@ uv sync                # uv reads .python-version, fetches 3.13, rebuilds
 ```
 
 Captured in [`infra_uv_sync_drops_precommit`](../02_product/planned_features/infra_uv_sync_drops_precommit/idea.md).
+
+### Local Node version
+
+The repo's `.nvmrc` file pins local-dev Node to **22**. Run `nvm use` from
+the repo root once per shell session and `nvm` resolves it automatically.
+
+**Why the pin matters for pre-commit hooks:** the `prettier-ui` and
+`eslint-ui` pre-commit hooks shell out to `pnpm --dir ui …`. Pre-commit's
+hook subshell inherits the parent shell's PATH — if your shell still has a
+stale `nvm use`-pinned older Node (say `~/.nvm/versions/node/v18.20.8/bin`)
+ahead of the system Node, pnpm sees the older version, hits
+`ui/package.json`'s `engines.node = ">=20.18"` floor (enforced hard by
+`ui/.npmrc`'s `engine-strict=true`), and aborts:
+
+```
+ERR_PNPM_UNSUPPORTED_ENGINE — Expected version: >=20.18 — Got: v18.20.8
+```
+
+To avoid hand-prefixing every commit with `PATH="$HOME/.nvm/versions/node/v22.../bin:$PATH"`,
+the pre-commit hooks invoke `scripts/run-pnpm.sh` instead of `pnpm`
+directly. That wrapper sources `~/.nvm/nvm.sh` and runs `nvm use` before
+`exec pnpm`, mirroring the `NVM_GUARD` macro at
+[`Makefile:95-98`](../../Makefile#L95-L98). CI is unaffected — it has no
+nvm; the wrapper falls through to bare `pnpm` against the system Node
+that `actions/setup-node@v4` provisions.
+
+If you're not using nvm, install Node 22 directly (e.g.,
+`brew install node@22`) and put it ahead of any other Node on PATH.
+
+Captured in [`chore_precommit_node_path_resolution`](../02_product/planned_features/chore_precommit_node_path_resolution/idea.md).
 
 ## First-run quickstart (AC-1)
 
