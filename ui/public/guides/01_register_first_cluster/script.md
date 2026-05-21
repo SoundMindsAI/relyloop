@@ -50,8 +50,9 @@ a cluster by ID.
    right confirms the registration and the probe result.
 
 5. **Click the row** to see the cluster's detail page — health probe,
-   version, base URL, auth kind, your notes, and the studies that have
-   run against it.
+   version, base URL, auth kind, your notes, the Target filter you set,
+   and the studies that have run against this cluster (empty for a
+   freshly-registered cluster).
 
 ## Next
 

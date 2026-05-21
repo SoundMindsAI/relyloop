@@ -71,6 +71,7 @@ async def list_studies(
     limit: int = 50,
     since: datetime | None = None,
     status: StudyStatusFilter | None = None,
+    cluster_id: str | None = None,
     q: str | None = None,
     sort: str | None = None,
 ) -> Sequence[Study]:
@@ -82,7 +83,9 @@ async def list_studies(
     ``id DESC`` tie-breaker.
 
     ``since`` filters to ``created_at >= since``. ``status`` filters to a
-    single state. ``q`` is an optional Postgres FTS match against
+    single state. ``cluster_id`` scopes to studies belonging to a single
+    cluster (used by the cluster detail page's "Studies using this cluster"
+    section). ``q`` is an optional Postgres FTS match against
     ``search_vector`` (studies.name + target). Limit clamped at 200.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _STUDY_SORT_COLUMNS)
@@ -91,6 +94,8 @@ async def list_studies(
         stmt = stmt.where(Study.status == status)
     if since is not None:
         stmt = stmt.where(Study.created_at >= since)
+    if cluster_id is not None:
+        stmt = stmt.where(Study.cluster_id == cluster_id)
     fts = fts_predicate(q)
     if fts is not None:
         stmt = stmt.where(fts)
@@ -116,6 +121,7 @@ async def count_studies(
     *,
     since: datetime | None = None,
     status: StudyStatusFilter | None = None,
+    cluster_id: str | None = None,
     q: str | None = None,
 ) -> int:
     """COUNT(*) studies matching the filter (for the X-Total-Count header)."""
@@ -124,6 +130,8 @@ async def count_studies(
         stmt = stmt.where(Study.status == status)
     if since is not None:
         stmt = stmt.where(Study.created_at >= since)
+    if cluster_id is not None:
+        stmt = stmt.where(Study.cluster_id == cluster_id)
     fts = fts_predicate(q)
     if fts is not None:
         stmt = stmt.where(fts)
