@@ -686,6 +686,15 @@ async def test_list_judgment_lists_filters_by_target_and_combined(
     assert response.status_code == 422
     assert response.json()["detail"]["error_code"] == "VALIDATION_ERROR"
 
+    # Over-bound: target longer than 255 chars (the ES/OpenSearch index-name
+    # ceiling) → 422 VALIDATION_ERROR. Locks the other end of the bound that
+    # feat_study_target_judgment_mismatch_guard FR-2 sets on the wire param.
+    response = await async_client.get(
+        "/api/v1/judgment-lists", params={"target": "x" * 256, "limit": 200}
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"]["error_code"] == "VALIDATION_ERROR"
+
 
 async def test_judgment_list_summary_includes_target_field(
     async_client: httpx.AsyncClient,
