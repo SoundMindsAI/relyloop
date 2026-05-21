@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-21** (latest mtime of any planned
 
 ## Next up
 
-**[chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md)** — Chore, currently in **Spec**
+**[chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md)** — Chore, currently in **Plan**
 
 > Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the registry in FK-safe order at the end of the
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/chore_e2e_test_rows_isolation --auto
+/impl-execute docs/02_product/planned_features/chore_e2e_test_rows_isolation/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -112,15 +112,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
 | P0 | [chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md) | Chore | Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg | — | [PR #182](https://github.com/SoundMindsAI/relyloop/pull/182) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (12)
 
@@ -151,7 +151,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   chore_e2e_test_rows_isolation["e2e test rows isolation"]
-  class chore_e2e_test_rows_isolation spec;
+  class chore_e2e_test_rows_isolation plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
