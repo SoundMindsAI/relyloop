@@ -506,3 +506,55 @@ class TestListRunningStudyIds:
 
         ids = await repo.list_running_study_ids(db_session)
         assert run1 in ids
+
+
+@pytest.mark.integration
+class TestGetTrial:
+    """``repo.get_trial`` (feat_agent_propose_search_space Story 2.1).
+
+    Parallel to ``repo.get_study`` — single-row fetch by primary key. Used by
+    the ``propose_search_space`` agent tool to load a prior study's winning
+    trial via ``Study.best_trial_id``.
+    """
+
+    async def _seed_one_trial(self, db: AsyncSession) -> tuple[str, str]:
+        cluster_id = await _seed_cluster(db)
+        template_id = await _seed_template(db)
+        qs_id = await _seed_query_set(db, cluster_id)
+        jl_id = await _seed_judgment_list(db, cluster_id, qs_id)
+        study_id = await _seed_study(
+            db,
+            cluster_id=cluster_id,
+            template_id=template_id,
+            query_set_id=qs_id,
+            judgment_list_id=jl_id,
+            status="completed",
+            name_suffix="get-trial",
+        )
+        trial_id = _uuid()
+        await repo.create_trial(
+            db,
+            id=trial_id,
+            study_id=study_id,
+            optuna_trial_number=0,
+            params={"boost_title": 2.5},
+            primary_metric=0.42,
+            metrics={"ndcg@10": 0.42},
+            duration_ms=120,
+            status="complete",
+        )
+        await db.commit()
+        return study_id, trial_id
+
+    async def test_returns_trial_when_found(self, db_session: AsyncSession) -> None:
+        _study_id, trial_id = await self._seed_one_trial(db_session)
+        row = await repo.get_trial(db_session, trial_id)
+        assert row is not None
+        assert row.id == trial_id
+        assert row.params == {"boost_title": 2.5}
+        assert row.primary_metric == 0.42
+        assert row.status == "complete"
+
+    async def test_returns_none_when_missing(self, db_session: AsyncSession) -> None:
+        row = await repo.get_trial(db_session, _uuid())
+        assert row is None
