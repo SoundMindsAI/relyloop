@@ -1053,7 +1053,7 @@ None planned. The feature is purely additive across all surfaces.
 - [ ] Story 1.1 — Migration `0015_trials_per_query_metrics`
 - [ ] Story 1.2 — Persist `per_query_metrics` in `run_trial`
 - [ ] Story 1.3 — Domain module `confidence.py`
-- [ ] Story 1.4 — `ConfidenceShape` + StudyDetail enrichment
+- [x] Story 1.4 — `ConfidenceShape` + StudyDetail enrichment
 - [ ] Story 1.5 — PR body section + worker plumbing
 - [ ] Story 1.6 — Digest narrative prompt extension
 - [ ] **Epic 1 gate**

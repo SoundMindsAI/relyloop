@@ -22,6 +22,7 @@ from backend.app.api.v1.schemas import (
     BulkQueriesJsonRequest,
     BulkQueriesResponse,
     BulkQueryItem,
+    ConfidenceShape,
     CreateQuerySetRequest,
     CreateQueryTemplateRequest,
     CreateStudyRequest,
@@ -48,6 +49,7 @@ def test_phase2_schemas_importable() -> None:
         BulkQueriesJsonRequest,
         BulkQueriesResponse,
         BulkQueryItem,
+        ConfidenceShape,
         CreateQuerySetRequest,
         CreateQueryTemplateRequest,
         CreateStudyRequest,
@@ -67,6 +69,35 @@ def test_phase2_schemas_importable() -> None:
         TrialsSummaryShape,
     ):
         assert cls is not None
+
+
+def test_study_detail_includes_confidence_field() -> None:
+    """``StudyDetail`` exposes ``confidence: ConfidenceShape | None`` (FR-5a)."""
+    schema = StudyDetail.model_json_schema()
+    assert "confidence" in schema["properties"], (
+        "StudyDetail.confidence missing — see feat_pr_metric_confidence Story 1.4."
+    )
+    # The field is Optional[ConfidenceShape], i.e. anyOf({$ref}, {null}).
+    prop = schema["properties"]["confidence"]
+    refs_or_anyof = prop.get("anyOf") or [prop]
+    assert any("$ref" in entry and "ConfidenceShape" in entry["$ref"] for entry in refs_or_anyof), (
+        f"StudyDetail.confidence is not typed as Optional[ConfidenceShape]; got {prop!r}"
+    )
+
+
+def test_confidence_shape_has_six_subfields() -> None:
+    """``ConfidenceShape`` has the six FR-5a sub-fields."""
+    schema = ConfidenceShape.model_json_schema()
+    expected = {
+        "headline",
+        "ci_95",
+        "runner_up_gap",
+        "late_trial_stddev",
+        "convergence",
+        "per_query_outcomes",
+    }
+    actual = set(schema["properties"].keys())
+    assert expected == actual, f"ConfidenceShape fields drifted: expected {expected}, got {actual}"
 
 
 def test_study_config_requires_at_least_one_stop_condition() -> None:

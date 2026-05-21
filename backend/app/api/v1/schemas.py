@@ -24,6 +24,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from backend.app.adapters.protocol import TargetInfo
 from backend.app.core.settings import get_settings
+from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
+
+# ``ConfidenceShape`` is defined in :mod:`backend.app.domain.study.confidence`
+# (the canonical assembler module per Story 1.3). The explicit ``as`` re-export
+# above keeps it importable via ``from backend.app.api.v1.schemas import
+# ConfidenceShape`` under mypy strict's ``no_implicit_reexport``.
 
 EngineType = Literal["elasticsearch", "opensearch"]
 """Response-only: values are guaranteed by service-layer validation before the
@@ -634,6 +640,13 @@ class StudyDetail(BaseModel):
     started_at: datetime | None
     completed_at: datetime | None
     trials_summary: TrialsSummaryShape
+    confidence: ConfidenceShape | None = None
+    """Per-study metric-confidence analytics (feat_pr_metric_confidence FR-5a).
+
+    ``None`` when the study has no winner trial (still running or
+    ``best_trial_id`` points at a deleted row — AC-3a). Otherwise a partial
+    or full :class:`ConfidenceShape` per FR-7's graceful-degradation
+    contract."""
 
 
 class StudySummary(BaseModel):
