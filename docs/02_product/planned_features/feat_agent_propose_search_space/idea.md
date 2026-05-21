@@ -1,9 +1,9 @@
 # Agent tool: `propose_search_space`
 
-**Date:** 2026-05-19
-**Status:** Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19.
-**Origin:** Parameter-tuning UX review (conversation 2026-05-19). The tutorial at [`docs/08_guides/tutorial-first-study.md:262-275`](../../../08_guides/tutorial-first-study.md#L262-L275) tells users to ask the agent to "tune `product_search v1` against `tutorial_queries`" and says the agent "will introspect the cluster + judgment list, propose a `create_study` tool call with a search-space." The agent has tools for `create_study`, `list_clusters`, `list_query_sets`, etc., but there is no `propose_search_space` tool — the LLM is left to hallucinate parameter names and bounds inline.
-**Depends on:** `feat_chat_agent` (shipped). `chore_create_study_wizard_polish` (the defaults mapping introduced there is the natural backend for this tool's heuristic path).
+**Date:** 2026-05-19 (preflighted 2026-05-21)
+**Status:** Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. Preflight 2026-05-21 verified that both dependencies (`feat_chat_agent` PR #60, `chore_create_study_wizard_polish` PR #157) have shipped and the cited tutorial paragraph + agent-tool inventory are accurate.
+**Origin:** Parameter-tuning UX review (conversation 2026-05-19). The tutorial at [`docs/08_guides/tutorial-first-study.md` §"Step 8 — Open `/chat` and ask the agent to tune"](../../../08_guides/tutorial-first-study.md) tells users to ask the agent to "tune `product_search v1` against `tutorial_queries`" and says the agent "will introspect the cluster + judgment list, propose a `create_study` tool call with a search-space." Verified at preflight: tools currently shipped under `backend/app/agent/tools/` are `clusters/{get_cluster,get_schema,list_clusters}.py`, `judgments/{generate_judgments_llm,get_calibration}.py`, `query_sets/*`, `queries/*`, `studies/{cancel_study,create_study,get_study}.py`, `templates/{get_template,list_templates}.py` — there is no `propose_search_space` tool. The LLM is left to invent parameter names and bounds inline.
+**Depends on:** [`feat_chat_agent`](../../../00_overview/implemented_features/2026_05_12_feat_chat_agent/) (shipped PR #60). [`chore_create_study_wizard_polish`](../../../00_overview/implemented_features/2026_05_20_chore_create_study_wizard_polish/) (shipped PR #157; the `ui/src/lib/search-space-defaults.ts` mapping introduced there is the natural backend for this tool's heuristic path).
 
 ## Problem
 
@@ -19,13 +19,15 @@ This is a real correctness gap, not just a polish issue. The relevance engineer 
 
 ### `propose_search_space` agent tool
 
-- New tool in `backend/app/agent/tools/studies/propose_search_space.py`.
+- New tool in `backend/app/agent/tools/studies/propose_search_space.py` (mirrors the per-tool-per-file convention of every other shipped agent tool — see `backend/app/agent/tools/studies/create_study.py` for the template structure).
 - Signature: `propose_search_space(template_id: UUID, cluster_id: UUID, judgment_list_id: UUID | None = None, prior_study_id: UUID | None = None) -> dict[str, ParamSpec]`.
 - Returns a deterministic, code-generated search space derived from:
-  1. The template's `declared_params` (canonical list of names — same source as `chore_create_study_step4_polish`'s starter mapping).
+  1. The template's `declared_params` (canonical list of names — fetched via the existing `get_template` agent tool surface OR a direct repo call from inside this tool; same source of truth as `ui/src/lib/search-space-defaults.ts`).
   2. The naming-convention defaults from `ui/src/lib/search-space-defaults.ts` (mirror the table into a shared `backend/app/domain/study/search_space_defaults.py` so frontend and backend agree).
 
-**Naming-collision warning for the spec writer:** `backend/app/domain/study/` already has a [`template_defaults.py`](../../../../backend/app/domain/study/template_defaults.py) that exports `compute_default_params(template_row)`. That function picks *concrete per-trial values* (midpoints, first categorical) given a template's declared_params. This tool, by contrast, picks *ParamSpec ranges* (`{type, low, high, log}`) — Optuna search bounds, not single values. The two should live side-by-side and be cross-referenced in their docstrings; do **not** merge them or rename either to imply they're the same concern. (`compute_default_params` also appears to be unused in current app code — capture as a separate `chore_template_defaults_dead_code` if confirmed.)
+**Naming-collision warning for the spec writer:** `backend/app/domain/study/` already has a [`template_defaults.py`](../../../../backend/app/domain/study/template_defaults.py) that exports `compute_default_params(template_row)`. That function picks *concrete per-trial values* (midpoints, first categorical) given a template's declared_params. This tool, by contrast, picks *ParamSpec ranges* (`{type, low, high, log}`) — Optuna search bounds, not single values. The two should live side-by-side and be cross-referenced in their docstrings; do **not** merge them or rename either to imply they're the same concern.
+
+**Verified dead-in-app code adjacent to this work** (preflight 2026-05-21): `compute_default_params` is currently called only from its own test file (`backend/tests/unit/domain/test_template_defaults.py`) — no callers in `backend/app/` or `backend/workers/`. The spec for THIS feature should NOT extend or refactor `compute_default_params`; if dead-code cleanup is desired, file it as `chore_template_defaults_dead_code` separately rather than bundling.
   3. **Optional grounding signals** when the inputs are provided:
      - `judgment_list_id` → look up the historical study/proposal that scored best against this judgment list; if one exists, narrow that param's bounds around the winning value (±50% bracket).
      - `prior_study_id` → narrow bounds around its winning trial (the same "narrow bounds" math used in `feat_study_clone_from_previous`).
@@ -57,9 +59,23 @@ Three reasons:
 2. **Product decision required** on whether to *force* the agent to call `propose_search_space` before `create_study` (orchestrator prompt change with adherence-monitoring implications) or merely *encourage* it. v1 should likely encourage with telemetry, then ratchet to force once we see usage data.
 3. **The cluster-stats grounding signal** is genuinely interesting but requires a new adapter helper (term-frequency or stats sampling). That's worth scoping as a phase-2 of this idea, not bundled.
 
+## Locked decisions (preflight 2026-05-21)
+
+1. **Cluster-stats grounding deferred to phase 2.** v1 of the tool validates `cluster_id` exists (read it via `cluster_svc.get_cluster`) but does NOT consume term-frequency stats — MVP1 adapter has no such helper. The `cluster_id` arg is in the signature for forward compatibility + so the future "narrow `field_boosts.title` based on cluster's title vs body length distribution" path can land without a signature change.
+2. **Per-tool-per-file convention.** New tool lives at `backend/app/agent/tools/studies/propose_search_space.py` mirroring `create_study.py` / `cancel_study.py` / `get_study.py`. Tool registration follows whatever `__init__.py` pattern the sibling tools use.
+3. **Shared defaults module direction: TS → Python.** The TS source `ui/src/lib/search-space-defaults.ts` shipped first (chore_create_study_wizard_polish). Mirror its heuristic table into `backend/app/domain/study/search_space_defaults.py` with a comment pointing back. Parity test (existing pattern from `chore_create_study_wizard_polish`'s TS↔Python cardinality fixture) ensures the two stay in sync.
+4. **Don't refactor `compute_default_params`.** Live side-by-side; cross-reference in docstrings. Dead-code cleanup is a separate (optional) `chore_template_defaults_dead_code` follow-up.
+
+## Open questions for /spec-gen
+
+1. **Force vs encourage chaining.** Should `create_study` raise a 422 when called without first calling `propose_search_space`, OR should the orchestrator prompt merely strongly encourage the chain and a WARN log telemeter adherence? **Recommended default: encourage + WARN-log for v1.** Ratchet to force once telemetry shows >80% of agent-initiated studies are skipping the prepass.
+2. **Frontend "Use in new study" action — in scope or defer?** The idea proposes rendering the proposed search space in a copyable code block with a button that opens the create-study modal pre-filled. Composes naturally with the still-idea-stage `feat_study_clone_from_previous` pre-fill helper. **Recommended default: defer to a follow-up** so this PR stays backend-only and shipping `feat_study_clone_from_previous` first gives a cleaner shared helper.
+3. **Bound-width math when grounding from `prior_study_id`.** ±50% around the winning value is one option; ±1σ from trial variance is another (more defensible but needs trial-history aggregation). **Recommended default: ±50% as a v1 starting point; document the choice + leave room to swap.** This bound-narrowing math is also what `feat_study_clone_from_previous` will need; locking it here forces the sibling idea to adopt the same.
+4. **Naming: tool surface vs handler name.** Existing tools follow `<verb>_<noun>` (`create_study`, `get_template`, `list_clusters`). This proposes `propose_search_space` — same shape but `propose` is a new verb. **Recommended default: keep `propose_search_space`** — clearest intent; `compute_search_space` or `suggest_search_space` are alternatives that read as less authoritative.
+
 ## Relationship to other work
 
-- **Pairs with** `chore_create_study_wizard_polish`. That work creates the defaults-mapping module shared between frontend (Step 4 auto-fill) and backend (this tool's deterministic output). Without it, the tool reimplements the same heuristics in a second place.
-- **Pairs with** `feat_study_clone_from_previous`. The `narrow bounds around prior study` math is identical to the optional grounding-signal path here.
-- **Pre-MVP2 telemetry only** — the agent-tool event types that would make adherence measurable live in the MVP2 audit-log catalog. v1 can land without the formal event, then a thin follow-up adds the dedicated event once the catalog ships.
-- **Does not conflict with** any in-flight feature.
+- **Hard dependency:** [`chore_create_study_wizard_polish`](../../../00_overview/implemented_features/2026_05_20_chore_create_study_wizard_polish/) — shipped, provides `ui/src/lib/search-space-defaults.ts`. Mirror that heuristic table into `backend/app/domain/study/search_space_defaults.py` so frontend (Step 4 auto-fill) and backend (this tool) use the same source.
+- **Coordinate-only with [`feat_study_clone_from_previous`](../feat_study_clone_from_previous/idea.md)** (still idea-stage). The "narrow bounds around prior winning trial" math will be needed by both. Whichever ships first should land the math in `backend/app/domain/study/search_space_defaults.py` as a shared function; the second one consumes it. **Recommended ordering: ship this feature first** because its `prior_study_id` arg is optional (graceful fallback if the math isn't there yet); `feat_study_clone_from_previous` likely depends on the math being present from day one.
+- **Pre-MVP2 audit log:** the agent-tool event types that would make adherence measurable live in the MVP2 audit-log catalog. v1 lands without the formal event row; the WARN-log telemetry is sufficient. A thin follow-up adds `agent.search_space_proposed` to the catalog once MVP2 lands.
+- **Does not conflict with** any in-flight feature (verified at preflight 2026-05-21 — no features currently in implement-stage).
