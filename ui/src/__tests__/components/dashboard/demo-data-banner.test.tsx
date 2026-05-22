@@ -5,9 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 // Mock the existing useClusters hook so we control returned cluster data.
+// Forwarding params lets tests assert the FR-2 contract that the banner
+// calls useClusters with { sort: 'name:asc', limit: 200 }.
 const mockUseClusters = vi.fn();
 vi.mock('@/lib/api/clusters', () => ({
-  useClusters: () => mockUseClusters(),
+  useClusters: (params: unknown) => mockUseClusters(params),
 }));
 
 // Mock the safe-localStorage wrapper so we don't depend on jsdom's storage.
@@ -76,6 +78,8 @@ describe('<DemoDataBanner />', () => {
     expect(screen.getByText('acme-products-prod')).toBeInTheDocument();
     // Non-demo cluster name is NOT in the body.
     expect(screen.queryByText('my-own-cluster')).not.toBeInTheDocument();
+    // FR-2 contract: the banner fetches with sort=name:asc, limit=200.
+    expect(mockUseClusters).toHaveBeenCalledWith({ sort: 'name:asc', limit: 200 });
   });
 
   it('returns null when no demo slugs are present', async () => {

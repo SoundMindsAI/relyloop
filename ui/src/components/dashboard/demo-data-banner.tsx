@@ -49,10 +49,13 @@ function getDismissedSnapshot(): boolean {
 }
 
 function getDismissedServerSnapshot(): boolean {
-  // SSR: assume not dismissed; React re-renders on the client using the
-  // real snapshot. This is the contract for useSyncExternalStore and is
-  // hydration-safe by design (no console warning).
-  return false;
+  // SSR: assume DISMISSED so the banner is hidden until the client
+  // snapshot is known. This is the conservative choice: pre-dismissed
+  // users never see a flash even if cluster data is somehow available
+  // during SSR (prefetch / dehydration / initialData). Fresh users
+  // experience a normal "loading state finishes, banner appears"
+  // transition on the second commit — acceptable per spec FR-1.
+  return true;
 }
 
 export function DemoDataBanner(): React.ReactElement | null {
