@@ -247,7 +247,8 @@ Each integration test below is a separate async function with `pytestmark = pyte
    - `study.status == 'completed'`
    - `study.failed_reason is None`
    - `study.best_metric == 0.0`
-   - `recording_logger.find(level='warning', event_type='stop_condition_fired', ...)` returns at least one record AND every such record has `reason == 'max_trials_reached'` (never `'consecutive_failures'`, never `'no_signal'`).
+   - **Streak-abort paths must NOT have fired:** `recording_logger.find(level='warning', event_type='stop_condition_fired')` returns `[]` (the streak-abort paths — `consecutive_failures` and `no_signal` — emit at WARNING; if either had fired, the study would be `failed` not `completed`, but assert the WARNING absence explicitly as the canary).
+   - **`max_trials_reached` IS emitted at INFO:** `recording_logger.find(level='info', event_type='stop_condition_fired')` contains at least one record with `reason='max_trials_reached'`. (Note: `_stop()` at [`orchestrator.py:373`](../../../../backend/workers/orchestrator.py) emits `event_type='stop_condition_fired'` at INFO via `logger.info(...)` — only the streak-abort paths use WARNING. This is the existing precedent the zero-streak guard mirrors.)
 
 4. **`test_zero_streak_precedence_failure_streak_runs_first`** (AC-5 / FR-4). Seed `max_trials=30, parallelism=1` with a vanilla stub adapter. Monkeypatch `orchestrator._last_n_all_failed` → `AsyncMock(return_value=True)` AND `orchestrator._last_n_all_zero` → `AsyncMock(return_value=True)`. Monkeypatch the recording logger. Drive the orchestrator; wait for `status='failed'` (timeout 30s). Assert:
    - `study.failed_reason == "5 consecutive trial failures"` (the failure-streak path's exact string)
