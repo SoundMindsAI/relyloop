@@ -300,6 +300,23 @@ The same SSE wire format (`event: <type>\ndata: <json>\n\n`) is used; only the t
 
 **Source-of-truth discipline (detail pages).** The vitest lint guard at [`ui/src/__tests__/components/common/detail-page-shell-discipline.test.tsx`](../../ui/src/__tests__/components/common/detail-page-shell-discipline.test.tsx) scans every `src/app/<entity>/[id]/page.tsx` (excluding `chat/[id]`) and fails when a file uses both `isPending ?` and `isError ?` ternaries without importing `<DetailPageShell>`. Escape hatch: a `// detail-page-shell-allow: <non-empty reason>` comment. Companion to the DataTable column-discipline and form-select-discipline guards; together they pin the three primitive extractions against regression-by-inlining.
 
+## Dashboard demo-data nudge
+
+`feat_home_first_run_demo_nudge` (2026-05-21) added a first-run experience layer on top of PR #182's `make up` auto-seed (`scripts/seed_meaningful_demos.py --if-empty`). Two surfaces:
+
+**`<DemoDataBanner />`** — a self-contained dashboard banner mounted at [`ui/src/components/dashboard/demo-data-banner.tsx`](../../ui/src/components/dashboard/demo-data-banner.tsx). Renders above `<StartHereChecklist />` when (a) the first page of `GET /api/v1/clusters?sort=name:asc&limit=200` includes any name in `DEMO_CLUSTER_SLUGS` AND (b) the operator has not dismissed it via localStorage key `relyloop.home-first-run-demo-nudge.dismissed`. Hydration uses `useSyncExternalStore` with a conservative server snapshot (`true`) so pre-dismissed users never flash. Plural-aware body copy (1 / 2-3 / 4 demos present) via a pure helper at [`ui/src/lib/format-demo-cluster-prefix.ts`](../../ui/src/lib/format-demo-cluster-prefix.ts).
+
+**Cluster demo indicator** — three rendering strategies depending on the underlying primitive:
+1. `/clusters` list — renders `<DemoBadge />` JSX next to demo cluster names (via the `name` column cell in [`clusters-table.column-config.tsx`](../../ui/src/components/clusters/clusters-table.column-config.tsx)). Tooltip explains the seed origin; the badge is keyboard-focusable (`tabIndex={0}` + `role="img"` + `aria-label`).
+2. Create-study modal cluster picker (`<EntitySelect>`) — appends `" (Demo)"` text suffix to the option label string (the primitive's `getLabel` returns `string`, not JSX).
+3. Proposals-table cluster fk-select (`<DataTableFkSelect>` over native `<select>`) — same text-suffix strategy because native `<select>` doesn't accept JSX in `<option>`.
+
+**Source-of-truth + CI guard.** The 4 demo cluster slugs (`acme-products-prod`, `corp-docs-search`, `news-search-staging`, `jobs-marketplace-prod`) live in exactly one frontend file ([`ui/src/lib/demo-data.ts`](../../ui/src/lib/demo-data.ts)) with a top-of-file comment citing the seed script's `SCENARIOS[*]["slug"]` literals (lines 129/245/343/456). A CI guard at [`scripts/ci/verify_demo_slug_parity.sh`](../../scripts/ci/verify_demo_slug_parity.sh) (wired into `.github/workflows/pr.yml` adjacent to `verify_enum_source_of_truth.sh`) fails the build if the two sides drift. The slugs are NOT wire values — they're frontend-only UX hints, deliberately separate from [`ui/src/lib/enums.ts`](../../ui/src/lib/enums.ts).
+
+**Safe localStorage wrapper.** [`ui/src/lib/safe-local-storage.ts`](../../ui/src/lib/safe-local-storage.ts) wraps `getItem`/`setItem` with `typeof window` + try/catch, swallowing throws from Safari private mode and `QuotaExceededError`. The banner uses it through `useSyncExternalStore`; same-tab dismissals are tracked in a `useState` because the `storage` event doesn't fire for the writer tab.
+
+**Phase 2 (deferred).** A "Reset to demo state" button + `POST /api/v1/_test/demo/reseed` endpoint is captured at [`docs/02_product/planned_features/feat_home_first_run_demo_nudge/phase2_idea.md`](../02_product/planned_features/feat_home_first_run_demo_nudge/phase2_idea.md). Requires refactoring the CLI seed script's `docker compose exec psql` truncate path into an asyncpg-friendly module — non-trivial scope deliberately split from the polish-layer PR.
+
 ## Auth surface (MVP1)
 
 **None.** No login, no sessions, no role gates. The UI assumes the operator has full access to everything the API exposes.

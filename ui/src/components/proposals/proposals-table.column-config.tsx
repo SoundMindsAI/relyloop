@@ -22,6 +22,7 @@ import type { DataTableColumnDef } from '@/components/common/types';
 import { useClusters } from '@/lib/api/clusters';
 import type { ProposalSummary } from '@/lib/api/proposals';
 import { useTemplates } from '@/lib/api/query-templates';
+import { isDemoClusterName } from '@/lib/demo-data';
 import { PROPOSAL_SOURCE_VALUES, PROPOSAL_STATUS_VALUES } from '@/lib/enums';
 
 interface MetricDeltaShape {
@@ -36,11 +37,20 @@ function parseMetricDelta(md: ProposalSummary['metric_delta']): MetricDeltaShape
   return md as MetricDeltaShape;
 }
 
-/** Hook adapter for the cluster fk-select. Cluster count is bounded MVP1 (<10). */
+/** Hook adapter for the cluster fk-select. Cluster count is bounded MVP1 (<10).
+ *
+ * feat_home_first_run_demo_nudge Story 3.4: demo cluster names get a
+ * " (Demo)" text-suffix in the dropdown label so operators can spot
+ * seeded clusters at a glance. The native <select> rendered by
+ * DataTableFkSelect doesn't accept JSX <option> content, hence the
+ * text suffix instead of the <DemoBadge> JSX used in the clusters list. */
 function useClustersForFilter(): { data: { id: string; label: string }[]; isLoading: boolean } {
   const q = useClusters({ limit: 200 });
   return {
-    data: (q.data?.data ?? []).map((c) => ({ id: c.id, label: c.name })),
+    data: (q.data?.data ?? []).map((c) => ({
+      id: c.id,
+      label: c.name + (isDemoClusterName(c.name) ? ' (Demo)' : ''),
+    })),
     isLoading: q.isPending,
   };
 }

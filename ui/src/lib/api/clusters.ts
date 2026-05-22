@@ -50,12 +50,20 @@ export interface ClustersFilter {
   sort?: string | undefined;
   engine_type?: string | undefined;
   environment?: string | undefined;
+  /**
+   * Passes through to TanStack Query's `enabled` option. When false, the
+   * query is parked — no network request fires until it flips back to true.
+   * Defaults to `true` so existing callers are unaffected.
+   * Added for feat_home_first_run_demo_nudge so the dashboard banner can
+   * skip the cluster fetch entirely for already-dismissed users.
+   */
+  enabled?: boolean | undefined;
 }
 
 export function useClusters(
   filter: ClustersFilter = {},
 ): UseQueryResult<ClusterListPage, ApiError> {
-  const { cursor, limit, since, q, sort, engine_type, environment } = filter;
+  const { cursor, limit, since, q, sort, engine_type, environment, enabled } = filter;
   return useQuery<ClusterListPage, ApiError>({
     queryKey: ['clusters', { cursor, limit, since, q, sort, engine_type, environment }],
     queryFn: async () => {
@@ -64,6 +72,7 @@ export function useClusters(
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },
+    enabled: enabled ?? true,
   });
 }
 

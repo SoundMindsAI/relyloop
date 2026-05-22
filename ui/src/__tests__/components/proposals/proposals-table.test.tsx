@@ -107,6 +107,71 @@ describe('ProposalsTable', () => {
     expect(screen.getByTestId('data-table-empty-no-rows-exist')).toBeInTheDocument();
   });
 
+  it('cluster fk-select appends " (Demo)" to demo cluster labels (Story 3.4)', async () => {
+    // Inline render that registers our cluster handler AFTER the default
+    // empty-clusters stub used by renderTable. msw's server.use prepends
+    // handlers, so the latest-registered wins.
+    function clusterShape(name: string, id: string) {
+      return {
+        id,
+        name,
+        engine_type: 'elasticsearch',
+        environment: 'prod',
+        base_url: 'http://es:9200',
+        auth_kind: 'es_basic',
+        target_filter: null,
+        created_at: '2026-05-21T00:00:00Z',
+        health_check: {
+          status: 'green',
+          version: '9.0.0',
+          checked_at: '2026-05-21T00:00:00Z',
+          error: null,
+        },
+      };
+    }
+
+    server.use(
+      http.get(`${API_BASE}/api/v1/clusters`, () =>
+        HttpResponse.json(
+          {
+            data: [clusterShape('acme-products-prod', 'cd'), clusterShape('my-own-cluster', 'co')],
+            next_cursor: null,
+            has_more: false,
+          },
+          { headers: { 'X-Total-Count': '2' } },
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/query-templates`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <ProposalsTable
+          rows={[row()]}
+          totalCount={1}
+          has_more={false}
+          next_cursor={null}
+          isLoading={false}
+          isError={false}
+          urlState={stubUrlState()}
+        />
+      </QueryClientProvider>,
+    );
+
+    // Wait for the useClusters query to resolve + populate the fk-select.
+    await screen.findByRole('option', { name: 'acme-products-prod (Demo)' });
+    expect(screen.getByRole('option', { name: 'acme-products-prod (Demo)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'my-own-cluster' })).toBeInTheDocument();
+    // Non-demo option label must NOT carry the suffix.
+    expect(screen.queryByRole('option', { name: 'my-own-cluster (Demo)' })).toBeNull();
+  });
+
   it('renders a row with a study link when study_id is set', () => {
     renderTable([row({ id: 'pA', study_id: 'sA' })]);
     expect(screen.getByTestId('proposal-row-pA')).toBeInTheDocument();

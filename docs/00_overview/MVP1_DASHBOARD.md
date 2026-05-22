@@ -6,23 +6,29 @@ _Reflects feature-folder state as of **2026-05-22** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_home_first_run_demo_nudge](../02_product/planned_features/feat_home_first_run_demo_nudge/feature_spec.md)** — Feature, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> An operator landing on a freshly-seeded stack sees an unambiguous banner above the dashboard's empty/populated content that names the present demo clusters, explains they ship with realistic queries + judgments + a winning study + a pending
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/02_product/planned_features/feat_home_first_run_demo_nudge/implementation_plan.md --all
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **59 / 59** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **59 / 60** (98%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **6** high-value, ready when P0 clears |
 | → P2 (default) | 6 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 0 |
-| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 6 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -107,19 +113,20 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|
+| P1 | [feat_home_first_run_demo_nudge](../02_product/planned_features/feat_home_first_run_demo_nudge/feature_spec.md) | Feature | An operator landing on a freshly-seeded stack sees an unambiguous banner above the dashboard's empty/populated content that names the present demo clusters, explains they ship with realistic queries + | — | [PR #182](https://github.com/SoundMindsAI/relyloop/pull/182) merged 2026-05-21 |
 
 ### Spec (0)
 
 _None._
 
-### Idea (13)
+### Idea (12)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
-| P1 | [feat_home_first_run_demo_nudge](../02_product/planned_features/feat_home_first_run_demo_nudge/idea.md) | Feature | The auto-seed chore solves the "fresh stack = empty dropdowns" problem. It does NOT solve: | — | Idea — product-design-shaped follow-up paired with the auto-seed-on-make-up chore |
 | P1 | [feat_orchestrator_zero_streak_abort](../02_product/planned_features/feat_orchestrator_zero_streak_abort/idea.md) | Feature | The two create-time guards close the bulk of the "all 1000 trials score 0" surface, but they don't cover every path: | — | Idea — defense-in-depth tier behind the create-time fail-fast guards |
 | P1 | [feat_study_preflight_overlap_probe](../02_product/planned_features/feat_study_preflight_overlap_probe/idea.md) | Feature | The target-mismatch guard catches a string-equality mismatch. It misses these legitimate-looking-but-still-broken cases: | — | Idea — surfaced post-merge of `feat_pr_metric_confidence` as the defense-in-depth tier behind the target-mismatch guard |
 | P1 | [chore_guide_06_screenshot_refresh_confidence_panel](../02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai | — | Idea — captured during `feat_pr_metric_confidence` Epic 2 guide-impact assessment |
@@ -144,6 +151,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_home_first_run_demo_nudge["home first run demo nudge"]
+  class feat_home_first_run_demo_nudge plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -277,6 +286,7 @@ graph LR
   feat_digest_proposal --> chore_tutorial_polish
   feat_github_pr_worker --> chore_tutorial_polish
   feat_github_webhook --> chore_tutorial_polish
+  feat_home_first_run_demo_nudge --> chore_tutorial_polish
   feat_judgments_periodic_resume_sweep --> chore_tutorial_polish
   feat_llm_judgments --> chore_tutorial_polish
   feat_pr_metric_confidence --> chore_tutorial_polish
@@ -307,6 +317,7 @@ graph LR
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
   feat_github_webhook --> feat_chat_agent
+  feat_home_first_run_demo_nudge --> feat_chat_agent
   feat_judgments_periodic_resume_sweep --> feat_chat_agent
   feat_llm_judgments --> feat_chat_agent
   feat_pr_metric_confidence --> feat_chat_agent

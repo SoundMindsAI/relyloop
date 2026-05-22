@@ -208,6 +208,16 @@ cache (~10-20s vs the bind-mount-and-reuse pattern's ~0s). Mount
 
 `make` (no target) prints this list with descriptions.
 
+### Resetting demo state
+
+`make up` auto-seeds 4 meaningful demo clusters (`acme-products-prod`, `corp-docs-search`, `news-search-staging`, `jobs-marketplace-prod`) on a fresh stack via `scripts/seed_meaningful_demos.py --if-empty`. If you wipe or modify that state and want to start over:
+
+```bash
+make seed-demo FORCE=1   # TRUNCATE demo tables + reseed (skip confirmation)
+```
+
+After the reseed, the dashboard shows a "You're set up with demo data." banner above the StartHereChecklist. The banner is dismissable; once dismissed, the dismissal persists per-browser via the localStorage key `relyloop.home-first-run-demo-nudge.dismissed`. **`make seed-demo FORCE=1` does NOT clear that localStorage key** — to show the banner again after dismissal, clear the key via browser dev tools (`localStorage.removeItem('relyloop.home-first-run-demo-nudge.dismissed')` in the JS console). A future Phase 2 "Reset to demo state" UI affordance (tracked in [`phase2_idea.md`](../02_product/planned_features/feat_home_first_run_demo_nudge/phase2_idea.md)) will optionally clear the key as a side effect of reseeding.
+
 ## Debugging
 
 ### Stack won't start
