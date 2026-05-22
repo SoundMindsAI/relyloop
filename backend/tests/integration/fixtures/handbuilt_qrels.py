@@ -63,3 +63,27 @@ def build_hits_response(query_ids: Sequence[str], top_k: int = 10) -> dict[str, 
         hits = _HITS[i]
         out[str(qid)] = [ScoredHit(doc_id=doc_id, score=score) for doc_id, score in hits[:top_k]]
     return out
+
+
+def build_zero_scoring_hits_response(
+    query_ids: Sequence[str], top_k: int = 10
+) -> dict[str, list[Any]]:
+    """Return a ``search_batch``-shaped response whose doc IDs are disjoint from qrels.
+
+    Used by ``feat_orchestrator_zero_streak_abort`` integration tests to
+    drive the orchestrator into trials with ``status='complete' AND
+    primary_metric == 0.0``. pytrec_eval's qrels-vs-run intersection is
+    empty when no doc ID overlaps, so every supported metric (NDCG, MAP,
+    MRR, precision, recall) collapses to exactly 0.0.
+
+    The ``miss-*`` doc IDs are guaranteed disjoint from :func:`build_qrels`'s
+    ``d1`` / ``d2`` / ``d3`` fixture set.
+    """
+    from backend.app.adapters.protocol import ScoredHit
+
+    out: dict[str, list[ScoredHit]] = {}
+    for qid in query_ids:
+        out[str(qid)] = [
+            ScoredHit(doc_id=f"miss-{i}", score=1.0 - i * 0.1) for i in range(min(top_k, 3))
+        ]
+    return out
