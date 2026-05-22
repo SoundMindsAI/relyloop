@@ -16,6 +16,10 @@ const API_BASE_URL = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:80
 
 export default defineConfig({
   testDir: './tests/e2e',
+  // Match only Playwright's .spec.ts extension. The .test.ts files under
+  // tests/e2e/ (chore_e2e_test_rows_isolation Story 1.2) are vitest tests
+  // for the cleanup machinery — vitest owns them via vitest.config.ts.
+  testMatch: ['**/*.spec.ts'],
   // Walkthrough guides run under playwright.demo.config.ts (slow-mo, video,
   // 1440×960 viewport) — exclude them from regression runs so they don't
   // overwrite canonical guide PNGs at unexpected viewport sizes.
