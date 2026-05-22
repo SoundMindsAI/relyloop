@@ -93,6 +93,13 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("post", "/api/v1/conversations/{conversation_id}/messages", "200"),
     # ----- /api/v1/_test (infra_e2e_seed_completed_study; dev-only — 404 outside) -----
     ("post", "/api/v1/_test/studies/seed-completed", "201"),
+    # chore_e2e_test_rows_isolation Story 1.1 — six new test-only DELETE endpoints.
+    ("delete", "/api/v1/_test/proposals/{proposal_id}", "204"),
+    ("delete", "/api/v1/_test/digests/{digest_id}", "204"),
+    ("delete", "/api/v1/_test/studies/{study_id}", "204"),
+    ("delete", "/api/v1/_test/judgment-lists/{judgment_list_id}", "204"),
+    ("delete", "/api/v1/_test/query-sets/{query_set_id}", "204"),
+    ("delete", "/api/v1/_test/query-templates/{template_id}", "204"),
 ]
 
 
