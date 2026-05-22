@@ -70,10 +70,21 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await page.waitForTimeout(300);
 
     // 04: Monitor the seeded study.
+    //
+    // Wait for the orchestrator to complete the 2 real trials so the
+    // `<ConfidencePanel>` renders into the screenshot. Best-effort with a
+    // 45s ceiling — if the panel doesn't appear (older study with
+    // per_query_metrics NULL, or orchestrator slow / failed), we still
+    // capture whatever state the page is in. The `.catch(() => null)`
+    // keeps the test alive in that case.
     await page.goto(`/studies/${chain.studyId}`);
     await expect(page.getByTestId('study-name')).toContainText(chain.studyName, {
       timeout: 10_000,
     });
+    await page
+      .waitForSelector('[data-testid="confidence-panel"]', { timeout: 45_000 })
+      .catch(() => null);
+    // Brief settle for any in-flight animations / fonts.
     await page.waitForTimeout(700);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '04-study-detail.png'),
