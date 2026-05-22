@@ -30,3 +30,5 @@ infrastructure.
 - Agent runbook: [`docs/03_runbooks/agent-debugging.md`](../03_runbooks/agent-debugging.md)
   — replay a conversation, force a tool dispatch, inspect SSE events
 - Tool inventory: [`docs/01_architecture/agent-tools.md`](../01_architecture/agent-tools.md)
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

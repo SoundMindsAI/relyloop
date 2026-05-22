@@ -43,3 +43,5 @@ no new trials enqueue. The orchestrator transitions to `cancelled` within
 - API trials: `GET /api/v1/studies/{id}/trials?sort=primary_metric_desc`
 - Worker entry: [`backend/workers/orchestrator.py`](../../backend/workers/orchestrator.py)
 - Sampler config: [`docs/01_architecture/optimization.md`](../01_architecture/optimization.md)
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

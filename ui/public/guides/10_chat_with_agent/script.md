@@ -71,3 +71,5 @@ last-activity timestamp per row. Conversations survive stack restarts.
 - Backend: [`backend/app/services/agent_chat.py`](../../backend/app/services/agent_chat.py)
 - Runbook: [`docs/03_runbooks/agent-debugging.md`](../03_runbooks/agent-debugging.md)
 - Data-flow security: [`docs/04_security/llm-data-flow.md`](../04_security/llm-data-flow.md)
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

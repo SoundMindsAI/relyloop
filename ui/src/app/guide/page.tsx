@@ -5,6 +5,10 @@ import { useState } from 'react';
 import { GuideViewer } from '@/components/guides/guide-viewer';
 import { DOC_REGISTRY, GUIDE_REGISTRY } from '@/components/guides/guide-types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { glossary } from '@/lib/glossary';
+
+const GLOSSARY_ENTRY_COUNT = Object.keys(glossary).length;
+const GLOSSARY_CATEGORY_COUNT = new Set(Object.keys(glossary).map((k) => k.split('.')[0])).size;
 
 export default function GuideCatalogPage() {
   const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
@@ -81,6 +85,35 @@ export default function GuideCatalogPage() {
               </Card>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="space-y-3" data-testid="glossary-section">
+        <header>
+          <h2 className="text-lg font-semibold tracking-tight">Glossary</h2>
+          <p className="text-sm text-muted-foreground">
+            Browse every term used across RelyLoop. Search by name or filter by category.
+          </p>
+        </header>
+        <div className="grid gap-4 sm:grid-cols-2" data-testid="glossary-catalog-grid">
+          <Link
+            href="/guide/glossary"
+            className="block transition hover:opacity-90"
+            data-testid="glossary-card"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Glossary — every term defined</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {GLOSSARY_ENTRY_COUNT} terms across {GLOSSARY_CATEGORY_COUNT} categories — search,
+                  facet, and deep-link straight to any entry.
+                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Reference</p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
       </section>
 

@@ -35,3 +35,5 @@ separate query sets for each.
 - API bulk-add queries: `POST /api/v1/query-sets/{id}/queries` (JSON or CSV via Content-Type)
 - Per-query CRUD: see Guide 03 (Create a query template) and the in-app
   inline edit/delete buttons on the query-set detail page
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

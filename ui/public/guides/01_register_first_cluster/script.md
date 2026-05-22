@@ -64,3 +64,5 @@ see [Guide 04: Create a query set](#).
 - API: `POST /api/v1/clusters` with `{name, engine_type, environment, base_url, auth_kind, credentials_ref, notes?, target_filter?}`
 - Bulk-register the tutorial clusters: `make seed-clusters` registers `local-es` + `local-opensearch`
 - Seed 4 realistic demo scenarios with target filters baked in: `make seed-demo`
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

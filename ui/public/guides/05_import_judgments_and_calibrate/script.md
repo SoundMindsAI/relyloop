@@ -50,3 +50,5 @@ study that references it.
 - API calibrate: `POST /api/v1/judgment-lists/{id}/calibration`
 - API per-judgment override: `PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}`
 - Runbook: [`docs/03_runbooks/judgment-generation-debugging.md`](../03_runbooks/judgment-generation-debugging.md)
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

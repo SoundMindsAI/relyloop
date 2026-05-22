@@ -3,7 +3,7 @@
 **Date:** 2026-05-21
 **Status:** Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review
 **Priority:** P1 — operator-facing terminology surface; cheap to ship (~200 LOC of UI render, 0 backend, no migration). Operator explicitly asked about this on 2026-05-21. Prereq for `chore_guides_faq`.
-**Origin:** Audit question from operator during the metric-key-drift fix conversation — "do we need a Glossary in the Guides section?" The audit confirmed [`ui/src/lib/glossary.ts`](../../../../ui/src/lib/glossary.ts) has 103+ entries today and grows with every feature (6 more land with `feat_pr_metric_confidence` Story 2.2). The keys are only discoverable via hover on inline `<InfoTooltip>` / `<HelpPopover>` triggers — there's no canonical reference surface.
+**Origin:** Audit question from operator during the metric-key-drift fix conversation — "do we need a Glossary in the Guides section?" The audit confirmed [`ui/src/lib/glossary.ts`](../../../../ui/src/lib/glossary.ts) has **109 entries** today (across 8 prefix groups: cluster/confidence/datatable/digest/judgment/proposal/study/trial; re-grepped 2026-05-22 post `feat_pr_metric_confidence`'s 6 confidence entries landing) and grows with every feature. The keys are only discoverable via hover on inline `<InfoTooltip>` / `<HelpPopover>` triggers — there's no canonical reference surface.
 **Depends on:** None (glossary data structure already exists; this is purely a render layer + route).
 
 ## Problem
@@ -28,8 +28,8 @@ The [`/guide`](../../../../ui/src/app/guide/page.tsx) catalog page is the natura
 
 ### Discoverability
 
-- Add a Glossary entry to the home page's `StartHereChecklist` (introduced by `feat_contextual_help` Phase 3) as one of the "Learn the terminology" steps.
-- Link from each guide's script.md footer ("See the glossary for definitions of every term used in this walkthrough").
+- ~~Add a Glossary entry to the home page's `StartHereChecklist` (introduced by `feat_contextual_help` Phase 3) as one of the "Learn the terminology" steps.~~ **Deferred per [`feature_spec.md`](feature_spec.md) §19 D-6** — the `StartHereChecklist` component is shaped as a 3-step Stripe-style *action* sequence where each step auto-completes when state changes; a read-only "Learn the terminology" step has no completion signal and would break the component's structural invariant. The top-nav "Guides" link + the new catalog card (spec FR-5) + the script.md footers (spec FR-7) are sufficient discoverability. Re-evaluate at MVP2 if operator feedback says the route is hard to find.
+- Link from each guide's script.md footer ("See the glossary for definitions of every term used in this walkthrough"). **Scoped in per spec FR-7.**
 
 ## Scope signals
 

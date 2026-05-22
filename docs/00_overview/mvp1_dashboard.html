@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Chore, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/chore_guides_glossary_route/feature_spec.md">Guides Glossary Route</a></div>
+    <div class="one-liner">the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`.</div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/chore_guides_glossary_route --auto</code>
   </div>
 </section>
 
@@ -395,11 +395,11 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">62 / 62</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">62 / 63</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">17</span></h3>
+  <h3>Idea <span class="count">16</span></h3>
 
 <div class="card chore" data-prefix="chore" data-priority="P1">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel">Guide 06 Screenshot Refresh Confidence Panel</a></div>
@@ -486,19 +486,6 @@ footer {
 
   </div>
   <div class="one-liner">Tooltips and the glossary answer &quot;**what does X mean?**&quot; within a 1–2 sentence budget. They don&#x27;t carry the operator-judgment-shaped questions that come up *after* the term is understood:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_guides_glossary_route">Guides Glossary Route</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">The glossary is a load-bearing terminology source-of-truth (cited 100+ times across the codebase, parity-tested against backend Literal enums, locked by source-of-truth comments). But operators can on</div>
 
 
 </div>
@@ -688,7 +675,19 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card chore" data-prefix="chore" data-priority="P1">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_guides_glossary_route/feature_spec.md">Guides Glossary Route</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+
+  </div>
+  <div class="one-liner">the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`.</div>
+
+
+</div>
 
 </div>
 
@@ -1679,6 +1678,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_guides_glossary_route[&quot;guides glossary route&quot;]
+  class chore_guides_glossary_route spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1902,6 +1903,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_guides_glossary_route[&quot;guides glossary route&quot;]
+  class chore_guides_glossary_route spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
