@@ -6,34 +6,28 @@ _Reflects feature-folder state as of **2026-05-22** (latest mtime of any planned
 
 ## Next up
 
-**[chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md)** — Chore, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the registry in FK-safe order at the end of the
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/chore_e2e_test_rows_isolation/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **58 / 59** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
-| → P0 — do next | **1** unblocking / paying daily cost |
+| Scoped items done | **59 / 59** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
+| → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **6** high-value, ready when P0 clears |
 | → P2 (default) | 6 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 0 |
-| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (70)
+### Done (71)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -78,6 +72,7 @@ Plan approved; run /impl-execute to ship
 | [chore_data_table_columnvisibility_tanstack](implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack/idea.md) | Chore | Complete | — | Complete |
 | [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Complete | — | Complete |
 | [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | Complete | — | Complete |
+| [chore_e2e_test_rows_isolation](implemented_features/2026_05_21_chore_e2e_test_rows_isolation/feature_spec.md) | Chore | Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg | — | [PR #186](https://github.com/SoundMindsAI/relyloop/pull/186) merged 2026-05-21 |
 | [chore_env_guard_extend_deny_pattern](implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern/idea.md) | Chore | Complete | — | Complete |
 | [chore_extract_shadcn_select_test_mock](implemented_features/2026_05_19_chore_extract_shadcn_select_test_mock/idea.md) | Chore | Complete | — | Complete |
 | [chore_form_dropdown_guide_screenshot_refresh](implemented_features/2026_05_19_chore_form_dropdown_guide_screenshot_refresh/idea.md) | Chore | Complete | — | Complete |
@@ -112,11 +107,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|
-| P0 | [chore_e2e_test_rows_isolation](../02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md) | Chore | Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg | — | [PR #182](https://github.com/SoundMindsAI/relyloop/pull/182) |
+_None._
 
 ### Spec (0)
 
@@ -151,8 +144,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_e2e_test_rows_isolation["e2e test rows isolation"]
-  class chore_e2e_test_rows_isolation plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -255,6 +246,8 @@ graph LR
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete["create study target autocomplete"]
   class feat_create_study_target_autocomplete done;
+  chore_e2e_test_rows_isolation["e2e test rows isolation"]
+  class chore_e2e_test_rows_isolation done;
   chore_guide_01_screenshot_refresh_target_filter["guide 01 screenshot refresh target filter"]
   class chore_guide_01_screenshot_refresh_target_filter done;
   chore_guide_06_screenshot_refresh_target_picker["guide 06 screenshot refresh target picker"]

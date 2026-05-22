@@ -1,7 +1,7 @@
 # Implementation Plan — chore_e2e_test_rows_isolation
 
 **Date:** 2026-05-21
-**Status:** Draft
+**Status:** Complete (PR #186 squash `a444b94`, merged 2026-05-21)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [api-conventions.md](../../../01_architecture/api-conventions.md), [CLAUDE.md](../../../../CLAUDE.md), spec §19 Decision log
 
