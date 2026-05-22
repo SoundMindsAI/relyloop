@@ -224,13 +224,20 @@ def score(qrels: Qrels, run: Run, metrics: set[str]) -> ScoreResult:
     obj_repr_to_user: dict[str, str] = {repr(obj): user for user, obj in user_to_obj.items()}
     obj_list: list[Measure] = list(user_to_obj.values())
 
-    # Universe filter: keep only qids that have at least one rated doc in
-    # qrels AND at least one scored entry in run. Mirrors the legacy
-    # pytrec_eval.RelevanceEvaluator(qrels, ...).evaluate(run) qid set so
-    # the persisted JSONB key set is preserved on qrel-only / run-only /
+    # Universe filter: mirrors the legacy
+    # pytrec_eval.RelevanceEvaluator(qrels, ...).evaluate(run) qid set so the
+    # persisted JSONB key set is preserved on qrel-only / run-only /
     # empty-inner-dict edge cases (FR-3 / plan cycle-2 C2-F1 + cycle-3 C3-F1).
+    #
+    # Empirically verified at Story 1.4 activation time: pytrec_eval emits a
+    # per-query entry whenever the qid is in BOTH outer dicts AND `qrels[qid]`
+    # is non-empty. An empty `run[qid]` (no doc IDs scored) is still emitted
+    # by pytrec_eval — every metric scores 0 in that case, but the qid is
+    # present in the output. An empty `qrels[qid]` (no relevance info) is
+    # NOT emitted by pytrec_eval, because the evaluator has no relevance
+    # contract to compute against. We mirror that distinction here.
     valid_qids: frozenset[str] = frozenset(
-        qid for qid in qrels.keys() & run.keys() if qrels.get(qid) and run.get(qid)
+        qid for qid in qrels.keys() & run.keys() if qrels.get(qid)
     )
 
     # Per-query: iterate ir_measures' Metric(query_id, measure, value) tuples;

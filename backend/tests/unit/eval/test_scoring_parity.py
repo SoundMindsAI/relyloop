@@ -126,7 +126,6 @@ def _pytrec_wire_name(user_facing: str) -> str:
     raise AssertionError(f"unexpected metric base {base!r}")  # pragma: no cover
 
 
-@pytest.mark.skip(reason="scoring.py not yet migrated to ir_measures — activate in Story 1.4")
 @pytest.mark.parametrize(("metric", "k"), PARITY_CASES)
 def test_score_matches_pytrec_eval_within_1e_minus_6(metric: str, k: int | None) -> None:
     """The migrated ``score()`` aggregate matches pytrec_eval direct to 1e-6.
@@ -158,7 +157,6 @@ def test_score_matches_pytrec_eval_within_1e_minus_6(metric: str, k: int | None)
     )
 
 
-@pytest.mark.skip(reason="scoring.py not yet migrated to ir_measures — activate in Story 1.4")
 def test_per_query_shape_matches_pytrec_eval() -> None:
     """Per-query shape + per-(qid, metric) value parity per spec FR-3.
 
