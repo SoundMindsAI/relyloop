@@ -11,7 +11,7 @@ the lifecycle deterministic — no Redis dependency, no Arq retry timing.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock
@@ -20,7 +20,7 @@ import httpx
 import pytest
 
 from backend.app.adapters.errors import ClusterUnreachableError
-from backend.app.adapters.protocol import ScoredHit
+from backend.app.adapters.protocol import NativeQuery, ScoredHit
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
@@ -466,7 +466,7 @@ class _OutlierStub(StubAdapter):
     async def search_batch(
         self,
         target: str,
-        queries: Any,
+        queries: Sequence[NativeQuery],
         top_k: int,
         *,
         request_id: str | None = None,
@@ -477,7 +477,7 @@ class _OutlierStub(StubAdapter):
         self.search_batch_calls.append(
             {
                 "target": target,
-                "n_queries": len(list(queries)),
+                "n_queries": len(queries),
                 "top_k": top_k,
                 "timeout": timeout,
             }
@@ -507,7 +507,7 @@ class _AlternatingStub(StubAdapter):
     async def search_batch(
         self,
         target: str,
-        queries: Any,
+        queries: Sequence[NativeQuery],
         top_k: int,
         *,
         request_id: str | None = None,
@@ -518,7 +518,7 @@ class _AlternatingStub(StubAdapter):
         self.search_batch_calls.append(
             {
                 "target": target,
-                "n_queries": len(list(queries)),
+                "n_queries": len(queries),
                 "top_k": top_k,
                 "timeout": timeout,
             }
