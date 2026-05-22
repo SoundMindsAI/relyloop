@@ -23,4 +23,16 @@
 - Test counts: 4 unit + 14 integration test functions (18 parametrized cases — AC-13 contributes 5) + 2 contract
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-22
+- PR: #193 (squash-merged as `ca835e0` on 2026-05-22)
+- CI: 5/5 green on the final push
+- Stories: 3 stories in 1 epic, all `[x]`
+- Tests: 4 unit + 14 integration test functions (18 parametrized cases) + 2 contract + 1 source-presence ordering lock
+- Cross-model reviews: phase-gate GPT-5.5 (5 findings, 2 applied + 2 deferred-as-ideas + 1 rejected), Gemini Code Assist (1 finding rejected with cited counter-evidence), final GPT-5.5 (2 findings — 1 rejected + 1 accepted-as-documented)
+- Follow-up ideas captured: `infra_study_preflight_real_engine_integration`, `chore_studies_post_arq_spy_fixture`, `bug_dashboard_banner_dismiss_persistence_flake`
+
+## Done
+- Status: Deployed to operator stack (MVP1 — no remote staging)
+- Date: 2026-05-22
+- Alembic head unchanged at `0015_trials_per_query_metrics` (feature is purely additive at the application layer)

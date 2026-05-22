@@ -1,7 +1,7 @@
 # Implementation Plan — feat_study_preflight_overlap_probe
 
 **Date:** 2026-05-22
-**Status:** Draft
+**Status:** Complete (PR #193, squash-merged `ca835e0` on 2026-05-22)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [api-conventions.md](../../../01_architecture/api-conventions.md), [CLAUDE.md](../../../../CLAUDE.md), [adapters.md](../../../01_architecture/adapters.md)
 
@@ -715,9 +715,9 @@ None. The feature is purely additive — 1 new service module + 2 new repo funct
 
 ### Current sprint
 
-- [ ] Story 1.1 — Repo functions
-- [ ] Story 1.2 — Service helper
-- [ ] Story 1.3 — Handler integration + api-conventions.md row + contract tests
+- [x] Story 1.1 — Repo functions
+- [x] Story 1.2 — Service helper
+- [x] Story 1.3 — Handler integration + api-conventions.md row + contract tests
 
 ### Blocked items
 
@@ -725,7 +725,10 @@ None. The feature is purely additive — 1 new service module + 2 new repo funct
 
 ### Done this sprint
 
-- (none yet)
+- [x] Story 1.1 (commit `2d1727e`) — `find_first_judged_query` + `list_doc_ids_for_list_and_query` + `__init__.py` exports
+- [x] Story 1.2 (commit `2d1727e`) — `backend/app/services/study_preflight.py` (`OverlapProbeResult` + `probe_judgment_overlap` + module-level constants)
+- [x] Story 1.3 (commit `2d1727e`) — `studies.py` handler integration + `api-conventions.md` row + `study-lifecycle-debugging.md` paragraph + source-presence contract test
+- [x] Tests (commits `2d1727e`, `0602927`) — 4 unit + 14 integration test functions (18 parametrized cases) + 2 contract
 
 ---
 
