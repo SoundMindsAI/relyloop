@@ -30,6 +30,34 @@ pytestmark = [
 ]
 
 
+@pytest.fixture(autouse=True)
+def _default_overlap_probe_passes(monkeypatch: pytest.MonkeyPatch):
+    """Install a default-sufficient overlap probe for every POST /studies test.
+
+    Without this, every existing happy-path test in this module would hit the
+    new ``feat_study_preflight_overlap_probe`` ``find_first_judged_query``
+    → returns ``None`` (no judgments seeded) → empty-judgments path → 422
+    ``INSUFFICIENT_JUDGMENT_OVERLAP``. The fixture below bypasses that by
+    replacing ``probe_judgment_overlap`` with a stub that always returns a
+    sufficient ``OverlapProbeResult``.
+
+    Tests that want to exercise specific probe behavior — the AC-1 through
+    AC-13 cases at the bottom of this file — re-monkeypatch the symbol
+    in their own bodies, which overrides this default.
+    """
+    from backend.app.services.study_preflight import OverlapProbeResult
+
+    async def fake_probe_passes(*args, **kwargs):  # noqa: ARG001
+        return OverlapProbeResult(
+            overlap_size=10,
+            probed_doc_count=10,
+            judged_doc_count=10,
+            representative_query_id="01990000-0000-7000-8000-000000000099",
+        )
+
+    monkeypatch.setattr("backend.app.api.v1.studies.probe_judgment_overlap", fake_probe_passes)
+
+
 async def _seed_minimum_for_post_studies() -> dict[str, str]:
     """Seed a cluster + template + query_set + judgment_list + return the IDs."""
     factory = get_session_factory()
@@ -909,16 +937,65 @@ async def test_post_study_target_mismatch_does_not_invoke_probe(
     assert probe_calls["count"] == 0, "probe must not be invoked on Tier 1 mismatch path"
 
 
-async def _patch_search_batch_to_raise(
-    monkeypatch: pytest.MonkeyPatch, exception: BaseException
+class _FakeProbeAdapter:
+    """Minimal stand-in for ``ElasticAdapter`` used by adapter-layer probe tests.
+
+    Exposes only ``search_batch`` (the surface the probe touches). Configure
+    via ``raises``, ``sleep_for``, or ``return_value``; the call kwargs are
+    captured in ``calls`` for later assertions.
+
+    Bypasses credentials resolution by being injected via
+    ``study_preflight.acquire_adapter`` rather than constructed through
+    ``ElasticAdapter(...)`` — CI doesn't set ``CLUSTER_CREDENTIALS_FILE`` for
+    the integration job, so the real ``acquire_adapter`` would raise
+    ``ClusterUnreachable`` before the test's exception could fire.
+    """
+
+    def __init__(
+        self,
+        *,
+        raises: BaseException | None = None,
+        sleep_for: float | None = None,
+        return_value: object = None,
+    ) -> None:
+        self._raises = raises
+        self._sleep_for = sleep_for
+        self._return_value = return_value if return_value is not None else {"overlap_probe": []}
+        self.calls: list[dict[str, object]] = []
+
+    async def search_batch(self, **kwargs: object) -> object:
+        self.calls.append(kwargs)
+        if self._sleep_for is not None:
+            import asyncio as _asyncio
+
+            await _asyncio.sleep(self._sleep_for)
+        if self._raises is not None:
+            raise self._raises
+        return self._return_value
+
+
+def _install_real_probe_with_fake_adapter(
+    monkeypatch: pytest.MonkeyPatch, fake_adapter: _FakeProbeAdapter
 ) -> None:
-    """Patch ``ElasticAdapter.search_batch`` to raise ``exception`` on call."""
-    from backend.app.adapters.elastic import ElasticAdapter
+    """Restore the real ``probe_judgment_overlap`` (overriding the autouse
+    default) AND monkeypatch ``study_preflight.acquire_adapter`` to yield
+    ``fake_adapter``. Used by adapter-layer tests (AC-7/8/10/11/13) so the
+    real probe code runs with a controlled adapter, bypassing credentials.
+    """
+    import contextlib as _contextlib
 
-    async def raises(self, *args, **kwargs):  # noqa: ARG001
-        raise exception
+    from backend.app.services import study_preflight as _study_preflight
 
-    monkeypatch.setattr(ElasticAdapter, "search_batch", raises)
+    monkeypatch.setattr(
+        "backend.app.api.v1.studies.probe_judgment_overlap",
+        _study_preflight.probe_judgment_overlap,
+    )
+
+    @_contextlib.asynccontextmanager
+    async def fake_acquire(_cluster):  # noqa: ARG001
+        yield fake_adapter
+
+    monkeypatch.setattr(_study_preflight, "acquire_adapter", fake_acquire)
 
 
 async def test_post_study_cluster_unreachable_during_probe_returns_201_with_warn(
@@ -930,7 +1007,8 @@ async def test_post_study_cluster_unreachable_during_probe_returns_201_with_warn
 
     ids = await _seed_minimum_for_post_studies()
     await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], ["d1"])
-    await _patch_search_batch_to_raise(monkeypatch, ClusterUnreachableError("simulated"))
+    fake_adapter = _FakeProbeAdapter(raises=ClusterUnreachableError("simulated"))
+    _install_real_probe_with_fake_adapter(monkeypatch, fake_adapter)
 
     import structlog.testing
 
@@ -950,19 +1028,12 @@ async def test_post_study_probe_timeout_returns_201_with_warn(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """AC-8: adapter blocks beyond PROBE_TIMEOUT_S → outer asyncio.wait_for fires."""
-    import asyncio as _asyncio
-
-    from backend.app.adapters.elastic import ElasticAdapter
     from backend.app.services.study_preflight import PROBE_TIMEOUT_S
 
     ids = await _seed_minimum_for_post_studies()
     await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], ["d1"])
-
-    async def slow(self, *args, **kwargs):  # noqa: ARG001
-        await _asyncio.sleep(PROBE_TIMEOUT_S + 2.0)
-        return {}
-
-    monkeypatch.setattr(ElasticAdapter, "search_batch", slow)
+    fake_adapter = _FakeProbeAdapter(sleep_for=PROBE_TIMEOUT_S + 2.0)
+    _install_real_probe_with_fake_adapter(monkeypatch, fake_adapter)
 
     import structlog.testing
 
@@ -978,14 +1049,18 @@ async def test_post_study_probe_timeout_returns_201_with_warn(
 
 async def test_post_study_empty_judgments_returns_422_with_info_log(
     async_client: httpx.AsyncClient,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """AC-9: judgment_list has 0 rows → 422 + studies.preflight.overlap_probe.empty INFO log.
 
-    The probe short-circuits before ``acquire_adapter`` is invoked, so this
-    works against the stub:9200 cluster URL without needing any adapter mock.
+    The probe short-circuits before ``acquire_adapter`` is invoked, so an
+    inert ``_FakeProbeAdapter`` is sufficient — the test asserts that the
+    empty-judgments code path fires and the adapter is NOT called.
     """
     ids = await _seed_minimum_for_post_studies()
     # Intentionally do NOT seed any judgments.
+    fake_adapter = _FakeProbeAdapter()  # would return zero-hits if called; should NOT be called
+    _install_real_probe_with_fake_adapter(monkeypatch, fake_adapter)
 
     import structlog.testing
 
@@ -1002,6 +1077,8 @@ async def test_post_study_empty_judgments_returns_422_with_info_log(
     ev = empty_logs[0]
     assert ev["study_judgment_list_id"] == ids["judgment_list_id"]
     assert ev["study_query_set_id"] == ids["query_set_id"]
+    # Adapter must NOT have been invoked on the empty path.
+    assert fake_adapter.calls == []
 
 
 async def test_post_study_max_probed_docs_cap_honored(
@@ -1014,33 +1091,27 @@ async def test_post_study_max_probed_docs_cap_honored(
     capture the NativeQuery body. Asserts ``len(values) == 200`` (not 250)
     AND the error message wording shows ``X of 200 probed`` + ``judged_doc_count=250``.
     """
-    from backend.app.adapters.elastic import ElasticAdapter
-
     ids = await _seed_minimum_for_post_studies()
     doc_ids = [f"doc_{i:04d}" for i in range(250)]
     await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], doc_ids)
 
-    captured: dict[str, object] = {}
-
-    async def capture(self, *args, **kwargs):  # noqa: ARG001
-        captured["queries"] = kwargs["queries"]
-        captured["top_k"] = kwargs["top_k"]
-        return {"overlap_probe": []}  # zero hits → 422
-
-    monkeypatch.setattr(ElasticAdapter, "search_batch", capture)
+    fake_adapter = _FakeProbeAdapter(return_value={"overlap_probe": []})  # zero hits → 422
+    _install_real_probe_with_fake_adapter(monkeypatch, fake_adapter)
 
     resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
     assert resp.status_code == 422, resp.text
 
     from backend.app.adapters.protocol import NativeQuery as _NativeQuery
 
-    queries = cast(list[_NativeQuery], captured["queries"])
+    assert len(fake_adapter.calls) == 1
+    captured_kwargs = fake_adapter.calls[0]
+    queries = cast(list[_NativeQuery], captured_kwargs["queries"])
     assert len(queries) == 1
     body = queries[0].body
     actual_len = len(body["query"]["ids"]["values"])
     assert actual_len == 200, f"cap violation: expected 200 doc_ids, got {actual_len}"
     assert body["size"] == 200
-    assert captured["top_k"] == 200
+    assert captured_kwargs["top_k"] == 200
 
     msg = resp.json()["detail"]["message"]
     assert "0 of 200 probed" in msg
@@ -1058,7 +1129,7 @@ async def test_post_study_probe_call_shape_locked(
     the dict-key unpacking semantic: returning 2 hits with
     ``judged_doc_count=3`` produces ``"2 of 3 probed"`` in the 422 message.
     """
-    from backend.app.adapters.elastic import ElasticAdapter
+    from backend.app.adapters.protocol import NativeQuery as _NativeQuery
     from backend.app.adapters.protocol import ScoredHit
     from backend.app.services.study_preflight import PROBE_TIMEOUT_S
 
@@ -1069,15 +1140,15 @@ async def test_post_study_probe_call_shape_locked(
         ["d1", "d2", "d3"],
     )
 
-    captured: dict[str, object] = {}
-
-    async def capture(self, *args, **kwargs):  # noqa: ARG001
-        captured.update(kwargs)
-        return {
-            "overlap_probe": [ScoredHit(doc_id="d1", score=1.0), ScoredHit(doc_id="d2", score=1.0)]
+    fake_adapter = _FakeProbeAdapter(
+        return_value={
+            "overlap_probe": [
+                ScoredHit(doc_id="d1", score=1.0),
+                ScoredHit(doc_id="d2", score=1.0),
+            ]
         }
-
-    monkeypatch.setattr(ElasticAdapter, "search_batch", capture)
+    )
+    _install_real_probe_with_fake_adapter(monkeypatch, fake_adapter)
 
     resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
     # overlap=2, judged_doc_count=3 → required=3, 2<3 → 422
@@ -1085,13 +1156,13 @@ async def test_post_study_probe_call_shape_locked(
     assert "2 of 3 probed" in resp.json()["detail"]["message"]
 
     # Adapter-call shape lock.
-    assert captured["target"] == "stub-index"
-    assert captured["strict_errors"] is True
-    assert captured["timeout"] == PROBE_TIMEOUT_S
-    assert captured["top_k"] == 3
-    from backend.app.adapters.protocol import NativeQuery as _NativeQuery
-
-    queries = cast(list[_NativeQuery], captured["queries"])
+    assert len(fake_adapter.calls) == 1
+    captured_kwargs = fake_adapter.calls[0]
+    assert captured_kwargs["target"] == "stub-index"
+    assert captured_kwargs["strict_errors"] is True
+    assert captured_kwargs["timeout"] == PROBE_TIMEOUT_S
+    assert captured_kwargs["top_k"] == 3
+    queries = cast(list[_NativeQuery], captured_kwargs["queries"])
     assert len(queries) == 1
     nq = queries[0]
     assert nq.query_id == "overlap_probe"
@@ -1175,7 +1246,8 @@ async def test_post_study_fr4_exception_matrix_adapter_layer(
     """
     ids = await _seed_minimum_for_post_studies()
     await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], ["d1"])
-    await _patch_search_batch_to_raise(monkeypatch, exception_factory())
+    fake_adapter = _FakeProbeAdapter(raises=exception_factory())
+    _install_real_probe_with_fake_adapter(monkeypatch, fake_adapter)
 
     import structlog.testing
 
@@ -1209,6 +1281,13 @@ async def test_post_study_fr4_service_layer_cluster_unreachable(
 
     ids = await _seed_minimum_for_post_studies()
     await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], ["d1"])
+
+    # Override the autouse default-passing-probe so the real probe runs and
+    # invokes the patched acquire_adapter below.
+    monkeypatch.setattr(
+        "backend.app.api.v1.studies.probe_judgment_overlap",
+        study_preflight.probe_judgment_overlap,
+    )
 
     @contextlib.asynccontextmanager
     async def raising_acquire(_cluster):  # noqa: ARG001
