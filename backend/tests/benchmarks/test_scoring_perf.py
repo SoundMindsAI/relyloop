@@ -53,7 +53,8 @@ def test_score_completes_under_100ms_per_query_at_50q_top10():
     qrels, run = _build_fixture(n_queries=50, top_k=10)
     metrics = {"ndcg@10", "map", "mrr"}
 
-    # Warm-up: discard first call's timing (pytrec_eval may JIT-compile metrics).
+    # Warm-up: discard first call's timing — the ir_measures transitive
+    # backend may JIT-compile its metric implementations on first invocation.
     score(qrels, run, metrics)
 
     # Timed loop: 5 iterations.

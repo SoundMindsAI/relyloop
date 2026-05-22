@@ -1,6 +1,6 @@
-# Optimization (Optuna + pytrec_eval)
+# Optimization (Optuna + ir_measures)
 
-**Status:** Adopted for MVP1. Single-objective TPE + median pruner; pytrec_eval scoring. Multi-objective optimization (CMA-ES + multi-metric) reserved for v2 per umbrella spec.
+**Status:** Adopted for MVP1. Single-objective TPE + median pruner; ir_measures scoring (wraps pytrec-eval-terrier transitively for cut-aware metrics). Multi-objective optimization (CMA-ES + multi-metric) reserved for v2 per umbrella spec.
 **Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §13–§14](../00_overview/product/relevance-copilot-spec.md). Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
 
 ---
@@ -12,7 +12,7 @@ A study runs N trials in parallel. Each trial:
 1. **Ask** Optuna for a parameter combination (the sampler decides; TPE in MVP1).
 2. **Render** the parameter combination into a native engine query via the configured `QueryTemplate` and `SearchAdapter` (per [`adapters.md` §"The Protocol"](adapters.md)).
 3. **Execute** the query batch via `SearchAdapter.search_batch(target, queries, top_k)` against the registered cluster.
-4. **Score** the result set with pytrec_eval against the configured `judgment_list`, computing the study's primary metric + secondary metrics.
+4. **Score** the result set with ir_measures against the configured `judgment_list`, computing the study's primary metric + secondary metrics.
 5. **Tell** Optuna the metric value.
 6. **Persist** the trial row (params + all metrics + duration_ms + status) per [`data-model.md` §"`trials`"](data-model.md).
 
@@ -45,12 +45,12 @@ storage = optuna.storages.RDBStorage(
 
 The `options=-csearch_path=optuna` forces Optuna's CREATE/SELECT into its own schema, isolated from the application's `public` schema.
 
-## pytrec_eval configuration
+## ir_measures configuration
 
-Per umbrella spec §14, RelyLoop **always** evaluates via pytrec_eval — never engine-native `_rank_eval`. Reasons:
+Per umbrella spec §14, RelyLoop **always** evaluates via `ir_measures` — never engine-native `_rank_eval`. Reasons:
 
-- pytrec_eval is the de facto standard wrapper for `trec_eval`.
-- ES `_rank_eval` and pytrec_eval don't always agree to many decimal places (different normalization conventions).
+- `ir_measures` (from the PyTerrier team) wraps multiple IR-evaluation backends behind a typed metric-object DSL (`nDCG@10`, `AP@5`, `RR`, `P@k`, `R@k`). The provider abstraction means swapping the underlying backend is a config change rather than a rewrite — protecting against future single-maintainer abandonment risk.
+- ES `_rank_eval` and `ir_measures` don't always agree to many decimal places (different normalization conventions across engines).
 - Per-query scores are inspectable, enabling deep debugging.
 - Cross-engine comparability: the same metric semantics apply whether the underlying engine is ES, OpenSearch, Fusion, or Solr.
 
@@ -66,14 +66,14 @@ Computed at trial time and stored in `trials.metrics` (JSONB):
 | `recall@k` | Same `k` |
 | `mrr` | Mean Reciprocal Rank (k ignored — always full-recall) |
 
-ERR@k is deferred to MVP2 (pytrec_eval doesn't ship it; reserved for the
+ERR@k is deferred to MVP2 (the cut-aware-metric backend wrapped by ir_measures doesn't ship it; reserved for the
 metric-expansion alongside CMA-ES per [`infra_optuna_eval` spec §3](../02_product/planned_features/infra_optuna_eval/feature_spec.md)).
 
 Studies declare a single primary `objective.metric` (the value Optuna optimizes against) and the others are recorded for analysis. The primary metric is denormalized into `trials.primary_metric` (REAL) for fast sort.
 
 ### Judgment input format
 
-Judgments are stored as `(judgment_list_id, query_id, doc_id, rating, source)` tuples per [`data-model.md` §"`judgments`"](data-model.md). pytrec_eval expects:
+Judgments are stored as `(judgment_list_id, query_id, doc_id, rating, source)` tuples per [`data-model.md` §"`judgments`"](data-model.md). `ir_measures` expects:
 
 ```python
 qrels = {
@@ -84,10 +84,15 @@ run = {
     "<query_id>": {"<doc_id>": <float score>, ...},
     ...
 }
-metrics = pytrec_eval.RelevanceEvaluator(qrels, {"ndcg_cut_10", "map", "P_10", ...}).evaluate(run)
+import ir_measures
+from ir_measures import nDCG, AP, P
+metrics_per_query = list(ir_measures.iter_calc([nDCG@10, AP, P@10], qrels, run))
+# RelyLoop's backend/app/eval/scoring.py::score() re-keys the per-query
+# results back to user-facing tokens (ndcg@10, map, precision@10) before
+# returning — library wire-form metric-object reprs never leak past score().
 ```
 
-Ratings in `0..3` (graded) or `0..1` (binary). pytrec_eval is configured per metric to handle each.
+Ratings in `0..3` (graded) or `0..1` (binary). `ir_measures` is configured per metric to handle each.
 
 ## Worker job: `run_trial`
 
@@ -173,7 +178,7 @@ contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../02_prod
 
 ## Cross-references
 
-- Stack choices (Optuna + pytrec_eval pinned in `pyproject.toml`): [`tech-stack.md`](tech-stack.md)
+- Stack choices (Optuna + ir_measures pinned in `pyproject.toml`): [`tech-stack.md`](tech-stack.md)
 - `studies` and `trials` schemas: [`data-model.md`](data-model.md)
 - Search engine execution path: [`adapters.md`](adapters.md)
 - Service topology (worker pool consuming the `trials` queue): [`system-overview.md`](system-overview.md)

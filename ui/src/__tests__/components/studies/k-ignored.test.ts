@@ -1,7 +1,7 @@
 /**
  * K_IGNORED parity test (chore_create_study_wizard_polish AC-14 frontend half).
  *
- * Source-of-truth: backend/app/eval/scoring.py:32 (metric → pytrec_eval token
+ * Source-of-truth: backend/app/eval/scoring.py (metric → ir_measures metric-object
  * mapper). The backend unit test at
  * backend/tests/unit/eval/test_scoring_metric_tokens.py asserts the mapping
  * directly — including that `mrr` and `err` produce identical tokens

@@ -128,7 +128,7 @@ backend/
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
                  8 Pydantic types), elastic.py (ES + OpenSearch),
                  credentials.py, errors.py, health_cache.py
-    eval/        pytrec_eval scoring + Optuna runtime helpers (from
+    eval/        ir_measures scoring + Optuna runtime helpers (from
                  infra_optuna_eval): types.py (SamplerKind/PrunerKind/
                  TrialStatus Literals), scoring.py (score, frozensets,
                  objective_metric_key, wire-name translation),

@@ -72,7 +72,7 @@ def build_zero_scoring_hits_response(
 
     Used by ``feat_orchestrator_zero_streak_abort`` integration tests to
     drive the orchestrator into trials with ``status='complete' AND
-    primary_metric == 0.0``. pytrec_eval's qrels-vs-run intersection is
+    primary_metric == 0.0``. ir_measures' qrels-vs-run intersection is
     empty when no doc ID overlaps, so every supported metric (NDCG, MAP,
     MRR, precision, recall) collapses to exactly 0.0.
 

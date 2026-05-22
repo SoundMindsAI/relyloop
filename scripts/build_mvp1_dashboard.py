@@ -223,12 +223,28 @@ def _extract_priority(text: str) -> str | None:
 
 
 def _extract_one_liner(text: str, source_dir: Path | None = None) -> str:
-    """Best-effort: prefer Outcome bullet, fall back to Problem bullet.
+    """Best-effort: prefer ``dashboard_one_liner.md`` override, then Outcome, then Problem.
+
+    Override sidecar (added by infra_ir_measures_migration Story 1.8): when a
+    feature folder has a ``dashboard_one_liner.md`` file next to the spec, its
+    contents (single line, plain text or markdown) override the spec-extracted
+    one-liner. This lets us keep frozen historical specs frozen while still
+    keeping the current-state dashboard accurate when a sibling feature
+    invalidates a historical row's description — e.g., when a library swap
+    in one feature changes what an earlier feature's code does today, but
+    the earlier feature's spec correctly describes what shipped at the time.
 
     When ``source_dir`` is supplied, any relative markdown link in the
     extracted sentence is rewritten so it resolves correctly from the
     dashboard files' directory. See :func:`_rewrite_markdown_links`.
     """
+    if source_dir is not None:
+        override_path = source_dir / "dashboard_one_liner.md"
+        if override_path.exists():
+            line = override_path.read_text().strip()
+            if line:
+                sentence = re.split(r"(?<=[.!?])\s+", line, maxsplit=1)[0]
+                return _rewrite_markdown_links(sentence, source_dir, _DASHBOARD_DIR)
     for label in ("Outcome", "Problem"):
         m = re.search(
             rf"^- \*\*{label}:\*\*\s*(.+?)$",

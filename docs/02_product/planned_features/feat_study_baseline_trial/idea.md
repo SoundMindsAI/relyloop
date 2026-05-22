@@ -53,7 +53,7 @@ Phase 2 closes this gap by:
   2. If baseline params are non-empty, enqueue a single `run_baseline_trial(study_id, params)` Arq job. Wait for it to complete (synchronous within the start_study transaction OR await via Optuna's ask/tell sync mechanism — TBD by Phase 2 plan).
   3. Stamp `study.baseline_trial_id = <new_trial.id>` and `study.baseline_metric = <trial.primary_metric>`.
   4. Proceed to the Optuna loop.
-- A new worker function `run_baseline_trial` mirrors `run_trial` but does NOT call `study.ask()` / `study.tell()` — it just renders the template with the baseline params, runs the engine query, scores via `pytrec_eval`, and persists a Trial row with `optuna_trial_number = -1` (sentinel) OR some other distinguishing marker. `per_query_metrics` is persisted just like Phase 1.
+- A new worker function `run_baseline_trial` mirrors `run_trial` but does NOT call `study.ask()` / `study.tell()` — it just renders the template with the baseline params, runs the engine query, scores via `ir_measures`, and persists a Trial row with `optuna_trial_number = -1` (sentinel) OR some other distinguishing marker. `per_query_metrics` is persisted just like Phase 1.
 - Failed baseline trial: log + proceed with the study; `baseline_trial_id` stays NULL; comparison falls back to runner-up #2.
 
 ### Capability 3 — `compute_study_confidence` switches comparison source
