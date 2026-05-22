@@ -44,3 +44,5 @@ See [Guide 02 (Review a proposal)](#) for the detail-page walkthrough.
 - API detail: `GET /api/v1/proposals/{id}`
 - 30-second pulse: implemented via TanStack Query's `refetchInterval` —
   see [`ui/src/lib/api/proposals.ts`](../../ui/src/lib/api/proposals.ts)
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

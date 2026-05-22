@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { Button } from '@/components/ui/button';
+import { MARKDOWN_DISALLOWED_ELEMENTS } from '@/lib/markdown-safety';
 import { cn } from '@/lib/utils';
 
 const GITHUB_BLOB_BASE = 'https://github.com/SoundMindsAI/relyloop/blob/main';
@@ -186,7 +187,7 @@ export function MarkdownDoc({ file, title }: { file: string; title: string }) {
         <div className={cn('prose max-w-none dark:prose-invert', proseSize)}>
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            disallowedElements={['script', 'iframe', 'style']}
+            disallowedElements={[...MARKDOWN_DISALLOWED_ELEMENTS]}
             unwrapDisallowed
             urlTransform={resolveLink}
           >

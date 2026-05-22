@@ -29,6 +29,30 @@ study is running and pauses polling on terminal states. The trials table
 sorts by `primary_metric_desc` by default — so the best trial is always
 on top.
 
+Once the study reaches a terminal state, the **Confidence** panel
+appears between the study header and the trials table. It surfaces:
+
+- **Headline metric** — the winner's score, with a 95% bootstrap CI band
+  when at least 5 completed queries carry per-query metrics. With fewer
+  queries (or older studies whose trials predate
+  `feat_pr_metric_confidence`), the CI band is omitted and you'll see
+  the bare headline — a legitimate partial shape, not an error.
+- **Per-query outcomes** — counts of Improved / Unchanged / Regressed
+  queries versus the runner-up trial, with the named regressors
+  revealed on click. The thresholds are 0.01 for NDCG / Precision /
+  Recall and 0.02 for MAP / MRR; deltas within that band count as
+  Unchanged.
+- **Runner-up gap** — labels the result as `Robust plateau` (top trials
+  cluster within 0.005 of the winner — winner is reproducible) or
+  `Sharp peak` (winner is isolated and sensitive to small parameter
+  changes). Add a `Convergence regime` callout (`Early-and-held` /
+  `Late-rising` / `Noisy`) once the budget is large enough for one to
+  resolve.
+
+See [glossary: confidence](/guide/glossary#confidence.ci_95) and
+[FAQ: My confidence interval is missing — why?](/guide/faq#confidence-ci-missing)
+for the operator-judgment context behind these signals.
+
 ## Cancellation
 
 Click **Cancel study** in the action bar to fire
@@ -43,3 +67,5 @@ no new trials enqueue. The orchestrator transitions to `cancelled` within
 - API trials: `GET /api/v1/studies/{id}/trials?sort=primary_metric_desc`
 - Worker entry: [`backend/workers/orchestrator.py`](../../backend/workers/orchestrator.py)
 - Sampler config: [`docs/01_architecture/optimization.md`](../01_architecture/optimization.md)
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.
