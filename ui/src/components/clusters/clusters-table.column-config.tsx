@@ -12,9 +12,11 @@
  */
 import Link from 'next/link';
 
+import { DemoBadge } from '@/components/common/demo-badge';
 import { StatusBadge } from '@/components/common/status-badge';
 import type { DataTableColumnDef } from '@/components/common/types';
 import type { ClusterSummary } from '@/lib/api/clusters';
+import { isDemoClusterName } from '@/lib/demo-data';
 import { ENGINE_TYPE_VALUES, ENVIRONMENT_VALUES } from '@/lib/enums';
 
 export const clustersColumns: DataTableColumnDef<ClusterSummary>[] = [
@@ -25,12 +27,15 @@ export const clustersColumns: DataTableColumnDef<ClusterSummary>[] = [
     sortable: true,
     sticky: true,
     cell: ({ row }) => (
-      <Link
-        href={`/clusters/${row.original.id}`}
-        className="text-blue-600 underline-offset-4 hover:underline"
-      >
-        {row.original.name}
-      </Link>
+      <span className="inline-flex items-center">
+        <Link
+          href={`/clusters/${row.original.id}`}
+          className="text-blue-600 underline-offset-4 hover:underline"
+        >
+          {row.original.name}
+        </Link>
+        {isDemoClusterName(row.original.name) ? <DemoBadge /> : null}
+      </span>
     ),
   },
   {
