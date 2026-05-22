@@ -73,7 +73,7 @@ operator inspection.
 
 * **`feat_github_webhook`** (shipped 2026-05-12) — provides the cron infrastructure this idea reuses. No coordination needed beyond grounding the design in its precedent.
 * **`feat_llm_judgments`** (shipped 2026-05-11) — owns the boot-time sweep this idea complements. The `_job_id` convention used here (`generate_judgments_llm:{jid}`) is the same one the boot sweep already uses, so the periodic sweep and the boot sweep dedup against each other automatically.
-* **No interference with sibling planned features:** `chore_chat_last_message_preview`, `chore_digest_worker_narrow_except`, `infra_arq_subprocess_test` all touch different surfaces.
+* **No interference with sibling planned features:** `feat_chat_last_message_preview`, `chore_digest_worker_narrow_except`, `infra_arq_subprocess_test` all touch different surfaces.
 
 ## Open questions for /spec-gen
 

@@ -131,7 +131,7 @@ Anticipated test inventory once locked:
 During Phases 1-3 tracing, none of the following turned into separate
 idea files (already captured or out of scope):
 
-- [`chore_chat_last_message_preview`](../chore_chat_last_message_preview/idea.md) — sibling MVP2 chat polish; coordinate landing if both ship together (already noted in idea.md §Related work).
+- [`feat_chat_last_message_preview`](../feat_chat_last_message_preview/idea.md) — sibling MVP2 chat polish; coordinate landing if both ship together (already noted in idea.md §Related work).
 - The orchestrator's tool-result wrapping invariant
   ([`orchestrator.py` `_wrap_tool_result_for_llm`](../../../../backend/app/agent/orchestrator.py))
   applies to **every replay** of every tool message. Summarization that
