@@ -110,3 +110,27 @@ async def count_query_templates(
     if fts is not None:
         stmt = stmt.where(fts)
     return int((await db.execute(stmt)).scalar_one())
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
+# ---------------------------------------------------------------------------
+
+
+async def hard_delete_query_template(db: AsyncSession, template_id: str) -> bool:
+    """Hard-delete the query_template row for test-only cleanup.
+
+    No FK children cascade with template; the handler must preflight all
+    three dependent tables (``studies``, ``proposals``,
+    ``judgment_lists.current_template_id``).
+
+    Returns ``True`` if a row was deleted, ``False`` if no row existed.
+    Caller commits. Used ONLY by the test-only `DELETE /api/v1/_test/
+    query-templates/{id}` endpoint per ``chore_e2e_test_rows_isolation`` FR-6.
+    """
+    existing = await db.get(QueryTemplate, template_id)
+    if existing is None:
+        return False
+    await db.delete(existing)
+    await db.flush()
+    return True

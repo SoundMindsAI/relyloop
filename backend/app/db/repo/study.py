@@ -160,3 +160,29 @@ async def list_queued_study_ids(db: AsyncSession) -> list[str]:
     """
     stmt = select(Study.id).where(Study.status == "queued")
     return list((await db.execute(stmt)).scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
+# ---------------------------------------------------------------------------
+
+
+async def hard_delete_study(db: AsyncSession, study_id: str) -> bool:
+    """Hard-delete the study row for test-only cleanup.
+
+    Trials cascade-delete via the existing ``ondelete='CASCADE'`` FK at
+    ``backend/app/db/models/trial.py:60``.
+
+    Returns ``True`` if a row was deleted, ``False`` if no row existed.
+    Caller commits. Used ONLY by the test-only `DELETE /api/v1/_test/
+    studies/{id}` endpoint per ``chore_e2e_test_rows_isolation`` FR-3.
+    The handler is responsible for preflight EXISTS checks against
+    ``proposals`` + ``digests`` (non-cascade) and emitting 409 if any
+    dependents remain.
+    """
+    existing = await db.get(Study, study_id)
+    if existing is None:
+        return False
+    await db.delete(existing)
+    await db.flush()
+    return True

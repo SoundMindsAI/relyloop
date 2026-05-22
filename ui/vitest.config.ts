@@ -9,7 +9,15 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: [
+      'src/**/*.test.{ts,tsx}',
+      // chore_e2e_test_rows_isolation Story 1.2: vitest tests for the
+      // Playwright cleanup machinery (cleanup-core.ts + global-teardown.ts)
+      // live alongside the modules they test under tests/e2e/. Playwright
+      // ignores *.test.ts (its spec extension is .spec.ts), so vitest is
+      // the sole consumer.
+      'tests/e2e/**/*.test.ts',
+    ],
     // Pin the api-client base URL to a non-resolvable host so msw can
     // intercept requests safely. Without this, `apiClient` defaults to
     // http://localhost:8000 and (when the dev stack is running) tests

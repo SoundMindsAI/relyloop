@@ -78,6 +78,26 @@ The studies endpoint surfaces two template-mismatch codes (added by `chore_creat
 | `JUDGMENT_CLUSTER_MISMATCH` | 422 | `judgment_list.cluster_id` does not equal the study's `cluster_id` on `POST /api/v1/studies` (added by `feat_study_target_judgment_mismatch_guard`, 2026-05-21). `retryable: false`. Fires BEFORE `JUDGMENT_TARGET_MISMATCH` — cluster mismatch is the broader failure because doc IDs are physically scoped to a cluster (same target name on two clusters still produces zero overlap). Recovery: pick a judgment list created against the study's cluster, or change the study's cluster. |
 | `JUDGMENT_TARGET_MISMATCH` | 422 | `judgment_list.target` does not equal the study's `target` on `POST /api/v1/studies` (added by `feat_study_target_judgment_mismatch_guard`, 2026-05-21). `retryable: false`. Fires AFTER the cluster check. Recovery: pick a judgment list authored against the study's target, or change the study's target. Catches the literal study2 incident — judgments authored on `e2e-target` paired with a study against `docs-articles` would otherwise burn the entire trial budget scoring 0.0 on every (params, query) pair. |
 
+### Test-only endpoints (added by `chore_e2e_test_rows_isolation`, 2026-05-21)
+
+These error codes are emitted ONLY by the six `DELETE /api/v1/_test/*` endpoints, which are gated by `Settings.environment == "development"` and return 404 `RESOURCE_NOT_FOUND` outside dev. They exist solely so the Playwright `globalTeardown` can clean up E2E seed rows; operators never see them.
+
+| Code | HTTP Status | Meaning |
+|---|---|---|
+| `PROPOSAL_NOT_FOUND` | 404 | `DELETE /api/v1/_test/proposals/{id}` called with an id that does not exist. `retryable: false`. |
+| `DIGEST_NOT_FOUND` | 404 | `DELETE /api/v1/_test/digests/{id}` called with an id that does not exist. `retryable: false`. |
+| `STUDY_NOT_FOUND` | 404 | `DELETE /api/v1/_test/studies/{id}` called with an id that does not exist. `retryable: false`. |
+| `STUDY_HAS_DEPENDENT_PROPOSAL` | 409 | Cannot hard-delete the study — a `proposals` row references it. Cleanup script must delete proposals first. `retryable: false`. Fires before `STUDY_HAS_DEPENDENT_DIGEST` in the preflight order. |
+| `STUDY_HAS_DEPENDENT_DIGEST` | 409 | Cannot hard-delete the study — a `digests` row references it. `retryable: false`. |
+| `JUDGMENT_LIST_HAS_DEPENDENT_STUDY` | 409 | Cannot hard-delete the judgment_list — a `studies` row references it. `retryable: false`. |
+| `QUERY_SET_HAS_DEPENDENT_STUDY` | 409 | Cannot hard-delete the query_set — a `studies` row references it. `retryable: false`. Fires before `QUERY_SET_HAS_DEPENDENT_JUDGMENT_LIST` in the preflight order. |
+| `QUERY_SET_HAS_DEPENDENT_JUDGMENT_LIST` | 409 | Cannot hard-delete the query_set — a `judgment_lists` row references it. `retryable: false`. |
+| `QUERY_TEMPLATE_HAS_DEPENDENT_STUDY` | 409 | Cannot hard-delete the query_template — a `studies` row references it. `retryable: false`. Fires before the PROPOSAL/JUDGMENT_LIST codes per the fixed STUDY > PROPOSAL > JUDGMENT_LIST priority order. |
+| `QUERY_TEMPLATE_HAS_DEPENDENT_PROPOSAL` | 409 | Cannot hard-delete the query_template — a `proposals` row references it. `retryable: false`. |
+| `QUERY_TEMPLATE_HAS_DEPENDENT_JUDGMENT_LIST` | 409 | Cannot hard-delete the query_template — a `judgment_lists.current_template_id` references it. `retryable: false`. |
+
+The handlers also reuse three existing 404 codes already defined elsewhere in this matrix: `JUDGMENT_LIST_NOT_FOUND`, `QUERY_SET_NOT_FOUND`, `TEMPLATE_NOT_FOUND` (originally defined for the equivalent FK-resolution paths on `POST /api/v1/studies`). Reused without modification.
+
 The clusters endpoint surfaces an ACL-restriction code on the targets sub-resource (added by `feat_create_study_target_autocomplete`, 2026-05-20):
 
 | Code | HTTP Status | Meaning |

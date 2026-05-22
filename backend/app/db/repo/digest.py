@@ -36,3 +36,26 @@ async def get_digest_for_study(db: AsyncSession, study_id: str) -> Digest | None
     """
     stmt = select(Digest).where(Digest.study_id == study_id)
     return (await db.execute(stmt)).scalar_one_or_none()
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
+# ---------------------------------------------------------------------------
+
+
+async def hard_delete_digest(db: AsyncSession, digest_id: str) -> bool:
+    """Hard-delete the digest row.
+
+    Returns ``True`` if a row was deleted, ``False`` if no row existed.
+    Caller commits. Used ONLY by the test-only `DELETE /api/v1/_test/
+    digests/{id}` endpoint per ``chore_e2e_test_rows_isolation`` FR-2.
+    Digests have no FK children. The 1:1 UNIQUE constraint with studies
+    means the digest must be deleted BEFORE its parent study (caller's
+    responsibility — the cleanup script's drain order enforces this).
+    """
+    existing = await db.get(Digest, digest_id)
+    if existing is None:
+        return False
+    await db.delete(existing)
+    await db.flush()
+    return True

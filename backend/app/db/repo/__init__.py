@@ -38,6 +38,7 @@ from backend.app.db.repo.conversation import (
 from backend.app.db.repo.digest import (
     create_digest,
     get_digest_for_study,
+    hard_delete_digest,
 )
 from backend.app.db.repo.judgment import (
     JudgmentListRefRow,
@@ -57,6 +58,7 @@ from backend.app.db.repo.judgment_list import (
     count_judgment_lists,
     create_judgment_list,
     get_judgment_list,
+    hard_delete_judgment_list,
     list_generating_judgment_list_ids,
     list_judgment_lists,
     update_judgment_list_calibration,
@@ -68,6 +70,7 @@ from backend.app.db.repo.proposal import (
     count_proposals,
     create_proposal,
     get_proposal,
+    hard_delete_proposal,
     list_pending_proposals_for_boot_scan,
     list_pr_opened_proposals_for_reconcile,
     list_proposals_paginated,
@@ -95,6 +98,7 @@ from backend.app.db.repo.query_set import (
     count_query_sets,
     create_query_set,
     get_query_set,
+    hard_delete_query_set,
     list_query_sets,
 )
 from backend.app.db.repo.query_template import (
@@ -102,12 +106,14 @@ from backend.app.db.repo.query_template import (
     create_query_template,
     get_query_template,
     get_query_template_by_name_version,
+    hard_delete_query_template,
     list_query_templates,
 )
 from backend.app.db.repo.study import (
     count_studies,
     create_study,
     get_study,
+    hard_delete_study,
     list_queued_study_ids,
     list_running_study_ids,
     list_studies,
@@ -225,4 +231,11 @@ __all__ = [
     "get_trial",
     "list_queries_for_set_cursor",
     "update_query",
+    # chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
+    "hard_delete_digest",
+    "hard_delete_judgment_list",
+    "hard_delete_proposal",
+    "hard_delete_query_set",
+    "hard_delete_query_template",
+    "hard_delete_study",
 ]

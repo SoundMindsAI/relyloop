@@ -18,11 +18,14 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import exists, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.settings import Settings, get_settings
+from backend.app.db import repo
+from backend.app.db.models import Digest, JudgmentList, Proposal, Study
 from backend.app.db.session import get_db
 from backend.app.services.test_seeding import seed_study_completed_with_digest
 
@@ -32,6 +35,22 @@ router = APIRouter()
 # production API. Anything under ``/api/v1/_test/...`` is gated and
 # should never appear in operator scripts.
 _TEST_PREFIX = "/_test"
+
+
+def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
+    """Canonical error-envelope shape — mirrors ``studies.py:74-78``.
+
+    All test-only DELETE handlers raise via this helper so the
+    ``{detail: {error_code, message, retryable}}`` shape is consistent
+    with the rest of the v1 API (env-guard 404 inline below uses the
+    same shape via the original `HTTPException(detail=...)` pattern,
+    kept inline for backwards compatibility with the
+    `seed-completed` precedent).
+    """
+    return HTTPException(
+        status_code=status_code,
+        detail={"error_code": code, "message": message, "retryable": retryable},
+    )
 
 
 def _require_development_env(
@@ -152,3 +171,255 @@ async def seed_completed_study(  # pragma: no cover  - integration only
         digest_id=triple.digest_id,
         proposal_id=triple.proposal_id,
     )
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — six test-only DELETE endpoints.
+#
+# All gated by ``_require_development_env`` so they 404 outside dev. Each
+# handler does preflight ``SELECT EXISTS`` checks for non-cascade dependent
+# tables before calling the repo's ``hard_delete_*`` function, emitting a
+# resource-specific 409 envelope if any dependents remain. The cleanup
+# script (``ui/tests/e2e/global-teardown.ts``) is responsible for ordering
+# DELETE calls so 409s don't fire in normal flow — the 409 is a safety
+# net against ordering bugs.
+#
+# Handler signature pattern (per implementation_plan.md §1.1 key interfaces):
+# ``response_class=Response`` + ``return Response(status_code=204)`` guards
+# the 204-no-body contract from FastAPI accidentally serializing a body.
+# ---------------------------------------------------------------------------
+
+
+@router.delete(
+    f"{_TEST_PREFIX}/proposals/{{proposal_id}}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Hard-delete a proposal (test-only)",
+)
+async def delete_test_proposal(
+    proposal_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """FR-1: Hard-delete the proposal row. No FK children — no preflight needed."""
+    deleted = await repo.hard_delete_proposal(db, proposal_id)
+    if not deleted:
+        raise _err(404, "PROPOSAL_NOT_FOUND", f"proposal {proposal_id} not found", False)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    f"{_TEST_PREFIX}/digests/{{digest_id}}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Hard-delete a digest (test-only)",
+)
+async def delete_test_digest(
+    digest_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """FR-2: Hard-delete the digest row. No FK children — no preflight needed."""
+    deleted = await repo.hard_delete_digest(db, digest_id)
+    if not deleted:
+        raise _err(404, "DIGEST_NOT_FOUND", f"digest {digest_id} not found", False)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    f"{_TEST_PREFIX}/studies/{{study_id}}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Hard-delete a study (test-only)",
+)
+async def delete_test_study(
+    study_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """FR-3 — hard-delete the study row.
+
+    Trials cascade-delete via existing FK. Preflight-checks ``proposals``
+    + ``digests`` (both non-cascade); 409 if any dependent rows reference
+    the study.
+    """
+    # Preflight: STUDY_HAS_DEPENDENT_PROPOSAL fires first (by code order).
+    has_proposal = (
+        await db.execute(select(exists().where(Proposal.study_id == study_id)))
+    ).scalar()
+    if has_proposal:
+        raise _err(
+            409,
+            "STUDY_HAS_DEPENDENT_PROPOSAL",
+            f"study {study_id} has dependent proposal; delete proposal(s) first",
+            False,
+        )
+    has_digest = (await db.execute(select(exists().where(Digest.study_id == study_id)))).scalar()
+    if has_digest:
+        raise _err(
+            409,
+            "STUDY_HAS_DEPENDENT_DIGEST",
+            f"study {study_id} has dependent digest; delete digest first",
+            False,
+        )
+    deleted = await repo.hard_delete_study(db, study_id)
+    if not deleted:
+        raise _err(404, "STUDY_NOT_FOUND", f"study {study_id} not found", False)
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    f"{_TEST_PREFIX}/judgment-lists/{{judgment_list_id}}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Hard-delete a judgment_list (test-only)",
+)
+async def delete_test_judgment_list(
+    judgment_list_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """FR-4 — hard-delete the judgment_list row.
+
+    Judgments cascade-delete via existing FK. Preflight-checks ``studies``
+    (non-cascade); 409 if any study references the judgment_list.
+    """
+    has_study = (
+        await db.execute(select(exists().where(Study.judgment_list_id == judgment_list_id)))
+    ).scalar()
+    if has_study:
+        raise _err(
+            409,
+            "JUDGMENT_LIST_HAS_DEPENDENT_STUDY",
+            f"judgment_list {judgment_list_id} has dependent study; delete study(ies) first",
+            False,
+        )
+    deleted = await repo.hard_delete_judgment_list(db, judgment_list_id)
+    if not deleted:
+        raise _err(
+            404,
+            "JUDGMENT_LIST_NOT_FOUND",
+            f"judgment_list {judgment_list_id} not found",
+            False,
+        )
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    f"{_TEST_PREFIX}/query-sets/{{query_set_id}}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Hard-delete a query_set (test-only)",
+)
+async def delete_test_query_set(
+    query_set_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """FR-5 — hard-delete the query_set row.
+
+    Queries cascade-delete via existing FK. Preflight-checks ``studies``
+    + ``judgment_lists`` (both non-cascade); 409 with resource-specific
+    code if either references.
+    """
+    has_study = (
+        await db.execute(select(exists().where(Study.query_set_id == query_set_id)))
+    ).scalar()
+    if has_study:
+        raise _err(
+            409,
+            "QUERY_SET_HAS_DEPENDENT_STUDY",
+            f"query_set {query_set_id} has dependent study; delete study(ies) first",
+            False,
+        )
+    has_judgment_list = (
+        await db.execute(select(exists().where(JudgmentList.query_set_id == query_set_id)))
+    ).scalar()
+    if has_judgment_list:
+        raise _err(
+            409,
+            "QUERY_SET_HAS_DEPENDENT_JUDGMENT_LIST",
+            f"query_set {query_set_id} has dependent judgment_list; delete judgment_list(s) first",
+            False,
+        )
+    deleted = await repo.hard_delete_query_set(db, query_set_id)
+    if not deleted:
+        raise _err(
+            404,
+            "QUERY_SET_NOT_FOUND",
+            f"query_set {query_set_id} not found",
+            False,
+        )
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    f"{_TEST_PREFIX}/query-templates/{{template_id}}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    response_class=Response,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Hard-delete a query_template (test-only)",
+)
+async def delete_test_query_template(
+    template_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Response:
+    """FR-6 — hard-delete the query_template row.
+
+    No FK children cascade with template. Preflight-checks ``studies``,
+    ``proposals``, and ``judgment_lists.current_template_id`` in
+    **fixed priority order: STUDY > PROPOSAL > JUDGMENT_LIST** (per
+    spec §FR-6) — first match wins.
+    """
+    has_study = (
+        await db.execute(select(exists().where(Study.template_id == template_id)))
+    ).scalar()
+    if has_study:
+        raise _err(
+            409,
+            "QUERY_TEMPLATE_HAS_DEPENDENT_STUDY",
+            f"query_template {template_id} has dependent study; delete study(ies) first",
+            False,
+        )
+    has_proposal = (
+        await db.execute(select(exists().where(Proposal.template_id == template_id)))
+    ).scalar()
+    if has_proposal:
+        raise _err(
+            409,
+            "QUERY_TEMPLATE_HAS_DEPENDENT_PROPOSAL",
+            f"query_template {template_id} has dependent proposal; delete proposal(s) first",
+            False,
+        )
+    has_judgment_list = (
+        await db.execute(select(exists().where(JudgmentList.current_template_id == template_id)))
+    ).scalar()
+    if has_judgment_list:
+        raise _err(
+            409,
+            "QUERY_TEMPLATE_HAS_DEPENDENT_JUDGMENT_LIST",
+            f"query_template {template_id} has dependent judgment_list; "
+            f"delete judgment_list(s) first or clear current_template_id",
+            False,
+        )
+    deleted = await repo.hard_delete_query_template(db, template_id)
+    if not deleted:
+        raise _err(
+            404,
+            "TEMPLATE_NOT_FOUND",
+            f"template {template_id} not found",
+            False,
+        )
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
