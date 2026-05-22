@@ -161,7 +161,7 @@ Walking the absolute-rules list before /spec-gen takes over:
   operator runbook at
   [`docs/03_runbooks/agent-debugging.md`](../../../03_runbooks/agent-debugging.md).
 - Future PR cleanup paired with
-  [`chore_chat_last_message_preview`](../chore_chat_last_message_preview/idea.md)
+  [`feat_chat_last_message_preview`](../feat_chat_last_message_preview/idea.md)
   if MVP2's chat polish bundles together.
 - MVP2 observability work (Langfuse + ClickHouse traces) is the natural
   shipping window — summarization prompt calibration benefits directly

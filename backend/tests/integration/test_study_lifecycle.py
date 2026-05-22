@@ -11,7 +11,7 @@ the lifecycle deterministic — no Redis dependency, no Arq retry timing.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock
@@ -20,12 +20,19 @@ import httpx
 import pytest
 
 from backend.app.adapters.errors import ClusterUnreachableError
+from backend.app.adapters.protocol import NativeQuery, ScoredHit
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
 from backend.app.services import study_state
+from backend.tests._log_helpers import RecordingLogger
 from backend.tests.conftest import postgres_reachable
+from backend.tests.integration.fixtures.handbuilt_qrels import (
+    build_hits_response,
+    build_zero_scoring_hits_response,
+)
+from backend.tests.integration.fixtures.stub_adapter import StubAdapter
 from backend.tests.integration.fixtures.study_factories import (
     StudyFixture,
     cleanup_study,
@@ -416,5 +423,491 @@ async def test_stop_loses_cancel_race_silently(
                 await db.execute(select(Proposal).where(Proposal.study_id == fixture.study_id))
             ).scalar_one_or_none()
             assert pending is None
+    finally:
+        await cleanup_study(fixture)
+
+
+# ---------------------------------------------------------------------------
+# feat_orchestrator_zero_streak_abort — mid-flight zero-metric streak guard
+# ---------------------------------------------------------------------------
+
+
+def _install_stub_adapter_with(monkeypatch: pytest.MonkeyPatch, stub: StubAdapter) -> StubAdapter:
+    """Install a pre-built ``StubAdapter`` instance.
+
+    Mirrors :func:`install_stub_adapter` but accepts a fully-built stub so
+    callers can configure custom per-call behavior (zero-scoring responses,
+    barrier-gated outliers, alternating raises).
+    """
+    monkeypatch.setattr("backend.workers.trials.build_adapter", lambda _cluster: stub)
+    return stub
+
+
+class _OutlierStub(StubAdapter):
+    """``StubAdapter`` variant that returns a non-zero ``build_hits_response`` on
+    the Nth ``search_batch`` call and a zero-scoring response on every other
+    call. Optionally waits on an ``asyncio.Event`` after the 20th call to
+    deterministically pause the orchestrator at the terminal-20 snapshot
+    (per AC-2 barrier-stub pattern)."""
+
+    def __init__(
+        self,
+        query_ids: list[str],
+        outlier_call_index: int,
+        barrier: asyncio.Event | None = None,
+        barrier_after_call: int | None = None,
+    ) -> None:
+        super().__init__(engine_type="elasticsearch", search_batch_response={})
+        self._query_ids = query_ids
+        self._outlier_call_index = outlier_call_index
+        self._barrier = barrier
+        self._barrier_after_call = barrier_after_call
+
+    async def search_batch(
+        self,
+        target: str,
+        queries: Sequence[NativeQuery],
+        top_k: int,
+        *,
+        request_id: str | None = None,
+        strict_errors: bool = False,
+        timeout: float | None = None,
+    ) -> dict[str, list[ScoredHit]]:
+        call_index = len(self.search_batch_calls)
+        self.search_batch_calls.append(
+            {
+                "target": target,
+                "n_queries": len(queries),
+                "top_k": top_k,
+                "timeout": timeout,
+            }
+        )
+        if self._barrier is not None and self._barrier_after_call is not None:
+            if call_index >= self._barrier_after_call:
+                await self._barrier.wait()
+        if call_index == self._outlier_call_index:
+            response = build_hits_response(self._query_ids)
+        else:
+            response = build_zero_scoring_hits_response(self._query_ids)
+        # search_batch_response is keyed by query_id; the worker passes
+        # NativeQuery objects whose query_id matches our handbuilt set.
+        return {q.query_id: response.get(q.query_id, []) for q in queries}
+
+
+class _AlternatingStub(StubAdapter):
+    """``StubAdapter`` variant that alternates: even calls return zero-scoring
+    hits, odd calls raise ``ClusterUnreachableError``. Used by AC-3 to verify
+    that neither guard fires when failures interleave with complete-zero
+    trials at the streak-threshold cadence."""
+
+    def __init__(self, query_ids: list[str]) -> None:
+        super().__init__(engine_type="elasticsearch", search_batch_response={})
+        self._query_ids = query_ids
+
+    async def search_batch(
+        self,
+        target: str,
+        queries: Sequence[NativeQuery],
+        top_k: int,
+        *,
+        request_id: str | None = None,
+        strict_errors: bool = False,
+        timeout: float | None = None,
+    ) -> dict[str, list[ScoredHit]]:
+        call_index = len(self.search_batch_calls)
+        self.search_batch_calls.append(
+            {
+                "target": target,
+                "n_queries": len(queries),
+                "top_k": top_k,
+                "timeout": timeout,
+            }
+        )
+        if call_index % 2 == 1:
+            raise ClusterUnreachableError("alternating stub: failure call")
+        response = build_zero_scoring_hits_response(self._query_ids)
+        return {q.query_id: response.get(q.query_id, []) for q in queries}
+
+
+_ZERO_STREAK_FAILED_REASON = (
+    "no signal: 20 consecutive trials scored 0.0 — judgment overlap likely lost mid-study"
+)
+
+
+async def test_zero_streak_20_consecutive_zeros_fails_the_study(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-1 + FR-3 structlog contract: 20 consecutive ``primary_metric=0.0``
+    trials abort the study with the exact failed_reason string and emit
+    ``event_type='stop_condition_fired', reason='no_signal'`` at WARNING."""
+    fixture = await seed_study(max_trials=25, parallelism=1)
+    try:
+        stub = StubAdapter(
+            engine_type="elasticsearch",
+            search_batch_response=build_zero_scoring_hits_response(fixture.query_ids),
+        )
+        _install_stub_adapter_with(monkeypatch, stub)
+        monkeypatch_qrels(monkeypatch, fixture.query_ids)
+
+        recording_logger = RecordingLogger()
+        monkeypatch.setattr("backend.workers.orchestrator.logger", recording_logger)
+
+        storage = build_storage(get_settings().database_url)
+        pool = _InProcessPool(storage)
+        async with _running_orchestrator(fixture, pool):
+            await asyncio.wait_for(
+                _wait_for_status(fixture.study_id, "failed", timeout=60.0),
+                timeout=60.0,
+            )
+
+        factory = get_session_factory()
+        async with factory() as db:
+            study = await repo.get_study(db, fixture.study_id)
+            assert study is not None
+            assert study.status == "failed"
+            assert study.failed_reason == _ZERO_STREAK_FAILED_REASON
+            summary = await repo.aggregate_trials_summary(db, fixture.study_id)
+            assert summary.complete >= 20
+            assert summary.failed == 0
+            assert summary.pruned == 0
+
+        warnings = recording_logger.find(level="warning", event_type="stop_condition_fired")
+        assert any(
+            w.get("reason") == "no_signal" and w.get("study_id") == fixture.study_id
+            for w in warnings
+        ), f"expected no_signal warning; got {warnings!r}"
+    finally:
+        await cleanup_study(fixture)
+
+
+async def test_zero_streak_nonzero_outlier_in_recent_window_does_not_fire(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-2 boundary: a non-zero scoring trial inside the recent-20 window
+    keeps the helper at False. Uses a barrier-stub to deterministically
+    snapshot at terminal-20 before letting the orchestrator run to
+    completion via ``max_trials_reached``."""
+    fixture = await seed_study(max_trials=30, parallelism=1)
+    try:
+        barrier = asyncio.Event()
+        stub = _OutlierStub(
+            query_ids=list(fixture.query_ids),
+            outlier_call_index=10,
+            barrier=barrier,
+            barrier_after_call=20,
+        )
+        _install_stub_adapter_with(monkeypatch, stub)
+        monkeypatch_qrels(monkeypatch, fixture.query_ids)
+
+        storage = build_storage(get_settings().database_url)
+        pool = _InProcessPool(storage)
+        async with _running_orchestrator(fixture, pool):
+            # (a) Wait until exactly 20 trials have terminated; fail-fast if
+            # the orchestrator advances past 20 before we snapshot (the
+            # barrier should prevent this, but the assertion is a defensive
+            # backstop).
+            factory = get_session_factory()
+            deadline = asyncio.get_event_loop().time() + 60.0
+            while asyncio.get_event_loop().time() < deadline:
+                async with factory() as db:
+                    summary = await repo.aggregate_trials_summary(db, fixture.study_id)
+                    terminal = summary.complete + summary.failed + summary.pruned
+                    if terminal > 20:
+                        pytest.fail(f"snapshot missed — terminal advanced past 20 (got {terminal})")
+                    if terminal == 20:
+                        break
+                await asyncio.sleep(0.05)
+            else:
+                pytest.fail("orchestrator never reached terminal=20 within 60s")
+
+            # Snapshot assertion: the helper returns False because the
+            # outlier at optuna_trial_number=10 is in the recent-20 window.
+            from backend.workers.orchestrator import _last_n_all_zero
+
+            async with factory() as db:
+                snapshot = await _last_n_all_zero(db, fixture.study_id, n=20)
+                assert snapshot is False
+                study = await repo.get_study(db, fixture.study_id)
+                assert study is not None
+                assert study.status == "running"
+
+            # (b) Release the barrier and run to completion. With the
+            # outlier at trial 10 and max_trials=30, the recent-20 window
+            # always includes the outlier, so the zero-streak never fires;
+            # the study completes via max_trials_reached.
+            barrier.set()
+            await asyncio.wait_for(
+                _wait_for_status(fixture.study_id, "completed", timeout=60.0),
+                timeout=60.0,
+            )
+
+            async with factory() as db:
+                study = await repo.get_study(db, fixture.study_id)
+                assert study is not None
+                assert study.status == "completed"
+                assert study.failed_reason is None
+                assert study.best_metric is not None
+                assert study.best_metric > 0.0
+    finally:
+        barrier.set()  # defensive — release any waiters before teardown
+        await cleanup_study(fixture)
+
+
+async def test_zero_streak_interleaved_failures_does_not_fire(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-3: alternating zero-metric complete + failed trials — neither
+    streak reaches its threshold. Study terminates via
+    ``max_trials_reached`` with ``best_metric=0.0``."""
+    fixture = await seed_study(max_trials=24, parallelism=1)
+    try:
+        stub = _AlternatingStub(query_ids=list(fixture.query_ids))
+        _install_stub_adapter_with(monkeypatch, stub)
+        monkeypatch_qrels(monkeypatch, fixture.query_ids)
+
+        recording_logger = RecordingLogger()
+        monkeypatch.setattr("backend.workers.orchestrator.logger", recording_logger)
+
+        storage = build_storage(get_settings().database_url)
+        pool = _InProcessPool(storage)
+        async with _running_orchestrator(fixture, pool):
+            await asyncio.wait_for(
+                _wait_for_status(fixture.study_id, "completed", timeout=60.0),
+                timeout=60.0,
+            )
+
+        factory = get_session_factory()
+        async with factory() as db:
+            study = await repo.get_study(db, fixture.study_id)
+            assert study is not None
+            assert study.status == "completed"
+            assert study.failed_reason is None
+            assert study.best_metric == 0.0
+
+        # `max_trials_reached` is emitted by `_stop()` at INFO; the
+        # streak-abort paths (`consecutive_failures`, `no_signal`) emit at
+        # WARNING. AC-3 asserts neither streak fired → no WARNING-level
+        # stop-condition record. The INFO `max_trials_reached` record is
+        # expected and asserted as the terminating reason.
+        warnings = recording_logger.find(level="warning", event_type="stop_condition_fired")
+        assert warnings == [], (
+            f"no streak-abort should have fired; got WARNING-level "
+            f"stop_condition_fired records: {warnings!r}"
+        )
+        infos = recording_logger.find(level="info", event_type="stop_condition_fired")
+        assert any(i.get("reason") == "max_trials_reached" for i in infos), (
+            f"expected an INFO stop_condition_fired with reason='max_trials_reached'; got {infos!r}"
+        )
+    finally:
+        await cleanup_study(fixture)
+
+
+async def test_zero_streak_precedence_failure_streak_runs_first(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-5 / FR-4: when both ``_last_n_all_failed`` and ``_last_n_all_zero``
+    return True, the failure-streak branch returns first and the zero-streak
+    helper is never invoked."""
+    fixture = await seed_study(max_trials=30, parallelism=1)
+    try:
+        install_stub_adapter(monkeypatch, fixture.query_ids)
+        monkeypatch_qrels(monkeypatch, fixture.query_ids)
+
+        zero_streak_spy = AsyncMock(return_value=True)
+        monkeypatch.setattr(
+            "backend.workers.orchestrator._last_n_all_failed",
+            AsyncMock(return_value=True),
+        )
+        monkeypatch.setattr("backend.workers.orchestrator._last_n_all_zero", zero_streak_spy)
+
+        recording_logger = RecordingLogger()
+        monkeypatch.setattr("backend.workers.orchestrator.logger", recording_logger)
+
+        storage = build_storage(get_settings().database_url)
+        pool = _InProcessPool(storage)
+        async with _running_orchestrator(fixture, pool):
+            await asyncio.wait_for(
+                _wait_for_status(fixture.study_id, "failed", timeout=30.0),
+                timeout=30.0,
+            )
+
+        factory = get_session_factory()
+        async with factory() as db:
+            study = await repo.get_study(db, fixture.study_id)
+            assert study is not None
+            assert study.status == "failed"
+            assert study.failed_reason == "5 consecutive trial failures"
+
+        assert zero_streak_spy.call_count == 0, (
+            "zero-streak helper was invoked despite failure-streak firing first; "
+            "FR-4 precedence violated"
+        )
+
+        warnings = recording_logger.find(level="warning", event_type="stop_condition_fired")
+        assert any(w.get("reason") == "consecutive_failures" for w in warnings), (
+            f"expected consecutive_failures warning; got {warnings!r}"
+        )
+    finally:
+        await cleanup_study(fixture)
+
+
+async def test_zero_streak_cancel_race_during_abort(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-4: ``InvalidStateTransition`` from ``fail_study`` (simulating an
+    operator cancel that won the race) exits the orchestrator cleanly with
+    an INFO ``orchestrator_race_lost`` log carrying
+    ``attempted_reason='no_signal'`` — no exception escapes the task."""
+    fixture = await seed_study(max_trials=30, parallelism=1)
+    try:
+        install_stub_adapter(monkeypatch, fixture.query_ids)
+        monkeypatch_qrels(monkeypatch, fixture.query_ids)
+
+        monkeypatch.setattr(
+            "backend.workers.orchestrator._last_n_all_zero",
+            AsyncMock(return_value=True),
+        )
+        monkeypatch.setattr(
+            "backend.workers.orchestrator.study_state.fail_study",
+            AsyncMock(side_effect=study_state.InvalidStateTransition("cancelled-mid-flight")),
+        )
+
+        recording_logger = RecordingLogger()
+        monkeypatch.setattr("backend.workers.orchestrator.logger", recording_logger)
+
+        storage = build_storage(get_settings().database_url)
+        pool = _InProcessPool(storage)
+        # Manually drive start_study so we can await the task and confirm
+        # no exception escapes (the _running_orchestrator context manager
+        # cancels the task on exit; we want it to terminate cleanly via
+        # the loop's `return`).
+        from backend.workers import orchestrator
+
+        ctx: dict[str, Any] = {"optuna_storage": storage, "arq_pool": pool}
+        # Speed up the polling tick so the test finishes quickly.
+        original_tick = orchestrator._REPLENISH_TICK_S
+        orchestrator._REPLENISH_TICK_S = 0.05
+        try:
+            await asyncio.wait_for(
+                orchestrator.start_study(ctx, fixture.study_id),
+                timeout=30.0,
+            )
+        finally:
+            orchestrator._REPLENISH_TICK_S = original_tick
+
+        race_logs = recording_logger.find(level="info", event_type="orchestrator_race_lost")
+        assert any(
+            r.get("attempted_reason") == "no_signal" and r.get("study_id") == fixture.study_id
+            for r in race_logs
+        ), f"expected no_signal race-lost log; got {race_logs!r}"
+    finally:
+        await cleanup_study(fixture)
+
+
+# ---------------------------------------------------------------------------
+# Helper-boundary matrix — FR-1 + FR-5
+# ---------------------------------------------------------------------------
+
+
+async def _seed_trials(
+    study_id: str,
+    rows: list[tuple[int, str, float | None]],
+) -> None:
+    """Insert hand-crafted trial rows for the boundary matrix.
+
+    Each row is ``(optuna_trial_number, status, primary_metric)``.
+    """
+    import uuid_utils
+
+    factory = get_session_factory()
+    async with factory() as db:
+        for optuna_trial_number, status, primary_metric in rows:
+            await repo.create_trial(
+                db,
+                id=str(uuid_utils.uuid7()),
+                study_id=study_id,
+                optuna_trial_number=optuna_trial_number,
+                params={},
+                primary_metric=primary_metric,
+                metrics={},
+                duration_ms=None,
+                status=status,
+                error=None,
+                started_at=None,
+                ended_at=None,
+            )
+        await db.commit()
+
+
+_BOUNDARY_CASES = [
+    # (label, [(optuna_trial_number, status, primary_metric), ...], expected)
+    ("zero_trials", [], False),
+    (
+        "nineteen_zeros",
+        [(i, "complete", 0.0) for i in range(19)],
+        False,
+    ),
+    (
+        "twenty_zeros",
+        [(i, "complete", 0.0) for i in range(20)],
+        True,
+    ),
+    (
+        "nonzero_at_ten",
+        [(i, "complete", 0.5 if i == 10 else 0.0) for i in range(20)],
+        False,
+    ),
+    (
+        "failed_at_ten",
+        [(i, "failed" if i == 10 else "complete", None if i == 10 else 0.0) for i in range(20)],
+        False,
+    ),
+    (
+        "pruned_at_ten",
+        [(i, "pruned" if i == 10 else "complete", None if i == 10 else 0.0) for i in range(20)],
+        False,
+    ),
+    (
+        "null_metric_at_ten",
+        [(i, "complete", None if i == 10 else 0.0) for i in range(20)],
+        False,
+    ),
+    (
+        "outliers_outside_window",
+        # trials 0-4 are non-zero (older); trials 5-24 are zero (recent 20)
+        [(i, "complete", 0.5) for i in range(5)] + [(i, "complete", 0.0) for i in range(5, 25)],
+        True,
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "label,rows,expected",
+    _BOUNDARY_CASES,
+    ids=[c[0] for c in _BOUNDARY_CASES],
+)
+async def test_last_n_all_zero_helper_boundary_cases(
+    label: str,
+    rows: list[tuple[int, str, float | None]],
+    expected: bool,
+) -> None:
+    """FR-1 + FR-5: parameterized matrix of helper boundary semantics. Each
+    sub-case uses a fresh study (no shared state between cases — the
+    "recent n on this study" contract requires per-case isolation)."""
+    del label  # used by pytest for the parametrize id; not needed in body
+    fixture = await seed_study(max_trials=100, parallelism=1, status="queued")
+    try:
+        if rows:
+            await _seed_trials(fixture.study_id, rows)
+
+        from backend.workers.orchestrator import _last_n_all_zero
+
+        factory = get_session_factory()
+        async with factory() as db:
+            result = await _last_n_all_zero(db, fixture.study_id, n=20)
+            assert result is expected, (
+                f"_last_n_all_zero returned {result}, expected {expected} "
+                f"for boundary case with {len(rows)} rows"
+            )
     finally:
         await cleanup_study(fixture)
