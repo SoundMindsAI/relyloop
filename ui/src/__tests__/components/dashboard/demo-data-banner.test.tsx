@@ -79,7 +79,12 @@ describe('<DemoDataBanner />', () => {
     // Non-demo cluster name is NOT in the body.
     expect(screen.queryByText('my-own-cluster')).not.toBeInTheDocument();
     // FR-2 contract: the banner fetches with sort=name:asc, limit=200.
-    expect(mockUseClusters).toHaveBeenCalledWith({ sort: 'name:asc', limit: 200 });
+    // `enabled` is gated on !dismissed (Gemini Code Assist optimization).
+    expect(mockUseClusters).toHaveBeenCalledWith({
+      sort: 'name:asc',
+      limit: 200,
+      enabled: true,
+    });
   });
 
   it('returns null when no demo slugs are present', async () => {

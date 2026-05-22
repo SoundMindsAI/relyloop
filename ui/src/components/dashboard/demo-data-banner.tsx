@@ -77,8 +77,11 @@ export function DemoDataBanner(): React.ReactElement | null {
 
   // Uses the existing useClusters hook — its standard queryKey
   // (['clusters', { sort, limit, ... }]) provides natural deduplication
-  // with any other dashboard consumer using the same params.
-  const clusters = useClusters({ sort: 'name:asc', limit: 200 });
+  // with any other dashboard consumer using the same params. `enabled`
+  // is gated on !dismissed so already-dismissed operators don't pay the
+  // network round-trip on every dashboard mount (Gemini Code Assist
+  // feedback on PR #188).
+  const clusters = useClusters({ sort: 'name:asc', limit: 200, enabled: !dismissed });
 
   if (dismissed) return null;
   if (clusters.isError) return null;

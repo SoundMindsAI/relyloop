@@ -26,10 +26,12 @@ if [[ ! -f "${PY_FILE}" ]]; then
 fi
 
 # Extract frontend slugs: lines between `DEMO_CLUSTER_SLUGS = [` and
-# `] as const;`, each containing a single 'slug'.
+# `] as const;`, each containing a single 'slug'. Accept BOTH single and
+# double quotes — prettier or a manual edit could legitimately switch
+# style without breaking the contract.
 fe_slugs=$(awk '/^export const DEMO_CLUSTER_SLUGS = \[/,/\] as const;/' "${FE_FILE}" \
-  | grep -oE "'[a-z0-9-]+'" \
-  | tr -d "'" \
+  | grep -oE "['\"][a-z0-9-]+['\"]" \
+  | tr -d "'\"" \
   | sort)
 
 # Extract python slugs: lines like `"slug": "acme-products-prod",`
