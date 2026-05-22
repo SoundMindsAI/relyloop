@@ -6,34 +6,28 @@ _Reflects feature-folder state as of **2026-05-22** (latest mtime of any planned
 
 ## Next up
 
-**[chore_guides_glossary_route](../02_product/planned_features/chore_guides_glossary_route/feature_spec.md)** — Chore, currently in **Spec**
+All scoped MVP1 features shipped 🎉
 
-> the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`.
-
-Spec exists; run /pipeline to generate the implementation plan + ship
-
-```bash
-/pipeline docs/02_product/planned_features/chore_guides_glossary_route --auto
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **62 / 63** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **65 / 65** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **3** high-value, ready when P0 clears |
+| → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 2 |
-| Legacy "Path to MVP1" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (74)
+### Done (77)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -87,7 +81,10 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 | [chore_form_dropdown_guide_screenshot_refresh](implemented_features/2026_05_19_chore_form_dropdown_guide_screenshot_refresh/idea.md) | Chore | Complete | — | Complete |
 | [chore_form_dropdown_primitive](implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) | Chore | Ready for Execution | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
 | [chore_guide_01_screenshot_refresh_target_filter](implemented_features/2026_05_21_chore_guide_01_screenshot_refresh_target_filter/idea.md) | Chore | Complete | — | Complete |
+| [chore_guide_06_screenshot_refresh_confidence_panel](implemented_features/2026_05_22_chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | Complete | — | Complete |
 | [chore_guide_06_screenshot_refresh_target_picker](implemented_features/2026_05_21_chore_guide_06_screenshot_refresh_target_picker/idea.md) | Chore | Complete | — | Complete |
+| [chore_guides_faq](implemented_features/2026_05_22_chore_guides_faq/idea.md) | Chore | Complete | — | Complete |
+| [chore_guides_glossary_route](implemented_features/2026_05_22_chore_guides_glossary_route/feature_spec.md) | Chore | the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`. | — | Draft |
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
 | [chore_precommit_node_path_resolution](implemented_features/2026_05_21_chore_precommit_node_path_resolution/idea.md) | Chore | Complete | — | Complete |
@@ -120,18 +117,14 @@ _None._
 
 _None._
 
-### Spec (1)
+### Spec (0)
+
+_None._
+
+### Idea (14)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
-| P1 | [chore_guides_glossary_route](../02_product/planned_features/chore_guides_glossary_route/feature_spec.md) | Chore | the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`. | — | Draft |
-
-### Idea (16)
-
-| Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|
-| P1 | [chore_guide_06_screenshot_refresh_confidence_panel](../02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai | — | Idea — captured during `feat_pr_metric_confidence` Epic 2 guide-impact assessment |
-| P1 | [chore_guides_faq](../02_product/planned_features/chore_guides_faq/idea.md) | Chore | Tooltips and the glossary answer "**what does X mean?**" within a 1–2 sentence budget. They don't carry the operator-judgment-shaped questions that come up *after* the term is understood: | — | Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review |
 | P2 | [feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/idea.md) | Feature | Karpathy's autoresearch loop runs hundreds of experiments overnight and **compounds** improvements: each accepted change becomes the new baseline for the next experiment. RelyLoop's equivalent… | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. The highest-leverage recommendation from the audit's "across studies" section. |
 | P2 | [feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/idea.md) | Feature | RelyLoop does not track which configuration is currently live in production. When a proposal's PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:187-191`](../../backend/app/api/webh | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
 | P2 | [feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/idea.md) | Feature | The digest worker's LLM contract at [`backend/workers/digest.py:168-189`](../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`: | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
@@ -158,8 +151,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_guides_glossary_route["guides glossary route"]
-  class chore_guides_glossary_route spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -278,6 +269,12 @@ graph LR
   class feat_study_target_judgment_mismatch_guard done;
   infra_uv_sync_drops_precommit["uv sync drops precommit"]
   class infra_uv_sync_drops_precommit done;
+  chore_guide_06_screenshot_refresh_confidence_panel["guide 06 screenshot refresh confidence panel"]
+  class chore_guide_06_screenshot_refresh_confidence_panel done;
+  chore_guides_faq["guides faq"]
+  class chore_guides_faq done;
+  chore_guides_glossary_route["guides glossary route"]
+  class chore_guides_glossary_route done;
   feat_home_first_run_demo_nudge["home first run demo nudge"]
   class feat_home_first_run_demo_nudge done;
   feat_orchestrator_zero_streak_abort["orchestrator zero streak abort"]
