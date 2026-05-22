@@ -6,34 +6,28 @@ _Reflects feature-folder state as of **2026-05-22** (latest mtime of any planned
 
 ## Next up
 
-**[feat_study_preflight_overlap_probe](../02_product/planned_features/feat_study_preflight_overlap_probe/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> `POST /api/v1/studies` issues a single bounded `ids`-existence query against the study's target asking "for the *first* query in the query set that has any judgments (chosen deterministically by `id ASC`), do its judged doc IDs still exist
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_study_preflight_overlap_probe/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **61 / 62** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **18** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **62 / 62** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **4** high-value, ready when P0 clears |
+| → P1 | **3** high-value, ready when P0 clears |
 | → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 2 |
-| Legacy "Path to MVP1" | 10 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (73)
+### Done (74)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -56,6 +50,7 @@ Plan approved; run /impl-execute to ship
 | [feat_query_inline_crud](implemented_features/2026_05_14_feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #101](https://github.com/SoundMindsAI/relyloop/pull/101) merged 2026-05-14 |
 | [feat_studies_ui](implemented_features/2026_05_12_feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgment re | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | [PR #50](https://github.com/SoundMindsAI/relyloop/pull/50) merged 2026-05-12 |
 | [feat_study_lifecycle](implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
+| [feat_study_preflight_overlap_probe](implemented_features/2026_05_22_feat_study_preflight_overlap_probe/feature_spec.md) | Feature | `POST /api/v1/studies` issues a single bounded `ids`-existence query against the study's target asking "for the *first* query in the query set that has any judgments (chosen deterministically by `id A | — | [PR #193](https://github.com/SoundMindsAI/relyloop/pull/193) merged 2026-05-21 |
 | [feat_study_target_judgment_mismatch_guard](implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard/feature_spec.md) | Feature | `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422). | — | [PR #184](https://github.com/SoundMindsAI/relyloop/pull/184) merged 2026-05-21 |
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
 | [infra_ci_smoke_makeup](implemented_features/2026_05_13_infra_ci_smoke_makeup/idea.md) | Infra | Complete | — | Complete |
@@ -115,11 +110,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|
-| P1 | [feat_study_preflight_overlap_probe](../02_product/planned_features/feat_study_preflight_overlap_probe/feature_spec.md) | Feature | `POST /api/v1/studies` issues a single bounded `ids`-existence query against the study's target asking "for the *first* query in the query set that has any judgments (chosen deterministically by `id A | — | [PR #184](https://github.com/SoundMindsAI/relyloop/pull/184) merged 2026-05-21 |
+_None._
 
 ### Spec (0)
 
@@ -158,8 +151,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_study_preflight_overlap_probe["study preflight overlap probe"]
-  class feat_study_preflight_overlap_probe plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -282,6 +273,8 @@ graph LR
   class feat_home_first_run_demo_nudge done;
   feat_orchestrator_zero_streak_abort["orchestrator zero streak abort"]
   class feat_orchestrator_zero_streak_abort done;
+  feat_study_preflight_overlap_probe["study preflight overlap probe"]
+  class feat_study_preflight_overlap_probe done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
