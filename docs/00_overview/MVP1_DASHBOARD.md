@@ -6,37 +6,33 @@ _Reflects feature-folder state as of **2026-05-22** (latest mtime of any planned
 
 ## Next up
 
-**[feat_orchestrator_zero_streak_abort](../02_product/planned_features/feat_orchestrator_zero_streak_abort/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_orchestrator_zero_streak_abort/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **60 / 61** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **61 / 61** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **5** high-value, ready when P0 clears |
+| → P1 | **4** high-value, ready when P0 clears |
 | → P2 (default) | 10 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 1 |
-| Legacy "Path to MVP1" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (72)
+### Done (73)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md) | Feature | A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same | — | [PR #175](https://github.com/SoundMindsAI/relyloop/pull/175) merged 2026-05-21 |
-| [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_ranx_migration` `infra_structlog_test_helpers` `infra_uv_sync_drops_precommit` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
+| [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_ir_measures_migration` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` `infra_uv_sync_drops_precommit` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_cluster_target_filter](implemented_features/2026_05_20_feat_cluster_target_filter/feature_spec.md) | Feature | Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset. | — | [PR #168](https://github.com/SoundMindsAI/relyloop/pull/168) merged 2026-05-20 |
 | [feat_contextual_help](implemented_features/2026_05_15_feat_contextual_help/feature_spec.md) | Feature | a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam | — | [PR #122](https://github.com/SoundMindsAI/relyloop/pull/122) merged 2026-05-15 |
 | [feat_create_study_search_space_builder](implemented_features/2026_05_20_feat_create_study_search_space_builder/feature_spec.md) | Feature | Complete (PR #163, squash commit `c703953`, merged 2026-05-20) | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) merged 2026-05-20 |
@@ -48,6 +44,7 @@ Plan approved; run /impl-execute to ship
 | [feat_home_first_run_demo_nudge](implemented_features/2026_05_22_feat_home_first_run_demo_nudge/feature_spec.md) | Feature | An operator landing on a freshly-seeded stack sees an unambiguous banner above the dashboard's empty/populated content that names the present demo clusters, explains they ship with realistic queries + | — | [PR #188](https://github.com/SoundMindsAI/relyloop/pull/188) merged 2026-05-22 |
 | [feat_judgments_periodic_resume_sweep](implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/feature_spec.md) | Feature | A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status='generating'` row via deterministi | — | [PR #104](https://github.com/SoundMindsAI/relyloop/pull/104) merged 2026-05-12 |
 | [feat_llm_judgments](implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) merged 2026-05-11 |
+| [feat_orchestrator_zero_streak_abort](implemented_features/2026_05_22_feat_orchestrator_zero_streak_abort/feature_spec.md) | Feature | Complete (PR #191, merged 2026-05-22 as squash `51ae4b3c`) | — | [PR #191](https://github.com/SoundMindsAI/relyloop/pull/191) merged 2026-05-22 |
 | [feat_pr_metric_confidence](implemented_features/2026_05_21_feat_pr_metric_confidence/feature_spec.md) | Feature | Approvers reading a study-backed PR see a "## Confidence" section directly between the existing "## Metric delta" and "## Config diff" sections. | — | [PR #180](https://github.com/SoundMindsAI/relyloop/pull/180) merged 2026-05-21 |
 | [feat_proposals_ui](implemented_features/2026_05_12_feat_proposals_ui/feature_spec.md) | Feature | Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + "Open PR" button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app. | `feat_studies_ui` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` | [PR #58](https://github.com/SoundMindsAI/relyloop/pull/58) merged 2026-05-12 |
 | [feat_query_inline_crud](implemented_features/2026_05_14_feat_query_inline_crud/feature_spec.md) | Feature | A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field. | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_llm_judgments` `feat_studies_ui` | [PR #101](https://github.com/SoundMindsAI/relyloop/pull/101) merged 2026-05-14 |
@@ -94,7 +91,7 @@ Plan approved; run /impl-execute to ship
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
 | [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | Complete | — | Complete |
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | Complete | — | Complete |
-| [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_agent` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_ranx_migration` `infra_structlog_test_helpers` `infra_uv_sync_drops_precommit` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
+| [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_agent` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_ir_measures_migration` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` `infra_uv_sync_drops_precommit` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 | [bug_cursor_decode_value_validation](implemented_features/2026_05_17_bug_cursor_decode_value_validation/idea.md) | Bug | Complete | — | Complete |
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
@@ -112,11 +109,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|
-| P1 | [feat_orchestrator_zero_streak_abort](../02_product/planned_features/feat_orchestrator_zero_streak_abort/feature_spec.md) | Feature |  | — | [PR #191](https://github.com/SoundMindsAI/relyloop/pull/191) |
+_None._
 
 ### Spec (0)
 
@@ -136,7 +131,7 @@ _None._
 | P2 | [feat_home_demo_reseed_endpoint](../02_product/planned_features/feat_home_demo_reseed_endpoint/idea.md) | Feature | Phase 1 ships the banner + badges that signal "this is demo data." It does NOT close the recovery loop for operators who blew away their dev DB and want to re-seed the meaningful demos from inside the | — | Idea — deferred Phase 2 work from `feat_home_first_run_demo_nudge` (Phase 1 merged 2026-05-22 as PR #188 squash `21325432`) |
 | P2 | [feat_study_baseline_trial](../02_product/planned_features/feat_study_baseline_trial/idea.md) | Feature | `studies.baseline_metric` exists as a column on the `studies` table (declared in `feat_study_lifecycle` Phase 1, [`backend/app/db/models/study.py:76`](../../backend/app/db/models/study.py#L76)) with t | — | Idea — deferred Phase 2 work from `feat_pr_metric_confidence` (Phase 1 merged 2026-05-21 as PR #180 squash `d0a8358`). |
 | P2 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| P2 | [infra_ranx_migration](../02_product/planned_features/infra_ranx_migration/idea.md) | Infra | `pytrec_eval` is unmaintained — the canonical repo's last commit is 2020-09-07 and there have been zero GitHub releases. The package still works (it's a thin C wrapper over the stable `trec_eval` bina | — | Idea — surfaced during blog drafting; noticed `pytrec_eval` is effectively abandoned (last commit 2020-09-07) |
+| P2 | [infra_ir_measures_migration](../02_product/planned_features/infra_ir_measures_migration/idea.md) | Infra | `pytrec_eval` is unmaintained — the canonical repo's last commit is 2020-09-07 and there have been zero GitHub releases. The package still works (it's a thin C wrapper over the stable `trec_eval` bina | — | Idea — surfaced during blog drafting; noticed `pytrec_eval` is effectively abandoned (last commit 2020-09-07) |
 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | P2 | [bug_contract_test_stub_missing_target_filter_kwarg](../02_product/planned_features/bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | `backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th | — | Idea — bug discovered during `feat_orchestrator_zero_streak_abort` phase gate |
@@ -153,8 +148,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_orchestrator_zero_streak_abort["orchestrator zero streak abort"]
-  class feat_orchestrator_zero_streak_abort plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -275,6 +268,8 @@ graph LR
   class infra_uv_sync_drops_precommit done;
   feat_home_first_run_demo_nudge["home first run demo nudge"]
   class feat_home_first_run_demo_nudge done;
+  feat_orchestrator_zero_streak_abort["orchestrator zero streak abort"]
+  class feat_orchestrator_zero_streak_abort done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
