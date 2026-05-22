@@ -20,10 +20,15 @@
 - Phases covered: 1 of 1 (single-phase feature)
 
 ## Implementation
-- Status: In review (PR open)
+- Status: Complete
 - Date: 2026-05-22
-- PR: [#191](https://github.com/SoundMindsAI/relyloop/pull/191)
-- Branch: `feature/orchestrator-zero-streak-abort`
+- PR: [#191](https://github.com/SoundMindsAI/relyloop/pull/191) merged 2026-05-22 (squash `51ae4b3c`)
+- Branch: `feature/orchestrator-zero-streak-abort` (deleted post-merge)
 - Stories completed: 2 of 2 (Story 1.1 `ac64a2a` + Story 1.2 `4f0691b`)
-- CI status: 7/7 green on `7ebbdda` (latest push after Gemini-fix); 7/7 green on prior push too
-- Cross-model reviews: cumulative-diff GPT-5.5 — 2 cycles (1 finding accepted in plan-patch commit `d3e2ac0`, then clean); Gemini Code Assist — 2 Medium findings (both accepted, fixed in `7ebbdda`); final GPT-5.5 review on full PR diff — pending
+- CI status: 7/7 green on every push including the final `2d0bbc4`
+- Cross-model reviews: cumulative-diff GPT-5.5 — 2 cycles (1 finding accepted in plan-patch `d3e2ac0`, then clean); Gemini Code Assist — 2 Medium findings (both accepted, fixed in `7ebbdda`); final GPT-5.5 review — 2 cycles (3 findings accepted in `6e3d2dd`, 2 findings in cycle 2 with 1 accepted in `2d0bbc4` + 1 deferred as user-content)
+
+## Done
+- Status: Deployed to main (MVP1 has no remote staging — local-only)
+- Date: 2026-05-22
+- Squash SHA: `51ae4b3c`
