@@ -16,6 +16,7 @@ Skips automatically when Postgres isn't reachable from the host shell.
 
 from __future__ import annotations
 
+import re
 from unittest.mock import AsyncMock
 
 import pytest
@@ -50,8 +51,9 @@ async def test_successful_trial_writes_per_query_metrics(
 ):
     """AC-1: a successful trial persists ``per_query_metrics`` as a non-NULL
     JSONB object shaped ``{qid: {metric_name: float}}`` using user-facing
-    metric names (ndcg, map, precision, recall, mrr — NOT pytrec_eval wire
-    forms)."""
+    metric names (ndcg, map, precision, recall, mrr — NOT ir_measures
+    metric-object reprs (nDCG@, P@, RR, AP@, R@) and NOT pytrec_eval wire
+    forms (ndcg_cut_, P_, recip_rank, map_cut_, recall_))."""
     fixture = await setup_study_with_cluster()
 
     storage = build_storage(get_settings().database_url)
@@ -96,27 +98,25 @@ async def test_successful_trial_writes_per_query_metrics(
         f"got={persisted_qids}, expected={expected_qids}"
     )
 
-    # Every value is a dict keyed by user-facing metric tokens. The score()
-    # function emits user-facing tokens with the @<k> cutoff preserved for
-    # metrics that take a cutoff (ndcg@10, map@10, precision@10, recall@10)
-    # and bare names for cutoff-free metrics (mrr, plain map). The base
-    # name (everything before any @) must be in MetricCatalog.
-    expected_metric_bases = {"ndcg", "map", "precision", "recall", "mrr"}
+    # Every value is a dict keyed by user-facing metric tokens. score()
+    # emits the user-facing token allowlist; library wire forms must never
+    # leak (pytrec_eval ndcg_cut_/P_/... or ir_measures nDCG@/P@/RR/AP@/R@).
+    # Extended by infra_ir_measures_migration Story 1.5 to use the same
+    # strict regex as test_trial_row_shape.py's contract assertion.
+    _STRICT_USER_FACING_KEY = re.compile(
+        r"^(?:mrr|map|(?:ndcg|precision|recall|map)@(?:1|3|5|10|20|50|100))$"
+    )
     for qid, per_metric in t.per_query_metrics.items():
         assert isinstance(per_metric, dict), (
             f"per_query_metrics[{qid}] must be a dict, got {type(per_metric)}"
         )
-        # The score() function returns one entry per metric in the
-        # study's objective set. Assert at least ndcg is present (the
-        # study's default objective metric) AND no pytrec_eval wire-form
-        # keys leak through (e.g., "ndcg_cut.10", "P_10").
         assert per_metric, f"per_query_metrics[{qid}] is empty"
         for metric_key in per_metric:
-            base = metric_key.partition("@")[0]
-            assert base in expected_metric_bases, (
-                f"unexpected metric key {metric_key!r} in per_query_metrics[{qid}]; "
-                f"base name {base!r} not in {sorted(expected_metric_bases)} — "
-                f"score() should remap pytrec_eval wire names to user-facing tokens"
+            assert _STRICT_USER_FACING_KEY.match(metric_key), (
+                f"per_query_metrics[{qid}][{metric_key!r}] is not in the "
+                f"user-facing token allowlist — library wire forms (pytrec_eval "
+                f"ndcg_cut_/P_/recip_rank/map_cut_/recall_ OR ir_measures "
+                f"nDCG@/P@/RR/AP@/R@) must never leak past scoring.score()"
             )
             assert isinstance(per_metric[metric_key], (int, float)), (
                 f"per_query_metrics[{qid}][{metric_key}] must be numeric, "
