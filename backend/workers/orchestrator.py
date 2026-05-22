@@ -72,6 +72,18 @@ failures. Counted as: the most recent 5 terminal trials (ordered by
 ``optuna_trial_number DESC``) are all ``status='failed'``. Any non-failed
 trial in that window resets the count."""
 
+_ZERO_STREAK_THRESHOLD = 20
+"""feat_orchestrator_zero_streak_abort spec FR-2 + AC-1: study transitions
+to ``failed`` with ``failed_reason="no signal: 20 consecutive trials scored
+0.0 — judgment overlap likely lost mid-study"`` after 20 consecutive
+terminal trials all satisfying ``status='complete' AND primary_metric IS
+NOT NULL AND primary_metric == 0.0``. Threshold rationale (per
+feature_spec.md §19 decision log): Optuna's TPE warm-up default is 10
+random samples; 20 covers both the random and informed phases — if both
+score 0.0, the search space genuinely can't produce signal. Module-level
+constant, NOT ``Settings``, mirroring ``_CONSECUTIVE_FAILURE_THRESHOLD``
+precedent."""
+
 
 # ---------------------------------------------------------------------------
 # start_study — the Arq job
@@ -92,6 +104,13 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
     * After 5 consecutive failed trials, the orchestrator calls
       ``fail_study`` with
       ``failed_reason="5 consecutive trial failures"``.
+    * After 20 consecutive ``status='complete' AND primary_metric==0.0``
+      trials (the zero-metric streak guard;
+      ``feat_orchestrator_zero_streak_abort``), the orchestrator calls
+      ``fail_study`` with ``failed_reason="no signal: 20 consecutive
+      trials scored 0.0 — judgment overlap likely lost mid-study"``. The
+      failure-streak check runs first; if both qualify simultaneously,
+      the failure-streak diagnosis wins (FR-4 precedence).
     * Orchestrator-internal ``OperationalError`` re-raises for Arq retry;
       a fresh ``start_study`` invocation resumes via the running-study
       path.
@@ -209,6 +228,39 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
                     )
                 return
 
+            # 3a. Zero-metric-streak detection
+            # (feat_orchestrator_zero_streak_abort FR-3 / AC-1). Runs
+            # AFTER the failure-streak check (FR-4 precedence preserved)
+            # and BEFORE the max_trials / time_budget checks. Mirrors the
+            # failure-streak cancel-race handling: rollback + INFO log on
+            # InvalidStateTransition, exit silently.
+            if await _last_n_all_zero(db, study_id, n=_ZERO_STREAK_THRESHOLD):
+                try:
+                    await study_state.fail_study(
+                        db,
+                        study_id,
+                        failed_reason=(
+                            "no signal: 20 consecutive trials scored 0.0 "
+                            "— judgment overlap likely lost mid-study"
+                        ),
+                    )
+                    await db.commit()
+                    logger.warning(
+                        "study failed",
+                        event_type="stop_condition_fired",
+                        study_id=study_id,
+                        reason="no_signal",
+                    )
+                except study_state.InvalidStateTransition:
+                    await db.rollback()
+                    logger.info(
+                        "no-signal transition lost race; exiting",
+                        event_type="orchestrator_race_lost",
+                        study_id=study_id,
+                        attempted_reason="no_signal",
+                    )
+                return
+
             # 4. Stop conditions — each evaluated only when its key is set.
             if max_trials is not None and terminal >= max_trials:
                 await _stop(db, arq_pool, study_id, summary, reason="max_trials_reached")
@@ -282,6 +334,41 @@ async def _last_n_all_failed(db: AsyncSession, study_id: str, *, n: int) -> bool
     if len(statuses) < n:
         return False
     return all(s == "failed" for s in statuses)
+
+
+async def _last_n_all_zero(db: AsyncSession, study_id: str, *, n: int) -> bool:
+    """Return True iff the N most recent trial rows are ALL zero-metric complete.
+
+    The ``n`` most recent trial rows for ``study_id`` (ordered by
+    ``optuna_trial_number DESC``) must all satisfy ``status='complete'`` with
+    ``primary_metric == 0.0``.
+
+    Ordered by ``optuna_trial_number DESC``. If fewer than ``n`` rows
+    exist for this study, returns False (insufficient signal). A single
+    non-zero, failed, pruned, or NULL-metric row in the window resets
+    the streak.
+
+    Mirrors :func:`_last_n_all_failed` semantics: the SQL ``WHERE`` clause
+    filters on ``study_id`` ONLY; the status / NULL / zero predicate is
+    evaluated in Python on the recent-``n`` window. Pre-filtering by
+    status / metric in SQL would change the semantics from "last n
+    trials are zero" to "last n complete-zero trials exist anywhere",
+    producing false-positive aborts whenever a non-zero, failed, or
+    pruned row sits inside the recent window.
+    """
+    stmt = (
+        select(Trial.status, Trial.primary_metric)
+        .where(Trial.study_id == study_id)
+        .order_by(Trial.optuna_trial_number.desc())
+        .limit(n)
+    )
+    rows = list((await db.execute(stmt)).all())
+    if len(rows) < n:
+        return False
+    return all(
+        status == "complete" and primary_metric is not None and primary_metric == 0.0
+        for status, primary_metric in rows
+    )
 
 
 async def _count_in_flight(optuna_study: optuna.Study) -> int:
