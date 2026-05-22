@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Chore, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md">E2E Test Rows Isolation</a></div>
-    <div class="one-liner">Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the registry in FK-safe order at the end of the</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/chore_e2e_test_rows_isolation/implementation_plan.md --all</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">58 / 59</div>
-      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:98%"></span></div>
+      <div class="value">59 / 59</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">14</div>
+      <div class="value">13</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi ">
@@ -411,9 +411,9 @@ footer {
       <div class="value">0</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
-    <div class="kpi warn">
+    <div class="kpi ">
       <div class="label">P0 — do next</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">unblocking / paying daily cost</div>
     </div>
   </div>
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">7</div>
+      <div class="value">6</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -641,19 +641,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card chore" data-prefix="chore" data-priority="P0">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_test_rows_isolation/feature_spec.md">E2E Test Rows Isolation</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P0">P0</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/182">PR #182</a>
-  </div>
-  <div class="one-liner">Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -663,7 +651,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">70</span></h3>
+  <h3>Done <span class="count">71</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1199,6 +1187,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_chore_e2e_test_rows_isolation/feature_spec.md">E2E Test Rows Isolation</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/186">PR #186</a><span>merged 2026-05-21</span>
+  </div>
+  <div class="one-liner">Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern">Env Guard Extend Deny Pattern</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1587,8 +1588,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_e2e_test_rows_isolation[&quot;e2e test rows isolation&quot;]
-  class chore_e2e_test_rows_isolation plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1691,6 +1690,8 @@ footer {
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete[&quot;create study target autocomplete&quot;]
   class feat_create_study_target_autocomplete done;
+  chore_e2e_test_rows_isolation[&quot;e2e test rows isolation&quot;]
+  class chore_e2e_test_rows_isolation done;
   chore_guide_01_screenshot_refresh_target_filter[&quot;guide 01 screenshot refresh target filter&quot;]
   class chore_guide_01_screenshot_refresh_target_filter done;
   chore_guide_06_screenshot_refresh_target_picker[&quot;guide 06 screenshot refresh target picker&quot;]
@@ -1798,8 +1799,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_e2e_test_rows_isolation[&quot;e2e test rows isolation&quot;]
-  class chore_e2e_test_rows_isolation plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1902,6 +1901,8 @@ footer {
   class feat_create_study_search_space_builder done;
   feat_create_study_target_autocomplete[&quot;create study target autocomplete&quot;]
   class feat_create_study_target_autocomplete done;
+  chore_e2e_test_rows_isolation[&quot;e2e test rows isolation&quot;]
+  class chore_e2e_test_rows_isolation done;
   chore_guide_01_screenshot_refresh_target_filter[&quot;guide 01 screenshot refresh target filter&quot;]
   class chore_guide_01_screenshot_refresh_target_filter done;
   chore_guide_06_screenshot_refresh_target_picker[&quot;guide 06 screenshot refresh target picker&quot;]
