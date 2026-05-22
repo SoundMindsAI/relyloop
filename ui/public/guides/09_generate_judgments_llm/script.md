@@ -58,3 +58,5 @@ For each query in the set:
 - Worker: [`backend/workers/judgments.py`](../../backend/workers/judgments.py) — `generate_judgments_llm`
 - Runbook: [`docs/03_runbooks/judgment-generation-debugging.md`](../03_runbooks/judgment-generation-debugging.md)
 - Cost-tracking schema: [`docs/04_security/llm-data-flow.md`](../04_security/llm-data-flow.md) explains exactly what gets sent on each LLM call
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

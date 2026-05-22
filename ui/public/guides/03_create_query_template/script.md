@@ -33,3 +33,5 @@ lineage so studies can reference a specific historical version.
   `UNDECLARED_PARAM_USED` on declared-vs-used mismatch
 - Docs: [`docs/01_architecture/adapters.md`](../01_architecture/adapters.md)
   documents how templates are rendered through the engine adapter at trial time
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

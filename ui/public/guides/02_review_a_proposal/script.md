@@ -51,3 +51,5 @@ your CI/CD reads the merged config and deploys it.
   handles the GitHub side)
 - API reject: `POST /api/v1/proposals/{id}/reject` with `{reason}`
 - Runbook: [`docs/03_runbooks/pr-open-debugging.md`](../03_runbooks/pr-open-debugging.md)
+
+> See the [glossary](/guide/glossary) for definitions of every term used in this walkthrough.

@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { glossary, type LongGlossaryKey } from '@/lib/glossary';
+import { MARKDOWN_DISALLOWED_ELEMENTS } from '@/lib/markdown-safety';
 
 interface HelpPopoverProps {
   glossaryKey: LongGlossaryKey;
@@ -51,7 +52,7 @@ export function HelpPopover({ glossaryKey }: HelpPopoverProps): React.ReactEleme
         data-testid={bodyTestId}
         className="prose prose-sm max-w-none motion-reduce:animate-none"
       >
-        <ReactMarkdown disallowedElements={['script', 'iframe', 'style']} unwrapDisallowed>
+        <ReactMarkdown disallowedElements={[...MARKDOWN_DISALLOWED_ELEMENTS]} unwrapDisallowed>
           {entry.long}
         </ReactMarkdown>
       </PopoverContent>

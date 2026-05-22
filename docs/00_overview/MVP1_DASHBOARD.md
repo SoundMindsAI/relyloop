@@ -6,15 +6,21 @@ _Reflects feature-folder state as of **2026-05-22** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[chore_guides_glossary_route](../02_product/planned_features/chore_guides_glossary_route/feature_spec.md)** — Chore, currently in **Spec**
 
-Pull from the Idea backlog or capture a new feature spec.
+> the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`.
+
+Spec exists; run /pipeline to generate the implementation plan + ship
+
+```bash
+/pipeline docs/02_product/planned_features/chore_guides_glossary_route --auto
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **62 / 62** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **62 / 63** (98%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **3** high-value, ready when P0 clears |
@@ -114,17 +120,18 @@ _None._
 
 _None._
 
-### Spec (0)
+### Spec (1)
 
-_None._
+| Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|
+| P1 | [chore_guides_glossary_route](../02_product/planned_features/chore_guides_glossary_route/feature_spec.md) | Chore | the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`. | — | Draft |
 
-### Idea (17)
+### Idea (16)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
 | P1 | [chore_guide_06_screenshot_refresh_confidence_panel](../02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai | — | Idea — captured during `feat_pr_metric_confidence` Epic 2 guide-impact assessment |
 | P1 | [chore_guides_faq](../02_product/planned_features/chore_guides_faq/idea.md) | Chore | Tooltips and the glossary answer "**what does X mean?**" within a 1–2 sentence budget. They don't carry the operator-judgment-shaped questions that come up *after* the term is understood: | — | Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review |
-| P1 | [chore_guides_glossary_route](../02_product/planned_features/chore_guides_glossary_route/idea.md) | Chore | The glossary is a load-bearing terminology source-of-truth (cited 100+ times across the codebase, parity-tested against backend Literal enums, locked by source-of-truth comments). But operators can on | — | Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review |
 | P2 | [feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/idea.md) | Feature | Karpathy's autoresearch loop runs hundreds of experiments overnight and **compounds** improvements: each accepted change becomes the new baseline for the next experiment. RelyLoop's equivalent… | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. The highest-leverage recommendation from the audit's "across studies" section. |
 | P2 | [feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/idea.md) | Feature | RelyLoop does not track which configuration is currently live in production. When a proposal's PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:187-191`](../../backend/app/api/webh | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
 | P2 | [feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/idea.md) | Feature | The digest worker's LLM contract at [`backend/workers/digest.py:168-189`](../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`: | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
@@ -151,6 +158,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_guides_glossary_route["guides glossary route"]
+  class chore_guides_glossary_route spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
