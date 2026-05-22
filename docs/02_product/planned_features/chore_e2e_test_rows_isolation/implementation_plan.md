@@ -764,7 +764,7 @@ None. The feature is additive: 6 new endpoints + 6 new repo functions + new test
 ### Current sprint
 
 - [x] Story 1.1 — Backend: 6 test-only DELETE endpoints + repo functions + docs
-- [ ] Story 1.2 — Frontend: cleanup registry + globalSetup/Teardown + reporter
+- [x] Story 1.2 — Frontend: cleanup registry + globalSetup/Teardown + reporter
 
 ### Blocked items
 
