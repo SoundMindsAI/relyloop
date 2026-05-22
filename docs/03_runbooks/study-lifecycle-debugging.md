@@ -198,8 +198,11 @@ job entries.
 
 The create-time preflight overlap probe (from
 `feat_study_preflight_overlap_probe`) found fewer than
-`min(MIN_OVERLAP=3, judged_doc_count)` of the judgment list's doc IDs
-present in the study's target index. The error envelope's `message`
+`min(MIN_OVERLAP=3, max(judged_doc_count, 1))` of the judgment list's
+doc IDs present in the study's target index. The `max(..., 1)` floor
+means an empty judgment list (`judged_doc_count=0`) requires overlap
+≥1, and the probe rejects it via a separate `studies.preflight.overlap_probe.empty`
+INFO log; the API surface is still 422 `INSUFFICIENT_JUDGMENT_OVERLAP`. The error envelope's `message`
 field includes both numbers (`X of N probed`, plus
 `judged_doc_count=N_total` when the `MAX_PROBED_DOCS=200` cap fired)
 and the representative qid.

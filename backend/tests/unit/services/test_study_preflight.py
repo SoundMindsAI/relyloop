@@ -17,6 +17,7 @@ from backend.app.adapters.errors import ClusterUnreachableError
 from backend.app.adapters.protocol import ScoredHit
 from backend.app.db.models import Cluster
 from backend.app.services import study_preflight
+from backend.tests._log_helpers import assert_log_level, find_log_events
 
 
 def _cluster() -> Cluster:
@@ -195,12 +196,12 @@ class TestProbeJudgmentOverlap:
         assert result.judged_doc_count == 0
         assert result.representative_query_id is None
 
-        empty_events = [e for e in cap if e.get("event") == "studies.preflight.overlap_probe.empty"]
+        empty_events = find_log_events(cap, event="studies.preflight.overlap_probe.empty")
         assert len(empty_events) == 1
         ev = empty_events[0]
         assert ev["study_judgment_list_id"] == "jl-1"
         assert ev["study_query_set_id"] == "qs-1"
-        assert ev.get("log_level", ev.get("level")) == "info"
+        assert_log_level(ev, "info")
 
     async def test_cluster_unreachable_returns_none_and_warns(
         self, monkeypatch: pytest.MonkeyPatch
@@ -237,12 +238,10 @@ class TestProbeJudgmentOverlap:
             )
 
         assert result is None
-        skipped_events = [
-            e for e in cap if e.get("event") == "studies.preflight.overlap_probe.skipped"
-        ]
+        skipped_events = find_log_events(cap, event="studies.preflight.overlap_probe.skipped")
         assert len(skipped_events) == 1
         ev = skipped_events[0]
-        assert ev.get("log_level", ev.get("level")) == "warning"
+        assert_log_level(ev, "warning")
         assert ev["reason"] == "unreachable"
         assert ev["study_judgment_list_id"] == "jl-1"
         assert ev["study_query_set_id"] == "qs-1"

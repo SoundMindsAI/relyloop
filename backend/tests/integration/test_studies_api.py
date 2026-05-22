@@ -934,11 +934,13 @@ async def test_post_study_cluster_unreachable_during_probe_returns_201_with_warn
 
     import structlog.testing
 
+    from backend.tests._log_helpers import find_log_events
+
     with structlog.testing.capture_logs() as cap:
         resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
 
     assert resp.status_code == 201, resp.text
-    skipped = [e for e in cap if e.get("event") == "studies.preflight.overlap_probe.skipped"]
+    skipped = find_log_events(cap, event="studies.preflight.overlap_probe.skipped")
     assert len(skipped) >= 1
     assert any(e.get("reason") == "unreachable" for e in skipped)
 
@@ -964,11 +966,13 @@ async def test_post_study_probe_timeout_returns_201_with_warn(
 
     import structlog.testing
 
+    from backend.tests._log_helpers import find_log_events
+
     with structlog.testing.capture_logs() as cap:
         resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
 
     assert resp.status_code == 201, resp.text
-    skipped = [e for e in cap if e.get("event") == "studies.preflight.overlap_probe.skipped"]
+    skipped = find_log_events(cap, event="studies.preflight.overlap_probe.skipped")
     assert any(e.get("reason") == "timeout" for e in skipped)
 
 
@@ -985,13 +989,15 @@ async def test_post_study_empty_judgments_returns_422_with_info_log(
 
     import structlog.testing
 
+    from backend.tests._log_helpers import find_log_events
+
     with structlog.testing.capture_logs() as cap:
         resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
 
     assert resp.status_code == 422, resp.text
     detail = resp.json()["detail"]
     assert detail["error_code"] == "INSUFFICIENT_JUDGMENT_OVERLAP"
-    empty_logs = [e for e in cap if e.get("event") == "studies.preflight.overlap_probe.empty"]
+    empty_logs = find_log_events(cap, event="studies.preflight.overlap_probe.empty")
     assert len(empty_logs) >= 1
     ev = empty_logs[0]
     assert ev["study_judgment_list_id"] == ids["judgment_list_id"]
@@ -1173,11 +1179,13 @@ async def test_post_study_fr4_exception_matrix_adapter_layer(
 
     import structlog.testing
 
+    from backend.tests._log_helpers import find_log_events
+
     with structlog.testing.capture_logs() as cap:
         resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
 
     assert resp.status_code == 201, resp.text
-    skipped = [e for e in cap if e.get("event") == "studies.preflight.overlap_probe.skipped"]
+    skipped = find_log_events(cap, event="studies.preflight.overlap_probe.skipped")
     assert any(e.get("reason") == expected_reason for e in skipped), (
         f"expected reason={expected_reason!r}, got {[e.get('reason') for e in skipped]!r}"
     )
@@ -1212,9 +1220,11 @@ async def test_post_study_fr4_service_layer_cluster_unreachable(
 
     import structlog.testing
 
+    from backend.tests._log_helpers import find_log_events
+
     with structlog.testing.capture_logs() as cap:
         resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
 
     assert resp.status_code == 201, resp.text
-    skipped = [e for e in cap if e.get("event") == "studies.preflight.overlap_probe.skipped"]
+    skipped = find_log_events(cap, event="studies.preflight.overlap_probe.skipped")
     assert any(e.get("reason") == "unreachable" for e in skipped)
