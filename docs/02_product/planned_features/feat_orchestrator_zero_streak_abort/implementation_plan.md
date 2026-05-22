@@ -348,7 +348,7 @@ Each integration test below is a separate async function with `pytestmark = pyte
 
 - [ ] `make test-unit` (regression check — should be unchanged)
 - [ ] `make test-integration` (includes the 6 new tests + the existing precedent test)
-- [ ] `make test-contract` (regression check — should be unchanged)
+- [ ] `make test-contract` (regression check — this PR introduces no new contract failures; 2 pre-existing local failures in `test_error_codes.py` are unrelated and tracked at `bug_contract_test_stub_missing_target_filter_kwarg/`)
 - [ ] `make lint && make typecheck` (regression check)
 - [ ] `cd ui && pnpm lint && pnpm typecheck && pnpm test` (regression check — should be unchanged, no frontend code touched)
 
@@ -483,7 +483,7 @@ Before marking any story complete, the executing agent must attach evidence for:
     - [ ] `make backend-typecheck`
     - [ ] `make test-unit` (regression — should be unchanged)
     - [ ] `make test-integration` (includes 6 new tests on Story 1.2)
-    - [ ] `make test-contract` (regression — should be unchanged)
+    - [ ] `make test-contract` (regression check — no new contract failures introduced by this PR; pre-existing local stub-signature drift tracked separately at `bug_contract_test_stub_missing_target_filter_kwarg/`)
 - [ ] No migration changes — no round-trip verification needed
 - [ ] Related docs/checklists updated in same PR when behavior changed (only `state.md` finalization update, at the end of Story 1.2)
 
