@@ -224,6 +224,15 @@ jobs:
         # via the project venv that uv-sync set up above.
         run: bash scripts/ci/verify_enum_source_of_truth.sh
 
+      - name: Verify demo-cluster slug parity (feat_home_first_run_demo_nudge Story 4.2)
+        # Fails when the 4 demo cluster slugs in
+        # ui/src/lib/demo-data.ts DEMO_CLUSTER_SLUGS drift from the
+        # "slug": literals in scripts/seed_meaningful_demos.py SCENARIOS.
+        # Bash-only guard (no Python deps); ~2s wall time. Pure-text
+        # comparison so it runs cleanly even if the backend uv-sync
+        # changed in ways unrelated to demo data.
+        run: bash scripts/ci/verify_demo_slug_parity.sh
+
       - name: Verify install.sh builds every buildable Compose service (bug_install_skip_ui_rebuild)
         # Fails when scripts/install.sh's `docker compose build` line uses an
         # explicit service list that doesn't cover every service with a

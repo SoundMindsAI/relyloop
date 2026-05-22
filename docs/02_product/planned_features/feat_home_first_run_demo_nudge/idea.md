@@ -3,7 +3,7 @@
 **Date:** 2026-05-21
 **Status:** Idea — product-design-shaped follow-up paired with the auto-seed-on-make-up chore
 **Priority:** P1 — polish layer on the auto-seed shipped in PR #182; needs a small design pass (banner copy, badge styling, StartHereChecklist interaction) before it lands.
-**Origin:** Same operator session as the four study-no-signal fail-fast follow-ups. Auto-seeding meaningful demo data into a fresh `make up` (now implemented on PR #182) handles the bootstrap path — but it doesn't address the operator who comes back to a longer-lived dev stack, finds an empty `/studies` listing, and isn't sure whether to (a) run their tutorial through `make seed-demo FORCE=1`, (b) author their own cluster + judgments, or (c) pick from the meaningful demo clusters that already exist.
+**Origin:** Same operator session as the four study-no-signal fail-fast follow-ups. Auto-seeding meaningful demo data into a fresh `make up` (now implemented on PR #182, merged 2026-05-21) handles the bootstrap path — but it doesn't address the operator who comes back to a longer-lived dev stack, finds an empty `/studies` listing, and isn't sure whether to (a) run their tutorial through `make seed-demo FORCE=1`, (b) author their own cluster + judgments, or (c) pick from the meaningful demo clusters that already exist.
 **Depends on:** The auto-seed implementation shipped in PR #182 (`scripts/install.sh` + `scripts/seed_meaningful_demos.py --if-empty`). No corresponding planned-feature folder exists because the auto-seed was implemented in-line on PR #182 rather than scaffolded as a separate spec. This idea is the *next* layer of first-run UX. Coordinates with `feat_contextual_help` Phase 3's existing `StartHereChecklist` component.
 
 ## Problem
@@ -11,7 +11,7 @@
 The auto-seed chore solves the "fresh stack = empty dropdowns" problem. It does NOT solve:
 
 1. **The "is this real data or seed data?" question.** An operator on a long-lived stack sees 4 meaningful demo clusters (`acme-products-prod`, `news-search-staging`, etc.) alongside whatever they've created. Nothing marks the demo clusters as such; nothing nudges the operator toward them as a tutorial starting point.
-2. **The "where do I start?" gap on the home page.** [`ui/src/app/page.tsx`](../../../../ui/src/app/page.tsx) shows the existing `StartHereChecklist` from `feat_contextual_help` Phase 3 — a Stripe-style 4-step checklist (Register cluster → Build query set → Generate judgments → Run study). The checklist marks items "done" based on data presence, but it doesn't acknowledge demo data: an operator with auto-seeded clusters sees the cluster step marked done without understanding *why* (they didn't register one).
+2. **The "where do I start?" gap on the home page.** [`ui/src/app/page.tsx`](../../../../ui/src/app/page.tsx) shows the existing `StartHereChecklist` from `feat_contextual_help_mvp2` Phase 3 — a Stripe-style **3-step** checklist (Register cluster → Create query set + judgments → Run study). Source: [`ui/src/components/dashboard/start-here-checklist.tsx`](../../../../ui/src/components/dashboard/start-here-checklist.tsx). The checklist marks items "done" based on data presence, but it doesn't acknowledge demo data: an operator with auto-seeded clusters sees the cluster step marked done without understanding *why* (they didn't register one). **Critical design note for /spec-gen:** the checklist auto-hides entirely once all 3 steps are non-empty (see `start-here-checklist.tsx:48-52` early-return). On an auto-seeded fresh stack, steps 1 and 2 are already done — only step 3 remains visible. The "banner above the checklist" framing in capability A below has to account for this: either (a) the banner stands alone and renders independently of the checklist's visibility, or (b) the banner replaces the checklist on the demo-data path.
 3. **The "I deleted everything, now what?" recovery path.** An operator who `make seed-demo FORCE=1`'d to start over, or who cleared the dev DB during local testing, has no in-UI affordance to re-seed. They have to remember the `make` target name.
 
 Currently the home page assumes everything in the database is operator-authored. With the auto-seed chore landed, that assumption breaks.
@@ -22,16 +22,16 @@ Three interleaved surfaces, all on the home page:
 
 ### A. Demo-data callout on a fresh stack
 
-When the home-page query for studies returns zero rows AND the cluster list contains demo-tagged rows (the 4 `make seed-demo` slugs), render a banner above the existing `StartHereChecklist`:
+When the home-page query for studies returns zero rows AND the cluster list contains demo-tagged rows (the 4 `make seed-demo` slugs: `acme-products-prod`, `corp-docs-search`, `news-search-staging`, `jobs-marketplace-prod`), render a banner above the existing `StartHereChecklist`:
 
 > **You're set up with demo data.**
-> Four sample clusters (`acme-products-prod`, etc.) are pre-loaded with realistic queries, judgments, and a winning study. Try running your own optimization — pick a cluster from the [Create Study](#) button to use a pre-loaded judgment list.
+> Four sample clusters (`acme-products-prod`, `corp-docs-search`, `news-search-staging`, `jobs-marketplace-prod`) are pre-loaded with realistic queries, judgments, and a winning study. Try running your own optimization — pick a cluster from the [Create Study](#) button to use a pre-loaded judgment list.
 
 Banner dismissable + sticky-dismissed (localStorage). Self-archives once the operator creates their first study.
 
 ### B. Demo-tag visual treatment in dropdowns + lists
 
-The 4 demo clusters carry a recognizable name prefix (`acme-`, `news-`, etc.) but no machine-readable tag. Two paths:
+The 4 demo clusters carry distinct name prefixes (`acme-`, `corp-`, `news-`, `jobs-` — no common prefix) and no machine-readable tag. Two paths:
 
 - **Path 1 (recommended):** Backend exposes a `tags: list[str]` field on cluster rows. The seed script tags the 4 demo clusters with `["demo"]`. The frontend renders a small "Demo" badge next to demo-tagged rows in:
   - `/clusters` list
@@ -75,6 +75,6 @@ The remaining 20% is a product-design surface (banner copy, badge styling, banne
 ## Relationship to other work
 
 - **Depends on:** the PR #182 auto-seed implementation (`scripts/install.sh` step 8 + `seed_meaningful_demos.py --if-empty`) — the demo data must reliably exist before the home page can call attention to it.
-- **Coordinates with:** `feat_contextual_help` Phase 3's `StartHereChecklist` ([`ui/src/components/home/start-here-checklist.tsx`](../../../../ui/src/components/home/start-here-checklist.tsx)) — needs to know about demo-authored vs operator-authored data so the checklist doesn't falsely-claim-complete on auto-seeded rows.
-- **Composes with:** [`chore_e2e_test_rows_isolation`](../chore_e2e_test_rows_isolation/idea.md) — the demo-tag badge surface could double as the `e2e-test` filter (path 1 of B would just be one more tag value).
+- **Coordinates with:** `feat_contextual_help_mvp2` Phase 3's `StartHereChecklist` ([`ui/src/components/dashboard/start-here-checklist.tsx`](../../../../ui/src/components/dashboard/start-here-checklist.tsx)) — needs to know about demo-authored vs operator-authored data so the checklist doesn't falsely-claim-complete on auto-seeded rows. Checklist auto-hides when all 3 steps are non-empty, so the demo-nudge banner cannot rely on the checklist being visible on a populated stack.
+- **Compositional claim withdrawn:** an earlier draft of this idea claimed the demo-tag badge surface could double as an `e2e-test` filter via [`chore_e2e_test_rows_isolation`](../../../00_overview/implemented_features/2026_05_21_chore_e2e_test_rows_isolation/feature_spec.md) (now shipped as PR #186). The shipped feature did NOT introduce a tag column — cleanup uses a frontend-side per-worker JSONL registry of `(resource, id)` tuples. So the "one more tag value" composition is invalid; path 1 of B can't piggy-back on infrastructure that doesn't exist.
 - **Composes with:** [`chore_guides_glossary_route`](../chore_guides_glossary_route/idea.md) + [`chore_guides_faq`](../chore_guides_faq/idea.md) — first-run nudges naturally link to glossary terms + FAQ entries.

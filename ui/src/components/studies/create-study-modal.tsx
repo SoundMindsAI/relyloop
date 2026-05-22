@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { HelpPopover } from '@/components/common/help-popover';
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { EntitySelect } from '@/components/common/entity-select';
+import { isDemoClusterName } from '@/lib/demo-data';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -508,7 +509,9 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   data-testid="cs-cluster"
                   query={clusters}
                   getId={(c) => c.id}
-                  getLabel={(c) => `${c.name} (${c.engine_type})`}
+                  getLabel={(c) =>
+                    `${c.name} (${c.engine_type})${isDemoClusterName(c.name) ? ' (Demo)' : ''}`
+                  }
                   getStatus={(c) =>
                     c.health_check.status === 'unreachable' ? 'unknown' : c.health_check.status
                   }

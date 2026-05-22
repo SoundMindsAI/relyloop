@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { CountCard } from '@/components/dashboard/count-card';
+import { DemoDataBanner } from '@/components/dashboard/demo-data-banner';
 import { RecentStudiesCards } from '@/components/dashboard/recent-studies-cards';
 import { StartHereChecklist } from '@/components/dashboard/start-here-checklist';
 import { EmptyState } from '@/components/common/empty-state';
@@ -87,6 +88,13 @@ export default function DashboardPage() {
         />
       ) : (
         <>
+          {/*
+           * Demo-data banner (feat_home_first_run_demo_nudge) — renders above
+           * the StartHereChecklist when the auto-seed has planted demo
+           * clusters AND the operator has not dismissed it. Owns its own
+           * query + visibility logic; no props needed.
+           */}
+          <DemoDataBanner />
           {/*
            * StartHereChecklist renders only on the first-run state (no clusters
            * OR no judgment-list OR no studies). Returns null once all three
