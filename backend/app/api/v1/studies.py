@@ -64,6 +64,7 @@ from backend.app.domain.study.search_space import (
 )
 from backend.app.services import study_state
 from backend.app.services.study_confidence import fetch_study_confidence
+from backend.app.services.study_preflight import MIN_OVERLAP, probe_judgment_overlap
 
 router = APIRouter()
 
@@ -281,6 +282,41 @@ async def create_study(
             ),
             False,
         )
+
+    # 3c. Preflight overlap probe (feat_study_preflight_overlap_probe FR-1).
+    # Single ids-existence search against the study's target. On insufficient
+    # overlap, reject 422 INSUFFICIENT_JUDGMENT_OVERLAP. On probe-skip (cluster
+    # unreachable, timeout, invalid DSL), fall through silently — the probe
+    # function already emitted a WARN log per FR-4.
+    probe_result = await probe_judgment_overlap(
+        db,
+        cluster,
+        judgment_list_id=body.judgment_list_id,
+        query_set_id=body.query_set_id,
+        target=body.target,
+    )
+    if probe_result is not None:
+        required = min(MIN_OVERLAP, max(probe_result.judged_doc_count, 1))
+        if probe_result.overlap_size < required:
+            raise _err(
+                422,
+                "INSUFFICIENT_JUDGMENT_OVERLAP",
+                (
+                    f"judgment_list {judgment_list.name!r}: representative "
+                    f"query_id={probe_result.representative_query_id!r} has "
+                    f"{probe_result.overlap_size} of "
+                    f"{probe_result.probed_doc_count} probed doc IDs present "
+                    f"in cluster {cluster.name!r} target {body.target!r} "
+                    f"(judged_doc_count={probe_result.judged_doc_count}). "
+                    f"This is a strong signal of corpus/judgment mismatch "
+                    f"(e.g., the target index was re-indexed or rotated since "
+                    f"the judgments were authored) — pytrec_eval will likely "
+                    f"score 0 on every trial. Regenerate judgments against "
+                    f"the current index, or rebuild the index from the "
+                    f"snapshot the judgments were authored on."
+                ),
+                False,
+            )
 
     # 4. Serialize config with exclude_none + exclude_unset (C3-F1 + Story 1.5).
     config_payload = body.config.model_dump(exclude_none=True, exclude_unset=True)
