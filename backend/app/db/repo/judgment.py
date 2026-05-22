@@ -245,6 +245,36 @@ async def count_judgments_for_list_and_query(
     return int((await db.execute(stmt)).scalar_one())
 
 
+async def list_doc_ids_for_list_and_query(
+    db: AsyncSession,
+    judgment_list_id: str,
+    query_id: str,
+    *,
+    limit: int,
+) -> list[str]:
+    """Return up to ``limit`` judged ``doc_id`` values for ``(judgment_list_id, query_id)``.
+
+    Result is ordered ``doc_id ASC`` for deterministic, replayable probes.
+
+    Required keyword ``limit`` — there is no default. Callers must pass an explicit
+    cap (the preflight overlap probe passes ``limit=MAX_PROBED_DOCS=200`` from
+    ``feat_study_preflight_overlap_probe``). Deterministic ordering keeps the
+    probe replayable.
+
+    The ``UniqueConstraint("judgment_list_id", "query_id", "doc_id")`` at
+    ``judgments_unique_key`` guarantees rows are already distinct per
+    ``(list, qid)``; no ``DISTINCT`` keyword needed.
+    """
+    stmt = (
+        select(Judgment.doc_id)
+        .where(Judgment.judgment_list_id == judgment_list_id)
+        .where(Judgment.query_id == query_id)
+        .order_by(Judgment.doc_id.asc())
+        .limit(limit)
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
 async def source_breakdown_for_list(
     db: AsyncSession,
     judgment_list_id: str,

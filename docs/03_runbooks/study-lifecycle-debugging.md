@@ -194,6 +194,45 @@ their tick and retry in 1s; this is benign and self-recovering. If
 the log persists for >1 minute, restart the worker to clear stale
 job entries.
 
+### `INSUFFICIENT_JUDGMENT_OVERLAP` on POST /api/v1/studies (422)
+
+The create-time preflight overlap probe (from
+`feat_study_preflight_overlap_probe`) found fewer than
+`min(MIN_OVERLAP=3, max(judged_doc_count, 1))` of the judgment list's
+doc IDs present in the study's target index. The `max(..., 1)` floor
+means an empty judgment list (`judged_doc_count=0`) requires overlap
+≥1, and the probe rejects it via a separate `studies.preflight.overlap_probe.empty`
+INFO log; the API surface is still 422 `INSUFFICIENT_JUDGMENT_OVERLAP`. The error envelope's `message`
+field includes both numbers (`X of N probed`, plus
+`judged_doc_count=N_total` when the `MAX_PROBED_DOCS=200` cap fired)
+and the representative qid.
+
+Two recovery paths:
+
+1. **Regenerate judgments against the current index.** Most common
+   cause: the target index was rebuilt or `_reindex`'d with new doc
+   IDs since the judgments were authored. Regenerate via
+   `POST /api/v1/judgments/generate` for the same `query_set_id` +
+   `cluster_id` + `target`. The fresh judgment list will reference
+   doc IDs currently present in the index.
+2. **Rebuild the target index from the snapshot the judgments were
+   authored on.** If the judgments are still trustworthy and only
+   the index drifted, restore a snapshot.
+
+When the probe is **skipped** (cluster unreachable / probe timeout /
+adapter rejects the bare ids body), the study creates as 201 and
+the probe emits a `studies.preflight.overlap_probe.skipped` WARN log
+with one of three `reason` values: `unreachable`, `timeout`, or
+`invalid_query_dsl`. Grep the API log by
+`event=studies.preflight.overlap_probe.skipped study_judgment_list_id=<JL>`
+to find recent skips. The orchestrator's per-trial failure handling
+will surface the underlying cluster issue at the first trial.
+
+To **re-probe an existing study** (e.g., after fixing the index), the
+fastest path is to cancel the existing study (`POST /api/v1/studies/{id}/cancel`)
+and POST a fresh one — the probe is create-time only and does not
+re-run mid-study.
+
 ## See also
 
 - [`docs/01_architecture/optimization.md`](../01_architecture/optimization.md) — Optuna sampler / pruner contract.

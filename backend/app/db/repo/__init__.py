@@ -50,6 +50,7 @@ from backend.app.db.repo.judgment import (
     count_judgments_per_query,
     create_judgment,
     get_judgment,
+    list_doc_ids_for_list_and_query,
     list_judgments_paginated,
     source_breakdown_for_list,
     upsert_judgment_human_override,
@@ -88,6 +89,7 @@ from backend.app.db.repo.query import (
     count_queries_for_set,
     create_query,
     delete_query,
+    find_first_judged_query,
     get_query,
     list_queries_for_set,
     list_queries_for_set_cursor,
@@ -238,4 +240,8 @@ __all__ = [
     "hard_delete_query_set",
     "hard_delete_query_template",
     "hard_delete_study",
+    # feat_study_preflight_overlap_probe Story 1.1 — repo helpers for the
+    # create-time overlap probe.
+    "find_first_judged_query",
+    "list_doc_ids_for_list_and_query",
 ]

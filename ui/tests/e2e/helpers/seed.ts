@@ -20,6 +20,22 @@ import type { ResourceType } from './cleanup-core';
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
 /**
+ * Host-side URL for the dev/CI Elasticsearch service. CI exposes ES on
+ * 9200 via the service-container port forward; local dev exposes it on
+ * the same port. The seed-helper process runs OUTSIDE the API container,
+ * so it cannot use the Docker service name `elasticsearch:9200` — that
+ * resolves only within the Compose network.
+ *
+ * Used by ``bulkIndexDocsToES`` so the helper can prepare the cluster's
+ * target index with the same doc IDs the seeded judgments reference.
+ * Without this, the new ``feat_study_preflight_overlap_probe`` rejects
+ * seeded studies with 422 ``INSUFFICIENT_JUDGMENT_OVERLAP`` because the
+ * synthetic ``e2e-doc-N`` IDs aren't present in the real ``products``
+ * index.
+ */
+const ES_BASE = process.env.PLAYWRIGHT_ES_BASE_URL ?? 'http://localhost:9200';
+
+/**
  * Resolve the per-worker cleanup JSONL path. Playwright sets
  * `TEST_WORKER_INDEX` per worker process (the @playwright/test contract);
  * fall back to `'0'` for unit-test contexts where Playwright isn't
@@ -75,6 +91,41 @@ async function get<T>(path: string): Promise<T> {
     throw new Error(`GET ${path} failed: ${resp.status}`);
   }
   return (await resp.json()) as T;
+}
+
+/**
+ * Bulk-index the given ``docIds`` into ``index`` on the host-side ES.
+ *
+ * Posts an NDJSON ``_bulk`` body with ``refresh=wait_for`` so the indexed
+ * docs are visible to subsequent searches immediately (no eventual-
+ * consistency delay). Each doc body is the minimal ``{}`` — content
+ * doesn't matter for the overlap probe, only the ``_id``.
+ *
+ * Idempotent on ``_id`` (re-indexing the same ID is a no-op for the
+ * overlap-probe purpose). Failures throw so misconfigured ES surfaces
+ * early in the test setup rather than as a 422 from POST /studies.
+ *
+ * Used by ``seedJudgmentList`` to make the seeded ``e2e-doc-N`` IDs
+ * findable by the create-study overlap probe.
+ */
+async function bulkIndexDocsToES(index: string, docIds: string[]): Promise<void> {
+  if (docIds.length === 0) {
+    return;
+  }
+  const ndjson = docIds.flatMap((id) => [JSON.stringify({ index: { _id: id } }), '{}']).join('\n') + '\n';
+  const resp = await fetch(`${ES_BASE}/${encodeURIComponent(index)}/_bulk?refresh=wait_for`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-ndjson' },
+    body: ndjson,
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`ES _bulk into ${index} failed: ${resp.status} ${text}`);
+  }
+  const payload = (await resp.json()) as { errors?: boolean };
+  if (payload.errors) {
+    throw new Error(`ES _bulk into ${index} reported per-item errors: ${JSON.stringify(payload).slice(0, 500)}`);
+  }
 }
 
 interface SeedOptions {
@@ -222,6 +273,9 @@ export async function seedQuerySet(
     });
     appendForCleanup('judgment_list', jl.id);
     judgmentListId = jl.id;
+    // Bulk-index the synthetic doc ID into the cluster's target index so
+    // the create-time overlap probe finds it. Mirrors ``seedJudgmentList``.
+    await bulkIndexDocsToES('products', ['e2e-doc-1']);
   }
 
   return {
@@ -302,6 +356,12 @@ export async function seedJudgmentList(args: {
     },
   );
   appendForCleanup('judgment_list', jl.id);
+  // Bulk-index the synthetic doc IDs into the cluster's target index so the
+  // new ``feat_study_preflight_overlap_probe`` (Tier 2) probe finds them
+  // when a chained ``seedStudy`` POSTs to /api/v1/studies. Without this,
+  // the probe reports zero overlap and rejects with 422
+  // ``INSUFFICIENT_JUDGMENT_OVERLAP``.
+  await bulkIndexDocsToES(target, judgments.map((j) => j.doc_id));
   return { id: jl.id, judgmentCount: jl.judgment_count };
 }
 
