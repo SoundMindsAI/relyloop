@@ -32,18 +32,32 @@ describe('<DemoBadge />', () => {
     expect(badge).toHaveAttribute('tabindex', '0');
   });
 
-  it('exposes the tooltip text on focus', async () => {
+  it('is keyboard-reachable from a sibling focusable AND exposes the tooltip text on focus', async () => {
     const user = userEvent.setup();
-    renderBadge();
+    // Render a sibling button BEFORE the badge so a single user.tab()
+    // advances focus from the button onto the badge — this proves the
+    // badge participates in normal keyboard tab order, not just manual
+    // imperative focus().
+    render(
+      <TooltipProvider>
+        <button type="button" data-testid="sibling-before">
+          before
+        </button>
+        <DemoBadge />
+      </TooltipProvider>,
+    );
+
+    // Focus the sibling button first.
+    screen.getByTestId('sibling-before').focus();
+    expect(screen.getByTestId('sibling-before')).toHaveFocus();
+
+    // One Tab should land on the badge (which has tabIndex={0}).
+    await user.tab();
     const badge = screen.getByTestId('demo-badge');
-    // Tab into the badge to open the tooltip via keyboard.
-    badge.focus();
     expect(badge).toHaveFocus();
-    // Radix opens tooltips on focus; wait for the portal to render content.
-    await user.tab(); // shift focus; some Radix versions need the focus event to settle
-    badge.focus();
-    // The tooltip text MUST be reachable in the DOM after focus. Use
-    // findAllByText to allow Radix's portal rendering pattern.
+
+    // Radix opens tooltips on focus; the portal-rendered content must
+    // contain the FR-5 tooltip text.
     const tooltipContent = await screen.findAllByText(TOOLTIP_TEXT);
     expect(tooltipContent.length).toBeGreaterThan(0);
   });
