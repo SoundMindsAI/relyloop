@@ -28,7 +28,7 @@ import uuid_utils
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.db.models import Query
+from backend.app.db.models import Judgment, Query
 
 
 async def create_query(db: AsyncSession, **fields: object) -> Query:
@@ -43,6 +43,39 @@ async def create_query(db: AsyncSession, **fields: object) -> Query:
     await db.flush()
     await db.refresh(query)
     return query
+
+
+async def find_first_judged_query(
+    db: AsyncSession,
+    *,
+    query_set_id: str,
+    judgment_list_id: str,
+) -> str | None:
+    """Return the first ``queries.id`` (by ``id ASC``) in ``query_set`` with judgments.
+
+    ``First`` means the lexically-smallest ``queries.id`` for which ≥1 row
+    exists in ``judgments`` under ``judgment_list_id``. Returns ``None`` when
+    no qid in the set has any judgments.
+
+    Used by the preflight overlap probe to pick a representative qid without
+    fetching ``query_text`` (privacy: query strings stay out of logs per
+    ``feat_study_preflight_overlap_probe`` spec §10 Threat 2). Single SELECT
+    with a correlated EXISTS subquery; backed by the
+    ``judgments_list_query_idx`` on ``(judgment_list_id, query_id)``.
+    """
+    stmt = (
+        select(Query.id)
+        .where(Query.query_set_id == query_set_id)
+        .where(
+            select(Judgment.id)
+            .where(Judgment.query_id == Query.id)
+            .where(Judgment.judgment_list_id == judgment_list_id)
+            .exists()
+        )
+        .order_by(Query.id.asc())
+        .limit(1)
+    )
+    return (await db.execute(stmt)).scalar_one_or_none()
 
 
 async def list_queries_for_set(db: AsyncSession, query_set_id: str) -> Sequence[Query]:

@@ -211,3 +211,32 @@ def test_studies_router_declares_judgment_mismatch_error_codes() -> None:
         "first). Got cluster_pos="
         f"{cluster_pos}, target_pos={target_pos}."
     )
+
+
+def test_studies_router_declares_insufficient_judgment_overlap() -> None:
+    """``feat_study_preflight_overlap_probe`` FR-1 + FR-5 — source-presence
+    guard that the new INSUFFICIENT_JUDGMENT_OVERLAP code appears in studies.py
+    AFTER JUDGMENT_TARGET_MISMATCH AND BEFORE the config-serialize line.
+
+    Locks BOTH the probe call site AND the error-code literal so a refactor
+    that moves either the call OR the raise trips CI. Mirrors the Tier 1
+    ordering pattern in ``test_studies_router_declares_judgment_mismatch_error_codes``.
+    """
+    from pathlib import Path
+
+    source = Path("backend/app/api/v1/studies.py").read_text(encoding="utf-8")
+    assert '"INSUFFICIENT_JUDGMENT_OVERLAP"' in source, (
+        "INSUFFICIENT_JUDGMENT_OVERLAP literal missing from backend/app/api/v1/studies.py"
+    )
+    assert "probe_judgment_overlap(" in source, (
+        "probe_judgment_overlap call missing from backend/app/api/v1/studies.py"
+    )
+    target_pos = source.index('"JUDGMENT_TARGET_MISMATCH"')
+    probe_pos = source.index("probe_result = await probe_judgment_overlap(")
+    overlap_pos = source.index('"INSUFFICIENT_JUDGMENT_OVERLAP"')
+    config_pos = source.index("config_payload = body.config.model_dump")
+    assert target_pos < probe_pos < overlap_pos < config_pos, (
+        f"Ordering: JUDGMENT_TARGET_MISMATCH ({target_pos}) < probe call "
+        f"({probe_pos}) < INSUFFICIENT_JUDGMENT_OVERLAP literal ({overlap_pos}) "
+        f"< config_payload assignment ({config_pos}) — got ordering violation."
+    )
