@@ -25,4 +25,16 @@
 - Critical cycle-3 findings: parse failures didn't count toward `failed` invariant (now do); stdout log misstated `entries.length` vs distinct-resource count.
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-21
+- PR: #186 (squash `a444b94`, merged into `main` 2026-05-21)
+- Branch: `chore/e2e-test-rows-isolation` (deleted post-merge)
+- Stories shipped: 2 of 2 (1.1 backend 6 DELETE endpoints + 20 integration cases + 6 env-guard contract + 11 strictly-new error-code source-presence + 7 OpenAPI tuples; 1.2 frontend per-worker JSONL registry + globalSetup/Teardown + cleanup-reporter + 29 vitest cases)
+- CI: green on final HEAD (5/5 jobs incl. smoke 70/70 Playwright)
+- Reviews: Gemini Code Assist 3 Medium findings (all rejected with SQLAlchemy AsyncSession-concurrency counter-evidence at `backend/app/api/v1/_test.py:269/353/415`); GPT-5.5 final review 1 High finding (rejected — truncated-diff false positive at `backend/app/db/repo/__init__.py:38–42`).
+- Post-merge fix: one follow-up commit on the same branch added `testMatch: ['**/*.spec.ts']` to `ui/playwright.config.ts` after the smoke job tried to load vitest `.test.ts` files as Playwright specs.
+- Tangential capture: `chore_e2e_seed_acme_helper_dead/idea.md` — `seedAcmeProductsChain` is dead code (Backlog).
+
+## Done
+- Status: Merged
+- Date: 2026-05-21
