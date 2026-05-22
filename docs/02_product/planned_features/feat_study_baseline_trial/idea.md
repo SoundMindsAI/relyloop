@@ -1,10 +1,19 @@
-# Phase 2 — Baseline-trial computation for `feat_pr_metric_confidence`
+# Baseline-trial computation — fill in the deferred Phase 2 of `feat_pr_metric_confidence`
 
-**Date:** 2026-05-21
-**Status:** Idea — deferred from Phase 1 of [`feat_pr_metric_confidence`](feature_spec.md) at spec-gen time (Decision D8 in §19).
-**Origin:** [`feat_pr_metric_confidence/feature_spec.md`](feature_spec.md) §3 Out of scope + §19 Decision log D8. Phase 1 ships per-query analytics against the runner-up #2 trial as the comparison reference. Phase 2 adds a true production-baseline comparison.
+**Date:** 2026-05-22 (originally drafted 2026-05-21 as `phase2_idea.md` inside `2026_05_21_feat_pr_metric_confidence/`; split to this dedicated planned folder 2026-05-22 so it surfaces in `/pipeline --status`.)
+**Status:** Idea — deferred Phase 2 work from `feat_pr_metric_confidence` (Phase 1 merged 2026-05-21 as PR #180 squash `d0a8358`).
+**Priority:** P2
+**Origin:** [`feat_pr_metric_confidence/feature_spec.md`](../../../00_overview/implemented_features/2026_05_21_feat_pr_metric_confidence/feature_spec.md) §3 Out of scope + §19 Decision log D8. Phase 1 ships per-query analytics against the runner-up #2 trial as the comparison reference. Phase 2 adds a true production-baseline comparison.
 
-**Depends on:** Phase 1 of `feat_pr_metric_confidence` must be merged first. Phase 2 is purely additive — no migration to undo, no API contract break.
+**Depends on:** Phase 1 of `feat_pr_metric_confidence` (PR #180) — merged. Phase 2 is purely additive — no migration to undo, no API contract break.
+
+**Still-needed verification (2026-05-22):** confirmed against `main` HEAD —
+- `studies.baseline_metric` column exists at [`backend/app/db/models/study.py:76`](../../../../backend/app/db/models/study.py) but `grep -rn 'baseline_metric *=' backend/workers/ backend/app/services/` returns zero write sites. The column stays `NULL` forever in production.
+- `backend/workers/digest.py:706` reads `study.baseline_metric` and passes it to the LLM prompt (so the digest narrative always renders with `baseline=None`).
+- `ComparisonAgainst = Literal["runner_up", "baseline"]` exists at [`backend/app/domain/study/confidence.py:114`](../../../../backend/app/domain/study/confidence.py) but only `"runner_up"` is emitted (hardcoded at line 624 with comment `# FR-3 locked for Phase 1`).
+- `studies.baseline_trial_id` column does NOT exist on the Study model.
+
+All 4 still-needed signals from the original draft remain accurate on 2026-05-22.
 
 ## Problem
 
@@ -75,7 +84,7 @@ Phase 2 closes this gap by:
 
 ## Relationship to other work
 
-- **Builds on** [`feat_pr_metric_confidence`](feature_spec.md) (Phase 1 of this feature). Phase 1 must merge first so the `ConfidenceShape` and `compute_study_confidence` infrastructure exists for Phase 2 to extend.
+- **Builds on** [`feat_pr_metric_confidence`](../../../00_overview/implemented_features/2026_05_21_feat_pr_metric_confidence/feature_spec.md) (Phase 1 of this feature, shipped 2026-05-21 as PR #180). Phase 1 must merge first so the `ConfidenceShape` and `compute_study_confidence` infrastructure exists for Phase 2 to extend.
 - **Composes with** [`feat_study_lifecycle`](../../../00_overview/implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md) — Phase 2 retroactively implements the "Phase 2" baseline-trial work that the study_lifecycle spec promised but deferred. Now it's a separate feature with its own spec cycle.
 - **Composes with** [`feat_create_study_search_space_builder`](../../../00_overview/implemented_features/2026_05_20_feat_create_study_search_space_builder/feature_spec.md) — if Phase 2 picks design option (b) (operator-supplied baseline_params), the create-study modal gains a new optional input. The search-space builder is the natural place for that input.
 
