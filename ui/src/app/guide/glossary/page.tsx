@@ -5,8 +5,8 @@ import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { glossary, type GlossaryEntry } from '@/lib/glossary';
+import { MARKDOWN_DISALLOWED_ELEMENTS } from '@/lib/markdown-safety';
 import { cn } from '@/lib/utils';
 
 interface GlossaryRow {
@@ -223,7 +223,7 @@ function GlossaryEntryCard({ row }: { row: GlossaryRow }) {
           className={cn('prose prose-sm mt-2 max-w-none text-sm', row.short && 'border-t pt-2')}
           data-testid={`glossary-entry-${row.key}-long`}
         >
-          <ReactMarkdown disallowedElements={['script', 'iframe', 'style']} unwrapDisallowed>
+          <ReactMarkdown disallowedElements={[...MARKDOWN_DISALLOWED_ELEMENTS]} unwrapDisallowed>
             {row.long}
           </ReactMarkdown>
         </div>

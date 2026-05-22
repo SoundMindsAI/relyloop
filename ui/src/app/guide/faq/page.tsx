@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown';
 
 import { Input } from '@/components/ui/input';
 import { faq, FAQ_CATEGORIES, FAQ_CATEGORY_ORDER, type FAQCategory } from '@/lib/faq';
+import { MARKDOWN_DISALLOWED_ELEMENTS } from '@/lib/markdown-safety';
 import { cn } from '@/lib/utils';
 
 function matchesSearch(
@@ -211,7 +212,7 @@ function FAQEntryCard({ entry }: { entry: (typeof faq)[number] }) {
         </a>
       </h3>
       <div className="prose prose-sm max-w-none text-sm" data-testid={`faq-answer-${entry.anchor}`}>
-        <ReactMarkdown disallowedElements={['script', 'iframe', 'style']} unwrapDisallowed>
+        <ReactMarkdown disallowedElements={[...MARKDOWN_DISALLOWED_ELEMENTS]} unwrapDisallowed>
           {entry.answer}
         </ReactMarkdown>
       </div>
