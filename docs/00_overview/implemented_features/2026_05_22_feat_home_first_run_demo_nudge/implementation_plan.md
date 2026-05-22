@@ -1,9 +1,9 @@
 # Implementation Plan — Home-page first-run demo nudge
 
 **Date:** 2026-05-21
-**Status:** Draft
+**Status:** Complete (PR #188, merged 2026-05-22 as squash `21325432`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
-**Deferred-phase tracking:** [`phase2_idea.md`](phase2_idea.md) (Phase 2 = reseed endpoint + UI button; not in this plan)
+**Deferred-phase tracking:** Originally `phase2_idea.md` in this folder; split out at finalization (2026-05-22) to [`feat_home_demo_reseed_endpoint/idea.md`](../../planned_features/feat_home_demo_reseed_endpoint/idea.md) so the reseed-endpoint work surfaces in `/pipeline --status` as its own planned feature.
 
 ---
 

@@ -1,10 +1,10 @@
-# Phase 2 — Home-page demo-data "Reset to demo state" affordance
+# Home-page demo-data "Reset to demo state" affordance
 
-**Date:** 2026-05-21
-**Status:** Idea — deferred from Phase 1 of [`feat_home_first_run_demo_nudge`](feature_spec.md)
+**Date:** 2026-05-22 (originally drafted 2026-05-21 as `phase2_idea.md` inside `feat_home_first_run_demo_nudge/`; split to this dedicated planned folder at Phase 1 finalization on 2026-05-22 so it surfaces in `/pipeline --status`)
+**Status:** Idea — deferred Phase 2 work from `feat_home_first_run_demo_nudge` (Phase 1 merged 2026-05-22 as PR #188 squash `21325432`)
 **Priority:** P2
-**Origin:** Deferred Phase 2 work from [`feature_spec.md` §3 Out of scope + §19 Decision log](feature_spec.md) (2026-05-21 decision: extracting the seed orchestration is too much for a polish-layer PR)
-**Depends on:** Phase 1 of [`feat_home_first_run_demo_nudge`](feature_spec.md) merged
+**Origin:** Deferred from `feat_home_first_run_demo_nudge` `feature_spec.md` §3 Out of scope + §19 Decision log. Path resolves to `docs/00_overview/implemented_features/2026_05_22_feat_home_first_run_demo_nudge/feature_spec.md` post-finalization.
+**Depends on:** `feat_home_first_run_demo_nudge` Phase 1 (PR #188) — merged.
 
 ## Problem
 
@@ -73,6 +73,6 @@ Phase 2 ships when (a) Phase 1 has been live long enough to observe whether the 
 
 ## Relationship to other work
 
-- **Supersedes:** capability C from the original [`idea.md`](idea.md).
-- **Composes with:** Phase 1 of [`feat_home_first_run_demo_nudge`](feature_spec.md) — the reseed button shares the dashboard's empty-state real estate; Phase 1 reserved no UI space for it, so Phase 2 adds the button as a new empty-state slot.
+- **Supersedes:** capability C from the original [`feat_home_first_run_demo_nudge/idea.md`](../../../00_overview/implemented_features/2026_05_22_feat_home_first_run_demo_nudge/idea.md).
+- **Composes with:** Phase 1 of [`feat_home_first_run_demo_nudge`](../../../00_overview/implemented_features/2026_05_22_feat_home_first_run_demo_nudge/feature_spec.md) — the reseed button shares the dashboard's empty-state real estate; Phase 1 reserved no UI space for it, so Phase 2 adds the button as a new empty-state slot.
 - **Coordinates with:** future MVP2 audit-log work — the reseed endpoint MUST emit an audit event once `audit_log` exists.
