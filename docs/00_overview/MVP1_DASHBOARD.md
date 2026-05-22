@@ -116,7 +116,7 @@ _None._
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
-| P1 | [feat_orchestrator_zero_streak_abort](../02_product/planned_features/feat_orchestrator_zero_streak_abort/feature_spec.md) | Feature |  | — | [PR #184](https://github.com/SoundMindsAI/relyloop/pull/184) |
+| P1 | [feat_orchestrator_zero_streak_abort](../02_product/planned_features/feat_orchestrator_zero_streak_abort/feature_spec.md) | Feature |  | — | [PR #191](https://github.com/SoundMindsAI/relyloop/pull/191) |
 
 ### Spec (0)
 

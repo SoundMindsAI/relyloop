@@ -7,7 +7,7 @@
 - [`idea.md`](idea.md) — origin brief (Tier 3 fail-fast, defense-in-depth)
 - [`pipeline_status.md`](pipeline_status.md) — stage tracking
 - [`backend/workers/orchestrator.py`](../../../../backend/workers/orchestrator.py) — surface being extended
-- Tier 1 sibling (shipped): [`feat_study_target_judgment_mismatch_guard`](../../00_overview/implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard/feature_spec.md)
+- Tier 1 sibling (shipped): [`feat_study_target_judgment_mismatch_guard`](../../../00_overview/implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard/feature_spec.md)
 - Tier 2 sibling (planned): [`feat_study_preflight_overlap_probe/idea.md`](../feat_study_preflight_overlap_probe/idea.md)
 - Pattern precedent: existing `_last_n_all_failed` guard at `backend/workers/orchestrator.py:188-210`
 
