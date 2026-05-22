@@ -1,7 +1,7 @@
 # Implementation Plan — Orchestrator zero-metric streak abort
 
 **Date:** 2026-05-22
-**Status:** Draft
+**Status:** Complete (PR #191, merged 2026-05-22 as squash `51ae4b3c`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) Absolute Rules; [`docs/05_quality/testing.md`](../../../../docs/05_quality/testing.md) test layer convention.
 
