@@ -20,4 +20,15 @@
 - Phases covered: Phase 1 (banner + badges + CI guard). Phase 2 (reseed endpoint + UI) remains deferred per [`phase2_idea.md`](phase2_idea.md).
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-22
+- PR: #188 (squash `21325432`)
+- CI: green (5/5 jobs: backend lint+typecheck+pytest+coverage, backend unit fast lane, frontend lint+typecheck+vitest+build, docker buildx, operator-path smoke)
+- Stories completed: 12 (1 in Epic 1, 4 in Epic 2, 4 in Epic 3, 3 in Epic 4)
+- Cross-model review: Gemini Code Assist 3 Medium (2 accepted in `cb0bdc4` — `useClusters({ enabled })` + parity-guard regex broadening; 1 rejected with counter-evidence — `useMemo` would save nothing given React's render model + early-return). Final GPT-5.5: 0 High / 0 Medium / 2 Low (1 fixed in `2cdc44a` — banner-comment accuracy; 1 deferred to this finalization step).
+- Phase 2 (reseed endpoint + UI): split out at finalization to a new planned folder [`feat_home_demo_reseed_endpoint`](../feat_home_demo_reseed_endpoint/idea.md) so it surfaces in `/pipeline --status`.
+
+## Done
+- Date: 2026-05-22
+- Tag: none (feature ships as part of MVP1; no separate release)
+- Implemented-features path: `docs/00_overview/implemented_features/2026_05_22_feat_home_first_run_demo_nudge/`
