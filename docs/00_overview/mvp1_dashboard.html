@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Chore, currently in <strong>Spec</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/chore_guides_glossary_route/feature_spec.md">Guides Glossary Route</a></div>
-    <div class="one-liner">the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`.</div>
-    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
-    <code class="cmd">/pipeline docs/02_product/planned_features/chore_guides_glossary_route --auto</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">62 / 63</div>
-      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:98%"></span></div>
+      <div class="value">65 / 65</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">17</div>
+      <div class="value">14</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">3</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">9</div>
+      <div class="value">6</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,33 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">16</span></h3>
-
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel">Guide 06 Screenshot Refresh Confidence Panel</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_guides_faq">Guides Faq</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">Tooltips and the glossary answer &quot;**what does X mean?**&quot; within a 1–2 sentence budget. They don&#x27;t carry the operator-judgment-shaped questions that come up *after* the term is understood:</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">14</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_auto_followup_studies">Auto Followup Studies</a></div>
@@ -675,19 +649,7 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">1</span></h3>
-
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_guides_glossary_route/feature_spec.md">Guides Glossary Route</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`.</div>
-
-
-</div>
+  <h3>Spec <span class="count">0</span></h3>
 
 </div>
 
@@ -702,7 +664,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">74</span></h3>
+  <h3>Done <span class="count">77</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1355,6 +1317,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_22_chore_guide_06_screenshot_refresh_confidence_panel">Guide 06 Screenshot Refresh Confidence Panel</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-05-22</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_chore_guide_06_screenshot_refresh_target_picker">Guide 06 Screenshot Refresh Target Picker</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1362,6 +1337,32 @@ footer {
     <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_22_chore_guides_faq">Guides Faq</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-05-22</span>
+  </div>
+  <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_22_chore_guides_glossary_route/feature_spec.md">Guides Glossary Route</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-05-22</span>
+  </div>
+  <div class="one-liner">the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`.</div>
 
 
 </div>
@@ -1678,8 +1679,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_guides_glossary_route[&quot;guides glossary route&quot;]
-  class chore_guides_glossary_route spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1798,6 +1797,12 @@ footer {
   class feat_study_target_judgment_mismatch_guard done;
   infra_uv_sync_drops_precommit[&quot;uv sync drops precommit&quot;]
   class infra_uv_sync_drops_precommit done;
+  chore_guide_06_screenshot_refresh_confidence_panel[&quot;guide 06 screenshot refresh confidence panel&quot;]
+  class chore_guide_06_screenshot_refresh_confidence_panel done;
+  chore_guides_faq[&quot;guides faq&quot;]
+  class chore_guides_faq done;
+  chore_guides_glossary_route[&quot;guides glossary route&quot;]
+  class chore_guides_glossary_route done;
   feat_home_first_run_demo_nudge[&quot;home first run demo nudge&quot;]
   class feat_home_first_run_demo_nudge done;
   feat_orchestrator_zero_streak_abort[&quot;orchestrator zero streak abort&quot;]
@@ -1903,8 +1908,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_guides_glossary_route[&quot;guides glossary route&quot;]
-  class chore_guides_glossary_route spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2023,6 +2026,12 @@ footer {
   class feat_study_target_judgment_mismatch_guard done;
   infra_uv_sync_drops_precommit[&quot;uv sync drops precommit&quot;]
   class infra_uv_sync_drops_precommit done;
+  chore_guide_06_screenshot_refresh_confidence_panel[&quot;guide 06 screenshot refresh confidence panel&quot;]
+  class chore_guide_06_screenshot_refresh_confidence_panel done;
+  chore_guides_faq[&quot;guides faq&quot;]
+  class chore_guides_faq done;
+  chore_guides_glossary_route[&quot;guides glossary route&quot;]
+  class chore_guides_glossary_route done;
   feat_home_first_run_demo_nudge[&quot;home first run demo nudge&quot;]
   class feat_home_first_run_demo_nudge done;
   feat_orchestrator_zero_streak_abort[&quot;orchestrator zero streak abort&quot;]
