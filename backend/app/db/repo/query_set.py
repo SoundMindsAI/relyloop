@@ -97,3 +97,29 @@ async def count_queries_in_set(db: AsyncSession, query_set_id: str) -> int:
     """COUNT(*) queries in a set (used by ``GET /query-sets/{id}.query_count``)."""
     stmt = select(func.count(Query.id)).where(Query.query_set_id == query_set_id)
     return int((await db.execute(stmt)).scalar_one())
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
+# ---------------------------------------------------------------------------
+
+
+async def hard_delete_query_set(db: AsyncSession, query_set_id: str) -> bool:
+    """Hard-delete the query_set row for test-only cleanup.
+
+    Queries cascade-delete via the existing ``ondelete='CASCADE'`` FK
+    at ``backend/app/db/models/query.py:32``.
+
+    Returns ``True`` if a row was deleted, ``False`` if no row existed.
+    Caller commits. Used ONLY by the test-only `DELETE /api/v1/_test/
+    query-sets/{id}` endpoint per ``chore_e2e_test_rows_isolation`` FR-5.
+    The handler is responsible for preflight EXISTS checks against
+    ``studies`` and ``judgment_lists`` (both non-cascade) and emitting 409
+    with the resource-specific code if either references the query_set.
+    """
+    existing = await db.get(QuerySet, query_set_id)
+    if existing is None:
+        return False
+    await db.delete(existing)
+    await db.flush()
+    return True

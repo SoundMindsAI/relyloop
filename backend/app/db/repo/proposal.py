@@ -477,3 +477,28 @@ async def list_pending_proposals_for_boot_scan(db: AsyncSession) -> list[str]:
         .where(Digest.id.is_(None))
     )
     return [row for row in (await db.execute(stmt)).scalars().all() if row is not None]
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
+# ---------------------------------------------------------------------------
+
+
+async def hard_delete_proposal(db: AsyncSession, proposal_id: str) -> bool:
+    """Hard-delete the proposal row.
+
+    Returns ``True`` if a row was deleted, ``False`` if no row existed.
+    Caller commits. Used ONLY by the test-only `DELETE /api/v1/_test/
+    proposals/{id}` endpoint per ``chore_e2e_test_rows_isolation`` FR-1.
+    Proposals have no FK children — no cascade considerations.
+
+    Uses fetch-then-delete (matches the ``soft_delete_cluster`` pattern
+    at ``backend/app/db/repo/cluster.py:163-168``); two roundtrips, but
+    keeps the bool-return contract typecheck-clean.
+    """
+    existing = await db.get(Proposal, proposal_id)
+    if existing is None:
+        return False
+    await db.delete(existing)
+    await db.flush()
+    return True

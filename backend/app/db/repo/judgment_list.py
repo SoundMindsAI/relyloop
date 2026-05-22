@@ -206,3 +206,29 @@ async def list_generating_judgment_list_ids(db: AsyncSession) -> list[str]:
     """
     stmt = select(JudgmentList.id).where(JudgmentList.status == "generating")
     return list((await db.execute(stmt)).scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
+# ---------------------------------------------------------------------------
+
+
+async def hard_delete_judgment_list(db: AsyncSession, judgment_list_id: str) -> bool:
+    """Hard-delete the judgment_list row for test-only cleanup.
+
+    Judgments cascade-delete via the existing ``ondelete='CASCADE'`` FK
+    at ``backend/app/db/models/judgment.py:61``.
+
+    Returns ``True`` if a row was deleted, ``False`` if no row existed.
+    Caller commits. Used ONLY by the test-only `DELETE /api/v1/_test/
+    judgment-lists/{id}` endpoint per ``chore_e2e_test_rows_isolation`` FR-4.
+    The handler is responsible for preflight EXISTS check against
+    ``studies`` (non-cascade) and emitting 409 if a study still references
+    the judgment_list.
+    """
+    existing = await db.get(JudgmentList, judgment_list_id)
+    if existing is None:
+        return False
+    await db.delete(existing)
+    await db.flush()
+    return True

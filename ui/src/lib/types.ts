@@ -875,6 +875,142 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/_test/proposals/{proposal_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Hard-delete a proposal (test-only)
+     * @description FR-1: Hard-delete the proposal row. No FK children — no preflight needed.
+     */
+    delete: operations['delete_test_proposal_api_v1__test_proposals__proposal_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/_test/digests/{digest_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Hard-delete a digest (test-only)
+     * @description FR-2: Hard-delete the digest row. No FK children — no preflight needed.
+     */
+    delete: operations['delete_test_digest_api_v1__test_digests__digest_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/_test/studies/{study_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Hard-delete a study (test-only)
+     * @description FR-3 — hard-delete the study row.
+     *
+     *     Trials cascade-delete via existing FK. Preflight-checks ``proposals``
+     *     + ``digests`` (both non-cascade); 409 if any dependent rows reference
+     *     the study.
+     */
+    delete: operations['delete_test_study_api_v1__test_studies__study_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/_test/judgment-lists/{judgment_list_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Hard-delete a judgment_list (test-only)
+     * @description FR-4 — hard-delete the judgment_list row.
+     *
+     *     Judgments cascade-delete via existing FK. Preflight-checks ``studies``
+     *     (non-cascade); 409 if any study references the judgment_list.
+     */
+    delete: operations['delete_test_judgment_list_api_v1__test_judgment_lists__judgment_list_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/_test/query-sets/{query_set_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Hard-delete a query_set (test-only)
+     * @description FR-5 — hard-delete the query_set row.
+     *
+     *     Queries cascade-delete via existing FK. Preflight-checks ``studies``
+     *     + ``judgment_lists`` (both non-cascade); 409 with resource-specific
+     *     code if either references.
+     */
+    delete: operations['delete_test_query_set_api_v1__test_query_sets__query_set_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/_test/query-templates/{template_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Hard-delete a query_template (test-only)
+     * @description FR-6 — hard-delete the query_template row.
+     *
+     *     No FK children cascade with template. Preflight-checks ``studies``,
+     *     ``proposals``, and ``judgment_lists.current_template_id`` in
+     *     **fixed priority order: STUDY > PROPOSAL > JUDGMENT_LIST** (per
+     *     spec §FR-6) — first match wins.
+     */
+    delete: operations['delete_test_query_template_api_v1__test_query_templates__template_id__delete'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/webhooks/github': {
     parameters: {
       query?: never;
@@ -4229,6 +4365,180 @@ export interface operations {
         content: {
           'application/json': components['schemas']['SeedCompletedStudyResponse'];
         };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_test_proposal_api_v1__test_proposals__proposal_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        proposal_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_test_digest_api_v1__test_digests__digest_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        digest_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_test_study_api_v1__test_studies__study_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        study_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_test_judgment_list_api_v1__test_judgment_lists__judgment_list_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        judgment_list_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_test_query_set_api_v1__test_query_sets__query_set_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        query_set_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  delete_test_query_template_api_v1__test_query_templates__template_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        template_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Validation Error */
       422: {

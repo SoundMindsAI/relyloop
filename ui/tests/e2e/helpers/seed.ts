@@ -12,8 +12,49 @@
  * under the `local-es:` key (operator-provided).
  */
 import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
+import type { ResourceType } from './cleanup-core';
 
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
+
+/**
+ * Resolve the per-worker cleanup JSONL path. Playwright sets
+ * `TEST_WORKER_INDEX` per worker process (the @playwright/test contract);
+ * fall back to `'0'` for unit-test contexts where Playwright isn't
+ * driving (per chore_e2e_test_rows_isolation spec §FR-7).
+ *
+ * The path is computed lazily inside `appendForCleanup` so changes to
+ * `process.env.TEST_WORKER_INDEX` after module load (e.g. via
+ * `vi.stubEnv`) are honored.
+ */
+function getWorkerJsonlPath(): string {
+  const idx =
+    process.env.TEST_WORKER_INDEX ??
+    process.env.PLAYWRIGHT_WORKER_INDEX ?? // tolerate misnomer if a future PR honors it
+    '0';
+  return path.join(process.cwd(), 'test-results', '.cleanup', `worker-${idx}.jsonl`);
+}
+
+/**
+ * Append a `(resource, id)` entry to the worker's cleanup JSONL.
+ *
+ * Synchronous + atomic at the OS level for sub-PIPE_BUF writes (POSIX
+ * guarantees atomicity for writes ≤ 4 KiB on Linux/macOS; one JSON-line
+ * entry is well under that). Creates the directory if absent.
+ *
+ * Called by every `seedXxx()` helper that directly inserts a row (per
+ * the implementation_plan.md Story 1.2 per-helper instrumentation
+ * table). `seedFullChain` is a pure delegated wrapper and does NOT
+ * call this — sub-helpers handle it.
+ */
+export function appendForCleanup(resource: ResourceType, id: string): void {
+  const filePath = getWorkerJsonlPath();
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  const line = JSON.stringify({ resource, id }) + '\n';
+  fs.appendFileSync(filePath, line);
+}
 
 async function post<T>(path: string, body: unknown): Promise<T> {
   const resp = await fetch(`${API_BASE}${path}`, {
@@ -108,6 +149,7 @@ export async function seedCluster(): Promise<ClusterSeed> {
     auth_kind: 'es_basic',
     credentials_ref: 'local-es',
   });
+  appendForCleanup('cluster', cluster.id);
   return { id: cluster.id, name };
 }
 
@@ -133,11 +175,13 @@ export async function seedQuerySet(
     auth_kind: 'es_basic',
     credentials_ref: 'local-es',
   });
+  appendForCleanup('cluster', cluster.id);
 
   const qs = await post<{ id: string }>('/api/v1/query-sets', {
     name: `e2e-qs-${suffix}`,
     cluster_id: cluster.id,
   });
+  appendForCleanup('query_set', qs.id);
 
   const bulk = await post<{ added: number }>(`/api/v1/query-sets/${qs.id}/queries`, {
     queries: Array.from({ length: numQueries }, (_, i) => ({
@@ -176,6 +220,7 @@ export async function seedQuerySet(
         },
       ],
     });
+    appendForCleanup('judgment_list', jl.id);
     judgmentListId = jl.id;
   }
 
@@ -214,6 +259,7 @@ export async function seedTemplate(
       declared_params: { boost: 'float' },
     },
   );
+  appendForCleanup('query_template', tpl.id);
   return { id: tpl.id, name: tpl.name, version: tpl.version };
 }
 
@@ -255,6 +301,7 @@ export async function seedJudgmentList(args: {
       judgments,
     },
   );
+  appendForCleanup('judgment_list', jl.id);
   return { id: jl.id, judgmentCount: jl.judgment_count };
 }
 
@@ -345,11 +392,13 @@ export async function seedAcmeProductsChain(): Promise<AcmeProductsChainSeed> {
     credentials_ref: 'local-es',
     target_filter: 'products*',
   });
+  appendForCleanup('cluster', cluster.id);
 
   const qset = await post<{ id: string }>('/api/v1/query-sets', {
     name: querySetName,
     cluster_id: cluster.id,
   });
+  appendForCleanup('query_set', qset.id);
 
   const queryTexts = [
     'wireless noise cancelling headphones',
@@ -391,6 +440,7 @@ export async function seedAcmeProductsChain(): Promise<AcmeProductsChainSeed> {
       declared_params: { title_boost: 'float' },
     },
   );
+  appendForCleanup('query_template', tpl.id);
 
   // Subset of SCENARIOS[0].judgments_map — ten ratings spanning queries 0-3.
   const judgmentTuples: Array<[number, string, 0 | 1 | 2 | 3]> = [
@@ -426,6 +476,7 @@ export async function seedAcmeProductsChain(): Promise<AcmeProductsChainSeed> {
       'Rate 0=irrelevant, 1=partial, 2=relevant, 3=highly relevant by intent match (brand, product type, key feature).',
     judgments,
   });
+  appendForCleanup('judgment_list', jl.id);
 
   const study = await post<{ id: string; name: string }>('/api/v1/studies', {
     name: studyName,
@@ -442,6 +493,7 @@ export async function seedAcmeProductsChain(): Promise<AcmeProductsChainSeed> {
     objective: { metric: 'ndcg', k: 10, direction: 'maximize' },
     config: { max_trials: 2, sampler: 'tpe', pruner: 'none' },
   });
+  appendForCleanup('study', study.id);
 
   return {
     clusterId: cluster.id,
@@ -503,6 +555,7 @@ export async function seedStudy(args: {
     objective: { metric: 'ndcg', k: 10, direction: 'maximize' },
     config: { max_trials: maxTrials, sampler: 'tpe', pruner: 'none' },
   });
+  appendForCleanup('study', study.id);
   return { id: study.id, name: study.name };
 }
 
@@ -531,6 +584,7 @@ export async function seedProposal(args: {
       delta_pct: 18.2,
     },
   });
+  appendForCleanup('proposal', proposal.id);
   return { id: proposal.id };
 }
 
@@ -570,6 +624,13 @@ export async function seedStudyCompletedWithDigest(args: {
       with_pending_proposal: withPendingProposal,
     },
   );
+  // Register all 3 IDs (or 2 if no proposal) so global-teardown drains them
+  // in FK-safe order. Per chore_e2e_test_rows_isolation Story 1.2 plan.
+  appendForCleanup('study', result.study_id);
+  appendForCleanup('digest', result.digest_id);
+  if (result.proposal_id !== null) {
+    appendForCleanup('proposal', result.proposal_id);
+  }
   return {
     studyId: result.study_id,
     digestId: result.digest_id,
@@ -628,6 +689,13 @@ export async function seedStudyCompletedWithPerQueryMetrics(args: {
       runner_up_per_query: runnerUpPerQuery,
     },
   );
+  // Register all 3 IDs (or 2 if no proposal) so global-teardown drains them
+  // in FK-safe order. Per chore_e2e_test_rows_isolation Story 1.2 plan.
+  appendForCleanup('study', result.study_id);
+  appendForCleanup('digest', result.digest_id);
+  if (result.proposal_id !== null) {
+    appendForCleanup('proposal', result.proposal_id);
+  }
   return {
     studyId: result.study_id,
     digestId: result.digest_id,

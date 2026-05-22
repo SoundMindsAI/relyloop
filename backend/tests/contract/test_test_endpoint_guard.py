@@ -131,3 +131,39 @@ def test_seed_completed_request_schema_defaults_with_pending_proposal_true() -> 
         judgment_list_id="j",
     )
     assert body.with_pending_proposal is True
+
+
+# ---------------------------------------------------------------------------
+# chore_e2e_test_rows_isolation Story 1.1 — env-guard contract for the 6 new
+# DELETE endpoints. Each MUST 404 with RESOURCE_NOT_FOUND (the env-guard
+# envelope, NOT the resource-specific <RESOURCE>_NOT_FOUND) when env != "development".
+# ---------------------------------------------------------------------------
+
+
+_TEST_DELETE_PATHS = [
+    "/api/v1/_test/proposals/some-id",
+    "/api/v1/_test/digests/some-id",
+    "/api/v1/_test/studies/some-id",
+    "/api/v1/_test/judgment-lists/some-id",
+    "/api/v1/_test/query-sets/some-id",
+    "/api/v1/_test/query-templates/some-id",
+]
+
+
+@pytest.mark.parametrize("environment", _NON_DEV_ENVIRONMENTS)
+@pytest.mark.parametrize("path", _TEST_DELETE_PATHS)
+async def test_test_delete_endpoints_return_404_outside_development(
+    path: str, environment: str
+) -> None:
+    """Each of the 6 new ``DELETE /api/v1/_test/<resource>/{id}`` endpoints
+    MUST return 404 ``RESOURCE_NOT_FOUND`` (the env-guard envelope) when
+    ``Settings.environment`` is not ``"development"`` — the same shape as
+    "endpoint not registered" so operators can't probe for the surface.
+    """
+    app = _build_test_app(environment)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.delete(path)
+    assert response.status_code == httpx.codes.NOT_FOUND
+    body = response.json()
+    assert body["detail"]["error_code"] == "RESOURCE_NOT_FOUND"
+    assert body["detail"]["retryable"] is False
