@@ -12,12 +12,16 @@
  * would never fire. The only sticky off-switch is explicit dismissal.
  *
  * Per spec FR-1 + FR-7, the banner MUST NOT render for already-dismissed
- * users. A naive `dismissed = false` initial state would flash visible for
- * one render between SSR/initial-client-render and the post-mount
- * localStorage read. The `mounted` gate prevents this: we return null until
- * the post-mount effect has both (a) set mounted=true AND (b) read
- * localStorage in the same tick. Pre-dismissed users never see the banner;
- * fresh users see it only on the second commit.
+ * users. Hydration uses `useSyncExternalStore` with a CONSERVATIVE server
+ * snapshot of `true` (dismissed) so the banner stays hidden on both the
+ * server render and the first client render. After hydration, the client
+ * snapshot reads localStorage via `safeLocalStorageGet`; if `'1'` the
+ * banner stays hidden, otherwise it renders. Pre-dismissed users never
+ * see a flash; fresh users see a normal "loading finishes, banner
+ * appears" transition on the second commit.
+ *
+ * Same-tab dismissals are tracked in a separate `useState` because
+ * localStorage doesn't fire `storage` events for the writer tab.
  */
 
 import Link from 'next/link';
@@ -49,12 +53,12 @@ function getDismissedSnapshot(): boolean {
 }
 
 function getDismissedServerSnapshot(): boolean {
-  // SSR: assume DISMISSED so the banner is hidden until the client
-  // snapshot is known. This is the conservative choice: pre-dismissed
+  // SSR + initial client render: assume DISMISSED so the banner is hidden
+  // until the client snapshot is known. Conservative choice — pre-dismissed
   // users never see a flash even if cluster data is somehow available
-  // during SSR (prefetch / dehydration / initialData). Fresh users
-  // experience a normal "loading state finishes, banner appears"
-  // transition on the second commit — acceptable per spec FR-1.
+  // during SSR (prefetch / dehydration / initialData). Fresh users get a
+  // normal "loading finishes, banner appears" transition on the second
+  // commit, which is fine per spec FR-1.
   return true;
 }
 
