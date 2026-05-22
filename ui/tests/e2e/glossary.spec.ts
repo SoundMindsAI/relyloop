@@ -64,10 +64,10 @@ test.describe('/guide/glossary route', () => {
   });
 });
 
-test.describe('/guide catalog (glossary section)', () => {
+test.describe('/guide catalog (reference section — glossary + FAQ)', () => {
   test('exposes the glossary catalog card linking to /guide/glossary', async ({ page }) => {
     await page.goto('/guide');
-    const section = page.getByTestId('glossary-section');
+    const section = page.getByTestId('reference-section');
     await expect(section).toBeVisible();
     const card = page.getByTestId('glossary-card');
     await expect(card).toBeVisible();
