@@ -6,23 +6,29 @@ _Reflects feature-folder state as of **2026-05-22** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_study_preflight_overlap_probe](../02_product/planned_features/feat_study_preflight_overlap_probe/feature_spec.md)** — Feature, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> `POST /api/v1/studies` issues a single bounded `ids`-existence query against the study's target asking "for the *first* query in the query set that has any judgments (chosen deterministically by `id ASC`), do its judged doc IDs still exist
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/02_product/planned_features/feat_study_preflight_overlap_probe/implementation_plan.md --all
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **61 / 61** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **61 / 62** (98%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **4** high-value, ready when P0 clears |
 | → P2 (default) | 10 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 1 |
-| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP1) |
+| Legacy "Path to MVP1" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -109,19 +115,20 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|
+| P1 | [feat_study_preflight_overlap_probe](../02_product/planned_features/feat_study_preflight_overlap_probe/feature_spec.md) | Feature | `POST /api/v1/studies` issues a single bounded `ids`-existence query against the study's target asking "for the *first* query in the query set that has any judgments (chosen deterministically by `id A | — | [PR #184](https://github.com/SoundMindsAI/relyloop/pull/184) merged 2026-05-21 |
 
 ### Spec (0)
 
 _None._
 
-### Idea (15)
+### Idea (14)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
-| P1 | [feat_study_preflight_overlap_probe](../02_product/planned_features/feat_study_preflight_overlap_probe/idea.md) | Feature | The target-mismatch guard catches a string-equality mismatch. It misses these legitimate-looking-but-still-broken cases: | — | Idea — surfaced post-merge of `feat_pr_metric_confidence` as the defense-in-depth tier behind the target-mismatch guard |
 | P1 | [chore_guide_06_screenshot_refresh_confidence_panel](../02_product/planned_features/chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai | — | Idea — captured during `feat_pr_metric_confidence` Epic 2 guide-impact assessment |
 | P1 | [chore_guides_faq](../02_product/planned_features/chore_guides_faq/idea.md) | Chore | Tooltips and the glossary answer "**what does X mean?**" within a 1–2 sentence budget. They don't carry the operator-judgment-shaped questions that come up *after* the term is understood: | — | Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review |
 | P1 | [chore_guides_glossary_route](../02_product/planned_features/chore_guides_glossary_route/idea.md) | Chore | The glossary is a load-bearing terminology source-of-truth (cited 100+ times across the codebase, parity-tested against backend Literal enums, locked by source-of-truth comments). But operators can on | — | Idea — surfaced during `feat_pr_metric_confidence` Story 1.5 review |
@@ -148,6 +155,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_preflight_overlap_probe["study preflight overlap probe"]
+  class feat_study_preflight_overlap_probe plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -294,6 +303,7 @@ graph LR
   feat_query_inline_crud --> chore_tutorial_polish
   feat_studies_ui --> chore_tutorial_polish
   feat_study_lifecycle --> chore_tutorial_polish
+  feat_study_preflight_overlap_probe --> chore_tutorial_polish
   feat_study_target_judgment_mismatch_guard --> chore_tutorial_polish
   infra_adapter_elastic --> chore_tutorial_polish
   infra_ci_smoke_makeup --> chore_tutorial_polish
@@ -326,6 +336,7 @@ graph LR
   feat_query_inline_crud --> feat_chat_agent
   feat_studies_ui --> feat_chat_agent
   feat_study_lifecycle --> feat_chat_agent
+  feat_study_preflight_overlap_probe --> feat_chat_agent
   feat_study_target_judgment_mismatch_guard --> feat_chat_agent
   infra_adapter_elastic --> feat_chat_agent
   infra_ci_smoke_makeup --> feat_chat_agent
