@@ -267,8 +267,8 @@ async def create_study(
 
     # 3b. judgment_list ↔ target consistency (feat_study_target_judgment_mismatch_guard
     # FR-1). When targets differ, judgment doc IDs cannot overlap with search
-    # results from the study's target — pytrec_eval scores 0 on every trial by
-    # construction. Closes the literal study2 incident (1000 trials, 0 signal).
+    # results from the study's target — every trial scores 0 by construction.
+    # Closes the literal study2 incident (1000 trials, 0 signal).
     if judgment_list.target != body.target:
         raise _err(
             422,
@@ -310,7 +310,7 @@ async def create_study(
                     f"(judged_doc_count={probe_result.judged_doc_count}). "
                     f"This is a strong signal of corpus/judgment mismatch "
                     f"(e.g., the target index was re-indexed or rotated since "
-                    f"the judgments were authored) — pytrec_eval will likely "
+                    f"the judgments were authored) — ir_measures will likely "
                     f"score 0 on every trial. Regenerate judgments against "
                     f"the current index, or rebuild the index from the "
                     f"snapshot the judgments were authored on."
