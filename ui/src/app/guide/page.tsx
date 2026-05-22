@@ -6,9 +6,12 @@ import { GuideViewer } from '@/components/guides/guide-viewer';
 import { DOC_REGISTRY, GUIDE_REGISTRY } from '@/components/guides/guide-types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { glossary } from '@/lib/glossary';
+import { faq } from '@/lib/faq';
 
 const GLOSSARY_ENTRY_COUNT = Object.keys(glossary).length;
 const GLOSSARY_CATEGORY_COUNT = new Set(Object.keys(glossary).map((k) => k.split('.')[0])).size;
+const FAQ_ENTRY_COUNT = faq.length;
+const FAQ_CATEGORY_COUNT = new Set(faq.map((e) => e.category)).size;
 
 export default function GuideCatalogPage() {
   const [activeGuideId, setActiveGuideId] = useState<string | null>(null);
@@ -88,14 +91,14 @@ export default function GuideCatalogPage() {
         </div>
       </section>
 
-      <section className="space-y-3" data-testid="glossary-section">
+      <section className="space-y-3" data-testid="reference-section">
         <header>
-          <h2 className="text-lg font-semibold tracking-tight">Glossary</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Reference</h2>
           <p className="text-sm text-muted-foreground">
-            Browse every term used across RelyLoop. Search by name or filter by category.
+            Browse the canonical terminology and operator-judgment Q&amp;A.
           </p>
         </header>
-        <div className="grid gap-4 sm:grid-cols-2" data-testid="glossary-catalog-grid">
+        <div className="grid gap-4 sm:grid-cols-2" data-testid="reference-catalog-grid">
           <Link
             href="/guide/glossary"
             className="block transition hover:opacity-90"
@@ -109,6 +112,25 @@ export default function GuideCatalogPage() {
                 <p className="text-sm text-muted-foreground">
                   {GLOSSARY_ENTRY_COUNT} terms across {GLOSSARY_CATEGORY_COUNT} categories — search,
                   facet, and deep-link straight to any entry.
+                </p>
+                <p className="text-xs uppercase tracking-wide text-muted-foreground">Reference</p>
+              </CardContent>
+            </Card>
+          </Link>
+          <Link
+            href="/guide/faq"
+            className="block transition hover:opacity-90"
+            data-testid="faq-card"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">FAQ — operator-judgment Q&amp;A</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {FAQ_ENTRY_COUNT} questions across {FAQ_CATEGORY_COUNT} categories — answers
+                  shaped for "should I…" / "why is…" / "when does…" questions tooltips can&apos;t
+                  carry.
                 </p>
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Reference</p>
               </CardContent>

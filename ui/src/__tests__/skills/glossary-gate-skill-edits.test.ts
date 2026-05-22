@@ -67,6 +67,37 @@ describe('impl-execute Step 3 — glossary gate (AC-10)', () => {
   });
 });
 
+describe('impl-execute — FAQ gates (chore_guides_faq)', () => {
+  it('Step 2.5 tangential-observations sweep includes the FAQ-shaped question prompt', () => {
+    // The 6th prompt (FAQ catch-net) sits in the numbered sweep walking back
+    // through the implementation session.
+    expect(implExecute).toMatch(/operator-judgment-shaped question that has no canonical answer/);
+    expect(implExecute).toContain('ui/src/lib/faq.ts');
+  });
+
+  it('Step 2.5 prompts distinguish FAQ from tooltips/glossary', () => {
+    expect(implExecute).toMatch(/Tooltips and the glossary are NOT the right surface/);
+    expect(implExecute).toMatch(/they're definitional, not judgment-shaped/);
+  });
+
+  it('Step 3 guide-impact gate includes the "New operator decision point" class', () => {
+    expect(implExecute).toContain('New operator decision point');
+    expect(implExecute).toContain('FAQ surface');
+  });
+
+  it('Step 3 locks the tooltip / glossary / FAQ rubric', () => {
+    expect(implExecute).toMatch(/tooltip if 1[-–]2 sentences suffice/);
+    expect(implExecute).toMatch(/glossary if it's a definitional term/);
+    expect(implExecute).toMatch(/FAQ if the answer requires balancing trade-offs/);
+  });
+
+  it('Step 3 FAQ gate defaults to same-PR, mirroring the glossary gate', () => {
+    // The FAQ bullet explicitly says default is add-in-same-PR with the same
+    // operator-approval gating as the New terminology bullet.
+    expect(implExecute).toMatch(/default action is add-in-same-PR/);
+  });
+});
+
 describe('spec-gen Step 3 item 11 — tooltip inventory glossary discipline (AC-11)', () => {
   it('locks the requirement that every tooltip cites an existing glossary key', () => {
     expect(specGen).toContain('every entry cites either an existing glossary key');

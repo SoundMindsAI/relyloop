@@ -5,13 +5,14 @@ import { describe, expect, it } from 'vitest';
 import GuideCatalogPage from '@/app/guide/page';
 import { DOC_REGISTRY, GUIDE_REGISTRY } from '@/components/guides/guide-types';
 import { glossary } from '@/lib/glossary';
+import { faq } from '@/lib/faq';
 
 describe('Guide catalog page', () => {
-  it('renders three sections: long-form docs, walkthroughs, and glossary', () => {
+  it('renders three sections: long-form docs, walkthroughs, and reference', () => {
     render(<GuideCatalogPage />);
     expect(screen.getByTestId('doc-section')).toBeInTheDocument();
     expect(screen.getByTestId('walkthrough-section')).toBeInTheDocument();
-    expect(screen.getByTestId('glossary-section')).toBeInTheDocument();
+    expect(screen.getByTestId('reference-section')).toBeInTheDocument();
   });
 
   it('preserves every existing DOC_REGISTRY + GUIDE_REGISTRY tile (no regression)', () => {
@@ -32,6 +33,17 @@ describe('Guide catalog page', () => {
     const totalCount = Object.keys(glossary).length;
     const categoryCount = new Set(Object.keys(glossary).map((k) => k.split('.')[0])).size;
     expect(card.textContent).toContain(`${totalCount} terms`);
+    expect(card.textContent).toContain(`${categoryCount} categories`);
+  });
+
+  it('renders the FAQ card linking to /guide/faq with dynamic count', () => {
+    render(<GuideCatalogPage />);
+    const card = screen.getByTestId('faq-card');
+    expect(card.tagName).toBe('A');
+    expect(card.getAttribute('href')).toBe('/guide/faq');
+    const totalCount = faq.length;
+    const categoryCount = new Set(faq.map((e) => e.category)).size;
+    expect(card.textContent).toContain(`${totalCount} questions`);
     expect(card.textContent).toContain(`${categoryCount} categories`);
   });
 });
