@@ -575,7 +575,7 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create study</DialogTitle>
           <DialogDescription>
