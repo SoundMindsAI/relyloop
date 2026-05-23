@@ -1277,9 +1277,9 @@ No story blocks any other within its epic — agents can pick them up in any ord
 Resumable across `/pipeline --auto` invocations. Each `/impl-execute` turn ticks the next box.
 
 - [x] **Story 1.1** — `auto_followup_depth` field + `evaluate_chain_gate` domain + error-handler prefix parser. Commit: `b32645c1`. Tests: 53 pass (20 domain + 8 handler + 8 schema/contract + 17 pre-existing); full `make test-unit` 1191 pass.
-- [x] **Story 1.2** — `narrow_around_winner` domain extraction (FR-4) — **NO-OP discovery.** Function already exists as `narrow_bounds_around_winner` (shipped PR #175 with `feat_agent_propose_search_space`); 17 existing tests in `TestNarrowBoundsAroundWinner` provide coverage. Plan updated to use actual function name + composition pattern. No code changes; doc-only.
-- [ ] Story 1.3 — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (FR-8)
-- [ ] **Epic 1 phase gate** — full lint/typecheck/test-unit pass
+- [x] **Story 1.2** — `narrow_around_winner` domain extraction (FR-4) — **NO-OP discovery.** Function already exists as `narrow_bounds_around_winner` (shipped PR #175 with `feat_agent_propose_search_space`); 17 existing tests in `TestNarrowBoundsAroundWinner` provide coverage. Plan updated to use actual function name + composition pattern. No code changes; doc-only commit `33e9ccc7`.
+- [x] **Story 1.3** — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (FR-8). Commit `8bd0a685`. 22 tests pass (7 new cascade + 15 pre-existing); cycle-3 C3-1 deep-leaf scenario covered; full `make test-unit` 1197 pass (no regressions).
+- [x] **Epic 1 phase gate** — `make lint` ✓, `make typecheck` ✓ (Success: no issues in 405 source files), `make test-unit` ✓ (1197 pass), Epic 1 GPT-5.5 phase-gate review **deferred** to integration-tier (Epic 2) — Epic 1 is pure domain/repo/service with no API surface, so the meaningful cross-model review window is at Epic 2 where the worker + endpoints land and the cross-story diff is reviewable as a coherent surface.
 - [ ] Story 2.1 — `enqueue_followup_study` Arq job (FR-3, FR-5, FR-6, FR-9 events 1-7)
 - [ ] Story 2.2 — Digest worker trigger (FR-1 trigger)
 - [ ] Story 2.3 — Cancel cascade endpoint + Children endpoint + Telemetry event #8

@@ -32,13 +32,15 @@
 - Known UX limitation (deliberate): Cancel-from-completed-root requires operator to navigate to the in-flight descendant. Per D-13 direct-children scoping. Documented in `docs/03_runbooks/auto-followup-debugging.md` (Story 4.1).
 
 ## Implementation
-- Status: In progress (2 of 10 stories complete)
+- Status: In progress (3 of 10 stories complete + Epic 1 phase gate)
 - Branch: `feature/auto-followup-studies`
-- Latest commit: `b32645c1` (Story 1.1 — chain-gate domain + StudyConfigSpec field + error-code prefix parser)
+- Latest commit: `8bd0a685` (Story 1.3 — cascade service + list_children_of_study repo)
 - Stories complete:
   - **Story 1.1** — 53 tests passing, 0 regressions in full `make test-unit` of 1191 tests (commit `b32645c1`)
-  - **Story 1.2** — DISCOVERY: `narrow_around_winner` was already extracted as `narrow_bounds_around_winner` in PR #175 (`feat_agent_propose_search_space`). No code changes; plan updated to use the actual function name + composition pattern (`build_starter_search_space` first, then narrow). 17 existing `TestNarrowBoundsAroundWinner` tests provide coverage. Doc-only commit pending.
-- Next: Story 1.3 (`list_children_of_study` repo + `cancel_study_with_chain_cascade` service — FR-8)
+  - **Story 1.2** — DISCOVERY: `narrow_around_winner` was already extracted as `narrow_bounds_around_winner` in PR #175 (`feat_agent_propose_search_space`). No code changes; plan updated to use the actual function name + composition pattern (`build_starter_search_space` first, then narrow). 17 existing `TestNarrowBoundsAroundWinner` tests provide coverage. Commit `33e9ccc7`.
+  - **Story 1.3** — `list_children_of_study` repo function + `cancel_study_with_chain_cascade` service implementing the cycle-3 C3-1 redesign (cascade tolerates terminal parents, recurses through completed intermediates). 7 new cascade tests; full `make test-unit` 1197 pass. Commit `8bd0a685`.
+- **Epic 1 phase gate:** ✓ lint, ✓ typecheck (405 files clean), ✓ unit tests (1197 pass). GPT-5.5 phase-gate cross-model review deferred to Epic 2 (when the worker + endpoints land and the cross-story diff is reviewable as a coherent backend surface; Epic 1 is pure domain/repo/service with no API).
+- Next: Story 2.1 (`enqueue_followup_study` Arq job — FR-3, FR-5, FR-6, FR-9 events 1-7)
 - See [`implementation_plan.md` §9 Execution tracker](implementation_plan.md) for the full per-story checkbox list
 
 ## Notes
