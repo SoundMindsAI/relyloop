@@ -1,7 +1,7 @@
 # Implementation Plan — Replace `pytrec_eval` with `ir_measures` for IR metric scoring
 
 **Date:** 2026-05-22
-**Status:** Draft
+**Status:** Complete (PR #198 merged 2026-05-23)
 **Primary spec:** [`feature_spec.md`](./feature_spec.md) — Approved 2026-05-22 (GPT-5.5 3 cycles, 11 → 6 → 1 findings)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) (Absolute Rules + Bug Fix Protocol + Test Conventions), [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md) (error envelope), [`docs/05_quality/testing.md`](../../../05_quality/testing.md) (test-layer convention)
 
