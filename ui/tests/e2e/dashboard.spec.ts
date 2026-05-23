@@ -60,11 +60,26 @@ test.describe('/ dashboard demo-data banner', () => {
     await expect(banner.getByText('acme-products-prod')).toBeVisible();
   });
 
-  test('Dismiss persists across reload (FR-7, AC-3)', async ({ page, context }) => {
-    await context.addInitScript(() => {
+  test('Dismiss persists across reload (FR-7, AC-3)', async ({ page }) => {
+    // bug_dashboard_banner_dismiss_persistence_flake: the previous
+    // implementation used `context.addInitScript` to clear the dismissed
+    // flag from localStorage. Init scripts run on EVERY new page init
+    // including `page.reload()`, so after the reload below the script
+    // re-cleared the flag — racing with React's hydration to decide
+    // whether the banner stays hidden. The "stays hidden" assertion
+    // could pass during the brief SSR-snapshot window (banner starts
+    // hidden because getDismissedServerSnapshot returns true) and then
+    // fail once hydration read the cleared flag and flipped the banner
+    // visible. Flake observed twice on PR #193 smoke CI.
+    //
+    // Fix: use `page.evaluate` for the one-time pre-reload cleanup so
+    // the reload only re-runs the test's user-facing assertions, not
+    // a localStorage-clearing init script.
+    await page.goto('/');
+    await page.evaluate(() => {
       window.localStorage.removeItem('relyloop.home-first-run-demo-nudge.dismissed');
     });
-    await page.goto('/');
+    await page.reload();
     await expect(page.getByTestId('demo-data-banner')).toBeVisible({ timeout: 10_000 });
     await page.getByTestId('demo-data-banner-dismiss').click();
     await expect(page.getByTestId('demo-data-banner')).toBeHidden();
