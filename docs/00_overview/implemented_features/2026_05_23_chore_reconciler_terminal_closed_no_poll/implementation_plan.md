@@ -1,7 +1,7 @@
 # Implementation Plan — chore_reconciler_terminal_closed_no_poll (Tier A)
 
 **Date:** 2026-05-23
-**Status:** Ready for Execution
+**Status:** Complete (PR #216, merged 2026-05-23, squash SHA `95d4c414`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** CLAUDE.md Absolute Rules (Rule #5: migration round-trip; Rule #10: no log/expose secrets)
 
