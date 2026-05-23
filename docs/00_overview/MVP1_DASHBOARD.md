@@ -6,15 +6,21 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/feature_spec.md)** — Chore, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed glossary copy explaining the convergence
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/02_product/planned_features/chore_study_default_stop_conditions/implementation_plan.md --all
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **67 / 67** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **67 / 68** (99%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -120,15 +126,17 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/feature_spec.md) | Chore | The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed  | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) |
 
 ### Spec (0)
 
 _None._
 
-### Idea (12)
+### Idea (11)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -141,9 +149,8 @@ _None._
 | 7 | P2 | [chore_dashboard_pr_extraction_from_idea](../02_product/planned_features/chore_dashboard_pr_extraction_from_idea/idea.md) | Chore | Several early MVP1 features shipped before the `/pipeline` ceremony solidified, leaving them with only an `idea.md` in `implemented_features/<date>_<slug>/`. Examples (as of 2026-05-23): | — | Idea — surfaced during the tangential-observations sweep of `bug_dashboard_depends_on_column_bloat` (PR pending) |
 | 8 | P2 | [chore_reconciler_terminal_closed_no_poll](../02_product/planned_features/chore_reconciler_terminal_closed_no_poll/idea.md) | Chore | After `bug_pr_reconciler_blocked_by_closed_fallback` ships, the reconciler's candidate query at [`backend/app/db/repo/proposal.py:455-475`](../../backend/app/db/repo/proposal.py#L455-L475) returns BOT | — | Idea — surfaced during the ad-hoc tangential-observations sweep of `bug_pr_reconciler_blocked_by_closed_fallback` (PR pending) |
 | 9 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 10 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
-| 11 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 12 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
+| 10 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| 11 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
 
 ## Dependency graph
 
@@ -156,6 +163,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_study_default_stop_conditions["study default stop conditions"]
+  class chore_study_default_stop_conditions plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
