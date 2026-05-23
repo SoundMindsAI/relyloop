@@ -86,6 +86,7 @@ from backend.app.db.repo.proposal import (
     mark_proposal_pr_reopened,
     reject_proposal,
     set_proposal_pr_open_error,
+    stamp_proposal_last_polled_at,
     update_proposal_for_digest,
 )
 from backend.app.db.repo.query import (
@@ -220,6 +221,8 @@ __all__ = [
     "mark_proposal_pr_merged_from_closed",
     "mark_proposal_pr_reopened",
     "set_webhook_registration_error",
+    # chore_reconciler_terminal_closed_no_poll FR-2
+    "stamp_proposal_last_polled_at",
     # feat_chat_agent Story 1.3 (conversations + messages aggregate)
     "count_conversations",
     "create_conversation",

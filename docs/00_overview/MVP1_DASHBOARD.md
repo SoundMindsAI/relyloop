@@ -14,7 +14,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **68 / 68** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **69 / 69** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -27,7 +27,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (85)
+### Done (86)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -93,6 +93,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_source_filter_server_side](implemented_features/2026_05_13_chore_proposals_source_filter_server_side/idea.md) | Chore | Complete | — | Complete |
+| [chore_reconciler_terminal_closed_no_poll](implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll/feature_spec.md) | Chore | Complete (PR #216, merged 2026-05-23, squash SHA `95d4c414`) | — | [PR #216](https://github.com/SoundMindsAI/relyloop/pull/216) merged 2026-05-23 |
 | [chore_spec_trial_created_at_drift](implemented_features/2026_05_13_chore_spec_trial_created_at_drift/idea.md) | Chore | Complete | — | Complete |
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/feature_spec.md) | Chore | The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed  | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) |
@@ -141,7 +142,7 @@ _None._
 | 6 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/idea.md) | Infra | Running an autonomous agent in a sibling git worktree while the operator's main checkout has the Docker Compose stack up exposes two surfaces that aren't designed for parallel work: | — | Idea — tangential observations from the autonomous `chore_reconciler_terminal_closed_no_poll` agent run (PR #216, merged 2026-05-23) |
 | 7 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 8 | P2 | [chore_dashboard_pr_extraction_from_idea](../02_product/planned_features/chore_dashboard_pr_extraction_from_idea/idea.md) | Chore | Several early MVP1 features shipped before the `/pipeline` ceremony solidified, leaving them with only an `idea.md` in `implemented_features/<date>_<slug>/`. Examples (as of 2026-05-23): | — | Idea — surfaced during the tangential-observations sweep of `bug_dashboard_depends_on_column_bloat` (PR pending) |
-| 9 | P2 | [chore_reconciler_terminal_closed_no_poll](../02_product/planned_features/chore_reconciler_terminal_closed_no_poll/idea.md) | Chore | After `bug_pr_reconciler_blocked_by_closed_fallback` ships, the reconciler's candidate query at [`backend/app/db/repo/proposal.py:455-475`](../../backend/app/db/repo/proposal.py#L455-L475) returns BOT | — | Idea — surfaced during the ad-hoc tangential-observations sweep of `bug_pr_reconciler_blocked_by_closed_fallback` (PR pending) |
+| 9 | P2 | [chore_migration_test_head_brittleness](../02_product/planned_features/chore_migration_test_head_brittleness/idea.md) | Chore | [`backend/tests/integration/test_migrations.py`](../../backend/tests/integration/test_migrations.py) has two assertions: | — | Idea — surfaced during `chore_reconciler_terminal_closed_no_poll` implementation |
 | 10 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 11 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | 12 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
@@ -289,6 +290,8 @@ graph LR
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe["study preflight overlap probe"]
   class feat_study_preflight_overlap_probe done;
+  chore_reconciler_terminal_closed_no_poll["reconciler terminal closed no poll"]
+  class chore_reconciler_terminal_closed_no_poll done;
   feat_config_repo_baseline_tracking["config repo baseline tracking"]
   class feat_config_repo_baseline_tracking done;
   infra_ir_measures_migration["ir measures migration"]
