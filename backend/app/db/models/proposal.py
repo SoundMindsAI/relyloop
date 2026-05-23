@@ -72,6 +72,12 @@ class Proposal(Base):
     pr_open_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     """Populated when `feat_github_pr_worker` fails to open the PR;
     cleared on successful retry."""
+    last_polled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    """Reconciler stamp recording the last time ``reconcile_pr_state`` observed
+    ``(merged=false, state=closed)`` against a ``(pr_opened, closed)`` row. Used
+    by the ``list_pr_opened_proposals_for_reconcile`` 24-hour exclusion. Written
+    ONLY by ``stamp_proposal_last_polled_at`` (see
+    ``chore_reconciler_terminal_closed_no_poll`` FR-2)."""
     rejected_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     """Operator-supplied reason when ``status == 'rejected'``."""
     created_at: Mapped[datetime] = mapped_column(
