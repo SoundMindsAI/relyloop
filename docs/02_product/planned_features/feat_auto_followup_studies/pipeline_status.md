@@ -32,7 +32,12 @@
 - Known UX limitation (deliberate): Cancel-from-completed-root requires operator to navigate to the in-flight descendant. Per D-13 direct-children scoping. Documented in `docs/03_runbooks/auto-followup-debugging.md` (Story 4.1).
 
 ## Implementation
-- Status: Not started
+- Status: In progress (1 of 10 stories complete)
+- Branch: `feature/auto-followup-studies`
+- Latest commit: `b32645c1` (Story 1.1 — chain-gate domain + StudyConfigSpec field + error-code prefix parser)
+- Stories complete: Story 1.1 (53 tests passing, 0 regressions in full `make test-unit` of 1191 tests)
+- Next: Story 1.2 (`narrow_around_winner` domain extraction — FR-4)
+- See [`implementation_plan.md` §9 Execution tracker](implementation_plan.md) for the full per-story checkbox list
 
 ## Notes
 - This feature uses an existing column (`studies.parent_study_id` self-FK from `feat_study_lifecycle` Phase 1 migration 0003) for the first time. **No schema migration is needed.**

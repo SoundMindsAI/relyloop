@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-**[feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md)** — Feature, currently in **Plan**
+**[feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md)** — Feature, currently in **Implementing**
 
 > A relevance engineer can opt into auto-chaining on a per-study basis by setting `studies.config.auto_followup_depth` in the create-study wizard (or the `create_study` agent tool).
 
-Plan approved; run /impl-execute to ship
+Implementation in progress — resume to finish
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_auto_followup_studies/implementation_plan.md --all
+/impl-execute docs/02_product/planned_features/feat_auto_followup_studies/implementation_plan.md --all  # resume in-progress
 ```
 
 ## MVP1 Progress
@@ -29,7 +29,7 @@ Plan approved; run /impl-execute to ship
 | Open bugs | 0 |
 | Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 6 idea-only feat/infra (not yet scoped into MVP1) |
-| In flight | 0 feature(s) actively shipping |
+| In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -124,15 +124,15 @@ Plan approved; run /impl-execute to ship
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | Complete | — | Complete |
 | [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Complete | — | Complete |
 
-### Implementing (0)
-
-_None._
-
-### Plan (1)
+### Implementing (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md) | Feature | A relevance engineer can opt into auto-chaining on a per-study basis by setting `studies.config.auto_followup_depth` in the create-study wizard (or the `create_study` agent tool). | — | [PR #175](https://github.com/SoundMindsAI/relyloop/pull/175) |
+
+### Plan (0)
+
+_None._
 
 ### Spec (0)
 
@@ -166,7 +166,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_auto_followup_studies["auto followup studies"]
-  class feat_auto_followup_studies plan;
+  class feat_auto_followup_studies implement;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
