@@ -84,7 +84,14 @@ Command: /impl-plan-gen <path>/feature_spec.md
 
 When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wide pipeline status across **all** features in `docs/02_product/planned_features/`. **Do not invoke any skills in this mode.** The user is asking "where are we and what's next" — give them an unambiguous answer.
 
-**The output MUST be ordered by dependency-derived priority.** Never sort by `ls`, alphabet, or directory mtime — the user should not have to guess what comes next.
+**Scope:** `/pipeline status` mirrors the **Idea table** from [`MVP1_DASHBOARD.md`](../../../docs/00_overview/MVP1_DASHBOARD.md) — i.e., the prioritized backlog. The `#` column in the output IS the per-table ordinal from the dashboard's Idea table for the same working tree (not a global cross-stage ordinal). Spec/Plan/Implementing stages are typically empty or hold one in-flight item that the operator already knows about — surface those as a brief one-line "in flight" note above the Idea table rather than re-rendering them.
+
+**Two distinct "what's next" answers — don't conflate them:**
+
+- **`/pipeline status`'s Next action** (this skill) answers: "what's the next item from the prioritized backlog to work on?" The answer is the first row of the tier-sorted Idea table (`_md_sort_key`).
+- **The dashboard's "Next up" callout** (rendered by `_next_action` in the regen script) answers a different question: "what scoped `feat_`/`infra_`/`epic_`/`chore_` feature is next to ship through the dependency DAG?" It excludes `idea`-stage rows and `bug_*` rows entirely (they're not nodes in the shipped-feature DAG), so when the backlog is all idea-stage / bug-stage items, the callout correctly reports "all scoped features shipped — pull from the Idea backlog."
+
+These two answers can legitimately diverge and that's the design — each is correct for its own question. `/pipeline status` always answers the first one. Don't try to merge the algorithms.
 
 ### Algorithm
 
@@ -97,10 +104,13 @@ When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wi
    - If the spec has no `Depends on:` line, treat it as a root (no dependencies).
    - If only `idea.md` exists (no spec), parse `idea.md` the same way; if neither exists, the feature is uncategorizable — list it separately under "Unparseable" at the bottom.
 
-3. **Topologically sort.** Standard Kahn's algorithm:
-   - Roots (features with no remaining unsatisfied deps) come first.
-   - Tiebreaker among same-tier features: prefix order `infra_` → `feat_` → `chore_`, then alphabetical.
-   - If a cycle is detected, list the cycle members at the bottom under "Cycle detected — review these specs" and continue with the rest.
+3. **Sort the pending-work list** with the canonical `_md_sort_key` from [`scripts/build_mvp1_dashboard.py:1799`](../../../scripts/build_mvp1_dashboard.py). The tuple is `(priority_value, type_order[prefix], short_name)`:
+   - **Priority tier first** (P0 → P1 → P2 → Backlog). This is the high-stakes signal — within-tier ordering is the tiebreaker, not the headline.
+   - **Then prefix order:** `feat → infra → epic → chore → bug` (the `type_order` map at line 1797 of the regen script). Note: this is **NOT** alphabetical-by-prefix; `feat` comes first because shipped-feature-shaped backlog items take priority over scaffolding/cleanup at the same tier.
+   - **Then alphabetical** by `short_name` (the part after the prefix underscore).
+   - If you find yourself wanting to reorder these tiebreaker layers in prose, **don't** — update `scripts/build_mvp1_dashboard.py` instead, regen, and let this skill follow.
+
+   **Note about cycles in the dep graph:** the Idea-table sort doesn't run a topological sort — it doesn't need to, since the dashboard regen guarantees the dep DAG is acyclic for shipped features (where the "Next up" callout's `_priority_order` does run Kahn's). For Idea-stage work, deps are informational (rendered in the "Depends on" column) but don't change ordering. If an idea cites a sibling idea that hasn't shipped, that's surfaced in the column, not by row position.
 
 4. **Cross-check against `docs/02_product/mvp1-user-stories.md`** §"Stories grouped by feature". That doc lists features in their canonical narrative order. Compare to the dep-derived order:
    - **If they match:** great — present the priority order without comment.
@@ -115,21 +125,27 @@ When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wi
    - `idea.md` exists only → **IDEA complete, ready for SPEC**
    - Folder exists with no artifacts → **EMPTY**
 
-6. **Pick the "Next action."** The next feature is the first feature in priority order whose stage is not DONE. For PARTIAL features, the next action targets the deferred phase's `phase*_idea.md`, not the original feature folder. Quote the exact `/pipeline <path>` command.
+6. **Pick the "Next action."** The next feature is the **first row of the tier-sorted Idea table** (`_md_sort_key` order — tier → prefix → alphabetical) whose stage is not DONE. This is `/pipeline status`'s answer; it does NOT delegate to `_priority_order` (that's the dashboard's "Next up" callout for shipped-feature DAG progression — a different question). For PARTIAL features (status = idea + a sibling `phase*_idea.md` exists), the next action targets the deferred phase's `phase*_idea.md`, not the original feature folder. Quote the exact `/pipeline <path>` command.
 
-> **Canonical algorithm reference.** This algorithm is also implemented in [`scripts/build_mvp1_dashboard.py`](../../../scripts/build_mvp1_dashboard.py), which generates [`docs/00_overview/MVP1_DASHBOARD.md`](../../../docs/00_overview/MVP1_DASHBOARD.md) (GitHub-rendered) and `docs/00_overview/mvp1_dashboard.html` (rich local view). The dashboard is the durable artifact — `/pipeline status` is the live-conversation view that should match what the dashboard shows for the same working tree. If the two ever disagree on priority order or stage detection, the dashboard generator is the source of truth (it has explicit code paths for the deferred-phase / partial-completion case); update either this skill's prose or the script to converge, never let them drift.
+> **Canonical algorithm reference.** The algorithm above is implemented in [`scripts/build_mvp1_dashboard.py`](../../../scripts/build_mvp1_dashboard.py) at three specific call sites that MUST stay in sync:
+>
+> - **`_md_sort_key`** (line ~1799) — the canonical sort key for the Idea / Spec / Plan / Implementing tables in `MVP1_DASHBOARD.md`. The `#` column in those tables IS the position produced by this sort.
+> - **`_priority_order`** (line ~1132) — the DAG-aware topological sort used by the `_next_action` "Next up" callout. Excludes `idea`-stage and `bug_*` features (they're not dependency-graph nodes). Uses `type_order` (a subset — feat → infra → epic → chore, no bug) as the within-DAG tiebreaker, but does NOT use the priority tier as a sort key — it sorts purely by (deps, prefix, name). This is intentional: `_priority_order` answers a different question than `_md_sort_key` ("what's the next scoped feature to SHIP through the DAG?" vs. "what's the highest-priority backlog item to WORK ON?"). The two can produce different answers for the same input, and that's correct.
+> - **`_next_action`** (line ~1179) — picks the first non-done feature from `_priority_order` and emits the exact `/pipeline ...` command for the next stage.
+>
+> The dashboard is the durable artifact — `/pipeline status` is the live-conversation view that should match what the dashboard shows for the same working tree. If the two ever disagree on priority order, the `#` column, or stage detection, **the regen script is the source of truth**; update this skill's prose or shell out to the script, never let them drift. The regression test at [`backend/tests/unit/scripts/test_dashboard_priority_sort.py`](../../../backend/tests/unit/scripts/test_dashboard_priority_sort.py) locks the tiebreaker order so future edits to either side can't silently diverge.
 
 ### Required output format
 
 ```
 Pipeline Status — MVP1 Priority Order
 
-| #  | Feature                | Depends on | Idea | Spec | Plan | Implement | Done |
-|----|------------------------|-----------|------|------|------|-----------|------|
-| 1  | infra_foundation       | —         |  —   |  ✓   |  —   |    —      |  —   |
-| 2  | infra_adapter_elastic  | 1         |  —   |  ✓   |  —   |    —      |  —   |
-| ...                                                                                |
-| 12 | chore_tutorial_polish  | all MVP1  |  —   |  ✓   |  —   |    —      |  —   |
+| #  | Priority | Feature                  | Type    | Depends on | Idea | Spec | Plan | Implement | Done |
+|----|----------|--------------------------|---------|-----------|------|------|------|-----------|------|
+| 1  | **P1**   | feat_ubi_judgments       | Feature | MVP1 ✓    |  ✓   |  —   |  —   |    —      |  —   |
+| 2  | P2       | feat_auto_followup_studies | Feature | —       |  ✓   |  —   |  —   |    —      |  —   |
+| ... (sorted by tier → feat→infra→epic→chore→bug → alphabetical)                              |
+| 14 | Backlog  | chore_e2e_seed_acme_helper_dead | Chore | —      |  ✓   |  —   |  —   |    —      |  —   |
 
 **Next action: advance #<n> `<feature>` from <STAGE> → <NEXT STAGE>.**
 
@@ -137,12 +153,14 @@ Pipeline Status — MVP1 Priority Order
 /pipeline docs/02_product/planned_features/<feature>
 ```
 
-Implemented: <count> · Planned: <count> · Cross-checked against mvp1-user-stories.md: <match | disagreement noted above>
+Implemented: <count> · Planned: <count> · Cross-checked against `MVP1_DASHBOARD.md` Idea-table `#` column: <match | mismatch flagged inline above>
 ```
 
-- The `Depends on` column shows the **`#`** of each upstream feature, not the full slug, to keep the table tight. Use `—` for roots, `all backend` / `all MVP1` for transitive deps.
+- The `#` column matches the dashboard's Idea-table `#` column for the same working tree (sort: priority tier → prefix order → alphabetical; see "Canonical algorithm reference" below).
+- The `Priority` column makes the tier visible inline; the row order still tells the operator what to work on first.
+- The `Depends on` column shows the `#` of each upstream feature, not the full slug, to keep the table tight. Use `—` for roots, `all backend` / `all MVP1` for transitive deps. For Idea-stage items the dep cell is informational only — deps don't change row order at the idea stage (sort is tier+prefix+alphabetical, not topological).
 - Use `✓` for completed stages, `—` for not-started, `…` for in-progress (e.g. plan exists but stories are partial).
-- File-link each feature name to its `feature_spec.md` so the user can click through.
+- File-link each feature name to its `feature_spec.md` (or `idea.md` if no spec yet) so the user can click through.
 - The "Next action" line is mandatory and must contain exactly one feature, exactly one stage transition, and exactly one runnable command.
 
 ### Why this matters
