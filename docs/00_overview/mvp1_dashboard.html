@@ -1024,7 +1024,7 @@ footer {
 
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/198">PR #198</a><span>merged 2026-05-23</span>
   </div>
-  <div class="one-liner">`scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -&gt; ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the </div>
+  <div class="one-liner">`backend/app/eval/scoring.py` uses `ir_measures` for IR evaluation; the public `score(qrels, run, metrics) -&gt; ScoreResult` signature and the user-facing wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) a</div>
 
 
 </div>

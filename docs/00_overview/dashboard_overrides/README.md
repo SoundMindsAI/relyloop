@@ -6,7 +6,7 @@ This directory holds sidecar override files for the MVP1/MVP2 dashboard generato
 
 The dashboard generator pulls each feature's one-liner description from its `feature_spec.md`'s `## 1) Purpose` block (the `Outcome` bullet, falling back to `Problem`). For **implemented features**, that `feature_spec.md` is frozen historical — it describes what shipped at the time and must not be back-edited (per the convention in CLAUDE.md + the spec author's "historical artifacts — leave alone" rule).
 
-That works fine until a **later feature** changes the behavior the historical row described. Example: `infra_ir_measures_migration` (2026-05-22) replaced `pytrec_eval` with `ir_measures` in `backend/app/eval/scoring.py`. The frozen `infra_optuna_eval` spec's Outcome line still names `pytrec_eval` (correctly — that's what shipped). But the current-state dashboard's row for `infra_optuna_eval` now mis-describes what its code does today.
+That works fine until a **later feature** changes the behavior the historical row described. Example: `infra_ir_measures_migration` (2026-05-23) swapped the IR-evaluation engine in `backend/app/eval/scoring.py`. The frozen `infra_optuna_eval` spec's Outcome line still names the prior engine (correctly — that's what shipped). But the current-state dashboard's row for `infra_optuna_eval` now mis-describes what its code does today.
 
 This directory is the resolution: drop a `<feature_slug>.md` file here with the current-state one-liner. The generator looks here first, falls back to the spec.
 
