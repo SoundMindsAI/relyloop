@@ -53,7 +53,8 @@ End-to-end verification on the live filesystem:
 
 - `feat_chat_agent` row: **41 → 10** backtick'd entries.
 - `chore_tutorial_polish` row: **42 → 11** backtick'd entries.
-- All other dashboard rows: byte-identical (no collateral churn).
+- All other dashboard rows scoped to existing folders: byte-identical (no collateral churn from the bug-fix logic).
+- The dashboard's Idea section gains one new row for the tangential follow-up `chore_dashboard_pr_extraction_from_idea` (filed in this PR per CLAUDE.md tangential-discoveries protocol). Idea count moves from 14 → 15 / 7-remaining → 8-remaining; that's the only non-bloat-related dashboard delta.
 - 10 entries match exactly the set of `infra_*`/`feat_*` folders shipped on or before 2026-05-12 minus `feat_chat_agent` itself (verified by `ls docs/00_overview/implemented_features/`).
 
 ## Rollout
