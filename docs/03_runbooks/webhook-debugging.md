@@ -205,16 +205,21 @@ LEFT JOIN proposals p ON p.id = cr.last_merged_proposal_id
 WHERE cr.name = '<repo_name>';
 ```
 
-**Known limitation — fallback-closed proposals are not recovered.** If the
-webhook delivers `pull_request.closed` with `merged=true` AND `merged_at=null`
-(GitHub eventual-consistency edge case), the receiver calls
-`mark_proposal_pr_closed` and leaves the proposal in `(pr_opened, closed)`.
-The reconciler's candidate query
-`list_pr_opened_proposals_for_reconcile` filters to `pr_state='open'`, so
-fallback-closed proposals are invisible to it; the pointer stays NULL for
-that merge. Captured as the standalone bug
-[`bug_pr_reconciler_blocked_by_closed_fallback`](../02_product/planned_features/bug_pr_reconciler_blocked_by_closed_fallback/idea.md).
-Recovery requires operator action.
+**Eventual-consistency recovery (`bug_pr_reconciler_blocked_by_closed_fallback`).**
+If the webhook delivers `pull_request.closed` with `merged=true` AND
+`merged_at=null` (GitHub eventual-consistency edge case), the receiver
+calls `mark_proposal_pr_closed` and leaves the proposal in
+`(pr_opened, closed)`. The reconciler's candidate query
+`list_pr_opened_proposals_for_reconcile` now returns both `pr_state='open'`
+and `pr_state='closed'` rows; the reconciler branches on `pr_state`. When
+GitHub later returns `merged=true` with a non-null `merged_at` for a
+closed candidate, the reconciler calls `mark_proposal_pr_merged_from_closed`
+(atomic single-UPDATE matching `pr_state='closed'`), the pointer-update
+branch fires the same way as the open-state path, and a
+`pr_reconcile_recovered_eventual_consistency` INFO log records the recovery.
+Genuinely-closed-unmerged proposals (PR closed without merge) re-polled in
+the closed branch return `merged=false, state=closed` and become benign
+no-ops via `mark_proposal_pr_closed`'s `pr_state='open'` guard.
 
 ---
 

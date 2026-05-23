@@ -1,17 +1,23 @@
 """PR reconciler integration tests for config_repos.last_merged_proposal_id.
 
-feat_config_repo_baseline_tracking Story 1.4 (FR-3a). Two test cases:
+feat_config_repo_baseline_tracking Story 1.4 (FR-3a) +
+bug_pr_reconciler_blocked_by_closed_fallback recovery. Three test cases:
 
 * **Happy path** — webhook delivery NEVER fired; reconciler is the first
   observer of the merge. Proposal is still ``(pr_opened, open)``;
   ``mark_proposal_pr_merged`` succeeds; pointer-update fires.
 
-* **Negative documentation test** — the webhook's ``merged_at=null`` fallback
-  closed the proposal. Reconciler tick observes ``merged=true`` +
-  non-null ``merged_at`` but ``mark_proposal_pr_merged`` returns None
-  because ``pr_state='closed'``. Pointer remains NULL. This is the
-  documented limitation captured as
-  ``bug_pr_reconciler_blocked_by_closed_fallback`` — NOT a regression.
+* **Eventual-consistency recovery** — the webhook's ``merged_at=null``
+  fallback closed the proposal. Reconciler tick observes ``merged=true``
+  + non-null ``merged_at`` against a ``(pr_opened, closed)`` candidate;
+  ``mark_proposal_pr_merged_from_closed`` recovers the transition and
+  the pointer-update branch fires the same way as the open-state path.
+
+* **Genuinely closed unmerged** — a ``(pr_opened, closed)`` proposal
+  where the PR really was closed without merge. Reconciler polls,
+  GitHub returns ``merged=false, state=closed``, the existing
+  ``mark_proposal_pr_closed`` no-op kicks in (pr_state='open' guard),
+  the proposal stays put, no pointer update.
 """
 
 from __future__ import annotations
@@ -192,26 +198,18 @@ async def test_reconciler_observes_missed_merge_updates_pointer(
 
 
 # --------------------------------------------------------------------------
-# Negative documentation test: pre-existing limitation
-# (bug_pr_reconciler_blocked_by_closed_fallback)
+# Eventual-consistency recovery (bug_pr_reconciler_blocked_by_closed_fallback)
 # --------------------------------------------------------------------------
 
 
-async def test_reconciler_does_not_recover_fallback_closed_proposal(
+async def test_reconciler_recovers_fallback_closed_proposal(
     wired_reconcile_env: dict[str, str],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Document the pre-existing limitation: reconciler cannot recover a proposal
-    that the webhook's merged_at=null fallback already moved to (pr_opened, closed).
-
-    mark_proposal_pr_merged requires pr_state='open' and returns None when the
-    state is 'closed' — so FR-3a's pointer-update branch does NOT fire here.
-    The proposal stays in (pr_opened, closed) forever until an operator
-    manually intervenes.
-
-    This test pins the current behavior. Fixing this gap requires changes to
-    the reconciler state machine and is captured as a separate bug:
-    docs/02_product/planned_features/bug_pr_reconciler_blocked_by_closed_fallback/idea.md.
+    """The webhook's merged_at=null fallback closed the proposal; a later
+    reconciler tick sees merged=true with a real merged_at and recovers
+    the transition. Pointer is maintained the same way as the open-state
+    happy path.
     """
     pr_url = (
         f"https://github.com/{wired_reconcile_env['owner']}/{wired_reconcile_env['repo']}"
@@ -246,20 +244,81 @@ async def test_reconciler_does_not_recover_fallback_closed_proposal(
 
     from backend.workers.pr_reconcile import reconcile_pr_state
 
-    # Run a tick. The proposal IS NOT in the candidate set
-    # (list_pr_opened_proposals_for_reconcile filters to
-    # pr_state='open'); it's invisible to the reconciler entirely.
-    # This makes the bug stronger than originally stated: the proposal
-    # can never be recovered without operator action.
-    await reconcile_pr_state({})
+    summary = await reconcile_pr_state({})
+    assert summary["reconciled"] >= 1
 
     async with factory() as db:
         prop = await repo.get_proposal(db, pid)
         assert prop is not None
-        # Proposal is stuck — both fields show the fallback state.
+        # Recovery transitioned the proposal to the merged terminal state.
+        assert prop.status == "pr_merged"
+        assert prop.pr_state == "merged"
+        assert prop.pr_merged_at is not None
+        # Pointer was maintained — FR-3a parity with the open-state path.
+        cr = await repo.get_config_repo(db, wired_reconcile_env["config_repo_id"])
+        assert cr is not None
+        assert cr.last_merged_proposal_id == pid
+
+
+# --------------------------------------------------------------------------
+# Idempotency: genuinely-closed-unmerged proposals stay put
+# --------------------------------------------------------------------------
+
+
+async def test_reconciler_noops_on_genuinely_closed_unmerged(
+    wired_reconcile_env: dict[str, str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A (pr_opened, closed) proposal that was really closed without merge
+    must stay put when the reconciler polls and GitHub confirms it.
+
+    After widening the candidate query to include pr_state='closed' rows,
+    we must verify the case (b) path is a benign no-op: the existing
+    mark_proposal_pr_closed helper requires pr_state='open' and returns
+    None, so the proposal stays in (pr_opened, closed) and the pointer is
+    NOT incorrectly updated.
+    """
+    pr_url = (
+        f"https://github.com/{wired_reconcile_env['owner']}/{wired_reconcile_env['repo']}"
+        f"/pull/{uuid.uuid4().int % 10_000}"
+    )
+    pid = await _seed_pr_opened_proposal_under_cluster(
+        cluster_id=wired_reconcile_env["cluster_id"],
+        template_id=wired_reconcile_env["template_id"],
+        pr_url=pr_url,
+    )
+
+    factory = get_session_factory()
+    async with factory() as db:
+        await repo.mark_proposal_pr_closed(db, pid)
+        await db.commit()
+
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "merged": False,
+                "merged_at": None,
+                "state": "closed",
+            },
+        )
+
+    _install_mock_transport(monkeypatch, httpx.MockTransport(handler))
+
+    from backend.workers.pr_reconcile import reconcile_pr_state
+
+    summary = await reconcile_pr_state({})
+    # Candidate was selected (widened query) but no transition fired —
+    # the proposal stays put, no recovered_eventual_consistency log.
+    assert summary["candidates"] >= 1
+    assert summary["reconciled"] == 0
+
+    async with factory() as db:
+        prop = await repo.get_proposal(db, pid)
+        assert prop is not None
         assert prop.status == "pr_opened"
         assert prop.pr_state == "closed"
-        # Pointer was NOT set — this is the documented limitation.
+        assert prop.pr_merged_at is None
         cr = await repo.get_config_repo(db, wired_reconcile_env["config_repo_id"])
         assert cr is not None
         assert cr.last_merged_proposal_id is None

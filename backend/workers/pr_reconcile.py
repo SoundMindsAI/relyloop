@@ -169,24 +169,36 @@ async def reconcile_pr_state(ctx: dict[str, Any]) -> dict[str, int]:
 
             factory = get_session_factory()
             if merged and merged_at is not None:
+                # bug_pr_reconciler_blocked_by_closed_fallback — branch on
+                # the candidate's current pr_state. Normal candidates are
+                # (pr_opened, open); fallback-closed candidates arrive in
+                # (pr_opened, closed) because the webhook's merged_at=null
+                # branch closed them prematurely. Both transition to
+                # (pr_merged, merged) but the WHERE clauses differ.
                 async with factory() as db:
-                    updated = await repo.mark_proposal_pr_merged(
-                        db, proposal.id, pr_merged_at=merged_at
-                    )
+                    recovery_path = proposal.pr_state == "closed"
+                    if recovery_path:
+                        updated = await repo.mark_proposal_pr_merged_from_closed(
+                            db, proposal.id, pr_merged_at=merged_at
+                        )
+                        if updated is not None:
+                            logger.info(
+                                "pr_reconcile_recovered_eventual_consistency",
+                                proposal_id=proposal.id,
+                                pr_merged_at=merged_at.isoformat(),
+                            )
+                    else:
+                        updated = await repo.mark_proposal_pr_merged(
+                            db, proposal.id, pr_merged_at=merged_at
+                        )
                     if updated is not None:
                         # feat_config_repo_baseline_tracking FR-3a — maintain
                         # config_repos.last_merged_proposal_id pointer when
                         # the reconciler is the first observer of the merge
-                        # (e.g., the webhook was never delivered). Same
+                        # (e.g., the webhook was never delivered, OR the
+                        # webhook's merged_at=null fallback transitioned the
+                        # row before GitHub reported a timestamp). Same
                         # transaction as the proposal UPDATE.
-                        #
-                        # Known limitation: this branch does NOT recover
-                        # proposals that the webhook's merged_at=null fallback
-                        # already moved to (pr_opened, closed) —
-                        # mark_proposal_pr_merged requires pr_state='open'
-                        # and returns None against that state. See
-                        # bug_pr_reconciler_blocked_by_closed_fallback/idea.md
-                        # under docs/02_product/planned_features/.
                         cluster_row = await repo.get_cluster(db, proposal.cluster_id)
                         if cluster_row is not None and cluster_row.config_repo_id is not None:
                             await repo.update_config_repo_last_merged_pointer(

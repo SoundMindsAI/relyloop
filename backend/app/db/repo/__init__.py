@@ -81,6 +81,7 @@ from backend.app.db.repo.proposal import (
     lookup_proposal_by_pr_url,
     mark_proposal_pr_closed,
     mark_proposal_pr_merged,
+    mark_proposal_pr_merged_from_closed,
     mark_proposal_pr_opened,
     mark_proposal_pr_reopened,
     reject_proposal,
@@ -216,6 +217,7 @@ __all__ = [
     "lookup_proposal_by_pr_url",
     "mark_proposal_pr_closed",
     "mark_proposal_pr_merged",
+    "mark_proposal_pr_merged_from_closed",
     "mark_proposal_pr_reopened",
     "set_webhook_registration_error",
     # feat_chat_agent Story 1.3 (conversations + messages aggregate)
