@@ -130,7 +130,7 @@ Implementation in progress — resume to finish
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md) | Feature | A relevance engineer can opt into auto-chaining on a per-study basis by setting `studies.config.auto_followup_depth` in the create-study wizard (or the `create_study` agent tool). | — | [PR #175](https://github.com/SoundMindsAI/relyloop/pull/175) |
+| 1 | P2 | [feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md) | Feature | A relevance engineer can opt into auto-chaining on a per-study basis by setting `studies.config.auto_followup_depth` in the create-study wizard (or the `create_study` agent tool). | — | [PR #223](https://github.com/SoundMindsAI/relyloop/pull/223) |
 
 ### Plan (0)
 

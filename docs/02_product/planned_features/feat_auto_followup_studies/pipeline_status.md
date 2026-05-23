@@ -32,10 +32,9 @@
 - Known UX limitation (deliberate): Cancel-from-completed-root requires operator to navigate to the in-flight descendant. Per D-13 direct-children scoping. Documented in `docs/03_runbooks/auto-followup-debugging.md` (Story 4.1).
 
 ## Implementation
-- Status: In progress (6 of 10 stories complete + Epic 1 phase gate; Epic 2 complete, awaiting phase gate)
+- Status: In Progress — PR #223 open and CI green; awaiting merge. All 10 stories complete + all 3 phase gates passed.
 - Branch: `feature/auto-followup-studies`
-- Latest commit: TBD (Story 2.3 — cancel cascade endpoint + children endpoint)
-- Status: All 10 stories complete + all 3 phase gates passed; awaiting PR push + CI + Gemini + final review + finalize.
+- PR: [#223](https://github.com/SoundMindsAI/relyloop/pull/223) (opened 2026-05-23, CI all 5 jobs green, Gemini Code Assist 1 Medium accepted + applied, final GPT-5.5 review 2 Medium accepted + shipped).
 - Stories complete (10/10):
   - **Story 1.1** — Chain-gate domain + StudyConfigSpec field + error-handler prefix parser. Commit `b32645c1`.
   - **Story 1.2** — NO-OP discovery: `narrow_around_winner` was already extracted. Commit `33e9ccc7`.
