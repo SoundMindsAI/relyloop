@@ -1,1 +1,1 @@
-`backend/app/eval/scoring.py` uses `ir_measures` for IR evaluation; the public `score(qrels, run, metrics) -> ScoreResult` signature and the user-facing wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) are unchanged.
+`backend/app/eval/scoring.py` uses `ir_measures` for IR evaluation; the public `score()` signature and persisted user-facing metric tokens (`ndcg@10`, `map@10`, `mrr`, `map`) are unchanged.
