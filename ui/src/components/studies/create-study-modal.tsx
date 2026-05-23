@@ -571,20 +571,13 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
           </DialogDescription>
         </DialogHeader>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          onKeyDown={(e) => {
-            // Prevent Enter on any input from submitting the form. The
-            // submit button is the only valid submission path. Without
-            // this, Playwright's `.fill()` (which can commit a numeric
-            // input via implicit Enter in production-build Chromium)
-            // submits the form mid-test, leaving the submit button stuck
-            // in 'Submitting…' when the test next tries to click it.
-            // Caught while reproducing studies-create-builder.spec.ts:130
-            // locally against the prod UI image.
-            if (e.key === 'Enter' && (e.target as HTMLElement | null)?.tagName === 'INPUT') {
-              e.preventDefault();
-            }
-          }}
+          // Submission goes exclusively through the explicit submit-button
+          // onClick below — the form's submit event is swallowed so that any
+          // implicit submit (Enter on an input, Playwright `.fill()`-driven
+          // stray submit events in production-build Chromium, etc.) cannot
+          // race the user's explicit click. See bug_fix.md alongside
+          // bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md.
+          onSubmit={(e) => e.preventDefault()}
           className="space-y-4"
           data-testid="create-study-form"
         >
@@ -1131,9 +1124,14 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
               </Button>
             ) : (
               <Button
-                type="submit"
+                // type="button" (not "submit") so submission goes through the
+                // explicit onClick path. Pairs with the form's preventDefault
+                // onSubmit above — the goal is to keep stray browser-driven
+                // submit events from racing the user's deliberate click.
+                type="button"
                 disabled={!stepValid(step, values) || submitting}
                 data-testid="create-study-submit"
+                onClick={form.handleSubmit(onSubmit)}
               >
                 {submitting ? 'Submitting…' : 'Create study'}
               </Button>

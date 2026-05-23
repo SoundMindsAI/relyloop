@@ -45,12 +45,7 @@ async function deleteIndex(request: APIRequestContext, name: string): Promise<vo
 //   - 6 modal cases in src/__tests__/components/studies/create-study-modal.test.tsx
 // The existing builder + validation specs flip into manual mode (post-F2);
 // this spec is the only one that exercises the dropdown end-to-end.
-// TODO: re-enable after bug_smoke_create_study_modal_e2e_max_trials_fill
-// ships. Same root cause as the skip on studies-create-builder.spec.ts:130 —
-// the Max trials .fill('10') at line 142 below races with the form's submit
-// transition in production-build Chromium after PR #215. See
-// docs/02_product/planned_features/bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md
-test.skip('Step-1 target picker loads from the cluster, sorts alphabetically, and persists the picked target (AC-1 + AC-6 + AC-7)', async ({
+test('Step-1 target picker loads from the cluster, sorts alphabetically, and persists the picked target (AC-1 + AC-6 + AC-7)', async ({
   page,
   request,
 }) => {

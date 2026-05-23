@@ -127,22 +127,7 @@ async function readSearchSpace(page: Page): Promise<{ params: Record<string, unk
 }
 
 test.describe('/studies — create-study Step-4 builder (Story 4.1)', () => {
-  // TODO: re-enable after bug_smoke_create_study_modal_e2e_max_trials_fill ships.
-  // After chore_study_default_stop_conditions PR #215 added defaults.max_trials
-  // = 200, this test's `.fill('10')` on Max trials triggers a form submit
-  // before Playwright reaches the explicit submit-button click. Reproduced
-  // locally against the production UI image:
-  //   - Submit button observed stuck in "Submitting…" disabled state when
-  //     Playwright .click() resolves it.
-  //   - Study row appears in the studies list (submit succeeded).
-  //   - Error: "element is not enabled / not stable / detached from DOM".
-  // Tried (none fixed): swapping watcher useEffect → useMemo derivation,
-  // dropping `form` from deps, max-h-90vh on DialogContent, prev-open
-  // useRef gating, useEffect-based setValue (vs defaultValues), Enter-key
-  // suppression on form keydown. The fix requires deeper Playwright trace
-  // inspection in a focused follow-up.
-  // See: docs/02_product/planned_features/bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md
-  test.skip('case 1: builder edits propagate to textarea + submitted study persists the value', async ({
+  test('case 1: builder edits propagate to textarea + submitted study persists the value', async ({
     page,
   }) => {
     await walkToStep4(page);
