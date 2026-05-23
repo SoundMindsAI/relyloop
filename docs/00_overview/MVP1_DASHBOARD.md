@@ -15,13 +15,13 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **67 / 67** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 12 important to file, not blocking |
+| → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 2 |
-| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -32,7 +32,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md) | Feature | A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same | — | [PR #175](https://github.com/SoundMindsAI/relyloop/pull/175) merged 2026-05-21 |
-| [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `feat_ubi_judgments` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_ir_measures_migration` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` `infra_study_preflight_real_engine_integration` `infra_uv_sync_drops_precommit` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
+| [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_foundation` `infra_optuna_eval` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_cluster_target_filter](implemented_features/2026_05_20_feat_cluster_target_filter/feature_spec.md) | Feature | Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset. | — | [PR #168](https://github.com/SoundMindsAI/relyloop/pull/168) merged 2026-05-20 |
 | [feat_config_repo_baseline_tracking](implemented_features/2026_05_23_feat_config_repo_baseline_tracking/feature_spec.md) | Feature | A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo. | — | [PR #202](https://github.com/SoundMindsAI/relyloop/pull/202) merged 2026-05-23 |
 | [feat_contextual_help](implemented_features/2026_05_15_feat_contextual_help/feature_spec.md) | Feature | a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam | — | [PR #122](https://github.com/SoundMindsAI/relyloop/pull/122) merged 2026-05-15 |
@@ -97,7 +97,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
 | [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | Complete | — | Complete |
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | Complete | — | Complete |
-| [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_agent` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `feat_ubi_judgments` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_ir_measures_migration` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` `infra_study_preflight_real_engine_integration` `infra_uv_sync_drops_precommit` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
+| [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_foundation` `infra_optuna_eval` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 | [bug_contract_test_stub_missing_target_filter_kwarg](implemented_features/2026_05_23_bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | Complete | — | Complete |
 | [bug_cursor_decode_value_validation](implemented_features/2026_05_17_bug_cursor_decode_value_validation/idea.md) | Bug | Complete | — | Complete |
@@ -125,7 +125,7 @@ _None._
 
 _None._
 
-### Idea (14)
+### Idea (15)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
@@ -136,12 +136,13 @@ _None._
 | P2 | [feat_study_baseline_trial](../02_product/planned_features/feat_study_baseline_trial/idea.md) | Feature | `studies.baseline_metric` exists as a column on the `studies` table (declared in `feat_study_lifecycle` Phase 1, [`backend/app/db/models/study.py:76`](../../backend/app/db/models/study.py#L76)) with t | — | Idea — deferred Phase 2 work from `feat_pr_metric_confidence` (Phase 1 merged 2026-05-21 as PR #180 squash `d0a8358`). |
 | P2 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| P2 | [chore_dashboard_pr_extraction_from_idea](../02_product/planned_features/chore_dashboard_pr_extraction_from_idea/idea.md) | Chore | Several early MVP1 features shipped before the `/pipeline` ceremony solidified, leaving them with only an `idea.md` in `implemented_features/<date>_<slug>/`. Examples (as of 2026-05-23): | — | Idea — surfaced during the tangential-observations sweep of `bug_dashboard_depends_on_column_bloat` (PR pending) |
 | P2 | [chore_reconciler_terminal_closed_no_poll](../02_product/planned_features/chore_reconciler_terminal_closed_no_poll/idea.md) | Chore | After `bug_pr_reconciler_blocked_by_closed_fallback` ships, the reconciler's candidate query at [`backend/app/db/repo/proposal.py:455-475`](../../backend/app/db/repo/proposal.py#L455-L475) returns BOT | — | Idea — surfaced during the ad-hoc tangential-observations sweep of `bug_pr_reconciler_blocked_by_closed_fallback` (PR pending) |
 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | P2 | [bug_dashboard_banner_dismiss_persistence_flake](../02_product/planned_features/bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR #193) smoke CI |
-| P2 | [bug_dashboard_depends_on_column_bloat](../02_product/planned_features/bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each planned-feature row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and  | — | Idea — surfaced by Gemini Code Assist review on PR #200 (2026-05-22). Pre-existing bug; this PR only made one more entry visible. |
+| P2 | [bug_dashboard_depends_on_column_bloat](../02_product/planned_features/bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and `mvp1_dashboard. | — | Idea — surfaced by Gemini Code Assist review on PR #200 (2026-05-22). Pre-existing bug; this PR only made one more entry visible. |
 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
 
 ## Dependency graph
@@ -294,77 +295,27 @@ graph LR
   infra_foundation --> feat_llm_judgments
   infra_adapter_elastic --> feat_llm_judgments
   feat_study_lifecycle --> feat_llm_judgments
-  feat_agent_propose_search_space --> chore_tutorial_polish
   feat_chat_agent --> chore_tutorial_polish
-  feat_cluster_target_filter --> chore_tutorial_polish
-  feat_config_repo_baseline_tracking --> chore_tutorial_polish
-  feat_contextual_help --> chore_tutorial_polish
-  feat_create_study_search_space_builder --> chore_tutorial_polish
-  feat_create_study_target_autocomplete --> chore_tutorial_polish
-  feat_data_table_primitive --> chore_tutorial_polish
   feat_digest_proposal --> chore_tutorial_polish
   feat_github_pr_worker --> chore_tutorial_polish
   feat_github_webhook --> chore_tutorial_polish
-  feat_home_first_run_demo_nudge --> chore_tutorial_polish
-  feat_judgments_periodic_resume_sweep --> chore_tutorial_polish
   feat_llm_judgments --> chore_tutorial_polish
-  feat_orchestrator_zero_streak_abort --> chore_tutorial_polish
-  feat_pr_metric_confidence --> chore_tutorial_polish
   feat_proposals_ui --> chore_tutorial_polish
-  feat_query_inline_crud --> chore_tutorial_polish
   feat_studies_ui --> chore_tutorial_polish
   feat_study_lifecycle --> chore_tutorial_polish
-  feat_study_preflight_overlap_probe --> chore_tutorial_polish
-  feat_study_target_judgment_mismatch_guard --> chore_tutorial_polish
   infra_adapter_elastic --> chore_tutorial_polish
-  infra_ci_smoke_makeup --> chore_tutorial_polish
-  infra_dashboard_regen_pre_commit_conflict --> chore_tutorial_polish
-  infra_e2e_seed_completed_study --> chore_tutorial_polish
-  infra_e2e_wire_seed_helper_into_studies_spec --> chore_tutorial_polish
   infra_foundation --> chore_tutorial_polish
-  infra_frontend_stack_refresh --> chore_tutorial_polish
-  infra_ir_measures_migration --> chore_tutorial_polish
-  infra_make_targets_split_backend_only --> chore_tutorial_polish
-  infra_nvmrc --> chore_tutorial_polish
   infra_optuna_eval --> chore_tutorial_polish
-  infra_per_trial_timeout --> chore_tutorial_polish
-  infra_structlog_test_helpers --> chore_tutorial_polish
-  infra_uv_sync_drops_precommit --> chore_tutorial_polish
-  feat_agent_propose_search_space --> feat_chat_agent
-  feat_cluster_target_filter --> feat_chat_agent
-  feat_config_repo_baseline_tracking --> feat_chat_agent
-  feat_contextual_help --> feat_chat_agent
-  feat_create_study_search_space_builder --> feat_chat_agent
-  feat_create_study_target_autocomplete --> feat_chat_agent
-  feat_data_table_primitive --> feat_chat_agent
   feat_digest_proposal --> feat_chat_agent
   feat_github_pr_worker --> feat_chat_agent
   feat_github_webhook --> feat_chat_agent
-  feat_home_first_run_demo_nudge --> feat_chat_agent
-  feat_judgments_periodic_resume_sweep --> feat_chat_agent
   feat_llm_judgments --> feat_chat_agent
-  feat_orchestrator_zero_streak_abort --> feat_chat_agent
-  feat_pr_metric_confidence --> feat_chat_agent
   feat_proposals_ui --> feat_chat_agent
-  feat_query_inline_crud --> feat_chat_agent
   feat_studies_ui --> feat_chat_agent
   feat_study_lifecycle --> feat_chat_agent
-  feat_study_preflight_overlap_probe --> feat_chat_agent
-  feat_study_target_judgment_mismatch_guard --> feat_chat_agent
   infra_adapter_elastic --> feat_chat_agent
-  infra_ci_smoke_makeup --> feat_chat_agent
-  infra_dashboard_regen_pre_commit_conflict --> feat_chat_agent
-  infra_e2e_seed_completed_study --> feat_chat_agent
-  infra_e2e_wire_seed_helper_into_studies_spec --> feat_chat_agent
   infra_foundation --> feat_chat_agent
-  infra_frontend_stack_refresh --> feat_chat_agent
-  infra_ir_measures_migration --> feat_chat_agent
-  infra_make_targets_split_backend_only --> feat_chat_agent
-  infra_nvmrc --> feat_chat_agent
   infra_optuna_eval --> feat_chat_agent
-  infra_per_trial_timeout --> feat_chat_agent
-  infra_structlog_test_helpers --> feat_chat_agent
-  infra_uv_sync_drops_precommit --> feat_chat_agent
   infra_foundation --> feat_github_pr_worker
   infra_adapter_elastic --> feat_github_pr_worker
   feat_study_lifecycle --> feat_github_pr_worker
