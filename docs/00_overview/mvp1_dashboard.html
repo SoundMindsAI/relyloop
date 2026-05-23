@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md">Config Repo Baseline Tracking</a></div>
+    <div class="one-liner">A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.</div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/feat_config_repo_baseline_tracking --auto</code>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">66 / 66</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">66 / 67</div>
+      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">15</div>
+      <div class="value">14</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">7</div>
+      <div class="value">8</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      8 idea-only feat/infra folders (not yet scoped into MVP1)
+      6 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">15</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_ubi_judgments">Ubi Judgments</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`…</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">13</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_auto_followup_studies">Auto Followup Studies</a></div>
@@ -486,19 +473,6 @@ footer {
 
   </div>
   <div class="one-liner">Karpathy&#x27;s autoresearch loop runs hundreds of experiments overnight and **compounds** improvements: each accepted change becomes the new baseline for the next experiment. RelyLoop&#x27;s equivalent…</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking">Config Repo Baseline Tracking</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">RelyLoop does not track which configuration is currently live in production. When a proposal&#x27;s PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:181-194`](../../backend/app/api/webh</div>
 
 
 </div>
@@ -635,13 +609,13 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_dashboard_depends_on_column_bloat">Dashboard Depends On Column Bloat</a></div>
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_pr_reconciler_blocked_by_closed_fallback">Pr Reconciler Blocked By Closed Fallback</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">[`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the &quot;Depends on&quot; column for each planned-feature row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and </div>
+  <div class="one-liner">The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-194`](../../backend/app/api/webhooks/github.py) handles the eventual-consistency case where GitHub delivers `pull_request.closed</div>
 
 
 </div>
@@ -662,7 +636,19 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md">Config Repo Baseline Tracking</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a> <span>merged 2026-05-10</span>
+  </div>
+  <div class="one-liner">A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.</div>
+
+
+</div>
 
 </div>
 
@@ -701,7 +687,7 @@ footer {
   </div>
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_chat_last_message_preview</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_home_demo_reseed_endpoint</span><span class="dep-chip">feat_home_first_run_demo_nudge</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_orchestrator_zero_streak_abort</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_baseline_trial</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_study_preflight_overlap_probe</span><span class="dep-chip">feat_study_target_judgment_mismatch_guard</span><span class="dep-chip">feat_ubi_judgments</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_ir_measures_migration</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_study_preflight_real_engine_integration</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_chat_last_message_preview</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_home_demo_reseed_endpoint</span><span class="dep-chip">feat_home_first_run_demo_nudge</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_orchestrator_zero_streak_abort</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_baseline_trial</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_study_preflight_overlap_probe</span><span class="dep-chip">feat_study_target_judgment_mismatch_guard</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_ir_measures_migration</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_study_preflight_real_engine_integration</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
 </div>
 
 
@@ -1533,7 +1519,7 @@ footer {
   </div>
   <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_chat_last_message_preview</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_home_demo_reseed_endpoint</span><span class="dep-chip">feat_home_first_run_demo_nudge</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_orchestrator_zero_streak_abort</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_baseline_trial</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_study_preflight_overlap_probe</span><span class="dep-chip">feat_study_target_judgment_mismatch_guard</span><span class="dep-chip">feat_ubi_judgments</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_ir_measures_migration</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_study_preflight_real_engine_integration</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_chat_last_message_preview</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_home_demo_reseed_endpoint</span><span class="dep-chip">feat_home_first_run_demo_nudge</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_orchestrator_zero_streak_abort</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_baseline_trial</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_study_preflight_overlap_probe</span><span class="dep-chip">feat_study_target_judgment_mismatch_guard</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_ir_measures_migration</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_study_preflight_real_engine_integration</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
 </div>
 
 
@@ -1705,6 +1691,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_config_repo_baseline_tracking[&quot;config repo baseline tracking&quot;]
+  class feat_config_repo_baseline_tracking spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1845,6 +1833,7 @@ footer {
   feat_agent_propose_search_space --&gt; chore_tutorial_polish
   feat_chat_agent --&gt; chore_tutorial_polish
   feat_cluster_target_filter --&gt; chore_tutorial_polish
+  feat_config_repo_baseline_tracking --&gt; chore_tutorial_polish
   feat_contextual_help --&gt; chore_tutorial_polish
   feat_create_study_search_space_builder --&gt; chore_tutorial_polish
   feat_create_study_target_autocomplete --&gt; chore_tutorial_polish
@@ -1879,6 +1868,7 @@ footer {
   infra_uv_sync_drops_precommit --&gt; chore_tutorial_polish
   feat_agent_propose_search_space --&gt; feat_chat_agent
   feat_cluster_target_filter --&gt; feat_chat_agent
+  feat_config_repo_baseline_tracking --&gt; feat_chat_agent
   feat_contextual_help --&gt; feat_chat_agent
   feat_create_study_search_space_builder --&gt; feat_chat_agent
   feat_create_study_target_autocomplete --&gt; feat_chat_agent
@@ -1938,6 +1928,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_config_repo_baseline_tracking[&quot;config repo baseline tracking&quot;]
+  class feat_config_repo_baseline_tracking spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2078,6 +2070,7 @@ footer {
   feat_agent_propose_search_space --&gt; chore_tutorial_polish
   feat_chat_agent --&gt; chore_tutorial_polish
   feat_cluster_target_filter --&gt; chore_tutorial_polish
+  feat_config_repo_baseline_tracking --&gt; chore_tutorial_polish
   feat_contextual_help --&gt; chore_tutorial_polish
   feat_create_study_search_space_builder --&gt; chore_tutorial_polish
   feat_create_study_target_autocomplete --&gt; chore_tutorial_polish
@@ -2112,6 +2105,7 @@ footer {
   infra_uv_sync_drops_precommit --&gt; chore_tutorial_polish
   feat_agent_propose_search_space --&gt; feat_chat_agent
   feat_cluster_target_filter --&gt; feat_chat_agent
+  feat_config_repo_baseline_tracking --&gt; feat_chat_agent
   feat_contextual_help --&gt; feat_chat_agent
   feat_create_study_search_space_builder --&gt; feat_chat_agent
   feat_create_study_target_autocomplete --&gt; feat_chat_agent
