@@ -134,6 +134,7 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
       metric: 'ndcg',
       k: 10,
       direction: 'maximize',
+      max_trials: 200,
       parallelism: 4,
       sampler: 'tpe',
       pruner: 'median',
