@@ -212,7 +212,9 @@ async def enqueue_followup_study(ctx: dict[str, Any], parent_study_id: str) -> N
 
         # 8. Build the child config with the depth counter decremented.
         # FR-5 strict inheritance: every other key propagates verbatim.
-        parent_depth: int = parent.config["auto_followup_depth"]
+        # Use .get() defensively in case parent.config was serialized with
+        # exclude_none=True (Gemini Code Assist review, PR #223).
+        parent_depth: int = parent.config.get("auto_followup_depth", 0)
         remaining = parent_depth - 1
         child_config = {**parent.config, "auto_followup_depth": remaining}
 
