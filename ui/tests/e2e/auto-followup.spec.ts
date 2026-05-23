@@ -20,11 +20,29 @@
  *    `ui/src/__tests__/components/studies/auto-followup-chain-panel.test.tsx`
  *    + `study-action-bar-cascade.test.tsx` (real component, mocked data).
  */
-import { expect, test } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
 import { seedFullChain, seedStudy } from './helpers/seed';
 
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
+const ENTITY_SELECT_TIMEOUT = 10_000;
+
+async function pickEntity(
+  page: Page,
+  triggerTestId: string,
+  optionName: string | RegExp,
+): Promise<void> {
+  const trigger: Locator = page.getByTestId(triggerTestId);
+  await expect(trigger).toBeEnabled({ timeout: ENTITY_SELECT_TIMEOUT });
+  await trigger.dispatchEvent('click');
+  await page.getByRole('option', { name: optionName }).first().click();
+}
+
+async function getName(path: string): Promise<string> {
+  const resp = await fetch(`${API_BASE}${path}`);
+  const body = (await resp.json()) as { name: string };
+  return body.name;
+}
 
 test.describe('/studies — auto-followup chain', () => {
   test('chain panel renders the remaining-depth indicator when depth > 0', async ({ page }) => {
@@ -79,65 +97,67 @@ test.describe('/studies — auto-followup chain', () => {
 
   test('wizard depth selector submits config.auto_followup_depth (FR-11)', async ({ page }) => {
     // Drive the create-study modal end-to-end with depth=2 selected and
-    // verify the resulting study row has config.auto_followup_depth=2.
-    // The modal is a 5-step wizard; we navigate step-by-step via testids,
-    // selecting the new depth in step 5 before submitting.
-    const chain = await seedFullChain(2);
+    // verify the resulting study has config.auto_followup_depth=2.
+    //
+    // The wizard is a 5-step modal. Cluster/target/qs/jl/template are
+    // EntitySelect components (Radix-portal-backed), so we open them via
+    // dispatchEvent('click') + role=option, mirroring the canonical
+    // pattern in studies-create-builder.spec.ts. The depth selector is
+    // a shadcn <Select> (also Radix-portal-backed) in step 5.
+    //
+    // Pin judgmentListTarget so the target-judgmentlist mismatch guard
+    // (feat_study_target_judgment_mismatch_guard FR-4) doesn't disable
+    // the cs-jl trigger.
+    const chain = await seedFullChain(2, { judgmentListTarget: 'e2e-auto-followup-target' });
+    const querySetName = await getName(`/api/v1/query-sets/${chain.querySetId}`);
+    const judgmentListName = await getName(`/api/v1/judgment-lists/${chain.judgmentListId}`);
 
     await page.goto('/studies');
-    await expect(page.getByTestId('studies-table')).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId('open-create-study').click();
+    await expect(page.getByTestId('create-study-form')).toBeVisible({ timeout: 5_000 });
 
-    // Open the create-study modal. The button text is "New study" per the
-    // landing page header; if that name drifts, swap to a testid.
-    await page.getByRole('button', { name: /New study/i }).click();
-    await expect(page.getByTestId('step-1')).toBeVisible({ timeout: 5_000 });
-
-    // Step 1: cluster + target.
-    await page.locator('select[id*="cluster"], select#cs-cluster').first().selectOption(chain.clusterId);
-    await page.locator('select[id*="target"], select#cs-target').first().selectOption('products');
+    // Step 1: cluster + target (manual mode to avoid needing a real ES index).
+    await pickEntity(page, 'cs-cluster', chain.clusterName);
+    await page.getByRole('button', { name: 'Enter manually' }).click();
+    await page.getByLabel('Target index / collection').fill('e2e-auto-followup-target');
     await page.getByTestId('step-next').click();
-    await expect(page.getByTestId('step-2')).toBeVisible();
 
     // Step 2: query set + judgment list.
-    await page.locator('select[id*="query"], select#cs-query-set').first().selectOption(chain.querySetId);
-    await page
-      .locator('select[id*="judgment"], select#cs-judgment-list')
-      .first()
-      .selectOption(chain.judgmentListId);
+    await pickEntity(page, 'cs-qs', querySetName);
+    await pickEntity(page, 'cs-jl', judgmentListName);
     await page.getByTestId('step-next').click();
-    await expect(page.getByTestId('step-3')).toBeVisible();
 
-    // Step 3: query template.
-    await page
-      .locator('select[id*="template"], select#cs-template')
-      .first()
-      .selectOption(chain.templateId);
+    // Step 3: template.
+    await pickEntity(page, 'cs-tpl', chain.templateName);
     await page.getByTestId('step-next').click();
-    await expect(page.getByTestId('step-4')).toBeVisible();
 
-    // Step 4: name.
+    // Step 4: name. The search-space builder auto-fills from the template.
+    await expect(page.getByTestId('step-4')).toBeVisible({ timeout: 5_000 });
     const studyName = `e2e-auto-followup-${Date.now()}`;
     await page.getByLabel('Study name').fill(studyName);
     await page.getByTestId('step-next').click();
-    await expect(page.getByTestId('step-5')).toBeVisible();
 
-    // Step 5: pick depth=2 in the auto-followup selector.
-    await page.getByTestId('cs-auto-followup').click();
-    // Radix Select renders options as buttons in a portal; click by text.
+    // Step 5: depth selector. Open the Radix Select trigger via dispatchEvent
+    // (same pattern as switchRowType in studies-create-builder.spec.ts) and
+    // click the "2 follow-ups" option.
+    await expect(page.getByTestId('step-5')).toBeVisible({ timeout: 5_000 });
+    const depthTrigger = page.getByTestId('cs-auto-followup');
+    await expect(depthTrigger).toBeEnabled();
+    await depthTrigger.dispatchEvent('click');
     await page.getByRole('option', { name: /^2 follow-ups$/ }).click();
 
-    // Submit.
+    // Submit + verify the wire contract.
     await page.getByRole('button', { name: /Create study/i }).click();
 
-    // Modal should close + the new study should appear in the list. The
-    // backend POST returns the created study; assert its config via API.
-    await expect(page.getByText(studyName).first()).toBeVisible({ timeout: 10_000 });
+    // Wait for the modal to dismiss; the form-create-success path closes it.
+    await expect(page.getByTestId('create-study-form')).toHaveCount(0, { timeout: 10_000 });
 
+    // Fetch the new study from the backend and assert the config.
     const listResp = await page.request.get(`${API_BASE}/api/v1/studies?limit=200`);
     expect(listResp.ok()).toBe(true);
     const listBody = (await listResp.json()) as { data: Array<{ id: string; name: string }> };
     const created = listBody.data.find((s) => s.name === studyName);
-    expect(created).toBeDefined();
+    expect(created, `expected to find study named ${studyName}`).toBeDefined();
 
     const detailResp = await page.request.get(`${API_BASE}/api/v1/studies/${created!.id}`);
     expect(detailResp.ok()).toBe(true);
