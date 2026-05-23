@@ -1,7 +1,7 @@
 # Implementation Plan — `test_migrations.py` dynamic head lookup
 
 **Date:** 2026-05-23
-**Status:** Draft
+**Status:** Complete (PR #219 squash-merged as `63cb7c41` on 2026-05-23)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) Absolute Rule #5 (migrations include `downgrade()` and round-trip cleanly); [`docs/05_quality/testing.md`](../../../05_quality/testing.md) (integration test layer).
 

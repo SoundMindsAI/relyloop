@@ -6,34 +6,28 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-**[chore_migration_test_head_brittleness](../02_product/planned_features/chore_migration_test_head_brittleness/feature_spec.md)** — Chore, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> Replace the two hardcoded `"0017"` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id.
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/chore_migration_test_head_brittleness/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **69 / 70** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **70 / 70** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 12 important to file, not blocking |
+| → P2 (default) | 11 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 0 |
-| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 5 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (86)
+### Done (87)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -94,6 +88,7 @@ Plan approved; run /impl-execute to ship
 | [chore_guides_faq](implemented_features/2026_05_22_chore_guides_faq/idea.md) | Chore | Complete | — | Complete |
 | [chore_guides_glossary_route](implemented_features/2026_05_22_chore_guides_glossary_route/feature_spec.md) | Chore | the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`. | — | Draft |
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
+| [chore_migration_test_head_brittleness](implemented_features/2026_05_23_chore_migration_test_head_brittleness/feature_spec.md) | Chore | Replace the two hardcoded `"0017"` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id. | — | [PR #219](https://github.com/SoundMindsAI/relyloop/pull/219) merged 2026-05-23 |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
 | [chore_precommit_node_path_resolution](implemented_features/2026_05_21_chore_precommit_node_path_resolution/idea.md) | Chore | Complete | — | Complete |
 | [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | Complete | — | Complete |
@@ -128,11 +123,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [chore_migration_test_head_brittleness](../02_product/planned_features/chore_migration_test_head_brittleness/feature_spec.md) | Chore | Replace the two hardcoded `"0017"` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id. | — | — |
+_None._
 
 ### Spec (0)
 
@@ -166,8 +159,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_migration_test_head_brittleness["migration test head brittleness"]
-  class chore_migration_test_head_brittleness plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -298,6 +289,8 @@ graph LR
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe["study preflight overlap probe"]
   class feat_study_preflight_overlap_probe done;
+  chore_migration_test_head_brittleness["migration test head brittleness"]
+  class chore_migration_test_head_brittleness done;
   chore_reconciler_terminal_closed_no_poll["reconciler terminal closed no poll"]
   class chore_reconciler_terminal_closed_no_poll done;
   chore_study_default_stop_conditions["study default stop conditions"]
