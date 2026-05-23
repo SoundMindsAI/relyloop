@@ -380,6 +380,44 @@ async def mark_proposal_pr_merged(
     return row
 
 
+async def mark_proposal_pr_merged_from_closed(
+    db: AsyncSession,
+    proposal_id: str,
+    *,
+    pr_merged_at: datetime,
+) -> Proposal | None:
+    """Conditional UPDATE: pr_opened+closed → pr_merged+merged + populate pr_merged_at.
+
+    bug_pr_reconciler_blocked_by_closed_fallback — recovers proposals the
+    webhook's ``merged_at=null`` fallback left stranded in ``(pr_opened,
+    closed)``. Mirrors :func:`mark_proposal_pr_merged` but matches the
+    closed pr_state. Single atomic UPDATE — preferred over a two-step
+    ``mark_proposal_pr_reopened`` + ``mark_proposal_pr_merged`` sequence
+    so the recovery is idempotent under concurrent reconciler ticks
+    (the second worker's UPDATE matches zero rows once the first wins).
+    Caller commits.
+    """
+    stmt = (
+        update(Proposal)
+        .where(
+            Proposal.id == proposal_id,
+            Proposal.status == "pr_opened",
+            Proposal.pr_state == "closed",
+        )
+        .values(
+            status="pr_merged",
+            pr_state="merged",
+            pr_merged_at=pr_merged_at,
+        )
+        .returning(Proposal)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is not None:
+        await db.flush()
+    return row
+
+
 async def mark_proposal_pr_closed(
     db: AsyncSession,
     proposal_id: str,
@@ -455,19 +493,28 @@ async def lookup_proposal_by_pr_url(
 async def list_pr_opened_proposals_for_reconcile(
     db: AsyncSession,
 ) -> Sequence[Proposal]:
-    """Return ``pr_opened`` + ``open`` proposals newer than 90 days.
+    """Return ``pr_opened`` proposals (open OR closed pr_state) newer than 90 days.
 
     feat_github_webhook Story 1.4 — consumed by ``reconcile_pr_state``
     (Story 3.1). The 90-day window caps polling growth per spec FR-2:
     older stale-pr_opened rows are presumed permanently abandoned and
     require operator triage.
+
+    Returns both ``pr_state='open'`` (genuinely awaiting GitHub state)
+    and ``pr_state='closed'`` (the webhook's ``merged_at=null`` fallback
+    transitioned the row before GitHub reported a merge timestamp;
+    bug_pr_reconciler_blocked_by_closed_fallback). The reconciler
+    branches on ``proposal.pr_state`` to pick the right transition
+    helper. Genuinely-closed-unmerged proposals re-polled in this
+    branch return ``merged=false, state=closed`` and become benign
+    no-ops via :func:`mark_proposal_pr_closed`'s pr_state='open'
+    guard.
     """
     cutoff = datetime.now(UTC) - timedelta(days=90)
     stmt = (
         select(Proposal)
         .where(
             Proposal.status == "pr_opened",
-            Proposal.pr_state == "open",
             Proposal.pr_url.is_not(None),
             Proposal.created_at > cutoff,
         )
