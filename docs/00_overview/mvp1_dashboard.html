@@ -397,7 +397,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">69 / 70</div>
+      <div class="value">71 / 72</div>
       <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:99%"></span></div>
     </div>
@@ -557,26 +557,26 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_pr_extraction_from_idea">Dashboard Pr Extraction From Idea</a></div>
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive">Dashboard Regen Quoted Pr False Positive</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">Several early MVP1 features shipped before the `/pipeline` ceremony solidified, leaving them with only an `idea.md` in `implemented_features/&lt;date&gt;_&lt;slug&gt;/`. Examples (as of 2026-05-23):</div>
+  <div class="one-liner">[`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py#L572)&#x27;s priority-3 fuzzy match has two regexes:</div>
 
 
 </div>
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_migration_test_head_brittleness">Migration Test Head Brittleness</a></div>
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete">E2E Seed Acme Idea Obsolete</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">[`backend/tests/integration/test_migrations.py`](../../backend/tests/integration/test_migrations.py) has two assertions:</div>
+  <div class="one-liner">[`chore_e2e_seed_acme_helper_dead/idea.md`](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) (dated 2026-05-21) proposed two paths:</div>
 
 
 </div>
@@ -650,7 +650,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">86</span></h3>
+  <h3>Done <span class="count">88</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -958,7 +958,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">CI runs `make test-unit &amp;&amp; make test-integration &amp;&amp; make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure</div>
 
 
 </div>
@@ -971,7 +971,7 @@ footer {
 
     <span>merged 2026-05-14</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The pre-commit pipeline does:</div>
 
 
 </div>
@@ -984,7 +984,7 @@ footer {
 
     <span>merged 2026-05-17</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`feat_contextual_help` Phase 1 ships 7 InfoTooltip placements on the digest panel ([`ui/src/components/studies/digest-panel.tsx`](../../ui/src/components/studies/digest-panel.tsx)) — five section labe</div>
 
 
 </div>
@@ -997,7 +997,7 @@ footer {
 
     <span>merged 2026-05-19</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`infra_e2e_seed_completed_study` shipped `POST /api/v1/_test/studies/seed-completed` and the `seedStudyCompletedWithDigest` TypeScript helper. The two consuming E2E tests in `ui/tests/e2e/studies.spec</div>
 
 
 </div>
@@ -1023,7 +1023,7 @@ footer {
 
     <span>merged 2026-05-12</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09):</div>
 
 
 </div>
@@ -1049,7 +1049,7 @@ footer {
 
     <span>merged 2026-05-14</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target. Pre-fix shape was ([`Makefile:26-34` in the pre-PR-110 main](../../Makefil</div>
 
 
 </div>
@@ -1062,7 +1062,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">- `ui/package.json` engines: `&quot;node&quot;: &quot;&gt;=20.18&quot;`, verified on Node 22.22.2 per `state.md`. - No `.nvmrc` file at repo root or under `ui/`. - Default shell may have an older nvm-active Node (Node 18 in</div>
 
 
 </div>
@@ -1088,7 +1088,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the </div>
 
 
 </div>
@@ -1101,7 +1101,7 @@ footer {
 
     <span>merged 2026-05-14</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The repo currently has two distinct, half-overlapping patterns for asserting structlog events from tests:</div>
 
 
 </div>
@@ -1127,7 +1127,7 @@ footer {
 
     <span>merged 2026-05-14</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The `/chat` list page renders each conversation row as `title + relative timestamp (created_at) + count` via [`ui/src/components/chat/conversation-list.tsx:30-49`](../ui/src/components/chat/conversati</div>
 
 
 </div>
@@ -1140,7 +1140,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`.github/workflows/pr.yml` has a `paths-ignore` filter that skips the entire workflow when *every* changed path matches:</div>
 
 
 </div>
@@ -1153,7 +1153,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">Gitleaks runs only as a pre-commit hook locally. Pre-commit is opt-in (the contributor must run `pre-commit install`); on a fresh clone or a contributor who skips the install, nothing scans commit con</div>
 
 
 </div>
@@ -1166,7 +1166,7 @@ footer {
 
     <span>merged 2026-05-19</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`.github/workflows/pr.yml`&#x27;s `frontend` job runs:</div>
 
 
 </div>
@@ -1179,7 +1179,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The `/clusters` list page (Story 2.1) and `/clusters/{id}` detail page render registered clusters fine, but there is no Delete button. When an operator registers a cluster with stale credentials or a </div>
 
 
 </div>
@@ -1190,9 +1190,9 @@ footer {
   <div class="meta">
     <span class="badge chore">Chore</span>
 
-    <span>merged 2026-05-20</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/161">PR #161</a> <span>merged 2026-05-20</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The Playwright smoke lane runs every `ui/tests/e2e/*.spec.ts` against a real-backend stack. The create-study modal&#x27;s Step-1 cluster trigger (rendered by [`EntitySelect`](../../ui/src/components/common</div>
 
 
 </div>
@@ -1212,13 +1212,26 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_23_chore_dashboard_pr_extraction_from_idea/feature_spec.md">Dashboard Pr Extraction From Idea</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/221">PR #221</a> <span>merged 2026-05-23</span>
+  </div>
+  <div class="one-liner">Extend `_extract_pr_number` to accept the idea body as a fourth argument, and have `_load_implemented` read `idea.md` and pass it through.</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack">Data Table Columnvisibility Tanstack</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
 
     <span>merged 2026-05-19</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe</div>
 
 
 </div>
@@ -1231,7 +1244,7 @@ footer {
 
     <span>merged 2026-05-19</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">Six of the seven `/{entity}/[id]` detail routes hand-roll the same three-state scaffold around their data query. The structure is **identical** down to the className strings, with two minor copy varia</div>
 
 
 </div>
@@ -1244,7 +1257,7 @@ footer {
 
     <span>merged 2026-05-14</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">…</div>
 
 
 </div>
@@ -1270,7 +1283,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The shipped guard regex matches `(\.env(\.[^/]+)?|\.envrc)$` — i.e. bare `.env`, dotted `.env.&lt;x&gt;`, and `.envrc`. It does **not** match plausible backup/rotation spellings that an editor or user-side </div>
 
 
 </div>
@@ -1283,7 +1296,7 @@ footer {
 
     <span>merged 2026-05-19</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">A factor-and-share refactor was attempted during `chore_form_dropdown_primitive` post-implementation. I extracted the mock to `ui/src/__tests__/helpers/shadcn-select-mock.tsx` exporting `mockShadcnSel</div>
 
 
 </div>
@@ -1296,7 +1309,7 @@ footer {
 
     <span>merged 2026-05-19</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">Each affected guide has a Playwright spec at `ui/tests/e2e/guides/*.spec.ts` that captures screenshots when run against the real backend. The PR&#x27;s UI changes produce different screenshots:</div>
 
 
 </div>
@@ -1322,7 +1335,7 @@ footer {
 
     <span>merged 2026-05-21</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The guide is still operationally correct — the new field is optional, defaults to null, and doesn&#x27;t change the happy-path flow described in the guide. But:</div>
 
 
 </div>
@@ -1335,7 +1348,7 @@ footer {
 
     <span>merged 2026-05-22</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai</div>
 
 
 </div>
@@ -1348,7 +1361,7 @@ footer {
 
     <span>merged 2026-05-21</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The walkthrough guide 06 (&quot;Create and monitor a study&quot;) shows the operator opening the create-study modal as part of the wizard tour. The single Step-1 screenshot now disagrees with shipped UI — opera</div>
 
 
 </div>
@@ -1361,7 +1374,7 @@ footer {
 
     <span>merged 2026-05-22</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">Tooltips and the glossary answer &quot;**what does X mean?**&quot; within a 1–2 sentence budget. They don&#x27;t carry the operator-judgment-shaped questions that come up *after* the term is understood:</div>
 
 
 </div>
@@ -1387,7 +1400,20 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_23_chore_migration_test_head_brittleness/feature_spec.md">Migration Test Head Brittleness</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/219">PR #219</a> <span>merged 2026-05-23</span>
+  </div>
+  <div class="one-liner">Replace the two hardcoded `&quot;0017&quot;` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id.</div>
 
 
 </div>
@@ -1411,9 +1437,9 @@ footer {
   <div class="meta">
     <span class="badge chore">Chore</span>
 
-    <span>merged 2026-05-21</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/171">PR #171</a> <span>merged 2026-05-21</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">Every UI-touching commit fails at the eslint-ui pre-commit hook unless the developer remembers to inject the nvm Node into PATH manually. The error message is clear, but the friction is constant.</div>
 
 
 </div>
@@ -1426,7 +1452,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting:</div>
 
 
 </div>
@@ -1439,7 +1465,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`pnpm lint` emits one new warning on the proposals list page:</div>
 
 
 </div>
@@ -1452,7 +1478,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The proposals list page at `/proposals` ships with a three-state source filter chip group (`all` / `study` / `manual`) shipped in `feat_proposals_ui` Story 1.2. Because the backend `GET /api/v1/propos</div>
 
 
 </div>
@@ -1478,7 +1504,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`feat_study_lifecycle/feature_spec.md` §7.4 defines wire values for the trials list `?sort=` query parameter:</div>
 
 
 </div>
@@ -1491,7 +1517,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name:</div>
 
 
 </div>
@@ -1517,7 +1543,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test:</div>
 
 
 </div>
@@ -1530,7 +1556,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">[`backend/app/db/repo/trial.py:aggregate_trials_summary`](../../backend/app/db/repo/trial.py) currently issues two SQL statements:</div>
 
 
 </div>
@@ -1569,7 +1595,7 @@ footer {
 
     <span>merged 2026-05-23</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th</div>
 
 
 </div>
@@ -1582,7 +1608,7 @@ footer {
 
     <span>merged 2026-05-17</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`backend/app/db/repo/_sort.py:decode_cursor()` performs a `json.loads(base64.urlsafe_b64decode(raw))` round-trip and then takes `decoded[0]` + `str(decoded[1])` without validating the payload shape or</div>
 
 
 </div>
@@ -1595,7 +1621,7 @@ footer {
 
     <span>merged 2026-05-23</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is:</div>
 
 
 </div>
@@ -1608,7 +1634,7 @@ footer {
 
     <span>merged 2026-05-23</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The MVP1.5 release tier was introduced 2026-05-23 via PR #200 (canonical release matrix + spec §27 + tech-stack.md). But the dashboard regen script&#x27;s release classifier at…</div>
 
 
 </div>
@@ -1621,7 +1647,7 @@ footer {
 
     <span>merged 2026-05-23</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">[`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the &quot;Depends on&quot; column for each row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and `mvp1_dashboard.</div>
 
 
 </div>
@@ -1634,7 +1660,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(.</div>
 
 
 </div>
@@ -1647,7 +1673,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module-</div>
 
 
 </div>
@@ -1660,7 +1686,7 @@ footer {
 
     <span>merged 2026-05-20</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The skipped test seeds two ES indices via Playwright&#x27;s `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `&lt;EntitySelect&gt;`…</div>
 
 
 </div>
@@ -1673,7 +1699,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The user&#x27;s working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../CLAUDE.md) &quot;Cross-model review policy&quot;) was renamed to `.env.old` during the agent&#x27;s implementation session.…</div>
 
 
 </div>
@@ -1686,7 +1712,7 @@ footer {
 
     <span>merged 2026-05-20</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e</div>
 
 
 </div>
@@ -1699,7 +1725,7 @@ footer {
 
     <span>merged 2026-05-20</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment</div>
 
 
 </div>
@@ -1712,7 +1738,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie</div>
 
 
 </div>
@@ -1725,7 +1751,7 @@ footer {
 
     <span>merged 2026-05-23</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-209`](../../backend/app/api/webhooks/github.py#L181-L209) handles the eventual-consistency case where GitHub delivers `pull_requ</div>
 
 
 </div>
@@ -1738,7 +1764,7 @@ footer {
 
     <span>merged 2026-05-14</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">The test ([`test_query_sets_router_queries.py:202-231`](../../backend/tests/integration/test_query_sets_router_queries.py#L202-L231)) seeds 5 queries via `_seed_set(5)`…</div>
 
 
 </div>
@@ -1751,7 +1777,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">`backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment:</div>
 
 
 </div>
@@ -1764,7 +1790,7 @@ footer {
 
     <span>merged 2026-05-13</span>
   </div>
-  <div class="one-liner">Complete</div>
+  <div class="one-liner">Compose ordering:</div>
 
 
 </div>
@@ -1914,6 +1940,10 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  chore_dashboard_pr_extraction_from_idea[&quot;dashboard pr extraction from idea&quot;]
+  class chore_dashboard_pr_extraction_from_idea done;
+  chore_migration_test_head_brittleness[&quot;migration test head brittleness&quot;]
+  class chore_migration_test_head_brittleness done;
   chore_reconciler_terminal_closed_no_poll[&quot;reconciler terminal closed no poll&quot;]
   class chore_reconciler_terminal_closed_no_poll done;
   chore_study_default_stop_conditions[&quot;study default stop conditions&quot;]
@@ -2107,6 +2137,10 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  chore_dashboard_pr_extraction_from_idea[&quot;dashboard pr extraction from idea&quot;]
+  class chore_dashboard_pr_extraction_from_idea done;
+  chore_migration_test_head_brittleness[&quot;migration test head brittleness&quot;]
+  class chore_migration_test_head_brittleness done;
   chore_reconciler_terminal_closed_no_poll[&quot;reconciler terminal closed no poll&quot;]
   class chore_reconciler_terminal_closed_no_poll done;
   chore_study_default_stop_conditions[&quot;study default stop conditions&quot;]
