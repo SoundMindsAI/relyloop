@@ -199,15 +199,12 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   // chore_study_default_stop_conditions FR-2/FR-4: stop-condition preset.
   // Derived purely from form values via useMemo — no useState, no watcher
   // useEffect. Manual edits to max_trials / time_budget_min automatically
-  // re-derive the active preset on the next render. Eliminating the
-  // useState + watcher useEffect pattern fixed a production-build Chromium
-  // race that broke studies-create-builder.spec.ts:130 and
-  // studies-create-target-dropdown.spec.ts:48 — the watcher's
-  // setState-on-form-change re-render cycle interacted badly with
-  // React 19's compiler and RHF's `form.watch` (which the compiler
-  // already flags as incompatible) and left the Max trials input
-  // non-actionable to Playwright fill. See
-  // `bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md`.
+  // re-derive the active preset on the next render. Chosen over the
+  // useState + useEffect watcher pattern because it's simpler and has one
+  // fewer render cycle. (Note: this is NOT the fix for the E2E regression
+  // tracked in `bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md` —
+  // that regression reproduces with both patterns. See the bug file for
+  // the seven ruled-out hypotheses.)
   const watchedMaxTrials = form.watch('max_trials');
   const watchedTimeBudget = form.watch('time_budget_min');
   const activePreset: PresetValue = useMemo(() => {
@@ -575,6 +572,19 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
         </DialogHeader>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
+          onKeyDown={(e) => {
+            // Prevent Enter on any input from submitting the form. The
+            // submit button is the only valid submission path. Without
+            // this, Playwright's `.fill()` (which can commit a numeric
+            // input via implicit Enter in production-build Chromium)
+            // submits the form mid-test, leaving the submit button stuck
+            // in 'Submitting…' when the test next tries to click it.
+            // Caught while reproducing studies-create-builder.spec.ts:130
+            // locally against the prod UI image.
+            if (e.key === 'Enter' && (e.target as HTMLElement | null)?.tagName === 'INPUT') {
+              e.preventDefault();
+            }
+          }}
           className="space-y-4"
           data-testid="create-study-form"
         >
