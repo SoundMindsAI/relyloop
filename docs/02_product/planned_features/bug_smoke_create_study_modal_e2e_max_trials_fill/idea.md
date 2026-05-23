@@ -3,7 +3,12 @@
 **Date:** 2026-05-23
 **Status:** Idea — regression introduced by `chore_study_default_stop_conditions` PR #215
 **Priority:** P1
-**Origin:** Surfaced repeatedly in CI smoke job during `chore_study_default_stop_conditions` PR #215. Skipped via `test.skip()` on [`ui/tests/e2e/studies-create-builder.spec.ts:130`](../../../../ui/tests/e2e/studies-create-builder.spec.ts) to unblock the PR.
+**Origin:** Surfaced repeatedly in CI smoke job during `chore_study_default_stop_conditions` PR #215. Two tests share the same root cause and are skipped via `test.skip()` to unblock the PR:
+
+- [`ui/tests/e2e/studies-create-builder.spec.ts:130`](../../../../ui/tests/e2e/studies-create-builder.spec.ts) — "case 1: builder edits propagate to textarea + submitted study persists the value" (line 153 fill)
+- [`ui/tests/e2e/studies-create-target-dropdown.spec.ts:48`](../../../../ui/tests/e2e/studies-create-target-dropdown.spec.ts) — "Step-1 target picker loads from the cluster, sorts alphabetically, and persists the picked target" (line 142 fill)
+
+Both tests reach Step 5 of the create-study modal and fill `Max trials` via `page.getByRole('spinbutton', { name: 'Max trials' }).fill('10')`. The fill (and the subsequent submit click) consistently times out in CI Chromium against the production build.
 **Depends on:** None (the change that introduced the regression is already merged when this idea is picked up).
 
 ## Problem
