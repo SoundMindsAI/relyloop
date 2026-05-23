@@ -6,34 +6,28 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-**[infra_ir_measures_migration](../02_product/planned_features/infra_ir_measures_migration/feature_spec.md)** — Infra, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> `scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -> ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the rest of the codebase consumes are unchan
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/infra_ir_measures_migration/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **65 / 66** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **66 / 66** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 13 important to file, not blocking |
+| → P2 (default) | 12 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 2 |
-| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (77)
+### Done (78)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -65,6 +59,7 @@ Plan approved; run /impl-execute to ship
 | [infra_e2e_wire_seed_helper_into_studies_spec](implemented_features/2026_05_19_infra_e2e_wire_seed_helper_into_studies_spec/idea.md) | Infra | Complete | — | Complete |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
 | [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
+| [infra_ir_measures_migration](implemented_features/2026_05_23_infra_ir_measures_migration/feature_spec.md) | Infra | `scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -> ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the  | — | [PR #198](https://github.com/SoundMindsAI/relyloop/pull/198) merged 2026-05-23 |
 | [infra_make_targets_split_backend_only](implemented_features/2026_05_14_infra_make_targets_split_backend_only/idea.md) | Infra | Complete | — | Complete |
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; ir_measures scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
@@ -119,11 +114,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|
-| P2 | [infra_ir_measures_migration](../02_product/planned_features/infra_ir_measures_migration/feature_spec.md) | Infra | `scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -> ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the  | — | [PR #197](https://github.com/SoundMindsAI/relyloop/pull/197) |
+_None._
 
 ### Spec (0)
 
@@ -158,8 +151,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  infra_ir_measures_migration["ir measures migration"]
-  class infra_ir_measures_migration plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -290,6 +281,8 @@ graph LR
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe["study preflight overlap probe"]
   class feat_study_preflight_overlap_probe done;
+  infra_ir_measures_migration["ir measures migration"]
+  class infra_ir_measures_migration done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
