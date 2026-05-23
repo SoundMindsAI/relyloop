@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Chore, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/chore_migration_test_head_brittleness/feature_spec.md">Migration Test Head Brittleness</a></div>
+    <div class="one-liner">Replace the two hardcoded `&quot;0017&quot;` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id.</div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/chore_migration_test_head_brittleness/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">69 / 69</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">69 / 70</div>
+      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">12</div>
+      <div class="value">13</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">11</div>
+      <div class="value">12</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">5</div>
+      <div class="value">6</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -570,13 +570,13 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_migration_test_head_brittleness">Migration Test Head Brittleness</a></div>
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete">E2E Seed Acme Idea Obsolete</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">[`backend/tests/integration/test_migrations.py`](../../backend/tests/integration/test_migrations.py) has two assertions:</div>
+  <div class="one-liner">[`chore_e2e_seed_acme_helper_dead/idea.md`](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) (dated 2026-05-21) proposed two paths:</div>
 
 
 </div>
@@ -628,7 +628,19 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_migration_test_head_brittleness/feature_spec.md">Migration Test Head Brittleness</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Replace the two hardcoded `&quot;0017&quot;` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id.</div>
+
+
+</div>
 
 </div>
 
@@ -1770,6 +1782,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_migration_test_head_brittleness[&quot;migration test head brittleness&quot;]
+  class chore_migration_test_head_brittleness plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1961,6 +1975,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_migration_test_head_brittleness[&quot;migration test head brittleness&quot;]
+  class chore_migration_test_head_brittleness plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
