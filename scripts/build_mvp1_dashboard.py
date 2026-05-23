@@ -684,6 +684,58 @@ def _data_freshness() -> dt.datetime:
     return dt.datetime.fromtimestamp(max(candidates), tz=dt.UTC)
 
 
+def _merge_order_key(f: Feature) -> tuple[str, int, str]:
+    """Sort key approximating merge order across the feature set.
+
+    Used by :func:`_expand_transitive_deps` to scope a shipped feature's
+    ``DEPS_ALL_BACKEND`` expansion to peers that merged on or before it
+    (bug_dashboard_depends_on_column_bloat). Tuple components:
+
+    1. ``merged_date`` (YYYY-MM-DD lexicographic) — primary order.
+       Planned features (no merge date) sort to "9999-99-99", placing
+       them strictly after every shipped feature.
+    2. ``pr_number`` — same-day tiebreaker. Missing PR# sorts last
+       within the date.
+    3. ``folder`` — final stable tiebreaker (rare path).
+    """
+    return (
+        f.merged_date or "9999-99-99",
+        f.pr_number if f.pr_number is not None else 999_999,
+        f.folder,
+    )
+
+
+def _expand_transitive_deps(features: list[Feature]) -> None:
+    """Expand each feature's ``DEPS_ALL_BACKEND`` sentinel in place.
+
+    For SHIPPED features (those with a ``merged_date``), the expansion
+    is filtered to backend peers whose merge order is strictly less
+    than this feature's — i.e., everything actually merged before it.
+    This is the bug_dashboard_depends_on_column_bloat fix: under the
+    prior implementation, ``feat_chat_agent`` (shipped 2026-05-12)
+    inherited today's full backend roster, including features that
+    shipped weeks later and planned ideas not yet specced. A shipped
+    feature can't depend on something that didn't exist yet.
+
+    For PLANNED features that use the transitive marker (defensive —
+    none today), the expansion remains the current full snapshot,
+    since a planned feature genuinely depends on every backend sibling
+    in the queue.
+    """
+    backend = [f for f in features if f.prefix in ("infra", "feat")]
+    for f in features:
+        if DEPS_ALL_BACKEND not in f.depends_on:
+            continue
+        explicit = [d for d in f.depends_on if d != DEPS_ALL_BACKEND]
+        if f.merged_date is not None:
+            self_key = _merge_order_key(f)
+            scoped = {g.folder for g in backend if _merge_order_key(g) < self_key}
+        else:
+            scoped = {g.folder for g in backend}
+        # Self-deps don't make sense; drop f.folder if it slipped in.
+        f.depends_on = sorted(set(explicit) | scoped - {f.folder})
+
+
 def load_all() -> list[Feature]:
     features: list[Feature] = []
     if PLANNED_DIR.exists():
@@ -703,15 +755,9 @@ def load_all() -> list[Feature]:
     # Expand the DEPS_ALL_BACKEND sentinel against the live feature set
     # (per the pipeline-skill algorithm). Resolved AFTER both planned +
     # implemented are loaded so transitive deps see every backend
-    # sibling regardless of which folder they live in.
-    backend_folders = sorted(f.folder for f in features if f.prefix in ("infra", "feat"))
-    for f in features:
-        if DEPS_ALL_BACKEND not in f.depends_on:
-            continue
-        explicit = [d for d in f.depends_on if d != DEPS_ALL_BACKEND]
-        # Self-deps don't make sense; drop f.folder if it slipped in.
-        merged = sorted(set(explicit) | set(backend_folders) - {f.folder})
-        f.depends_on = merged
+    # sibling regardless of which folder they live in. Time-ordered for
+    # shipped features (bug_dashboard_depends_on_column_bloat).
+    _expand_transitive_deps(features)
     return features
 
 
