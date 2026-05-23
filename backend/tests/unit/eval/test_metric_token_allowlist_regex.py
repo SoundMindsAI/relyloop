@@ -28,6 +28,8 @@ import re
 
 import pytest
 
+from backend.app.eval.scoring import SUPPORTED_K_VALUES
+
 # Authoritative strict regex — must match exactly the version in the
 # contract + integration tests. (When this regex changes, both call sites
 # must change in lock-step; the duplication is intentional to keep the
@@ -35,6 +37,20 @@ import pytest
 _STRICT_USER_FACING_KEY = re.compile(
     r"^(?:mrr|map|(?:ndcg|precision|recall|map)@(?:1|3|5|10|20|50|100))$"
 )
+
+
+def _all_allowed_keys() -> list[str]:
+    """Generate every user-facing token in the allowlist from the source-of-truth.
+
+    Per phase-gate F9: this enumeration MUST be dynamic so adding a value to
+    ``SUPPORTED_K_VALUES`` automatically expands the positive-case coverage
+    (and surfaces a regex update if the new value isn't covered).
+    """
+    allowed: list[str] = ["map", "mrr"]
+    for k in sorted(SUPPORTED_K_VALUES):
+        for base in ("ndcg", "precision", "recall", "map"):
+            allowed.append(f"{base}@{k}")
+    return allowed
 
 
 @pytest.mark.parametrize(
@@ -74,38 +90,28 @@ def test_strict_key_regex_rejects_forbidden(forbidden_key: str) -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "allowed_key",
-    [
-        # Plain (uncut) — only `map` and `mrr` are valid uncut:
-        "map",
-        "mrr",
-        # ndcg × every SUPPORTED_K_VALUES:
-        "ndcg@1",
-        "ndcg@3",
-        "ndcg@5",
-        "ndcg@10",
-        "ndcg@20",
-        "ndcg@50",
-        "ndcg@100",
-        # precision × every SUPPORTED_K_VALUES:
-        "precision@1",
-        "precision@10",
-        "precision@50",
-        "precision@100",
-        # recall × every SUPPORTED_K_VALUES:
-        "recall@1",
-        "recall@10",
-        "recall@100",
-        # map@k:
-        "map@1",
-        "map@10",
-        "map@100",
-    ],
-)
+@pytest.mark.parametrize("allowed_key", _all_allowed_keys())
 def test_strict_key_regex_accepts_allowed(allowed_key: str) -> None:
-    """The AC-3 strict regex accepts every user-facing token in the allowlist."""
+    """The AC-3 strict regex accepts every user-facing token in the allowlist.
+
+    Parametrized dynamically from ``SUPPORTED_K_VALUES`` so adding a new k value
+    automatically expands coverage. Total cases: 2 plain (map, mrr) + 4 metric
+    bases (ndcg, precision, recall, map) × 7 k-values = 30 — the same cross
+    enumerated by the FR-2 parity test.
+    """
     assert _STRICT_USER_FACING_KEY.match(allowed_key) is not None, (
         f"strict-key regex should ACCEPT {allowed_key!r} but rejected it — "
         f"user-facing token allowlist is too tight"
+    )
+
+
+def test_allowed_keys_count_matches_supported_cross() -> None:
+    """Sanity check: the dynamic enumeration covers every supported cell."""
+    allowed = _all_allowed_keys()
+    # 2 plain (map, mrr) + 4 cut-aware metrics × SUPPORTED_K_VALUES.
+    expected_count = 2 + 4 * len(SUPPORTED_K_VALUES)
+    assert len(allowed) == expected_count, (
+        f"dynamic enumeration count drift: got {len(allowed)}, "
+        f"expected 2 + 4*{len(SUPPORTED_K_VALUES)} = {expected_count}. "
+        f"Did SUPPORTED_K_VALUES change without a regex update?"
     )

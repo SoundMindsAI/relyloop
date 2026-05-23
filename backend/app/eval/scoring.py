@@ -5,15 +5,13 @@ Pure-functional layer. ``score(qrels, run, metrics)`` is the only function the
 metric-object translation so library wire forms never leak past this module
 (per spec §FR-3 last paragraph).
 
-Migrated from ``pytrec_eval`` to ``ir_measures`` by infra_ir_measures_migration
-(2026-05-22). The migration preserves every public-API surface byte-identically
-— callers (run_trial, confidence.py, the studies endpoint, every test) need
-zero source changes. ``ir_measures`` wraps multiple IR-evaluation backends
-(including a transitive ``pytrec-eval-terrier`` for the cut-aware metrics we
-use) behind a typed metric-object DSL: ``nDCG@10``, ``AP@10``, ``P@10``, etc.
-Per the migration's parity test at
+``ir_measures`` wraps multiple IR-evaluation backends behind a typed
+metric-object DSL: ``nDCG@10``, ``AP@10``, ``P@10``, etc. The public API of
+``score()`` (signature, return shape, persisted JSONB key set) is FROZEN —
+callers (the trial worker, confidence.py, the studies endpoint, every
+test) need zero source changes. Per the provider-equivalence parity test at
 ``backend/tests/unit/eval/test_scoring_parity.py``, every supported
-``(metric, k)`` cell matches the legacy ``pytrec_eval`` output to 1e-6.
+``(metric, k)`` cell matches the prior evaluator's output to 1e-6.
 
 The frozensets ``SUPPORTED_METRICS`` and ``SUPPORTED_K_VALUES`` are the
 allowlist for ``studies.objective.metric`` / ``studies.objective.k`` (per
@@ -187,8 +185,8 @@ def score(qrels: Qrels, run: Run, metrics: set[str]) -> ScoreResult:
     objects via ``_translate_metric_name``; the per-(qid, measure) iteration
     is re-keyed back to user-facing tokens so library wire forms never leak
     past this function. The per-query universe is filtered to the historical
-    ``pytrec_eval`` contract (qids that have at least one rated doc in qrels
-    AND at least one scored entry in run) so the persisted JSONB key set on
+    evaluator contract (qids that have at least one rated doc in qrels AND
+    a corresponding entry in run) so the persisted JSONB key set on
     qrel-only / run-only / empty-overlap edge cases is preserved (FR-3 /
     plan cycle-2 C2-F1 + cycle-3 C3-F1).
 
@@ -224,18 +222,17 @@ def score(qrels: Qrels, run: Run, metrics: set[str]) -> ScoreResult:
     obj_repr_to_user: dict[str, str] = {repr(obj): user for user, obj in user_to_obj.items()}
     obj_list: list[Measure] = list(user_to_obj.values())
 
-    # Universe filter: mirrors the legacy
-    # pytrec_eval.RelevanceEvaluator(qrels, ...).evaluate(run) qid set so the
+    # Universe filter: mirrors the legacy evaluator's qid set so the
     # persisted JSONB key set is preserved on qrel-only / run-only /
     # empty-inner-dict edge cases (FR-3 / plan cycle-2 C2-F1 + cycle-3 C3-F1).
     #
-    # Empirically verified at Story 1.4 activation time: pytrec_eval emits a
-    # per-query entry whenever the qid is in BOTH outer dicts AND `qrels[qid]`
-    # is non-empty. An empty `run[qid]` (no doc IDs scored) is still emitted
-    # by pytrec_eval — every metric scores 0 in that case, but the qid is
-    # present in the output. An empty `qrels[qid]` (no relevance info) is
-    # NOT emitted by pytrec_eval, because the evaluator has no relevance
-    # contract to compute against. We mirror that distinction here.
+    # Empirically verified at Story 1.4 activation time: the legacy evaluator
+    # emits a per-query entry whenever the qid is in BOTH outer dicts AND
+    # ``qrels[qid]`` is non-empty. An empty ``run[qid]`` (no doc IDs scored)
+    # is still emitted — every metric scores 0 in that case, but the qid is
+    # present in the output. An empty ``qrels[qid]`` (no relevance info) is
+    # NOT emitted, because the evaluator has no relevance contract to compute
+    # against. We mirror that distinction here.
     valid_qids: frozenset[str] = frozenset(
         qid for qid in qrels.keys() & run.keys() if qrels.get(qid)
     )
@@ -248,11 +245,19 @@ def score(qrels: Qrels, run: Run, metrics: set[str]) -> ScoreResult:
             continue
         user_token = obj_repr_to_user.get(repr(metric_tuple.measure))
         if user_token is None:
-            # Defense in depth: ir_measures should only emit measures we
-            # requested. If we see an unexpected measure (e.g. a backend
-            # emitted an internal helper metric), skip silently rather than
-            # corrupt the per_query shape.
-            continue  # pragma: no cover
+            # Fail loud: ir_measures should only emit measures we requested.
+            # If we see an unexpected measure (e.g. a future ir_measures
+            # version that emits internal helper metrics, or a metric-object
+            # repr that changed between versions and broke the reverse map),
+            # raising prevents silent JSONB-shape corruption. Per phase-gate
+            # F1: silent skip would hide drift in the obj_repr_to_user map.
+            raise RuntimeError(
+                f"score() received an unexpected measure {metric_tuple.measure!r} "
+                f"(repr={repr(metric_tuple.measure)!r}) from ir_measures.iter_calc; "
+                f"requested measures were {[repr(o) for o in obj_list]!r}. "
+                f"This indicates a repr drift or an internal ir_measures change — "
+                f"investigate before re-running."
+            )
         per_query.setdefault(metric_tuple.query_id, {})[user_token] = float(metric_tuple.value)
 
     # Aggregate: arithmetic mean across queries, per user-facing metric —

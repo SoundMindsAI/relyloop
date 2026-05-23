@@ -28,6 +28,7 @@ from sqlalchemy import select
 from backend.app.db import repo
 from backend.app.db.models import Study, Trial
 from backend.app.db.session import get_session_factory
+from backend.app.services.study_confidence import fetch_study_confidence
 from backend.tests.conftest import postgres_reachable
 
 pytestmark = [
@@ -246,13 +247,13 @@ async def test_existing_row_read_compat_ac12(async_client: httpx.AsyncClient) ->
         )
     await _set_best_trial(study_id, trial_id)
 
-    # --- (1) Confidence orchestrator via the StudyDetail endpoint -----------
+    # --- (1a) Confidence orchestrator via the StudyDetail endpoint ----------
     resp = await async_client.get(f"/api/v1/studies/{study_id}")
     assert resp.status_code == 200, resp.text
     body = resp.json()
     confidence = body.get("confidence")
     assert confidence is not None, (
-        "AC-12 (1): pre-migration JSONB row failed to hydrate ConfidenceShape — confidence is None"
+        "AC-12 (1a): pre-migration JSONB row failed to hydrate ConfidenceShape — confidence is None"
     )
     # The headline mirrors study.best_metric (0.82).
     assert confidence["headline"]["value"] == pytest.approx(0.82, abs=1e-6)
@@ -260,9 +261,25 @@ async def test_existing_row_read_compat_ac12(async_client: httpx.AsyncClient) ->
     assert confidence["headline"]["n_queries"] == 6
     # CI populates from the per_query values for ndcg@10.
     assert confidence["ci_95"] is not None, (
-        "AC-12 (1): CI should populate from per_query when ≥ 5 datapoints exist"
+        "AC-12 (1a): CI should populate from per_query when ≥ 5 datapoints exist"
     )
     assert confidence["ci_95"]["n_samples"] == 6
+
+    # --- (1b) Confidence orchestrator called DIRECTLY (per phase-gate F5) ---
+    # Exercises the service-layer function on its own — not just via the API
+    # endpoint — so the function-level contract is independently asserted.
+    factory = get_session_factory()
+    async with factory() as db:
+        study_row = await db.get(Study, study_id)
+        assert study_row is not None
+        direct_shape = await fetch_study_confidence(db, study_row)
+    assert direct_shape is not None, (
+        "AC-12 (1b): fetch_study_confidence returned None for a pre-migration JSONB row"
+    )
+    assert direct_shape.headline.value == pytest.approx(0.82, abs=1e-6)
+    assert direct_shape.headline.n_queries == 6
+    assert direct_shape.ci_95 is not None
+    assert direct_shape.ci_95.n_samples == 6
 
     # --- (2) Trial-list endpoint serializes the JSONB through unchanged ----
     list_resp = await async_client.get(f"/api/v1/studies/{study_id}/trials")
@@ -284,7 +301,6 @@ async def test_existing_row_read_compat_ac12(async_client: httpx.AsyncClient) ->
     # The digest worker (backend/workers/digest.py:632) reads complete trials
     # ordered by primary_metric DESC. Simulate the same SELECT directly to
     # prove the JSONB column can be read back without raising.
-    factory = get_session_factory()
     async with factory() as db:
         stmt = (
             select(Trial)
