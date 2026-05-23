@@ -380,19 +380,16 @@ async def test_cascade_cancel_completed_root_completed_middle_running_leaf(
 
 
 @pytest.mark.asyncio
-async def test_cascade_no_cascade_on_terminal_parent_returns_unchanged(
+async def test_cascade_no_cascade_on_terminal_parent_raises(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """cascade=False on a terminal parent: service returns the parent
-    unchanged (current implementation skips the transition for terminal
-    parents per cycle-3 C3-1, then returns early because cascade=False).
+    """cascade=False on a terminal parent raises InvalidStateTransition
+    per AC-9 wire contract (phase-gate review F3 — service now delegates
+    to cancel_study so the single-cancel error contract is preserved).
 
-    AC-9's 409 wire contract is enforced at the API layer (Story 2.3
-    will add a `parent_already_terminal` branch to the endpoint that
-    explicitly emits 409 INVALID_STATE_TRANSITION when cascade=false +
-    terminal parent). That HTTP-layer contract is exercised in the
-    Story 2.3 contract test, not here. This unit test verifies the
-    safer service-layer behavior: no mutation, no raise."""
+    Without the delegation, the service would silently return unchanged
+    and the API would have to compensate. With the delegation, the
+    service's behavior matches its docstring and the API just routes."""
     parent = _build_study_with_id("p1", status="completed")
     db = _MultiStudyFakeSession({"p1": parent})
 
@@ -401,12 +398,14 @@ async def test_cascade_no_cascade_on_terminal_parent_returns_unchanged(
 
     monkeypatch.setattr("backend.app.db.repo.list_children_of_study", fake_list_children)
 
-    result = await study_state.cancel_study_with_chain_cascade(
-        db,  # type: ignore[arg-type]
-        "p1",
-        cascade=False,
-    )
-    assert result.status == "completed"  # untouched per safer service-layer behavior
+    with pytest.raises(InvalidStateTransition):
+        await study_state.cancel_study_with_chain_cascade(
+            db,  # type: ignore[arg-type]
+            "p1",
+            cascade=False,
+        )
+    # Parent untouched (delegation to cancel_study raised before any mutation).
+    assert parent.status == "completed"
 
 
 @pytest.mark.asyncio

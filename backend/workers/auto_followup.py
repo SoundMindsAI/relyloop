@@ -135,10 +135,19 @@ async def enqueue_followup_study(ctx: dict[str, Any], parent_study_id: str) -> N
         # would exceed 80% of the daily budget.
         budget = settings.openai_daily_budget_usd
         model = settings.openai_model
-        # Defensive: if model pricing is unknown, treat the cap as zero
-        # (no headroom) — same pattern as digest.py:543. Better to over-
-        # skip than under-skip on cost.
-        max_call_cost = estimated_max_call_cost(model) if model in known_models() else 0.0
+        # Per phase-gate review F5: unknown model pricing is a defensive
+        # SKIP, not a "treat as zero cost" pass. Mirrors digest.py:543
+        # "digest worker: model has no pricing entry; aborting" — better
+        # to over-skip than under-skip the budget gate.
+        if budget > 0 and model not in known_models():
+            logger.warning(
+                "auto_followup chain skipped: unknown model pricing",
+                event_type="auto_followup_skipped_budget",
+                parent_study_id=parent_study_id,
+                model=model,
+                reason="unknown_model_pricing",
+            )
+            return
         # Per digest.py:439 precedent — create our own Redis client inline
         # rather than relying on ctx['redis_client'] (which isn't set up
         # in WorkerSettings.on_startup per cycle-1 finding C1-11).
@@ -146,6 +155,7 @@ async def enqueue_followup_study(ctx: dict[str, Any], parent_study_id: str) -> N
         try:
             if budget > 0:
                 peek_total = await peek_daily_total(redis_client)
+                max_call_cost = estimated_max_call_cost(model)
                 if peek_total + max_call_cost > _BUDGET_THRESHOLD_PCT * budget:
                     logger.info(
                         "auto_followup chain skipped: daily LLM budget near limit",

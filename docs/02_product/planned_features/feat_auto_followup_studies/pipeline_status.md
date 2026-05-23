@@ -43,7 +43,7 @@
   - **Story 2.2** — Digest worker trigger with deterministic `_job_id`. 5 source-inspection tests. Commit `70f61d8c`.
   - **Story 2.3** — Cancel cascade endpoint extension + new children endpoint + `_parse_cascade` dependency. 18 router-level tests. Commit TBD.
 - **Epic 1 phase gate:** ✓ (deferred GPT-5.5 review to Epic 2 close)
-- **Epic 2 status:** All 3 stories complete (2.1 + 2.2 + 2.3). Backend chain trigger + worker + API surface end-to-end live. Phase gate (full integration + contract tests, then GPT-5.5 cross-model review of the cumulative Epic 1 + 2 diff) pending — runs at the next `/pipeline` invocation, or before Epic 3 (frontend) begins.
+- **Epic 1+2 phase gate:** ✓ — `make lint` + `make typecheck` (409 source files clean) + `make test-unit` (1220 pass). GPT-5.5 cross-model review of the cumulative backend diff (~2832 lines across 18 files): 8 findings (1 High, 7 Medium). 2 substantive code fixes applied: budget gate's unknown-model fallback (F5) and `cancel_study_with_chain_cascade(cascade=False)` delegation (F3). 2 doc fixes (F1 + F4). 1 future-work idea file captured: `chore_auto_followup_completed_parent_stop_chain_race/idea.md` (F2 — cascade race with pending followup-enqueue Arq job on completed parents). Other findings (F6/F7/F8) are CI-gated test extensions documented in the execution tracker.
 - **Test totals so far:** 1220 unit tests pass (53+7+5+18 new + 1137 pre-existing). Integration tests are CI-gated; not run on host.
 - Next: **Epic 1+2 phase gate (GPT-5.5 cross-model review)** then Story 3.1 (Glossary entries + Auto-followup chain panel — frontend; needs Node 20+).
 - See [`implementation_plan.md` §9 Execution tracker](implementation_plan.md) for the full per-story checkbox list

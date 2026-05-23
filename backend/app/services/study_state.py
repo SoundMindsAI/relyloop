@@ -239,6 +239,14 @@ async def cancel_study_with_chain_cascade(
     # in some test bootstrap paths). Inline import is the standard escape.
     from backend.app.db import repo
 
+    # Per phase-gate review F3: cascade=False delegates to cancel_study so
+    # the existing single-cancel error contract is preserved — terminal
+    # parents raise InvalidStateTransition per AC-9 wire contract. Without
+    # this, the service silently returns unchanged terminal parents and
+    # diverges from its docstring.
+    if not cascade:
+        return await cancel_study(db, study_id)
+
     parent = await _load_for_update(db, study_id)
 
     # Parent transition (or terminal-skip).
@@ -261,9 +269,6 @@ async def cancel_study_with_chain_cascade(
             study_id=study_id,
             parent_status=parent.status,
         )
-
-    if not cascade:
-        return parent
 
     # Cascade into direct children (C3-1: traverse all, not just in-flight).
     children = await repo.list_children_of_study(db, study_id)
