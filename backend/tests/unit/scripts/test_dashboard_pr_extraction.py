@@ -317,6 +317,24 @@ class TestMetadataBlockHelper:
         block = _extract_metadata_block(idea)
         assert "**PR:** #999" not in block
 
+    def test_h1_after_metadata_is_body_heading_not_title(self) -> None:
+        # GPT-5.5 final-review regression: when an idea begins with
+        # metadata lines (NO `# ` title), a later `# ` is a body
+        # heading, not a title — must stop the block. Otherwise the
+        # `**PR:**` line after the body heading would be incorrectly
+        # included in the metadata-block search scope.
+        idea = (
+            "**Date:** 2026-05-23\n"
+            "**Status:** Idea\n"
+            "\n"
+            "# Body H1 heading after metadata (no title at top)\n"
+            "**PR:** #999\n"
+        )
+        block = _extract_metadata_block(idea)
+        assert "**PR:** #999" not in block
+        # End-to-end: _extract_pr_number must not return 999 either.
+        assert _extract_pr_number("", "", "", idea) != 999
+
     def test_empty_idea_returns_empty(self) -> None:
         assert _extract_metadata_block("") == ""
 

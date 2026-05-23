@@ -555,7 +555,7 @@ def _extract_metadata_block(idea: str) -> str:
     """
     lines = idea.splitlines()
     cap = min(len(lines), 30)
-    title_seen = False
+    nonblank_seen = False
     for idx in range(cap):
         line = lines[idx]
         if line.startswith("## "):
@@ -563,10 +563,15 @@ def _extract_metadata_block(idea: str) -> str:
         stripped = line.strip()
         if not stripped:
             continue
-        # The title line is allowed ONLY as the first non-blank line.
-        if stripped.startswith("# ") and not title_seen:
-            title_seen = True
+        # The title line is allowed ONLY as the FIRST non-blank line.
+        # If any non-blank line (metadata or otherwise) has already been
+        # seen, a subsequent `# ` is a body heading and stops the block.
+        # GPT-5.5 final review caught the case where metadata-key lines
+        # come first and a later `# ` was mistakenly treated as title.
+        if stripped.startswith("# ") and not nonblank_seen:
+            nonblank_seen = True
             continue
+        nonblank_seen = True
         # Anything else that's not a metadata key ends the block.
         if not _METADATA_KEY_RE.match(stripped):
             return "\n".join(lines[:idx])
