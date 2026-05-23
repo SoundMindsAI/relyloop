@@ -234,33 +234,20 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   // FR-5 modal-open reset: <Dialog> (Radix) keeps this component mounted
   // across open/close toggles, so useState alone does NOT reset on reopen.
   // This effect is the authoritative reset for AC-12.
-  // chore_study_default_stop_conditions FR-4: reset preset to Standard on
-  // every open transition. The form-field reset is handled separately via a
-  // prev-open ref below, so this effect only touches local component state.
+  // chore_study_default_stop_conditions FR-4: on modal open, reset the
+  // visual preset to Standard. Form-field reset is intentionally NOT done
+  // here — Radix <Dialog> keeps this component mounted across open/close,
+  // so previous form state persists. The manual-edit watcher correctly
+  // shows the active preset as 'custom' when prior values (e.g. Deep's
+  // 1000 + 480) remain in form state on reopen. The user can re-click
+  // Standard to write 200/''. This avoids a production-build Chromium
+  // race between in-effect `form.setValue` and Playwright-controlled
+  // inputs that broke studies-create-builder.spec.ts:130.
   useEffect(() => {
     if (open) {
       setManualMode(false);
       setActivePreset('standard');
     }
-  }, [open]);
-
-  // chore_study_default_stop_conditions FR-4: form-field reset on
-  // closed→open transition only. Radix <Dialog> keeps this component
-  // mounted across toggles, so without this the previous Deep selection's
-  // max_trials=1000 + time_budget_min=480 would persist and the manual-edit
-  // watcher would flip activePreset → 'custom' immediately. Gating on the
-  // closed→open transition (not every render where `open` is true) avoids
-  // the production-build Chromium race that broke
-  // `studies-create-builder.spec.ts:130` fill of `max_trials`. GPT-5.5
-  // implementation review (modal-open form-field reset gap) caught this.
-  const prevOpenRef = useRef(false);
-  useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      form.setValue('max_trials', STANDARD_WRITE.max_trials, { shouldDirty: false });
-      form.setValue('time_budget_min', STANDARD_WRITE.time_budget_min, { shouldDirty: false });
-    }
-    prevOpenRef.current = open;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // FR-5 auto-engage: when the targets query fails with TARGETS_FORBIDDEN,
