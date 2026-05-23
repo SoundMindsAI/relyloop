@@ -559,17 +559,18 @@ Per CLAUDE.md "Tooltips and contextual help": every entry above cites a glossary
 - When `enqueue_followup_study(parent_id)` runs (gate passes).
 - Then no child is created; `auto_followup_skipped_budget` is logged with `peek_total=85.0, budget=100.0, threshold_pct=80`.
 
-### AC-8: Cancellation cascade hits all in-flight children
+### AC-8: Cascade halts the chain rooted at a completed parent
 
-- Given a depth-3 chain where parent is `running`, child-1 is `running`, child-2 is `queued`.
-- When operator POSTs `/api/v1/studies/{parent_id}/cancel?cascade=true`.
-- Then parent transitions to `cancelled`, child-1 transitions to `cancelled`, child-2 transitions to `cancelled`; each emits `study_state_transition` + `auto_followup_cancelled_with_parent`.
+- Given a depth-3 chain: root R (`completed`), middle M (`completed`, child of R), leaf L (`running`, child of M).
+- When operator POSTs `/api/v1/studies/{R_id}/cancel?cascade=true` from R's detail page (the cancel button label reads "Stop chain" because R is terminal — per plan UI Guidance cycle-2 C2-5 patch).
+- Then R is **not** transitioned (already `completed`; cascade tolerates terminal parents per plan Story 1.3 cycle-2 C2-5 redesign); M is **not** transitioned (also already `completed`); L transitions to `cancelled` (was the only in-flight descendant); auxiliary `auto_followup_cancel_terminal_parent` event emitted for R and M; FR-9 event #8 `auto_followup_cancelled_with_parent` emitted for L (with `parent_study_id=M`, `child_study_id=L`).
+- The realistic auto-chain lifecycle: a child is created only after its parent's digest fires (which only fires on `completed`), so the parent of an in-flight child is normally `completed`. AC-8's earlier "running parent + running child" framing was structurally impossible in the normal flow; this version covers the realistic case.
 
-### AC-9: Cancellation without cascade leaves children alone
+### AC-9: `?cascade=false` does not transition descendants
 
 - Given the same chain as AC-8.
-- When operator POSTs `/api/v1/studies/{parent_id}/cancel?cascade=false`.
-- Then parent transitions to `cancelled`; child-1 and child-2 keep their current status.
+- When operator POSTs `/api/v1/studies/{R_id}/cancel?cascade=false`.
+- Then R is `completed` (cancel attempt raises `InvalidStateTransition` → 409 `INVALID_STATE_TRANSITION` because cascade=false enforces the standard single-cancel error contract); no descendants are touched. The endpoint's caller (the cancel modal) handles the 409 by displaying the standard "study cannot be cancelled in its current state" message.
 
 ### AC-10: Chain panel renders all three sub-elements
 

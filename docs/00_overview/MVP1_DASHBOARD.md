@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-**[feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md)** — Feature, currently in **Plan**
 
 > A relevance engineer can opt into auto-chaining on a per-study basis by setting `studies.config.auto_followup_depth` in the create-study wizard (or the `create_study` agent tool).
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_auto_followup_studies --auto
+/impl-execute docs/02_product/planned_features/feat_auto_followup_studies/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -128,15 +128,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md) | Feature | A relevance engineer can opt into auto-chaining on a per-study basis by setting `studies.config.auto_followup_depth` in the create-study wizard (or the `create_study` agent tool). | — | [PR #175](https://github.com/SoundMindsAI/relyloop/pull/175) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (11)
 
@@ -166,7 +166,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_auto_followup_studies["auto followup studies"]
-  class feat_auto_followup_studies spec;
+  class feat_auto_followup_studies plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
