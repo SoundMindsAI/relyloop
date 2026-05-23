@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md">Config Repo Baseline Tracking</a></div>
-    <div class="one-liner">A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_config_repo_baseline_tracking/implementation_plan.md --all</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">66 / 67</div>
-      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:99%"></span></div>
+      <div class="value">67 / 67</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">16</div>
+      <div class="value">15</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">14</div>
+      <div class="value">13</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">9</div>
+      <div class="value">8</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -667,19 +667,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md">Config Repo Baseline Tracking</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a> <span>merged 2026-05-10</span>
-  </div>
-  <div class="one-liner">A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -689,7 +677,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">78</span></h3>
+  <h3>Done <span class="count">79</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -725,6 +713,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/168">PR #168</a> <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset.</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_23_feat_config_repo_baseline_tracking/feature_spec.md">Config Repo Baseline Tracking</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/202">PR #202</a> <span>merged 2026-05-23</span>
+  </div>
+  <div class="one-liner">A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.</div>
 
 
 </div>
@@ -1717,8 +1718,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_config_repo_baseline_tracking[&quot;config repo baseline tracking&quot;]
-  class feat_config_repo_baseline_tracking plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1849,6 +1848,8 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  feat_config_repo_baseline_tracking[&quot;config repo baseline tracking&quot;]
+  class feat_config_repo_baseline_tracking done;
   infra_ir_measures_migration[&quot;ir measures migration&quot;]
   class infra_ir_measures_migration done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -1954,8 +1955,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_config_repo_baseline_tracking[&quot;config repo baseline tracking&quot;]
-  class feat_config_repo_baseline_tracking plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2086,6 +2085,8 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  feat_config_repo_baseline_tracking[&quot;config repo baseline tracking&quot;]
+  class feat_config_repo_baseline_tracking done;
   infra_ir_measures_migration[&quot;ir measures migration&quot;]
   class infra_ir_measures_migration done;
   feat_study_lifecycle --&gt; feat_digest_proposal

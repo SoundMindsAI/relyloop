@@ -6,40 +6,35 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-**[feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_config_repo_baseline_tracking/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **66 / 67** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **67 / 67** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 14 important to file, not blocking |
+| → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 4 |
-| Legacy "Path to MVP1" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (78)
+### Done (79)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_agent_propose_search_space](implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md) | Feature | A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same | — | [PR #175](https://github.com/SoundMindsAI/relyloop/pull/175) merged 2026-05-21 |
 | [feat_chat_agent](implemented_features/2026_05_12_feat_chat_agent/feature_spec.md) | Feature | A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE. | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `feat_ubi_judgments` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_ir_measures_migration` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` `infra_study_preflight_real_engine_integration` `infra_uv_sync_drops_precommit` | [PR #60](https://github.com/SoundMindsAI/relyloop/pull/60) merged 2026-05-12 |
 | [feat_cluster_target_filter](implemented_features/2026_05_20_feat_cluster_target_filter/feature_spec.md) | Feature | Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset. | — | [PR #168](https://github.com/SoundMindsAI/relyloop/pull/168) merged 2026-05-20 |
+| [feat_config_repo_baseline_tracking](implemented_features/2026_05_23_feat_config_repo_baseline_tracking/feature_spec.md) | Feature | A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo. | — | [PR #202](https://github.com/SoundMindsAI/relyloop/pull/202) merged 2026-05-23 |
 | [feat_contextual_help](implemented_features/2026_05_15_feat_contextual_help/feature_spec.md) | Feature | a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam | — | [PR #122](https://github.com/SoundMindsAI/relyloop/pull/122) merged 2026-05-15 |
 | [feat_create_study_search_space_builder](implemented_features/2026_05_20_feat_create_study_search_space_builder/feature_spec.md) | Feature | Complete (PR #163, squash commit `c703953`, merged 2026-05-20) | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) merged 2026-05-20 |
 | [feat_create_study_target_autocomplete](implemented_features/2026_05_20_feat_create_study_target_autocomplete/feature_spec.md) | Feature | Operator selects a cluster → an autocomplete dropdown lists the user-visible targets on that cluster (name + doc count), pre-sorted alphabetically. | — | [PR #165](https://github.com/SoundMindsAI/relyloop/pull/165) merged 2026-05-20 |
@@ -120,11 +115,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|
-| P2 | [feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md) | Feature | A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo. | — | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-10 |
+_None._
 
 ### Spec (0)
 
@@ -161,8 +154,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_config_repo_baseline_tracking["config repo baseline tracking"]
-  class feat_config_repo_baseline_tracking plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -293,6 +284,8 @@ graph LR
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe["study preflight overlap probe"]
   class feat_study_preflight_overlap_probe done;
+  feat_config_repo_baseline_tracking["config repo baseline tracking"]
+  class feat_config_repo_baseline_tracking done;
   infra_ir_measures_migration["ir measures migration"]
   class infra_ir_measures_migration done;
   feat_study_lifecycle --> feat_digest_proposal
