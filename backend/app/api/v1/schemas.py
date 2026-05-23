@@ -574,6 +574,14 @@ class StudyConfigSpec(BaseModel):
     pruner: PrunerKind | None = None
     seed: int | None = None
     secondary_metrics: list[str] | None = None
+    auto_followup_depth: int | None = Field(default=None)
+    """feat_auto_followup_studies FR-1 + D-12: 0..5 valid; 0 is the
+    worker-internal terminal-state value (operators set None to opt out).
+    Bound check is done via ``_validate_auto_followup_depth`` below — NOT
+    via Field(ge, le) — so the project's canonical error envelope can
+    carry ``AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE`` per spec §8.5 (the prefix
+    parser in :mod:`backend.app.api.errors` picks up the ``<CODE>:``
+    prefix from the raised ValueError message)."""
 
     @model_validator(mode="after")
     def _require_one_stop_condition(self) -> StudyConfigSpec:
@@ -582,6 +590,22 @@ class StudyConfigSpec(BaseModel):
                 "studies.config must specify at least one of `max_trials` or "
                 "`time_budget_min` — otherwise the study has no terminating "
                 "stop condition"
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _validate_auto_followup_depth(self) -> StudyConfigSpec:
+        """feat_auto_followup_studies FR-1: range check with error-code prefix.
+
+        The ``AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE:`` prefix is recognized by
+        :func:`backend.app.api.errors.validation_exception_handler`, which
+        unwraps it into the response envelope's ``error_code`` field.
+        """
+        if self.auto_followup_depth is not None and not (0 <= self.auto_followup_depth <= 5):
+            raise ValueError(
+                "AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE: config.auto_followup_depth "
+                f"must be between 0 and 5 inclusive when set; "
+                f"got {self.auto_followup_depth}"
             )
         return self
 

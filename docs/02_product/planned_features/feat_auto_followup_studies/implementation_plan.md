@@ -1273,3 +1273,24 @@ No story blocks any other within its epic — agents can pick them up in any ord
 | No `page.route()` mocking in E2E (CLAUDE.md E2E rules) | ✓ — Story 3.3 anchors to real-backend seed-helper pattern |
 | No hardcoded LLM model names (CLAUDE.md absolute rule #8) | ✓ — Story 2.1 reads `settings.openai_model` |
 | Audit-event coverage (MVP2+ rule — N/A for MVP1) | N/A — spec §6 marks audit events as N/A until MVP2 |
+
+---
+
+## 9) Execution tracker
+
+Resumable across `/pipeline --auto` invocations. Each `/impl-execute` turn ticks the next box.
+
+- [x] **Story 1.1** — `auto_followup_depth` field + `evaluate_chain_gate` domain + error-handler prefix parser. Commit: TBD. Tests: 53 pass (20 domain + 8 handler + 8 schema/contract + 17 pre-existing).
+- [ ] Story 1.2 — `narrow_around_winner` domain extraction (FR-4)
+- [ ] Story 1.3 — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (FR-8)
+- [ ] **Epic 1 phase gate** — full lint/typecheck/test-unit pass
+- [ ] Story 2.1 — `enqueue_followup_study` Arq job (FR-3, FR-5, FR-6, FR-9 events 1-7)
+- [ ] Story 2.2 — Digest worker trigger (FR-1 trigger)
+- [ ] Story 2.3 — Cancel cascade endpoint + Children endpoint + Telemetry event #8
+- [ ] **Epic 2 phase gate** — full integration + contract tests pass; 7 of 8 FR-9 events emitted
+- [ ] Story 3.1 — Glossary entries + Auto-followup chain panel component (FR-10)
+- [ ] Story 3.2 — Wizard depth selector (FR-11)
+- [ ] Story 3.3 — Cancel modal cascade radio + E2E test (FR-8 frontend)
+- [ ] **Epic 3 phase gate** — `cd ui && pnpm lint && pnpm typecheck && pnpm test && pnpm build` pass; E2E spec passes
+- [ ] Story 4.1 — Documentation updates (runbook + arch docs + state.md)
+- [ ] **Post-implementation** — test coverage audit, deferred-work sweep, tangential observations, guide impact, push + PR, CI watch, Gemini adjudication, final GPT-5.5 review, finalize

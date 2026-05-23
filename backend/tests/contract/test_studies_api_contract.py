@@ -137,6 +137,38 @@ def test_objective_spec_rejects_invalid_metric() -> None:
         ObjectiveSpec(metric="bleu")
 
 
+# ---------------------------------------------------------------------------
+# feat_auto_followup_studies Story 1.1 — StudyConfigSpec.auto_followup_depth
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("depth", [None, 0, 1, 5])
+def test_study_config_accepts_valid_auto_followup_depth(depth: int | None) -> None:
+    """FR-1 + D-12: None and 0..5 are all valid (0 is worker-internal
+    terminal value)."""
+    cfg = StudyConfigSpec(max_trials=20, auto_followup_depth=depth)
+    assert cfg.auto_followup_depth == depth
+
+
+@pytest.mark.parametrize("depth", [-1, 6, 100])
+def test_study_config_rejects_out_of_range_auto_followup_depth(depth: int) -> None:
+    """FR-1: values outside [0, 5] raise ValidationError with the
+    AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE prefix that the error handler
+    unwraps into the response envelope (verified in
+    ``test_auto_followup_depth_emits_canonical_error_code`` below)."""
+    with pytest.raises(ValidationError, match="AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE"):
+        StudyConfigSpec(max_trials=20, auto_followup_depth=depth)
+
+
+def test_study_config_coerces_string_depth_per_pydantic_v2() -> None:
+    """Pydantic v2 with default model_config coerces numeric strings to
+    int. Spec §14 + plan Story 1.1 note: '3' is VALID (parses to 3) —
+    not in the invalid-cases list. This test locks the coercion so a
+    future strict-mode flip doesn't silently break the wire contract."""
+    cfg = StudyConfigSpec(max_trials=20, auto_followup_depth="3")
+    assert cfg.auto_followup_depth == 3
+
+
 def test_objective_spec_rejects_invalid_k() -> None:
     with pytest.raises(ValidationError):
         ObjectiveSpec(metric="ndcg", k=7)
