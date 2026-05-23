@@ -31,7 +31,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
-| [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Complete | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) merged 2026-05-15 |
+| [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study: | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) merged 2026-05-15 |
 
 ### Implementing (0)
 

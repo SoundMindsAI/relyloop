@@ -505,17 +505,21 @@ _IDEA_STATUS_SHIPPED_RE = re.compile(
     re.MULTILINE,
 )
 
-# Spec FR-2 Pattern B — own-PR implemented status.
+# Spec FR-2 Pattern B — own-PR implemented status. Markdown-link alternation
+# matches Pattern A for symmetry — purely additive, never reduces matches.
 _IDEA_STATUS_IMPLEMENTED_RE = re.compile(
-    r"^\*\*Status:\*\*\s+\*\*Implemented\s*[—\-]\s*PR\s*#(\d+)\b",
+    r"^\*\*Status:\*\*\s+\*\*Implemented\s*[—\-]\s*PR\s*"
+    r"(?:\[#(\d+)\b\]\([^)]*\)|\[#(\d+)\b\]|#(\d+)\b)",
     re.MULTILINE,
 )
 
 # Spec FR-2 Pattern C — own-PR inline shipped dateline at line start.
 # Leading ^ is load-bearing: prevents matching dependency cites such as
 # `Depends on chore_X (**shipped 2026-05-21 as PR #N**)`.
+# Markdown-link alternation matches Pattern A for symmetry.
 _IDEA_SHIPPED_DATELINE_RE = re.compile(
-    r"^\*\*shipped\s+\d{4}-\d{2}-\d{2}\s+as\s+PR\s*#(\d+)\b",
+    r"^\*\*shipped\s+\d{4}-\d{2}-\d{2}\s+as\s+PR\s*"
+    r"(?:\[#(\d+)\b\]\([^)]*\)|\[#(\d+)\b\]|#(\d+)\b)",
     re.MULTILINE,
 )
 
@@ -779,7 +783,14 @@ def _load_implemented(folder_path: Path) -> Feature | None:
     pipe = _read(folder_path / "pipeline_status.md")
     idea = _read(folder_path / "idea.md")
 
-    one_liner = _extract_one_liner(spec, source_dir=folder_path)
+    # One-liner: prefer spec; fall back to idea.md's Problem block for
+    # legacy idea-only folders. Symmetric with _load_planned per Gemini
+    # PR #221 finding #3.
+    one_liner = (
+        _extract_one_liner(spec, source_dir=folder_path)
+        if spec
+        else _extract_idea_problem(idea, idea_dir=folder_path)
+    )
     pr = _extract_pr_number(pipe, plan, spec, idea)
     merged = _extract_merged_date(pipe + plan + spec)
 
