@@ -107,11 +107,7 @@ def _current_head() -> str:
     runs at collection time; an import-time invocation would bypass it and
     fail on hosts where the integration tests are meant to skip.
     """
-    result = subprocess.check_output(
-        ["uv", "run", "alembic", "heads"],
-        cwd=REPO,
-        text=True,
-    )
+    result = _alembic("heads").stdout
     lines = [line for line in result.splitlines() if line.strip()]
     assert len(lines) == 1, (
         f"Expected exactly one Alembic head, got {len(lines)}: {lines!r}. "
