@@ -234,25 +234,33 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   // FR-5 modal-open reset: <Dialog> (Radix) keeps this component mounted
   // across open/close toggles, so useState alone does NOT reset on reopen.
   // This effect is the authoritative reset for AC-12.
-  // chore_study_default_stop_conditions FR-4: reset preset to Standard AND
-  // re-write the stop-condition fields to Standard's values on every open
-  // transition. Radix <Dialog> keeps this component mounted across open/close
-  // toggles, so without an explicit form-side reset the previous Deep
-  // selection's max_trials=1000 + time_budget_min=480 would persist,
-  // triggering the manual-edit watcher to flip activePreset → 'custom'
-  // immediately. GPT-5.5 implementation review caught this. `form` is omitted
-  // from the dep array because useForm()'s return value is stable per RHF;
-  // including it in the deps caused the effect to re-fire on every render
-  // in production-build Chromium (vitest jsdom didn't surface this), which
-  // raced with user input and made max_trials uneditable.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // chore_study_default_stop_conditions FR-4: reset preset to Standard on
+  // every open transition. The form-field reset is handled separately via a
+  // prev-open ref below, so this effect only touches local component state.
   useEffect(() => {
     if (open) {
       setManualMode(false);
       setActivePreset('standard');
+    }
+  }, [open]);
+
+  // chore_study_default_stop_conditions FR-4: form-field reset on
+  // closed→open transition only. Radix <Dialog> keeps this component
+  // mounted across toggles, so without this the previous Deep selection's
+  // max_trials=1000 + time_budget_min=480 would persist and the manual-edit
+  // watcher would flip activePreset → 'custom' immediately. Gating on the
+  // closed→open transition (not every render where `open` is true) avoids
+  // the production-build Chromium race that broke
+  // `studies-create-builder.spec.ts:130` fill of `max_trials`. GPT-5.5
+  // implementation review (modal-open form-field reset gap) caught this.
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (open && !prevOpenRef.current) {
       form.setValue('max_trials', STANDARD_WRITE.max_trials, { shouldDirty: false });
       form.setValue('time_budget_min', STANDARD_WRITE.time_budget_min, { shouldDirty: false });
     }
+    prevOpenRef.current = open;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   // FR-5 auto-engage: when the targets query fails with TARGETS_FORBIDDEN,
