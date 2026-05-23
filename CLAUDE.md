@@ -33,6 +33,7 @@ The tool is a single, engine-agnostic, provider-agnostic system: one UI, one wor
 | Release | Theme | Adds |
 |---|---|---|
 | MVP1 / v0.1 | "The Loop" | ES + OpenSearch adapter, OpenAI-compatible LLM, GitHub provider, single-tenant, no auth, Docker Compose, 80% coverage gate |
+| MVP1.5 / v0.1.5 | "Real Signals" | OpenSearch UBI judgments as a first-class source — `UbiReader` (engine-agnostic; reads `ubi_queries` + `ubi_events`) + pluggable `SignalsConverter` (position-bias-corrected CTR, dwell-time, hybrid UBI+LLM); judgment lists can mix sources via existing `source` enum; new `POST /api/v1/judgment-lists/generate-from-ubi` + `generate_judgments_from_ubi` agent tool. No schema migration, no new Compose service. Predicated on operator running the OpenSearch UBI plugin. |
 | MVP2 / v0.2 | "Observable" | Langfuse + ClickHouse + SigNoz; canonical event catalog; `audit_log` table + immutability trigger (no users/tenants yet); lineage columns; PII redaction; trace propagation |
 | MVP3 / v0.3 | "Production Stacks" | Lucidworks Fusion adapter; multi-Git-provider abstraction (GitLab, Bitbucket); production install (TLS via Caddy + Let's Encrypt, managed Postgres/Redis); AWS managed OpenSearch |
 | MVP4 / v0.4 | "Multi-tenant, Multi-LLM" | `tenants` + `tenant_memberships` + `users` + `api_keys`; `tenant_id` columns + backfill; SSO via reverse proxy; Argon2id-hashed bearer API keys; native non-OpenAI provider SDKs (Anthropic, Bedrock, Vertex) |
