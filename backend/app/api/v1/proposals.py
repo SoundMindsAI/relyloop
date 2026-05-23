@@ -354,6 +354,7 @@ async def list_proposals_endpoint(
     source: Annotated[ProposalSourceWire | None, Query()] = None,
     template_id: Annotated[UUID | None, Query()] = None,
     study_id: Annotated[UUID | None, Query()] = None,
+    is_last_merged: Annotated[bool | None, Query()] = None,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     sort: Annotated[ProposalSortKey | None, Query()] = None,
@@ -387,6 +388,7 @@ async def list_proposals_endpoint(
             source=source,
             template_id=template_id_str,
             study_id=study_id_str,
+            is_last_merged=is_last_merged,
             sort=sort,
         )
     )
@@ -400,6 +402,7 @@ async def list_proposals_endpoint(
         source=source,
         template_id=template_id_str,
         study_id=study_id_str,
+        is_last_merged=is_last_merged,
     )
     response.headers["X-Total-Count"] = str(total)
     next_cursor: str | None = None

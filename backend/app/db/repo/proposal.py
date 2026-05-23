@@ -33,7 +33,7 @@ from typing import Any, Literal
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.db.models import Digest, Proposal
+from backend.app.db.models import ConfigRepo, Digest, Proposal
 from backend.app.db.repo._sort import (
     ParsedSort,
     keyset_predicate,
@@ -140,6 +140,23 @@ def _apply_source_filter(stmt: Any, source: ProposalSourceFilter | None) -> Any:
     return stmt
 
 
+def _apply_is_last_merged_filter(stmt: Any, is_last_merged: bool | None) -> Any:
+    """Apply the ``?is_last_merged=true|false`` filter to a SELECT/COUNT stmt.
+
+    feat_config_repo_baseline_tracking FR-6 — pointer-only EXISTS predicate
+    (NULL-safe). A proposal is "currently live" iff at least one
+    ``config_repos`` row has ``last_merged_proposal_id = proposals.id``.
+    """
+    if is_last_merged is None:
+        return stmt
+    pointer_exists = (
+        select(ConfigRepo.id).where(ConfigRepo.last_merged_proposal_id == Proposal.id).exists()
+    )
+    if is_last_merged is True:
+        return stmt.where(pointer_exists)
+    return stmt.where(~pointer_exists)
+
+
 async def list_proposals_paginated(
     db: AsyncSession,
     *,
@@ -150,6 +167,7 @@ async def list_proposals_paginated(
     source: ProposalSourceFilter | None = None,
     template_id: str | None = None,
     study_id: str | None = None,
+    is_last_merged: bool | None = None,
     sort: str | None = None,
 ) -> Sequence[Proposal]:
     """Cursor-paginated proposal list. Sort-aware (Story 1.3).
@@ -161,6 +179,8 @@ async def list_proposals_paginated(
     is the server-side equivalent of the UI's three-state chip.
     ``study_id`` filter narrows to proposals belonging to a single study
     (used by the study-detail page's pending-proposal lookup).
+    ``is_last_merged`` (feat_config_repo_baseline_tracking FR-6) filters
+    to proposals tracked (or not) as some config_repo's live pointer.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
     stmt = select(Proposal)
@@ -173,6 +193,7 @@ async def list_proposals_paginated(
     if study_id is not None:
         stmt = stmt.where(Proposal.study_id == study_id)
     stmt = _apply_source_filter(stmt, source)
+    stmt = _apply_is_last_merged_filter(stmt, is_last_merged)
     if cursor is not None:
         cursor_value, cursor_id = cursor
         stmt = stmt.where(
@@ -198,11 +219,14 @@ async def count_proposals(
     source: ProposalSourceFilter | None = None,
     template_id: str | None = None,
     study_id: str | None = None,
+    is_last_merged: bool | None = None,
 ) -> int:
     """COUNT(*) for the ``X-Total-Count`` header on ``GET /api/v1/proposals``.
 
     ``template_id`` filter (Story 1.5) narrows by FK. ``study_id`` filter
-    narrows to a single study.
+    narrows to a single study. ``is_last_merged``
+    (feat_config_repo_baseline_tracking FR-6) restricts to the live-pointer
+    set or its complement.
     """
     stmt = select(func.count()).select_from(Proposal)
     if status is not None:
@@ -214,6 +238,7 @@ async def count_proposals(
     if study_id is not None:
         stmt = stmt.where(Proposal.study_id == study_id)
     stmt = _apply_source_filter(stmt, source)
+    stmt = _apply_is_last_merged_filter(stmt, is_last_merged)
     return int((await db.execute(stmt)).scalar_one())
 
 
