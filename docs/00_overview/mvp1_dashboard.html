@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Infra, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/infra_ir_measures_migration/feature_spec.md">Ir Measures Migration</a></div>
-    <div class="one-liner">`scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -&gt; ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the rest of the codebase consumes are unchan</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/infra_ir_measures_migration/implementation_plan.md --all</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">65 / 66</div>
-      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:98%"></span></div>
+      <div class="value">66 / 66</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">14</div>
+      <div class="value">13</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">13</div>
+      <div class="value">12</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">7</div>
+      <div class="value">6</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -641,19 +641,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_ir_measures_migration/feature_spec.md">Ir Measures Migration</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/197">PR #197</a>
-  </div>
-  <div class="one-liner">`scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -&gt; ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the </div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -663,14 +651,14 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">77</span></h3>
+  <h3>Done <span class="count">78</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/175">PR #175</a><span>merged 2026-05-21</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/175">PR #175</a> <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">A new read-only agent tool `propose_search_space(template_id, cluster_id, judgment_list_id?, prior_study_id?) → SearchSpace JSON` that emits a deterministic, code-generated search space using the same</div>
 
@@ -683,7 +671,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/60">PR #60</a><span>merged 2026-05-12</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/60">PR #60</a> <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
 
@@ -696,7 +684,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/168">PR #168</a><span>merged 2026-05-20</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/168">PR #168</a> <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Each registered cluster can optionally carry a glob pattern (`products*`, `team-a-*`, `docs-[ef][nr]-*`) that scopes `list_targets()` to the matching subset.</div>
 
@@ -709,7 +697,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/122">PR #122</a><span>merged 2026-05-15</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/122">PR #122</a> <span>merged 2026-05-15</span>
   </div>
   <div class="one-liner">a relevance engineer can launch their second study and interpret its digest without re-reading the tutorial, because every domain-jargon label has a one-click contextual definition grounded in the sam</div>
 
@@ -722,7 +710,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/163">PR #163</a><span>merged 2026-05-20</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/163">PR #163</a> <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Complete (PR #163, squash commit `c703953`, merged 2026-05-20)</div>
 
@@ -735,7 +723,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/165">PR #165</a><span>merged 2026-05-20</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/165">PR #165</a> <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Operator selects a cluster → an autocomplete dropdown lists the user-visible targets on that cluster (name + doc count), pre-sorted alphabetically.</div>
 
@@ -748,7 +736,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/126">PR #126</a><span>merged 2026-05-16</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/126">PR #126</a> <span>merged 2026-05-16</span>
   </div>
   <div class="one-liner">Complete (PR #126, merged 2026-05-16)</div>
 
@@ -761,7 +749,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/41">PR #41</a><span>merged 2026-05-11</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/41">PR #41</a> <span>merged 2026-05-11</span>
   </div>
   <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
 
@@ -774,7 +762,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/45">PR #45</a><span>merged 2026-05-12</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/45">PR #45</a> <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">`POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches </div>
 
@@ -787,7 +775,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a><span>merged 2026-05-12</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/56">PR #56</a> <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
 
@@ -800,7 +788,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/188">PR #188</a><span>merged 2026-05-22</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/188">PR #188</a> <span>merged 2026-05-22</span>
   </div>
   <div class="one-liner">An operator landing on a freshly-seeded stack sees an unambiguous banner above the dashboard&#x27;s empty/populated content that names the present demo clusters, explains they ship with realistic queries +</div>
 
@@ -813,7 +801,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/104">PR #104</a><span>merged 2026-05-12</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/104">PR #104</a> <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status=&#x27;generating&#x27;` row via deterministi</div>
 
@@ -826,7 +814,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/35">PR #35</a><span>merged 2026-05-11</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/35">PR #35</a> <span>merged 2026-05-11</span>
   </div>
   <div class="one-liner">A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r</div>
 
@@ -839,7 +827,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/191">PR #191</a><span>merged 2026-05-22</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/191">PR #191</a> <span>merged 2026-05-22</span>
   </div>
   <div class="one-liner">Complete (PR #191, merged 2026-05-22 as squash `51ae4b3c`)</div>
 
@@ -852,7 +840,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/180">PR #180</a><span>merged 2026-05-21</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/180">PR #180</a> <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Approvers reading a study-backed PR see a &quot;## Confidence&quot; section directly between the existing &quot;## Metric delta&quot; and &quot;## Config diff&quot; sections.</div>
 
@@ -865,7 +853,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/58">PR #58</a><span>merged 2026-05-12</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/58">PR #58</a> <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">Two routes — `/proposals` (filterable list) and `/proposals/{id}` (config diff + metric delta + &quot;Open PR&quot; button + post-open PR-state mirror) — plug into the existing `feat_studies_ui` Next.js app.</div>
 
@@ -878,7 +866,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/101">PR #101</a><span>merged 2026-05-14</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/101">PR #101</a> <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">A relevance engineer on the `/query-sets/[id]` page sees a paginated table of every query in the set with `query_text`, `reference_answer`, `query_metadata`, and a `judgment_count` derived field.</div>
 
@@ -891,7 +879,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/50">PR #50</a><span>merged 2026-05-12</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/50">PR #50</a> <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §&quot;Routes (MVP1)&quot;](../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgment re</div>
 
@@ -904,7 +892,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/18">PR #18</a><span>merged 2026-05-10</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/18">PR #18</a> <span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond</div>
 
@@ -917,7 +905,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/193">PR #193</a><span>merged 2026-05-21</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/193">PR #193</a> <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">`POST /api/v1/studies` issues a single bounded `ids`-existence query against the study&#x27;s target asking &quot;for the *first* query in the query set that has any judgments (chosen deterministically by `id A</div>
 
@@ -930,7 +918,7 @@ footer {
   <div class="meta">
     <span class="badge feat">Feature</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/184">PR #184</a><span>merged 2026-05-21</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/184">PR #184</a> <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">`POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422).</div>
 
@@ -943,7 +931,7 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/16">PR #16</a><span>merged 2026-05-10</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/16">PR #16</a> <span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column.</div>
 
@@ -1008,7 +996,7 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a><span>merged 2026-05-09</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a> <span>merged 2026-05-09</span>
   </div>
   <div class="one-liner">A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in &lt;60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag</div>
 
@@ -1024,6 +1012,19 @@ footer {
     <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_23_infra_ir_measures_migration/feature_spec.md">Ir Measures Migration</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/198">PR #198</a> <span>merged 2026-05-23</span>
+  </div>
+  <div class="one-liner">`backend/app/eval/scoring.py` uses `ir_measures` for IR evaluation; the public `score()` signature and persisted user-facing metric tokens (`ndcg@10`, `map@10`, `mrr`, `map`) are unchanged.</div>
 
 
 </div>
@@ -1060,7 +1061,7 @@ footer {
   <div class="meta">
     <span class="badge infra">Infra</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/23">PR #23</a><span>merged 2026-05-10</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/23">PR #23</a> <span>merged 2026-05-10</span>
   </div>
   <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; ir_measures scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
 
@@ -1190,7 +1191,7 @@ footer {
   <div class="meta">
     <span class="badge chore">Chore</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/157">PR #157</a><span>merged 2026-05-20</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/157">PR #157</a> <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Step 4 auto-fills from the template&#x27;s `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en</div>
 
@@ -1242,7 +1243,7 @@ footer {
   <div class="meta">
     <span class="badge chore">Chore</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/186">PR #186</a><span>merged 2026-05-21</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/186">PR #186</a> <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg</div>
 
@@ -1294,7 +1295,7 @@ footer {
   <div class="meta">
     <span class="badge chore">Chore</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/126">PR #126</a><span>merged 2026-05-16</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/126">PR #126</a> <span>merged 2026-05-16</span>
   </div>
   <div class="one-liner">Ready for Execution</div>
 
@@ -1502,7 +1503,7 @@ footer {
   <div class="meta">
     <span class="badge chore">Chore</span>
 
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/64">PR #64</a><span>merged 2026-05-12</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/64">PR #64</a> <span>merged 2026-05-12</span>
   </div>
   <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
 
@@ -1678,8 +1679,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  infra_ir_measures_migration[&quot;ir measures migration&quot;]
-  class infra_ir_measures_migration plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1810,6 +1809,8 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  infra_ir_measures_migration[&quot;ir measures migration&quot;]
+  class infra_ir_measures_migration done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -1911,8 +1912,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  infra_ir_measures_migration[&quot;ir measures migration&quot;]
-  class infra_ir_measures_migration plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2043,6 +2042,8 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  infra_ir_measures_migration[&quot;ir measures migration&quot;]
+  class infra_ir_measures_migration done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments

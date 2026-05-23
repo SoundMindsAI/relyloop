@@ -1284,7 +1284,7 @@ def _card_html(f: Feature) -> str:
   <div class="meta">
     <span class="badge {f.prefix}">{html.escape(PREFIX_LABELS.get(f.prefix, f.prefix))}</span>
     {priority_html}
-    {pr_html}{merged_html}
+    {pr_html}{" " if pr_html and merged_html else ""}{merged_html}
   </div>
   <div class="one-liner">{html.escape(one_liner)}</div>
   {deferred_html}

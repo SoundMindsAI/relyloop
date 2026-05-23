@@ -6,7 +6,7 @@ I spent three days at [Haystack 2026](https://haystackconf.com/) in Charlottesvi
 
 ## The pre-existing itch
 
-I work as an engineer on an Enterprise Search Platform team that runs on Lucidworks Fusion. Most days my job involves the same kind of conversation that, judging by every Haystack hallway I've ever stood in, a thousand other relevance engineers have: someone reports that a specific search app is returning sub-optimal results for a specific query, and we go in and tune.
+I work as an engineer on an Enterprise Search Platform team. Most days my job involves the same kind of conversation that, judging by every Haystack hallway I've ever stood in, a thousand other relevance engineers have: someone reports that a specific search app is returning sub-optimal results for a specific query, and we go in and tune.
 
 The honest description of how that tuning works, across our industry, is this: you take a guess at a config change and try it out. You eyeball a few queries. You ask a stakeholder if the new results "look better." If they do, you commit. If they don't, you guess again.
 
@@ -20,9 +20,9 @@ A few months before Haystack, I'd been reading about a thing I'd started thinkin
 
 What stuck with me wasn't the LLM-training application. What stuck was the *technique*: an agent, in a feedback loop, with an automated evaluator, iterating overnight. The loop closes because the evaluator is fast and the search space is big. The agent doesn't have to be smarter than a human researcher — it just has to be tireless and structured.
 
-I remember reading that and thinking: this is the missing piece for relevance tuning. We have the evaluator — decades of IR literature on how to score a run, plus a library called `pytrec_eval` that computes NDCG, MAP, MRR off the shelf. We have the search space — every BM25 parameter, every field boost, every minimum-should-match, every tie-breaker on every analyzer. What we don't have is an agent, in a loop, willing to grind.
+I remember reading that and thinking: this is the missing piece for relevance tuning. We have the evaluator — decades of IR literature on how to score a run, plus libraries like `ir_measures` that compute NDCG, MAP, MRR off the shelf. We have the search space — every BM25 parameter, every field boost, every minimum-should-match, every tie-breaker on every analyzer. What we don't have is an agent, in a loop, willing to grind.
 
-But I didn't know how to build it. I had the seed without the architecture. How would the agent actually plug into Fusion? Where would the judgments come from? What does "winning" mean for a config that wins by 0.04 NDCG on one query set? How does a config that won offline actually get shipped to production without taking down a search app?
+But I didn't know how to build it. I had the seed without the architecture. How would the agent actually plug into a real search engine? Where would the judgments come from? What does "winning" mean for a config that wins by 0.04 NDCG on one query set? How does a config that won offline actually get shipped to production without taking down a search app?
 
 ## Doug's talk, and the click
 
@@ -32,13 +32,13 @@ The title was a deliberate play on Karpathy's repo. The technical case was clean
 
 But the bigger thing that happened in that talk wasn't the specific technique. It was the realization that the Karpathy Loop and the relevance-tuning problem could actually fit together. Doug had taken Karpathy's "agent runs experiments overnight" framing and pointed it at search ranking. That was the missing architectural connection I'd been turning over.
 
-The talk wasn't the only thing. Haystack week is dense — hallway conversations about LLM-as-judge calibration, talks on evaluation methodology I won't try to summarize fairly here, the cumulative effect of three days surrounded by people who think about relevance for a living. By Thursday evening I was scribbling architecture diagrams on hotel paper. The Karpathy seed plus Doug's pointer plus the daily-Fusion-tuning frustration plus everything else I absorbed that week — they all locked in.
+The talk wasn't the only thing. Haystack week is dense — hallway conversations about LLM-as-judge calibration, talks on evaluation methodology I won't try to summarize fairly here, the cumulative effect of three days surrounded by people who think about relevance for a living. By Thursday evening I was scribbling architecture diagrams on hotel paper. The Karpathy seed plus Doug's pointer plus the daily relevance-tuning frustration plus everything else I absorbed that week — they all locked in.
 
 ## What I started building
 
 On May 8, two days after Doug's talk, I pushed the first commit of RelyLoop. Thirteen minutes later I pushed the second commit: a design spec, an MVP1 plan, and the open-source scaffolding. The architecture was on paper before midnight.
 
-The product, in one paragraph: a relevance engineer describes a problem in chat. An LLM agent introspects the cluster and proposes a parameter search space. An Optuna TPE sampler runs thousands of trials against a judgment list — judgments either provided by the operator or synthesized by an LLM-as-judge worker — and scores each trial through `pytrec_eval`. The winning configuration becomes a Pull Request against the operator's central search-config repository. A human approver merges it. The operator's existing CI deploys it. RelyLoop never sits on the live search-serving path, never runs online A/B tests, never modifies cluster schema or analyzers. It tunes query-time parameters offline and gets out of the way.
+The product, in one paragraph: a relevance engineer describes a problem in chat. An LLM agent introspects the cluster and proposes a parameter search space. An Optuna TPE sampler runs thousands of trials against a judgment list — judgments either provided by the operator or synthesized by an LLM-as-judge worker — and scores each trial through `ir_measures`. The winning configuration becomes a Pull Request against the operator's central search-config repository. A human approver merges it. The operator's existing CI deploys it. RelyLoop never sits on the live search-serving path, never runs online A/B tests, never modifies cluster schema or analyzers. It tunes query-time parameters offline and gets out of the way.
 
 That last constraint is load-bearing. The reason it's an offline tool that produces PRs instead of an online tuner that auto-deploys is that the deploy decision belongs to the operator, on their own protected branches, in their own CI. RelyLoop's job ends at the PR.
 
@@ -46,7 +46,7 @@ The architecture is engine-agnostic by design. The initial release supports Elas
 
 ## Where it is, twelve days in
 
-As of today, May 20, 2026, there are eighteen features merged into `main`. A `v0.1.0` alpha tag was cut on May 12 — five days after the first commit. The project is Apache 2.0. The repo lives at [github.com/SoundMindsAI/relyloop](https://github.com/SoundMindsAI/relyloop) — `SoundMindsAI` is my open-source identity.
+As of today, May 20, 2026, there are eighteen features merged into `main`. A `v0.1.0` alpha tag was cut on May 13 — five days after the first commit. The project is Apache 2.0. The repo lives at [github.com/SoundMindsAI/relyloop](https://github.com/SoundMindsAI/relyloop) — `SoundMindsAI` is my open-source identity.
 
 The cadence isn't a stunt. It works because the architecture is small (four cooperating layers — adapter, domain, service, API+UI), because the test layers are disciplined (every endpoint has a contract test, every service an integration test, every domain function a unit test, with an 80% coverage gate on backend Python), and because the project is meant to do one thing well. RelyLoop is not a Lucidworks Fusion competitor or a replacement for any vendor stack; it's a tool that a relevance team can run alongside their existing platform to make tuning sessions less of a guess.
 
