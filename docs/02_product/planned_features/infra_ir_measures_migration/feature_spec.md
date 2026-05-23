@@ -218,10 +218,10 @@ No `phase2_idea.md` is required — there is only one phase.
   - Why required: Becomes the IR-evaluation engine behind `scoring.py`.
   - Status: Implemented + actively maintained (PyTerrier team).
   - Risk if missing: N/A — the library is the substrate this feature swaps onto. If PyPI is unreachable at install time, `uv sync` fails with a normal dependency-resolution error.
-- **Dependency:** `pytrec-eval>=0.5` as a permanent `[dependency-groups.dev]` pin.
-  - Why required: The parity test (FR-2) is a **permanent CI gate**, not a one-shot pre-merge check. It imports both `pytrec_eval` and `ir_measures` side-by-side and asserts value-equivalence on every CI run. Keeping `pytrec-eval` in `[dependency-groups.dev]` ensures the test environment can always import it, regardless of whether `ir_measures` resolves it transitively (per §19 Q3).
-  - Status: Pinned by FR-4 — added in the same PR as the migration; remains until a future dedicated chore explicitly removes or replaces the parity gate.
-  - Risk if missing: Parity gate goes dark. Acceptable future-drag: when `pytrec-eval` eventually fails to install (e.g., Python 3.14+ with no wheels available), the parity test gracefully `xfail`s or skips; at that point a `chore_pytrec_eval_dev_dep_removal` idea file is filed and the gate retires. We accept this future drag today in exchange for the permanent live parity gate.
+- **Dependency:** `pytrec_eval` module via the transitively-resolved `pytrec-eval-terrier` (no explicit dev pin).
+  - Why required: The parity test (FR-2) is a **permanent CI gate**, not a one-shot pre-merge check. It does `import pytrec_eval` and asserts value-equivalence against `ir_measures.iter_calc()` on every CI run.
+  - Status: Provided transitively by `ir-measures>=0.4.3`'s dependency on `pytrec-eval-terrier v0.5.10` (the actively-maintained PyTerrier fork that publishes to the `pytrec_eval` module name). No explicit dev-group pin is needed; the original FR-4 plan was to add one, but it was REMOVED after CI revealed the abandoned `pytrec-eval` distribution conflicts with `pytrec-eval-terrier` at install time (both ship the same `pytrec_eval` module name; install order determines which one wins, and CI happened to pick the abandoned one, leaving `ir_measures` without its cut-aware-metric backend). See the post-push fix commit and the §19 Decision log entry below.
+  - Risk if missing: Parity gate goes dark. Acceptable future-drag: when `pytrec-eval-terrier` eventually fails to install (e.g., Python 3.14+ with no wheels available), the parity test gracefully `xfail`s or skips; at that point a `chore_pytrec_eval_dev_dep_removal` idea file is filed and the gate retires. We accept this future drag today in exchange for the permanent live parity gate.
 - **Dependency:** No external service / no LLM / no operator-environment change. Purely an in-process library swap.
 
 ## 6) Actors and roles
@@ -467,14 +467,17 @@ N/A — no event-driven surfaces.
   - Input: the python check above.
   - Expected: zero matches in `[project].dependencies`.
 
-### AC-4b: pyproject.toml `[dependency-groups.dev]` HAS the `pytrec-eval` pin
+### AC-4b: pyproject.toml `[dependency-groups.dev]` does NOT contain `pytrec-eval`
+
+**Superseded 2026-05-23** — see §19 Decision log. The original spec required an explicit `pytrec-eval>=0.5` dev-group pin, but CI revealed it conflicts with the transitively-resolved `pytrec-eval-terrier` (both publish to the same `pytrec_eval` module name). The pin was removed; the parity gate stays alive via the transitive backend.
 
 - Given the merged PR.
 - When the same section-aware check runs against the dev group (`data['dependency-groups']['dev']`).
-- Then exit code 0 — a line `pytrec-eval>=0.5` (or tighter pin) IS present in `[dependency-groups.dev]`. This is the permanent parity-gate infrastructure pin per FR-4.
+- Then exit code 0 — `pytrec-eval` is ABSENT from `[dependency-groups.dev]`. The `pytrec_eval` module the parity test imports is provided by `pytrec-eval-terrier`, which `ir-measures>=0.4.3` pulls transitively as a runtime dependency (so the runtime image, the parity test, and the development environment all have `pytrec_eval` reachable without any explicit dev-group pin).
 - Example values:
-  - Input: `python -c "import tomllib; d=tomllib.load(open('pyproject.toml','rb')); assert any(x.startswith('pytrec-eval') for x in d['dependency-groups']['dev'])"`
+  - Input: `python -c "import tomllib; d=tomllib.load(open('pyproject.toml','rb')); assert not any(x.startswith('pytrec-eval') for x in d['dependency-groups']['dev'])"`
   - Expected: zero exit code.
+  - Sanity check (positive parity-gate alive signal): `python -c "import pytrec_eval; assert hasattr(pytrec_eval, 'RelevanceEvaluator')"` exits 0.
 
 ### AC-4c: mypy overrides match the import surface
 
@@ -723,3 +726,4 @@ All five resolve at implementation-plan time. They are empirical and bounded —
 - **2026-05-22 — Sibling planned-feature idea files updated in same PR.** `feat_study_baseline_trial/idea.md:56` and `feat_auto_followup_studies/idea.md:47` mention `pytrec_eval` by name; updating in the same PR avoids the drift-vs-source-of-truth failure mode where the planning doc still names the abandoned library after the codebase moves.
 - **2026-05-22 — `confidence.py` is out of scope.** It consumes user-facing per-query keys (not pytrec_eval wire forms) and does not import the library directly. The "land before further confidence surface grows" pressure that motivated this migration originally was rendered moot when `feat_pr_metric_confidence` Phase 1 shipped 2026-05-21 against user-facing keys.
 - **2026-05-22 — Cross-model review trajectory.** Cycle 1: 11 findings (all accepted, all applied — metric-object mapping table in FR-1, stricter AC-3 regex with negative cases, parity-test lifecycle, per-query shape parity in FR-3, reader inventory + write-surface audit in §2, new AC-12 existing-row regression, Q4 + Q5, expanded wire-form sweep in FR-7, §11 two-categories clarification, dashboard-regen task). Cycle 2: 6 findings (all accepted, all applied — dependency lifecycle deduped to "permanent dev-group" model only, AC-4 split into AC-4a/b/c with section-aware verification, §2 mapping example aligned with FR-1, FR-1/FR-2 aggregate-computation contract pinned to per-query iteration + manual mean rather than `calc_aggregate()`, inline `test_seeding.py p@10 → precision@10` fix bundled, Q4 reframed around observable behavior + documented APIs). Cycle 3: 1 finding (accepted + applied — Q4 bounded outcomes locked, no "accept drift" branch). Convergence: 11 → 6 → 1 — spec approved for impl-plan generation.
+- **2026-05-23 — Dev-group `pytrec-eval>=0.5` pin removed post-CI-failure.** The original FR-4 / AC-4b spec required a dev-group pin on `pytrec-eval>=0.5` to keep the parity test runnable. CI failure on PR #198 first push revealed that the abandoned `pytrec-eval` distribution and the transitively-pulled `pytrec-eval-terrier` distribution BOTH publish to the same `pytrec_eval` module name in site-packages — install order determines which one wins, and CI happened to install the abandoned `pytrec-eval` last, leaving `ir_measures` without its cut-aware-metric provider (every `(metric, k)` test failed with "Unsupported measures {nDCG@10}"). Fix: remove the dev-group pin entirely. The transitively-resolved `pytrec-eval-terrier` (from `ir-measures>=0.4.3`) provides the `pytrec_eval` module the parity test needs. **AC-4b is hereby superseded** — the gate now reads "pyproject.toml `[dependency-groups.dev]` does NOT contain `pytrec-eval` (the abandoned distribution would conflict with the transitively-resolved `pytrec-eval-terrier`)." The parity gate stays alive because `pytrec-eval-terrier` is byte-identical to `pytrec-eval` on the metrics we support — that's why the parity test passes against it.

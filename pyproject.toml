@@ -65,13 +65,19 @@ dev = [
     "pytest-cov>=6.0",
     "pytest-mock>=3.14",
     "pytest-recording>=0.13",
-    # pytrec_eval is retained here (no longer a runtime dependency) ONLY so
-    # the parity test at backend/tests/unit/eval/test_scoring_parity.py can
-    # import both libraries side-by-side for value-equivalence assertions.
-    # Runtime images install with `uv sync --no-dev` and never carry it.
-    # See docs/00_overview/implemented_features/.../infra_ir_measures_migration/
-    # feature_spec.md FR-4 + §19 Q3 for the lifecycle decision.
-    "pytrec-eval>=0.5",
+    # NB: the parity test at backend/tests/unit/eval/test_scoring_parity.py
+    # does `import pytrec_eval` and compares its output side-by-side with
+    # ir_measures. That `pytrec_eval` module is provided by
+    # `pytrec-eval-terrier` (the actively-maintained PyTerrier fork), which
+    # ir_measures pulls transitively into the runtime image already. We do
+    # NOT add a separate `pytrec-eval>=0.5` dev pin here — the abandoned
+    # `pytrec-eval` distribution and `pytrec-eval-terrier` both publish to
+    # the same `pytrec_eval` module name, so an explicit dev pin on the
+    # abandoned distribution would conflict at install time (race depends
+    # on install order; CI hit the abandoned wheel and ir_measures lost its
+    # cut-aware-metric backend). The transitive pytrec-eval-terrier is
+    # sufficient for the parity test. See feature_spec.md FR-4 +
+    # implementation_plan.md Story 1.1 for context.
     "testcontainers[postgresql]>=4.9",
     "pre-commit>=4.6.0",
     "types-PyYAML>=6.0",

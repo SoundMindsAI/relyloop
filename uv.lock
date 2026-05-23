@@ -1454,12 +1454,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytrec-eval"
-version = "0.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2e/03/e6e84df6a7c1265579ab26bbe30ff7f8c22745aa77e0799bba471c0a3a19/pytrec_eval-0.5.tar.gz", hash = "sha256:d9eb4616e7d6b73bf1b5ba4c2c4916e88124e790b53fd61610c30158999e7bde", size = 15248, upload-time = "2020-09-07T18:31:57.186Z" }
-
-[[package]]
 name = "pytrec-eval-terrier"
 version = "0.5.10"
 source = { registry = "https://pypi.org/simple" }
@@ -1584,7 +1578,6 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-mock" },
     { name = "pytest-recording" },
-    { name = "pytrec-eval" },
     { name = "ruff" },
     { name = "testcontainers" },
     { name = "types-pyyaml" },
@@ -1624,7 +1617,6 @@ dev = [
     { name = "pytest-cov", specifier = ">=6.0" },
     { name = "pytest-mock", specifier = ">=3.14" },
     { name = "pytest-recording", specifier = ">=0.13" },
-    { name = "pytrec-eval", specifier = ">=0.5" },
     { name = "ruff", specifier = ">=0.8" },
     { name = "testcontainers", extras = ["postgresql"], specifier = ">=4.9" },
     { name = "types-pyyaml", specifier = ">=6.0" },
