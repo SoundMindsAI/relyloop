@@ -397,7 +397,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">68 / 68</div>
+      <div class="value">69 / 69</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">6</div>
+      <div class="value">5</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      6 idea-only feat/infra folders (not yet scoped into MVP1)
+      7 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -531,6 +531,19 @@ footer {
 
 
 <div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_agent_sibling_worktree_isolation">Agent Sibling Worktree Isolation</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Running an autonomous agent in a sibling git worktree while the operator&#x27;s main checkout has the Docker Compose stack up exposes two surfaces that aren&#x27;t designed for parallel work:</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_study_preflight_real_engine_integration">Study Preflight Real Engine Integration</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
@@ -583,19 +596,6 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_study_default_stop_conditions">Study Default Stop Conditions</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` —</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_template_library_expansion">Template Library Expansion</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -638,7 +638,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">85</span></h3>
+  <h3>Done <span class="count">86</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1486,6 +1486,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_study_default_stop_conditions/feature_spec.md">Study Default Stop Conditions</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/124">PR #124</a>
+  </div>
+  <div class="one-liner">The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed </div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_13_chore_test_both_engines">Test Both Engines</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1757,6 +1770,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_study_default_stop_conditions[&quot;study default stop conditions&quot;]
+  class chore_study_default_stop_conditions done;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1946,6 +1961,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_study_default_stop_conditions[&quot;study default stop conditions&quot;]
+  class chore_study_default_stop_conditions done;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]

@@ -33,7 +33,10 @@ const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
  * synthetic ``e2e-doc-N`` IDs aren't present in the real ``products``
  * index.
  */
-const ES_BASE = process.env.PLAYWRIGHT_ES_BASE_URL ?? 'http://localhost:9200';
+// 127.0.0.1 (not "localhost") to match API_BASE above and avoid Node's
+// default IPv6-first resolver returning ::1 when ES is bound to 127.0.0.1
+// only. Both ES + OS in MVP1 Compose bind IPv4-only on the host.
+const ES_BASE = process.env.PLAYWRIGHT_ES_BASE_URL ?? 'http://127.0.0.1:9200';
 
 /**
  * Resolve the per-worker cleanup JSONL path. Playwright sets

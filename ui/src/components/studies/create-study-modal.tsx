@@ -80,6 +80,42 @@ export function kTier(metric: ObjectiveMetric): KTier {
 const PLACEHOLDER_SENTINEL = '__placeholder__';
 const UNDO_TIMEOUT_MS = 10_000;
 
+// Stop-condition preset selector (chore_study_default_stop_conditions FR-2/FR-3).
+// Frontend-only state — preset wire values are NOT sent to the backend; the
+// numeric `max_trials` + `time_budget_min` fields written by the preset are
+// the contract surface.
+const PRESET_VALUES = ['focused', 'standard', 'deep', 'custom'] as const;
+type PresetValue = (typeof PRESET_VALUES)[number];
+
+function presetLabel(preset: PresetValue): string {
+  switch (preset) {
+    case 'focused':
+      return 'Focused (50)';
+    case 'standard':
+      return 'Standard (200)';
+    case 'deep':
+      return 'Deep (1000)';
+    case 'custom':
+      return 'Custom';
+  }
+}
+
+type PresetWrite = { max_trials: number | ''; time_budget_min: number | '' };
+const FOCUSED_WRITE: PresetWrite = { max_trials: 50, time_budget_min: '' };
+const STANDARD_WRITE: PresetWrite = { max_trials: 200, time_budget_min: '' };
+const DEEP_WRITE: PresetWrite = { max_trials: 1000, time_budget_min: 480 };
+
+function presetWrite(preset: Exclude<PresetValue, 'custom'>): PresetWrite {
+  switch (preset) {
+    case 'focused':
+      return FOCUSED_WRITE;
+    case 'standard':
+      return STANDARD_WRITE;
+    case 'deep':
+      return DEEP_WRITE;
+  }
+}
+
 interface FormValues {
   // Step 1
   cluster_id: string;
@@ -134,6 +170,7 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
       metric: 'ndcg',
       k: 10,
       direction: 'maximize',
+      max_trials: 200,
       parallelism: 4,
       sampler: 'tpe',
       pruner: 'median',
@@ -158,6 +195,44 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   const schema = useClusterSchema(clusterId, target || undefined);
   const targets = useClusterTargets(clusterId);
   const [manualMode, setManualMode] = useState(false);
+
+  // chore_study_default_stop_conditions FR-2/FR-4: stop-condition preset.
+  // Derived purely from form values via useMemo — no useState, no watcher
+  // useEffect. Manual edits to max_trials / time_budget_min automatically
+  // re-derive the active preset on the next render. Chosen over the
+  // useState + useEffect watcher pattern because it's simpler and has one
+  // fewer render cycle. (Note: this is NOT the fix for the E2E regression
+  // tracked in `bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md` —
+  // that regression reproduces with both patterns. See the bug file for
+  // the seven ruled-out hypotheses.)
+  const watchedMaxTrials = form.watch('max_trials');
+  const watchedTimeBudget = form.watch('time_budget_min');
+  const activePreset: PresetValue = useMemo(() => {
+    const norm = (v: unknown): number | '' =>
+      v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+        ? ''
+        : (v as number | '');
+    const normMax = norm(watchedMaxTrials);
+    const normTime = norm(watchedTimeBudget);
+    if (normMax === FOCUSED_WRITE.max_trials && normTime === FOCUSED_WRITE.time_budget_min)
+      return 'focused';
+    if (normMax === STANDARD_WRITE.max_trials && normTime === STANDARD_WRITE.time_budget_min)
+      return 'standard';
+    if (normMax === DEEP_WRITE.max_trials && normTime === DEEP_WRITE.time_budget_min) return 'deep';
+    return 'custom';
+  }, [watchedMaxTrials, watchedTimeBudget]);
+
+  const handlePresetClick = (preset: PresetValue) => {
+    // Custom click is a no-op: activePreset is derived from values, and
+    // Custom == "values don't match any preset". The user reaches Custom
+    // either by clicking a non-Custom preset and then manually editing
+    // (which moves values off the preset write) or by being in a
+    // post-Deep-reopen state where prior values persist.
+    if (preset === 'custom') return;
+    const writes = presetWrite(preset);
+    form.setValue('max_trials', writes.max_trials, { shouldDirty: true });
+    form.setValue('time_budget_min', writes.time_budget_min, { shouldDirty: true });
+  };
 
   // FR-5 modal-open reset: <Dialog> (Radix) keeps this component mounted
   // across open/close toggles, so useState alone does NOT reset on reopen.
@@ -488,7 +563,7 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create study</DialogTitle>
           <DialogDescription>
@@ -496,7 +571,13 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
           </DialogDescription>
         </DialogHeader>
         <form
-          onSubmit={form.handleSubmit(onSubmit)}
+          // Submission goes exclusively through the explicit submit-button
+          // onClick below — the form's submit event is swallowed so that any
+          // implicit submit (Enter on an input, Playwright `.fill()`-driven
+          // stray submit events in production-build Chromium, etc.) cannot
+          // race the user's explicit click. See bug_fix.md alongside
+          // bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md.
+          onSubmit={(e) => e.preventDefault()}
           className="space-y-4"
           data-testid="create-study-form"
         >
@@ -889,6 +970,36 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                   </Select>
                 </div>
               </div>
+              {/* chore_study_default_stop_conditions FR-2: stop-condition
+                  preset button group. Sits above the numeric-inputs grid;
+                  selecting a preset writes max_trials + time_budget_min
+                  per PRESET_WRITES. */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <span id="stop-condition-group-label" className="text-sm font-medium">
+                    Stop condition
+                  </span>
+                  <InfoTooltip glossaryKey="study.preset" />
+                </div>
+                <div
+                  role="group"
+                  aria-labelledby="stop-condition-group-label"
+                  className="flex flex-wrap gap-2"
+                >
+                  {PRESET_VALUES.map((p) => (
+                    <Button
+                      key={p}
+                      type="button"
+                      variant={activePreset === p ? 'default' : 'outline'}
+                      aria-pressed={activePreset === p}
+                      aria-label={presetLabel(p)}
+                      onClick={() => handlePresetClick(p)}
+                    >
+                      {presetLabel(p)}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1">
@@ -1013,9 +1124,14 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
               </Button>
             ) : (
               <Button
-                type="submit"
+                // type="button" (not "submit") so submission goes through the
+                // explicit onClick path. Pairs with the form's preventDefault
+                // onSubmit above — the goal is to keep stray browser-driven
+                // submit events from racing the user's deliberate click.
+                type="button"
                 disabled={!stepValid(step, values) || submitting}
                 data-testid="create-study-submit"
+                onClick={form.handleSubmit(onSubmit)}
               >
                 {submitting ? 'Submitting…' : 'Create study'}
               </Button>

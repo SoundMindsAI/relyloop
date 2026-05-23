@@ -159,13 +159,20 @@ export const glossary = {
 
   'study.max_trials': {
     short:
-      'Maximum number of trials to run. 100–500 is typical for 3 search-space parameters; raise it for larger spaces.',
+      'Trials to run before stopping. Sized by search-space dimensionality: ~50 for 1–2 params, 200 for 3–5, 500–1000 for 6+.',
+    long: "TPE's diminishing returns kick in past these counts. With default parallelism=4 and ~1s/trial cost on a small query set, 200 trials completes in under a minute; on a managed cluster with a large query set it's more like 25 minutes (wall-clock estimates measured against the local dev stack — production clusters may vary).",
     ariaLabel: 'More information about max trials',
   },
   'study.time_budget_min': {
     short:
-      'Stop the study after this many minutes, even if max trials would allow more. Either gate alone is fine; both apply when both are set.',
+      'Wall-clock safety cap, in minutes. Optional. Set this only if you want a hard ceiling on a slow cluster.',
+    long: 'Trials in RelyLoop are typically cheap (subsecond against local stacks, seconds against managed clusters), so the binding stop is almost always max_trials. Use this as a circuit breaker on managed clusters where per-trial cost might unexpectedly balloon.',
     ariaLabel: 'More information about time budget',
+  },
+  'study.preset': {
+    short: 'Sized stop-condition recommendation matching your search-space dimensionality.',
+    long: 'Focused (50 trials) — 1–2 params; smallest preset where MedianPruner activates (avoids the <50 NopPruner threshold). Standard (200) — 3–5 params, the typical case. Deep (1000 + 8h cap) — 6+ params, complex tuning. Custom — preserves manual edits.',
+    ariaLabel: 'More information about study presets',
   },
   'study.parallelism': {
     short:
