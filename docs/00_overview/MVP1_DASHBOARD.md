@@ -15,19 +15,19 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **67 / 67** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 13 important to file, not blocking |
+| → P2 (default) | 12 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 3 |
-| Legacy "Path to MVP1" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 2 |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (80)
+### Done (81)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -99,6 +99,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | Complete | — | Complete |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_agent_propose_search_space` `feat_auto_followup_studies` `feat_chat_agent` `feat_chat_last_message_preview` `feat_cluster_target_filter` `feat_config_repo_baseline_tracking` `feat_contextual_help` `feat_contextual_help_mvp2` `feat_create_study_search_space_builder` `feat_create_study_target_autocomplete` `feat_data_table_primitive` `feat_digest_executable_followups` `feat_digest_proposal` `feat_fts_rank_ordering_mvp2` `feat_github_pr_worker` `feat_github_webhook` `feat_home_demo_reseed_endpoint` `feat_home_first_run_demo_nudge` `feat_judgments_periodic_resume_sweep` `feat_llm_judgments` `feat_orchestrator_zero_streak_abort` `feat_pr_metric_confidence` `feat_proposals_ui` `feat_query_inline_crud` `feat_studies_ui` `feat_study_baseline_trial` `feat_study_clone_from_previous` `feat_study_lifecycle` `feat_study_preflight_overlap_probe` `feat_study_target_judgment_mismatch_guard` `feat_ubi_judgments` `infra_adapter_elastic` `infra_arq_subprocess_test_mvp2` `infra_ci_smoke_makeup` `infra_dashboard_regen_pre_commit_conflict` `infra_e2e_seed_completed_study` `infra_e2e_wire_seed_helper_into_studies_spec` `infra_foundation` `infra_frontend_stack_refresh` `infra_ir_measures_migration` `infra_make_targets_split_backend_only` `infra_nvmrc` `infra_optuna_eval` `infra_per_trial_timeout` `infra_structlog_test_helpers` `infra_study_preflight_real_engine_integration` `infra_uv_sync_drops_precommit` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
+| [bug_contract_test_stub_missing_target_filter_kwarg](implemented_features/2026_05_23_bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | Complete | — | Complete |
 | [bug_cursor_decode_value_validation](implemented_features/2026_05_17_bug_cursor_decode_value_validation/idea.md) | Bug | Complete | — | Complete |
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
@@ -124,7 +125,7 @@ _None._
 
 _None._
 
-### Idea (15)
+### Idea (14)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
@@ -139,7 +140,6 @@ _None._
 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| P2 | [bug_contract_test_stub_missing_target_filter_kwarg](../02_product/planned_features/bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | `backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th | — | Idea — bug discovered during `feat_orchestrator_zero_streak_abort` phase gate |
 | P2 | [bug_dashboard_banner_dismiss_persistence_flake](../02_product/planned_features/bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR #193) smoke CI |
 | P2 | [bug_dashboard_depends_on_column_bloat](../02_product/planned_features/bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each planned-feature row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and  | — | Idea — surfaced by Gemini Code Assist review on PR #200 (2026-05-22). Pre-existing bug; this PR only made one more entry visible. |
 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
