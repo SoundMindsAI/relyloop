@@ -1,6 +1,7 @@
 'use client';
 import { Suspense } from 'react';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { ProposalsTable } from '@/components/proposals/proposals-table';
 import { proposalsColumns } from '@/components/proposals/proposals-table.column-config';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,12 +25,19 @@ function ProposalsPageInner() {
   const source: 'study' | 'manual' | undefined =
     rawSource === 'study' || rawSource === 'manual' ? rawSource : undefined;
 
+  // feat_config_repo_baseline_tracking FR-9 — two-state chip toggle.
+  // Active iff URL has ?is_last_merged=true; off otherwise (the API's
+  // ?is_last_merged=false complement is not exposed in the chip — it
+  // stays API-only per spec §19 decision-log).
+  const isLastMergedActive = urlState.filters['is_last_merged'] === 'true';
+
   const query = useProposals(
     {
       status,
       cluster_id: urlState.filters['cluster_id'] ?? undefined,
       template_id: urlState.filters['template_id'] ?? undefined,
       source,
+      is_last_merged: isLastMergedActive ? true : undefined,
       sort: urlState.sort ?? undefined,
       cursor: urlState.cursor ?? undefined,
       limit: urlState.pageSize,
@@ -48,6 +56,22 @@ function ProposalsPageInner() {
     <main className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Proposals</h1>
+        <span className="inline-flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => urlState.setFilter('is_last_merged', isLastMergedActive ? null : 'true')}
+            aria-pressed={isLastMergedActive}
+            className={
+              isLastMergedActive
+                ? 'inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800'
+                : 'inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-200'
+            }
+            data-testid="proposals-currently-live-filter-chip"
+          >
+            Currently live only
+          </button>
+          <InfoTooltip glossaryKey="proposal.currently_live_filter" />
+        </span>
       </div>
       <Card>
         <CardContent className="pt-6">
@@ -59,6 +83,14 @@ function ProposalsPageInner() {
             isLoading={query.isPending}
             isError={query.isError}
             urlState={urlState}
+            emptyStateNoMatch={
+              isLastMergedActive
+                ? {
+                    title: 'No currently-live proposals',
+                    message: 'No config repo has a merged proposal tracked yet.',
+                  }
+                : undefined
+            }
           />
         </CardContent>
       </Card>
