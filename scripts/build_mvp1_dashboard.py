@@ -56,6 +56,7 @@ DEFAULT_RELEASE = "mvp1"
 # extend to support when post-MVP4 features start being tagged.
 ROADMAP_RELEASES: list[tuple[str, str, str]] = [
     ("mvp1", "MVP1 / v0.1", "The Loop"),
+    ("mvp1.5", "MVP1.5 / v0.1.5", "Real Signals"),
     ("mvp2", "MVP2 / v0.2", "Observable"),
     ("mvp3", "MVP3 / v0.3", "Production Stacks"),
     ("mvp4", "MVP4 / v0.4", "Multi-tenant, Multi-LLM"),
@@ -117,18 +118,34 @@ class Feature:
 
     @property
     def display_name(self) -> str:
-        # Strip a trailing _mvpN tag from the visible label so the release
-        # suffix doesn't double-print on the dashboard card. The release tag
-        # is already conveyed by which dashboard the card appears on.
-        name = re.sub(r"_mvp\d+$", "", self.short_name)
+        # Strip a trailing _mvpN or _mvpN_M tag from the visible label so
+        # the release suffix doesn't double-print on the dashboard card.
+        # The release tag is already conveyed by which dashboard the card
+        # appears on. Pattern matches both integer (`_mvp2`) and half-step
+        # (`_mvp1_5`) forms.
+        name = re.sub(r"_mvp\d+(?:_\d+)?$", "", self.short_name)
         return name.replace("_", " ").title()
 
 
-_RELEASE_SUFFIX_RE = re.compile(r"_mvp(\d+)$")
-"""Match ``..._mvp2`` / ``..._mvp3`` / ... at the END of a folder short-name."""
+_RELEASE_SUFFIX_RE = re.compile(r"_mvp(\d+(?:_\d+)?)$")
+"""Match ``..._mvp2`` / ``..._mvp3`` / ``..._mvp1_5`` at the END of a folder
+short-name. The half-step form (``_mvp1_5``) uses underscore-instead-of-dot
+because folder names can't have dots — the classifier normalizes ``"1_5"``
+→ ``"1.5"`` before building the release string."""
 
-_RELEASE_STATUS_RE = re.compile(r"Held\s+for\s+MVP\s*(\d+)", flags=re.IGNORECASE)
-"""Match ``Held for MVP2`` / ``Held for MVP3`` in a status line."""
+_RELEASE_STATUS_RE = re.compile(
+    r"(?:Held\s+for|anchor\s+(?:feature\s+)?for)\s+MVP\s*(\d+(?:\.\d+)?)",
+    flags=re.IGNORECASE,
+)
+"""Match the release tag in an idea/spec status line. Two prose framings:
+
+* ``**Status:** Held for MVP2 (decided 2026-05-13)`` — the original deferral
+  form (e.g. ``bug_chat_long_conversation_truncation_mvp2``).
+* ``**Status:** Idea — anchor feature for MVP1.5 / v0.1.5 "Real Signals"`` —
+  the half-step / anchor framing (e.g. ``feat_ubi_judgments``).
+
+Capture group is the version number; supports integer (``"2"``) and decimal
+(``"1.5"``) forms."""
 
 
 def _target_release(short_name: str, status_line: str) -> str:
@@ -136,12 +153,15 @@ def _target_release(short_name: str, status_line: str) -> str:
 
     Two signals, suffix wins over status:
 
-    1. Folder ``_mvpN`` suffix on ``short_name`` (e.g.,
-       ``arq_subprocess_test_mvp2`` → ``mvp2``). This is the canonical
-       per-folder hold marker — same precedent the
-       ``bug_chat_long_conversation_truncation_mvp2`` rename established
-       (state.md 2026-05-13).
-    2. ``**Status:** Held for MVPN`` line in the idea/spec body.
+    1. Folder ``_mvpN`` or ``_mvpN_M`` suffix on ``short_name`` (e.g.,
+       ``arq_subprocess_test_mvp2`` → ``mvp2``; ``foo_mvp1_5`` →
+       ``mvp1.5``). This is the canonical per-folder hold marker — same
+       precedent the ``bug_chat_long_conversation_truncation_mvp2`` rename
+       established (state.md 2026-05-13). Half-step folders use
+       underscore-instead-of-dot since folder names can't have dots.
+    2. ``**Status:** Held for MVPN`` / ``anchor feature for MVPN.M`` line
+       in the idea/spec body. Recognizes both integer and decimal
+       release tags.
 
     Falls back to :data:`DEFAULT_RELEASE` (``"mvp1"``) when no signal
     fires. Implemented features always carry their shipped release in
@@ -151,10 +171,13 @@ def _target_release(short_name: str, status_line: str) -> str:
     """
     m = _RELEASE_SUFFIX_RE.search(short_name)
     if m:
-        return f"mvp{int(m.group(1))}"
+        # Normalize underscore-form half-step (``"1_5"``) → dot-form
+        # (``"1.5"``) so the internal release identifier matches the
+        # status-line capture form. Integer suffixes pass through.
+        return f"mvp{m.group(1).replace('_', '.')}"
     m2 = _RELEASE_STATUS_RE.search(status_line or "")
     if m2:
-        return f"mvp{int(m2.group(1))}"
+        return f"mvp{m2.group(1)}"
     return DEFAULT_RELEASE
 
 
@@ -623,7 +646,13 @@ def _load_planned(folder_path: Path) -> Feature | None:
         pr_number=_extract_pr_number(pipe, plan, spec),
         merged_date=_extract_merged_date(pipe + plan + spec),
         deferred_phase=deferred,
-        release=_target_release(short, status_line + " " + (idea or "")),
+        # Release classifier reads ONLY the parsed status_line, not the full
+        # idea body — body prose may quote release-tag phrases as documentation
+        # examples (e.g. `bug_dashboard_classifier_half_step_releases` cites
+        # "anchor feature for MVP1.5" in its design doc), which would
+        # incorrectly classify the bug folder as an MVP1.5 feature. The
+        # status_line is operator-curated and intentional; body prose isn't.
+        release=_target_release(short, status_line),
         priority=priority,
     )
     return feature
@@ -1818,7 +1847,7 @@ def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> 
     asof = _data_freshness().strftime("%Y-%m-%d")
     mermaid = _mermaid_graph(features)
     release_label = _release_label(release)
-    html_filename = f"{release}_dashboard.html"
+    html_filename = f"{_release_filename_safe(release)}_dashboard.html"
 
     lines: list[str] = []
     lines.append(_back_to_roadmap_link_md())
@@ -1934,6 +1963,25 @@ def _maybe_write(path: Path, new_content: str) -> bool:
     return True
 
 
+def _release_filename_safe(release: str) -> str:
+    """Normalize a release tag for use in filenames + hrefs.
+
+    Half-step releases like ``"mvp1.5"`` carry a dot in the internal
+    identifier (matching the canonical release-matrix label
+    ``MVP1.5 / v0.1.5``), but dots in filenames read confusably — they
+    could be mistaken for file extensions. This helper produces the
+    underscore-form filename token: ``"mvp1.5"`` → ``"mvp1_5"``.
+
+    Used by both :func:`_dashboard_paths` (file write) and every link
+    renderer (``render_markdown`` "rich local view" callout,
+    ``render_roadmap_html`` cards, ``render_roadmap_markdown`` table) so
+    on-disk filenames and inline hrefs converge on the same form. Drift
+    between write and link sites caused Gemini-flagged broken links on
+    PR #211 cycle 1; this helper is the single point of truth.
+    """
+    return release.replace(".", "_")
+
+
 def _dashboard_paths(release: str) -> tuple[Path, Path]:
     """Return ``(html_path, md_path)`` for a release tag.
 
@@ -1942,10 +1990,16 @@ def _dashboard_paths(release: str) -> tuple[Path, Path]:
     ``mvp1_dashboard.html`` / ``MVP1_DASHBOARD.md`` are preserved while
     new release tags get parallel filenames (``mvp2_dashboard.html`` /
     ``MVP2_DASHBOARD.md``, ...).
+
+    For half-step releases (e.g. ``"mvp1.5"``) the dot in the internal
+    release identifier is normalized to an underscore via
+    :func:`_release_filename_safe` so ``"mvp1.5"`` produces
+    ``MVP1_5_DASHBOARD.md`` / ``mvp1_5_dashboard.html``.
     """
+    safe = _release_filename_safe(release)
     return (
-        DASHBOARD_DIR / f"{release}_dashboard.html",
-        DASHBOARD_DIR / f"{release.upper()}_DASHBOARD.md",
+        DASHBOARD_DIR / f"{safe}_dashboard.html",
+        DASHBOARD_DIR / f"{safe.upper()}_DASHBOARD.md",
     )
 
 
@@ -1974,7 +2028,7 @@ def render_roadmap_html(features: list[Feature]) -> str:
             f'<span class="state-pill {state}">{html.escape(_roadmap_state_label(state))}</span>'
         )
         if row["has_dashboard"]:
-            href = f"{release_tag}_dashboard.html"
+            href = f"{_release_filename_safe(release_tag)}_dashboard.html"
             name_html = f'<a href="{html.escape(href)}">{html.escape(label)}</a>'
             done = int(row["done"])
             scoped = int(row["scoped"])
@@ -2059,7 +2113,7 @@ def render_roadmap_markdown(features: list[Feature]) -> str:
         row = _roadmap_row(release_tag, features)
         state_label = _roadmap_state_label(str(row["state"]))
         if row["has_dashboard"]:
-            href = f"{release_tag.upper()}_DASHBOARD.md"
+            href = f"{_release_filename_safe(release_tag).upper()}_DASHBOARD.md"
             name_cell = f"[{label}]({href})"
             done = int(row["done"])
             scoped = int(row["scoped"])
