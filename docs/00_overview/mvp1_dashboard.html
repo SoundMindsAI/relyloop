@@ -403,7 +403,7 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">14</div>
+      <div class="value">15</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">12</div>
+      <div class="value">13</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">7</div>
+      <div class="value">8</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">14</span></h3>
+  <h3>Idea <span class="count">15</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P1">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_ubi_judgments">Ubi Judgments</a></div>
@@ -557,6 +557,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_pr_extraction_from_idea">Dashboard Pr Extraction From Idea</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Several early MVP1 features shipped before the `/pipeline` ceremony solidified, leaving them with only an `idea.md` in `implemented_features/&lt;date&gt;_&lt;slug&gt;/`. Examples (as of 2026-05-23):</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_reconciler_terminal_closed_no_poll">Reconciler Terminal Closed No Poll</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -628,7 +641,7 @@ footer {
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">[`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the &quot;Depends on&quot; column for each planned-feature row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and </div>
+  <div class="one-liner">[`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the &quot;Depends on&quot; column for each row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and `mvp1_dashboard.</div>
 
 
 </div>
@@ -688,7 +701,7 @@ footer {
   </div>
   <div class="one-liner">A chat surface at `/chat/{conversation_id}` streams OpenAI completions via SSE.</div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_chat_last_message_preview</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_home_demo_reseed_endpoint</span><span class="dep-chip">feat_home_first_run_demo_nudge</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_orchestrator_zero_streak_abort</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_baseline_trial</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_study_preflight_overlap_probe</span><span class="dep-chip">feat_study_target_judgment_mismatch_guard</span><span class="dep-chip">feat_ubi_judgments</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_ir_measures_migration</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_study_preflight_real_engine_integration</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_optuna_eval</span></div>
 </div>
 
 
@@ -1533,7 +1546,7 @@ footer {
   </div>
   <div class="one-liner">The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README </div>
 
-  <div class="deps">depends on: <span class="dep-chip">feat_agent_propose_search_space</span><span class="dep-chip">feat_auto_followup_studies</span><span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_chat_last_message_preview</span><span class="dep-chip">feat_cluster_target_filter</span><span class="dep-chip">feat_config_repo_baseline_tracking</span><span class="dep-chip">feat_contextual_help</span><span class="dep-chip">feat_contextual_help_mvp2</span><span class="dep-chip">feat_create_study_search_space_builder</span><span class="dep-chip">feat_create_study_target_autocomplete</span><span class="dep-chip">feat_data_table_primitive</span><span class="dep-chip">feat_digest_executable_followups</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_fts_rank_ordering_mvp2</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_home_demo_reseed_endpoint</span><span class="dep-chip">feat_home_first_run_demo_nudge</span><span class="dep-chip">feat_judgments_periodic_resume_sweep</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_orchestrator_zero_streak_abort</span><span class="dep-chip">feat_pr_metric_confidence</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_query_inline_crud</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_baseline_trial</span><span class="dep-chip">feat_study_clone_from_previous</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_study_preflight_overlap_probe</span><span class="dep-chip">feat_study_target_judgment_mismatch_guard</span><span class="dep-chip">feat_ubi_judgments</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_arq_subprocess_test_mvp2</span><span class="dep-chip">infra_ci_smoke_makeup</span><span class="dep-chip">infra_dashboard_regen_pre_commit_conflict</span><span class="dep-chip">infra_e2e_seed_completed_study</span><span class="dep-chip">infra_e2e_wire_seed_helper_into_studies_spec</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_frontend_stack_refresh</span><span class="dep-chip">infra_ir_measures_migration</span><span class="dep-chip">infra_make_targets_split_backend_only</span><span class="dep-chip">infra_nvmrc</span><span class="dep-chip">infra_optuna_eval</span><span class="dep-chip">infra_per_trial_timeout</span><span class="dep-chip">infra_structlog_test_helpers</span><span class="dep-chip">infra_study_preflight_real_engine_integration</span><span class="dep-chip">infra_uv_sync_drops_precommit</span></div>
+  <div class="deps">depends on: <span class="dep-chip">feat_chat_agent</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_github_pr_worker</span><span class="dep-chip">feat_github_webhook</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">feat_proposals_ui</span><span class="dep-chip">feat_studies_ui</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_optuna_eval</span></div>
 </div>
 
 
@@ -1870,77 +1883,27 @@ footer {
   infra_foundation --&gt; feat_llm_judgments
   infra_adapter_elastic --&gt; feat_llm_judgments
   feat_study_lifecycle --&gt; feat_llm_judgments
-  feat_agent_propose_search_space --&gt; chore_tutorial_polish
   feat_chat_agent --&gt; chore_tutorial_polish
-  feat_cluster_target_filter --&gt; chore_tutorial_polish
-  feat_config_repo_baseline_tracking --&gt; chore_tutorial_polish
-  feat_contextual_help --&gt; chore_tutorial_polish
-  feat_create_study_search_space_builder --&gt; chore_tutorial_polish
-  feat_create_study_target_autocomplete --&gt; chore_tutorial_polish
-  feat_data_table_primitive --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
-  feat_home_first_run_demo_nudge --&gt; chore_tutorial_polish
-  feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
-  feat_orchestrator_zero_streak_abort --&gt; chore_tutorial_polish
-  feat_pr_metric_confidence --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
-  feat_query_inline_crud --&gt; chore_tutorial_polish
   feat_studies_ui --&gt; chore_tutorial_polish
   feat_study_lifecycle --&gt; chore_tutorial_polish
-  feat_study_preflight_overlap_probe --&gt; chore_tutorial_polish
-  feat_study_target_judgment_mismatch_guard --&gt; chore_tutorial_polish
   infra_adapter_elastic --&gt; chore_tutorial_polish
-  infra_ci_smoke_makeup --&gt; chore_tutorial_polish
-  infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
-  infra_e2e_seed_completed_study --&gt; chore_tutorial_polish
-  infra_e2e_wire_seed_helper_into_studies_spec --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
-  infra_frontend_stack_refresh --&gt; chore_tutorial_polish
-  infra_ir_measures_migration --&gt; chore_tutorial_polish
-  infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
-  infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
-  infra_per_trial_timeout --&gt; chore_tutorial_polish
-  infra_structlog_test_helpers --&gt; chore_tutorial_polish
-  infra_uv_sync_drops_precommit --&gt; chore_tutorial_polish
-  feat_agent_propose_search_space --&gt; feat_chat_agent
-  feat_cluster_target_filter --&gt; feat_chat_agent
-  feat_config_repo_baseline_tracking --&gt; feat_chat_agent
-  feat_contextual_help --&gt; feat_chat_agent
-  feat_create_study_search_space_builder --&gt; feat_chat_agent
-  feat_create_study_target_autocomplete --&gt; feat_chat_agent
-  feat_data_table_primitive --&gt; feat_chat_agent
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
-  feat_home_first_run_demo_nudge --&gt; feat_chat_agent
-  feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
-  feat_orchestrator_zero_streak_abort --&gt; feat_chat_agent
-  feat_pr_metric_confidence --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
-  feat_query_inline_crud --&gt; feat_chat_agent
   feat_studies_ui --&gt; feat_chat_agent
   feat_study_lifecycle --&gt; feat_chat_agent
-  feat_study_preflight_overlap_probe --&gt; feat_chat_agent
-  feat_study_target_judgment_mismatch_guard --&gt; feat_chat_agent
   infra_adapter_elastic --&gt; feat_chat_agent
-  infra_ci_smoke_makeup --&gt; feat_chat_agent
-  infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
-  infra_e2e_seed_completed_study --&gt; feat_chat_agent
-  infra_e2e_wire_seed_helper_into_studies_spec --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
-  infra_frontend_stack_refresh --&gt; feat_chat_agent
-  infra_ir_measures_migration --&gt; feat_chat_agent
-  infra_make_targets_split_backend_only --&gt; feat_chat_agent
-  infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
-  infra_per_trial_timeout --&gt; feat_chat_agent
-  infra_structlog_test_helpers --&gt; feat_chat_agent
-  infra_uv_sync_drops_precommit --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker
@@ -2107,77 +2070,27 @@ footer {
   infra_foundation --&gt; feat_llm_judgments
   infra_adapter_elastic --&gt; feat_llm_judgments
   feat_study_lifecycle --&gt; feat_llm_judgments
-  feat_agent_propose_search_space --&gt; chore_tutorial_polish
   feat_chat_agent --&gt; chore_tutorial_polish
-  feat_cluster_target_filter --&gt; chore_tutorial_polish
-  feat_config_repo_baseline_tracking --&gt; chore_tutorial_polish
-  feat_contextual_help --&gt; chore_tutorial_polish
-  feat_create_study_search_space_builder --&gt; chore_tutorial_polish
-  feat_create_study_target_autocomplete --&gt; chore_tutorial_polish
-  feat_data_table_primitive --&gt; chore_tutorial_polish
   feat_digest_proposal --&gt; chore_tutorial_polish
   feat_github_pr_worker --&gt; chore_tutorial_polish
   feat_github_webhook --&gt; chore_tutorial_polish
-  feat_home_first_run_demo_nudge --&gt; chore_tutorial_polish
-  feat_judgments_periodic_resume_sweep --&gt; chore_tutorial_polish
   feat_llm_judgments --&gt; chore_tutorial_polish
-  feat_orchestrator_zero_streak_abort --&gt; chore_tutorial_polish
-  feat_pr_metric_confidence --&gt; chore_tutorial_polish
   feat_proposals_ui --&gt; chore_tutorial_polish
-  feat_query_inline_crud --&gt; chore_tutorial_polish
   feat_studies_ui --&gt; chore_tutorial_polish
   feat_study_lifecycle --&gt; chore_tutorial_polish
-  feat_study_preflight_overlap_probe --&gt; chore_tutorial_polish
-  feat_study_target_judgment_mismatch_guard --&gt; chore_tutorial_polish
   infra_adapter_elastic --&gt; chore_tutorial_polish
-  infra_ci_smoke_makeup --&gt; chore_tutorial_polish
-  infra_dashboard_regen_pre_commit_conflict --&gt; chore_tutorial_polish
-  infra_e2e_seed_completed_study --&gt; chore_tutorial_polish
-  infra_e2e_wire_seed_helper_into_studies_spec --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
-  infra_frontend_stack_refresh --&gt; chore_tutorial_polish
-  infra_ir_measures_migration --&gt; chore_tutorial_polish
-  infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
-  infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
-  infra_per_trial_timeout --&gt; chore_tutorial_polish
-  infra_structlog_test_helpers --&gt; chore_tutorial_polish
-  infra_uv_sync_drops_precommit --&gt; chore_tutorial_polish
-  feat_agent_propose_search_space --&gt; feat_chat_agent
-  feat_cluster_target_filter --&gt; feat_chat_agent
-  feat_config_repo_baseline_tracking --&gt; feat_chat_agent
-  feat_contextual_help --&gt; feat_chat_agent
-  feat_create_study_search_space_builder --&gt; feat_chat_agent
-  feat_create_study_target_autocomplete --&gt; feat_chat_agent
-  feat_data_table_primitive --&gt; feat_chat_agent
   feat_digest_proposal --&gt; feat_chat_agent
   feat_github_pr_worker --&gt; feat_chat_agent
   feat_github_webhook --&gt; feat_chat_agent
-  feat_home_first_run_demo_nudge --&gt; feat_chat_agent
-  feat_judgments_periodic_resume_sweep --&gt; feat_chat_agent
   feat_llm_judgments --&gt; feat_chat_agent
-  feat_orchestrator_zero_streak_abort --&gt; feat_chat_agent
-  feat_pr_metric_confidence --&gt; feat_chat_agent
   feat_proposals_ui --&gt; feat_chat_agent
-  feat_query_inline_crud --&gt; feat_chat_agent
   feat_studies_ui --&gt; feat_chat_agent
   feat_study_lifecycle --&gt; feat_chat_agent
-  feat_study_preflight_overlap_probe --&gt; feat_chat_agent
-  feat_study_target_judgment_mismatch_guard --&gt; feat_chat_agent
   infra_adapter_elastic --&gt; feat_chat_agent
-  infra_ci_smoke_makeup --&gt; feat_chat_agent
-  infra_dashboard_regen_pre_commit_conflict --&gt; feat_chat_agent
-  infra_e2e_seed_completed_study --&gt; feat_chat_agent
-  infra_e2e_wire_seed_helper_into_studies_spec --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
-  infra_frontend_stack_refresh --&gt; feat_chat_agent
-  infra_ir_measures_migration --&gt; feat_chat_agent
-  infra_make_targets_split_backend_only --&gt; feat_chat_agent
-  infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
-  infra_per_trial_timeout --&gt; feat_chat_agent
-  infra_structlog_test_helpers --&gt; feat_chat_agent
-  infra_uv_sync_drops_precommit --&gt; feat_chat_agent
   infra_foundation --&gt; feat_github_pr_worker
   infra_adapter_elastic --&gt; feat_github_pr_worker
   feat_study_lifecycle --&gt; feat_github_pr_worker

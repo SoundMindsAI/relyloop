@@ -6,7 +6,7 @@ _Top-level index across MVP1 → GA v1+ as of **2026-05-23**. Click a release na
 
 | Release | Theme | Progress | Status |
 |---|---|---|---|
-| [MVP1 / v0.1](MVP1_DASHBOARD.md) | The Loop | 67 / 67 scoped done · 7 remaining | **In progress** |
+| [MVP1 / v0.1](MVP1_DASHBOARD.md) | The Loop | 67 / 67 scoped done · 8 remaining | **In progress** |
 | [MVP2 / v0.2](MVP2_DASHBOARD.md) | Observable | 1 / 1 scoped done · 1 remaining | **In progress** |
 | MVP3 / v0.3 | Production Stacks | — | **Not yet scoped** |
 | MVP4 / v0.4 | Multi-tenant, Multi-LLM | — | **Not yet scoped** |
