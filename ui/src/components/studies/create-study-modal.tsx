@@ -80,6 +80,42 @@ export function kTier(metric: ObjectiveMetric): KTier {
 const PLACEHOLDER_SENTINEL = '__placeholder__';
 const UNDO_TIMEOUT_MS = 10_000;
 
+// Stop-condition preset selector (chore_study_default_stop_conditions FR-2/FR-3).
+// Frontend-only state — preset wire values are NOT sent to the backend; the
+// numeric `max_trials` + `time_budget_min` fields written by the preset are
+// the contract surface.
+const PRESET_VALUES = ['focused', 'standard', 'deep', 'custom'] as const;
+type PresetValue = (typeof PRESET_VALUES)[number];
+
+function presetLabel(preset: PresetValue): string {
+  switch (preset) {
+    case 'focused':
+      return 'Focused (50)';
+    case 'standard':
+      return 'Standard (200)';
+    case 'deep':
+      return 'Deep (1000)';
+    case 'custom':
+      return 'Custom';
+  }
+}
+
+type PresetWrite = { max_trials: number | ''; time_budget_min: number | '' };
+const FOCUSED_WRITE: PresetWrite = { max_trials: 50, time_budget_min: '' };
+const STANDARD_WRITE: PresetWrite = { max_trials: 200, time_budget_min: '' };
+const DEEP_WRITE: PresetWrite = { max_trials: 1000, time_budget_min: 480 };
+
+function presetWrite(preset: Exclude<PresetValue, 'custom'>): PresetWrite {
+  switch (preset) {
+    case 'focused':
+      return FOCUSED_WRITE;
+    case 'standard':
+      return STANDARD_WRITE;
+    case 'deep':
+      return DEEP_WRITE;
+  }
+}
+
 interface FormValues {
   // Step 1
   cluster_id: string;
@@ -160,12 +196,49 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   const targets = useClusterTargets(clusterId);
   const [manualMode, setManualMode] = useState(false);
 
+  // chore_study_default_stop_conditions FR-2/FR-4: active stop-condition
+  // preset. Defaults to 'standard' (matches the form's max_trials=200
+  // default). Reset to 'standard' on modal open below.
+  const [activePreset, setActivePreset] = useState<PresetValue>('standard');
+
+  const handlePresetClick = (preset: PresetValue) => {
+    setActivePreset(preset);
+    if (preset !== 'custom') {
+      const writes = presetWrite(preset);
+      form.setValue('max_trials', writes.max_trials, { shouldDirty: true });
+      form.setValue('time_budget_min', writes.time_budget_min, { shouldDirty: true });
+    }
+  };
+
+  // Manual-edit watcher: flip activePreset → 'custom' when the form values
+  // diverge from the active preset's expected writes. Normalize undefined/
+  // null/NaN → '' before comparison so the watcher doesn't fire on
+  // modal-open when `time_budget_min` is undefined (Standard's expected
+  // value is ''). Locked per GPT-5.5 plan-review cycle 1 Finding #2.
+  const watchedMaxTrials = form.watch('max_trials');
+  const watchedTimeBudget = form.watch('time_budget_min');
+  useEffect(() => {
+    if (activePreset === 'custom') return;
+    const expected = presetWrite(activePreset);
+    const norm = (v: unknown): number | '' =>
+      v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
+        ? ''
+        : (v as number | '');
+    const normMax = norm(watchedMaxTrials);
+    const normTime = norm(watchedTimeBudget);
+    if (normMax !== expected.max_trials || normTime !== expected.time_budget_min) {
+      setActivePreset('custom');
+    }
+  }, [watchedMaxTrials, watchedTimeBudget, activePreset]);
+
   // FR-5 modal-open reset: <Dialog> (Radix) keeps this component mounted
   // across open/close toggles, so useState alone does NOT reset on reopen.
   // This effect is the authoritative reset for AC-12.
   useEffect(() => {
     if (open) {
       setManualMode(false);
+      // chore_study_default_stop_conditions FR-4: reset preset to Standard.
+      setActivePreset('standard');
     }
   }, [open]);
 
@@ -888,6 +961,36 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+              </div>
+              {/* chore_study_default_stop_conditions FR-2: stop-condition
+                  preset button group. Sits above the numeric-inputs grid;
+                  selecting a preset writes max_trials + time_budget_min
+                  per PRESET_WRITES. */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-1">
+                  <span id="stop-condition-group-label" className="text-sm font-medium">
+                    Stop condition
+                  </span>
+                  <InfoTooltip glossaryKey="study.preset" />
+                </div>
+                <div
+                  role="group"
+                  aria-labelledby="stop-condition-group-label"
+                  className="flex flex-wrap gap-2"
+                >
+                  {PRESET_VALUES.map((p) => (
+                    <Button
+                      key={p}
+                      type="button"
+                      variant={activePreset === p ? 'default' : 'outline'}
+                      aria-pressed={activePreset === p}
+                      aria-label={presetLabel(p)}
+                      onClick={() => handlePresetClick(p)}
+                    >
+                      {presetLabel(p)}
+                    </Button>
+                  ))}
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
