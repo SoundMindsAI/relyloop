@@ -1,7 +1,7 @@
 # Implementation Plan — Config Repo Baseline Tracking
 
 **Date:** 2026-05-22
-**Status:** Draft
+**Status:** Complete (PR #202, merged 2026-05-23)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../CLAUDE.md) absolute rules; [docs/01_architecture/api-conventions.md](../../../01_architecture/api-conventions.md); [docs/01_architecture/data-model.md](../../../01_architecture/data-model.md)
 
