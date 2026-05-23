@@ -1847,7 +1847,7 @@ def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> 
     asof = _data_freshness().strftime("%Y-%m-%d")
     mermaid = _mermaid_graph(features)
     release_label = _release_label(release)
-    html_filename = f"{release}_dashboard.html"
+    html_filename = f"{_release_filename_safe(release)}_dashboard.html"
 
     lines: list[str] = []
     lines.append(_back_to_roadmap_link_md())
@@ -1963,6 +1963,25 @@ def _maybe_write(path: Path, new_content: str) -> bool:
     return True
 
 
+def _release_filename_safe(release: str) -> str:
+    """Normalize a release tag for use in filenames + hrefs.
+
+    Half-step releases like ``"mvp1.5"`` carry a dot in the internal
+    identifier (matching the canonical release-matrix label
+    ``MVP1.5 / v0.1.5``), but dots in filenames read confusably — they
+    could be mistaken for file extensions. This helper produces the
+    underscore-form filename token: ``"mvp1.5"`` → ``"mvp1_5"``.
+
+    Used by both :func:`_dashboard_paths` (file write) and every link
+    renderer (``render_markdown`` "rich local view" callout,
+    ``render_roadmap_html`` cards, ``render_roadmap_markdown`` table) so
+    on-disk filenames and inline hrefs converge on the same form. Drift
+    between write and link sites caused Gemini-flagged broken links on
+    PR #211 cycle 1; this helper is the single point of truth.
+    """
+    return release.replace(".", "_")
+
+
 def _dashboard_paths(release: str) -> tuple[Path, Path]:
     """Return ``(html_path, md_path)`` for a release tag.
 
@@ -1973,12 +1992,11 @@ def _dashboard_paths(release: str) -> tuple[Path, Path]:
     ``MVP2_DASHBOARD.md``, ...).
 
     For half-step releases (e.g. ``"mvp1.5"``) the dot in the internal
-    release identifier is normalized to an underscore for filenames —
-    so ``"mvp1.5"`` produces ``MVP1_5_DASHBOARD.md`` /
-    ``mvp1_5_dashboard.html``. Dots in filenames are legal but read
-    confusably (could be mistaken for file extensions).
+    release identifier is normalized to an underscore via
+    :func:`_release_filename_safe` so ``"mvp1.5"`` produces
+    ``MVP1_5_DASHBOARD.md`` / ``mvp1_5_dashboard.html``.
     """
-    safe = release.replace(".", "_")
+    safe = _release_filename_safe(release)
     return (
         DASHBOARD_DIR / f"{safe}_dashboard.html",
         DASHBOARD_DIR / f"{safe.upper()}_DASHBOARD.md",
@@ -2010,7 +2028,7 @@ def render_roadmap_html(features: list[Feature]) -> str:
             f'<span class="state-pill {state}">{html.escape(_roadmap_state_label(state))}</span>'
         )
         if row["has_dashboard"]:
-            href = f"{release_tag}_dashboard.html"
+            href = f"{_release_filename_safe(release_tag)}_dashboard.html"
             name_html = f'<a href="{html.escape(href)}">{html.escape(label)}</a>'
             done = int(row["done"])
             scoped = int(row["scoped"])
@@ -2095,7 +2113,7 @@ def render_roadmap_markdown(features: list[Feature]) -> str:
         row = _roadmap_row(release_tag, features)
         state_label = _roadmap_state_label(str(row["state"]))
         if row["has_dashboard"]:
-            href = f"{release_tag.upper()}_DASHBOARD.md"
+            href = f"{_release_filename_safe(release_tag).upper()}_DASHBOARD.md"
             name_cell = f"[{label}]({href})"
             done = int(row["done"])
             scoped = int(row["scoped"])

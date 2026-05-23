@@ -21,6 +21,7 @@ from scripts.build_mvp1_dashboard import (  # noqa: E402
     DEFAULT_RELEASE,
     Feature,
     _dashboard_paths,
+    _release_filename_safe,
     _target_release,
 )
 
@@ -105,6 +106,59 @@ class TestDashboardPaths:
         html, md = _dashboard_paths("mvp2.5")
         assert html.name == "mvp2_5_dashboard.html"
         assert md.name == "MVP2_5_DASHBOARD.md"
+
+
+class TestReleaseFilenameSafe:
+    """Single point of truth for dot→underscore normalization used by
+    both the file-write path (``_dashboard_paths``) AND every link
+    renderer (``render_markdown`` "rich local view" callout, the two
+    roadmap renderers). PR #211 cycle 1 shipped broken links because
+    only the file-write path was normalized; this helper exists to
+    prevent that drift from recurring.
+    """
+
+    def test_integer_release_unchanged(self) -> None:
+        assert _release_filename_safe("mvp1") == "mvp1"
+        assert _release_filename_safe("mvp2") == "mvp2"
+        assert _release_filename_safe("ga") == "ga"
+
+    def test_half_step_dot_normalized_to_underscore(self) -> None:
+        assert _release_filename_safe("mvp1.5") == "mvp1_5"
+        assert _release_filename_safe("mvp2.5") == "mvp2_5"
+
+    def test_dashboard_paths_uses_safe_form(self) -> None:
+        """File-write site uses the helper — regression guard."""
+        html, md = _dashboard_paths("mvp1.5")
+        # `stem` strips the file extension; only the dashboard name part
+        # should be free of dots (the `.html` / `.md` extension always has one).
+        assert "." not in html.stem
+        assert "." not in md.stem
+
+    def test_no_raw_release_tag_in_link_renderers(self) -> None:
+        """Every link site must use ``_release_filename_safe`` so on-disk
+        filenames and inline hrefs converge. This test reads the script
+        source and asserts the bare-release-tag forms ``f"{release}_dashboard.html"``
+        and ``f"{release_tag}_dashboard.html"`` no longer appear in the
+        href-construction paths.
+
+        Sentinel regression for the Gemini #2 finding on PR #211 cycle 1.
+        """
+        source = Path(_REPO_ROOT / "scripts" / "build_mvp1_dashboard.py").read_text()
+        # Forbidden: raw {release}_dashboard.html or {release.upper()}_DASHBOARD.md
+        # without going through _release_filename_safe first.
+        forbidden_patterns = [
+            'f"{release}_dashboard.html"',
+            'f"{release_tag}_dashboard.html"',
+            'f"{release.upper()}_DASHBOARD.md"',
+            'f"{release_tag.upper()}_DASHBOARD.md"',
+        ]
+        for pattern in forbidden_patterns:
+            assert pattern not in source, (
+                f"Found `{pattern}` in build_mvp1_dashboard.py — link/file paths "
+                "must go through _release_filename_safe() to keep dot-form "
+                "release tags (e.g. 'mvp1.5') and underscore-form filenames "
+                "(e.g. 'mvp1_5_dashboard.html') in sync."
+            )
 
 
 class TestFeatureDisplayName:
