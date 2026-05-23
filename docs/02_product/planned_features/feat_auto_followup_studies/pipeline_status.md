@@ -32,11 +32,13 @@
 - Known UX limitation (deliberate): Cancel-from-completed-root requires operator to navigate to the in-flight descendant. Per D-13 direct-children scoping. Documented in `docs/03_runbooks/auto-followup-debugging.md` (Story 4.1).
 
 ## Implementation
-- Status: In progress (1 of 10 stories complete)
+- Status: In progress (2 of 10 stories complete)
 - Branch: `feature/auto-followup-studies`
 - Latest commit: `b32645c1` (Story 1.1 — chain-gate domain + StudyConfigSpec field + error-code prefix parser)
-- Stories complete: Story 1.1 (53 tests passing, 0 regressions in full `make test-unit` of 1191 tests)
-- Next: Story 1.2 (`narrow_around_winner` domain extraction — FR-4)
+- Stories complete:
+  - **Story 1.1** — 53 tests passing, 0 regressions in full `make test-unit` of 1191 tests (commit `b32645c1`)
+  - **Story 1.2** — DISCOVERY: `narrow_around_winner` was already extracted as `narrow_bounds_around_winner` in PR #175 (`feat_agent_propose_search_space`). No code changes; plan updated to use the actual function name + composition pattern (`build_starter_search_space` first, then narrow). 17 existing `TestNarrowBoundsAroundWinner` tests provide coverage. Doc-only commit pending.
+- Next: Story 1.3 (`list_children_of_study` repo + `cancel_study_with_chain_cascade` service — FR-8)
 - See [`implementation_plan.md` §9 Execution tracker](implementation_plan.md) for the full per-story checkbox list
 
 ## Notes

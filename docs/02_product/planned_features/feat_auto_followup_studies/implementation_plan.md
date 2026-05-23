@@ -196,58 +196,44 @@ class StudyConfigSpec(BaseModel):
 - [ ] No DB I/O in `auto_followup.py` (grep `import.*session\|from sqlalchemy` returns nothing for the new file).
 - [ ] Maps FRs: FR-1, FR-2 (FR-2a active path; FR-2b path noted in docstring), FR-7. (FR-5 is implemented in Story 2.1 — config inheritance is the worker's job, not this story's.)
 
-### Story 1.2 — `narrow_around_winner` domain extraction (FR-4)
+### Story 1.2 — `narrow_around_winner` domain extraction (FR-4) — **DISCOVERY: ALREADY DONE**
 
-**Outcome:** The narrowing math currently inlined in the `propose_search_space` agent tool is extracted into a pure domain function. The agent tool is refactored to call it; output is byte-identical.
+**Outcome (revised after pre-implementation reading):** The narrowing math is **already extracted** into `backend/app/domain/study/search_space_defaults.narrow_bounds_around_winner` (shipped with `feat_agent_propose_search_space` PR #175). The agent tool already calls it at [`backend/app/agent/tools/studies/propose_search_space.py:175-177`](../../../../backend/app/agent/tools/studies/propose_search_space.py#L175). The plan's premise (that the math was inlined and needed extraction) was incorrect — verified 2026-05-23 against the live codebase before implementation. No code changes needed for FR-4.
 
-**New files:** None.
-
-**Modified files:**
-
-- `backend/app/domain/study/search_space_defaults.py` — add `narrow_around_winner(template_id: str, prior_winning_params: dict[str, Any], bracket: float = 0.5) -> SearchSpace` (extracted logic from the existing agent tool).
-- `backend/app/agent/tools/studies/propose_search_space.py` — replace inlined narrowing math (around line 176 — `space, trial.params, bracket=0.5` invocation) with a call to the new domain function. Body shrinks ~30 LOC.
-
-**Endpoints:** None.
-
-**Key interfaces:**
+**Actual function signature** (different from plan's guess):
 
 ```python
-# backend/app/domain/study/search_space_defaults.py — NEW function
+# backend/app/domain/study/search_space_defaults.py:273 — EXISTING
 
-def narrow_around_winner(
-    template_id: str,
-    prior_winning_params: dict[str, Any],
+def narrow_bounds_around_winner(
+    space: SearchSpace,
+    winning_params: dict[str, Any],
     bracket: float = 0.5,
-) -> SearchSpace:
-    """Build a SearchSpace narrowed around prior_winning_params.
-
-    Same math as the previous inline implementation at
-    backend/app/agent/tools/studies/propose_search_space.py:176 —
-    for each numeric param, bound = winner ± |winner| × bracket
-    (linear; the legacy implementation handled log-uniform with
-    √2-bracket; preserve that logic exactly here).
-
-    Returns: SearchSpace (Pydantic). Cardinality-capped per existing
-    SearchSpace.model_validate() at backend/app/domain/study/search_space.py:113.
+) -> tuple[SearchSpace, list[str]]:
+    """Narrow each numeric param's bounds around the prior winner.
+    Returns (narrowed_space, narrowed_param_names_sorted).
+    FloatParam linear: winner ± |winner| × bracket.
+    FloatParam log-uniform: √2 geometric bracket.
+    IntParam: same sign-symmetric math + floor/ceil clamp.
+    Categorical: untouched.
     """
 ```
 
-**Tasks:**
+Key differences from the plan's `narrow_around_winner(template_id, prior_winning_params, bracket) -> SearchSpace`:
+- **Takes a `SearchSpace`, not a `template_id`.** The caller must first call `build_starter_search_space(template.declared_params).space` to produce the starter, then pass it in.
+- **Returns a tuple** of `(narrowed_space, narrowed_names)` for telemetry — Story 2.1's worker uses the `narrowed_names` in the `auto_followup_enqueued` event payload.
+- **Name has an extra `_bounds_` token** — Story 2.1 import is `from backend.app.domain.study.search_space_defaults import narrow_bounds_around_winner`.
 
-1. Read the current narrowing implementation at [`backend/app/agent/tools/studies/propose_search_space.py:130-200`](../../../../backend/app/agent/tools/studies/propose_search_space.py#L130) (the body around the `_narrow` helper or whatever the current factoring is — verify before extracting).
-2. Move the math into `backend/app/domain/study/search_space_defaults.py` as `narrow_around_winner`.
-3. Refactor `propose_search_space_impl` to call `narrow_around_winner(template_id, trial.params, bracket=0.5)` instead of doing the math inline.
-4. Add `backend/tests/unit/domain/test_search_space_narrow.py` — parity test: existing fixtures used by `propose_search_space` tests are loaded; new domain-function output is compared byte-for-byte against the recorded fixtures.
-5. Run the existing `backend/tests/unit/agent/test_propose_search_space.py` (or wherever the agent tool's tests live — verify via `find`) to confirm zero output drift.
+Story 2.1's worker (FR-3) is updated below to compose `build_starter_search_space` + `narrow_bounds_around_winner` rather than calling a single function. The composition is 2 extra lines vs. what the plan assumed; no extraction or refactor required.
 
-**Definition of Done:**
+**Existing test coverage** (verified 2026-05-23): `backend/tests/unit/domain/test_search_space_defaults.py` already has a `TestNarrowBoundsAroundWinner` class with 17 tests covering: float-linear narrowing, float-log √2 bracket, int symmetric narrowing, winner-at-bounds skip, categorical preserved, non-numeric winner skip, bool-winner skip, empty winning_params, negative-winner symmetry (float + int), custom bracket arg, default bracket. Coverage is comprehensive — no new tests needed.
 
-- [ ] `narrow_around_winner` exists in `search_space_defaults.py` as a pure (no DB, no async) function.
-- [ ] `propose_search_space_impl` body no longer contains the narrowing math; it calls the domain function.
-- [ ] Parity test in `test_search_space_narrow.py` passes against the existing agent-tool fixtures.
-- [ ] `make test-unit` passes ALL existing search-space tests (agent + domain) without modification.
-- [ ] `make lint && make typecheck` pass.
-- [ ] Maps FR-4 + D-2.
+**Definition of Done (revised):**
+
+- [x] No code changes (existing function meets FR-4 + D-2; plan's premise was wrong — discovery captured 2026-05-23 during impl-execute Story 1.2 read-before-edit).
+- [x] Story 2.1 key-interface import block updated to use the actual function name (`narrow_bounds_around_winner`) and composition pattern (`build_starter_search_space` first, then narrow).
+- [x] No new tests required — existing `TestNarrowBoundsAroundWinner` (17 tests) provides adequate coverage.
+- [x] Maps FR-4 + D-2 — both satisfied by the existing extraction.
 
 ### Story 1.3 — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (FR-8)
 
@@ -401,11 +387,17 @@ async def enqueue_followup_study(
              log auto_followup_skipped_budget, return
       6. Get parent's best trial via repo.get_trial(parent.best_trial_id).
          If None (data anomaly), log skip and return.
-      7. Build child SearchSpace via narrow_around_winner(
-             template_id=parent.template_id,
-             prior_winning_params=best_trial.params,
-             bracket=0.5,
-         )
+      7. Build child SearchSpace by composing two domain functions
+         (revised per Story 1.2 discovery — narrow_around_winner doesn't
+         exist; narrow_bounds_around_winner does, with a different shape):
+            template = await repo.get_query_template(db, parent.template_id)
+            starter = build_starter_search_space(template.declared_params or {})
+            child_space, narrowed_names = narrow_bounds_around_winner(
+                starter.space, best_trial.params, bracket=0.5,
+            )
+         narrowed_names plumbs into the auto_followup_enqueued event payload
+         alongside lift/epsilon (operator visibility into which params
+         narrowed in the chain).
       8. Build child_config = {**parent.config, 'auto_followup_depth': parent.config['auto_followup_depth'] - 1}
       9. Build child name: f"{parent.name} (chain depth {parent.config['auto_followup_depth'] - 1})"
      10. Create via repo.create_study(db, name=..., cluster_id=parent.cluster_id, target=...,
@@ -429,11 +421,15 @@ async def enqueue_followup_study(
     (verified 2026-05-23 against `backend/workers/all.py:115-138`). Close the
     Redis client in a try/finally per the digest worker's pattern at line 877.
 
-    Imports (cycle-1 finding C1-10 — be explicit):
+    Imports (cycle-1 finding C1-10 — be explicit; updated per Story 1.2 discovery):
         from backend.app.db.repo import trial as trial_repo  # get_trial, list_trials_for_study
         from backend.app.db.repo import study as study_repo  # get_study, create_study, list_children_of_study
+        from backend.app.db.repo import query_template as template_repo  # get_query_template
         from backend.app.domain.study.auto_followup import evaluate_chain_gate, ChainGateDecision
-        from backend.app.domain.study.search_space_defaults import narrow_around_winner
+        from backend.app.domain.study.search_space_defaults import (
+            build_starter_search_space,
+            narrow_bounds_around_winner,
+        )
         from backend.app.llm.budget_gate import peek_daily_total
         from backend.app.llm.cost_model import estimated_max_call_cost
     """
@@ -1280,8 +1276,8 @@ No story blocks any other within its epic — agents can pick them up in any ord
 
 Resumable across `/pipeline --auto` invocations. Each `/impl-execute` turn ticks the next box.
 
-- [x] **Story 1.1** — `auto_followup_depth` field + `evaluate_chain_gate` domain + error-handler prefix parser. Commit: TBD. Tests: 53 pass (20 domain + 8 handler + 8 schema/contract + 17 pre-existing).
-- [ ] Story 1.2 — `narrow_around_winner` domain extraction (FR-4)
+- [x] **Story 1.1** — `auto_followup_depth` field + `evaluate_chain_gate` domain + error-handler prefix parser. Commit: `b32645c1`. Tests: 53 pass (20 domain + 8 handler + 8 schema/contract + 17 pre-existing); full `make test-unit` 1191 pass.
+- [x] **Story 1.2** — `narrow_around_winner` domain extraction (FR-4) — **NO-OP discovery.** Function already exists as `narrow_bounds_around_winner` (shipped PR #175 with `feat_agent_propose_search_space`); 17 existing tests in `TestNarrowBoundsAroundWinner` provide coverage. Plan updated to use actual function name + composition pattern. No code changes; doc-only.
 - [ ] Story 1.3 — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (FR-8)
 - [ ] **Epic 1 phase gate** — full lint/typecheck/test-unit pass
 - [ ] Story 2.1 — `enqueue_followup_study` Arq job (FR-3, FR-5, FR-6, FR-9 events 1-7)
