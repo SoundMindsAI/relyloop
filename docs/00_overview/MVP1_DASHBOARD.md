@@ -19,13 +19,13 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Scoped items done | **67 / 68** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 11 important to file, not blocking |
+| → P2 (default) | 12 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 0 |
-| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 6 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -134,7 +134,7 @@ _None._
 
 _None._
 
-### Idea (11)
+### Idea (12)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -145,10 +145,11 @@ _None._
 | 5 | P2 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | 6 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 7 | P2 | [chore_dashboard_pr_extraction_from_idea](../02_product/planned_features/chore_dashboard_pr_extraction_from_idea/idea.md) | Chore | Several early MVP1 features shipped before the `/pipeline` ceremony solidified, leaving them with only an `idea.md` in `implemented_features/<date>_<slug>/`. Examples (as of 2026-05-23): | — | Idea — surfaced during the tangential-observations sweep of `bug_dashboard_depends_on_column_bloat` (PR pending) |
-| 8 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 9 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
-| 10 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 11 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
+| 8 | P2 | [chore_migration_test_head_brittleness](../02_product/planned_features/chore_migration_test_head_brittleness/idea.md) | Chore | [`backend/tests/integration/test_migrations.py`](../../backend/tests/integration/test_migrations.py) has two assertions: | — | Idea — surfaced during `chore_reconciler_terminal_closed_no_poll` implementation |
+| 9 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| 10 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
+| 11 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| 12 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
 
 ## Dependency graph
 
