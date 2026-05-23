@@ -20,4 +20,9 @@
 - Phases covered: single-phase, full coverage of FR-1..FR-9.
 
 ## Implementation
-- Status: Not started
+- Status: Complete (pending PR merge)
+- Date: 2026-05-23
+- Branch: `feature/chore-study-default-stop-conditions`
+- Stories: 5/5 complete — 1.1 glossary refresh, 1.2 system prompt update, 1.3 form default `max_trials=200`, 1.4 button-group preset selector + state transitions, 1.5 vitest test suite (11 cases).
+- Test layers: vitest only (per spec §14). Full UI suite 730/730 green. Stop-condition suite 11/11 green. tsc clean. ESLint at baseline (no new warnings).
+- Cross-model implementation review: GPT-5.5 cycle 1 raised 1 Medium finding (modal-open form-field reset gap caught the Radix Dialog mount-persistence bug); fixed in a follow-up commit, AC-6 test strengthened to use `rerender(open=false → open=true)` instead of unmount/remount. Cycle 2 clean.
