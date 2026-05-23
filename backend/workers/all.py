@@ -59,6 +59,7 @@ from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
+from backend.workers.auto_followup import enqueue_followup_study
 from backend.workers.digest import generate_digest
 from backend.workers.git_pr import open_pr
 from backend.workers.judgments import generate_judgments_llm
@@ -214,6 +215,7 @@ class WorkerSettings:
         func(generate_judgments_llm, timeout=_JUDGMENTS_JOB_TIMEOUT_S),
         func(open_pr, timeout=_OPEN_PR_JOB_TIMEOUT_S, max_tries=_OPEN_PR_MAX_TRIES),
         register_webhook,
+        enqueue_followup_study,  # feat_auto_followup_studies Story 2.1
     ]
     # Registered cron jobs:
     # * `reconcile_pr_state` (feat_github_webhook Story 3.1) — polls GitHub
