@@ -1,7 +1,7 @@
 # Implementation Plan — `_extract_pr_number` reads `idea.md` for legacy idea-only features
 
 **Date:** 2026-05-23
-**Status:** Draft
+**Status:** Complete (PR #221 squash-merged as `8a6452d5` on 2026-05-23)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) (Conventional Commits, 80% coverage gate, no main commits).
 
@@ -331,7 +331,7 @@ N/A.
    class TestMutualExclusion:
        def test_pattern_a_and_b_share_no_lines(self) -> None: ...
    ```
-6. Write each test body, using the AC-N "Given/When/Then" from the spec as the test contract. Each test must include the literal idea-body text the spec cites as its precedent example (e.g., AC-1's body is `**Status:** **Shipped** as PR [#124](https://github.com/SoundMindsAI/relyloop/pull/124) (squash-merged 2026-05-15, commit `9d22f62`).` — verified against the actual `feat_contextual_help_mvp2/idea.md`).
+6. Write each test body, using the AC-N "Given/When/Then" from the spec as the test contract. Each test must include the literal idea-body text the spec cites as its precedent example (e.g., AC-1's body mirrors `feat_contextual_help_mvp2`'s `**Status:** **Shipped** as PR [#124](url) (squash-merged-date trailer)` shape — verified against the actual `feat_contextual_help_mvp2/idea.md`; the literal date is held in the test fixture, not quoted here, to avoid tripping the dashboard regen's priority-3 fuzzy regex).
 7. The AC-12 test uses `pytest.fixture` or `tempfile.mkdtemp` to construct a real on-disk folder with a date-prefixed slug (e.g., `2026_05_20_chore_test_stub`) containing only `idea.md`. The `_load_implemented` call returns a `Feature` whose `pr_number` field is asserted.
 8. Update `architecture.md` per the FR-3 requirement. Add a ~6-line subsection at the end of §"Where the code lives" (immediately after the `scripts/` mention at ~L141). Content:
    ```markdown
