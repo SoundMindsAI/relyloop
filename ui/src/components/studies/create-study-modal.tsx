@@ -196,57 +196,53 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   const targets = useClusterTargets(clusterId);
   const [manualMode, setManualMode] = useState(false);
 
-  // chore_study_default_stop_conditions FR-2/FR-4: active stop-condition
-  // preset. Defaults to 'standard' (matches the form's max_trials=200
-  // default). Reset to 'standard' on modal open below.
-  const [activePreset, setActivePreset] = useState<PresetValue>('standard');
-
-  const handlePresetClick = (preset: PresetValue) => {
-    setActivePreset(preset);
-    if (preset !== 'custom') {
-      const writes = presetWrite(preset);
-      form.setValue('max_trials', writes.max_trials, { shouldDirty: true });
-      form.setValue('time_budget_min', writes.time_budget_min, { shouldDirty: true });
-    }
-  };
-
-  // Manual-edit watcher: flip activePreset → 'custom' when the form values
-  // diverge from the active preset's expected writes. Normalize undefined/
-  // null/NaN → '' before comparison so the watcher doesn't fire on
-  // modal-open when `time_budget_min` is undefined (Standard's expected
-  // value is ''). Locked per GPT-5.5 plan-review cycle 1 Finding #2.
+  // chore_study_default_stop_conditions FR-2/FR-4: stop-condition preset.
+  // Derived purely from form values via useMemo — no useState, no watcher
+  // useEffect. Manual edits to max_trials / time_budget_min automatically
+  // re-derive the active preset on the next render. Eliminating the
+  // useState + watcher useEffect pattern fixed a production-build Chromium
+  // race that broke studies-create-builder.spec.ts:130 and
+  // studies-create-target-dropdown.spec.ts:48 — the watcher's
+  // setState-on-form-change re-render cycle interacted badly with
+  // React 19's compiler and RHF's `form.watch` (which the compiler
+  // already flags as incompatible) and left the Max trials input
+  // non-actionable to Playwright fill. See
+  // `bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md`.
   const watchedMaxTrials = form.watch('max_trials');
   const watchedTimeBudget = form.watch('time_budget_min');
-  useEffect(() => {
-    if (activePreset === 'custom') return;
-    const expected = presetWrite(activePreset);
+  const activePreset: PresetValue = useMemo(() => {
     const norm = (v: unknown): number | '' =>
       v === undefined || v === null || (typeof v === 'number' && Number.isNaN(v))
         ? ''
         : (v as number | '');
     const normMax = norm(watchedMaxTrials);
     const normTime = norm(watchedTimeBudget);
-    if (normMax !== expected.max_trials || normTime !== expected.time_budget_min) {
-      setActivePreset('custom');
-    }
-  }, [watchedMaxTrials, watchedTimeBudget, activePreset]);
+    if (normMax === FOCUSED_WRITE.max_trials && normTime === FOCUSED_WRITE.time_budget_min)
+      return 'focused';
+    if (normMax === STANDARD_WRITE.max_trials && normTime === STANDARD_WRITE.time_budget_min)
+      return 'standard';
+    if (normMax === DEEP_WRITE.max_trials && normTime === DEEP_WRITE.time_budget_min) return 'deep';
+    return 'custom';
+  }, [watchedMaxTrials, watchedTimeBudget]);
+
+  const handlePresetClick = (preset: PresetValue) => {
+    // Custom click is a no-op: activePreset is derived from values, and
+    // Custom == "values don't match any preset". The user reaches Custom
+    // either by clicking a non-Custom preset and then manually editing
+    // (which moves values off the preset write) or by being in a
+    // post-Deep-reopen state where prior values persist.
+    if (preset === 'custom') return;
+    const writes = presetWrite(preset);
+    form.setValue('max_trials', writes.max_trials, { shouldDirty: true });
+    form.setValue('time_budget_min', writes.time_budget_min, { shouldDirty: true });
+  };
 
   // FR-5 modal-open reset: <Dialog> (Radix) keeps this component mounted
   // across open/close toggles, so useState alone does NOT reset on reopen.
   // This effect is the authoritative reset for AC-12.
-  // chore_study_default_stop_conditions FR-4: on modal open, reset the
-  // visual preset to Standard. Form-field reset is intentionally NOT done
-  // here — Radix <Dialog> keeps this component mounted across open/close,
-  // so previous form state persists. The manual-edit watcher correctly
-  // shows the active preset as 'custom' when prior values (e.g. Deep's
-  // 1000 + 480) remain in form state on reopen. The user can re-click
-  // Standard to write 200/''. This avoids a production-build Chromium
-  // race between in-effect `form.setValue` and Playwright-controlled
-  // inputs that broke studies-create-builder.spec.ts:130.
   useEffect(() => {
     if (open) {
       setManualMode(false);
-      setActivePreset('standard');
     }
   }, [open]);
 

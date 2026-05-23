@@ -127,14 +127,7 @@ async function readSearchSpace(page: Page): Promise<{ params: Record<string, unk
 }
 
 test.describe('/studies — create-study Step-4 builder (Story 4.1)', () => {
-  // TODO: re-enable after bug_smoke_create_study_modal_e2e_max_trials_fill ships.
-  // The Max-trials fill at line 153 below times out in production-build
-  // Chromium after chore_study_default_stop_conditions PR #215 landed
-  // (vitest jsdom passes 98/98; CI smoke fails consistently). Root cause
-  // likely a React 19 + RHF `form.watch` + React Compiler interaction
-  // around the new manual-edit watcher in create-study-modal.tsx. See
-  // docs/02_product/planned_features/bug_smoke_create_study_modal_e2e_max_trials_fill/idea.md.
-  test.skip('case 1: builder edits propagate to textarea + submitted study persists the value', async ({
+  test('case 1: builder edits propagate to textarea + submitted study persists the value', async ({
     page,
   }) => {
     await walkToStep4(page);

@@ -270,7 +270,7 @@ describe('CreateStudyModal — stop-condition presets (FR-2..FR-4, FR-9)', () =>
     expect(getPresetButton(/Standard \(200\)/).getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('AC-6 follow-up: reopening after Deep selection shows Custom (form state persists)', async () => {
+  it('AC-6 follow-up: reopening after Deep selection shows Deep (form state persists, derived preset reflects values)', async () => {
     mockBackend();
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     const { rerender } = render(
@@ -300,14 +300,16 @@ describe('CreateStudyModal — stop-condition presets (FR-2..FR-4, FR-9)', () =>
       </QueryClientProvider>,
     );
 
-    // The open effect resets activePreset → 'standard'. Then the manual-edit
-    // watcher fires because form values (1000, 480) diverge from Standard's
-    // expected (200, ''), so the preset flips to 'custom'. User can click
-    // Standard to overwrite to 200/''.
+    // Radix Dialog keeps the component mounted; form state persists.
+    // activePreset is derived purely from form values, so values 1000/480
+    // re-derive to 'deep' — Deep button stays pressed (more accurate UX than
+    // the previous useState+watcher approach which would have flipped to
+    // 'custom' falsely).
     await waitFor(() =>
-      expect(getPresetButton(/^Custom$/).getAttribute('aria-pressed')).toBe('true'),
+      expect(getPresetButton(/Deep \(1000\)/).getAttribute('aria-pressed')).toBe('true'),
     );
     expect(getMaxTrialsInput().value).toBe('1000');
+    expect(getTimeBudgetInput().value).toBe('480');
   });
 
   it('bug-guard: Deep → Standard clears stale time_budget_min', async () => {
