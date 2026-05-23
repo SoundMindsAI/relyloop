@@ -84,7 +84,14 @@ Command: /impl-plan-gen <path>/feature_spec.md
 
 When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wide pipeline status across **all** features in `docs/02_product/planned_features/`. **Do not invoke any skills in this mode.** The user is asking "where are we and what's next" — give them an unambiguous answer.
 
-**The output MUST be ordered by the same algorithm the dashboard uses.** Never sort by `ls`, alphabet, or directory mtime — the user should not have to guess what comes next. The `#` column in the output is the exact ordinal that appears in [`MVP1_DASHBOARD.md`](../../../docs/00_overview/MVP1_DASHBOARD.md)'s Idea table for the same working tree.
+**Scope:** `/pipeline status` mirrors the **Idea table** from [`MVP1_DASHBOARD.md`](../../../docs/00_overview/MVP1_DASHBOARD.md) — i.e., the prioritized backlog. The `#` column in the output IS the per-table ordinal from the dashboard's Idea table for the same working tree (not a global cross-stage ordinal). Spec/Plan/Implementing stages are typically empty or hold one in-flight item that the operator already knows about — surface those as a brief one-line "in flight" note above the Idea table rather than re-rendering them.
+
+**Two distinct "what's next" answers — don't conflate them:**
+
+- **`/pipeline status`'s Next action** (this skill) answers: "what's the next item from the prioritized backlog to work on?" The answer is the first row of the tier-sorted Idea table (`_md_sort_key`).
+- **The dashboard's "Next up" callout** (rendered by `_next_action` in the regen script) answers a different question: "what scoped `feat_`/`infra_`/`epic_`/`chore_` feature is next to ship through the dependency DAG?" It excludes `idea`-stage rows and `bug_*` rows entirely (they're not nodes in the shipped-feature DAG), so when the backlog is all idea-stage / bug-stage items, the callout correctly reports "all scoped features shipped — pull from the Idea backlog."
+
+These two answers can legitimately diverge and that's the design — each is correct for its own question. `/pipeline status` always answers the first one. Don't try to merge the algorithms.
 
 ### Algorithm
 
@@ -118,12 +125,12 @@ When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wi
    - `idea.md` exists only → **IDEA complete, ready for SPEC**
    - Folder exists with no artifacts → **EMPTY**
 
-6. **Pick the "Next action."** The next feature is the first feature in priority order whose stage is not DONE. For PARTIAL features, the next action targets the deferred phase's `phase*_idea.md`, not the original feature folder. Quote the exact `/pipeline <path>` command.
+6. **Pick the "Next action."** The next feature is the **first row of the tier-sorted Idea table** (`_md_sort_key` order — tier → prefix → alphabetical) whose stage is not DONE. This is `/pipeline status`'s answer; it does NOT delegate to `_priority_order` (that's the dashboard's "Next up" callout for shipped-feature DAG progression — a different question). For PARTIAL features (status = idea + a sibling `phase*_idea.md` exists), the next action targets the deferred phase's `phase*_idea.md`, not the original feature folder. Quote the exact `/pipeline <path>` command.
 
 > **Canonical algorithm reference.** The algorithm above is implemented in [`scripts/build_mvp1_dashboard.py`](../../../scripts/build_mvp1_dashboard.py) at three specific call sites that MUST stay in sync:
 >
 > - **`_md_sort_key`** (line ~1799) — the canonical sort key for the Idea / Spec / Plan / Implementing tables in `MVP1_DASHBOARD.md`. The `#` column in those tables IS the position produced by this sort.
-> - **`_priority_order`** (line ~1132) — the DAG-aware topological sort used by the `_next_action` "Next up" callout. Excludes `idea`-stage and `bug_*` features (they're not dependency-graph nodes). Same prefix tiebreaker as `_md_sort_key` (the `type_order` map literal at line 1144 is intentionally a subset of the one at line 1797 — feat → infra → epic → chore, no bug).
+> - **`_priority_order`** (line ~1132) — the DAG-aware topological sort used by the `_next_action` "Next up" callout. Excludes `idea`-stage and `bug_*` features (they're not dependency-graph nodes). Uses `type_order` (a subset — feat → infra → epic → chore, no bug) as the within-DAG tiebreaker, but does NOT use the priority tier as a sort key — it sorts purely by (deps, prefix, name). This is intentional: `_priority_order` answers a different question than `_md_sort_key` ("what's the next scoped feature to SHIP through the DAG?" vs. "what's the highest-priority backlog item to WORK ON?"). The two can produce different answers for the same input, and that's correct.
 > - **`_next_action`** (line ~1179) — picks the first non-done feature from `_priority_order` and emits the exact `/pipeline ...` command for the next stage.
 >
 > The dashboard is the durable artifact — `/pipeline status` is the live-conversation view that should match what the dashboard shows for the same working tree. If the two ever disagree on priority order, the `#` column, or stage detection, **the regen script is the source of truth**; update this skill's prose or shell out to the script, never let them drift. The regression test at [`backend/tests/unit/scripts/test_dashboard_priority_sort.py`](../../../backend/tests/unit/scripts/test_dashboard_priority_sort.py) locks the tiebreaker order so future edits to either side can't silently diverge.

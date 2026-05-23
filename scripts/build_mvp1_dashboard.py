@@ -1758,9 +1758,11 @@ def _md_stage_section(stage: str, features: list[Feature]) -> str:
             )
     else:
         # Non-done stages: prepend a `#` column showing the within-stage
-        # rank so the exact order (tier + dep-aware tiebreaker via
-        # _md_sort_key) is visually explicit, not just implied by row
-        # position. Matches what `/pipeline status` would report.
+        # rank so the exact order (tier + prefix tiebreaker via
+        # _md_sort_key — not dependency-aware; that's `_priority_order`'s
+        # job for the "Next up" callout) is visually explicit, not just
+        # implied by row position. Matches what `/pipeline status`
+        # reports for the Idea backlog.
         rows = [
             "| # | Priority | Feature | Type | One-liner | Depends on | Status |",
             "|---|---|---|---|---|---|---|",
