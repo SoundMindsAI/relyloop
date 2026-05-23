@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>RelyLoop — Release Roadmap</title>
+<title>RelyLoop MVP1.5 Dashboard</title>
 <style>
 * { box-sizing: border-box; }
 body {
@@ -366,82 +366,183 @@ footer {
 </head>
 <body>
 <header>
-  <h1>RelyLoop — Release Roadmap</h1>
+  <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
+  <h1>RelyLoop MVP1.5 Dashboard</h1>
   <div class="meta">
-    Top-level index across MVP1 → GA v1+ as of 2026-05-23. Click a release name to
-    drill into the per-release dashboard. Theme labels sourced from
-    <a href="../01_architecture/tech-stack.md">tech-stack.md §"Canonical
-    release matrix"</a>. See <a href="../../state.md">state.md</a> for
-    active-branch context and <a href="../../CLAUDE.md">CLAUDE.md</a> for
-    conventions.
+    Reflects feature-folder state as of 2026-05-23 (latest mtime of any
+    <code>docs/02_product/planned_features/</code> or
+    <code>docs/00_overview/implemented_features/</code> file).
+    See <a href="../../state.md">state.md</a> for the active branch context,
+    <a href="../../CLAUDE.md">CLAUDE.md</a> for conventions, and
+    <a href="../02_product/mvp1-user-stories.md">mvp1-user-stories.md</a>
+    for the user-story narrative.
   </div>
 </header>
 
 <main>
+
 <section>
-  <h2>Releases</h2>
-
-<div class="roadmap-row">
-  <div class="release-name"><a href="mvp1_dashboard.html">MVP1 / v0.1</a></div>
-  <div class="theme">The Loop</div>
-  <div class="progress">67 / 67 scoped done · 8 remaining</div>
-  <span class="state-pill in_progress">In progress</span>
-</div>
-
-
-<div class="roadmap-row">
-  <div class="release-name"><a href="mvp1.5_dashboard.html">MVP1.5 / v0.1.5</a></div>
-  <div class="theme">Real Signals</div>
-  <div class="progress">1 item(s) queued</div>
-  <span class="state-pill queued">Held / queued</span>
-</div>
-
-
-<div class="roadmap-row">
-  <div class="release-name"><a href="mvp2_dashboard.html">MVP2 / v0.2</a></div>
-  <div class="theme">Observable</div>
-  <div class="progress">1 / 1 scoped done · 1 remaining</div>
-  <span class="state-pill in_progress">In progress</span>
-</div>
-
-
-<div class="roadmap-row">
-  <div class="release-name">MVP3 / v0.3</div>
-  <div class="theme">Production Stacks</div>
-  <div class="progress">—</div>
-  <span class="state-pill unscoped">Not yet scoped</span>
-</div>
-
-
-<div class="roadmap-row">
-  <div class="release-name">MVP4 / v0.4</div>
-  <div class="theme">Multi-tenant, Multi-LLM</div>
-  <div class="progress">—</div>
-  <span class="state-pill unscoped">Not yet scoped</span>
-</div>
-
-
-<div class="roadmap-row">
-  <div class="release-name">GA v1 / v1.0</div>
-  <div class="theme">Production-ready</div>
-  <div class="progress">—</div>
-  <span class="state-pill unscoped">Not yet scoped</span>
-</div>
-
-
-<div class="roadmap-row">
-  <div class="release-name">v2+</div>
-  <div class="theme">post-GA</div>
-  <div class="progress">—</div>
-  <span class="state-pill unscoped">Not yet scoped</span>
-</div>
-
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1.5 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
+  </div>
 </section>
+
+
+<section>
+  <h2>MVP1.5 Progress</h2>
+  <div class="kpi-row">
+    <div class="kpi ">
+      <div class="label">Scoped items done</div>
+      <div class="value">0 / 0</div>
+      <div class="sub">0% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:0%"></span></div>
+    </div>
+    <div class="kpi warn">
+      <div class="label">Pending work</div>
+      <div class="value">1</div>
+      <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
+    </div>
+    <div class="kpi ">
+      <div class="label">Open bugs</div>
+      <div class="value">0</div>
+      <div class="sub">tracked bug_* idea files</div>
+    </div>
+    <div class="kpi ">
+      <div class="label">P0 — do next</div>
+      <div class="value">0</div>
+      <div class="sub">unblocking / paying daily cost</div>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="label">P1</div>
+      <div class="value">1</div>
+      <div class="sub">high-value, ready when P0 clears</div>
+    </div>
+    <div class="kpi">
+      <div class="label">P2 (default)</div>
+      <div class="value">0</div>
+      <div class="sub">important to file, not blocking</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Backlog</div>
+      <div class="value">0</div>
+      <div class="sub">captured for record, not planned</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Legacy "Path to MVP1.5"</div>
+      <div class="value">0</div>
+      <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
+    </div>
+  </div>
+  <div class="kpi-secondary">
+    <span>
+      <strong>Backlog ideas:</strong>
+      1 idea-only feat/infra folders (not yet scoped into MVP1.5)
+    </span>
+    <span>
+      <strong>In flight:</strong>
+      0 feature(s) actively shipping
+    </span>
+  </div>
+</section>
+
+<section>
+  <h2>Pipeline</h2>
+  <div class="filters">
+    <span class="label">Filter:</span>
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="feat">Features</button>
+    <button data-filter="infra">Infra</button>
+    <button data-filter="chore">Chores</button>
+    <button data-filter="bug">Bugs</button>
+  </div>
+  <div class="kanban">
+<div class="col idea">
+  <h3>Idea <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P1">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_ubi_judgments">Ubi Judgments</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+
+  </div>
+  <div class="one-liner">MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`…</div>
+
+
+</div>
+
+</div>
+
+<div class="col spec">
+  <h3>Spec <span class="count">0</span></h3>
+
+</div>
+
+<div class="col plan">
+  <h3>Plan <span class="count">0</span></h3>
+
+</div>
+
+<div class="col implement">
+  <h3>Implementing <span class="count">0</span></h3>
+
+</div>
+
+<div class="col done">
+  <h3>Done <span class="count">0</span></h3>
+
+</div>
+</div>
+</section>
+
+<section>
+  <h2>Dependency graph (feat_ + infra_)</h2>
+  <div class="mermaid-wrap">
+    <div class="mermaid">graph LR
+  classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
+  classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
+  classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
+  classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;</div>
+    <noscript><pre>graph LR
+  classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
+  classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
+  classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
+  classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;</pre></noscript>
+  </div>
+</section>
+
 </main>
 
 <footer>
-  Single source of truth: the feature folder structure + the release matrix in
-  <code>tech-stack.md</code>. Regenerate with <code>make dashboard</code>.
+  Single source of truth: the feature folder structure.
+  Regenerate after any spec/plan/pipeline_status change with
+  <code>make dashboard</code>.
 </footer>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose" });
+</script>
+<script>
+  // Filter chips
+  document.querySelectorAll(".filters button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const f = btn.dataset.filter;
+      document.querySelectorAll(".card").forEach(c => {
+        c.dataset.hidden = (f === "all" || c.dataset.prefix === f) ? "0" : "1";
+      });
+    });
+  });
+</script>
 </body>
 </html>
