@@ -477,6 +477,20 @@ export const glossary = {
     ariaLabel: 'More information about source filter',
   },
 
+  // feat_config_repo_baseline_tracking FR-7 + FR-9 — Currently live indicator.
+  // Source-of-truth: backend/app/db/models/config_repo.py
+  // ConfigRepo.last_merged_proposal_id (the pointer column).
+  'proposal.currently_live': {
+    short:
+      'This proposal is the most recently merged PR for its config repo — assumed live in production.',
+    ariaLabel: 'More information about the Currently live badge',
+  },
+  // Source-of-truth: backend/app/api/v1/proposals.py ?is_last_merged=true filter.
+  'proposal.currently_live_filter': {
+    short: 'Show only proposals tracked as the live config in their repo.',
+    ariaLabel: 'More information about the Currently live only filter',
+  },
+
   // -------------------------------------------------------------------------
   // Phase 3 — Cluster registration
   // -------------------------------------------------------------------------

@@ -174,6 +174,50 @@ It should be `null` on success or carry the new failure class.
 
 ---
 
+## 8. Last-merged pointer (feat_config_repo_baseline_tracking)
+
+The `config_repos.last_merged_proposal_id` column tracks the most recently
+merged proposal for each repo. It is maintained at exactly two write sites:
+
+- **Webhook handler** at [`backend/app/api/webhooks/github.py`](../../backend/app/api/webhooks/github.py) — fires on a successful `mark_proposal_pr_merged` inside the `pull_request.closed` + `merged=true` + non-null `merged_at` branch (FR-3).
+- **PR reconciler** at [`backend/workers/pr_reconcile.py`](../../backend/workers/pr_reconcile.py) — fires when the reconciler observes a merge the webhook never delivered (FR-3a).
+
+Both paths call `repo.update_config_repo_last_merged_pointer` which acquires
+`SELECT … FOR UPDATE` on the `config_repos` row and applies a strict-
+monotonic-timestamp guard. The function emits one of two structured log
+events:
+
+| Event | Level | When |
+|---|---|---|
+| `config_repo_last_merged_pointer_updated` | INFO | Pointer was written (new merge or strictly-newer-timestamp overwrite). Fields: `config_repo_id`, `previous_proposal_id`, `new_proposal_id`, `pr_merged_at`. |
+| `config_repo_last_merged_pointer_skipped_older` | DEBUG | An out-of-order or equal-timestamp delivery did not overwrite. Fields: `config_repo_id`, `previous_proposal_id`, `rejected_proposal_id`, `rejected_pr_merged_at`. |
+| `config_repo_last_merged_pointer_skipped_no_repo` | DEBUG | Cluster's `config_repo_id` was NULL when the merge fired — the proposal still transitions, but no pointer is maintained. |
+
+**Inspect the current pointer for a repo:**
+
+```sql
+SELECT cr.name,
+       cr.last_merged_proposal_id,
+       p.pr_merged_at,
+       p.pr_url
+FROM config_repos cr
+LEFT JOIN proposals p ON p.id = cr.last_merged_proposal_id
+WHERE cr.name = '<repo_name>';
+```
+
+**Known limitation — fallback-closed proposals are not recovered.** If the
+webhook delivers `pull_request.closed` with `merged=true` AND `merged_at=null`
+(GitHub eventual-consistency edge case), the receiver calls
+`mark_proposal_pr_closed` and leaves the proposal in `(pr_opened, closed)`.
+The reconciler's candidate query
+`list_pr_opened_proposals_for_reconcile` filters to `pr_state='open'`, so
+fallback-closed proposals are invisible to it; the pointer stays NULL for
+that merge. Captured as the standalone bug
+[`bug_pr_reconciler_blocked_by_closed_fallback`](../02_product/planned_features/bug_pr_reconciler_blocked_by_closed_fallback/idea.md).
+Recovery requires operator action.
+
+---
+
 ## Quick reference
 
 | Symptom | Logs to check | First action |
@@ -182,4 +226,5 @@ It should be `null` on success or carry the new failure class.
 | State stuck at `pr_state=open` after merge | `webhook_received` for the delivery | Force-reconcile (§5) |
 | Reconciler never runs | `pr_reconcile_tick_complete` | Check Settings whitelist (§6) |
 | `webhook_registration_error` populated | n/a (column read) | Match per-class fix (§7) |
+| `last_merged_proposal_id` not advancing after merge | `config_repo_last_merged_pointer_*` events | Match per-event diagnosis (§8) |
 | GitHub can't reach the install | n/a | Tunnel + re-set `RELYLOOP_BASE_URL` |

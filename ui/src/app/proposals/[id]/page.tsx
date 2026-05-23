@@ -7,6 +7,7 @@ import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { MetricDelta } from '@/components/common/metric-delta';
 import { ConfigDiffPanel } from '@/components/proposals/config-diff-panel';
+import { CurrentlyLiveBadge } from '@/components/proposals/currently-live-badge';
 import { PrPanel } from '@/components/proposals/pr-panel';
 import { ProposalHeader } from '@/components/proposals/proposal-header';
 import { RejectDialog } from '@/components/proposals/reject-dialog';
@@ -143,7 +144,10 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
         {(proposal) => (
           <>
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold tracking-tight">Proposal detail</h1>
+              <h1 className="flex items-center text-2xl font-semibold tracking-tight">
+                Proposal detail
+                <CurrentlyLiveBadge isCurrentlyLive={proposal.is_currently_live} />
+              </h1>
             </div>
             <ProposalHeader proposal={proposal} />
             <ConfigDiffPanel diff={proposal.config_diff} />

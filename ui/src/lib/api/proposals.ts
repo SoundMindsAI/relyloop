@@ -28,6 +28,10 @@ export interface ProposalsFilter {
   // ``manual`` → study_id IS NULL. Omit for both. Matches the backend's
   // ProposalSourceWire Literal — values must stay in sync.
   source?: 'study' | 'manual' | undefined;
+  // feat_config_repo_baseline_tracking FR-6 — `true` narrows to live-pointer
+  // proposals (one per config_repo at most); `false` returns the complement;
+  // omit for unfiltered.
+  is_last_merged?: boolean | undefined;
   sort?: string | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
@@ -46,15 +50,36 @@ export function useProposals(
   filter: ProposalsFilter = {},
   options: UseProposalsOptions = {},
 ): UseQueryResult<ProposalsPage, ApiError> {
-  const { status, cluster_id, study_id, template_id, source, sort, cursor, limit } = filter;
+  const { status, cluster_id, study_id, template_id, source, is_last_merged, sort, cursor, limit } =
+    filter;
   return useQuery<ProposalsPage, ApiError>({
     queryKey: [
       'proposals',
-      { status, cluster_id, study_id, template_id, source, sort, cursor, limit },
+      {
+        status,
+        cluster_id,
+        study_id,
+        template_id,
+        source,
+        is_last_merged,
+        sort,
+        cursor,
+        limit,
+      },
     ],
     queryFn: async () => {
       const { data, headers } = await apiClient.get<ProposalsListResponse>('/api/v1/proposals', {
-        params: { status, cluster_id, study_id, template_id, source, sort, cursor, limit },
+        params: {
+          status,
+          cluster_id,
+          study_id,
+          template_id,
+          source,
+          is_last_merged,
+          sort,
+          cursor,
+          limit,
+        },
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },

@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { MetricDelta } from '@/components/common/metric-delta';
 import { StatusBadge } from '@/components/common/status-badge';
 import type { DataTableColumnDef } from '@/components/common/types';
+import { CurrentlyLiveBadge } from '@/components/proposals/currently-live-badge';
 import { useClusters } from '@/lib/api/clusters';
 import type { ProposalSummary } from '@/lib/api/proposals';
 import { useTemplates } from '@/lib/api/query-templates';
@@ -141,7 +142,12 @@ export const proposalsColumns: DataTableColumnDef<ProposalSummary>[] = [
       wireValues: PROPOSAL_STATUS_VALUES,
       sourceOfTruth: 'backend/app/api/v1/schemas.py ProposalStatusWire',
     },
-    cell: ({ row }) => <StatusBadge kind="proposal" value={row.original.status} />,
+    cell: ({ row }) => (
+      <>
+        <StatusBadge kind="proposal" value={row.original.status} />
+        <CurrentlyLiveBadge isCurrentlyLive={row.original.is_currently_live} />
+      </>
+    ),
   },
   {
     id: 'pr_state',

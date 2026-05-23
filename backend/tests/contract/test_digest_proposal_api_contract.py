@@ -132,6 +132,64 @@ async def test_list_proposals_response_model_is_proposals_list(
     assert ref.endswith("ProposalsListResponse"), ref
 
 
+@_skip_if_no_pg
+async def test_proposal_summary_schema_includes_is_currently_live(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """feat_config_repo_baseline_tracking FR-5 — ProposalSummary schema in OpenAPI
+    must declare is_currently_live: bool with default false."""
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    proposal_summary_schema = schema["components"]["schemas"]["ProposalSummary"]
+    properties = proposal_summary_schema["properties"]
+    assert "is_currently_live" in properties, (
+        "ProposalSummary.is_currently_live missing from OpenAPI"
+    )
+    field = properties["is_currently_live"]
+    assert field.get("type") == "boolean", f"ProposalSummary.is_currently_live not bool: {field}"
+    assert field.get("default") is False, (
+        f"ProposalSummary.is_currently_live default is not False: {field}"
+    )
+
+
+@_skip_if_no_pg
+async def test_proposal_detail_schema_includes_is_currently_live(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """feat_config_repo_baseline_tracking FR-5 — ProposalDetail schema in OpenAPI
+    must also declare is_currently_live: bool with default false."""
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    proposal_detail_schema = schema["components"]["schemas"]["ProposalDetail"]
+    properties = proposal_detail_schema["properties"]
+    assert "is_currently_live" in properties, (
+        "ProposalDetail.is_currently_live missing from OpenAPI"
+    )
+    field = properties["is_currently_live"]
+    assert field.get("type") == "boolean", f"ProposalDetail.is_currently_live not bool: {field}"
+    assert field.get("default") is False, (
+        f"ProposalDetail.is_currently_live default is not False: {field}"
+    )
+
+
+@_skip_if_no_pg
+async def test_invalid_is_last_merged_returns_wrapped_validation_envelope(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """feat_config_repo_baseline_tracking AC-12 — GET /api/v1/proposals with a
+    non-bool ?is_last_merged value (e.g. 'maybe', '2') returns 422 with the
+    standard RelyLoop envelope wrapped by the global validation handler at
+    backend/app/api/errors.py:103-118 (NOT FastAPI's raw {detail: [{...}]})."""
+    resp = await async_client.get("/api/v1/proposals?is_last_merged=maybe")
+    assert resp.status_code == 422
+    body = resp.json()
+    assert "detail" in body
+    detail = body["detail"]
+    assert isinstance(detail, dict), f"detail should be wrapped, got {detail!r}"
+    assert detail.get("error_code") == "VALIDATION_ERROR"
+    assert detail.get("retryable") is False
+
+
 def test_router_source_contains_every_endpoint_visible_code() -> None:
     """Cycle-2 F4 / cycle-3 F1: router contains the 7 endpoint-visible codes."""
     router_path = Path("backend/app/api/v1/proposals.py")

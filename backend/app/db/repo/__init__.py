@@ -18,11 +18,14 @@ from backend.app.db.repo.cluster import (
 from backend.app.db.repo.config_repo import (
     count_config_repos,
     create_config_repo,
+    find_currently_live_proposal_ids,
     get_config_repo,
     get_config_repo_by_name,
+    get_config_repo_with_last_merged_proposal,
     list_config_repos,
     lookup_config_repo_by_owner_repo,
     set_webhook_registration_error,
+    update_config_repo_last_merged_pointer,
 )
 from backend.app.db.repo.conversation import (
     count_conversations,
@@ -203,6 +206,10 @@ __all__ = [
     "list_config_repos",
     "mark_proposal_pr_opened",
     "set_proposal_pr_open_error",
+    # feat_config_repo_baseline_tracking Story 1.2 (last-merged pointer helpers)
+    "find_currently_live_proposal_ids",
+    "get_config_repo_with_last_merged_proposal",
+    "update_config_repo_last_merged_pointer",
     # feat_github_webhook Story 1.4 (webhook receiver + polling reconciler + auto-register)
     "list_pr_opened_proposals_for_reconcile",
     "lookup_config_repo_by_owner_repo",

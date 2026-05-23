@@ -1262,6 +1262,8 @@ export interface components {
       webhook_secret_ref: string | null;
       /** Webhook Registration Error */
       webhook_registration_error: string | null;
+      /** Last Merged Proposal — feat_config_repo_baseline_tracking FR-4 */
+      last_merged_proposal?: components['schemas']['ProposalSummary'] | null;
       /**
        * Created At
        * Format: date-time
@@ -2025,6 +2027,11 @@ export interface components {
       pr_open_error: string | null;
       /** Rejected Reason */
       rejected_reason: string | null;
+      /**
+       * Is Currently Live — feat_config_repo_baseline_tracking FR-5
+       * @default false
+       */
+      is_currently_live?: boolean;
       digest: components['schemas']['_DigestEmbed'] | null;
       /**
        * Created At
@@ -2056,6 +2063,11 @@ export interface components {
       metric_delta: {
         [key: string]: unknown;
       } | null;
+      /**
+       * Is Currently Live — feat_config_repo_baseline_tracking FR-5
+       * @default false
+       */
+      is_currently_live?: boolean;
       /**
        * Created At
        * Format: date-time
