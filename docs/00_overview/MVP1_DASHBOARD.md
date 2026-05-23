@@ -6,22 +6,28 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[chore_dashboard_pr_extraction_from_idea](../02_product/planned_features/chore_dashboard_pr_extraction_from_idea/feature_spec.md)** — Chore, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> Extend `_extract_pr_number` to accept the idea body as a fourth argument, and have `_load_implemented` read `idea.md` and pass it through.
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/02_product/planned_features/chore_dashboard_pr_extraction_from_idea/implementation_plan.md --all
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **70 / 70** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **70 / 71** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 11 important to file, not blocking |
+| → P2 (default) | 12 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 0 |
-| Legacy "Path to MVP1" | 5 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -54,78 +60,80 @@ Pull from the Idea backlog or capture a new feature spec.
 | [feat_study_preflight_overlap_probe](implemented_features/2026_05_22_feat_study_preflight_overlap_probe/feature_spec.md) | Feature | `POST /api/v1/studies` issues a single bounded `ids`-existence query against the study's target asking "for the *first* query in the query set that has any judgments (chosen deterministically by `id A | — | [PR #193](https://github.com/SoundMindsAI/relyloop/pull/193) merged 2026-05-21 |
 | [feat_study_target_judgment_mismatch_guard](implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard/feature_spec.md) | Feature | `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422). | — | [PR #184](https://github.com/SoundMindsAI/relyloop/pull/184) merged 2026-05-21 |
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
-| [infra_ci_smoke_makeup](implemented_features/2026_05_13_infra_ci_smoke_makeup/idea.md) | Infra | Complete | — | Complete |
-| [infra_dashboard_regen_pre_commit_conflict](implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict/idea.md) | Infra | Complete | — | Complete |
-| [infra_e2e_seed_completed_study](implemented_features/2026_05_17_infra_e2e_seed_completed_study/idea.md) | Infra | Complete | — | Complete |
-| [infra_e2e_wire_seed_helper_into_studies_spec](implemented_features/2026_05_19_infra_e2e_wire_seed_helper_into_studies_spec/idea.md) | Infra | Complete | — | Complete |
+| [infra_ci_smoke_makeup](implemented_features/2026_05_13_infra_ci_smoke_makeup/idea.md) | Infra | CI runs `make test-unit && make test-integration && make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure | — | Complete |
+| [infra_dashboard_regen_pre_commit_conflict](implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict/idea.md) | Infra | The pre-commit pipeline does: | — | Complete |
+| [infra_e2e_seed_completed_study](implemented_features/2026_05_17_infra_e2e_seed_completed_study/idea.md) | Infra | `feat_contextual_help` Phase 1 ships 7 InfoTooltip placements on the digest panel ([`ui/src/components/studies/digest-panel.tsx`](../../ui/src/components/studies/digest-panel.tsx)) — five section labe | — | Complete |
+| [infra_e2e_wire_seed_helper_into_studies_spec](implemented_features/2026_05_19_infra_e2e_wire_seed_helper_into_studies_spec/idea.md) | Infra | `infra_e2e_seed_completed_study` shipped `POST /api/v1/_test/studies/seed-completed` and the `seedStudyCompletedWithDigest` TypeScript helper. The two consuming E2E tests in `ui/tests/e2e/studies.spec | — | Complete |
 | [infra_foundation](implemented_features/2026_05_09_infra_foundation/feature_spec.md) | Infra | A relevance engineer can `git clone`, `docker compose up`, see all subsystems healthy in <60s on a 16GB laptop, and have a CI pipeline that gates every PR on lint, type-check, test, and an 80% coverag | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-09 |
-| [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | Complete | — | Complete |
+| [infra_frontend_stack_refresh](implemented_features/2026_05_12_infra_frontend_stack_refresh/idea.md) | Infra | The frontend stack landed during `infra_foundation` is already 1–2 majors behind across the board. Specifically (locked → npm latest as of 2026-05-09): | — | Complete |
 | [infra_ir_measures_migration](implemented_features/2026_05_23_infra_ir_measures_migration/feature_spec.md) | Infra | `backend/app/eval/scoring.py` uses `ir_measures` for IR evaluation; the public `score()` signature and persisted user-facing metric tokens (`ndcg@10`, `map@10`, `mrr`, `map`) are unchanged. | — | [PR #198](https://github.com/SoundMindsAI/relyloop/pull/198) merged 2026-05-23 |
-| [infra_make_targets_split_backend_only](implemented_features/2026_05_14_infra_make_targets_split_backend_only/idea.md) | Infra | Complete | — | Complete |
-| [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | Complete | — | Complete |
+| [infra_make_targets_split_backend_only](implemented_features/2026_05_14_infra_make_targets_split_backend_only/idea.md) | Infra | The current `Makefile` bundles backend (ruff, mypy) and frontend (prettier, eslint, tsc) tooling under each top-level target. Pre-fix shape was ([`Makefile:26-34` in the pre-PR-110 main](../../Makefil | — | Complete |
+| [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | - `ui/package.json` engines: `"node": ">=20.18"`, verified on Node 22.22.2 per `state.md`. - No `.nvmrc` file at repo root or under `ui/`. - Default shell may have an older nvm-active Node (Node 18 in | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; ir_measures scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
-| [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | Complete | — | Complete |
-| [infra_structlog_test_helpers](implemented_features/2026_05_14_infra_structlog_test_helpers/idea.md) | Infra | Complete | — | Complete |
+| [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | `Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the  | — | Complete |
+| [infra_structlog_test_helpers](implemented_features/2026_05_14_infra_structlog_test_helpers/idea.md) | Infra | The repo currently has two distinct, half-overlapping patterns for asserting structlog events from tests: | — | Complete |
 | [infra_uv_sync_drops_precommit](implemented_features/2026_05_21_infra_uv_sync_drops_precommit/idea.md) | Infra | Complete | — | Complete |
-| [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | Complete | — | Complete |
-| [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | Complete | — | Complete |
-| [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Complete | — | Complete |
-| [chore_ci_prettier_check](implemented_features/2026_05_19_chore_ci_prettier_check/idea.md) | Chore | Complete | — | Complete |
-| [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | Complete | — | Complete |
-| [chore_create_study_modal_e2e_stability](implemented_features/2026_05_20_chore_create_study_modal_e2e_stability/idea.md) | Chore | Complete | — | Complete |
+| [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page renders each conversation row as `title + relative timestamp (created_at) + count` via [`ui/src/components/chat/conversation-list.tsx:30-49`](../ui/src/components/chat/conversati | — | Complete |
+| [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | `.github/workflows/pr.yml` has a `paths-ignore` filter that skips the entire workflow when *every* changed path matches: | — | Complete |
+| [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Gitleaks runs only as a pre-commit hook locally. Pre-commit is opt-in (the contributor must run `pre-commit install`); on a fresh clone or a contributor who skips the install, nothing scans commit con | — | Complete |
+| [chore_ci_prettier_check](implemented_features/2026_05_19_chore_ci_prettier_check/idea.md) | Chore | `.github/workflows/pr.yml`'s `frontend` job runs: | — | Complete |
+| [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | The `/clusters` list page (Story 2.1) and `/clusters/{id}` detail page render registered clusters fine, but there is no Delete button. When an operator registers a cluster with stale credentials or a  | — | Complete |
+| [chore_create_study_modal_e2e_stability](implemented_features/2026_05_20_chore_create_study_modal_e2e_stability/idea.md) | Chore | The Playwright smoke lane runs every `ui/tests/e2e/*.spec.ts` against a real-backend stack. The create-study modal's Step-1 cluster trigger (rendered by [`EntitySelect`](../../ui/src/components/common | — | [PR #161](https://github.com/SoundMindsAI/relyloop/pull/161) merged 2026-05-20 |
 | [chore_create_study_wizard_polish](implemented_features/2026_05_20_chore_create_study_wizard_polish/feature_spec.md) | Chore | Step 4 auto-fills from the template's `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en | — | [PR #157](https://github.com/SoundMindsAI/relyloop/pull/157) merged 2026-05-20 |
-| [chore_data_table_columnvisibility_tanstack](implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack/idea.md) | Chore | Complete | — | Complete |
-| [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Complete | — | Complete |
-| [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | Complete | — | Complete |
+| [chore_data_table_columnvisibility_tanstack](implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack/idea.md) | Chore | `feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe | — | Complete |
+| [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Six of the seven `/{entity}/[id]` detail routes hand-roll the same three-state scaffold around their data query. The structure is **identical** down to the className strings, with two minor copy varia | — | Complete |
+| [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Complete |
 | [chore_e2e_test_rows_isolation](implemented_features/2026_05_21_chore_e2e_test_rows_isolation/feature_spec.md) | Chore | Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg | — | [PR #186](https://github.com/SoundMindsAI/relyloop/pull/186) merged 2026-05-21 |
-| [chore_env_guard_extend_deny_pattern](implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern/idea.md) | Chore | Complete | — | Complete |
-| [chore_extract_shadcn_select_test_mock](implemented_features/2026_05_19_chore_extract_shadcn_select_test_mock/idea.md) | Chore | Complete | — | Complete |
-| [chore_form_dropdown_guide_screenshot_refresh](implemented_features/2026_05_19_chore_form_dropdown_guide_screenshot_refresh/idea.md) | Chore | Complete | — | Complete |
+| [chore_env_guard_extend_deny_pattern](implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern/idea.md) | Chore | The shipped guard regex matches `(\.env(\.[^/]+)?\|\.envrc)$` — i.e. bare `.env`, dotted `.env.<x>`, and `.envrc`. It does **not** match plausible backup/rotation spellings that an editor or user-side  | — | Complete |
+| [chore_extract_shadcn_select_test_mock](implemented_features/2026_05_19_chore_extract_shadcn_select_test_mock/idea.md) | Chore | A factor-and-share refactor was attempted during `chore_form_dropdown_primitive` post-implementation. I extracted the mock to `ui/src/__tests__/helpers/shadcn-select-mock.tsx` exporting `mockShadcnSel | — | Complete |
+| [chore_form_dropdown_guide_screenshot_refresh](implemented_features/2026_05_19_chore_form_dropdown_guide_screenshot_refresh/idea.md) | Chore | Each affected guide has a Playwright spec at `ui/tests/e2e/guides/*.spec.ts` that captures screenshots when run against the real backend. The PR's UI changes produce different screenshots: | — | Complete |
 | [chore_form_dropdown_primitive](implemented_features/2026_05_18_chore_form_dropdown_primitive/feature_spec.md) | Chore | Ready for Execution | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
-| [chore_guide_01_screenshot_refresh_target_filter](implemented_features/2026_05_21_chore_guide_01_screenshot_refresh_target_filter/idea.md) | Chore | Complete | — | Complete |
-| [chore_guide_06_screenshot_refresh_confidence_panel](implemented_features/2026_05_22_chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | Complete | — | Complete |
-| [chore_guide_06_screenshot_refresh_target_picker](implemented_features/2026_05_21_chore_guide_06_screenshot_refresh_target_picker/idea.md) | Chore | Complete | — | Complete |
-| [chore_guides_faq](implemented_features/2026_05_22_chore_guides_faq/idea.md) | Chore | Complete | — | Complete |
+| [chore_guide_01_screenshot_refresh_target_filter](implemented_features/2026_05_21_chore_guide_01_screenshot_refresh_target_filter/idea.md) | Chore | The guide is still operationally correct — the new field is optional, defaults to null, and doesn't change the happy-path flow described in the guide. But: | — | Complete |
+| [chore_guide_06_screenshot_refresh_confidence_panel](implemented_features/2026_05_22_chore_guide_06_screenshot_refresh_confidence_panel/idea.md) | Chore | The shipped guide-06 PNGs at [`ui/public/guides/06_create_and_monitor_study/`](../../ui/public/guides/06_create_and_monitor_study) were captured before the ConfidencePanel mounted on the studies-detai | — | Complete |
+| [chore_guide_06_screenshot_refresh_target_picker](implemented_features/2026_05_21_chore_guide_06_screenshot_refresh_target_picker/idea.md) | Chore | The walkthrough guide 06 ("Create and monitor a study") shows the operator opening the create-study modal as part of the wizard tour. The single Step-1 screenshot now disagrees with shipped UI — opera | — | Complete |
+| [chore_guides_faq](implemented_features/2026_05_22_chore_guides_faq/idea.md) | Chore | Tooltips and the glossary answer "**what does X mean?**" within a 1–2 sentence budget. They don't carry the operator-judgment-shaped questions that come up *after* the term is understood: | — | Complete |
 | [chore_guides_glossary_route](implemented_features/2026_05_22_chore_guides_glossary_route/feature_spec.md) | Chore | the [`/guide`](../../ui/src/app/guide/page.tsx) catalog page gains a third section — **Glossary** — that renders every entry in a single browsable, searchable, deep-linkable page at `/guide/glossary`. | — | Draft |
-| [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | Complete | — | Complete |
+| [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is: | — | Complete |
 | [chore_migration_test_head_brittleness](implemented_features/2026_05_23_chore_migration_test_head_brittleness/feature_spec.md) | Chore | Replace the two hardcoded `"0017"` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id. | — | [PR #219](https://github.com/SoundMindsAI/relyloop/pull/219) merged 2026-05-23 |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
-| [chore_precommit_node_path_resolution](implemented_features/2026_05_21_chore_precommit_node_path_resolution/idea.md) | Chore | Complete | — | Complete |
-| [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | Complete | — | Complete |
-| [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | Complete | — | Complete |
-| [chore_proposals_source_filter_server_side](implemented_features/2026_05_13_chore_proposals_source_filter_server_side/idea.md) | Chore | Complete | — | Complete |
+| [chore_precommit_node_path_resolution](implemented_features/2026_05_21_chore_precommit_node_path_resolution/idea.md) | Chore | Every UI-touching commit fails at the eslint-ui pre-commit hook unless the developer remembers to inject the nvm Node into PATH manually. The error message is clear, but the friction is constant. | — | [PR #171](https://github.com/SoundMindsAI/relyloop/pull/171) merged 2026-05-21 |
+| [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting: | — | Complete |
+| [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | `pnpm lint` emits one new warning on the proposals list page: | — | Complete |
+| [chore_proposals_source_filter_server_side](implemented_features/2026_05_13_chore_proposals_source_filter_server_side/idea.md) | Chore | The proposals list page at `/proposals` ships with a three-state source filter chip group (`all` / `study` / `manual`) shipped in `feat_proposals_ui` Story 1.2. Because the backend `GET /api/v1/propos | — | Complete |
 | [chore_reconciler_terminal_closed_no_poll](implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll/feature_spec.md) | Chore | Complete (PR #216, merged 2026-05-23, squash SHA `95d4c414`) | — | [PR #216](https://github.com/SoundMindsAI/relyloop/pull/216) merged 2026-05-23 |
-| [chore_spec_trial_created_at_drift](implemented_features/2026_05_13_chore_spec_trial_created_at_drift/idea.md) | Chore | Complete | — | Complete |
-| [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
+| [chore_spec_trial_created_at_drift](implemented_features/2026_05_13_chore_spec_trial_created_at_drift/idea.md) | Chore | `feat_study_lifecycle/feature_spec.md` §7.4 defines wire values for the trials list `?sort=` query parameter: | — | Complete |
+| [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name: | — | Complete |
 | [chore_study_default_stop_conditions](implemented_features/2026_05_23_chore_study_default_stop_conditions/feature_spec.md) | Chore | The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed  | — | [PR #215](https://github.com/SoundMindsAI/relyloop/pull/215) merged 2026-05-23 |
-| [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | Complete | — | Complete |
-| [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | Complete | — | Complete |
+| [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | `backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test: | — | Complete |
+| [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | [`backend/app/db/repo/trial.py:aggregate_trials_summary`](../../backend/app/db/repo/trial.py) currently issues two SQL statements: | — | Complete |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_foundation` `infra_optuna_eval` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
-| [bug_contract_test_stub_missing_target_filter_kwarg](implemented_features/2026_05_23_bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | Complete | — | Complete |
-| [bug_cursor_decode_value_validation](implemented_features/2026_05_17_bug_cursor_decode_value_validation/idea.md) | Bug | Complete | — | Complete |
-| [bug_dashboard_banner_dismiss_persistence_flake](implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | Complete | — | Complete |
-| [bug_dashboard_classifier_half_step_releases](implemented_features/2026_05_23_bug_dashboard_classifier_half_step_releases/idea.md) | Bug | Complete | — | Complete |
-| [bug_dashboard_depends_on_column_bloat](implemented_features/2026_05_23_bug_dashboard_depends_on_column_bloat/idea.md) | Bug | Complete | — | Complete |
-| [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
-| [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | Complete | — | Complete |
-| [bug_e2e_target_dropdown_flake](implemented_features/2026_05_20_bug_e2e_target_dropdown_flake/idea.md) | Bug | Complete | — | Complete |
-| [bug_env_file_corrupted_during_session](implemented_features/2026_05_13_bug_env_file_corrupted_during_session/idea.md) | Bug | Complete | — | Complete |
-| [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | Complete | — | Complete |
-| [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | Complete | — | Complete |
-| [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | Complete | — | Complete |
-| [bug_pr_reconciler_blocked_by_closed_fallback](implemented_features/2026_05_23_bug_pr_reconciler_blocked_by_closed_fallback/idea.md) | Bug | Complete | — | Complete |
-| [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | Complete | — | Complete |
-| [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | Complete | — | Complete |
-| [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Complete | — | Complete |
+| [bug_contract_test_stub_missing_target_filter_kwarg](implemented_features/2026_05_23_bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | `backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th | — | Complete |
+| [bug_cursor_decode_value_validation](implemented_features/2026_05_17_bug_cursor_decode_value_validation/idea.md) | Bug | `backend/app/db/repo/_sort.py:decode_cursor()` performs a `json.loads(base64.urlsafe_b64decode(raw))` round-trip and then takes `decoded[0]` + `str(decoded[1])` without validating the payload shape or | — | Complete |
+| [bug_dashboard_banner_dismiss_persistence_flake](implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Complete |
+| [bug_dashboard_classifier_half_step_releases](implemented_features/2026_05_23_bug_dashboard_classifier_half_step_releases/idea.md) | Bug | The MVP1.5 release tier was introduced 2026-05-23 via PR #200 (canonical release matrix + spec §27 + tech-stack.md). But the dashboard regen script's release classifier at… | — | Complete |
+| [bug_dashboard_depends_on_column_bloat](implemented_features/2026_05_23_bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and `mvp1_dashboard. | — | Complete |
+| [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Complete |
+| [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module- | — | Complete |
+| [bug_e2e_target_dropdown_flake](implemented_features/2026_05_20_bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Complete |
+| [bug_env_file_corrupted_during_session](implemented_features/2026_05_13_bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation session.… | — | Complete |
+| [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | Complete |
+| [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment | — | Complete |
+| [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie | — | Complete |
+| [bug_pr_reconciler_blocked_by_closed_fallback](implemented_features/2026_05_23_bug_pr_reconciler_blocked_by_closed_fallback/idea.md) | Bug | The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-209`](../../backend/app/api/webhooks/github.py#L181-L209) handles the eventual-consistency case where GitHub delivers `pull_requ | — | Complete |
+| [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | The test ([`test_query_sets_router_queries.py:202-231`](../../backend/tests/integration/test_query_sets_router_queries.py#L202-L231)) seeds 5 queries via `_seed_set(5)`… | — | Complete |
+| [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | `backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment: | — | Complete |
+| [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | Complete |
 
 ### Implementing (0)
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [chore_dashboard_pr_extraction_from_idea](../02_product/planned_features/chore_dashboard_pr_extraction_from_idea/feature_spec.md) | Chore | Extend `_extract_pr_number` to accept the idea body as a fourth argument, and have `_load_implemented` read `idea.md` and pass it through. | — | [PR #4](https://github.com/SoundMindsAI/relyloop/pull/4) merged 2026-05-15 |
 
 ### Spec (0)
 
@@ -142,7 +150,7 @@ _None._
 | 5 | P2 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | 6 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/idea.md) | Infra | Running an autonomous agent in a sibling git worktree while the operator's main checkout has the Docker Compose stack up exposes two surfaces that aren't designed for parallel work: | — | Idea — tangential observations from the autonomous `chore_reconciler_terminal_closed_no_poll` agent run (PR #216, merged 2026-05-23) |
 | 7 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 8 | P2 | [chore_dashboard_pr_extraction_from_idea](../02_product/planned_features/chore_dashboard_pr_extraction_from_idea/idea.md) | Chore | Several early MVP1 features shipped before the `/pipeline` ceremony solidified, leaving them with only an `idea.md` in `implemented_features/<date>_<slug>/`. Examples (as of 2026-05-23): | — | Idea — surfaced during the tangential-observations sweep of `bug_dashboard_depends_on_column_bloat` (PR pending) |
+| 8 | P2 | [chore_dashboard_regen_quoted_pr_false_positive](../02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/idea.md) | Chore | [`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py#L572)'s priority-3 fuzzy match has two regexes: | — | Idea — surfaced during `chore_dashboard_pr_extraction_from_idea` empirical verification (2026-05-23) |
 | 9 | P2 | [chore_e2e_seed_acme_idea_obsolete](../02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/idea.md) | Chore | [`chore_e2e_seed_acme_helper_dead/idea.md`](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) (dated 2026-05-21) proposed two paths: | — | Idea — surfaced during `chore_migration_test_head_brittleness` `/idea-preflight` pick (2026-05-23) |
 | 10 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 11 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
@@ -159,6 +167,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_dashboard_pr_extraction_from_idea["dashboard pr extraction from idea"]
+  class chore_dashboard_pr_extraction_from_idea plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
