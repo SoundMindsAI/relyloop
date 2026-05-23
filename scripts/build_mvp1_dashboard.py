@@ -1757,15 +1757,20 @@ def _md_stage_section(stage: str, features: list[Feature]) -> str:
                 + " |"
             )
     else:
+        # Non-done stages: prepend a `#` column showing the within-stage
+        # rank so the exact order (tier + dep-aware tiebreaker via
+        # _md_sort_key) is visually explicit, not just implied by row
+        # position. Matches what `/pipeline status` would report.
         rows = [
-            "| Priority | Feature | Type | One-liner | Depends on | Status |",
-            "|---|---|---|---|---|---|",
+            "| # | Priority | Feature | Type | One-liner | Depends on | Status |",
+            "|---|---|---|---|---|---|---|",
         ]
-        for f in features:
+        for idx, f in enumerate(features, start=1):
             rows.append(
                 "| "
                 + " | ".join(
                     [
+                        str(idx),
                         f.priority,
                         _md_feature_link(f),
                         PREFIX_LABELS.get(f.prefix, f.prefix),
