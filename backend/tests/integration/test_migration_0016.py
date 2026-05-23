@@ -165,7 +165,13 @@ class TestMigration0016Shape:
     """AC-1: column + FK + partial index round-trip cleanly."""
 
     def test_ac1_column_fk_index_round_trip(self, fresh_at_head: None) -> None:
-        _alembic("upgrade", "head")
+        # Pin to 0016 so the assertions about the column shape are tied to
+        # that specific migration's effects, regardless of how many later
+        # migrations exist (e.g., 0017 adds proposals.last_polled_at).
+        # `alembic downgrade 0016` is a no-op if we're already at-or-below 0016;
+        # if we're above (e.g., shared DB at head=0017), it walks back to 0016.
+        _alembic("downgrade", "0016")
+        _alembic("upgrade", "0016")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
@@ -175,7 +181,7 @@ class TestMigration0016Shape:
         finally:
             engine.dispose()
 
-        _alembic("downgrade", "-1")
+        _alembic("downgrade", "0015")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
@@ -185,13 +191,16 @@ class TestMigration0016Shape:
         finally:
             engine.dispose()
 
-        _alembic("upgrade", "head")
+        _alembic("upgrade", "0016")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
                 _assert_column_shape_present(conn)
         finally:
             engine.dispose()
+
+        # Restore the actual head so subsequent tests see expected schema.
+        _alembic("upgrade", "head")
 
 
 # --------------------------------------------------------------------------

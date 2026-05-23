@@ -30,7 +30,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
-from sqlalchemy import func, select, update
+from sqlalchemy import and_, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import ConfigRepo, Digest, Proposal
@@ -493,34 +493,88 @@ async def lookup_proposal_by_pr_url(
 async def list_pr_opened_proposals_for_reconcile(
     db: AsyncSession,
 ) -> Sequence[Proposal]:
-    """Return ``pr_opened`` proposals (open OR closed pr_state) newer than 90 days.
+    """Return ``pr_opened`` proposals newer than 90 days, excluding recently polled case-b rows.
 
-    feat_github_webhook Story 1.4 — consumed by ``reconcile_pr_state``
-    (Story 3.1). The 90-day window caps polling growth per spec FR-2:
-    older stale-pr_opened rows are presumed permanently abandoned and
-    require operator triage.
+    feat_github_webhook Story 1.4 / bug_pr_reconciler_blocked_by_closed_fallback /
+    chore_reconciler_terminal_closed_no_poll FR-3.
 
     Returns both ``pr_state='open'`` (genuinely awaiting GitHub state)
     and ``pr_state='closed'`` (the webhook's ``merged_at=null`` fallback
     transitioned the row before GitHub reported a merge timestamp;
     bug_pr_reconciler_blocked_by_closed_fallback). The reconciler
     branches on ``proposal.pr_state`` to pick the right transition
-    helper. Genuinely-closed-unmerged proposals re-polled in this
-    branch return ``merged=false, state=closed`` and become benign
-    no-ops via :func:`mark_proposal_pr_closed`'s pr_state='open'
-    guard.
+    helper.
+
+    FR-3 exclusion: ``pr_state='closed'`` rows whose ``last_polled_at`` was
+    stamped within the last 24 hours are excluded. The reconciler stamps
+    ``last_polled_at`` only in its steady-state case-(b) branch
+    (``merged=false, state=closed`` AND candidate was selected as
+    ``pr_state='closed'``); see :func:`stamp_proposal_last_polled_at` and
+    ``backend/workers/pr_reconcile.py``. Rows with ``pr_state='open'`` are
+    never excluded; rows with ``pr_state='closed'`` and ``last_polled_at IS
+    NULL`` (never observed yet) are included on every tick until the first
+    stamp.
     """
-    cutoff = datetime.now(UTC) - timedelta(days=90)
+    now = datetime.now(UTC)
+    cutoff_90d = now - timedelta(days=90)
+    cutoff_24h = now - timedelta(hours=24)
     stmt = (
         select(Proposal)
         .where(
             Proposal.status == "pr_opened",
             Proposal.pr_url.is_not(None),
-            Proposal.created_at > cutoff,
+            Proposal.created_at > cutoff_90d,
+            # FR-3: exclude case-(b) rows stamped within the last 24h.
+            # ``~and_(...)`` evaluates as "NOT all of (closed AND stamped
+            # AND stamp newer than 24h ago)" — equivalent to "include the
+            # row unless all three predicates hold". Rows with
+            # ``pr_state='open'`` pass because the first conjunct is
+            # false; rows with ``last_polled_at IS NULL`` pass because
+            # the second conjunct is false.
+            ~and_(
+                Proposal.pr_state == "closed",
+                Proposal.last_polled_at.is_not(None),
+                Proposal.last_polled_at > cutoff_24h,
+            ),
         )
         .order_by(Proposal.created_at.asc())
     )
     return list((await db.execute(stmt)).scalars().all())
+
+
+async def stamp_proposal_last_polled_at(
+    db: AsyncSession,
+    proposal_id: str,
+) -> Proposal | None:
+    """Defensively-guarded UPDATE stamping ``last_polled_at = now()``.
+
+    chore_reconciler_terminal_closed_no_poll FR-2. Single-row UPDATE
+    keyed on ``id AND status='pr_opened' AND pr_state='closed'``.
+    Returns ``None`` (benign race no-op) when the row is no longer in
+    the ``(pr_opened, closed)`` shape (e.g., a ``pull_request.reopened``
+    webhook flipped the row between candidate selection and stamp
+    time). Caller commits.
+
+    The reconciler's case-(b) branch calls this helper ONLY when the
+    candidate was selected as ``pr_state='closed'`` AND GitHub returned
+    ``merged=false, state=closed``. The ``WHERE pr_state='closed'``
+    guard makes the helper safe to call without re-loading the row.
+    """
+    stmt = (
+        update(Proposal)
+        .where(
+            Proposal.id == proposal_id,
+            Proposal.status == "pr_opened",
+            Proposal.pr_state == "closed",
+        )
+        .values(last_polled_at=datetime.now(UTC))
+        .returning(Proposal)
+    )
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+    if row is not None:
+        await db.flush()
+    return row
 
 
 async def list_pending_proposals_for_boot_scan(db: AsyncSession) -> list[str]:

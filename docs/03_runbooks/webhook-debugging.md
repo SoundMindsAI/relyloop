@@ -111,6 +111,14 @@ If `candidates: 0`, the proposal is either:
 - `pr_state IS NULL` (PR hasn't been opened yet — different worker).
 - `created_at` is older than 90 days (FR-2 cap).
 - Has no `pr_url` (operator-cancelled or never opened).
+- **Genuinely closed unmerged and recently polled** — per
+  `chore_reconciler_terminal_closed_no_poll` FR-3, rows with
+  `pr_state='closed' AND last_polled_at > now() - interval '24 hours'`
+  are excluded from the candidate set. The reconciler polls each
+  case-(b) (closed-without-merge) row at most once per 24 hours
+  instead of once per tick. To force a re-poll, set `last_polled_at`
+  back to NULL or to an older timestamp via psql:
+  `UPDATE proposals SET last_polled_at = NULL WHERE id = '<pid>';`
 
 ## 6. Polling reconciler not running
 

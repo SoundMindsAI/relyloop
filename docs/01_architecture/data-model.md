@@ -269,6 +269,7 @@ CREATE TABLE proposals (
     pr_state        TEXT CHECK (pr_state IS NULL OR pr_state IN ('open', 'closed', 'merged')),  -- mirrors GitHub
     pr_merged_at    TIMESTAMPTZ,
     pr_open_error   TEXT,                              -- populated when feat_github_pr_worker fails to open the PR; cleared on successful retry
+    last_polled_at  TIMESTAMPTZ,                       -- reconciler stamp recording the last (merged=false, state=closed) observation against a (pr_opened, closed) row; reconciler-only write surface (chore_reconciler_terminal_closed_no_poll FR-2/FR-3)
     rejected_reason TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );

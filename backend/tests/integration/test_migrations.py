@@ -126,8 +126,10 @@ class TestBaselineMigration:
                 # 0014 adds clusters.target_filter (feat_cluster_target_filter);
                 # 0015 adds trials.per_query_metrics (feat_pr_metric_confidence);
                 # 0016 adds config_repos.last_merged_proposal_id
-                # (feat_config_repo_baseline_tracking).
-                assert row[0] == "0016"
+                # (feat_config_repo_baseline_tracking);
+                # 0017 adds proposals.last_polled_at
+                # (chore_reconciler_terminal_closed_no_poll).
+                assert row[0] == "0017"
         finally:
             engine.dispose()
 
@@ -142,17 +144,17 @@ class TestBaselineMigration:
         """Downgrade by one revision and re-upgrade returns cleanly to head."""
         _alembic("upgrade", "head")
         _alembic("downgrade", "-1")
-        # After downgrade -1 from head (0016) we land at 0015. Re-upgrade
-        # re-applies 0016 cleanly per CLAUDE.md Absolute Rule #5.
+        # After downgrade -1 from head (0017) we land at 0016. Re-upgrade
+        # re-applies 0017 cleanly per CLAUDE.md Absolute Rule #5.
         _alembic("upgrade", "head")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
                 row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 assert row is not None
-                # Head: 0016 (feat_config_repo_baseline_tracking adds
-                # config_repos.last_merged_proposal_id).
-                assert row[0] == "0016"
+                # Head: 0017 (chore_reconciler_terminal_closed_no_poll adds
+                # proposals.last_polled_at).
+                assert row[0] == "0017"
         finally:
             engine.dispose()
 
