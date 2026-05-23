@@ -173,6 +173,34 @@ async def reconcile_pr_state(ctx: dict[str, Any]) -> dict[str, int]:
                     updated = await repo.mark_proposal_pr_merged(
                         db, proposal.id, pr_merged_at=merged_at
                     )
+                    if updated is not None:
+                        # feat_config_repo_baseline_tracking FR-3a — maintain
+                        # config_repos.last_merged_proposal_id pointer when
+                        # the reconciler is the first observer of the merge
+                        # (e.g., the webhook was never delivered). Same
+                        # transaction as the proposal UPDATE.
+                        #
+                        # Known limitation: this branch does NOT recover
+                        # proposals that the webhook's merged_at=null fallback
+                        # already moved to (pr_opened, closed) —
+                        # mark_proposal_pr_merged requires pr_state='open'
+                        # and returns None against that state. See
+                        # bug_pr_reconciler_blocked_by_closed_fallback/idea.md
+                        # under docs/02_product/planned_features/.
+                        cluster_row = await repo.get_cluster(db, proposal.cluster_id)
+                        if cluster_row is not None and cluster_row.config_repo_id is not None:
+                            await repo.update_config_repo_last_merged_pointer(
+                                db,
+                                config_repo_id=cluster_row.config_repo_id,
+                                proposal_id=proposal.id,
+                                pr_merged_at=merged_at,
+                            )
+                        else:
+                            logger.debug(
+                                "config_repo_last_merged_pointer_skipped_no_repo",
+                                proposal_id=proposal.id,
+                                cluster_id=proposal.cluster_id,
+                            )
                     await db.commit()
                 if updated is not None:
                     summary["reconciled"] += 1
