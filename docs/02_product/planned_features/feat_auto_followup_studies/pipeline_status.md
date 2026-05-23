@@ -35,17 +35,20 @@
 - Status: In progress (6 of 10 stories complete + Epic 1 phase gate; Epic 2 complete, awaiting phase gate)
 - Branch: `feature/auto-followup-studies`
 - Latest commit: TBD (Story 2.3 — cancel cascade endpoint + children endpoint)
-- Stories complete:
-  - **Story 1.1** — Chain-gate domain + StudyConfigSpec field + error-handler prefix parser. 53 new tests. Commit `b32645c1`.
-  - **Story 1.2** — DISCOVERY: `narrow_around_winner` was already extracted as `narrow_bounds_around_winner` in PR #175. No code changes; plan updated. Commit `33e9ccc7`.
-  - **Story 1.3** — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (cycle-3 C3-1 redesign). 7 new cascade tests. Commit `8bd0a685`.
-  - **Story 2.1** — `enqueue_followup_study` Arq job (FR-3, FR-5, FR-6, FR-7 worker side, FR-9 events 1-7). 7 integration tests (CI-gated). Commit `9718812a`.
-  - **Story 2.2** — Digest worker trigger with deterministic `_job_id`. 5 source-inspection tests. Commit `70f61d8c`.
-  - **Story 2.3** — Cancel cascade endpoint extension + new children endpoint + `_parse_cascade` dependency. 18 router-level tests. Commit TBD.
-- **Epic 1 phase gate:** ✓ (deferred GPT-5.5 review to Epic 2 close)
-- **Epic 1+2 phase gate:** ✓ — `make lint` + `make typecheck` (409 source files clean) + `make test-unit` (1220 pass). GPT-5.5 cross-model review of the cumulative backend diff (~2832 lines across 18 files): 8 findings (1 High, 7 Medium). 2 substantive code fixes applied: budget gate's unknown-model fallback (F5) and `cancel_study_with_chain_cascade(cascade=False)` delegation (F3). 2 doc fixes (F1 + F4). 1 future-work idea file captured: `chore_auto_followup_completed_parent_stop_chain_race/idea.md` (F2 — cascade race with pending followup-enqueue Arq job on completed parents). Other findings (F6/F7/F8) are CI-gated test extensions documented in the execution tracker.
-- **Test totals so far:** 1220 unit tests pass (53+7+5+18 new + 1137 pre-existing). Integration tests are CI-gated; not run on host.
-- Next: **Epic 1+2 phase gate (GPT-5.5 cross-model review)** then Story 3.1 (Glossary entries + Auto-followup chain panel — frontend; needs Node 20+).
+- Status: All 10 stories complete + all 3 phase gates passed; awaiting PR push + CI + Gemini + final review + finalize.
+- Stories complete (10/10):
+  - **Story 1.1** — Chain-gate domain + StudyConfigSpec field + error-handler prefix parser. Commit `b32645c1`.
+  - **Story 1.2** — NO-OP discovery: `narrow_around_winner` was already extracted. Commit `33e9ccc7`.
+  - **Story 1.3** — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (cycle-3 C3-1 redesign). Commit `8bd0a685`.
+  - **Story 2.1** — `enqueue_followup_study` Arq job (FR-3, FR-5, FR-6, FR-7 worker side, FR-9 events 1-7). Commit `9718812a`.
+  - **Story 2.2** — Digest worker trigger with deterministic `_job_id`. Commit `70f61d8c`.
+  - **Story 2.3** — Cancel cascade endpoint extension + new children endpoint + `_parse_cascade` dependency. Commit `daaa9e35`.
+  - **Story 3.1 + 3.2 + 3.3** — Chain panel + wizard depth selector + cancel-modal cascade radio + Node 22 pin. Commit `d640b593` (interlocked at same files; landed together).
+  - **Story 4.1** — Runbook at `docs/03_runbooks/auto-followup-debugging.md` + `state.md` entry. Commit TBD (this turn).
+- **Epic 1 phase gate:** ✓ (cumulative review deferred to Epic 2)
+- **Epic 1+2 phase gate:** ✓ — GPT-5.5 cycle 1: 8 findings (1 High, 7 Medium). 2 substantive fixes (F3 + F5), 2 doc fixes (F1 + F4), 1 future-work idea captured (`chore_auto_followup_completed_parent_stop_chain_race`).
+- **Epic 3 phase gate:** ✓ — `pnpm typecheck` + `pnpm lint` (0 errors, 105 pre-existing warnings) + `pnpm test` (744 pass, +13 new) + `pnpm build` all green on Node 22.
+- **Test totals:** backend `make test-unit` 1220 pass (+23 new); UI vitest 744 pass (+13 new); 8 integration tests CI-gated.
 - See [`implementation_plan.md` §9 Execution tracker](implementation_plan.md) for the full per-story checkbox list
 
 ## Notes
