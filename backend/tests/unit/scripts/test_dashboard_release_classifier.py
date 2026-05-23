@@ -21,6 +21,7 @@ from scripts.build_mvp1_dashboard import (  # noqa: E402
     DEFAULT_RELEASE,
     Feature,
     _dashboard_paths,
+    _load_planned,
     _release_filename_safe,
     _target_release,
 )
@@ -159,6 +160,78 @@ class TestReleaseFilenameSafe:
                 "release tags (e.g. 'mvp1.5') and underscore-form filenames "
                 "(e.g. 'mvp1_5_dashboard.html') in sync."
             )
+
+
+class TestLoadPlannedReleaseScoping:
+    """Lock the caller contract at ``_load_planned`` (not just the helper).
+
+    The classifier helper ``_target_release`` is fed ONLY the parsed
+    ``status_line``, not the full idea body. If a future edit reverts
+    that decision (concatenating ``status_line + " " + idea`` as the
+    pre-fix code did), a feature whose body quotes release-tag phrases
+    as documentation examples would get misclassified. These tests
+    exercise the actual ``_load_planned`` path on disk so the regression
+    surface includes the caller, not just the helper.
+    """
+
+    def test_body_prose_does_not_drive_release(self, tmp_path: Path) -> None:
+        """Idea body cites ``anchor feature for MVP1.5`` as documentation,
+        but the **Status:** line carries no release marker. Result must
+        be ``DEFAULT_RELEASE``, NOT ``mvp1.5``.
+
+        This is the canonical regression case from PR #211 — the bug
+        folder's own idea.md quoted ``anchor feature for MVP1.5`` as an
+        example of the regex pattern it documents; without scoping the
+        classifier to the status line only, the bug folder got self-
+        classified as MVP1.5.
+        """
+        folder = tmp_path / "bug_some_doc_example"
+        folder.mkdir()
+        (folder / "idea.md").write_text(
+            "# Some doc example\n"
+            "\n"
+            "**Date:** 2026-05-23\n"
+            "**Status:** Idea — surfaced during a code review\n"
+            "**Priority:** P2\n"
+            "**Depends on:** None\n"
+            "\n"
+            "## Problem\n"
+            "\n"
+            "The classifier needs to match `anchor feature for MVP1.5` "
+            "and `Held for MVP1.5` and `Held for MVP2.5`. "
+            "These are documentation examples, NOT this feature's release scope.\n"
+        )
+        feature = _load_planned(folder)
+        assert feature is not None
+        assert feature.release == DEFAULT_RELEASE, (
+            f"Body prose containing `anchor feature for MVP1.5` must NOT drive release "
+            f"classification — got {feature.release!r}. The classifier is supposed to "
+            f"read only the parsed status_line, not the full idea body. If this test "
+            f"fails after a regression that reverts _load_planned line 649 back to "
+            f"`status_line + ' ' + (idea or '')`, restore the status_line-only scope."
+        )
+
+    def test_status_line_release_marker_still_classified(self, tmp_path: Path) -> None:
+        """The status-line-only scoping must not break the legitimate path
+        where the **Status:** line itself carries the release marker.
+        """
+        folder = tmp_path / "feat_some_anchor"
+        folder.mkdir()
+        (folder / "idea.md").write_text(
+            "# Some anchor feature\n"
+            "\n"
+            "**Date:** 2026-05-23\n"
+            '**Status:** Idea — anchor feature for MVP1.5 / v0.1.5 "Real Signals"\n'
+            "**Priority:** P1\n"
+            "**Depends on:** None\n"
+            "\n"
+            "## Problem\n"
+            "\n"
+            "Body content unrelated to release classification.\n"
+        )
+        feature = _load_planned(folder)
+        assert feature is not None
+        assert feature.release == "mvp1.5"
 
 
 class TestFeatureDisplayName:
