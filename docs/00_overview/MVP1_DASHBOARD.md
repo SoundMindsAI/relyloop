@@ -15,13 +15,13 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **66 / 66** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 12 important to file, not blocking |
+| → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 2 |
-| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 3 |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -122,7 +122,7 @@ _None._
 
 _None._
 
-### Idea (14)
+### Idea (15)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
@@ -139,6 +139,7 @@ _None._
 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | P2 | [bug_contract_test_stub_missing_target_filter_kwarg](../02_product/planned_features/bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | `backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th | — | Idea — bug discovered during `feat_orchestrator_zero_streak_abort` phase gate |
 | P2 | [bug_dashboard_banner_dismiss_persistence_flake](../02_product/planned_features/bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR #193) smoke CI |
+| P2 | [bug_dashboard_depends_on_column_bloat](../02_product/planned_features/bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each planned-feature row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and  | — | Idea — surfaced by Gemini Code Assist review on PR #200 (2026-05-22). Pre-existing bug; this PR only made one more entry visible. |
 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
 
 ## Dependency graph

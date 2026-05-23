@@ -2285,7 +2285,7 @@ In each case, the org's existing Fusion dev cluster is usually a viable substitu
 
 ## 27. Phased delivery
 
-Delivery is incremental: six releases (MVP1 → MVP1.5 → MVP4 → GA v1), each meaningful as a discrete capability bundle. Each release ships a coherent step-up in adopter value and audience reach, never a partial build. Total wall-clock estimate: **~19 weeks single-engineer**, or roughly **12–14 weeks with two engineers** working in parallel after MVP1.
+Delivery is incremental: six releases (MVP1 → MVP1.5 → MVP2 → MVP3 → MVP4 → GA v1), each meaningful as a discrete capability bundle. Each release ships a coherent step-up in adopter value and audience reach, never a partial build. Total wall-clock estimate: **~19 weeks single-engineer**, or roughly **12–14 weeks with two engineers** working in parallel after MVP1.
 
 | Release | Theme | Timeline | Audience |
 |---|---|---|---|
