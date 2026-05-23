@@ -32,15 +32,17 @@
 - Known UX limitation (deliberate): Cancel-from-completed-root requires operator to navigate to the in-flight descendant. Per D-13 direct-children scoping. Documented in `docs/03_runbooks/auto-followup-debugging.md` (Story 4.1).
 
 ## Implementation
-- Status: In progress (3 of 10 stories complete + Epic 1 phase gate)
+- Status: In progress (4 of 10 stories complete + Epic 1 phase gate; Epic 2 partial)
 - Branch: `feature/auto-followup-studies`
-- Latest commit: `8bd0a685` (Story 1.3 — cascade service + list_children_of_study repo)
+- Latest commit: `9718812a` (Story 2.1 — `enqueue_followup_study` Arq job)
 - Stories complete:
   - **Story 1.1** — 53 tests passing, 0 regressions in full `make test-unit` of 1191 tests (commit `b32645c1`)
-  - **Story 1.2** — DISCOVERY: `narrow_around_winner` was already extracted as `narrow_bounds_around_winner` in PR #175 (`feat_agent_propose_search_space`). No code changes; plan updated to use the actual function name + composition pattern (`build_starter_search_space` first, then narrow). 17 existing `TestNarrowBoundsAroundWinner` tests provide coverage. Commit `33e9ccc7`.
-  - **Story 1.3** — `list_children_of_study` repo function + `cancel_study_with_chain_cascade` service implementing the cycle-3 C3-1 redesign (cascade tolerates terminal parents, recurses through completed intermediates). 7 new cascade tests; full `make test-unit` 1197 pass. Commit `8bd0a685`.
-- **Epic 1 phase gate:** ✓ lint, ✓ typecheck (405 files clean), ✓ unit tests (1197 pass). GPT-5.5 phase-gate cross-model review deferred to Epic 2 (when the worker + endpoints land and the cross-story diff is reviewable as a coherent backend surface; Epic 1 is pure domain/repo/service with no API).
-- Next: Story 2.1 (`enqueue_followup_study` Arq job — FR-3, FR-5, FR-6, FR-9 events 1-7)
+  - **Story 1.2** — DISCOVERY: `narrow_around_winner` was already extracted as `narrow_bounds_around_winner` in PR #175. No code changes; plan updated to use the actual function name + composition pattern. Commit `33e9ccc7`.
+  - **Story 1.3** — `list_children_of_study` repo + `cancel_study_with_chain_cascade` service (cycle-3 C3-1 redesign). 7 new cascade tests. Commit `8bd0a685`.
+  - **Story 2.1** — `enqueue_followup_study` Arq job (FR-3, FR-5, FR-6, FR-7 worker side, FR-9 events 1-7). 7 integration tests written (skip on host; CI runs against service containers). `test_workers.py` WorkerSettings.functions set extended. Commit `9718812a`.
+- **Epic 1 phase gate:** ✓ lint, ✓ typecheck (407 files clean), ✓ unit tests (1197 pass). GPT-5.5 cross-model review deferred to Epic 2 close.
+- Next: Story 2.2 (digest worker trigger — adds the `enqueue_followup_study` enqueue block at the end of `generate_digest` with deterministic `_job_id` per layer-1 idempotency)
+- **Local integration-test gap (recorded for CI catch):** integration tests at `backend/tests/integration/test_auto_followup.py` import `backend.workers.all` which loads Settings; without `DATABASE_URL_FILE` + `POSTGRES_PASSWORD_FILE` env on the host, collection fails before the `@skipif(not postgres_reachable())` decorator can fire. Container execution would normally cover this, but the running container has source baked at image-build time and doesn't include the new files. CI gates this on the PR.
 - See [`implementation_plan.md` §9 Execution tracker](implementation_plan.md) for the full per-story checkbox list
 
 ## Notes
