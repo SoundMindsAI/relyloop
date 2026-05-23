@@ -1,7 +1,7 @@
 'use client';
 import { Suspense } from 'react';
 
-import { InfoTooltip } from '@/components/common/info-tooltip';
+import { CurrentlyLiveFilterChip } from '@/components/proposals/currently-live-filter-chip';
 import { ProposalsTable } from '@/components/proposals/proposals-table';
 import { proposalsColumns } from '@/components/proposals/proposals-table.column-config';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,22 +56,10 @@ function ProposalsPageInner() {
     <main className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Proposals</h1>
-        <span className="inline-flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => urlState.setFilter('is_last_merged', isLastMergedActive ? null : 'true')}
-            aria-pressed={isLastMergedActive}
-            className={
-              isLastMergedActive
-                ? 'inline-flex items-center gap-1 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800'
-                : 'inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700 hover:bg-gray-200'
-            }
-            data-testid="proposals-currently-live-filter-chip"
-          >
-            Currently live only
-          </button>
-          <InfoTooltip glossaryKey="proposal.currently_live_filter" />
-        </span>
+        <CurrentlyLiveFilterChip
+          isActive={isLastMergedActive}
+          onToggle={() => urlState.setFilter('is_last_merged', isLastMergedActive ? null : 'true')}
+        />
       </div>
       <Card>
         <CardContent className="pt-6">
