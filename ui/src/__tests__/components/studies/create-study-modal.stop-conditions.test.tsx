@@ -256,31 +256,41 @@ describe('CreateStudyModal — stop-condition presets (FR-2..FR-4, FR-9)', () =>
 
   it('AC-6: modal-open reset re-selects Standard and re-fills max_trials=200', async () => {
     mockBackend();
-    const { rerender } = wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { rerender } = render(
+      <QueryClientProvider client={qc}>
+        <TooltipProvider delayDuration={0}>
+          <CreateStudyModal open={true} onOpenChange={() => {}} />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
     await walkToStep5();
 
     fireEvent.click(getPresetButton(/Deep \(1000\)/));
     await waitFor(() => expect(getMaxTrialsInput().value).toBe('1000'));
+    expect(getTimeBudgetInput().value).toBe('480');
 
-    // Close + reopen
+    // Close (Radix Dialog keeps component mounted) and reopen — this is the
+    // exact toggle pattern that previously left max_trials=1000 +
+    // time_budget_min=480 in the form, which made the manual-edit watcher
+    // flip activePreset back to Custom on the SECOND open. Caught by
+    // GPT-5.5 implementation-diff review.
     rerender(
-      <QueryClientProvider
-        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
-      >
+      <QueryClientProvider client={qc}>
         <TooltipProvider delayDuration={0}>
           <CreateStudyModal open={false} onOpenChange={() => {}} />
         </TooltipProvider>
       </QueryClientProvider>,
     );
+    rerender(
+      <QueryClientProvider client={qc}>
+        <TooltipProvider delayDuration={0}>
+          <CreateStudyModal open={true} onOpenChange={() => {}} />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
 
-    // Reopen by toggling open back on the same modal — use a fresh render to avoid
-    // stale provider trees; the form-reset is gated on `open` transition false → true.
-    const { unmount } = wrap(<CreateStudyModal open={false} onOpenChange={() => {}} />);
-    unmount();
-    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
-    await walkToStep5();
-
-    expect(getMaxTrialsInput().value).toBe('200');
+    await waitFor(() => expect(getMaxTrialsInput().value).toBe('200'));
     expect(getTimeBudgetInput().value).toBe('');
     expect(getPresetButton(/Standard \(200\)/).getAttribute('aria-pressed')).toBe('true');
   });

@@ -237,10 +237,18 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   useEffect(() => {
     if (open) {
       setManualMode(false);
-      // chore_study_default_stop_conditions FR-4: reset preset to Standard.
+      // chore_study_default_stop_conditions FR-4: reset preset to Standard
+      // AND re-write the stop-condition fields to Standard's values. Radix
+      // <Dialog> keeps this component mounted across open/close toggles, so
+      // without an explicit form-side reset the previous Deep selection's
+      // max_trials=1000 + time_budget_min=480 would persist, triggering the
+      // manual-edit watcher to flip activePreset → 'custom' immediately.
+      // GPT-5.5 implementation review caught this.
       setActivePreset('standard');
+      form.setValue('max_trials', STANDARD_WRITE.max_trials, { shouldDirty: false });
+      form.setValue('time_budget_min', STANDARD_WRITE.time_budget_min, { shouldDirty: false });
     }
-  }, [open]);
+  }, [open, form]);
 
   // FR-5 auto-engage: when the targets query fails with TARGETS_FORBIDDEN,
   // silently flip into manual mode. `open` is in BOTH the guard AND the
