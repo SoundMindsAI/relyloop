@@ -190,7 +190,7 @@ N/A — no UI changes.
 
 ### AC-1: `**Status:** **Shipped** as PR #N` pattern extracts correctly
 
-- **Given** an idea body whose first non-blank line after the title is `**Status:** **Shipped** as PR [#124](https://github.com/SoundMindsAI/relyloop/pull/124)` (precedent: `feat_contextual_help_mvp2`; the literal `(squash-merged 2026-05-15…)` trailer is omitted from this AC body because it trips the dashboard regen's pre-existing priority-3 fuzzy `PR #N…merged` regex — see tangential observation `chore_dashboard_regen_quoted_pr_false_positive` for the underlying issue. The strict Pattern A regex anchors at the `**Status:**` line, so the trailing prose doesn't affect AC-1's pass/fail.)
+- **Given** an idea body whose first non-blank line after the title is `**Status:** **Shipped** as PR [#124](https://github.com/SoundMindsAI/relyloop/pull/124)` (precedent: `feat_contextual_help_mvp2`; the literal squash-merged-date trailer is omitted from this AC body because it trips the dashboard regen's pre-existing priority-3 fuzzy `PR #N…merge`-context regex — see tangential observation `chore_dashboard_regen_quoted_pr_false_positive` for the underlying issue. The strict Pattern A regex anchors at the `**Status:**` line, so the trailing prose doesn't affect AC-1's pass/fail.)
 - **When** `_extract_pr_number(pipe="", plan="", spec="", idea=<that body>)` is called
 - **Then** it returns `124`.
 
