@@ -70,4 +70,4 @@ None — code-only change.
 
 ## Tangential observations
 
-None.
+- [`chore_reconciler_terminal_closed_no_poll`](../chore_reconciler_terminal_closed_no_poll/idea.md) — Side effect of the widened candidate query: genuinely-closed-unmerged proposals (case b — operator closed the PR without merging) now also enter the candidate set and get re-polled every reconciler tick for up to 90 days. The polling cost is bounded by the existing 90-day window and the existing `mark_proposal_pr_closed` `pr_state='open'` guard handles the no-op correctly, so the bug fix itself is correct and complete on its own. Captured as a Tier-A polish (~50 LOC, add `last_polled_at` column + exclude recently-polled closed rows) so the API-budget concern doesn't accumulate.
