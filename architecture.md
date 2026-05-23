@@ -198,6 +198,10 @@ docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
                  04_security / 05_quality / 08_guides
 ```
 
+### Dashboard regen
+
+`scripts/build_mvp1_dashboard.py` regenerates `docs/00_overview/MVP1_DASHBOARD.md` + `mvp1_dashboard.html` (and the cross-release `DASHBOARD.md` + `dashboard.html`) from the planned-features and implemented-features folder tree. Triggered automatically by the `mvp1-dashboard-regen` pre-commit hook when a feature folder changes. **`**PR:**` frontmatter convention** (chore_dashboard_pr_extraction_from_idea, 2026-05-23): legacy idea-only implemented features that don't fit the natural `**Status:** **Shipped** as PR #N` / `**Status:** **Implemented — PR #N**` / line-start `**shipped YYYY-MM-DD as PR #N**` patterns may opt into PR# extraction by adding a `**PR:** #N` line to their idea.md metadata block (alongside `**Date:**`, `**Status:**`, etc.). Search is bounded to the metadata block (contiguous metadata-key lines stopping at the first `## ` heading or any non-blank non-metadata line, capped at 30 lines) — body-section references are intentionally ignored.
+
 ## Where this file fits
 
 `architecture.md` is **the navigation pointer**, not the source of truth.
