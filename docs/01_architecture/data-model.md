@@ -100,9 +100,20 @@ CREATE TABLE config_repos (
     auth_ref                    TEXT NOT NULL,                 -- mounted secret key for the GitHub PAT
     webhook_secret_ref          TEXT,                          -- mounted secret key for webhook signature verification (nullable; null means polling-only)
     webhook_registration_error  TEXT,                          -- populated by feat_github_webhook if GitHub auto-registration fails; cleared on successful re-registration
+    last_merged_proposal_id     VARCHAR(36) REFERENCES proposals(id) ON DELETE SET NULL,  -- feat_config_repo_baseline_tracking 0016: pointer to the most recently merged proposal for this repo; maintained by the webhook handler + PR reconciler with strict-monotonic-timestamp idempotency
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Partial B-tree index supporting the reverse-lookup path used by
+-- ConfigRepoDetail.last_merged_proposal (FR-4) + ProposalSummary.is_currently_live
+-- (FR-5) + ?is_last_merged filter (FR-6). Partial so only repos with a
+-- tracked pointer pay index cost.
+CREATE INDEX config_repos_last_merged_proposal_id_idx
+  ON config_repos (last_merged_proposal_id)
+  WHERE last_merged_proposal_id IS NOT NULL;
 ```
+
+`last_merged_proposal_id` is single-source-of-truth for "which proposal is currently live for this repo?" — never compute by scanning `proposals` ordered by `pr_merged_at`. The pointer is maintained at exactly two write sites: [`backend/app/api/webhooks/github.py`](../../backend/app/api/webhooks/github.py) (merge-event delivery, FR-3) and [`backend/workers/pr_reconcile.py`](../../backend/workers/pr_reconcile.py) (polling reconciler when webhook never fired, FR-3a). Both call [`backend/app/db/repo/config_repo.py::update_config_repo_last_merged_pointer`](../../backend/app/db/repo/config_repo.py) which row-locks the `config_repos` row via `SELECT … FOR UPDATE` and refuses to regress the timestamp.
 
 GitLab and Bitbucket join the `provider` allowlist at MVP3.
 
