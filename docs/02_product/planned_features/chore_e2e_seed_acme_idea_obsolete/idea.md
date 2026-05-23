@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-23
 **Status:** Idea — surfaced during `chore_migration_test_head_brittleness` `/idea-preflight` pick (2026-05-23)
-**Priority:** P3 — doc-only cleanup; no behavioral impact. 5–10 LOC + a coverage-audit refresh.
+**Priority:** P2 — doc-only cleanup; no behavioral impact. 5–10 LOC + a coverage-audit refresh. (Note: dashboard regen at [`scripts/build_mvp1_dashboard.py:240-245`](../../../../scripts/build_mvp1_dashboard.py#L240) only recognizes P0/P1/P2/Backlog and coerces anything else to P2; an earlier draft used "P3" which the dashboard rendered as P2 anyway. Setting to P2 explicitly to keep the idea-file and dashboard tier columns aligned — surfaced by Gemini Code Assist on PR #220.)
 **Origin:** While running `/idea-preflight` against [`chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) to pick a non-overlapping feature for `feat_auto_followup_studies`, I discovered the idea's central premise is contradicted by current code: `seedAcmeProductsChain` now has a real Playwright caller at [`ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts:28`](../../../../ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts#L28) (`import { seedAcmeProductsChain } from '../helpers/seed';` and `await seedAcmeProductsChain();` at line 34). The spec uses the chain's `studyId` and `studyName` to render guide screenshots against a realistic "Acme Products" seeded study.
 **Depends on:** None.
 
