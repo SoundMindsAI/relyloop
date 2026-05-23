@@ -16,7 +16,7 @@ level — so the ``DESC NULLS LAST`` ordering survives ``--autogenerate``.
 
 The ``per_query_metrics`` JSONB column (nullable; added by migration
 ``0015_trials_per_query_metrics`` for feat_pr_metric_confidence) carries the
-per-query pytrec_eval scores from ``scoring.py::score()``'s ``per_query``
+per-query ir_measures scores from ``scoring.py::score()``'s ``per_query``
 dict. Shape: ``{query_id: {metric_token: float}}`` where ``metric_token`` is
 the user-facing token emitted by :func:`backend.app.eval.scoring.score` —
 i.e. ``@<k>``-suffixed for cutoff-aware metrics (``ndcg@10``, ``map@10``,
@@ -80,7 +80,7 @@ class Trial(Base):
     objective enumerated, scored by ``backend/eval/scoring.py`` (lands in
     ``infra_optuna_eval``)."""
     per_query_metrics: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    """Per-query pytrec_eval scores from ``scoring.py::score()``'s
+    """Per-query ir_measures scores from ``scoring.py::score()``'s
     ``per_query`` dict, persisted on every successful trial (NULL on
     failure/pruned and on trials predating migration 0015). Shape:
     ``{query_id: {metric_name: float}}`` using user-facing metric names

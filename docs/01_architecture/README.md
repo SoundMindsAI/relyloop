@@ -18,7 +18,7 @@ System design docs, interface descriptions, and topology overviews. Each topical
 
 ## Forthcoming (authored alongside their corresponding feature spec)
 
-- `optimization.md` — Optuna RDBStorage + TPE sampler + pytrec_eval (with `infra_optuna_eval`)
+- `optimization.md` — Optuna RDBStorage + TPE sampler + ir_measures (with `infra_optuna_eval`)
 - `llm-orchestration.md` — OpenAI function-calling pattern, prompts, agent loop (with `feat_llm_judgments` / `feat_chat_agent`)
 - `apply-path.md` — Git PR workflow, `*.params.json` editing, webhook state tracking (with `feat_github_pr_worker`)
 - `agent-tools.md` — Tool registry, dispatch, request/response shapes (with `feat_chat_agent`)

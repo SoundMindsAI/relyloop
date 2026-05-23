@@ -50,7 +50,7 @@ async def test_load_qrels_empty_result_returns_empty_dict() -> None:
 
     The MVP1 stub raised :class:`JudgmentsTableMissing`; the real loader
     returns an empty mapping. ``run_trial`` handles the empty case by
-    scoring across 0 queries (pytrec_eval no-op) instead of raising.
+    scoring across 0 queries (ir_measures no-op) instead of raising.
     """
     db = MagicMock()
     db.execute = AsyncMock()

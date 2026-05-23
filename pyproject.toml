@@ -44,7 +44,13 @@ dependencies = [
     # every digest's parameter_importance is silently {}. See
     # docs/02_product/planned_features/bug_digest_param_importance_seam/bug_fix.md.
     "scikit-learn>=1.4",
-    "pytrec-eval>=0.5",
+    # IR-evaluation engine. Wraps multiple backends (pytrec_eval, gdeval,
+    # judged_as_relevant) behind a typed metric-object DSL (nDCG@10, AP@5,
+    # RR, P@k, R@k). Migrated from the abandoned pytrec_eval direct
+    # dependency by infra_ir_measures_migration; the parity gate at
+    # backend/tests/unit/eval/test_scoring_parity.py keeps both backends'
+    # values byte-identical to 6 decimal places.
+    "ir-measures>=0.4.3",
     # Headless plotting for the open_pr worker's parameter-importance chart.
     # PNG only — Agg backend, no GUI. Bundled with the API+worker image.
     "matplotlib>=3.9",
@@ -59,6 +65,19 @@ dev = [
     "pytest-cov>=6.0",
     "pytest-mock>=3.14",
     "pytest-recording>=0.13",
+    # NB: the parity test at backend/tests/unit/eval/test_scoring_parity.py
+    # does `import pytrec_eval` and compares its output side-by-side with
+    # ir_measures. That `pytrec_eval` module is provided by
+    # `pytrec-eval-terrier` (the actively-maintained PyTerrier fork), which
+    # ir_measures pulls transitively into the runtime image already. We do
+    # NOT add a separate `pytrec-eval>=0.5` dev pin here — the abandoned
+    # `pytrec-eval` distribution and `pytrec-eval-terrier` both publish to
+    # the same `pytrec_eval` module name, so an explicit dev pin on the
+    # abandoned distribution would conflict at install time (race depends
+    # on install order; CI hit the abandoned wheel and ir_measures lost its
+    # cut-aware-metric backend). The transitive pytrec-eval-terrier is
+    # sufficient for the parity test. See feature_spec.md FR-4 +
+    # implementation_plan.md Story 1.1 for context.
     "testcontainers[postgresql]>=4.9",
     "pre-commit>=4.6.0",
     "types-PyYAML>=6.0",
@@ -151,11 +170,12 @@ disallow_untyped_decorators = false
 warn_return_any = false
 
 # Third-party libraries without py.typed marker / stubs.
-# pytrec_eval ships no type info; treat its imports as untyped (we wrap it in
-# backend/app/eval/scoring.py which is fully typed).
-[[tool.mypy.overrides]]
-module = "pytrec_eval"
-ignore_missing_imports = true
+#
+# (infra_ir_measures_migration removed the pytrec_eval module override here:
+# the runtime dependency was swapped to ir-measures, which transitively pulls
+# pytrec-eval-terrier — the actively-maintained PyTerrier fork that ships
+# `py.typed`. ir_measures itself ships `py.typed` too. Both modules are now
+# strict-typeable; no override needed.)
 
 # ---------------------------------------------------------------------------
 # Pytest

@@ -369,7 +369,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP1 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-05-22 (latest mtime of any
+    Reflects feature-folder state as of 2026-05-23 (latest mtime of any
     <code>docs/02_product/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Infra, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/infra_ir_measures_migration/feature_spec.md">Ir Measures Migration</a></div>
+    <div class="one-liner">`scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -&gt; ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the rest of the codebase consumes are unchan</div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/infra_ir_measures_migration/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -395,11 +395,11 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">65 / 65</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">65 / 66</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">6</div>
+      <div class="value">7</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      8 idea-only feat/infra folders (not yet scoped into MVP1)
+      7 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">14</span></h3>
+  <h3>Idea <span class="count">13</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_auto_followup_studies">Auto Followup Studies</a></div>
@@ -538,19 +538,6 @@ footer {
 
   </div>
   <div class="one-liner">A relevance engineer&#x27;s normal workflow after the first study completes:</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_ir_measures_migration">Ir Measures Migration</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`pytrec_eval` is unmaintained — the canonical repo&#x27;s last commit is 2020-09-07 and there have been zero GitHub releases. The package still works (it&#x27;s a thin C wrapper over the stable `trec_eval` bina</div>
 
 
 </div>
@@ -654,7 +641,19 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_ir_measures_migration/feature_spec.md">Ir Measures Migration</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/197">PR #197</a>
+  </div>
+  <div class="one-liner">`scoring.py` imports `ir_measures` rather than `pytrec_eval`; the user-facing `score(qrels, run, metrics) -&gt; ScoreResult` signature is unchanged; the wire forms (`ndcg@10`, `map@5`, `mrr`, `map`) the </div>
+
+
+</div>
 
 </div>
 
@@ -1063,7 +1062,7 @@ footer {
 
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/23">PR #23</a><span>merged 2026-05-10</span>
   </div>
-  <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; pytrec_eval scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
+  <div class="one-liner">Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; ir_measures scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR</div>
 
 
 </div>
@@ -1679,6 +1678,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  infra_ir_measures_migration[&quot;ir measures migration&quot;]
+  class infra_ir_measures_migration plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1842,6 +1843,7 @@ footer {
   infra_e2e_wire_seed_helper_into_studies_spec --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
+  infra_ir_measures_migration --&gt; chore_tutorial_polish
   infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
@@ -1875,6 +1877,7 @@ footer {
   infra_e2e_wire_seed_helper_into_studies_spec --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
+  infra_ir_measures_migration --&gt; feat_chat_agent
   infra_make_targets_split_backend_only --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent
@@ -1908,6 +1911,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  infra_ir_measures_migration[&quot;ir measures migration&quot;]
+  class infra_ir_measures_migration plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2071,6 +2076,7 @@ footer {
   infra_e2e_wire_seed_helper_into_studies_spec --&gt; chore_tutorial_polish
   infra_foundation --&gt; chore_tutorial_polish
   infra_frontend_stack_refresh --&gt; chore_tutorial_polish
+  infra_ir_measures_migration --&gt; chore_tutorial_polish
   infra_make_targets_split_backend_only --&gt; chore_tutorial_polish
   infra_nvmrc --&gt; chore_tutorial_polish
   infra_optuna_eval --&gt; chore_tutorial_polish
@@ -2104,6 +2110,7 @@ footer {
   infra_e2e_wire_seed_helper_into_studies_spec --&gt; feat_chat_agent
   infra_foundation --&gt; feat_chat_agent
   infra_frontend_stack_refresh --&gt; feat_chat_agent
+  infra_ir_measures_migration --&gt; feat_chat_agent
   infra_make_targets_split_backend_only --&gt; feat_chat_agent
   infra_nvmrc --&gt; feat_chat_agent
   infra_optuna_eval --&gt; feat_chat_agent

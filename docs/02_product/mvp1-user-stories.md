@@ -37,7 +37,7 @@
 
 ### `infra_optuna_eval` — score trials
 
-- **US-7: See nDCG@10, MAP, and P@10 for a trial.** *As a Relevance Engineer*, after a trial runs I see all three metrics computed by pytrec_eval against the configured judgment list, so I can compare trials on the metric I care about (objective) and on backups (sanity check). *(Source: §14 lines 686–755, §13 lines 676–685.)*
+- **US-7: See nDCG@10, MAP, and P@10 for a trial.** *As a Relevance Engineer*, after a trial runs I see all three metrics computed by ir_measures against the configured judgment list, so I can compare trials on the metric I care about (objective) and on backups (sanity check). *(Source: §14 lines 686–755, §13 lines 676–685.)*
 - **US-8: Optuna picks the next trial parameters.** *As a Relevance Engineer*, I trust that Optuna's TPE sampler is choosing the next parameter combination based on the running history (not random), so my study converges faster than a brute-force sweep would. *(Source: §13 lines 676–685.)*
 
 ### `feat_study_lifecycle` — orchestrate a study

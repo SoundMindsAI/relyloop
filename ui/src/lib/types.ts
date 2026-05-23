@@ -1886,8 +1886,8 @@ export interface components {
      * @description Wire shape of ``studies.objective`` (write-side validated at create).
      *
      *     ``k`` is required for ``ndcg`` / ``precision`` / ``recall`` (per
-     *     pytrec_eval semantics: those metrics are computed at a cutoff
-     *     rank). ``map`` accepts ``k`` optionally; ``mrr`` / ``err`` ignore
+     *     standard IR-evaluation conventions: those metrics are computed at a
+     *     cutoff rank). ``map`` accepts ``k`` optionally; ``mrr`` / ``err`` ignore
      *     it. The model_validator enforces this so a malformed objective
      *     surfaces as 400 ``INVALID_SEARCH_SPACE`` / 422 ``VALIDATION_ERROR``
      *     at study-create time rather than failing later inside ``run_trial``

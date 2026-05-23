@@ -156,7 +156,7 @@ arrives in the next features:
 | Step | Lands with |
 |---|---|
 | 1. Register your cluster | `infra_adapter_elastic` (this PR) |
-| 2. Wire up Optuna's RDBStorage + pytrec_eval | `infra_optuna_eval` |
+| 2. Wire up Optuna's RDBStorage + ir_measures | `infra_optuna_eval` |
 | 3. Define a **study**: pick a target index, write query templates with parameters, define a metric (e.g. nDCG@10), upload judged queries (good-result examples) | `feat_study_lifecycle` |
 | 4. Generate **judgments** (LLM-rated query/doc relevance) for the seed query set | `feat_llm_judgments` |
 | 5. Run **trials** — each trial = one candidate parameter setting, executed via `search_batch` (the `_msearch` hot path) against your cluster | `feat_study_lifecycle` |

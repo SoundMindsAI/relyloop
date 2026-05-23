@@ -42,7 +42,7 @@ async def load_qrels(db: AsyncSession, judgment_list_id: str) -> Qrels:
         ``{query_id: {doc_id: rating}}``. An unknown ``judgment_list_id``
         (no rows) returns an empty dict — callers must handle the empty
         case (``run_trial`` does so by scoring 0 across 0 queries, which
-        ``pytrec_eval`` treats as a no-op).
+        ``ir_measures`` treats as a no-op).
 
     The loader takes both ``llm`` and ``human`` rated rows. A human-override
     UPSERT replaces the LLM row in place (per the UNIQUE constraint), so

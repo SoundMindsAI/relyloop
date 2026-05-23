@@ -6,7 +6,7 @@ RelyLoop combines an LLM-driven chat agent with an Optuna-driven optimization
 loop ("Karpathy loop") to systematically tune query-time relevance on
 Elasticsearch and OpenSearch. Engineers describe the problem in chat; the
 agent introspects the cluster, proposes a search-space, and runs thousands
-of trials against `pytrec_eval`-computed metrics. Winning configurations
+of trials against `ir_measures`-computed metrics. Winning configurations
 land as Pull Requests against a central search-config Git repo, where named
 approvers review and merge.
 

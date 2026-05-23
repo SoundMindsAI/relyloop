@@ -1,13 +1,15 @@
-"""Unit tests for the metric → pytrec_eval token mapper.
+"""Unit tests for the metric → ir_measures metric-object mapper.
 
 chore_create_study_wizard_polish Story 1.2 / AC-14 backend half.
 
 Locks the metric+k tier semantics asserted by the frontend's
-`K_REQUIRED` and `K_IGNORED` constants:
+`K_REQUIRED` and `K_IGNORED` constants. The user-facing tokens scoring.py
+returns are unchanged by infra_ir_measures_migration; only the internal
+mapping behind score() switched from pytrec_eval wire strings to
+ir_measures metric objects.
 
-  * Required-k (ndcg / precision / recall): produces ``<metric>_cut_<k>``.
-  * Optional-k (map): with k produces ``map_cut_<k>``; without k produces
-    ``map`` (full-recall MAP).
+  * Required-k (ndcg / precision / recall): user-facing key is ``<metric>@<k>``.
+  * Optional-k (map): with k → ``map@<k>``; without k → ``map`` (full-recall MAP).
   * Ignored-k (mrr): produces ``recip_rank`` regardless of k presence.
 
 Source-of-truth comment block: ``backend/app/eval/scoring.py:30-34``.
@@ -79,7 +81,7 @@ def test_supported_metrics_excludes_err() -> None:
 
     The frontend K_IGNORED includes err so the wizard hides the k field for it,
     but err cannot reach scoring at runtime — if a study is created with
-    metric=err, scoring fails before pytrec_eval is invoked. This assertion
+    metric=err, scoring fails before ir_measures is invoked. This assertion
     locks the deferral.
     """
     assert "err" not in SUPPORTED_METRICS

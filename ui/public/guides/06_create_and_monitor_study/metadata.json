@@ -23,7 +23,7 @@
     },
     {
       "file": "04-study-detail.png",
-      "caption": "The detail page is where the operator spends real time. Header surfaces the study name, status badge, target index (`products`), best-so-far metric, and trial summary. The trials table below populates in real-time as Optuna's TPE sampler proposes `title_boost` values and the worker scores them against the imported judgments via `pytrec_eval`. The page auto-polls every 3 seconds while the study is running."
+      "caption": "The detail page is where the operator spends real time. Header surfaces the study name, status badge, target index (`products`), best-so-far metric, and trial summary. The trials table below populates in real-time as Optuna's TPE sampler proposes `title_boost` values and the worker scores them against the imported judgments via `ir_measures`. The page auto-polls every 3 seconds while the study is running."
     },
     {
       "file": "05-study-terminal-state.png",

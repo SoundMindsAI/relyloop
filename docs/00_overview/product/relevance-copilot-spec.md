@@ -9,7 +9,7 @@
 
 ## 1. Summary
 
-RelyLoop is an open-source tool for enterprise search platform teams. It combines a conversational LLM agent with an automated overnight optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion (with pure-Solr support deferred to v2). Engineers describe relevance problems in chat; the agent introspects the cluster, proposes search-space parameters, and queues thousands of trials against `pytrec_eval`-computed metrics. Winning configurations are surfaced as Pull Requests / Merge Requests against a central search-config Git repo, where named approvers review and merge them into production.
+RelyLoop is an open-source tool for enterprise search platform teams. It combines a conversational LLM agent with an automated overnight optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion (with pure-Solr support deferred to v2). Engineers describe relevance problems in chat; the agent introspects the cluster, proposes search-space parameters, and queues thousands of trials against `ir_measures`-computed metrics. Winning configurations are surfaced as Pull Requests / Merge Requests against a central search-config Git repo, where named approvers review and merge them into production.
 
 The tool is a single, engine-agnostic, provider-agnostic system: one UI, one workflow, one schema. Differences between Elasticsearch / OpenSearch, Lucidworks Fusion, and any future engine (pure Solr, Vespa, etc.) are isolated behind a thin adapter interface — and the same adapter pattern applies to LLM providers (OpenAI, Anthropic, Bedrock, Azure OpenAI, Vertex, self-hosted Ollama/vLLM) and Git providers (GitHub, GitLab, Bitbucket). Multi-tenancy is supported from the schema level so a single deployment can serve many downstream customers in isolation.
 
@@ -152,7 +152,7 @@ The tool will not:
 | Redis | Task queue (Arq) for studies and digests |
 | Worker pool | Trial execution (against tuned clusters via adapters), digest generation, Git PR creation |
 | Adapters | Engine-specific query rendering and execution; everything else is engine-agnostic |
-| pytrec_eval | Universal IR evaluation (nDCG, MAP, P@K, ERR) |
+| ir_measures | Universal IR evaluation (nDCG, MAP, P@K, ERR) — provider-abstracted, wraps multiple backends |
 
 The single deployment unit is a Docker Compose project. Workers scale horizontally via `docker compose up --scale worker=N`.
 
@@ -685,12 +685,12 @@ queued → running → completed
 
 ## 14. Evaluation
 
-### Engine: pytrec_eval everywhere
+### Engine: provider-abstracted IR evaluation via `ir_measures`
 
-Workers always evaluate via pytrec_eval, never `_rank_eval`. This guarantees identical metric semantics across ES, Fusion, and Solr, and simplifies cross-engine comparisons. Reasoning:
+Workers always evaluate via `ir_measures`, never `_rank_eval`. This guarantees identical metric semantics across ES, Fusion, and Solr, and simplifies cross-engine comparisons. Reasoning:
 
-- pytrec_eval is the de facto standard wrapper for `trec_eval`.
-- ES `_rank_eval` and pytrec_eval don't always agree to many decimal places (different normalization conventions).
+- `ir_measures` (from the PyTerrier team) wraps multiple IR-evaluation backends behind a typed metric-object DSL (`nDCG@10`, `AP@5`, `RR`, `P@k`, `R@k`). The provider abstraction means swapping the underlying backend is a config change rather than a rewrite — protecting against future single-maintainer abandonment risk.
+- ES `_rank_eval` and `ir_measures` don't always agree to many decimal places (different normalization conventions across engines).
 - Per-query scores are inspectable, enabling deep debugging.
 
 ### Supported metrics
@@ -708,7 +708,7 @@ Studies declare a single primary objective; secondary metrics are recorded in th
 
 ### Judgment formats
 
-Stored as `{judgment_list_id, query_id, doc_id, rating, source}` tuples. Ratings in `0..3` (graded) or `0..1` (binary). pytrec_eval is configured per metric to handle each.
+Stored as `{judgment_list_id, query_id, doc_id, rating, source}` tuples. Ratings in `0..3` (graded) or `0..1` (binary). `ir_measures` is configured per metric to handle each.
 
 The `source` field tracks judgment provenance:
 
@@ -2189,7 +2189,7 @@ Lucidworks Fusion has no free tier or community edition; the only supported path
 
 Three tiers of test/dev environment:
 
-**Tier 1 — Local docker-compose (no Fusion).** The default `docker-compose.yml` adds three free-and-open engine containers: Elasticsearch (free Basic license), OpenSearch (Apache 2.0), and Apache Solr. ~80% of the system — data model, agent orchestrator, Optuna loop, pytrec_eval, UI, proposals, PR flow, agent integration layer — can be developed and tested entirely on this stack. New engineers clone, `docker compose up`, and are productive without any Lucidworks involvement. **For the MVP / v0.1 release, ES + OpenSearch are the only engines supported**; Fusion ships in GA v1 and Solr in v2.
+**Tier 1 — Local docker-compose (no Fusion).** The default `docker-compose.yml` adds three free-and-open engine containers: Elasticsearch (free Basic license), OpenSearch (Apache 2.0), and Apache Solr. ~80% of the system — data model, agent orchestrator, Optuna loop, ir_measures, UI, proposals, PR flow, agent integration layer — can be developed and tested entirely on this stack. New engineers clone, `docker compose up`, and are productive without any Lucidworks involvement. **For the MVP / v0.1 release, ES + OpenSearch are the only engines supported**; Fusion ships in GA v1 and Solr in v2.
 
 ```yaml
 # docker-compose.yml additions for local dev
@@ -2299,7 +2299,7 @@ What MVP1 delivers: a relevance engineer can `docker compose up`, point at a loc
 - **Single-tenant** deployment — `tenants` table absent; data scoped to the install
 - Postgres data model (without `tenant_id` columns; added in MVP4 as a migration)
 - Optuna with TPE sampler
-- pytrec_eval evaluation
+- ir_measures evaluation
 - LLM-generated judgments + basic override UI
 - Studies UI: create, run, view trials, view digest
 - Proposals → GitHub PRs (single config repo)
@@ -2510,7 +2510,7 @@ This section consolidates every implementation-level decision that shapes how Re
 | Logging | structlog | Structured JSON logging, processor pipelines for PII redaction (§24) |
 | Queue / workers | Arq + Redis 7 | Async-native, Redis-backed, simple API; trace context propagation handled by `relyloop.tracing.arq` (§24) |
 | Optimization | Optuna with TPE sampler + RDBStorage | Established, well-tested, supports the parallel ask/tell pattern we need (§13) |
-| IR evaluation | pytrec_eval | Standard wrapper for trec_eval; gives identical metric semantics across engines (§14) |
+| IR evaluation | ir_measures | Provider-abstracted; wraps multiple IR-evaluation backends behind a typed metric-object DSL; gives identical metric semantics across engines (§14) |
 | LLM orchestration | LangGraph (GA v1); plain `openai` SDK + function calling (MVP1) | LangGraph is overkill for the MVP loop; ships in GA v1 alongside subagents (§15) |
 | LLM client (multi-provider) | LangChain provider packages — `langchain-openai`, `langchain-anthropic`, `langchain-aws`, `langchain-google-vertexai`, etc. (MVP4+) | Provider-agnostic abstraction with consistent `BaseChatModel` interface (§15) |
 | LLM cache | LangChain `RedisCache` (MVP4+) | Reuses existing Redis; cache keys per (template, cluster, query_set) for cost-bound calls |
@@ -2655,7 +2655,7 @@ This section consolidates every implementation-level decision that shapes how Re
 | 11 | Apache 2.0 license + DCO contributions | Locked | Patent grant, enterprise-friendly, OSS standard | §29 |
 | 12 | RelyLoop as project name | Locked (pending TESS) | Earns its meaning twice; trademark verification underway | §29, §30 #23 |
 | 13 | Docker Compose primary deployment; Helm in v1.5+ | Locked | Self-hosted, single-VM-friendly | §25 |
-| 14 | Optuna + pytrec_eval for the loop | Locked | Established, well-tested, fits the parallel async pattern | §13, §14 |
+| 14 | Optuna + ir_measures for the loop | Locked | Provider-abstracted IR evaluation; well-tested; fits the parallel async pattern | §13, §14 |
 | 15 | uv (Python) + pnpm (TS) for deps | Locked | Modern, fast, reproducible | this §28 |
 | 16 | UUIDv7 for primary keys | Locked | Sortable, time-ordered, client-generatable | §9 |
 | 17 | Trunk-based + Conventional Commits + DCO | Locked (this section) | Auto-changelog, audit-friendly, low-ceremony | this §28 |
@@ -2719,7 +2719,7 @@ Secondary adopters: search-as-a-service vendors building on top of OSS engines, 
 
 - The explicit patent grant matters for a project in the search and LLM space, where patent activity is high. Contributors grant patent licenses for any patents reading on their contributions, and patent litigation against users terminates that license — meaningful protection that MIT does not offer.
 - Apache 2.0 is the de facto license for similar projects (OpenSearch, Solr, Lucene, Kubernetes, ClickHouse). Enterprise procurement and security review processes overwhelmingly accept it.
-- Compatible with all upstream dependencies (LangChain, Langfuse, SigNoz, Optuna, pytrec_eval, FastAPI, Postgres are all permissively licensed).
+- Compatible with all upstream dependencies (LangChain, Langfuse, SigNoz, Optuna, ir_measures, FastAPI, Postgres are all permissively licensed).
 
 If at some future date the project needs to consider relicensing (e.g., a community fork) the Apache 2.0 starting point gives clean optionality.
 
