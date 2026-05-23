@@ -187,9 +187,32 @@ async def github_webhook(
                 if decision.pr_merged_at is None:
                     await repo.mark_proposal_pr_closed(db, proposal_id)
                 else:
-                    await repo.mark_proposal_pr_merged(
+                    updated_proposal = await repo.mark_proposal_pr_merged(
                         db, proposal_id, pr_merged_at=decision.pr_merged_at
                     )
+                    # feat_config_repo_baseline_tracking FR-3 — maintain
+                    # config_repos.last_merged_proposal_id pointer. Only
+                    # fires when this delivery actually performed the
+                    # pending → pr_merged transition (mark_proposal_pr_merged
+                    # returned non-None). Duplicate / out-of-order deliveries
+                    # return None and skip naturally. Cluster.config_repo_id
+                    # IS NULL is a silent skip (cluster has no Git repo
+                    # wired).
+                    if updated_proposal is not None:
+                        cluster_row = await repo.get_cluster(db, updated_proposal.cluster_id)
+                        if cluster_row is not None and cluster_row.config_repo_id is not None:
+                            await repo.update_config_repo_last_merged_pointer(
+                                db,
+                                config_repo_id=cluster_row.config_repo_id,
+                                proposal_id=proposal_id,
+                                pr_merged_at=decision.pr_merged_at,
+                            )
+                        else:
+                            logger.debug(
+                                "config_repo_last_merged_pointer_skipped_no_repo",
+                                proposal_id=proposal_id,
+                                cluster_id=updated_proposal.cluster_id,
+                            )
             elif decision.mutation == "closed":
                 await repo.mark_proposal_pr_closed(db, proposal_id)
             elif decision.mutation == "reopened":

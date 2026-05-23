@@ -6,23 +6,29 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md)** — Feature, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/02_product/planned_features/feat_config_repo_baseline_tracking/implementation_plan.md --all
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **66 / 66** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **66 / 67** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 13 important to file, not blocking |
+| → P2 (default) | 14 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 3 |
-| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP1) |
+| Open bugs | 4 |
+| Legacy "Path to MVP1" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -114,9 +120,11 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|
+| P2 | [feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md) | Feature | A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo. | — | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-10 |
 
 ### Spec (0)
 
@@ -128,7 +136,6 @@ _None._
 |---|---|---|---|---|---|
 | P1 | [feat_ubi_judgments](../02_product/planned_features/feat_ubi_judgments/idea.md) | Feature | MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`… | — | Idea — anchor feature for MVP1.5 / v0.1.5 "Real Signals" |
 | P2 | [feat_auto_followup_studies](../02_product/planned_features/feat_auto_followup_studies/idea.md) | Feature | Karpathy's autoresearch loop runs hundreds of experiments overnight and **compounds** improvements: each accepted change becomes the new baseline for the next experiment. RelyLoop's equivalent… | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. The highest-leverage recommendation from the audit's "across studies" section. |
-| P2 | [feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/idea.md) | Feature | RelyLoop does not track which configuration is currently live in production. When a proposal's PR merges, the merge webhook at [`backend/app/api/webhooks/github.py:187-191`](../../backend/app/api/webh | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
 | P2 | [feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/idea.md) | Feature | The digest worker's LLM contract at [`backend/workers/digest.py:168-189`](../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`: | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit. |
 | P2 | [feat_home_demo_reseed_endpoint](../02_product/planned_features/feat_home_demo_reseed_endpoint/idea.md) | Feature | Phase 1 ships the banner + badges that signal "this is demo data." It does NOT close the recovery loop for operators who blew away their dev DB and want to re-seed the meaningful demos from inside the | — | Idea — deferred Phase 2 work from `feat_home_first_run_demo_nudge` (Phase 1 merged 2026-05-22 as PR #188 squash `21325432`) |
 | P2 | [feat_study_baseline_trial](../02_product/planned_features/feat_study_baseline_trial/idea.md) | Feature | `studies.baseline_metric` exists as a column on the `studies` table (declared in `feat_study_lifecycle` Phase 1, [`backend/app/db/models/study.py:76`](../../backend/app/db/models/study.py#L76)) with t | — | Idea — deferred Phase 2 work from `feat_pr_metric_confidence` (Phase 1 merged 2026-05-21 as PR #180 squash `d0a8358`). |
@@ -140,6 +147,7 @@ _None._
 | P2 | [bug_contract_test_stub_missing_target_filter_kwarg](../02_product/planned_features/bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | `backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th | — | Idea — bug discovered during `feat_orchestrator_zero_streak_abort` phase gate |
 | P2 | [bug_dashboard_banner_dismiss_persistence_flake](../02_product/planned_features/bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR #193) smoke CI |
 | P2 | [bug_dashboard_depends_on_column_bloat](../02_product/planned_features/bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each planned-feature row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and  | — | Idea — surfaced by Gemini Code Assist review on PR #200 (2026-05-22). Pre-existing bug; this PR only made one more entry visible. |
+| P2 | [bug_pr_reconciler_blocked_by_closed_fallback](../02_product/planned_features/bug_pr_reconciler_blocked_by_closed_fallback/idea.md) | Bug | The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-194`](../../backend/app/api/webhooks/github.py) handles the eventual-consistency case where GitHub delivers `pull_request.closed | — | Idea — surfaced during the 2026-05-22 GPT-5.5 cycle-2 cross-model review of `feat_config_repo_baseline_tracking`. Pre-existing bug in the shipped reconciler path, not introduced by that feature. |
 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
 
 ## Dependency graph
@@ -153,6 +161,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_config_repo_baseline_tracking["config repo baseline tracking"]
+  class feat_config_repo_baseline_tracking plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -293,6 +303,7 @@ graph LR
   feat_agent_propose_search_space --> chore_tutorial_polish
   feat_chat_agent --> chore_tutorial_polish
   feat_cluster_target_filter --> chore_tutorial_polish
+  feat_config_repo_baseline_tracking --> chore_tutorial_polish
   feat_contextual_help --> chore_tutorial_polish
   feat_create_study_search_space_builder --> chore_tutorial_polish
   feat_create_study_target_autocomplete --> chore_tutorial_polish
@@ -327,6 +338,7 @@ graph LR
   infra_uv_sync_drops_precommit --> chore_tutorial_polish
   feat_agent_propose_search_space --> feat_chat_agent
   feat_cluster_target_filter --> feat_chat_agent
+  feat_config_repo_baseline_tracking --> feat_chat_agent
   feat_contextual_help --> feat_chat_agent
   feat_create_study_search_space_builder --> feat_chat_agent
   feat_create_study_target_autocomplete --> feat_chat_agent

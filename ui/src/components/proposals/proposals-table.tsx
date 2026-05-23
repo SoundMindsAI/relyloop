@@ -22,6 +22,9 @@ export interface ProposalsTableProps {
   isLoading: boolean;
   isError: boolean;
   urlState: DataTableUrlStateApi;
+  /** Optional override for the no-match empty state (e.g., custom copy when
+   * the "Currently live only" filter is active). */
+  emptyStateNoMatch?: { title: string; message: string };
 }
 
 export function ProposalsTable({
@@ -32,6 +35,7 @@ export function ProposalsTable({
   isLoading,
   isError,
   urlState,
+  emptyStateNoMatch,
 }: ProposalsTableProps) {
   return (
     <DataTable<ProposalSummary>
@@ -59,10 +63,12 @@ export function ProposalsTable({
         title: 'No proposals yet',
         message: 'They appear automatically when studies complete.',
       }}
-      emptyStateNoMatch={{
-        title: 'No proposals match',
-        message: 'No proposals match the current filters.',
-      }}
+      emptyStateNoMatch={
+        emptyStateNoMatch ?? {
+          title: 'No proposals match',
+          message: 'No proposals match the current filters.',
+        }
+      }
     />
   );
 }

@@ -994,6 +994,12 @@ class ProposalSummary(BaseModel):
     pr_state: ProposalPrStateWire | None
     pr_url: str | None
     metric_delta: dict[str, Any] | None
+    is_currently_live: bool = False
+    """True when this proposal is some ``config_repos.last_merged_proposal_id``
+    (feat_config_repo_baseline_tracking FR-5). Pointer-only derivation —
+    symmetric with ``?is_last_merged=true``. Defaults to False so list
+    responses that don't populate the field (e.g., legacy callers) deserialize
+    cleanly."""
     created_at: datetime
 
 
@@ -1018,6 +1024,9 @@ class ProposalDetail(BaseModel):
     pr_merged_at: datetime | None
     pr_open_error: str | None
     rejected_reason: str | None
+    is_currently_live: bool = False
+    """True when this proposal is some ``config_repos.last_merged_proposal_id``
+    (feat_config_repo_baseline_tracking FR-5). See :class:`ProposalSummary`."""
     digest: _DigestEmbed | None
     created_at: datetime
 
@@ -1090,6 +1099,13 @@ class ConfigRepoDetail(BaseModel):
     auth_ref: str
     webhook_secret_ref: str | None
     webhook_registration_error: str | None
+    last_merged_proposal: ProposalSummary | None = None
+    """The proposal currently tracked as the live config for this repo
+    (feat_config_repo_baseline_tracking FR-4). NULL when no merge has occurred
+    yet. Always present in detail responses (populated when the pointer is
+    set). On list responses every row defaults to ``None`` — the list path
+    does NOT JOIN the proposal embed to keep paginated list responses
+    lightweight."""
     created_at: datetime
 
 

@@ -118,6 +118,10 @@ async def _assemble_proposal_detail(db: AsyncSession, proposal: Proposal) -> Pro
             False,
         )
 
+    # feat_config_repo_baseline_tracking FR-5 — pointer-only is_currently_live.
+    live_ids = await repo.find_currently_live_proposal_ids(db, [proposal.id])
+    is_live = proposal.id in live_ids
+
     study_summary: _StudySummary | None = None
     digest_embed: _DigestEmbed | None = None
     if proposal.study_id is not None:
@@ -183,6 +187,7 @@ async def _assemble_proposal_detail(db: AsyncSession, proposal: Proposal) -> Pro
         pr_merged_at=proposal.pr_merged_at,
         pr_open_error=proposal.pr_open_error,
         rejected_reason=proposal.rejected_reason,
+        is_currently_live=is_live,
         digest=digest_embed,
         created_at=proposal.created_at,
     )
@@ -204,6 +209,8 @@ async def _assemble_proposal_summary_batch(
         t = await repo.get_query_template(db, tid)
         if t is not None:
             templates_by_id[tid] = t
+    # feat_config_repo_baseline_tracking FR-5 — one batch query for the page.
+    live_ids = await repo.find_currently_live_proposal_ids(db, [p.id for p in proposals])
     out: list[ProposalSummary] = []
     for p in proposals:
         c = clusters_by_id.get(p.cluster_id)
@@ -228,6 +235,7 @@ async def _assemble_proposal_summary_batch(
                 pr_state=p.pr_state,
                 pr_url=p.pr_url,
                 metric_delta=p.metric_delta,
+                is_currently_live=p.id in live_ids,
                 created_at=p.created_at,
             )
         )
@@ -346,6 +354,7 @@ async def list_proposals_endpoint(
     source: Annotated[ProposalSourceWire | None, Query()] = None,
     template_id: Annotated[UUID | None, Query()] = None,
     study_id: Annotated[UUID | None, Query()] = None,
+    is_last_merged: Annotated[bool | None, Query()] = None,
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     sort: Annotated[ProposalSortKey | None, Query()] = None,
@@ -379,6 +388,7 @@ async def list_proposals_endpoint(
             source=source,
             template_id=template_id_str,
             study_id=study_id_str,
+            is_last_merged=is_last_merged,
             sort=sort,
         )
     )
@@ -392,6 +402,7 @@ async def list_proposals_endpoint(
         source=source,
         template_id=template_id_str,
         study_id=study_id_str,
+        is_last_merged=is_last_merged,
     )
     response.headers["X-Total-Count"] = str(total)
     next_cursor: str | None = None

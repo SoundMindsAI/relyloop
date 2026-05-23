@@ -21,6 +21,7 @@ Asserts:
 
 from __future__ import annotations
 
+import json
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -146,6 +147,49 @@ async def test_config_repo_detail_response_model_is_config_repo_detail(
     success = op["responses"]["200"]
     ref = success["content"]["application/json"]["schema"]["$ref"]
     assert ref.endswith("ConfigRepoDetail"), ref
+
+
+@_skip_if_no_pg
+async def test_config_repo_detail_schema_includes_last_merged_proposal(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """feat_config_repo_baseline_tracking FR-4 — ConfigRepoDetail schema in
+    OpenAPI must declare last_merged_proposal as ProposalSummary | null with
+    default null (additive field; existing clients ignore it cleanly)."""
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    config_repo_schema = schema["components"]["schemas"]["ConfigRepoDetail"]
+    properties = config_repo_schema["properties"]
+    assert "last_merged_proposal" in properties, (
+        "ConfigRepoDetail.last_merged_proposal field missing from OpenAPI"
+    )
+    field = properties["last_merged_proposal"]
+    # Pydantic v2 with optional reference emits anyOf [{$ref: ProposalSummary}, {type: null}].
+    # We assert the ProposalSummary ref appears anywhere in the field shape.
+    field_json = json.dumps(field)
+    assert "ProposalSummary" in field_json, (
+        f"ConfigRepoDetail.last_merged_proposal does not reference ProposalSummary: {field}"
+    )
+
+
+@_skip_if_no_pg
+async def test_proposal_summary_schema_includes_is_currently_live(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """feat_config_repo_baseline_tracking FR-5 — ProposalSummary schema must
+    declare is_currently_live: bool (default false)."""
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    proposal_summary_schema = schema["components"]["schemas"]["ProposalSummary"]
+    properties = proposal_summary_schema["properties"]
+    assert "is_currently_live" in properties, (
+        "ProposalSummary.is_currently_live field missing from OpenAPI"
+    )
+    field = properties["is_currently_live"]
+    assert field.get("type") == "boolean", f"ProposalSummary.is_currently_live is not bool: {field}"
+    assert field.get("default") is False, (
+        f"ProposalSummary.is_currently_live default is not False: {field}"
+    )
 
 
 def test_router_source_contains_every_endpoint_visible_code() -> None:
