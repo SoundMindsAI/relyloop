@@ -192,6 +192,114 @@ async def cancel_study(db: AsyncSession, study_id: str) -> Study:
     return study
 
 
+async def cancel_study_with_chain_cascade(
+    db: AsyncSession,
+    study_id: str,
+    *,
+    cascade: bool = True,
+) -> Study:
+    """Cancel a chain rooted at ``study_id`` (Story 1.3, FR-8 + cycle-3 C3-1).
+
+    The cascade is **tolerant of terminal parents**: a normal
+    auto-followup chain has ``parent.status == 'completed'`` by the time
+    a child exists (the digest worker only fires on the ``completed``
+    transition — verified at backend/workers/orchestrator.py:452). The
+    cascade traverses the chain regardless of intermediate states; only
+    in-flight (``queued``/``running``) studies get the cancel transition.
+
+    Behavior:
+
+    * If ``cascade=False`` — only the parent is touched. If the parent
+      is terminal, ``cancel_study`` raises ``InvalidStateTransition``
+      (preserves the existing single-cancel error contract per spec AC-9).
+    * If ``cascade=True``:
+
+      - If ``parent.status in {'queued', 'running'}``: call ``cancel_study(parent)``.
+      - Else (parent already terminal): log ``auto_followup_cancel_terminal_parent``
+        and DO NOT attempt the transition (avoids ``InvalidStateTransition``
+        on completed ancestors per cycle-3 C3-1 fix).
+      - In BOTH cases, iterate ``list_children_of_study(parent)`` and recurse
+        into each child. Per cycle-3 C3-1: recurse into every direct child
+        regardless of status so completed intermediates act as relay nodes
+        on the way to in-flight descendants. The transition (and FR-9
+        event #8 ``auto_followup_cancelled_with_parent``) fires only when
+        a child is actually in-flight; terminal children emit
+        ``auto_followup_cancel_terminal_parent`` and the recursion
+        continues into THEIR children.
+
+    Idempotency: ``cancel_study`` raises ``InvalidStateTransition`` on
+    already-cancelled studies. The cascade catches it and continues so
+    a re-delivery of a cascade request doesn't fail loudly.
+
+    Returns the parent ``Study`` row (status may be ``'cancelled'`` if it
+    was in-flight, or unchanged if it was already terminal).
+    """
+    # Lazy import to avoid a circular dependency
+    # (repo.__init__ → services.study_state via cancel_study guard registration
+    # in some test bootstrap paths). Inline import is the standard escape.
+    from backend.app.db import repo
+
+    parent = await _load_for_update(db, study_id)
+
+    # Parent transition (or terminal-skip).
+    if parent.status in {"queued", "running"}:
+        try:
+            parent = await cancel_study(db, study_id)
+        except InvalidStateTransition:
+            # Race: another transition won between our _load_for_update and
+            # the cancel_study re-read. Log and continue to the cascade so
+            # children still get cleaned up.
+            logger.info(
+                "cancel_study_with_chain_cascade: parent transition race; continuing cascade",
+                event_type="study_state_transition_race",
+                study_id=study_id,
+            )
+    else:
+        logger.info(
+            "auto_followup cascade traversing terminal parent",
+            event_type="auto_followup_cancel_terminal_parent",
+            study_id=study_id,
+            parent_status=parent.status,
+        )
+
+    if not cascade:
+        return parent
+
+    # Cascade into direct children (C3-1: traverse all, not just in-flight).
+    children = await repo.list_children_of_study(db, study_id)
+    for child in children:
+        if child.status in {"queued", "running"}:
+            try:
+                await cancel_study(db, child.id)
+            except InvalidStateTransition:
+                # Child already terminal between list + cancel — fine.
+                logger.info(
+                    "cascade cancel race on child; already terminal",
+                    event_type="study_state_transition_race",
+                    study_id=child.id,
+                    parent_study_id=study_id,
+                )
+            else:
+                logger.info(
+                    "auto-followup child cancelled with parent",
+                    event_type="auto_followup_cancelled_with_parent",
+                    parent_study_id=study_id,
+                    child_study_id=child.id,
+                )
+        else:
+            logger.info(
+                "auto_followup cascade traversing terminal child",
+                event_type="auto_followup_cancel_terminal_parent",
+                study_id=child.id,
+                parent_study_id=study_id,
+                parent_status=child.status,
+            )
+        # Always recurse — a completed child may own a running grandchild.
+        await cancel_study_with_chain_cascade(db, child.id, cascade=True)
+
+    return parent
+
+
 async def complete_study(
     db: AsyncSession,
     study_id: str,
