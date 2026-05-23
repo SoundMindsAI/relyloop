@@ -38,7 +38,7 @@ The test passed on its merge SHA (21325432) only by virtue of an init-script-vs-
 
 Coincidence — PR #193 didn't touch any frontend code or the banner. The smoke job's two failed runs both landed the race the wrong way. Two prior consecutive failures of the SAME test on an unrelated PR strongly suggest the underlying logic is broken, not just flaky.
 
-## Proposed fix
+## Proposed fix (Option A — locked)
 
 Replace the init-script approach with explicit per-test localStorage management that doesn't fight the test's own assertions:
 
@@ -56,8 +56,17 @@ test('Dismiss persists across reload (FR-7, AC-3)', async ({ page }) => {
 });
 ```
 
-Or, more aggressively: assert the banner state by querying localStorage directly post-reload (`page.evaluate(() => window.localStorage.getItem('...dismissed'))` === '1'), and treat the rendered-or-not question as a separate concern.
+This preserves the test's user-facing assertion ("banner stays hidden after reload because dismissal persisted") and uses real browser interactions throughout — consistent with [CLAUDE.md](../../../../CLAUDE.md) "E2E Testing Rules": *"must exercise the browser layer. Use Playwright's `page` object for real browser interactions (navigate, fill forms, click buttons, assert DOM)."*
+
+### Alternative considered (Option B — rejected)
+
+Assert the banner state by querying localStorage directly post-reload (`page.evaluate(() => window.localStorage.getItem('...dismissed'))` === `'1'`), treating render-or-not as a separate concern. **Rejected** because:
+
+1. It changes the test's intent — the AC under verification is "banner stays hidden", not "localStorage was written". An operator looking at the failing test should see the user-visible behavior breaking, not an indirect storage assertion.
+2. It would let a regression slip through where localStorage is correctly written but the banner re-renders anyway (e.g. a future change to the `useSyncExternalStore` wiring that doesn't read the flag). Option A catches that; Option B doesn't.
+
+Option B's localStorage-direct check could augment Option A as a sanity assertion, but it's not a substitute for the DOM-level "stays hidden" assertion.
 
 ## Coordinates with
 
-- Smoke CI gate on PR #193 — `feat_study_preflight_overlap_probe` proceeds with this flake noted; reviewer to decide whether to merge despite the smoke red or rerun.
+- Surfaced on smoke CI for [PR #193 `feat_study_preflight_overlap_probe`](../../../00_overview/implemented_features/2026_05_22_feat_study_preflight_overlap_probe/) (merged 2026-05-22, finalized 2026-05-22) — the smoke red was rerun-tolerant and didn't block that PR's merge. Capturing this flake as a separate bug fix so the test layer gets fixed at its own pace.
