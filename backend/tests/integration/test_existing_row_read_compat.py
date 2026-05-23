@@ -282,9 +282,11 @@ async def test_existing_row_read_compat_ac12(async_client: httpx.AsyncClient) ->
     assert direct_shape.ci_95.n_samples == 6
 
     # --- (2) Trial-list endpoint serializes the JSONB through unchanged ----
+    # TrialListResponse uses `data` for the list field (verified against
+    # backend/app/api/v1/schemas.py::TrialListResponse).
     list_resp = await async_client.get(f"/api/v1/studies/{study_id}/trials")
     assert list_resp.status_code == 200, list_resp.text
-    trials_payload = list_resp.json()["items"]
+    trials_payload = list_resp.json()["data"]
     assert any(t["id"] == trial_id for t in trials_payload), (
         f"AC-12 (2): inserted trial {trial_id!r} missing from trial-list response"
     )
