@@ -1,7 +1,7 @@
 # Feature Specification — `test_migrations.py` dynamic head lookup
 
 **Date:** 2026-05-23
-**Status:** Draft
+**Status:** Implemented (PR #219 squash-merged as `63cb7c41` on 2026-05-23)
 **Owners:** Eric Starr (engineering)
 **Related docs:**
 - [`idea.md`](idea.md)
