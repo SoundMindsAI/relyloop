@@ -219,13 +219,50 @@ async def reconcile_pr_state(ctx: dict[str, Any]) -> dict[str, int]:
                 else:
                     summary["unchanged"] += 1
             elif state == "closed":
+                # chore_reconciler_terminal_closed_no_poll FR-2 — branch on
+                # the candidate's selection-time pr_state to avoid the
+                # webhook-reopen clobber race. Mirrors the case-(a) recovery
+                # branch's `recovery_path = proposal.pr_state == "closed"`
+                # pattern above (line 179).
+                selected_as_closed = proposal.pr_state == "closed"
                 async with factory() as db:
-                    updated = await repo.mark_proposal_pr_closed(db, proposal.id)
-                    await db.commit()
-                if updated is not None:
-                    summary["reconciled"] += 1
-                else:
-                    summary["unchanged"] += 1
+                    if selected_as_closed:
+                        # Steady-state case (b): the row was already
+                        # (pr_opened, closed) at candidate selection.
+                        # Calling mark_proposal_pr_closed here would race
+                        # against a concurrent pull_request.reopened
+                        # webhook — re-closing a just-reopened row.
+                        # Stamp last_polled_at instead; the stamp helper's
+                        # defensive WHERE pr_state='closed' returns None
+                        # if the webhook beat us, leaving the reopen intact.
+                        stamped = await repo.stamp_proposal_last_polled_at(db, proposal.id)
+                        await db.commit()
+                        if stamped is not None:
+                            # FR-4: DEBUG log for runbook traceability.
+                            logger.debug(
+                                "pr_reconcile_stamped_last_polled_at",
+                                proposal_id=proposal.id,
+                            )
+                        # Stamp success or benign race no-op both count as
+                        # "unchanged" — no proposal state-machine transition
+                        # occurred this tick.
+                        summary["unchanged"] += 1
+                    else:
+                        # Selected as (pr_opened, open) but GitHub now reports
+                        # closed: genuine close transition. Existing
+                        # pre-feature behavior — preserves the
+                        # mark_proposal_pr_closed call path for first-time
+                        # observation of an operator-closed PR via the
+                        # reconciler (when the webhook missed or arrived
+                        # late). Do NOT stamp on this tick; the next tick
+                        # will select the row as (pr_opened, closed) and
+                        # stamp it via the path above.
+                        updated = await repo.mark_proposal_pr_closed(db, proposal.id)
+                        await db.commit()
+                        if updated is not None:
+                            summary["reconciled"] += 1
+                        else:
+                            summary["unchanged"] += 1
             else:
                 # state == "open" — proposal is genuinely still pending review.
                 summary["unchanged"] += 1
