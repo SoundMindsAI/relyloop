@@ -17,8 +17,15 @@ The PARITY_CASES list is the 30-case cross from spec FR-2:
     total = 30
 
 After Story 1.4 lands, this test runs on every CI invocation (permanent
-gate). The dev-group pin in pyproject.toml's [dependency-groups.dev]
-keeps pytrec_eval reachable so the side-by-side comparison stays alive.
+gate). The ``pytrec_eval`` module the parity test imports is provided
+transitively by ``pytrec-eval-terrier`` (the actively-maintained PyTerrier
+fork that publishes to the same module name), which ``ir-measures>=0.4.3``
+pulls in as a runtime dependency. No explicit dev-group pin on the
+abandoned ``pytrec-eval`` distribution is needed — the original spec
+called for one, but the two distributions conflict at install time
+(both ship the same ``pytrec_eval`` module name) and CI revealed the
+race-condition failure mode on PR #198's first push. See the spec §19
+decision log entry for 2026-05-23 for the lifecycle correction.
 """
 
 from __future__ import annotations

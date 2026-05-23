@@ -26,7 +26,7 @@ The tool is a single, engine-agnostic, provider-agnostic system: one UI, one wor
 
 **License:** Apache 2.0. Initial maintainer: soundminds.ai, with an explicit transition path to community maintainership over 12–24 months (umbrella spec §29).
 
-**Stack (MVP1):** Python 3.13 + FastAPI · Next.js 16 (React 19, TypeScript App Router, Turbopack) · Tailwind 4 (CSS-first config) · Vitest 4 · Postgres 16 + SQLAlchemy 2.0 async + Alembic · Redis 7 + Arq workers · Optuna with TPE sampler + RDBStorage · `ir_measures` (wrapping `pytrec-eval-terrier` transitively for the cut-aware metrics) · `openai` Python SDK pointed at any OpenAI-compatible endpoint via `OPENAI_BASE_URL` (works against api.openai.com, Ollama, LM Studio, vLLM, HuggingFace TGI) · ElasticAdapter handling both ES 8.11+/9.x and OpenSearch 2.x/3.x · GitHub Git provider · single-tenant, no auth, Docker Compose-only deployment.
+**Stack (MVP1):** Python 3.13 + FastAPI · Next.js 16 (React 19, TypeScript App Router, Turbopack) · Tailwind 4 (CSS-first config) · Vitest 4 · Postgres 16 + SQLAlchemy 2.0 async + Alembic · Redis 7 + Arq workers · Optuna with TPE sampler + RDBStorage · `ir_measures` (provider-abstracted IR-evaluation engine wrapping multiple cut-aware-metric backends) · `openai` Python SDK pointed at any OpenAI-compatible endpoint via `OPENAI_BASE_URL` (works against api.openai.com, Ollama, LM Studio, vLLM, HuggingFace TGI) · ElasticAdapter handling both ES 8.11+/9.x and OpenSearch 2.x/3.x · GitHub Git provider · single-tenant, no auth, Docker Compose-only deployment.
 
 **Release matrix** (canonical source: [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](docs/01_architecture/tech-stack.md)):
 
