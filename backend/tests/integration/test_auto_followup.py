@@ -426,3 +426,9 @@ async def test_enqueue_emits_auto_followup_enqueued_event(
     assert enqueued["remaining_depth"] == 2
     assert "lift" in enqueued
     assert "epsilon" in enqueued
+
+
+# Story 2.2's digest-trigger source-inspection test lives in
+# backend/tests/unit/workers/test_digest_followup_trigger.py — it doesn't
+# need Postgres + Redis (just reads digest.py), so it belongs in the
+# unit layer where it'll actually run.
