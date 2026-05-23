@@ -20,9 +20,12 @@
 - Phases covered: single-phase, full coverage of FR-1..FR-9.
 
 ## Implementation
-- Status: Complete (pending PR merge)
+- Status: Complete (merged 2026-05-23)
 - Date: 2026-05-23
 - Branch: `feature/chore-study-default-stop-conditions`
-- Stories: 5/5 complete — 1.1 glossary refresh, 1.2 system prompt update, 1.3 form default `max_trials=200`, 1.4 button-group preset selector + state transitions, 1.5 vitest test suite (11 cases).
-- Test layers: vitest only (per spec §14). Full UI suite 730/730 green. Stop-condition suite 11/11 green. tsc clean. ESLint at baseline (no new warnings).
-- Cross-model implementation review: GPT-5.5 cycle 1 raised 1 Medium finding (modal-open form-field reset gap caught the Radix Dialog mount-persistence bug); fixed in a follow-up commit, AC-6 test strengthened to use `rerender(open=false → open=true)` instead of unmount/remount. Cycle 2 clean.
+- PR: [#215](https://github.com/SoundMindsAI/relyloop/pull/215) (squash-merged as `370c87d9`)
+- Stories: 5/5 complete — 1.1 glossary refresh, 1.2 system prompt update, 1.3 form default `max_trials=200`, 1.4 button-group preset selector + state transitions, 1.5 vitest test suite (12 cases after AC-6 follow-up).
+- Test layers: vitest + E2E (per spec §14). Full UI suite 98/98 studies + 730+ overall green. tsc clean. ESLint at baseline (no new warnings). All 5 CI jobs green (frontend, backend coverage, backend fast, smoke, docker buildx).
+- Cross-model implementation review: GPT-5.5 cycle 1 raised 1 Medium finding (modal-open form-field reset gap, Radix Dialog mount-persistence bug). Cycle 2 clean.
+- Late-stage E2E fix (during review): `studies-create-builder.spec.ts:130` + `studies-create-target-dropdown.spec.ts:48` regressed against the production UI image because Playwright's `.fill('10')` on a non-empty Max trials input triggered a stray form-submit event before the test's explicit submit-button click. Resolved by decoupling the submit from the form's `onSubmit` event: `<form onSubmit={e => e.preventDefault()}>` + submit-button changed to `type="button"` with `onClick={form.handleSubmit(onSubmit)}`. Both tests green post-fix.
+- Gemini Code Assist adjudication: 1 Medium finding (Defer — pre-existing form-state persistence across modal toggles, out of scope for this chore).
