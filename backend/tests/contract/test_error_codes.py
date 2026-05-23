@@ -193,7 +193,12 @@ class TestErrorCodes:
         @asynccontextmanager
         async def _stub_acquire(cluster):
             class _Stub:
-                async def list_targets(self, *, request_id: str | None = None):
+                async def list_targets(
+                    self,
+                    *,
+                    request_id: str | None = None,
+                    target_filter: str | None = None,
+                ):
                     raise TargetsForbiddenError("cluster denied listing call")
 
                 async def aclose(self) -> None:
@@ -236,7 +241,12 @@ class TestErrorCodes:
         @asynccontextmanager
         async def _stub_acquire(cluster):
             class _Stub:
-                async def list_targets(self, *, request_id: str | None = None):
+                async def list_targets(
+                    self,
+                    *,
+                    request_id: str | None = None,
+                    target_filter: str | None = None,
+                ):
                     raise ClusterUnreachableError("HTTP 503 from /_cat/indices")
 
                 async def aclose(self) -> None:
