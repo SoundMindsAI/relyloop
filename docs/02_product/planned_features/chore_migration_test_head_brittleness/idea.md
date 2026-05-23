@@ -3,7 +3,7 @@
 **Date:** 2026-05-23
 **Status:** Idea — surfaced during `chore_reconciler_terminal_closed_no_poll` implementation
 **Priority:** P3 — small-but-recurring tax; safe to defer until the next ~3 migrations land.
-**Origin:** Implementation of `chore_reconciler_terminal_closed_no_poll` (PR pending). After adding migration `0017`, two assertions in `backend/tests/integration/test_migrations.py` (lines 132 and 157) failed because they pinned `row[0] == "0016"`. Updating them to `"0017"` is mechanical but easy to miss in `make test-unit`-only verification flows.
+**Origin:** Implementation of [`chore_reconciler_terminal_closed_no_poll`](../../../00_overview/implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll/) (PR #216, shipped 2026-05-23). After adding migration `0017`, two assertions in `backend/tests/integration/test_migrations.py` (lines 132 and 157) failed because they pinned `row[0] == "0016"`. Updating them to `"0017"` is mechanical but easy to miss in `make test-unit`-only verification flows.
 
 ## Problem
 
@@ -50,7 +50,7 @@ Then assertions become `assert row[0] == _current_head()`. Drift-proof; one func
 
 Walk `migrations/versions/`, find the file with the highest sortable name, parse `revision: str = "XXXX"`. More work; less robust if revision IDs ever stop being lexicographically sortable.
 
-**Recommendation:** Option A. The `alembic heads` command is the source of truth Alembic itself uses.
+**Decision (locked, 2026-05-23):** Option A. The `alembic heads` command is the source of truth Alembic itself uses. Option B (parse the latest migration file's `revision: str = "..."`) is rejected — it carries lexicographic-sortability risk and offers no upside.
 
 ## Scope signals
 

@@ -92,6 +92,34 @@ def _sync_database_url() -> str:
     return get_settings().database_url.replace("postgresql+asyncpg://", "postgresql://")
 
 
+def _current_head() -> str:
+    """Resolve the current Alembic head revision id at test-body execution time.
+
+    Invokes ``uv run alembic heads`` from the repo root and parses the first
+    whitespace-separated token of the single output line as the head id.
+    Asserts the chain has exactly one head — if a future branch lands and
+    Alembic emits multiple head lines, silently picking the first would mask
+    a real schema-design issue. Raise ``AssertionError`` instead, naming
+    ``alembic merge`` as the canonical fix.
+
+    MUST be called inside test bodies, NOT at module import. The module-level
+    ``pytestmark = pytest.mark.skipif(not _postgres_reachable(), ...)`` only
+    runs at collection time; an import-time invocation would bypass it and
+    fail on hosts where the integration tests are meant to skip.
+    """
+    result = subprocess.check_output(
+        ["uv", "run", "alembic", "heads"],
+        cwd=REPO,
+        text=True,
+    )
+    lines = [line for line in result.splitlines() if line.strip()]
+    assert len(lines) == 1, (
+        f"Expected exactly one Alembic head, got {len(lines)}: {lines!r}. "
+        "Run `alembic merge` to consolidate."
+    )
+    return lines[0].split()[0]
+
+
 @pytest.fixture
 def fresh_db() -> Iterator[None]:
     """Roll back to base, then leave whatever state the test ends in.
@@ -120,16 +148,8 @@ class TestBaselineMigration:
                 result = conn.execute(text("SELECT version_num FROM alembic_version"))
                 row = result.fetchone()
                 assert row is not None, "alembic_version table empty after upgrade head"
-                # Baseline is "0001" per migrations/versions/0001_baseline.py.
-                # Head extended by feat_data_table_primitive migrations
-                # 0008–0013 (search_vector columns + GIN indexes on 6 tables);
-                # 0014 adds clusters.target_filter (feat_cluster_target_filter);
-                # 0015 adds trials.per_query_metrics (feat_pr_metric_confidence);
-                # 0016 adds config_repos.last_merged_proposal_id
-                # (feat_config_repo_baseline_tracking);
-                # 0017 adds proposals.last_polled_at
-                # (chore_reconciler_terminal_closed_no_poll).
-                assert row[0] == "0017"
+                # Head is resolved dynamically via _current_head() — see helper docstring.
+                assert row[0] == _current_head()
         finally:
             engine.dispose()
 
@@ -152,9 +172,8 @@ class TestBaselineMigration:
             with engine.connect() as conn:
                 row = conn.execute(text("SELECT version_num FROM alembic_version")).fetchone()
                 assert row is not None
-                # Head: 0017 (chore_reconciler_terminal_closed_no_poll adds
-                # proposals.last_polled_at).
-                assert row[0] == "0017"
+                # Head is resolved dynamically via _current_head() — see helper docstring.
+                assert row[0] == _current_head()
         finally:
             engine.dispose()
 
