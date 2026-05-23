@@ -96,7 +96,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_reconciler_terminal_closed_no_poll](implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll/feature_spec.md) | Chore | Complete (PR #216, merged 2026-05-23, squash SHA `95d4c414`) | — | [PR #216](https://github.com/SoundMindsAI/relyloop/pull/216) merged 2026-05-23 |
 | [chore_spec_trial_created_at_drift](implemented_features/2026_05_13_chore_spec_trial_created_at_drift/idea.md) | Chore | Complete | — | Complete |
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Complete | — | Complete |
-| [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/feature_spec.md) | Chore | The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed  | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) |
+| [chore_study_default_stop_conditions](implemented_features/2026_05_23_chore_study_default_stop_conditions/feature_spec.md) | Chore | The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed  | — | [PR #215](https://github.com/SoundMindsAI/relyloop/pull/215) merged 2026-05-23 |
 | [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | Complete | — | Complete |
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | Complete | — | Complete |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_foundation` `infra_optuna_eval` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
@@ -158,8 +158,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_study_default_stop_conditions["study default stop conditions"]
-  class chore_study_default_stop_conditions done;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -292,6 +290,8 @@ graph LR
   class feat_study_preflight_overlap_probe done;
   chore_reconciler_terminal_closed_no_poll["reconciler terminal closed no poll"]
   class chore_reconciler_terminal_closed_no_poll done;
+  chore_study_default_stop_conditions["study default stop conditions"]
+  class chore_study_default_stop_conditions done;
   feat_config_repo_baseline_tracking["config repo baseline tracking"]
   class feat_config_repo_baseline_tracking done;
   infra_ir_measures_migration["ir measures migration"]
