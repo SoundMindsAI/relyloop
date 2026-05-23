@@ -234,21 +234,26 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
   // FR-5 modal-open reset: <Dialog> (Radix) keeps this component mounted
   // across open/close toggles, so useState alone does NOT reset on reopen.
   // This effect is the authoritative reset for AC-12.
+  // chore_study_default_stop_conditions FR-4: reset preset to Standard AND
+  // re-write the stop-condition fields to Standard's values on every open
+  // transition. Radix <Dialog> keeps this component mounted across open/close
+  // toggles, so without an explicit form-side reset the previous Deep
+  // selection's max_trials=1000 + time_budget_min=480 would persist,
+  // triggering the manual-edit watcher to flip activePreset → 'custom'
+  // immediately. GPT-5.5 implementation review caught this. `form` is omitted
+  // from the dep array because useForm()'s return value is stable per RHF;
+  // including it in the deps caused the effect to re-fire on every render
+  // in production-build Chromium (vitest jsdom didn't surface this), which
+  // raced with user input and made max_trials uneditable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (open) {
       setManualMode(false);
-      // chore_study_default_stop_conditions FR-4: reset preset to Standard
-      // AND re-write the stop-condition fields to Standard's values. Radix
-      // <Dialog> keeps this component mounted across open/close toggles, so
-      // without an explicit form-side reset the previous Deep selection's
-      // max_trials=1000 + time_budget_min=480 would persist, triggering the
-      // manual-edit watcher to flip activePreset → 'custom' immediately.
-      // GPT-5.5 implementation review caught this.
       setActivePreset('standard');
       form.setValue('max_trials', STANDARD_WRITE.max_trials, { shouldDirty: false });
       form.setValue('time_budget_min', STANDARD_WRITE.time_budget_min, { shouldDirty: false });
     }
-  }, [open, form]);
+  }, [open]);
 
   // FR-5 auto-engage: when the targets query fails with TARGETS_FORBIDDEN,
   // silently flip into manual mode. `open` is in BOTH the guard AND the
