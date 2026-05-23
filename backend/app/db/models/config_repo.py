@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, String, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.app.db.base import Base
@@ -50,6 +50,22 @@ class ConfigRepo(Base):
 
     webhook_registration_error: Mapped[str | None] = mapped_column(String, nullable=True)
     """Last error from automated webhook registration; ``NULL`` when registered cleanly."""
+
+    last_merged_proposal_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("proposals.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    """The most recently merged proposal for this repo (feat_config_repo_baseline_tracking
+    FR-1). Maintained by the merge-event webhook handler at
+    :mod:`backend.app.api.webhooks.github` and the PR-state reconciler at
+    :mod:`backend.workers.pr_reconcile`. ``NULL`` on repos that have never had
+    a proposal merge. ``ON DELETE SET NULL`` so a test-only hard-delete of the
+    pointed-at proposal reverts the FK without breaking the config_repo row.
+
+    No ``relationship()`` declared — the reverse lookup is via JOIN in the
+    proposals serializer + the new repo helpers. Keeps this module from
+    importing :class:`Proposal`."""
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
