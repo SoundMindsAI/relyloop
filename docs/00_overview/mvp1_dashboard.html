@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Chore, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/chore_dashboard_pr_extraction_from_idea/feature_spec.md">Dashboard Pr Extraction From Idea</a></div>
-    <div class="one-liner">Extend `_extract_pr_number` to accept the idea body as a fourth argument, and have `_load_implemented` read `idea.md` and pass it through.</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/chore_dashboard_pr_extraction_from_idea/implementation_plan.md --all</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">70 / 71</div>
-      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:99%"></span></div>
+      <div class="value">71 / 71</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">13</div>
+      <div class="value">12</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">12</div>
+      <div class="value">11</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">6</div>
+      <div class="value">5</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -628,19 +628,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_pr_extraction_from_idea/feature_spec.md">Dashboard Pr Extraction From Idea</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/4">PR #4</a> <span>merged 2026-05-15</span>
-  </div>
-  <div class="one-liner">Extend `_extract_pr_number` to accept the idea body as a fourth argument, and have `_load_implemented` read `idea.md` and pass it through.</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -650,7 +638,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">87</span></h3>
+  <h3>Done <span class="count">88</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1206,6 +1194,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/157">PR #157</a> <span>merged 2026-05-20</span>
   </div>
   <div class="one-liner">Step 4 auto-fills from the template&#x27;s `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_23_chore_dashboard_pr_extraction_from_idea/feature_spec.md">Dashboard Pr Extraction From Idea</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/221">PR #221</a> <span>merged 2026-05-15</span>
+  </div>
+  <div class="one-liner">Extend `_extract_pr_number` to accept the idea body as a fourth argument, and have `_load_implemented` read `idea.md` and pass it through.</div>
 
 
 </div>
@@ -1795,8 +1796,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_dashboard_pr_extraction_from_idea[&quot;dashboard pr extraction from idea&quot;]
-  class chore_dashboard_pr_extraction_from_idea plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -1927,6 +1926,8 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  chore_dashboard_pr_extraction_from_idea[&quot;dashboard pr extraction from idea&quot;]
+  class chore_dashboard_pr_extraction_from_idea done;
   chore_migration_test_head_brittleness[&quot;migration test head brittleness&quot;]
   class chore_migration_test_head_brittleness done;
   chore_reconciler_terminal_closed_no_poll[&quot;reconciler terminal closed no poll&quot;]
@@ -1990,8 +1991,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_dashboard_pr_extraction_from_idea[&quot;dashboard pr extraction from idea&quot;]
-  class chore_dashboard_pr_extraction_from_idea plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2122,6 +2121,8 @@ footer {
   class feat_orchestrator_zero_streak_abort done;
   feat_study_preflight_overlap_probe[&quot;study preflight overlap probe&quot;]
   class feat_study_preflight_overlap_probe done;
+  chore_dashboard_pr_extraction_from_idea[&quot;dashboard pr extraction from idea&quot;]
+  class chore_dashboard_pr_extraction_from_idea done;
   chore_migration_test_head_brittleness[&quot;migration test head brittleness&quot;]
   class chore_migration_test_head_brittleness done;
   chore_reconciler_terminal_closed_no_poll[&quot;reconciler terminal closed no poll&quot;]

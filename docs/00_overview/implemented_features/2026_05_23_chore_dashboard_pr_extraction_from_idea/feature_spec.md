@@ -1,7 +1,7 @@
 # Feature Specification — `_extract_pr_number` reads `idea.md` for legacy idea-only features
 
 **Date:** 2026-05-23
-**Status:** Draft
+**Status:** Implemented (PR #221 squash-merged as `8a6452d5` on 2026-05-23)
 **Owners:** Eric Starr (engineering)
 **Related docs:**
 - [`idea.md`](idea.md)

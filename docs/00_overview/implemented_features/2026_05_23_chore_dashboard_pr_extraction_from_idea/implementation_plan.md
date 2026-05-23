@@ -1,7 +1,7 @@
 # Implementation Plan — `_extract_pr_number` reads `idea.md` for legacy idea-only features
 
 **Date:** 2026-05-23
-**Status:** Draft
+**Status:** Complete (PR #221 squash-merged as `8a6452d5` on 2026-05-23)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) (Conventional Commits, 80% coverage gate, no main commits).
 
