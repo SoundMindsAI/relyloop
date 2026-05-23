@@ -15,19 +15,19 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **67 / 67** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 12 important to file, not blocking |
+| → P2 (default) | 11 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 1 |
-| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 0 |
+| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 6 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (83)
+### Done (84)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -101,6 +101,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 | [bug_contract_test_stub_missing_target_filter_kwarg](implemented_features/2026_05_23_bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | Complete | — | Complete |
 | [bug_cursor_decode_value_validation](implemented_features/2026_05_17_bug_cursor_decode_value_validation/idea.md) | Bug | Complete | — | Complete |
+| [bug_dashboard_banner_dismiss_persistence_flake](implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | Complete | — | Complete |
 | [bug_dashboard_classifier_half_step_releases](implemented_features/2026_05_23_bug_dashboard_classifier_half_step_releases/idea.md) | Bug | Complete | — | Complete |
 | [bug_dashboard_depends_on_column_bloat](implemented_features/2026_05_23_bug_dashboard_depends_on_column_bloat/idea.md) | Bug | Complete | — | Complete |
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | Complete | — | Complete |
@@ -127,7 +128,7 @@ _None._
 
 _None._
 
-### Idea (13)
+### Idea (12)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -142,8 +143,7 @@ _None._
 | 9 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 10 | P2 | [chore_study_default_stop_conditions](../02_product/planned_features/chore_study_default_stop_conditions/idea.md) | Chore | The server-side `StudyConfigSpec` validator at [`backend/app/api/v1/schemas.py:572-580`](../../backend/app/api/v1/schemas.py) correctly **requires** at least one of `max_trials` or `time_budget_min` — | — | Idea — surfaced during the 2026-05-21 Karpathy-loop audit; recommendation grounded in measured per-trial cost from the local dev DB. |
 | 11 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 12 | P2 | [bug_dashboard_banner_dismiss_persistence_flake](../02_product/planned_features/bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR #193) smoke CI |
-| 13 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
+| 12 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
 
 ## Dependency graph
 
