@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-23** (latest mtime of any planned
 
 ## Next up
 
-**[feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md)** — Feature, currently in **Plan**
 
 > A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_config_repo_baseline_tracking --auto
+/impl-execute docs/02_product/planned_features/feat_config_repo_baseline_tracking/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -120,15 +120,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|
 | P2 | [feat_config_repo_baseline_tracking](../02_product/planned_features/feat_config_repo_baseline_tracking/feature_spec.md) | Feature | A single denormalized FK `config_repos.last_merged_proposal_id` points at the most recently merged proposal for each config repo. | — | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-10 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (13)
 
@@ -160,7 +160,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_config_repo_baseline_tracking["config repo baseline tracking"]
-  class feat_config_repo_baseline_tracking spec;
+  class feat_config_repo_baseline_tracking plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
