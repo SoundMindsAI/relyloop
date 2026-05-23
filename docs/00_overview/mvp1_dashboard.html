@@ -406,9 +406,9 @@ footer {
       <div class="value">12</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
-    <div class="kpi bug">
+    <div class="kpi ">
       <div class="label">Open bugs</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -420,12 +420,12 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">10</div>
+      <div class="value">11</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">6</div>
+      <div class="value">5</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      6 idea-only feat/infra folders (not yet scoped into MVP1)
+      7 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -464,19 +464,6 @@ footer {
   <div class="kanban">
 <div class="col idea">
   <h3>Idea <span class="count">12</span></h3>
-
-<div class="card bug" data-prefix="bug" data-priority="P1">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_smoke_create_study_modal_e2e_max_trials_fill">Smoke Create Study Modal E2E Max Trials Fill</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">After PR #215 added `defaultValues.max_trials = 200` to the create-study modal&#x27;s `useForm` call, the two Playwright E2E tests above started timing out at `page.getByTestId(&#x27;create-study-submit&#x27;).click</div>
-
-
-</div>
-
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_auto_followup_studies">Auto Followup Studies</a></div>
@@ -538,6 +525,19 @@ footer {
 
   </div>
   <div class="one-liner">A relevance engineer&#x27;s normal workflow after the first study completes:</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_agent_sibling_worktree_isolation">Agent Sibling Worktree Isolation</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Running an autonomous agent in a sibling git worktree while the operator&#x27;s main checkout has the Docker Compose stack up exposes two surfaces that aren&#x27;t designed for parallel work:</div>
 
 
 </div>
