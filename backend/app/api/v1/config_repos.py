@@ -33,6 +33,9 @@ from backend.app.api.v1.schemas import (
     ConfigRepoDetail,
     ConfigReposListResponse,
     CreateConfigRepoRequest,
+    ProposalSummary,
+    _ClusterEmbed,
+    _TemplateEmbed,
 )
 from backend.app.core.logging import get_logger
 from backend.app.db import repo
@@ -265,16 +268,51 @@ async def get_config_repo_endpoint(
     config_repo_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> ConfigRepoDetail:
-    """Detail by id; 404 ``CONFIG_REPO_NOT_FOUND`` if missing."""
-    row = await repo.get_config_repo(db, config_repo_id)
-    if row is None:
+    """Detail by id; 404 ``CONFIG_REPO_NOT_FOUND`` if missing.
+
+    feat_config_repo_baseline_tracking FR-4 — when
+    ``last_merged_proposal_id`` is set, embed the pointed-at proposal as a
+    :class:`ProposalSummary` with ``is_currently_live=True``. The embed-side
+    derivation uses the pointer context directly (NOT the generic
+    ``proposals → clusters → config_repos`` JOIN used elsewhere) so the
+    badge renders correctly even when the proposal's cluster was later
+    unwired from this config_repo (spec §19 "Cluster-with-config_repo-
+    rotated" decision-log entry).
+    """
+    result = await repo.get_config_repo_with_last_merged_proposal(db, config_repo_id)
+    if result is None:
         raise _err(
             404,
             "CONFIG_REPO_NOT_FOUND",
             f"config_repo {config_repo_id} not found",
             False,
         )
-    return _to_detail(row)
+    config_repo_row, proposal_row, cluster_row, template_row = result
+    detail = _to_detail(config_repo_row)
+    if proposal_row is not None and cluster_row is not None and template_row is not None:
+        detail.last_merged_proposal = ProposalSummary(
+            id=proposal_row.id,
+            study_id=proposal_row.study_id,
+            cluster=_ClusterEmbed(
+                id=cluster_row.id,
+                name=cluster_row.name,
+                engine_type=cluster_row.engine_type,
+                environment=cluster_row.environment,
+            ),
+            template=_TemplateEmbed(
+                id=template_row.id,
+                name=template_row.name,
+                version=template_row.version,
+                engine_type=template_row.engine_type,
+            ),
+            status=proposal_row.status,
+            pr_state=proposal_row.pr_state,
+            pr_url=proposal_row.pr_url,
+            metric_delta=proposal_row.metric_delta,
+            is_currently_live=True,
+            created_at=proposal_row.created_at,
+        )
+    return detail
 
 
 __all__ = ["router"]
