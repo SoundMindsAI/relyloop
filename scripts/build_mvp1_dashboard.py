@@ -732,8 +732,9 @@ def _expand_transitive_deps(features: list[Feature]) -> None:
             scoped = {g.folder for g in backend if _merge_order_key(g) < self_key}
         else:
             scoped = {g.folder for g in backend}
-        # Self-deps don't make sense; drop f.folder if it slipped in.
-        f.depends_on = sorted(set(explicit) | scoped - {f.folder})
+        # Self-deps don't make sense; drop f.folder if it slipped in via
+        # either the explicit list or the sentinel expansion.
+        f.depends_on = sorted((set(explicit) | scoped) - {f.folder})
 
 
 def load_all() -> list[Feature]:

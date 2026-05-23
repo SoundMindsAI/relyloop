@@ -155,14 +155,11 @@ class TestExpandTransitiveDeps:
         # by prefix even though they shipped first.
         assert target.depends_on == ["infra_foundation"]
 
-    def test_self_dep_in_sentinel_expansion_is_dropped(self) -> None:
-        """The pre-existing guard drops the feature's own folder from the
-        sentinel-expansion side. Self-references that arrived via the
-        EXPLICIT side of ``depends_on`` are preserved (pre-existing
-        behavior — out of scope for this bug fix).
+    def test_self_dep_dropped_from_both_explicit_and_expansion(self) -> None:
+        """``f.folder`` is removed from the final union — whether it slipped
+        in via the explicit ``depends_on`` list or via the sentinel
+        expansion. (Gemini PR #208 cycle-1 finding hardened the guard.)
         """
-        # Self-folder slips into the backend set; the sentinel expansion
-        # must exclude it. The explicit self-reference is preserved.
         target = _feat(
             "feat_self",
             prefix="feat",
@@ -173,10 +170,9 @@ class TestExpandTransitiveDeps:
 
         _expand_transitive_deps([target])
 
-        # No backend peers earlier than feat_self → expansion contributes
-        # nothing. The explicit "feat_self" survives — pre-existing
-        # behavior locked by this test, NOT changed by this fix.
-        assert target.depends_on == ["feat_self"]
+        # Both the explicit "feat_self" AND any self-reference in the
+        # expansion are removed.
+        assert target.depends_on == []
 
 
 class TestMergeOrderKey:
