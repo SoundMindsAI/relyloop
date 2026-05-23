@@ -496,7 +496,89 @@ def _strip_dependency_table_rows(text: str) -> str:
     return _DEP_ROW_RE.sub("", text)
 
 
-def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
+# Spec FR-2 Pattern A — own-PR shipped status with optional markdown link.
+# Each \b is immediately after a \d+ capture (digit↔non-digit transition);
+# placing \b after `]` or `)` would fail because both are non-word characters.
+_IDEA_STATUS_SHIPPED_RE = re.compile(
+    r"^\*\*Status:\*\*\s+\*\*Shipped\*\*\s+as\s+PR\s*"
+    r"(?:\[#(\d+)\b\]\([^)]*\)|\[#(\d+)\b\]|#(\d+)\b)",
+    re.MULTILINE,
+)
+
+# Spec FR-2 Pattern B — own-PR implemented status. Markdown-link alternation
+# matches Pattern A for symmetry — purely additive, never reduces matches.
+_IDEA_STATUS_IMPLEMENTED_RE = re.compile(
+    r"^\*\*Status:\*\*\s+\*\*Implemented\s*[—\-]\s*PR\s*"
+    r"(?:\[#(\d+)\b\]\([^)]*\)|\[#(\d+)\b\]|#(\d+)\b)",
+    re.MULTILINE,
+)
+
+# Spec FR-2 Pattern C — own-PR inline shipped dateline at line start.
+# Leading ^ is load-bearing: prevents matching dependency cites such as
+# `Depends on chore_X (**shipped 2026-05-21 as PR #N**)`.
+# Markdown-link alternation matches Pattern A for symmetry.
+_IDEA_SHIPPED_DATELINE_RE = re.compile(
+    r"^\*\*shipped\s+\d{4}-\d{2}-\d{2}\s+as\s+PR\s*"
+    r"(?:\[#(\d+)\b\]\([^)]*\)|\[#(\d+)\b\]|#(\d+)\b)",
+    re.MULTILINE,
+)
+
+# Spec FR-3 — `**PR:**` frontmatter pattern, applied only to the bounded
+# metadata block (see _extract_metadata_block).
+_IDEA_PR_FRONTMATTER_RE = re.compile(r"^\*\*PR:\*\*\s+#(\d+)\b", re.MULTILINE)
+
+# Spec FR-3 — metadata-key pattern matching `**Date:**`, `**Status:**`, etc.
+# Used by _extract_metadata_block to identify contiguous metadata lines.
+_METADATA_KEY_RE = re.compile(r"^\*\*[A-Z][a-zA-Z ]+:\*\*")
+
+
+def _extract_metadata_block(idea: str) -> str:
+    """Return the bounded metadata block at the top of an idea body.
+
+    Per spec FR-3 (chore_dashboard_pr_extraction_from_idea): the block is
+    the contiguous prefix of ``idea`` that contains the title line
+    (allowed ONLY as the first non-blank line), blank lines, and
+    metadata-key lines (e.g., ``**Date:**``, ``**Status:**``,
+    ``**Priority:**``, ``**PR:**``). Scanning stops at either (a) a
+    ``## `` heading line, OR (b) a non-blank line that is neither the
+    initial title nor a metadata-key match. A 30-line ceiling caps
+    headingless edge cases.
+
+    The ``title_seen`` flag ensures only the FIRST ``# `` line counts
+    as the title — a later ``# `` line in the same idea would be a
+    non-metadata body heading and stops the block.
+
+    This is the search scope for the `**PR:**` frontmatter convention
+    (spec priority 3.6) — it prevents body-section ``**PR:**``
+    references (e.g., inside ``## Related``) from being misread as this
+    feature's own PR.
+    """
+    lines = idea.splitlines()
+    cap = min(len(lines), 30)
+    nonblank_seen = False
+    for idx in range(cap):
+        line = lines[idx]
+        if line.startswith("## "):
+            return "\n".join(lines[:idx])
+        stripped = line.strip()
+        if not stripped:
+            continue
+        # The title line is allowed ONLY as the FIRST non-blank line.
+        # If any non-blank line (metadata or otherwise) has already been
+        # seen, a subsequent `# ` is a body heading and stops the block.
+        # GPT-5.5 final review caught the case where metadata-key lines
+        # come first and a later `# ` was mistakenly treated as title.
+        if stripped.startswith("# ") and not nonblank_seen:
+            nonblank_seen = True
+            continue
+        nonblank_seen = True
+        # Anything else that's not a metadata key ends the block.
+        if not _METADATA_KEY_RE.match(stripped):
+            return "\n".join(lines[:idx])
+    return "\n".join(lines[:cap])
+
+
+def _extract_pr_number(pipe: str, plan: str, spec: str, idea: str = "") -> int | None:
     """Find this feature's PR number, not dependency cites.
 
     Priority order:
@@ -504,12 +586,26 @@ def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
        for shipped features. Accepts both `PR #N` and `[#N]` markdown-link
        formats.
     2. The plan's `**Status:**` header (catches in-flight features).
-    3. A `merged`-context match across all artifacts (catches features
+    3. A `merged`-context match across pipe + plan + spec (catches features
        described in narrative form elsewhere). Dependency-table rows are
        stripped first so PR numbers cited as "Implemented (PR #N)" in a
        Dependencies row don't leak through.
-    4. First `#N` reference outside any dependency-table row, as a
-       last-resort fallback.
+    3.5. Strict line-anchored idea-body patterns (own-PR assertions: Pattern
+       A `**Status:** **Shipped** as PR #N`, Pattern B
+       `**Status:** **Implemented — PR #N`, Pattern C line-start
+       `**shipped YYYY-MM-DD as PR #N**`). Line-anchoring prevents false
+       positives from dependency cites embedded in narrative or table rows.
+    3.6. `**PR:**` frontmatter in the bounded metadata block — explicit
+       escape hatch for legacy idea-only features that don't fit the
+       natural Status patterns. Body-section ``**PR:**`` references do
+       NOT match.
+    4. First `#N` reference outside any dependency-table row in
+       pipe + plan + spec, as a last-resort fallback.
+
+    Priorities 3.5 and 3.6 added by ``chore_dashboard_pr_extraction_from_idea``
+    (2026-05-23) so legacy implemented features that have ONLY an
+    ``idea.md`` artifact (no spec / plan / pipeline_status) get their PR#
+    surfaced in the regenerated dashboard.
     """
     # 1. Scope to pipeline_status.md's Implement section first.
     impl = re.search(
@@ -525,9 +621,10 @@ def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
     m = re.search(r"^\*\*Status:\*\*[^\n]*PR\s*#(\d+)", plan, flags=re.MULTILINE)
     if m:
         return int(m.group(1))
-    # 3 + 4. Strip dependency-table rows before fuzzy matching so cites
-    # like ``| feat_study_lifecycle Phase 1 | All stories | Implemented
-    # (PR #18, #25) | …`` don't masquerade as this feature's PR.
+    # 3 + 4 (split: 3 here, 4 at the end). Strip dependency-table rows
+    # before fuzzy matching so cites like ``| feat_study_lifecycle Phase 1
+    # | All stories | Implemented (PR #18, #25) | …`` don't masquerade as
+    # this feature's PR.
     combined = _strip_dependency_table_rows(pipe + "\n" + plan + "\n" + spec)
     m = re.search(r"PR[^a-zA-Z\n]{0,5}#(\d+)[^.\n]{0,80}merged", combined)
     if m:
@@ -535,6 +632,27 @@ def _extract_pr_number(pipe: str, plan: str, spec: str) -> int | None:
     m = re.search(r"merged[^.\n]{0,80}PR[^a-zA-Z\n]{0,5}#(\d+)", combined)
     if m:
         return int(m.group(1))
+    # 3.5. Strict idea-body patterns (own-PR assertions).
+    # Per spec FR-2: each pattern is line-anchored to prevent dependency-cite
+    # false positives. Order matters: A → B → C, first match wins.
+    for pattern in (
+        _IDEA_STATUS_SHIPPED_RE,
+        _IDEA_STATUS_IMPLEMENTED_RE,
+        _IDEA_SHIPPED_DATELINE_RE,
+    ):
+        match = pattern.search(idea)
+        if match:
+            # Pattern A has 3 alternation groups; exactly one is non-empty.
+            for group in match.groups():
+                if group:
+                    return int(group)
+    # 3.6. `**PR:**` frontmatter fallback, scoped to the bounded metadata block.
+    # Per spec FR-3: prevents body-section **PR:** narrative references from
+    # matching.
+    frontmatter_match = _IDEA_PR_FRONTMATTER_RE.search(_extract_metadata_block(idea))
+    if frontmatter_match:
+        return int(frontmatter_match.group(1))
+    # 4. Last-resort fallback.
     matches = re.findall(r"PR[^a-zA-Z\n]{0,5}#(\d+)", combined)
     return int(matches[0]) if matches else None
 
@@ -643,7 +761,7 @@ def _load_planned(folder_path: Path) -> Feature | None:
         status_line=status_line,
         one_liner=one_liner,
         depends_on=_extract_depends_on(spec),
-        pr_number=_extract_pr_number(pipe, plan, spec),
+        pr_number=_extract_pr_number(pipe, plan, spec, idea),
         merged_date=_extract_merged_date(pipe + plan + spec),
         deferred_phase=deferred,
         # Release classifier reads ONLY the parsed status_line, not the full
@@ -668,9 +786,17 @@ def _load_implemented(folder_path: Path) -> Feature | None:
     spec = _read(folder_path / "feature_spec.md")
     plan = _read(folder_path / "implementation_plan.md")
     pipe = _read(folder_path / "pipeline_status.md")
+    idea = _read(folder_path / "idea.md")
 
-    one_liner = _extract_one_liner(spec, source_dir=folder_path)
-    pr = _extract_pr_number(pipe, plan, spec)
+    # One-liner: prefer spec; fall back to idea.md's Problem block for
+    # legacy idea-only folders. Symmetric with _load_planned per Gemini
+    # PR #221 finding #3.
+    one_liner = (
+        _extract_one_liner(spec, source_dir=folder_path)
+        if spec
+        else _extract_idea_problem(idea, idea_dir=folder_path)
+    )
+    pr = _extract_pr_number(pipe, plan, spec, idea)
     merged = _extract_merged_date(pipe + plan + spec)
 
     # Date prefix from the folder is the canonical merged date.
