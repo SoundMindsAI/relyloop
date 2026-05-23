@@ -218,8 +218,15 @@ def score(qrels: Qrels, run: Run, metrics: set[str]) -> ScoreResult:
     if not metrics:
         return {"aggregate": {}, "per_query": {}}
 
+    # Use the Measure object itself as the reverse-map key (Gemini Code Assist
+    # #2 + #3 on PR #198): ir_measures Measure objects implement __hash__ and
+    # __eq__ correctly — hash(nDCG@10) == hash(nDCG@10) holds across instances,
+    # and == returns True. Keying by the object directly is strictly more
+    # robust than keying by repr(obj): if a future ir_measures version changes
+    # its string format (e.g. starts including default parameters in repr),
+    # the object-keyed map keeps working.
     user_to_obj: dict[str, Measure] = {m: _translate_metric_name(m) for m in metrics}
-    obj_repr_to_user: dict[str, str] = {repr(obj): user for user, obj in user_to_obj.items()}
+    obj_to_user: dict[Measure, str] = {obj: user for user, obj in user_to_obj.items()}
     obj_list: list[Measure] = list(user_to_obj.values())
 
     # Universe filter: mirrors the legacy evaluator's qid set so the
@@ -243,19 +250,18 @@ def score(qrels: Qrels, run: Run, metrics: set[str]) -> ScoreResult:
     for metric_tuple in ir_measures.iter_calc(obj_list, qrels, run):
         if metric_tuple.query_id not in valid_qids:
             continue
-        user_token = obj_repr_to_user.get(repr(metric_tuple.measure))
+        user_token = obj_to_user.get(metric_tuple.measure)
         if user_token is None:
             # Fail loud: ir_measures should only emit measures we requested.
-            # If we see an unexpected measure (e.g. a future ir_measures
-            # version that emits internal helper metrics, or a metric-object
-            # repr that changed between versions and broke the reverse map),
-            # raising prevents silent JSONB-shape corruption. Per phase-gate
-            # F1: silent skip would hide drift in the obj_repr_to_user map.
+            # With Measure objects as dict keys (Gemini #2 + #3), an unknown
+            # measure indicates ir_measures emitted a measure not in the
+            # requested list — a real internal divergence, not a repr drift
+            # we'd otherwise silently miss. Raise rather than skip so the
+            # JSONB-shape contract stays trustworthy.
             raise RuntimeError(
                 f"score() received an unexpected measure {metric_tuple.measure!r} "
-                f"(repr={repr(metric_tuple.measure)!r}) from ir_measures.iter_calc; "
-                f"requested measures were {[repr(o) for o in obj_list]!r}. "
-                f"This indicates a repr drift or an internal ir_measures change — "
+                f"from ir_measures.iter_calc; requested measures were "
+                f"{obj_list!r}. This indicates an internal ir_measures change — "
                 f"investigate before re-running."
             )
         per_query.setdefault(metric_tuple.query_id, {})[user_token] = float(metric_tuple.value)
