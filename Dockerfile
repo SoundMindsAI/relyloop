@@ -41,11 +41,17 @@ WORKDIR /app
 # ---------------------------------------------------------------------------
 FROM base AS deps
 
-# pytrec_eval (added by infra_optuna_eval) ships as a sdist with NO prebuilt
-# wheels for any Python version — every install compiles its C extension on
-# the fly. We install gcc + python-dev headers here, then this whole stage is
-# discarded (the runtime stage copies only /app/.venv, not the build toolchain),
-# so the final image stays slim.
+# IR-evaluation backend pulls a C-extension package transitively:
+# infra_ir_measures_migration swapped scoring.py to `ir_measures`, which in
+# turn resolves `pytrec-eval-terrier` (the actively-maintained PyTerrier fork
+# of pytrec_eval) as a transitive backend. Like the abandoned pytrec_eval
+# before it, pytrec-eval-terrier ships as an sdist with no prebuilt wheels
+# for many Python versions — every install compiles its C extension on the
+# fly. We install gcc + python-dev headers here, then this whole stage is
+# discarded (the runtime stage copies only /app/.venv, not the build
+# toolchain), so the final image stays slim. Verified at impl-plan time per
+# feature_spec.md §19 Q3: `uv tree | grep pytrec_eval` returns the
+# `pytrec-eval-terrier` transitive entry.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         gcc \

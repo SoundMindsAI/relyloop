@@ -153,7 +153,7 @@ def test_objective_spec_requires_k_for_ndcg() -> None:
 
 
 def test_objective_spec_accepts_mrr_without_k() -> None:
-    """``mrr`` / ``err`` do NOT require k (per pytrec_eval semantics)."""
+    """``mrr`` / ``err`` do NOT require k (per standard IR-evaluation conventions)."""
     cfg = ObjectiveSpec(metric="mrr")
     assert cfg.k is None
 

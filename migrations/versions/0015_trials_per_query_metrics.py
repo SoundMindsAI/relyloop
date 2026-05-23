@@ -14,7 +14,7 @@ per spec FR-7).
 
 Shape: ``{query_id: {metric_name: float}}`` matching ``ScoreResult.per_query``
 keys (``ndcg``, ``map``, ``precision``, ``recall``, ``mrr`` — user-facing names,
-NOT the pytrec_eval wire forms).
+NOT the library wire forms produced internally by ``backend/app/eval/scoring.py``).
 """
 
 from collections.abc import Sequence

@@ -3,9 +3,13 @@
 Asserts every Trial column matches the spec §FR-5 contract:
 
 * ``params`` is JSON-serializable (the JSONB round-trip must round-trip).
-* ``metrics`` keys are user-facing names — pytrec_eval wire prefixes
-  (``ndcg_cut_``, ``P_``, ``recall_``, ``recip_rank``, ``map_cut_``) must
-  never leak into the persisted row.
+* ``metrics`` keys are user-facing names. Library wire forms must never leak
+  past ``scoring.score()`` — extended by infra_ir_measures_migration Story 1.5
+  to forbid BOTH the legacy ``pytrec_eval`` wire prefixes (``ndcg_cut_``,
+  ``P_``, ``recall_``, ``recip_rank``, ``map_cut_``) AND the post-migration
+  ``ir_measures`` PascalCase metric-object reprs (``nDCG@``, ``P@``, ``RR``,
+  ``AP@``, ``R@``). The canonical strict-regex check enumerates the exact
+  user-facing token allowlist.
 * ``primary_metric == metrics[objective_metric_key(study.objective)]``
   (denormalization invariant per FR-5).
 * ``status`` is in the DB CHECK allowlist ``{complete, failed, pruned}``.
@@ -19,6 +23,7 @@ test runs against the ORM Trial model directly.
 from __future__ import annotations
 
 import json
+import re
 from unittest.mock import AsyncMock
 
 import pytest
@@ -48,12 +53,15 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-_PYTREC_EVAL_WIRE_PREFIXES = (
-    "ndcg_cut_",
-    "P_",
-    "recall_",
-    "recip_rank",
-    "map_cut_",
+# Authoritative strict regex (spec FR-3 + AC-3) — matches ONLY the user-facing
+# token allowlist. Rejects every pre-migration pytrec_eval wire prefix
+# (ndcg_cut_, P_, recip_rank, map_cut_, recall_) AND every post-migration
+# ir_measures metric-object repr (nDCG@, AP@, P@, R@, RR). The substantive-
+# check enumeration lives at
+# ``backend/tests/unit/eval/test_metric_token_allowlist_regex.py`` (paired with
+# this assertion so the allowlist stays verifiable without Postgres).
+_STRICT_USER_FACING_KEY = re.compile(
+    r"^(?:mrr|map|(?:ndcg|precision|recall|map)@(?:1|3|5|10|20|50|100))$"
 )
 
 
@@ -106,13 +114,16 @@ async def test_trial_row_shape_after_happy_path_run_trial(
     json.dumps(t.params)
     json.dumps(t.metrics)
 
-    # 3. Wire-name namespace — pytrec_eval prefixes must NOT appear in metrics.
+    # 3. Wire-name namespace — every key must match the strict user-facing
+    #    token allowlist. Rejects pytrec_eval wire prefixes (ndcg_cut_, P_,
+    #    recall_, recip_rank, map_cut_) AND ir_measures metric-object reprs
+    #    (nDCG@, AP@, P@, R@, RR). See spec FR-3 + AC-3.
     for key in t.metrics:
-        for prefix in _PYTREC_EVAL_WIRE_PREFIXES:
-            assert not key.startswith(prefix), (
-                f"metrics key {key!r} starts with pytrec_eval wire prefix "
-                f"{prefix!r} — wire names must never leak past scoring.score()"
-            )
+        assert _STRICT_USER_FACING_KEY.match(key), (
+            f"metrics key {key!r} is not in the user-facing token allowlist — "
+            f"library wire forms (pytrec_eval ndcg_cut_/P_/... or ir_measures "
+            f"nDCG@/P@/RR/AP@/R@) must never leak past scoring.score()"
+        )
 
     # 4. Primary metric denormalized correctly.
     expected_key = objective_metric_key(study.objective)

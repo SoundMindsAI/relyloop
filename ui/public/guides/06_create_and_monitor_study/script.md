@@ -5,7 +5,7 @@
 A "study" is one Optuna optimization run against a query set + judgment
 list. RelyLoop's Optuna orchestrator uses the TPE sampler by default,
 proposes parameter sets, the worker runs each trial (renders the template
-→ searches the cluster → scores via `pytrec_eval`), and the study
+→ searches the cluster → scores via `ir_measures`), and the study
 terminates when budget (max_trials or time_budget_min) is exhausted.
 
 ## The 5-step create-study form

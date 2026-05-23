@@ -120,7 +120,7 @@ These define *what you're tuning* (the query template knobs) and *what good look
 
 ### Phase C — Run the loop (the core value)
 
-This is what RelyLoop *is*: an off-line optimization loop driven by Optuna against `pytrec_eval`-computed metrics.
+This is what RelyLoop *is*: an off-line optimization loop driven by Optuna against `ir_measures`-computed metrics.
 
 #### C1. Create a study via the UI
 - **Solves:** Codifying *"tune these parameters for this query set against this cluster"* as a structured optimization run.
@@ -274,7 +274,7 @@ These are deliberate MVP1 trims — the API surface is the contract, and the UI 
 
 Important framing for new engineers, because the negative space defines the tool as much as the positive:
 
-- **Never sits on the live search-serving path.** All optimization is off-line against `pytrec_eval`. The only thing that changes production is a merged PR.
+- **Never sits on the live search-serving path.** All optimization is off-line against `ir_measures`. The only thing that changes production is a merged PR.
 - **Never runs online A/B tests.**
 - **Never trains LTR models.**
 - **Never modifies cluster schema / mapping / analyzer settings.** Tuning is restricted to query-time parameters surfaced through the engine adapter.

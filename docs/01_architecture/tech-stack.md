@@ -38,7 +38,7 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 | Logging | structlog | Structured JSON to stdout. |
 | Queue / workers | Arq + Redis 7 | Async-native; workers are separate processes. |
 | Optimization | Optuna with TPE sampler + RDBStorage | RDBStorage points at the same Postgres as the app. |
-| IR evaluation | pytrec_eval | Wraps `trec_eval`; consistent metrics across engines. |
+| IR evaluation | ir_measures | Provider-abstracted; wraps multiple IR-evaluation backends behind a typed metric-object DSL; consistent metrics across engines. |
 | LLM SDK (MVP1) | `openai` Python SDK with function calling | LangGraph deferred to GA v1. No provider-abstraction layer in MVP1 — direct OpenAI calls. |
 | Auth — humans (MVP4+) | SSO via reverse proxy (oauth2-proxy or Authelia); proxy injects `X-Auth-Email` header; API trusts the header only when verified by mTLS or a shared secret | Not present in MVP1–3. No password storage in RelyLoop itself — identity provider owns credentials. |
 | Auth — service accounts (MVP4+) | Bearer API keys (`Authorization: Bearer <key>`); keys hashed with Argon2id (passlib) at rest | Not present in MVP1–3. Per-key role + scopes + expiration; revocation via `revoked_at`. |

@@ -73,7 +73,7 @@ The UI runs via `pnpm dev` during MVP1 (not yet a Compose service); a `ui` conta
 | Redis | Arq task queue | Job orchestration |
 | Worker pool | Trial execution, digest generation, Git PR creation | Long-running background work |
 | Adapters | Engine-specific query rendering and execution | Every engine-specific code path |
-| pytrec_eval | Universal IR evaluation (nDCG, MAP, P@K) | Metric computation |
+| ir_measures | Universal IR evaluation (nDCG, MAP, P@K) — provider-abstracted | Metric computation |
 | Git provider | GitHub PR + webhook handling | Outbound Git operations |
 
 **Architectural principle:** the adapter layer is the *only* place engine-specific code lives. The orchestrator, study runner, evaluator, and UI are all engine-agnostic — they consume the unified vocabulary in [`adapters.md`](adapters.md) §"Cross-engine parameter naming."

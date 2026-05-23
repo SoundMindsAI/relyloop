@@ -1,9 +1,11 @@
 """Unit tests for backend.app.eval.scoring (infra_optuna_eval Story 1.2 / AC-3).
 
 The nDCG@10 and MAP@10 expected values in this module are independently
-hand-computed from the canonical pytrec_eval formulas (NOT pinned from
+hand-computed from the standard IR-evaluation formulas (NOT pinned from
 implementation output), per the spec AC-3 contract and the plan's Story 1.2
-task 5 hand-computation requirement.
+task 5 hand-computation requirement. infra_ir_measures_migration verified
+these hand-computed values match ir_measures' output via the parity test
+at backend/tests/unit/eval/test_scoring_parity.py.
 
 Hand-computation reference (see ``HANDBUILT_FIXTURE`` docstring below).
 """
@@ -140,7 +142,7 @@ def test_score_supports_full_recall_map_distinct_from_map_at_k():
 
 
 def test_score_handles_binary_relevance():
-    """Binary 0/1 qrels work the same as graded — pytrec_eval auto-handles."""
+    """Binary 0/1 qrels work the same as graded — ir_measures auto-handles."""
     binary_qrels = {"q1": {"d1": 1, "d2": 0, "d3": 1}}
     binary_run = {"q1": {"d1": 0.9, "d2": 0.5, "d3": 0.1}}
     result = score(binary_qrels, binary_run, {"ndcg@10"})
@@ -153,7 +155,7 @@ def test_score_handles_binary_relevance():
 
 
 def test_score_mrr_translates_to_recip_rank():
-    """`mrr` (user-facing) → `recip_rank` (pytrec_eval wire); result re-keyed."""
+    """`mrr` (user-facing) → ir_measures `RR` metric object; result re-keyed."""
     qrels = {"q1": {"d1": 0, "d2": 1}}
     run = {"q1": {"d1": 0.9, "d2": 0.5}}  # d2 (relevant) at rank 2 → RR = 1/2
     result = score(qrels, run, {"mrr"})

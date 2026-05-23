@@ -49,7 +49,7 @@ Feature specs that touch these entities mark the deferred columns/tables as `(MV
 | `studies` | `feat_study_lifecycle` (full shape, including failed_reason) | feat_digest_proposal, feat_studies_ui |
 | `trials` | `feat_study_lifecycle` | infra_optuna_eval (writes via run_trial), feat_digest_proposal |
 | `proposals` | `feat_study_lifecycle` (full shape, including pr_url/pr_state/pr_merged_at/pr_open_error/rejected_reason) | feat_digest_proposal (writes), feat_github_pr_worker (writes pr_url + pr_open_error), feat_github_webhook (writes pr_state + pr_merged_at) |
-| `judgments` | `feat_llm_judgments` | (terminal — no consumers in MVP1 beyond pytrec_eval reads) |
+| `judgments` | `feat_llm_judgments` | (terminal — no consumers in MVP1 beyond ir_measures reads) |
 | `digests` | `feat_digest_proposal` | feat_studies_ui, feat_proposals_ui |
 | `conversations` | `feat_chat_agent` | (terminal) |
 | `messages` | `feat_chat_agent` | (terminal) |
@@ -228,7 +228,7 @@ CREATE INDEX trials_study_metric ON trials (study_id, primary_metric DESC NULLS 
 
 `trials` is hard-delete only (no `deleted_at`) — when a study is removed, trials cascade-delete with it; trial history is regenerable from Optuna's RDB if needed.
 
-`per_query_metrics` (added by [`feat_pr_metric_confidence`](../00_overview/implemented_features/<date>_feat_pr_metric_confidence/) at Alembic `0015`) carries the per-query pytrec_eval scores from `backend/app/eval/scoring.py::score()`'s `per_query` dict, keyed by the user-facing metric tokens it emits (e.g. `ndcg@10`, `map@10`, `mrr`). NULL for trials predating the migration or for failed/pruned trials. The DB-level CHECK constraint enforces NULL-or-object at the persistence boundary since the write path is the Arq `run_trial` worker, not a Pydantic-validated HTTP request. Consumed by `backend/app/services/study_confidence.py::fetch_study_confidence` (the FR-2 4-query read pattern) to assemble `ConfidenceShape` on the `StudyDetail` response, the PR body's `## Confidence` section, and the digest narrative's `<confidence>` / `<per_query_outcomes>` Jinja blocks. Per-sub-field FR-7 degradation paths suppress only the per-query-dependent surfaces (`ci_95`, `headline.n_queries`, `per_query_outcomes`) when this column is NULL.
+`per_query_metrics` (added by [`feat_pr_metric_confidence`](../00_overview/implemented_features/<date>_feat_pr_metric_confidence/) at Alembic `0015`) carries the per-query ir_measures scores from `backend/app/eval/scoring.py::score()`'s `per_query` dict, keyed by the user-facing metric tokens it emits (e.g. `ndcg@10`, `map@10`, `mrr`). NULL for trials predating the migration or for failed/pruned trials. The DB-level CHECK constraint enforces NULL-or-object at the persistence boundary since the write path is the Arq `run_trial` worker, not a Pydantic-validated HTTP request. Consumed by `backend/app/services/study_confidence.py::fetch_study_confidence` (the FR-2 4-query read pattern) to assemble `ConfidenceShape` on the `StudyDetail` response, the PR body's `## Confidence` section, and the digest narrative's `<confidence>` / `<per_query_outcomes>` Jinja blocks. Per-sub-field FR-7 degradation paths suppress only the per-query-dependent surfaces (`ci_95`, `headline.n_queries`, `per_query_outcomes`) when this column is NULL.
 
 ### `digests`, `proposals` (owned by `feat_digest_proposal` + `feat_github_pr_worker`)
 

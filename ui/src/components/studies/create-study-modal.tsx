@@ -57,7 +57,7 @@ import { ResponsiveLayout } from './search-space-builder/responsive-layout';
 // Asserted by ui/src/__tests__/components/studies/k-required.test.ts.
 export const K_REQUIRED: ReadonlySet<ObjectiveMetric> = new Set(['ndcg', 'precision', 'recall']);
 
-// Source-of-truth: backend/app/eval/scoring.py:32 (metric → pytrec_eval token mapper).
+// Source-of-truth: backend/app/eval/scoring.py (metric → ir_measures metric-object mapper).
 // Asserted by backend/tests/unit/eval/test_scoring_metric_tokens.py and the
 // K_REQUIRED-membership contract test at
 // backend/tests/contract/test_k_required_membership.py.

@@ -3,7 +3,7 @@
 > 3-minute walkthrough — establish ground truth and measure LLM agreement.
 
 Judgments are the relevance ratings (0–3) for every (query, doc) pair the
-queries surface. They're what `pytrec_eval` scores trials against. Two
+queries surface. They're what `ir_measures` scores trials against. Two
 paths to populate them:
 
 - **LLM generation** (Guide TBD when MVP2 ships LLM mocking) — fires
