@@ -104,6 +104,31 @@ def _assert_port_free() -> None:
         )
 
 
+def _assert_localhost_resolves_to_ipv4() -> None:
+    """Verify ``localhost:8000`` is reachable via IPv4 from the test process.
+
+    The route handler self-calls ``http://localhost:8000``. Uvicorn here
+    binds ``127.0.0.1:8000`` for portability + a deterministic teardown
+    (binding ``::`` introduces dual-stack address-family complications on
+    macOS/BSD test runners). On platforms where ``localhost`` resolves
+    to ``::1`` first (some macOS configs), the self-call would fail with
+    ``ConnectError``. Validate by opening a short-lived TCP probe via
+    ``localhost`` — if it succeeds, the handler's self-call will work.
+
+    Per GPT-5.5 final-review Medium #3.
+    """
+    if not _port_open("localhost", DEMO_RESEED_PORT, timeout=2.0):
+        raise RuntimeError(
+            f"localhost:{DEMO_RESEED_PORT} did NOT accept a probe even "
+            f"though uvicorn is bound at 127.0.0.1:{DEMO_RESEED_PORT}. "
+            f"This indicates 'localhost' on this host resolves to ::1 "
+            f"first and the handler's `http://localhost:8000` self-call "
+            f"will fail with ConnectError. Either bind dual-stack "
+            f"(host='::') OR force 'localhost' to resolve to 127.0.0.1 "
+            f"in /etc/hosts."
+        )
+
+
 @contextlib.contextmanager
 def running_uvicorn() -> Iterator[str]:
     """Start uvicorn on 127.0.0.1:8000, apply migrations, yield base URL."""
@@ -115,6 +140,7 @@ def running_uvicorn() -> Iterator[str]:
     server = _UvicornBackgroundServer(app, host="127.0.0.1", port=DEMO_RESEED_PORT)
     server.start()
     try:
+        _assert_localhost_resolves_to_ipv4()
         yield f"http://127.0.0.1:{DEMO_RESEED_PORT}"
     finally:
         server.stop()

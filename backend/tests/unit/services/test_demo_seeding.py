@@ -38,7 +38,9 @@ def test_resolve_engine_base_url_es() -> None:
 
 
 def test_resolve_engine_base_url_os() -> None:
-    assert _resolve_engine_base_url("http://localhost:9201") == "http://opensearch:9201"
+    # Note: the host-side ``:9201`` is the OS port-mapping (avoiding collision
+    # with ES); inside the Compose network OS still listens on the default 9200.
+    assert _resolve_engine_base_url("http://localhost:9201") == "http://opensearch:9200"
 
 
 def test_resolve_engine_base_url_unknown_raises() -> None:

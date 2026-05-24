@@ -170,6 +170,31 @@ describe('<ResetDemoStateButton />', () => {
     );
   });
 
+  it('apiClient SERVICE_UNAVAILABLE (status=0 network wrapper) shows unreachable toast', async () => {
+    // apiClient wraps raw fetch/network failures as ApiError with
+    // errorCode='SERVICE_UNAVAILABLE' and status=0. That looks like an
+    // envelope failure to a naive isApiError check, but the backend
+    // never produced an envelope — the request didn't arrive. Should
+    // route to the unreachable toast, not the SEED_FAILED-style.
+    // Per GPT-5.5 PR #228 final-review Medium #2.
+    mockPost.mockRejectedValueOnce(
+      new ApiError({
+        status: 0,
+        errorCode: 'SERVICE_UNAVAILABLE',
+        message: 'Backend unreachable',
+        retryable: true,
+      }),
+    );
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    await user.click(screen.getByTestId('reset-demo-state-confirm'));
+    expect(mockToastError).toHaveBeenCalledTimes(1);
+    expect(mockToastError.mock.calls[0]?.[0] as string).toBe(
+      'Reseed in progress or unreachable — refresh the page in a moment.',
+    );
+  });
+
   it('non-ApiError network failure shows the unreachable toast', async () => {
     mockPost.mockRejectedValueOnce(new TypeError('Network Error'));
     const user = userEvent.setup();

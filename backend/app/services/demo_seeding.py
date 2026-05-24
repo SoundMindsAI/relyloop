@@ -138,8 +138,16 @@ class ReseedSummary(BaseModel):
 # Mapping is module-private so the unit tests can assert on the exact
 # closed set; production callers go through :func:`_resolve_engine_base_url`.
 _ENGINE_BASE_URL_MAPPING: Final[dict[str, str]] = {
+    # Host-published ES port (Compose ``"127.0.0.1:9200:9200"``) → in-container
+    # ES service port.
     "http://localhost:9200": "http://elasticsearch:9200",
-    "http://localhost:9201": "http://opensearch:9201",
+    # Host-published OS port (Compose ``"127.0.0.1:9201:9200"``) → in-container
+    # OS service port. The host-side ``:9201`` exists ONLY to avoid colliding
+    # with ES on the host; INSIDE the Compose network OpenSearch listens on
+    # 9200 like every other engine container. Mapping to ``opensearch:9201``
+    # would attempt to reach a port that's not bound and fail with
+    # ``ConnectError`` (GPT-5.5 final-review High).
+    "http://localhost:9201": "http://opensearch:9200",
 }
 
 
@@ -426,16 +434,36 @@ async def reseed_demo_state(
         )
 
         # 2f. API: fetch query IDs so judgments can reference them.
+        # ``limit=200`` is the API's documented page-size cap (FR-2 /
+        # api-conventions.md §Pagination). The current scenarios each
+        # define 5 queries, but the cap leaves generous headroom for
+        # future demo growth without needing to wire cursor pagination
+        # into this single-page lookup. Per Gemini PR #228 review.
         qrows_resp = await _get(
             api_client,
             f"/api/v1/query-sets/{qset_id}/queries",
-            params={"limit": 50},
+            params={"limit": 200},
             client_label="api",
             step=f"{slug}/get_queries",
         )
         qrows = qrows_resp["data"]
         qtext_to_id: dict[str, str] = {r["query_text"]: r["id"] for r in qrows}
-        qid_by_idx: list[str] = [qtext_to_id[q["query_text"]] for q in scenario_queries]
+        # Resolve each scenario query's text → API-assigned id. Surface a
+        # descriptive ``DemoSeedingError`` if the API response somehow
+        # omits a scenario's text (pagination cap hit, API normalization
+        # of query_text changed, etc.) rather than letting a bare
+        # ``KeyError`` propagate. Per Gemini PR #228 review.
+        qid_by_idx: list[str] = []
+        for q in scenario_queries:
+            q_text = q["query_text"]
+            if q_text not in qtext_to_id:
+                raise DemoSeedingError(
+                    f"{slug}: query text {q_text!r} not present in API "
+                    f"response for query-set {qset_id} (returned "
+                    f"{len(qrows)} of <= 200; possible pagination cap "
+                    "or text-normalization mismatch)"
+                )
+            qid_by_idx.append(qtext_to_id[q_text])
 
         # 2g. API: judgments.
         judgments_payload = [

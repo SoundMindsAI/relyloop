@@ -72,14 +72,25 @@ export function ResetDemoStateButton(): React.ReactElement {
       ]);
       setOpen(false);
     } catch (err) {
-      if (isApiError(err) && err instanceof ApiError && err.errorCode !== 'REQUEST_ABORTED') {
+      // Distinguish three failure modes:
+      //   1. Envelope failure with a real status (4xx/5xx) → show error
+      //      code + runbook hint (SEED_FAILED, SEED_IN_PROGRESS, etc).
+      //   2. Caller-aborted (180s client ceiling) → REQUEST_ABORTED
+      //      envelope → unreachable toast.
+      //   3. Raw network failure (apiClient wraps as ApiError with
+      //      errorCode='SERVICE_UNAVAILABLE' and status=0) → unreachable
+      //      toast — backend may still be running; refresh, don't retry.
+      //      (Per GPT-5.5 final-review.)
+      const isEnvelopeFailure =
+        isApiError(err) &&
+        err instanceof ApiError &&
+        err.status > 0 &&
+        err.errorCode !== 'REQUEST_ABORTED';
+      if (isEnvelopeFailure) {
         toast.error(
-          `Reseed failed: ${err.errorCode}. If this followed a hang or timeout, run \`docker compose restart api\` before retrying; otherwise see the demo-reseed runbook or run \`make seed-demo FORCE=1\` from the host.`,
+          `Reseed failed: ${(err as ApiError).errorCode}. If this followed a hang or timeout, run \`docker compose restart api\` before retrying; otherwise see the demo-reseed runbook or run \`make seed-demo FORCE=1\` from the host.`,
         );
       } else {
-        // Aborted (180s client ceiling) OR raw network failure
-        // (SERVICE_UNAVAILABLE with status=0). Either way: the operator
-        // should refresh, not retry.
         toast.error('Reseed in progress or unreachable — refresh the page in a moment.');
       }
     } finally {
