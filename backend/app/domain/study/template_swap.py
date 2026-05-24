@@ -130,8 +130,12 @@ def remap_search_space_for_swap_target(
     # 3) Final Pydantic validation — surfaces cardinality-cap blowups +
     # any other constructor-time check failures as InvalidSearchSpaceError
     # so the worker's single except block handles both raise sites.
+    # Sort merged_params keys before constructing so the resulting
+    # SearchSpace has a deterministic parameter order (per Gemini PR #232
+    # feedback — mirrors the deterministic-ordering contract documented
+    # on RemapResult itself; Python 3.7+ dicts preserve insertion order).
     try:
-        merged_space = SearchSpace(params=merged_params)
+        merged_space = SearchSpace(params={k: merged_params[k] for k in sorted(merged_params)})
     except ValidationError as exc:
         raise InvalidSearchSpaceError(str(exc)) from exc
 
