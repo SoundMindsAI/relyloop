@@ -40,7 +40,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [feat_create_study_search_space_builder](implemented_features/2026_05_20_feat_create_study_search_space_builder/feature_spec.md) | Feature | Complete (PR #163, squash commit `c703953`, merged 2026-05-20) | — | [PR #163](https://github.com/SoundMindsAI/relyloop/pull/163) merged 2026-05-20 |
 | [feat_create_study_target_autocomplete](implemented_features/2026_05_20_feat_create_study_target_autocomplete/feature_spec.md) | Feature | Operator selects a cluster → an autocomplete dropdown lists the user-visible targets on that cluster (name + doc count), pre-sorted alphabetically. | — | [PR #165](https://github.com/SoundMindsAI/relyloop/pull/165) merged 2026-05-20 |
 | [feat_data_table_primitive](implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md) | Feature | Complete (PR #126, merged 2026-05-16) | — | [PR #126](https://github.com/SoundMindsAI/relyloop/pull/126) merged 2026-05-16 |
-| [feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/feature_spec.md) | Feature | The LLM emits a discriminated union (`narrow` \| `widen` \| `text`) for each followup with a structured `search_space` when applicable. | — | [PR #225](https://github.com/SoundMindsAI/relyloop/pull/225) merged 2026-05-24 |
+| [feat_digest_executable_followups](implemented_features/2026_05_24_feat_digest_executable_followups/feature_spec.md) | Feature | The LLM emits a discriminated union (`narrow` \| `widen` \| `text`) for each followup with a structured `search_space` when applicable. | — | [PR #225](https://github.com/SoundMindsAI/relyloop/pull/225) merged 2026-05-24 |
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
 | [feat_github_webhook](implemented_features/2026_05_12_feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `infra_adapter_elastic` `feat_github_pr_worker` | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
@@ -164,8 +164,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_digest_executable_followups["digest executable followups"]
-  class feat_digest_executable_followups done;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -310,6 +308,8 @@ graph LR
   class infra_ir_measures_migration done;
   feat_auto_followup_studies["auto followup studies"]
   class feat_auto_followup_studies done;
+  feat_digest_executable_followups["digest executable followups"]
+  class feat_digest_executable_followups done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
