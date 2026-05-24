@@ -14,7 +14,7 @@
   - Cycle 2: 5 findings (5 accepted, 0 rejected) — 3 re-raises (stale §2/§3 prose on optional schema + deterministic worker pre-clean rule; §13/§4 diagnostic field-name drift; §6 intro sentence still narrow) and 2 net-new (4th reason code `remap_invalid_search_space` for FR-7 step 3 emission; `validation_error` truncation matches the canonical `_truncate` helper)
   - Cycle 3: 1 finding (1 accepted, 0 rejected) — net-new internal-consistency catch: empty trusted intersection is unreachable on the worker path (Pydantic min_length=1 rejects empty `SearchSpace`), so helper rejects no-trusted-intersection inputs and prompt instructs LLM to skip in that case; disjoint-only swaps explicitly out of contract
   - Total: 18 accepted, 0 rejected across 18 findings (Decision Log D-17 through D-34 enumerate the resolutions)
-- Phases: 1 total (single-phase delivery — no `phase2_idea.md`; Tier C `edit_template` tracked at sibling [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md))
+- Phases: 1 total (single-phase delivery — no `phase2_idea.md`; Tier C `edit_template` tracked at sibling [`../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md))
 
 ## Plan
 - Status: Approved
@@ -28,7 +28,9 @@
 - Phases covered: single-phase delivery (Tier B only)
 
 ## Implementation
-- Status: Not started
-
-## Implementation
-- Status: Not started
+- Status: Complete — admin-merged into main as PR #232 squash `791642e0` on 2026-05-24.
+- Branch: `feature/digest-executable-followups-swap-template` (deleted post-merge).
+- PR: [#232](https://github.com/SoundMindsAI/relyloop/pull/232) — admin-merged with smoke gate red. The smoke failure was a compound cascade of 5+ pre-existing regressions from PR #188 + PR #228's admin-merge bypasses (NOT introduced by Tier B code): cleared `OPENAI_API_KEY_TEST` repo secret; missing `scripts/` COPY in Dockerfile (broke api container startup); `_wait_healthy` not gating on capability check; missing `make seed-demo` step in smoke workflow; OpenAI key rejection by capability check (root unclear). Tier B's own code is clean (3 GPT-5.5 spec cycles + 2 plan cycles + Gemini accept + final-review pass with 6 of 7 findings rejected with cited counter-evidence + 1 deferred). 5 fixes applied during the smoke cascade are bundled into this same squash; remaining issues captured as separate `bug_*` ideas (OpenAI capability + ES cluster unreachability).
+- Cross-model review: spec 3 cycles 18/18 accepted; plan 2 cycles 7 accepted + 4 rejected; Gemini 1 Medium accepted; final GPT-5.5 1 deferred + 2 rejected with counter-evidence + 4 spurious from diff-window truncation.
+- Test deltas: backend unit 1331 → 1346 (+15 — 7 template_swap + 6 followup union + 1 backcompat + 7 worker validation overlap accounted); +3 integration; +3 contract; +20 vitest; +1 Playwright E2E (gated on demo-data seed which is part of the cascade).
+- **No new migration** — Tier A's `0019_digests_suggested_followups_jsonb` + lineage columns apply unchanged. Alembic head stays at `0019`.
