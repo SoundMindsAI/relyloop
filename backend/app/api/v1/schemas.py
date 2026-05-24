@@ -611,6 +611,25 @@ class StudyConfigSpec(BaseModel):
         return self
 
 
+class ParentFollowupRef(BaseModel):
+    """Optional lineage payload on ``POST /api/v1/studies``.
+
+    feat_digest_executable_followups FR-11 — when the operator clicks
+    "Run this followup" on a proposal's digest card, the create-study
+    payload carries the parent proposal's id + the 0-based index into
+    the digest's ``suggested_followups`` array so the spawned study
+    remembers where it came from.
+
+    ``proposal_id`` is a UUIDv7 (36-char hex). The exact-length bound
+    forces malformed strings to surface as 422 ``VALIDATION_ERROR``
+    rather than reach the DB FK check and emerge as a 404
+    ``PROPOSAL_NOT_FOUND``.
+    """
+
+    proposal_id: str = Field(min_length=36, max_length=36)
+    followup_index: int = Field(ge=0)
+
+
 class CreateStudyRequest(BaseModel):
     """``POST /api/v1/studies`` body.
 
@@ -618,6 +637,10 @@ class CreateStudyRequest(BaseModel):
     :class:`backend.app.domain.study.search_space.SearchSpace` so
     :exc:`pydantic.ValidationError` produces the spec's 400
     ``INVALID_SEARCH_SPACE`` (per Story 3.3 task 2).
+
+    feat_digest_executable_followups Story 4.2 — optional ``parent`` field
+    records the parent proposal + followup-index lineage when the study
+    was spawned from a digest "Run this followup" action (FR-11).
     """
 
     name: str = Field(min_length=1, max_length=256)
@@ -629,6 +652,7 @@ class CreateStudyRequest(BaseModel):
     search_space: dict[str, Any]
     objective: ObjectiveSpec
     config: StudyConfigSpec
+    parent: ParentFollowupRef | None = None
 
 
 class TrialsSummaryShape(BaseModel):
