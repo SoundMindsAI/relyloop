@@ -58,14 +58,17 @@ JSON object with exactly two fields:
   where useful, but do NOT reprint the full config — the data layer already
   has it.
 - `suggested_followups` — a JSON array of at most 5 follow-up objects.
-  Each object has shape `{kind, rationale, search_space}` where:
+  Each object has shape `{kind, rationale, search_space_json}` where:
 
   - `kind` is one of `narrow` / `widen` / `text`.
   - `rationale` is a short string (≤2 sentences) explaining why this
     follow-up is worth running — operators see it as the card body.
-  - `search_space` is a `SearchSpace` JSON object (same shape as
-    `<parent_search_space>`) for `narrow` / `widen`, or `null` for
-    `text`.
+  - `search_space_json` is a **string** containing the JSON-encoded
+    `SearchSpace` body (same shape as `<parent_search_space>`) for
+    `narrow` / `widen`, or an empty string `""` for `text`. The string
+    must be valid JSON; the worker parses it and validates the inner
+    shape via the `SearchSpace` Pydantic model. Example for a narrow
+    item: `"{\"params\": {\"title.boost\": {\"type\": \"float\", \"low\": 1.5, \"high\": 2.5, \"log\": false}}}"`.
 
   ## Suggested follow-ups — three kinds
 

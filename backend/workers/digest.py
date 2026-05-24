@@ -172,11 +172,17 @@ _FAILURE_NARRATIVE = "No successful trials in this study. Diagnose using the wor
 # Module-level so the contract test can import + assert shape.
 #
 # feat_digest_executable_followups Story 2.1 — suggested_followups is now an
-# array of {kind, rationale, search_space} objects (NOT strings). The
-# discriminator is ``kind`` ∈ {narrow, widen, text}; ``narrow`` / ``widen``
-# carry an inline SearchSpace (validated downstream by parse_followup_list)
-# and ``text`` carries ``search_space: null``. Capability-degraded path
-# persists ``[]`` per D-27.
+# array of {kind, rationale, search_space_json} objects. The discriminator
+# is ``kind`` ∈ {narrow, widen, text}. To stay within OpenAI's strict-mode
+# JSON schema constraints (which forbid open-ended object subschemas like
+# the inner ``SearchSpace.params`` map with arbitrary param-name keys), we
+# ship ``search_space`` to the LLM as ``search_space_json`` — a string
+# carrying the JSON-encoded SearchSpace body for narrow/widen items, and
+# an empty string for text items. The worker parses + validates
+# ``search_space_json`` through ``parse_followup_list``; invalid JSON or
+# invalid SearchSpace contents downgrade the item to ``text`` per the
+# defensive parser contract. Capability-degraded path persists ``[]``
+# per D-27.
 DIGEST_RESPONSE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -188,9 +194,16 @@ DIGEST_RESPONSE_SCHEMA: dict[str, Any] = {
                 "properties": {
                     "kind": {"type": "string", "enum": ["narrow", "widen", "text"]},
                     "rationale": {"type": "string"},
-                    "search_space": {"type": ["object", "null"]},
+                    "search_space_json": {
+                        "type": "string",
+                        "description": (
+                            "JSON-encoded SearchSpace body for narrow/widen items; "
+                            "empty string for text items. Worker parses + validates "
+                            "via backend.app.domain.study.followups.parse_followup_list."
+                        ),
+                    },
                 },
-                "required": ["kind", "rationale", "search_space"],
+                "required": ["kind", "rationale", "search_space_json"],
                 "additionalProperties": False,
             },
             "maxItems": 5,  # cycle-1 F4: wired into the schema, not just prose
@@ -816,7 +829,41 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                                 "search_space": None,
                             }
                         )
-                    followup_dicts.extend(parsed.get("suggested_followups", []) or [])
+                    # feat_digest_executable_followups Story 2.1 — the LLM
+                    # ships search_space as a JSON string (search_space_json)
+                    # to satisfy OpenAI strict-mode JSON-schema constraints.
+                    # Translate to the {kind, rationale, search_space} shape
+                    # parse_followup_list expects: decode the JSON string for
+                    # narrow/widen, drop the field for text. Bad JSON =>
+                    # search_space stays missing => Pydantic rejects =>
+                    # parse_followup_list downgrades to text (or drops).
+                    for raw_item in parsed.get("suggested_followups", []) or []:
+                        if not isinstance(raw_item, dict):
+                            followup_dicts.append(raw_item)
+                            continue
+                        kind = raw_item.get("kind")
+                        rationale = raw_item.get("rationale")
+                        ss_json = raw_item.get("search_space_json", "")
+                        if kind in ("narrow", "widen"):
+                            try:
+                                ss_decoded = json.loads(ss_json) if ss_json else None
+                            except (json.JSONDecodeError, TypeError):
+                                ss_decoded = None
+                            followup_dicts.append(
+                                {
+                                    "kind": kind,
+                                    "rationale": rationale,
+                                    "search_space": ss_decoded,
+                                }
+                            )
+                        else:
+                            followup_dicts.append(
+                                {
+                                    "kind": kind,
+                                    "rationale": rationale,
+                                    "search_space": None,
+                                }
+                            )
 
                 # Validate + downgrade-or-drop through the defensive parser.
                 # proposal.id is in-scope at this point (resolved in Step 7).

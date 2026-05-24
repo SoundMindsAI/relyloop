@@ -75,16 +75,19 @@ class TestWorkerSchemaShape:
     """The worker's structured-output schema matches the FR-1 contract."""
 
     def test_items_are_objects_with_three_kind_enum(self) -> None:
+        # feat_digest_executable_followups Story 2.1: search_space is shipped
+        # as a JSON-encoded string (search_space_json) to satisfy OpenAI
+        # strict-mode JSON-schema constraints. The worker decodes the string
+        # before passing to parse_followup_list.
         sf = DIGEST_RESPONSE_SCHEMA["properties"]["suggested_followups"]
         assert sf["type"] == "array"
         items = sf["items"]
         assert items["type"] == "object"
         assert items["properties"]["kind"]["enum"] == ["narrow", "widen", "text"]
         assert items["properties"]["rationale"]["type"] == "string"
-        # search_space is nullable.
-        assert items["properties"]["search_space"]["type"] == ["object", "null"]
+        assert items["properties"]["search_space_json"]["type"] == "string"
         assert items["additionalProperties"] is False
-        assert set(items["required"]) == {"kind", "rationale", "search_space"}
+        assert set(items["required"]) == {"kind", "rationale", "search_space_json"}
 
     def test_max_items_5(self) -> None:
         sf = DIGEST_RESPONSE_SCHEMA["properties"]["suggested_followups"]
