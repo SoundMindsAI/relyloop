@@ -30,7 +30,15 @@ def test_schema_caps_suggested_followups_at_five() -> None:
     """Cycle-1 F4: maxItems is wired into the schema, not just prose."""
     sf = DIGEST_RESPONSE_SCHEMA["properties"]["suggested_followups"]
     assert sf["type"] == "array"
-    assert sf["items"] == {"type": "string"}
+    # feat_digest_executable_followups Story 2.1: items are now structured
+    # {kind, rationale, search_space} objects (NOT strings).
+    items = sf["items"]
+    assert items["type"] == "object"
+    assert items["additionalProperties"] is False
+    assert set(items["required"]) == {"kind", "rationale", "search_space"}
+    assert items["properties"]["kind"]["enum"] == ["narrow", "widen", "text"]
+    assert items["properties"]["rationale"]["type"] == "string"
+    assert items["properties"]["search_space"]["type"] == ["object", "null"]
     assert sf["maxItems"] == 5
 
 

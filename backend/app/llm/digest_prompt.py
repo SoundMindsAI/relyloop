@@ -81,6 +81,7 @@ def render_digest_user_prompt(
     dropped_template_params: Sequence[str],
     include_recommendation: bool = True,
     confidence: Mapping[str, Any] | None = None,
+    parent_search_space: Mapping[str, Any] | None = None,
 ) -> str:
     """Render the per-study user message for the digest narrative call.
 
@@ -112,6 +113,12 @@ def render_digest_user_prompt(
             ``<per_query_outcomes>`` jinja blocks; a partial shape (some
             sub-fields ``None``) emits only the populated sub-lines via the
             template's per-sub-field ``{% if %}`` guards.
+        parent_search_space: feat_digest_executable_followups Story 2.2 —
+            the parent study's ``search_space`` JSONB body, rendered into
+            ``<parent_search_space>`` so the LLM can transform it into
+            ``narrow`` / ``widen`` follow-up proposals (FR-8). ``None``
+            (default) skips the block — the structured-followup feature
+            is opt-in at the worker call site.
 
     Returns:
         The rendered user message string, ready to send as the OpenAI
@@ -135,6 +142,7 @@ def render_digest_user_prompt(
         dropped_template_params=dropped_template_params,
         include_recommendation=include_recommendation,
         confidence=confidence,
+        parent_search_space=parent_search_space,
     )
 
 

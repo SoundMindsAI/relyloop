@@ -170,7 +170,7 @@ async def seed_completed_study(
 def make_openai_response(
     *,
     narrative: str = "Test digest narrative.",
-    suggested_followups: list[str] | None = None,
+    suggested_followups: list[str] | list[dict[str, Any]] | None = None,
     prompt_tokens: int = 1000,
     completion_tokens: int = 500,
 ) -> Any:
@@ -179,10 +179,23 @@ def make_openai_response(
     The worker calls ``client.chat.completions.create(...)`` and expects
     ``.choices[0].message.content`` to be a JSON string and
     ``.usage.prompt_tokens`` / ``.usage.completion_tokens``.
+
+    feat_digest_executable_followups Story 2.1: ``suggested_followups``
+    accepts both legacy ``list[str]`` (auto-wrapped to ``text`` items so
+    pre-Story-2.1 callers keep working — the worker's
+    ``parse_followup_list`` does the same wrapping defensively) and the
+    new ``list[dict]`` shape with ``{kind, rationale, search_space}``.
     """
     if suggested_followups is None:
         suggested_followups = ["Try a wider tie_breaker range", "Add brand-disambiguation queries"]
-    payload = {"narrative": narrative, "suggested_followups": suggested_followups}
+    # Auto-wrap legacy list[str] to list[dict] so existing tests need no edits.
+    normalized: list[dict[str, Any]] = []
+    for item in suggested_followups:
+        if isinstance(item, str):
+            normalized.append({"kind": "text", "rationale": item, "search_space": None})
+        else:
+            normalized.append(item)
+    payload = {"narrative": narrative, "suggested_followups": normalized}
     import json as _json
 
     msg = MagicMock()

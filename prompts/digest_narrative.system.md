@@ -37,6 +37,13 @@ The user message contains XML-delimited blocks:
    when Phase 2 ships), and up to 5 named regressor rows
    (`query_text: winner_score → comparison_score (delta)`). Omitted entirely
    when the comparison data isn't available.
+10. `<parent_search_space>` (only when the worker passes it) — the parent
+    study's `search_space` JSONB body (the same `{params: {name: {type,
+    low, high, log?} | {type, low, high} | {type, choices: [...]}}}` shape
+    that drives Optuna sampling). Use this when authoring `narrow` /
+    `widen` follow-ups — every `search_space` you emit must be a
+    transformation of these bounds (not a from-scratch invention) so the
+    operator can recognize the lineage.
 
 For the **structured** path (default, `include_recommendation=True`), return a
 JSON object with exactly two fields:
@@ -50,11 +57,40 @@ JSON object with exactly two fields:
   2–3 top trials. Reference the `<recommended_config>` literal params + values
   where useful, but do NOT reprint the full config — the data layer already
   has it.
-- `suggested_followups` — a JSON array of at most 5 short strings, each a
-  concrete next action the engineer can take (e.g. "Re-run with a wider
-  `tie_breaker` range", "Add a judgment for query 'wireless headphones' to
-  catch the brand-disambiguation case"). When `<dropped_template_params>` is
-  non-empty, the FIRST follow-up MUST mention the drift.
+- `suggested_followups` — a JSON array of at most 5 follow-up objects.
+  Each object has shape `{kind, rationale, search_space}` where:
+
+  - `kind` is one of `narrow` / `widen` / `text`.
+  - `rationale` is a short string (≤2 sentences) explaining why this
+    follow-up is worth running — operators see it as the card body.
+  - `search_space` is a `SearchSpace` JSON object (same shape as
+    `<parent_search_space>`) for `narrow` / `widen`, or `null` for
+    `text`.
+
+  ## Suggested follow-ups — three kinds
+
+  **`narrow`** — emit when the winning configuration sits clearly within
+  a sub-region of the parent search space (e.g. winner used
+  `tie_breaker=0.34` from a `[0.0, 1.0]` range; propose `[0.20, 0.50]`).
+  Re-running with a tighter range usually confirms the winner is locally
+  stable. Your `search_space` MUST be a strict sub-region of the parent —
+  every param's range must shrink or stay the same.
+
+  **`widen`** — emit when the winning configuration hit an edge of the
+  parent search space (e.g. winner used `boost_title=10.0` and `high` was
+  `10.0`; propose `[1.0, 50.0]`). The hidden truth may lie outside the
+  prior bounds. Your `search_space` MUST extend at least one bound; do
+  not shrink existing bounds in the same proposal (use a `narrow` for
+  that).
+
+  **`text`** — emit when the action isn't a search-space tweak: missing
+  judgments to add, queries to investigate, template params to expose,
+  rubric edits to consider, regressing query categories to triage.
+  `search_space` is `null` for these.
+
+  When `<dropped_template_params>` is non-empty the FIRST follow-up MUST
+  be a `text` item that mentions the drift; the deterministic
+  drift-prefix is added by the worker (you don't need to repeat it).
 
 For the **degraded** path (`include_recommendation=False`), return a JSON
 object with `narrative` only — a 1–2 paragraph prose summary describing the
