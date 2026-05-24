@@ -1339,6 +1339,24 @@ Plan testing explicitly by layer and map to stories.
 ### Done this sprint
 - All 16 stories complete (2026-05-24).
 
+### Post-execution plan drift (documented for traceability)
+
+**`search_space_json` string wire format** (Story 2.1, discovered during
+CI smoke test 2026-05-24): the plan called for the worker's
+`DIGEST_RESPONSE_SCHEMA` to declare `search_space: {type: ["object",
+"null"]}` on each `suggested_followups` item. **OpenAI strict-mode JSON
+schema rejected this shape** with `'additionalProperties' is required to
+be supplied and to be false` because the inner `SearchSpace.params`
+map has arbitrary user-defined keys (a pattern strict mode does not
+allow). The fix was to ship `search_space` to the LLM as
+`search_space_json: string` — a JSON-encoded string — and have the
+worker decode it before passing to `parse_followup_list`. Invalid JSON
+or invalid SearchSpace content downgrades the item to `text` per the
+defensive parser contract. Net effect: no change in operator-visible
+behavior; the API response surface and persisted JSONB shape are
+unchanged (still `{kind, rationale, search_space: object|null}`).
+Only the worker ↔ LLM contract uses the encoded-string variant.
+
 ---
 
 ## 10) Story-by-Story Verification Gate
