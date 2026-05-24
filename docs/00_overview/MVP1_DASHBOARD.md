@@ -6,22 +6,28 @@ _Reflects feature-folder state as of **2026-05-24** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/feature_spec.md)** — Feature, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> A "Clone study" button on the study-detail page opens `CreateStudyModal` pre-filled with the source study's fields (cluster, target, query set, judgment list, template, search space, objective, config).
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/02_product/planned_features/feat_study_clone_from_previous/implementation_plan.md --all
+```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **75 / 75** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **75 / 76** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 14 important to file, not blocking |
+| → P2 (default) | 15 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 5 |
-| Legacy "Path to MVP1" | 12 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 13 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -128,9 +134,11 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/feature_spec.md) | Feature | A "Clone study" button on the study-detail page opens `CreateStudyModal` pre-filled with the source study's fields (cluster, target, query set, judgment list, template, search space, objective, config | — | [PR #225](https://github.com/SoundMindsAI/relyloop/pull/225) |
 
 ### Spec (0)
 
@@ -142,7 +150,7 @@ _None._
 |---|---|---|---|---|---|---|
 | 1 | P1 | [bug_openai_capability_check_incapable_on_valid_key](../02_product/planned_features/bug_openai_capability_check_incapable_on_valid_key/idea.md) | Bug | Idea — surfaced during PR #232 smoke-cascade unblock on 2026-05-24. | — | Idea — surfaced during PR #232 smoke-cascade unblock on 2026-05-24. |
 | 2 | P2 | [feat_study_baseline_trial](../02_product/planned_features/feat_study_baseline_trial/idea.md) | Feature | `studies.baseline_metric` exists as a column on the `studies` table (declared in `feat_study_lifecycle` Phase 1, [`backend/app/db/models/study.py:76`](../../backend/app/db/models/study.py#L76)) with t | — | Idea — deferred Phase 2 work from `feat_pr_metric_confidence` (Phase 1 merged 2026-05-21 as PR #180 squash `d0a8358`). |
-| 3 | P2 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/idea.md) | Feature | A relevance engineer's normal workflow after the first study completes: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| 3 | P2 | [feat_study_clone_narrow_bounds](../02_product/planned_features/feat_study_clone_narrow_bounds/idea.md) | Feature | `feat_study_clone_from_previous` v1 ships verbatim-copy + editable-fields. The next iteration friction is: after cloning, the engineer must manually narrow the `search_space` bounds around the best-tr | — | Idea — deferred follow-up of [`feat_study_clone_from_previous`](../feat_study_clone_from_previous/) (per that spec's locked D-3). |
 | 4 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/idea.md) | Infra | Running an autonomous agent in a sibling git worktree while the operator's main checkout has the Docker Compose stack up exposes two surfaces that aren't designed for parallel work: | — | Idea — tangential observations from the autonomous `chore_reconciler_terminal_closed_no_poll` agent run (PR #216, merged 2026-05-23) |
 | 5 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 6 | P2 | [chore_auto_followup_completed_parent_stop_chain_race](../02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race/idea.md) | Chore | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Idea — surfaced during the Epic 1+2 phase-gate GPT-5.5 review of `feat_auto_followup_studies` (cumulative-diff review finding F2, accepted in part as a future-work capture) |
@@ -168,6 +176,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_clone_from_previous["study clone from previous"]
+  class feat_study_clone_from_previous plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
