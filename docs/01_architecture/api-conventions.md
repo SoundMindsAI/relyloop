@@ -107,6 +107,15 @@ These error codes are emitted ONLY by the six `DELETE /api/v1/_test/*` endpoints
 
 The handlers also reuse three existing 404 codes already defined elsewhere in this matrix: `JUDGMENT_LIST_NOT_FOUND`, `QUERY_SET_NOT_FOUND`, `TEMPLATE_NOT_FOUND` (originally defined for the equivalent FK-resolution paths on `POST /api/v1/studies`). Reused without modification.
 
+The demo-state reseed endpoint surfaces two codes (added by `feat_home_demo_reseed_endpoint`, 2026-05-24):
+
+| Code | HTTP Status | Meaning |
+|---|---|---|
+| `SEED_IN_PROGRESS` | 409 | `POST /api/v1/_test/demo/reseed` could not acquire the Postgres session-level advisory lock — another reseed is already running. `retryable: true`. Recovery: wait for the in-flight reseed to complete; the lock is released when its route handler returns (success OR cleanup-on-failure). |
+| `SEED_FAILED` | 503 | `POST /api/v1/_test/demo/reseed` failed mid-flight; the handler's cleanup pass ran. `retryable: true`. Recovery on a normal failure: just retry. Recovery on the `httpx.ReadTimeout` edge (any single self-call exceeded `demo_reseed_per_call_http_timeout_s`): the abandoned server-side handler may still be running, so the operator MUST run `docker compose restart api` before retry — naive retry races the abandoned handler's late commit and produces inconsistent state. See [`docs/03_runbooks/demo-reseed-debugging.md`](../03_runbooks/demo-reseed-debugging.md). |
+
+Both codes are emitted ONLY when `Settings.environment == "development"` (the env guard returns 404 `RESOURCE_NOT_FOUND` outside dev so the endpoint shape is indistinguishable from "not registered").
+
 The clusters endpoint surfaces an ACL-restriction code on the targets sub-resource (added by `feat_create_study_target_autocomplete`, 2026-05-20):
 
 | Code | HTTP Status | Meaning |

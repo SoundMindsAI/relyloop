@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md">Home Demo Reseed Endpoint</a></div>
+    <div class="one-liner">A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a &quot;Reset to demo state&quot; button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser.</div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_home_demo_reseed_endpoint/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -395,20 +395,20 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">73 / 73</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">73 / 74</div>
+      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">14</div>
+      <div class="value">15</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">1</div>
+      <div class="value">2</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">13</div>
+      <div class="value">14</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">8</div>
+      <div class="value">10</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      6 idea-only feat/infra folders (not yet scoped into MVP1)
+      5 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -473,19 +473,6 @@ footer {
 
   </div>
   <div class="one-liner">Phase 1 of `feat_digest_executable_followups` handles `narrow` / `widen` / `text` kinds — all within the **same query template**. But the LLM sometimes recognizes that a different template entirely is</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_home_demo_reseed_endpoint">Home Demo Reseed Endpoint</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Phase 1 ships the banner + badges that signal &quot;this is demo data.&quot; It does NOT close the recovery loop for operators who blew away their dev DB and want to re-seed the meaningful demos from inside the</div>
 
 
 </div>
@@ -634,6 +621,19 @@ footer {
 </div>
 
 
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_vitest_jsdom_localstorage_failures">Vitest Jsdom Localstorage Failures</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">`pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error:</div>
+
+
+</div>
+
+
 <div class="card chore" data-prefix="chore" data-priority="Backlog">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead">E2E Seed Acme Helper Dead</a></div>
   <div class="meta">
@@ -654,7 +654,19 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md">Home Demo Reseed Endpoint</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/188">PR #188</a>
+  </div>
+  <div class="one-liner">A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a &quot;Reset to demo state&quot; button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser.</div>
+
+
+</div>
 
 </div>
 
@@ -1848,6 +1860,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
+  class feat_home_demo_reseed_endpoint plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2047,6 +2061,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
+  class feat_home_demo_reseed_endpoint plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]

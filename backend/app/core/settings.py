@@ -243,6 +243,31 @@ class Settings(BaseSettings):
         ),
     )
 
+    # feat_home_demo_reseed_endpoint Story 1.0 (FR-4b).
+    # Hard ceiling per single httpx self-call inside the demo reseed
+    # orchestrator. Default 120s — wide margin over the typical 5–10s
+    # scenario time. Per FR-4 there is NO outer wall-clock timeout;
+    # this is the ONLY timeout. If a single self-call exceeds this,
+    # httpx.ReadTimeout propagates → orchestrator unwinds → route
+    # handler runs cleanup → returns 503 SEED_FAILED. Per spec §10
+    # Threat 4 the safe recovery on this edge requires
+    # `docker compose restart api` before retry.
+    demo_reseed_per_call_http_timeout_s: int = Field(
+        default=120,
+        ge=30,
+        le=600,
+        description=(
+            "Hard ceiling per single httpx self-call inside the demo reseed "
+            "orchestrator (feat_home_demo_reseed_endpoint FR-4b). Default "
+            "120s. Per FR-4 there is NO outer wall-clock timeout; this is "
+            "the ONLY timeout. If a single self-call exceeds this, "
+            "httpx.ReadTimeout propagates and the orchestrator unwinds → "
+            "cleanup → 503 SEED_FAILED. Per spec §10 Threat 4 the safe "
+            "recovery on this edge requires `docker compose restart api` "
+            "before retry."
+        ),
+    )
+
     es_heap_size: str = Field(
         default="512m",
         description="ES_JAVA_OPTS heap sizing for the elasticsearch+opensearch containers",
