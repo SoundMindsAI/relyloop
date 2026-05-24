@@ -35,17 +35,40 @@ SAMPLES = Path(__file__).resolve().parents[3] / "samples"
 SMOKE_QUERY_COUNT = 5  # subset of the 50-query CSV — keeps cost ~$0.01
 
 
-def _wait_healthy(client: httpx.Client, timeout: float = 10.0) -> None:
+def _wait_healthy(client: httpx.Client, timeout: float = 30.0) -> None:
+    """Wait for /healthz status:ok AND the OpenAI capability check to record `ok`.
+
+    `/healthz status:ok` alone is insufficient — per `backend/app/api/health.py`
+    docstring, OpenAI degraded states (`missing_key` / `incapable` / capability
+    `untested`) are NON-blocking and do NOT downgrade the top-level status.
+    So a 200/`ok` healthz can return while the fire-and-forget OpenAI capability
+    check is still running, and the smoke test fires `POST /judgments/generate`
+    too early, hitting 503 `LLM_PROVIDER_INCAPABLE` with
+    `structured_output='untested'`. Gate on `openai_capabilities.structured_output`
+    explicitly so the test waits for the check to finish before proceeding.
+
+    Timeout bumped to 30s (was 10s) to accommodate the capability check's
+    OpenAI round-trip (models endpoint + chat completion + structured-output
+    probe — each adds ~1-3s).
+    """
     deadline = time.time() + timeout
+    last_seen: dict[str, object] = {}
     while time.time() < deadline:
         try:
             r = client.get("/healthz")
-            if r.status_code == 200 and r.json().get("status") == "ok":
-                return
+            if r.status_code == 200:
+                payload = r.json()
+                if payload.get("status") == "ok":
+                    caps = payload.get("openai_capabilities") or {}
+                    if caps.get("structured_output") == "ok":
+                        return
+                    last_seen = payload
         except Exception:
             pass
         time.sleep(0.5)
-    pytest.skip("API not healthy within 10s")
+    pytest.skip(
+        f"API not healthy + OpenAI capability OK within {timeout}s; last seen: {last_seen!r}"
+    )
 
 
 def _create_judgment_template(c: httpx.Client) -> str:
