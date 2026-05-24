@@ -81,12 +81,13 @@ Tiered. Tier A reshapes the LLM output and adds the "Run this followup" button f
   - `parent_proposal_followup_index: int | None` — 0-based position in the parent proposal's structured `suggested_followups` array.
   - Lets the UI render "Study A.2 was suggested by digest from proposal B at index 3." Helps the team measure whether LLM-suggested followups produce wins. Composes cleanly with the `parent_study_id` self-FK that `feat_auto_followup_studies` already uses for the deterministic chain — the two columns are orthogonal (a study can have both: a parent study via the auto-chain AND a parent proposal via the LLM-suggested click).
 
-### Tier B — `swap_template` followups
+### Tier B (split out 2026-05-24 to standalone sibling folder) — `swap_template` followups
 
 - **Additional `kind: "swap_template"`** carrying `template_id: UUID` + a remapped `search_space`. Lets the LLM say "this query template is a better fit for the observed traffic — try template X."
-- **Cross-template search-space remapping.** The hard part: when swapping templates, the prior winner's params don't all map onto the new template's `declared_params`. A new domain helper at [`backend/app/domain/study/template_swap.py`](../../../../backend/app/domain/study/template_swap.py) computes the intersection (common param names) and the disjoint set (new params get default heuristic bounds per [`backend/app/domain/study/search_space_defaults.py`](../../../../backend/app/domain/study/search_space_defaults.py); removed params are dropped).
+- **Cross-template search-space remapping.** The hard part: when swapping templates, the prior winner's params don't all map onto the new template's `declared_params`. A new domain helper at `backend/app/domain/study/template_swap.py` computes the intersection (common param names) and the disjoint set (new params get default heuristic bounds per [`backend/app/domain/study/search_space_defaults.py`](../../../../backend/app/domain/study/search_space_defaults.py); removed params are dropped).
 - **LLM prompt extension** to teach the model when to suggest a swap (typically: parameter-importance distribution is highly skewed, suggesting some params are dead weight; OR several winning trials cluster around a sub-set of params that map cleanly onto a different template's declared params).
 - **UI surface:** swap-template followups render with a side-by-side comparison of the two templates' `declared_params` before the operator commits.
+- **Now tracked in [`../feat_digest_executable_followups_swap_template/idea.md`](../feat_digest_executable_followups_swap_template/idea.md)** with full standalone idea. Run `/pipeline docs/02_product/planned_features/feat_digest_executable_followups_swap_template --auto` to ship it.
 
 ### Tier C (split out 2026-05-24 to standalone backlog folder) — template-edit suggestions
 

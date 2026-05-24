@@ -85,8 +85,8 @@ The implementation plan will enumerate the exact test files at story-decompositi
 
 ### Out of scope
 
-- **Tier B — `kind: "swap_template"` followups.** Cross-template search-space remapping (`backend/app/domain/study/template_swap.py` per the idea) is its own design surface. Deferred to Phase 2 — tracked in `phase2_idea.md` co-located with this spec.
-- **Tier C — `kind: "edit_template"` followups.** Operator-only today; LLM-suggested template edits are a much larger trust/validation surface and unrelated to this spec's lane. Captured in the idea; tracked in `phase3_idea.md` (separate from Phase 2 so each remains independently schedulable).
+- **Tier B — `kind: "swap_template"` followups.** Cross-template search-space remapping (`backend/app/domain/study/template_swap.py` per the idea) is its own design surface. Tracked at sibling folder [`../feat_digest_executable_followups_swap_template/`](../feat_digest_executable_followups_swap_template/idea.md) (split out 2026-05-24).
+- **Tier C — `kind: "edit_template"` followups.** Operator-only today; LLM-suggested template edits are a much larger trust/validation surface and unrelated to this spec's lane. Tracked at sibling backlog folder [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md) (split out 2026-05-24; `backlog_` prefix because the template-editor UI prerequisite doesn't exist yet).
 - **Auto-running followups without operator click.** Already shipped as `feat_auto_followup_studies` (PR #223). The two features cover orthogonal compounding paths.
 - **Followups that span multiple studies** (e.g., "run A.1 and A.2 in parallel"). Needs its own surface — out.
 - **Negative-result feedback loop** ("operator tried this followup; it didn't help"). Out — gated on Langfuse (MVP2+).
@@ -102,8 +102,8 @@ The implementation plan will enumerate the exact test files at story-decompositi
 ### Phase boundaries
 
 - **Phase 1 (MVP1):** Tier A — `narrow` / `widen` / `text` kinds + UI prefill + new columns + column-type migration. FR-1 through FR-13. Rationale: smallest end-to-end slice that delivers the one-click operator value with all the storage + plumbing in place.
-- **Phase 2 (deferred):** Tier B — `swap_template` kind with cross-template search-space remapping. Tracked in `phase2_idea.md`. Rationale: needs a new domain helper (`template_swap.py`), additional LLM prompt logic, and a side-by-side template-comparison UI surface; non-trivial and not blocking Phase 1 value.
-- **Phase 3 (deferred — stretch):** Tier C — `edit_template` kind. Tracked in `phase3_idea.md`. Rationale: changes query rendering semantics, much larger trust surface, likely out of scope for MVP1 entirely.
+- **Phase 2 (deferred):** Tier B — `swap_template` kind with cross-template search-space remapping. Split out 2026-05-24 to standalone folder at [`../feat_digest_executable_followups_swap_template/`](../feat_digest_executable_followups_swap_template/idea.md) so it ships cleanly through `/pipeline --auto` with standard artifact names. Rationale: needs a new domain helper (`template_swap.py`), additional LLM prompt logic, and a side-by-side template-comparison UI surface; non-trivial and not blocking Phase 1 value.
+- **Phase 3 (deferred — stretch):** Tier C — `edit_template` kind. Split out 2026-05-24 to standalone backlog folder at [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md). Rationale: changes query rendering semantics, much larger trust surface, likely out of scope for MVP1 entirely.
 
 ## 4) Product principles and constraints
 
@@ -705,7 +705,7 @@ Tooltip placement uses the existing `<InfoTooltip glossaryKey="...">` primitive 
 - `docs/01_architecture/data-model.md` — extend the `studies` table section to document `parent_proposal_id` + `parent_proposal_followup_index` (alongside the existing `parent_study_id` note). Update the `digests` table section to document `suggested_followups` as JSONB with the discriminated-union shape.
 - `docs/01_architecture/api-conventions.md` — add `PROPOSAL_NOT_FOUND`, `DIGEST_NOT_FOUND`, `FOLLOWUP_INDEX_OUT_OF_RANGE` to the error code catalog.
 - `docs/01_architecture/llm-orchestration.md` — describe the new digest LLM output shape (discriminated union) and the worker's downgrade behavior.
-- `docs/02_product/planned_features/feat_digest_executable_followups/` — this spec lives here; companion `phase2_idea.md` + `phase3_idea.md` track the deferred tiers.
+- `docs/02_product/planned_features/feat_digest_executable_followups/` — this spec lives here. Deferred tiers were split to standalone sibling folders on 2026-05-24: Tier B → [`../feat_digest_executable_followups_swap_template/`](../feat_digest_executable_followups_swap_template/idea.md); Tier C → [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md).
 - `docs/03_runbooks/` — add or extend a digest-debugging runbook entry: "if all followups appear as `text` items, check the worker logs for `digest_followup_validation_downgraded` to see whether the LLM is emitting invalid `search_space` payloads."
 - `docs/04_security/` — N/A (no new secret or data-flow surface).
 - `docs/05_quality/testing.md` — no change required; new test files follow the existing layer convention.
@@ -751,7 +751,7 @@ Tooltip placement uses the existing `<InfoTooltip glossaryKey="...">` primitive 
 - [ ] Documentation updates across docs/01–05 are merged (§15).
 - [ ] Rollout gates from §16 are satisfied.
 - [ ] Cross-model review (GPT-5.5) on this spec and the forthcoming implementation plan completed and adjudicated.
-- [ ] `phase2_idea.md` and `phase3_idea.md` co-located with this spec (Tier B + Tier C deferred work tracking).
+- [x] Deferred-phase tracking: Phase 2 (Tier B `swap_template`) at sibling [`../feat_digest_executable_followups_swap_template/`](../feat_digest_executable_followups_swap_template/idea.md); Phase 3 (Tier C `edit_template`) at sibling [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md). Both split out from `phase2_idea.md` / `phase3_idea.md` on 2026-05-24 per `impl-execute` Step 8.6 option (a).
 - [ ] No open questions remain in §19.
 
 ## 19) Open questions and decision log
