@@ -653,6 +653,19 @@ class CreateStudyRequest(BaseModel):
     objective: ObjectiveSpec
     config: StudyConfigSpec
     parent: ParentFollowupRef | None = None
+    parent_study_id: str | None = Field(
+        default=None,
+        min_length=36,
+        max_length=36,
+        description=(
+            "feat_study_clone_from_previous FR-7 — when the operator clones an "
+            "existing study via the study-detail Clone button, this carries the "
+            "source study's id. Server validates existence (404 "
+            "PARENT_STUDY_NOT_FOUND) and same-cluster (422 "
+            "PARENT_STUDY_WRONG_CLUSTER) before persisting to studies.parent_study_id. "
+            "Independent of the proposal-lineage 'parent' field (D-5); both may be set."
+        ),
+    )
 
 
 class TrialsSummaryShape(BaseModel):

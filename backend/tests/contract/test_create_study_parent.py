@@ -49,6 +49,32 @@ class TestOpenAPISurface:
         assert followup_index_props["minimum"] == 0
         assert set(schema["required"]) == {"proposal_id", "followup_index"}
 
+    def test_create_study_request_parent_study_id_is_optional_36_chars(self) -> None:
+        """feat_study_clone_from_previous FR-7 — parent_study_id optional, exact-36 bound.
+
+        The exact-length bound forces malformed strings (anything not a UUIDv7-shaped
+        36-char string) to surface as 422 VALIDATION_ERROR at the Pydantic layer
+        before the parent-study FK lookup runs.
+        """
+        from backend.app.api.v1.schemas import CreateStudyRequest
+
+        schema = CreateStudyRequest.model_json_schema()
+        assert "parent_study_id" in schema["properties"]
+        # Required list does NOT include `parent_study_id`.
+        assert "parent_study_id" not in schema.get("required", [])
+        # Length bound matches the existing ParentFollowupRef.proposal_id discipline.
+        # Optional field surfaces as anyOf: [{string + minLength + maxLength}, {null}].
+        prop = schema["properties"]["parent_study_id"]
+        # Pydantic v2 renders optional length-bounded strings as anyOf with the
+        # string variant carrying the length bounds.
+        if "anyOf" in prop:
+            string_variant = next(v for v in prop["anyOf"] if v.get("type") == "string")
+            assert string_variant["minLength"] == 36
+            assert string_variant["maxLength"] == 36
+        else:
+            assert prop["minLength"] == 36
+            assert prop["maxLength"] == 36
+
 
 class TestNewErrorCodesSurfacedByRouter:
     """All three new error codes are emitted by the create_study handler."""
