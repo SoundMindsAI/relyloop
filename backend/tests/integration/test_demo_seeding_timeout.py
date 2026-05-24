@@ -63,10 +63,12 @@ if not postgres_reachable() or not _engine_reachable():
 
 
 @pytest.fixture(autouse=True)
-def _patch_engine_resolver_for_test_host() -> Any:
-    """Same rationale as the sibling fixture in ``test_demo_seeding.py`` —
-    the test process is on the GHA runner host, not in a container, so
-    the production resolver's Compose-DNS names don't resolve."""
+def _patch_engine_for_test_host() -> Any:
+    """Same patches as the sibling fixture in ``test_demo_seeding.py`` —
+    resolver + SCENARIOS base_url so the test process can reach ES/OS
+    + the cluster-create probe via 127.0.0.1 ports."""
+    import copy
+
     import backend.app.api.v1._test as test_mod
     import backend.app.services.demo_seeding as svc_mod
 
@@ -77,11 +79,23 @@ def _patch_engine_resolver_for_test_host() -> Any:
             return "http://127.0.0.1:9201"
         raise ValueError(f"unexpected URL in test resolver: {host_base_url}")
 
-    with (
-        patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
-        patch.object(test_mod, "_resolve_engine_base_url", passthrough),
-    ):
-        yield
+    original_scenarios = svc_mod.SCENARIOS
+    patched_scenarios = copy.deepcopy(original_scenarios)
+    for scenario in patched_scenarios:
+        base = scenario["base_url"]
+        if base == "http://elasticsearch:9200":
+            scenario["base_url"] = "http://127.0.0.1:9200"
+        elif base == "http://opensearch:9200":
+            scenario["base_url"] = "http://127.0.0.1:9201"
+    svc_mod.SCENARIOS = patched_scenarios
+    try:
+        with (
+            patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
+            patch.object(test_mod, "_resolve_engine_base_url", passthrough),
+        ):
+            yield
+    finally:
+        svc_mod.SCENARIOS = original_scenarios
 
 
 # Function-scoped uvicorn — one fresh server per test in this file so the

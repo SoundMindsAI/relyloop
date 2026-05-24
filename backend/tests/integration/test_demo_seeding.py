@@ -91,33 +91,57 @@ if not postgres_reachable() or not _engine_reachable():
 
 
 @pytest.fixture(scope="module", autouse=True)
-def _patch_engine_resolver_for_test_host() -> Any:
-    """The production resolver maps localhost:9200/9201 → Compose-DNS
+def _patch_engine_for_test_host() -> Any:
+    """Three patches to make the in-process uvicorn reach the CI services.
+
+    The production resolver maps localhost:9200/9201 → Compose-DNS
     elasticsearch:9200/opensearch:9201 — correct for the API container at
     runtime. In the test environment the in-process uvicorn runs on the
     GHA runner HOST (not in a container), where the Compose-DNS names
     don't resolve (services are reachable only via forwarded ports).
 
-    Patch both the service module's resolver AND the route handler's
-    re-import of the same symbol so engine self-calls go through to
-    127.0.0.1:9200 / 9201 — the ports the GHA workflow forwards.
+    1. The service-module's ``_resolve_engine_base_url`` reference so
+       engine self-calls (PUT/POST/DELETE against ES/OS) go to
+       ``127.0.0.1:9200`` / ``127.0.0.1:9201``.
+    2. The route-handler's re-import of the same symbol so cleanup
+       index DELETEs land on the same loopback ports.
+    3. The service-module's ``SCENARIOS`` list — each scenario's
+       ``base_url`` ships as ``http://elasticsearch:9200`` /
+       ``http://opensearch:9200`` (the value the api container stores
+       on the ``clusters`` row). When the test process calls
+       ``POST /api/v1/clusters``, the cluster-create handler probes
+       that ``base_url`` — and the test process can't resolve those
+       Compose DNS names. Rewrite to ``127.0.0.1`` for the test.
     """
+    import copy
+
     import backend.app.api.v1._test as test_mod
     import backend.app.services.demo_seeding as svc_mod
 
     def passthrough(host_base_url: str) -> str:
-        # Map the CLI's host URLs to the test process's reachable ports.
         if host_base_url == "http://localhost:9200":
             return "http://127.0.0.1:9200"
         if host_base_url == "http://localhost:9201":
             return "http://127.0.0.1:9201"
         raise ValueError(f"unexpected URL in test resolver: {host_base_url}")
 
-    with (
-        patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
-        patch.object(test_mod, "_resolve_engine_base_url", passthrough),
-    ):
-        yield
+    original_scenarios = svc_mod.SCENARIOS
+    patched_scenarios = copy.deepcopy(original_scenarios)
+    for scenario in patched_scenarios:
+        base = scenario["base_url"]
+        if base == "http://elasticsearch:9200":
+            scenario["base_url"] = "http://127.0.0.1:9200"
+        elif base == "http://opensearch:9200":
+            scenario["base_url"] = "http://127.0.0.1:9201"
+    svc_mod.SCENARIOS = patched_scenarios
+    try:
+        with (
+            patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
+            patch.object(test_mod, "_resolve_engine_base_url", passthrough),
+        ):
+            yield
+    finally:
+        svc_mod.SCENARIOS = original_scenarios
 
 
 @pytest_asyncio.fixture(scope="module")
