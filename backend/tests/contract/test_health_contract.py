@@ -167,6 +167,39 @@ class TestHealthOpenAPISchema:
             "healthy",
             "unreachable",
         }
+        # openai_capabilities shape per bug_openai_capability_check spec §8.2 —
+        # five required keys; models_endpoint_status_code is required-but-nullable.
+        assert set(body["openai_capabilities"].keys()) == {
+            "models_endpoint",
+            "models_endpoint_status_code",
+            "chat",
+            "function_calling",
+            "structured_output",
+        }
+        # Key always present even when value is null (cache-miss case here).
+        assert body["openai_capabilities"]["models_endpoint_status_code"] is None
+
+    async def test_openai_capabilities_schema_advertises_required_and_enum(
+        self, app: FastAPI
+    ) -> None:
+        """Spec FR-5 / D-1 / D-3 / D-8: the OpenAPI schema must advertise the
+        new ``OpenAICapabilities.models_endpoint`` field with its three-literal
+        enum and the ``models_endpoint_status_code`` field as required-but-
+        nullable.
+        """
+        schema = app.openapi()
+        cap_schema = schema["components"]["schemas"]["OpenAICapabilities"]
+        # Both new fields must be in `required` (not optional).
+        assert "models_endpoint" in cap_schema["required"], cap_schema["required"]
+        assert "models_endpoint_status_code" in cap_schema["required"], cap_schema["required"]
+        # models_endpoint enum is exactly the three literals from §19 D-1.
+        models_endpoint_prop = cap_schema["properties"]["models_endpoint"]
+        assert set(models_endpoint_prop["enum"]) == {"ok", "fail", "untested"}, models_endpoint_prop
+        # models_endpoint_status_code is nullable (Pydantic v2 emits anyOf).
+        status_code_prop = cap_schema["properties"]["models_endpoint_status_code"]
+        any_of = status_code_prop.get("anyOf") or []
+        any_of_types = {entry.get("type") for entry in any_of}
+        assert any_of_types == {"integer", "null"}, status_code_prop
 
 
 # ---------------------------------------------------------------------------

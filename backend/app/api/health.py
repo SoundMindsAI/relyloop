@@ -70,8 +70,34 @@ PROBE_TIMEOUT_SECONDS = 0.2
 
 
 class OpenAICapabilities(BaseModel):
-    """Cached results of the OpenAI capability check (Story 3.3 populates Redis)."""
+    """Cached results of the OpenAI capability check (Story 3.3 populates Redis).
 
+    Step 1 (``models_endpoint``) is reported first because it gates the rest:
+    when it fails, the other three are reported as ``"untested"``. The
+    ``models_endpoint_status_code`` field is required-but-nullable
+    (per ``bug_openai_capability_check_incapable_on_valid_key`` spec §19 D-3/D-8)
+    — always present in the JSON, ``null`` when not applicable. This lets
+    operators distinguish ``401 -> bad key``, ``429 -> quota``,
+    ``5xx -> upstream outage``, ``null -> network unreachable / cache miss``.
+    """
+
+    models_endpoint: Literal["ok", "fail", "untested"] = Field(
+        description=(
+            "GET /models probe outcome. 'ok' / 'fail' are projected from "
+            "CapabilityResult.models_endpoint; 'untested' is the cache-miss "
+            "default, matching the existing chat / function_calling / "
+            "structured_output cache-miss handling."
+        )
+    )
+    models_endpoint_status_code: int | None = Field(
+        description=(
+            "HTTP status code from the GET /models probe when it HTTP-failed "
+            "(>= 400). null for the success path, network-class failure "
+            "(timeout / DNS / connection-refused), or cache miss. Required-"
+            "but-nullable: the JSON key is always present with explicit null "
+            "when no value, never omitted."
+        )
+    )
     chat: Literal["ok", "fail", "untested"] = Field(description="Chat completion probe result")
     function_calling: Literal["ok", "fail", "untested"] = Field(
         description="Function-calling probe result (tool_choice=required)"
@@ -275,13 +301,19 @@ async def healthz(
 
     capabilities = (
         OpenAICapabilities(
+            models_endpoint=cap.models_endpoint,
+            models_endpoint_status_code=cap.models_endpoint_status_code,
             chat=cap.chat_completion,
             function_calling=cap.function_calling,
             structured_output=cap.structured_output,
         )
         if cap is not None
         else OpenAICapabilities(
-            chat="untested", function_calling="untested", structured_output="untested"
+            models_endpoint="untested",
+            models_endpoint_status_code=None,
+            chat="untested",
+            function_calling="untested",
+            structured_output="untested",
         )
     )
 

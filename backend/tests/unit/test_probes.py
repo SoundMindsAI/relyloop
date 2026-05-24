@@ -131,6 +131,7 @@ def _make_cap(
     chat: str = "ok",
     fc: str = "ok",
     structured: str = "ok",
+    models_endpoint_status_code: int | None = None,
 ) -> CapabilityResult:
     return CapabilityResult(
         base_url="http://x",
@@ -139,6 +140,7 @@ def _make_cap(
         chat_completion=chat,
         function_calling=fc,
         structured_output=structured,
+        models_endpoint_status_code=models_endpoint_status_code,
         tested_at=datetime.now(UTC),
     )
 
@@ -158,14 +160,42 @@ class TestProbeOpenaiState:
 
     @pytest.mark.parametrize("field", ["models", "chat", "fc", "structured"])
     def test_key_set_any_fail_returns_incapable(self, field: str) -> None:
-        kwargs: dict[str, str] = {field: "fail"}
-        cap = _make_cap(**kwargs)
+        # `_make_cap` accepts mixed kwarg types (str literals + an optional int
+        # for the new `models_endpoint_status_code` field), so the mapping is
+        # widened to `object` for mypy and dispatched by key below.
+        kwargs: dict[str, object] = {field: "fail"}
+        cap = _make_cap(**kwargs)  # type: ignore[arg-type]
         assert probe_openai_state("sk-test", cap) == "incapable"
 
     def test_untested_fields_count_as_configured(self) -> None:
         """`untested` (i.e. cache populated but probe skipped) is not a fail."""
         cap = _make_cap(chat="untested", fc="untested", structured="untested")
         assert probe_openai_state("sk-test", cap) == "configured"
+
+    def test_models_endpoint_status_code_field_is_ignored_by_mapping(self) -> None:
+        """The new ``models_endpoint_status_code`` field is purely informational —
+        ``probe_openai_state``'s mapping logic must continue to depend only on
+        the four status fields, not on the status code. This guards against
+        accidental coupling when future readers see the extra field.
+
+        Regression guard for bug_openai_capability_check_incapable_on_valid_key
+        Story 1.3 (per impl-plan-gen cycle-1 finding B2).
+        """
+        # Failing models endpoint with a concrete 401 still maps to 'incapable'.
+        cap_with_code = _make_cap(
+            models="fail",
+            chat="untested",
+            fc="untested",
+            structured="untested",
+            models_endpoint_status_code=401,
+        )
+        assert probe_openai_state("sk-test", cap_with_code) == "incapable"
+
+        # All-OK plus a stray non-None status code still maps to 'configured'.
+        # (Spec D-4 says success path never stores a status code, but defense
+        # in depth: the mapping should not start gating on it.)
+        cap_all_ok_with_code = _make_cap(models_endpoint_status_code=999)
+        assert probe_openai_state("sk-test", cap_all_ok_with_code) == "configured"
 
 
 # ---------------------------------------------------------------------------
