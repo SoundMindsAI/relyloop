@@ -58,8 +58,23 @@ def cache_key(base_url: str) -> str:
     return f"openai:capabilities:{digest}"
 
 
-async def _probe_models_endpoint(client: httpx.AsyncClient, base_url: str, api_key: str) -> bool:
-    """Step 1 — ``GET {base_url}/models``."""
+async def _probe_models_endpoint(
+    client: httpx.AsyncClient, base_url: str, api_key: str
+) -> tuple[bool, int | None]:
+    """Step 1 — ``GET {base_url}/models``.
+
+    Returns:
+        ``(True, None)`` on success (``status_code < 400``).
+        ``(False, resp.status_code)`` on HTTP-class failure (``status_code >= 400``).
+        ``(False, None)`` on network-class failure (``httpx.HTTPError`` raised
+        before any HTTP response was received).
+
+    The status code is captured so callers can surface it on ``/healthz`` as a
+    diagnostic for operators (e.g. ``401`` → bad key, ``429`` → rate-limited,
+    ``5xx`` → upstream outage). The response body is intentionally NEVER read
+    — OpenAI 401 bodies can quote the invalid bearer token, so only the
+    integer status code is captured per CLAUDE.md Absolute Rule #10.
+    """
     url = f"{base_url.rstrip('/')}/models"
     try:
         resp = await client.get(url, headers={"Authorization": f"Bearer {api_key}"})
@@ -70,7 +85,7 @@ async def _probe_models_endpoint(client: httpx.AsyncClient, base_url: str, api_k
             url=url,
             error=str(exc),
         )
-        return False
+        return False, None
     if resp.status_code >= 400:
         logger.warning(
             "OpenAI capability check: models_endpoint returned error status",
@@ -78,8 +93,8 @@ async def _probe_models_endpoint(client: httpx.AsyncClient, base_url: str, api_k
             url=url,
             status_code=resp.status_code,
         )
-        return False
-    return True
+        return False, resp.status_code
+    return True, None
 
 
 async def _probe_chat_completion(
@@ -303,7 +318,7 @@ async def check_capabilities(
     client: httpx.AsyncClient = http_client or httpx.AsyncClient(timeout=PROBE_HTTP_TIMEOUT_SECONDS)
 
     try:
-        models_ok = await _probe_models_endpoint(client, base_url, api_key)
+        models_ok, models_status_code = await _probe_models_endpoint(client, base_url, api_key)
         chat_status: ProbeStatus
         fc_status: ProbeStatus
         struct_status: ProbeStatus
@@ -327,6 +342,7 @@ async def check_capabilities(
             chat_completion=chat_status,
             function_calling=fc_status,
             structured_output=struct_status,
+            models_endpoint_status_code=models_status_code,
             tested_at=datetime.now(UTC),
         )
 
