@@ -17,6 +17,17 @@
 - Phases: 1 total (single-phase delivery — no `phase2_idea.md`; Tier C `edit_template` tracked at sibling [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md))
 
 ## Plan
+- Status: Approved
+- Date: 2026-05-24
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 passed (2 cycles)
+  - Cycle 1: 7 findings (7 accepted, 0 rejected) — F1 widen `hasActionableFollowup` gate to include swap_template; F2 extract per-card `SwapTemplateCard` child component (drops single-target shortcut); F3 move `sharedKeys` `useMemo` into the child component (Rules of Hooks); F4 prefill kind check via exhaustive `Record<FollowupKind, …>` lookup + `resolveTemplateIdForPrefill` switch with `_exhaustive: never`; F5 sequencing — glossary (3.4) MUST land before panel widening (3.1 + 3.2); F6 promote private `_truncate` to public `truncate_validation_error` so the worker can import it; F7 contract-test filename reconciliation (`test_digest_proposal_api_contract.py` exists; spec-named `test_proposal_detail_shape.py` doesn't).
+  - Cycle 2: 4 findings (0 accepted, 4 rejected with cited counter-evidence) — F1 + F3 are spec-cycle prose drift (out of plan scope); F2 + F4 are re-raises of cycle-1 issues already resolved by the cycle-1 corrections.
+  - Total: 7 accepted + 4 rejected across 11 findings; rejections-only stop rule reached convergence at cycle 2.
+- Stories: 13 total across 5 epics (3 domain + 3 worker + 5 frontend + 2 API + 1 E2E)
+- Phases covered: single-phase delivery (Tier B only)
+
+## Implementation
 - Status: Not started
 
 ## Implementation

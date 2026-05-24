@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-24** (latest mtime of any planned
 
 ## Next up
 
-**[feat_digest_executable_followups_swap_template](../02_product/planned_features/feat_digest_executable_followups_swap_template/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_digest_executable_followups_swap_template](../02_product/planned_features/feat_digest_executable_followups_swap_template/feature_spec.md)** — Feature, currently in **Plan**
 
 > The LLM emits a fourth `kind: "swap_template"` variant carrying `{rationale, template_id, search_space}` where `template_id` references a different `query_templates.id` than the parent study used.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_digest_executable_followups_swap_template --auto
+/impl-execute docs/02_product/planned_features/feat_digest_executable_followups_swap_template/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -132,15 +132,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_digest_executable_followups_swap_template](../02_product/planned_features/feat_digest_executable_followups_swap_template/feature_spec.md) | Feature | The LLM emits a fourth `kind: "swap_template"` variant carrying `{rationale, template_id, search_space}` where `template_id` references a different `query_templates.id` than the parent study used. | — | [PR #225](https://github.com/SoundMindsAI/relyloop/pull/225) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (13)
 
@@ -172,7 +172,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_digest_executable_followups_swap_template["digest executable followups swap template"]
-  class feat_digest_executable_followups_swap_template spec;
+  class feat_digest_executable_followups_swap_template plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
