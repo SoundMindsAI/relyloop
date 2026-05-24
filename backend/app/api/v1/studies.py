@@ -208,6 +208,34 @@ async def create_study(
     cluster = await repo.get_cluster(db, body.cluster_id)
     if cluster is None:
         raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {body.cluster_id} not found", False)
+
+    # FR-8 / D-9: parent-study lineage validation, placed EARLY (right after
+    # cluster FK, before template/qs/jl FK and before the judgment_list↔cluster
+    # check at line ~255) so wrong-cluster clones surface as
+    # PARENT_STUDY_WRONG_CLUSTER rather than as the downstream
+    # JUDGMENT_CLUSTER_MISMATCH. Cluster-axis errors attribute to the
+    # cluster-mutation site that caused them.
+    if body.parent_study_id is not None:
+        parent_study = await repo.get_study(db, body.parent_study_id)
+        if parent_study is None:
+            raise _err(
+                404,
+                "PARENT_STUDY_NOT_FOUND",
+                f"parent study {body.parent_study_id} not found",
+                False,
+            )
+        if parent_study.cluster_id != body.cluster_id:
+            raise _err(
+                422,
+                "PARENT_STUDY_WRONG_CLUSTER",
+                (
+                    f"parent study {body.parent_study_id} is on cluster "
+                    f"{parent_study.cluster_id!r}; clone target cluster is "
+                    f"{body.cluster_id!r}"
+                ),
+                False,
+            )
+
     template = await repo.get_query_template(db, body.template_id)
     if template is None:
         raise _err(404, "TEMPLATE_NOT_FOUND", f"template {body.template_id} not found", False)
@@ -397,6 +425,7 @@ async def create_study(
         config=config_payload,
         status="queued",
         optuna_study_name=study_id,
+        parent_study_id=body.parent_study_id,
         parent_proposal_id=parent_proposal_id,
         parent_proposal_followup_index=parent_followup_index,
     )
