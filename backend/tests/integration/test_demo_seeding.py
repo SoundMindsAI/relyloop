@@ -91,6 +91,52 @@ if not postgres_reachable() or not _engine_reachable():
 
 
 @pytest.fixture(scope="module", autouse=True)
+def _stub_cluster_credentials(tmp_path_factory: pytest.TempPathFactory) -> Any:
+    """Provide ``Settings.cluster_credentials_yaml`` for the test.
+
+    The backend job in ``.github/workflows/pr.yml`` writes
+    ``./secrets/cluster_credentials.yaml`` but doesn't set
+    ``CLUSTER_CREDENTIALS_FILE`` for the pytest step — so
+    ``get_settings().cluster_credentials_yaml`` returns ``None``,
+    which makes the in-orchestrator ``POST /api/v1/clusters`` probe
+    fail with ``CredentialsMissing`` → 503 ``CLUSTER_UNREACHABLE``.
+
+    Mount a tmp file with the ``local-es`` + ``local-opensearch``
+    credentials the demo scenarios reference, point ``Settings.cluster_credentials_file``
+    at it via direct dict mutation, and reset on teardown.
+    """
+    from backend.app.core.settings import get_settings
+
+    tmp = tmp_path_factory.mktemp("demo_reseed_credentials")
+    creds_file = tmp / "cluster_credentials.yaml"
+    creds_file.write_text(
+        "local-es:\n"
+        "  username: elastic\n"
+        "  password: changeme\n"
+        "local-opensearch:\n"
+        "  username: admin\n"
+        "  password: admin\n"
+    )
+    settings = get_settings()
+    original_file = settings.__dict__.get("cluster_credentials_file")
+    original_yaml = settings.__dict__.get("cluster_credentials_yaml")
+    settings.__dict__["cluster_credentials_file"] = creds_file
+    # Bust the @cached_property so the YAML is re-read from the new path.
+    settings.__dict__.pop("cluster_credentials_yaml", None)
+    try:
+        yield
+    finally:
+        if original_file is None:
+            settings.__dict__.pop("cluster_credentials_file", None)
+        else:
+            settings.__dict__["cluster_credentials_file"] = original_file
+        if original_yaml is None:
+            settings.__dict__.pop("cluster_credentials_yaml", None)
+        else:
+            settings.__dict__["cluster_credentials_yaml"] = original_yaml
+
+
+@pytest.fixture(scope="module", autouse=True)
 def _patch_engine_for_test_host() -> Any:
     """Three patches to make the in-process uvicorn reach the CI services.
 
