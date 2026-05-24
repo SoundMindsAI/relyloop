@@ -15,14 +15,50 @@ import { SuggestedFollowupsPanel } from '@/components/proposals/suggested-follow
 import { CreateStudyModal, type PrefillValues } from '@/components/studies/create-study-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOpenPR, useProposal } from '@/lib/api/proposals';
+import { useTemplate } from '@/lib/api/query-templates';
 import { useStudy } from '@/lib/api/studies';
 import type {
+  FollowupKind,
   ObjectiveDirection,
   ObjectiveK,
   ObjectiveMetric,
   PrunerKind,
   SamplerKind,
 } from '@/lib/enums';
+import type { components } from '@/lib/types';
+
+type FollowupItem = components['schemas']['FollowupItem'];
+
+// Per-kind UI gate: which kinds open the create-study modal on Run click.
+// Values must match backend/app/domain/study/followups.py FollowupItem.kind
+const ACTIONABLE_FOLLOWUP_KINDS: Record<FollowupKind, boolean> = {
+  narrow: true,
+  widen: true,
+  text: false,
+  swap_template: true,
+};
+
+// Exhaustive resolver for the prefill template_id. ``swap_template`` items
+// carry the swap target's id directly; narrow/widen/text retain the parent
+// study's template_id (text is unreachable via the actionable-kind gate
+// but defensively returns the parent id).
+function resolveTemplateIdForPrefill(f: FollowupItem, parentTemplateId: string): string {
+  switch (f.kind) {
+    case 'swap_template':
+      return f.template_id;
+    case 'narrow':
+    case 'widen':
+    case 'text':
+      return parentTemplateId;
+    default: {
+      // Exhaustiveness sentinel — TypeScript proves this branch is
+      // unreachable as long as the FollowupKind union is fully covered above.
+      const _exhaustive: never = f;
+      void _exhaustive;
+      return parentTemplateId;
+    }
+  }
+}
 
 interface RouteProps {
   params: Promise<{ id: string }>;
@@ -124,7 +160,11 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
   const [runFollowupIndex, setRunFollowupIndex] = useState<number | null>(null);
   const proposal = proposalQ.data ?? null;
   const followups = proposal?.digest?.suggested_followups ?? [];
-  const hasActionableFollowup = followups.some((f) => f.kind === 'narrow' || f.kind === 'widen');
+  // feat_digest_executable_followups_swap_template Story 3.3 (FR-9 / D-28):
+  // widen the actionable gate to include swap_template via the exhaustive
+  // ACTIONABLE_FOLLOWUP_KINDS lookup. swap_template-only digests must
+  // still enable the parent-study fetch (cycle-1 F1 regression guard).
+  const hasActionableFollowup = followups.some((f) => ACTIONABLE_FOLLOWUP_KINDS[f.kind]);
   const parentStudyId = proposal?.study_id ?? null;
   // GPT-5.5 cycle-1 F2: enable the parent fetch whenever the proposal has
   // at least one actionable followup, not only on Run click, so the panel's
@@ -132,12 +172,19 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
   const parentStudy = useStudy(parentStudyId ?? '', {
     enabled: parentStudyId !== null && hasActionableFollowup,
   });
+  // feat_digest_executable_followups_swap_template Story 3.3 (FR-10): lazy
+  // parent-template fetch so swap_template cards can render the declared-
+  // params diff. Per-target swap fetches live INSIDE SwapTemplateCard (see
+  // Story 3.2 / GPT-5.5 cycle-1 F2/F3 fix) so this stays a single fetch.
+  const parentTemplateQuery = useTemplate(parentStudy.data?.template_id);
 
   const prefillValues: PrefillValues | undefined = useMemo(() => {
     if (runFollowupIndex === null) return undefined;
     if (!proposal || !parentStudy.data || followups.length === 0) return undefined;
     const f = followups[runFollowupIndex];
-    if (!f || (f.kind !== 'narrow' && f.kind !== 'widen')) return undefined;
+    // feat_digest_executable_followups_swap_template Story 3.3 (F4 fix):
+    // exhaustive actionable-kind gate.
+    if (!f || !ACTIONABLE_FOLLOWUP_KINDS[f.kind]) return undefined;
     const s = parentStudy.data;
     const objective = s.objective as {
       metric: ObjectiveMetric;
@@ -164,7 +211,10 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
     return {
       cluster_id: s.cluster_id,
       target: s.target,
-      template_id: s.template_id,
+      // feat_digest_executable_followups_swap_template Story 3.3 (FR-11 +
+      // AC-11/AC-12): swap_template branches seed template_id from the
+      // followup itself; narrow/widen/text retain the parent study's id.
+      template_id: resolveTemplateIdForPrefill(f, s.template_id),
       query_set_id: s.query_set_id,
       judgment_list_id: s.judgment_list_id,
       name: `${truncatedParentName} — followup #${runFollowupIndex + 1} (${f.kind})`,
@@ -277,6 +327,13 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
                   }
                   parentStudyLoading={parentStudy.isLoading}
                   parentStudyError={parentStudy.error ?? null}
+                  parentTemplate={
+                    parentTemplateQuery.data
+                      ? { declared_params: parentTemplateQuery.data.declared_params }
+                      : undefined
+                  }
+                  parentTemplateLoading={parentTemplateQuery.isLoading}
+                  parentTemplateError={parentTemplateQuery.error ?? null}
                 />
               )}
           </>

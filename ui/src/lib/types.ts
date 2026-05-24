@@ -1674,7 +1674,8 @@ export interface components {
     FollowupItem:
       | components['schemas']['NarrowFollowup']
       | components['schemas']['WidenFollowup']
-      | components['schemas']['TextFollowup'];
+      | components['schemas']['TextFollowup']
+      | components['schemas']['SwapTemplateFollowup'];
     /**
      * GenerateJudgmentsResponse
      * @description Response of ``POST /api/v1/judgments/generate``.
@@ -2788,6 +2789,30 @@ export interface components {
       name: string;
       /** Doc Count */
       doc_count?: number | null;
+    };
+    /**
+     * SwapTemplateFollowup
+     * @description A 'swap_template' followup — re-run against a different query template.
+     *
+     *     Carries the LLM-proposed bounds for params shared with the parent template
+     *     in ``search_space``. The digest worker calls
+     *     :func:`backend.app.domain.study.template_swap.remap_search_space_for_swap_target`
+     *     after parsing to merge these bounds with heuristic defaults for any
+     *     swap-target params not shared with the parent.
+     *
+     *     Owner: ``feat_digest_executable_followups_swap_template`` (Tier B).
+     */
+    SwapTemplateFollowup: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      kind: 'swap_template';
+      /** Rationale */
+      rationale: string;
+      /** Template Id */
+      template_id: string;
+      search_space: components['schemas']['SearchSpace'];
     };
     /**
      * TargetListResponse

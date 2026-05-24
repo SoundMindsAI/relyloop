@@ -104,6 +104,12 @@ describe('feat_digest_executable_followups Story 5.3 — followup glossary keys'
     expect(glossary['proposal.followup_run_button']?.short).toBeTruthy();
     expect(glossary['proposal.followup_search_space_diff']?.short).toBeTruthy();
   });
+
+  it('feat_digest_executable_followups_swap_template — declared-params-diff key is populated', () => {
+    // Story 3.4 — new key for the swap_template card's parent-vs-target
+    // declared_params comparison.
+    expect(glossary['proposal.followup_declared_params_diff']?.short).toBeTruthy();
+  });
 });
 
 describe('glossary content shape (FR-5)', () => {

@@ -190,6 +190,31 @@ async def test_invalid_is_last_merged_returns_wrapped_validation_envelope(
     assert detail.get("retryable") is False
 
 
+@_skip_if_no_pg
+async def test_proposal_detail_digest_embed_includes_swap_template_branch(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """AC-9 (feat_digest_executable_followups_swap_template Story 4.1):
+    the ProposalDetail.digest._DigestEmbed embed must surface the widened
+    FollowupItem union including the SwapTemplateFollowup branch in OpenAPI.
+
+    Asserts the discriminated-union shape via the rendered $defs (Pydantic
+    inlines them under ``components.schemas`` in FastAPI's OpenAPI output).
+    """
+    response = await async_client.get("/openapi.json")
+    schema = response.json()
+    schemas = schema["components"]["schemas"]
+    # The SwapTemplateFollowup component must be present.
+    assert "SwapTemplateFollowup" in schemas
+    swap = schemas["SwapTemplateFollowup"]
+    assert swap["properties"]["kind"].get("const") == "swap_template" or (
+        swap["properties"]["kind"].get("enum") == ["swap_template"]
+    )
+    assert "template_id" in swap["properties"]
+    assert "template_id" in swap["required"]
+    assert "search_space" in swap["properties"]
+
+
 def test_router_source_contains_every_endpoint_visible_code() -> None:
     """Cycle-2 F4 / cycle-3 F1: router contains the 7 endpoint-visible codes."""
     router_path = Path("backend/app/api/v1/proposals.py")
