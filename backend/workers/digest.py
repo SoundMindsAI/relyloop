@@ -63,10 +63,18 @@ from backend.app.db import repo
 from backend.app.db.models import Proposal
 from backend.app.db.session import get_session_factory
 from backend.app.domain.study.followups import (
+    FollowupItem,
+    SwapTemplateFollowup,
+    TextFollowup,
     parse_followup_list,
     serialize_followup_list,
+    truncate_validation_error,
 )
+from backend.app.domain.study.search_space import InvalidSearchSpaceError
 from backend.app.domain.study.template_defaults import compute_default_params
+from backend.app.domain.study.template_swap import (
+    remap_search_space_for_swap_target,
+)
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
 from backend.app.llm.budget_gate import peek_daily_total, record_cost
 from backend.app.llm.capability_check import read_capability_result
@@ -192,18 +200,38 @@ DIGEST_RESPONSE_SCHEMA: dict[str, Any] = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "kind": {"type": "string", "enum": ["narrow", "widen", "text"]},
+                    "kind": {
+                        "type": "string",
+                        "enum": ["narrow", "widen", "text", "swap_template"],
+                    },
                     "rationale": {"type": "string"},
                     "search_space_json": {
                         "type": "string",
                         "description": (
-                            "JSON-encoded SearchSpace body for narrow/widen items; "
-                            "empty string for text items. Worker parses + validates "
-                            "via backend.app.domain.study.followups.parse_followup_list."
+                            "JSON-encoded SearchSpace body for "
+                            "narrow/widen/swap_template items; empty "
+                            "string for text items. Worker parses + "
+                            "validates via "
+                            "backend.app.domain.study.followups.parse_followup_list."
+                        ),
+                    },
+                    "template_id": {
+                        "type": "string",
+                        "description": (
+                            "36-char query_templates.id for swap_template "
+                            "items; empty string for other kinds (worker "
+                            "drops the field before Pydantic dispatch per "
+                            "feat_digest_executable_followups_swap_template "
+                            "spec D-29/D-20)."
                         ),
                     },
                 },
-                "required": ["kind", "rationale", "search_space_json"],
+                "required": [
+                    "kind",
+                    "rationale",
+                    "search_space_json",
+                    "template_id",
+                ],
                 "additionalProperties": False,
             },
             "maxItems": 5,  # cycle-1 F4: wired into the schema, not just prose
@@ -226,6 +254,158 @@ DIGEST_RESPONSE_FORMAT: dict[str, Any] = {
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+# Rationale-prefix mapping for swap_template downgrades (Story 2.3, FR-8).
+# Keys mirror the four ``reason`` codes emitted on
+# ``digest_followup_validation_downgraded`` WARN events; the prefix lands on
+# the resulting :class:`TextFollowup.rationale` so the operator-facing card
+# explains why the suggestion was demoted to text.
+_SWAP_DOWNGRADE_PREFIXES: dict[str, str] = {
+    "not_found": "swap_template target template not found",
+    "same_as_parent": "swap_template target is the same as the parent template",
+    "engine_type_mismatch": "swap_template target engine_type differs from parent cluster",
+    "remap_invalid_search_space": "swap_template remap produced an invalid search_space",
+}
+
+
+def _downgrade_swap_template_to_text(
+    item: SwapTemplateFollowup,
+    reason: str,
+    *,
+    validation_error: str = "",
+) -> TextFollowup:
+    """Build the downgrade :class:`TextFollowup` for a failed swap_template item.
+
+    Per spec FR-8 the prefix references the reason code so runbooks can grep
+    by reason. The validation_error tail (truncated via
+    :func:`truncate_validation_error`) preserves the original LLM rationale
+    + any underlying Pydantic message.
+    """
+    prefix_core = _SWAP_DOWNGRADE_PREFIXES.get(reason, f"swap_template downgrade: {reason}")
+    body = f"[validation failed: {prefix_core}: {item.template_id}]"
+    if validation_error:
+        body = f"{body} ({truncate_validation_error(validation_error)})"
+    return TextFollowup(
+        kind="text",
+        rationale=f"{body} {item.rationale}",
+        search_space=None,
+    )
+
+
+async def _apply_swap_template_remap(
+    parsed_followups: list[FollowupItem],
+    *,
+    db: AsyncSession,
+    parent_template_id: str,
+    parent_declared_params: dict[str, str],
+    parent_engine_type: str,
+    study_id: str,
+    proposal_id: str,
+) -> list[FollowupItem]:
+    """Resolve + remap each ``swap_template`` followup in-place.
+
+    Runs AFTER the ``[:5]`` truncation (per AC-15) so we never spend a DB
+    lookup on an item that wouldn't have been persisted anyway. Per-target
+    template lookups are cached for the lifetime of the call (a single
+    digest may emit multiple swap_template items pointing at the same
+    target — rare but legal).
+
+    Downgrade-reason cascade (FR-8):
+
+    1. ``not_found``         — :func:`repo.get_query_template` returned None.
+    2. ``same_as_parent``    — target id matches the parent study's template.
+    3. ``engine_type_mismatch`` — target engine differs from parent cluster.
+    4. ``remap_invalid_search_space`` — :func:`remap_search_space_for_swap_target`
+       raised :class:`InvalidSearchSpaceError`.
+
+    On success, the item's ``search_space`` is replaced with the merged
+    :class:`SearchSpace` and an INFO ``digest_followup_swap_template_remapped``
+    event is emitted with the 4 sorted name lists.
+    """
+    target_template_cache: dict[str, Any] = {}
+    final_followups: list[FollowupItem] = []
+    for idx, item in enumerate(parsed_followups):
+        if not isinstance(item, SwapTemplateFollowup):
+            final_followups.append(item)
+            continue
+
+        # Lazily resolve the target template (cached per call).
+        sentinel = object()
+        target = target_template_cache.get(item.template_id, sentinel)
+        if target is sentinel:
+            target = await repo.get_query_template(db, item.template_id)
+            target_template_cache[item.template_id] = target
+
+        reason: str | None = None
+        validation_error_tail = ""
+
+        if target is None:
+            reason = "not_found"
+        elif target.id == parent_template_id:
+            reason = "same_as_parent"
+        elif target.engine_type != parent_engine_type:
+            reason = "engine_type_mismatch"
+
+        if reason is not None:
+            downgraded = _downgrade_swap_template_to_text(item, reason)
+            logger.warning(
+                "digest worker: swap_template followup downgraded",
+                event_type="digest_followup_validation_downgraded",
+                study_id=study_id,
+                proposal_id=proposal_id,
+                followup_index=idx,
+                original_kind="swap_template",
+                reason=reason,
+                validation_error=truncate_validation_error(downgraded.rationale),
+            )
+            final_followups.append(downgraded)
+            continue
+
+        # Happy path — call the remap helper, downgrade on InvalidSearchSpaceError.
+        try:
+            result = remap_search_space_for_swap_target(
+                parent_declared_params=parent_declared_params,
+                swap_target_declared_params=target.declared_params or {},
+                llm_search_space=item.search_space,
+            )
+        except InvalidSearchSpaceError as exc:
+            validation_error_tail = str(exc)
+            downgraded = _downgrade_swap_template_to_text(
+                item,
+                "remap_invalid_search_space",
+                validation_error=validation_error_tail,
+            )
+            logger.warning(
+                "digest worker: swap_template remap failed",
+                event_type="digest_followup_validation_downgraded",
+                study_id=study_id,
+                proposal_id=proposal_id,
+                followup_index=idx,
+                original_kind="swap_template",
+                reason="remap_invalid_search_space",
+                validation_error=truncate_validation_error(validation_error_tail),
+            )
+            final_followups.append(downgraded)
+            continue
+
+        # Replace search_space with merged result; emit INFO.
+        merged: SwapTemplateFollowup = item.model_copy(update={"search_space": result.search_space})
+        logger.info(
+            "digest worker: swap_template remap success",
+            event_type="digest_followup_swap_template_remapped",
+            study_id=study_id,
+            proposal_id=proposal_id,
+            followup_index=idx,
+            target_template_id=target.id,
+            trusted_intersection_param_names=result.trusted_intersection_param_names,
+            disjoint_fill_param_names=result.disjoint_fill_param_names,
+            dropped_parent_param_names=result.dropped_parent_param_names,
+            ignored_llm_param_names=result.ignored_llm_param_names,
+        )
+        final_followups.append(merged)
+
+    return final_followups
 
 
 async def _safe_record_cost(redis: Redis, cost_usd: float) -> float | None:
@@ -710,6 +890,31 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                 cluster_row = await repo.get_cluster(db, study.cluster_id)
                 query_set_row = await repo.get_query_set(db, study.query_set_id)
                 jl_row = await repo.get_judgment_list(db, study.judgment_list_id)
+                # feat_digest_executable_followups_swap_template Story 2.3
+                # (FR-6 / FR-7): fetch the catalogue of alternative templates
+                # registered against the parent cluster's engine_type, minus
+                # the parent template itself. Empty / single-template installs
+                # yield ``catalogue_payload = None`` so the
+                # ``<available_templates>`` jinja block is omitted (AC-13).
+                catalogue_payload: list[dict[str, Any]] | None = None
+                if cluster_row is not None:
+                    catalogue_rows = await repo.list_query_templates(
+                        db,
+                        engine_type=cluster_row.engine_type,
+                        limit=200,
+                    )
+                    catalogue_payload = [
+                        {
+                            "id": row.id,
+                            "name": row.name,
+                            "version": row.version,
+                            "declared_params": row.declared_params or {},
+                        }
+                        for row in catalogue_rows
+                        if row.id != study.template_id
+                    ]
+                    if not catalogue_payload:
+                        catalogue_payload = None
                 qs_count = (
                     await repo.count_queries_in_set(db, study.query_set_id)
                     if query_set_row is not None
@@ -752,6 +957,13 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     # needs the parent search-space to author narrow / widen
                     # follow-ups (FR-8).
                     parent_search_space=study.search_space,
+                    # feat_digest_executable_followups_swap_template Story
+                    # 2.3 (FR-6 / FR-7): pass the parent template's
+                    # declared_params + the catalogue so the LLM can author
+                    # ``swap_template`` follow-ups grounded in real
+                    # template IDs.
+                    parent_template_declared_params=(template_row.declared_params or {}),
+                    available_templates=catalogue_payload,
                 )
                 bundle = load_digest_prompts()
                 openai_client = AsyncOpenAI(api_key=api_key, base_url=settings.openai_base_url)
@@ -834,9 +1046,16 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     # to satisfy OpenAI strict-mode JSON-schema constraints.
                     # Translate to the {kind, rationale, search_space} shape
                     # parse_followup_list expects: decode the JSON string for
-                    # narrow/widen, drop the field for text. Bad JSON =>
-                    # search_space stays missing => Pydantic rejects =>
-                    # parse_followup_list downgrades to text (or drops).
+                    # narrow/widen/swap_template, drop the field for text.
+                    # Bad JSON => search_space stays missing => Pydantic
+                    # rejects => parse_followup_list downgrades to text (or
+                    # drops). For swap_template, the worker also surfaces
+                    # template_id (a uniform string field added in the
+                    # DIGEST_RESPONSE_SCHEMA per spec D-20 because OpenAI
+                    # strict mode rejects oneOf/if/then on item schemas);
+                    # the worker pre-cleans the empty-string sentinel per
+                    # spec D-29 before Pydantic dispatch so non-swap kinds
+                    # don't trip extra="forbid".
                     for raw_item in parsed.get("suggested_followups", []) or []:
                         if not isinstance(raw_item, dict):
                             followup_dicts.append(raw_item)
@@ -844,26 +1063,41 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                         kind = raw_item.get("kind")
                         rationale = raw_item.get("rationale")
                         ss_json = raw_item.get("search_space_json", "")
-                        if kind in ("narrow", "widen"):
+                        template_id_raw = raw_item.get("template_id", "")
+                        if kind in ("narrow", "widen", "swap_template"):
                             try:
                                 ss_decoded = json.loads(ss_json) if ss_json else None
                             except (json.JSONDecodeError, TypeError):
                                 ss_decoded = None
-                            followup_dicts.append(
-                                {
-                                    "kind": kind,
-                                    "rationale": rationale,
-                                    "search_space": ss_decoded,
-                                }
-                            )
-                        else:
-                            followup_dicts.append(
-                                {
-                                    "kind": kind,
-                                    "rationale": rationale,
-                                    "search_space": None,
-                                }
-                            )
+                            item_dict: dict[str, Any] = {
+                                "kind": kind,
+                                "rationale": rationale,
+                                "search_space": ss_decoded,
+                            }
+                            if kind == "swap_template":
+                                # Surface template_id on the discriminated
+                                # variant; parse_followup_list dispatches to
+                                # SwapTemplateFollowup which validates it.
+                                item_dict["template_id"] = template_id_raw
+                            elif template_id_raw != "":
+                                # Non-empty template_id on narrow/widen is a
+                                # protocol violation: keep the field so
+                                # extra="forbid" rejects and the parser
+                                # downgrade-decision-table fires (spec D-29).
+                                item_dict["template_id"] = template_id_raw
+                            followup_dicts.append(item_dict)
+                        else:  # text
+                            item_dict_text: dict[str, Any] = {
+                                "kind": kind,
+                                "rationale": rationale,
+                                "search_space": None,
+                            }
+                            if template_id_raw != "":
+                                # Non-empty template_id on text = protocol
+                                # violation; surface so extra="forbid" + the
+                                # downgrade-decision-table catch it.
+                                item_dict_text["template_id"] = template_id_raw
+                            followup_dicts.append(item_dict_text)
 
                 # Validate + downgrade-or-drop through the defensive parser.
                 # proposal.id is in-scope at this point (resolved in Step 7).
@@ -873,6 +1107,23 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     proposal_id=proposal.id,
                 )
                 parsed_followups = parsed_followups[:5]
+                # feat_digest_executable_followups_swap_template Story 2.3
+                # (FR-7 / AC-15): truncate-to-5 happens FIRST so a 6th
+                # malformed swap_template item never triggers a DB lookup.
+                # The remap step runs ONLY on the retained list and
+                # downgrades each swap_template item that fails the FR-8
+                # cascade (not_found / same_as_parent / engine_type_mismatch
+                # / remap_invalid_search_space).
+                if cluster_row is not None:
+                    parsed_followups = await _apply_swap_template_remap(
+                        parsed_followups,
+                        db=db,
+                        parent_template_id=study.template_id,
+                        parent_declared_params=(template_row.declared_params or {}),
+                        parent_engine_type=cluster_row.engine_type,
+                        study_id=study_id,
+                        proposal_id=proposal.id,
+                    )
                 followups_json = serialize_followup_list(parsed_followups)
                 # Per-kind counts for the digest_complete observability log
                 # (so operators can spot LLM mode drift without grepping
@@ -880,6 +1131,9 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                 followups_narrow_count = sum(1 for f in parsed_followups if f.kind == "narrow")
                 followups_widen_count = sum(1 for f in parsed_followups if f.kind == "widen")
                 followups_text_count = sum(1 for f in parsed_followups if f.kind == "text")
+                followups_swap_template_count = sum(
+                    1 for f in parsed_followups if f.kind == "swap_template"
+                )
 
                 # Step 14 — Persisted recommended_config + config_diff.
                 # Per spec AC-11, the capability-fallback path persists
@@ -978,9 +1232,12 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     duration_ms=int((time.monotonic() - started_at) * 1000),
                     # feat_digest_executable_followups Story 2.1: per-kind
                     # counts so operators can spot LLM mode drift.
+                    # feat_digest_executable_followups_swap_template Story
+                    # 2.3 adds the fourth count.
                     followups_narrow_count=followups_narrow_count,
                     followups_widen_count=followups_widen_count,
                     followups_text_count=followups_text_count,
+                    followups_swap_template_count=followups_swap_template_count,
                 )
 
                 # feat_auto_followup_studies Story 2.2 — auto-chain trigger.

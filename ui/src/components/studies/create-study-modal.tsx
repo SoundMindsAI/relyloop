@@ -417,6 +417,20 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
     const declaredKeys = Object.keys(declared);
     if (declaredKeys.length === 0) return;
 
+    // feat_digest_executable_followups_swap_template Story 3.5 (FR-14 +
+    // AC-16): when a followup prefill is active AND it carries a
+    // non-empty search_space_text, suppress the autofill entirely so the
+    // operator-visible textarea preserves the LLM-proposed bounds. The
+    // existing implicit "empty or matches prior signature" guard below
+    // already catches most cases; this explicit early return ensures a
+    // future autofill rewrite can't regress AC-16. Reads from the prop,
+    // not the form state, so it stays valid across re-renders within the
+    // same modal-open lifetime.
+    const prefillSearchSpace = initialValues?.search_space_text?.trim() ?? '';
+    if (initialValues && prefillSearchSpace !== '' && prefillSearchSpace !== '{}') {
+      return;
+    }
+
     // feat_agent_propose_search_space Story 1.2 — buildStarterSearchSpace now
     // returns { space, capAwareFallbackParamNames } and may throw on empty
     // input or cap-aware overflow. Surface throws via the existing modal

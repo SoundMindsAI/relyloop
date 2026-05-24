@@ -195,6 +195,41 @@ class TestValidationFailDowngradeWithRationale:
         assert isinstance(result[0], TextFollowup)
         assert "salvageable text" in result[0].rationale
 
+    def test_swap_template_with_short_template_id_downgrades_to_text(
+        self, followups_caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A swap_template dict with too-short template_id downgrades.
+
+        Covers ``feat_digest_executable_followups_swap_template`` AC-2:
+        the parse layer downgrades to ``text`` with the
+        ``[validation failed:`` rationale prefix and emits the existing
+        ``digest_followup_validation_downgraded`` WARN with
+        ``original_kind="swap_template"``.
+        """
+        result = parse_followup_list(
+            [
+                {
+                    "kind": "swap_template",
+                    "rationale": "swap to template B",
+                    "template_id": "too-short",
+                    "search_space": VALID_SEARCH_SPACE_DICT,
+                }
+            ],
+        )
+        assert len(result) == 1
+        assert isinstance(result[0], TextFollowup)
+        assert "swap to template B" in result[0].rationale
+        assert result[0].rationale.startswith("[validation failed:")
+        # Original kind preserved on the WARN record so runbooks can grep.
+        events = _event_types(followups_caplog)
+        assert "digest_followup_validation_downgraded" in events
+        downgrade_record = next(
+            r
+            for r in followups_caplog.records
+            if getattr(r, "event_type", None) == "digest_followup_validation_downgraded"
+        )
+        assert getattr(downgrade_record, "original_kind", None) == "swap_template"
+
 
 class TestDropPaths:
     def test_dict_with_no_rationale_dropped(

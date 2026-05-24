@@ -124,10 +124,21 @@ backend/
                  per-query outcome helpers; pure-Python orchestrator
                  returning None on every FR-7 degraded path);
                  study/followups.py (feat_digest_executable_followups —
-                 FollowupItem discriminated union (narrow/widen/text) +
-                 parse_followup_list defensive ingest + serialize_followup_list
-                 JSONB serializer; the worker validates LLM payloads through
-                 this module, downgrading invalid narrow/widen items to text);
+                 FollowupItem discriminated union (narrow/widen/text/
+                 swap_template) + parse_followup_list defensive ingest +
+                 serialize_followup_list JSONB serializer +
+                 truncate_validation_error head-and-tail truncator promoted
+                 to public for the worker per Tier-B swap_template spec
+                 D-33; the worker validates LLM payloads through this
+                 module, downgrading invalid narrow/widen/swap_template
+                 items to text);
+                 study/template_swap.py (feat_digest_executable_followups_swap_template —
+                 remap_search_space_for_swap_target + RemapResult: computes
+                 trusted-intersection / disjoint-fill / dropped-parent /
+                 ignored-LLM name sets, calls build_starter_search_space
+                 ONLY when disjoint_fill is non-empty (cycle-1 F2 regression
+                 guard), raises InvalidSearchSpaceError on empty swap
+                 target / empty trusted intersection / cardinality blowup);
                  git/{redaction,validation}.py from feat_github_pr_worker
                  (GitHub PAT redaction + repo_url + config_path validators)
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +

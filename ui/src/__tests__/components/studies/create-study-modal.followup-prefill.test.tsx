@@ -262,4 +262,24 @@ describe('CreateStudyModal — followup prefill (Story 5.2)', () => {
     await waitFor(() => expect(postBodies.length).toBeGreaterThan(0));
     expect('parent' in (postBodies[0] ?? {})).toBe(false);
   });
+
+  it('AC-16 (Story 3.5): autofill suppression preserves the prefilled search_space_text', async () => {
+    // Use the canonical PREFILL but verify that the textarea content stays
+    // verbatim — the data-testid step-4 panel is where the autofill
+    // effect (keyed on templateBody) would normally overwrite the
+    // textarea. The FR-14 guard short-circuits it when the prefill
+    // carries a non-empty search_space_text.
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={PREFILL} />);
+    await walkToFinalStep();
+    // step-4 contains the textarea (created at step === 3 — 0-based step
+    // index, 1-based data-testid).
+    const searchSpaceTextarea = (await screen.findByTestId(
+      'cs-search-space',
+    )) as HTMLTextAreaElement;
+    // Must STILL match the prefilled JSON — NOT the auto-generated
+    // starter space for template tpl1 (which would have a boost_title
+    // float, no surrounding curly-brace structure beyond that).
+    expect(searchSpaceTextarea.value).toBe(PREFILL.search_space_text);
+  });
 });
