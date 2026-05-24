@@ -82,6 +82,8 @@ def render_digest_user_prompt(
     include_recommendation: bool = True,
     confidence: Mapping[str, Any] | None = None,
     parent_search_space: Mapping[str, Any] | None = None,
+    parent_template_declared_params: Mapping[str, str] | None = None,
+    available_templates: Sequence[Mapping[str, Any]] | None = None,
 ) -> str:
     """Render the per-study user message for the digest narrative call.
 
@@ -119,6 +121,19 @@ def render_digest_user_prompt(
             ``narrow`` / ``widen`` follow-up proposals (FR-8). ``None``
             (default) skips the block — the structured-followup feature
             is opt-in at the worker call site.
+        parent_template_declared_params: feat_digest_executable_followups_swap_template
+            Story 2.2 (FR-6 / FR-7) — the parent query template's
+            ``declared_params`` map. Rendered into ``<parent_template_declared_params>``
+            so the LLM can decide whether a ``swap_template`` follow-up
+            makes sense. ``None`` / empty skips the block.
+        available_templates: feat_digest_executable_followups_swap_template
+            Story 2.2 (FR-6 / FR-7) — a list of alternative templates the
+            worker fetched from the catalogue (filtered to the parent
+            cluster's ``engine_type`` and excluding the parent template).
+            Each entry has ``{id, name, version, declared_params}``.
+            Rendered into ``<available_templates>``; when ``None`` /
+            empty the LLM is implicitly instructed (via the system prompt)
+            to skip ``swap_template`` followups entirely.
 
     Returns:
         The rendered user message string, ready to send as the OpenAI
@@ -143,6 +158,8 @@ def render_digest_user_prompt(
         include_recommendation=include_recommendation,
         confidence=confidence,
         parent_search_space=parent_search_space,
+        parent_template_declared_params=parent_template_declared_params,
+        available_templates=available_templates,
     )
 
 

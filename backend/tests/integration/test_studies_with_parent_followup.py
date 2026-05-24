@@ -182,6 +182,55 @@ async def _seed_digest_with_one_followup(study_id: str) -> None:
         await db.commit()
 
 
+async def _seed_swap_target_template(*, engine_type: str = "elasticsearch") -> str:
+    """Insert a second template (swap target) sharing at least one declared
+    param with the chain template.
+
+    Returns the new template id.
+    """
+    factory = get_session_factory()
+    async with factory() as db:
+        swap = await repo.create_query_template(
+            db,
+            id=str(uuid.uuid4()),
+            name=f"swap-tpl-{uuid.uuid4().hex[:8]}",
+            engine_type=engine_type,
+            body='{"query": {"match_all": {}}}',
+            # Shares bm25_k1 with the chain template, adds phrase_slop.
+            declared_params={"bm25_k1": "float", "phrase_slop": "int"},
+            version=1,
+        )
+        await db.commit()
+    return swap.id
+
+
+async def _seed_digest_with_swap_template_followup(study_id: str, swap_target_id: str) -> None:
+    """Insert a digest whose suggested_followups[0] is a valid swap_template
+    item pointing at ``swap_target_id`` (covers AC-12 lineage fixture)."""
+    factory = get_session_factory()
+    async with factory() as db:
+        await db.execute(
+            text(
+                "INSERT INTO digests (id, study_id, narrative, parameter_importance, "
+                "recommended_config, suggested_followups, generated_by, generated_at) "
+                "VALUES (:id, :sid, 'n', '{}'::jsonb, '{}'::jsonb, "
+                "CAST(:fups AS jsonb), 'openai:gpt-4o-2024-08-06', NOW())"
+            ),
+            {
+                "id": str(uuid.uuid4()),
+                "sid": study_id,
+                "fups": (
+                    '[{"kind": "swap_template", '
+                    '"rationale": "swap to template B",'
+                    f' "template_id": "{swap_target_id}",'
+                    ' "search_space": {"params": {"bm25_k1": '
+                    '{"type": "float", "low": 0.5, "high": 1.5}}}}]'
+                ),
+            },
+        )
+        await db.commit()
+
+
 @pytest.mark.integration
 @pytest.mark.asyncio
 class TestStudiesWithParentFollowup:
@@ -265,6 +314,53 @@ class TestStudiesWithParentFollowup:
             assert new_study is not None
             assert new_study.parent_proposal_id is None
             assert new_study.parent_proposal_followup_index is None
+
+    async def test_swap_template_cross_template_lineage_persists(
+        self, async_client: httpx.AsyncClient
+    ) -> None:
+        """AC-12: parent study on template A; create-study body uses
+        template B (the swap target) + parent lineage; the new study row
+        has template_id = B AND both lineage columns set.
+
+        Owner: feat_digest_executable_followups_swap_template Story 4.2 (FR-13).
+        """
+        seeded = await _seed_parent_chain()  # parent study on template A
+        swap_target_id = await _seed_swap_target_template()
+        await _seed_digest_with_swap_template_followup(seeded["study_id"], swap_target_id)
+
+        body: dict[str, object] = {
+            "name": f"swap-followup-{uuid.uuid4().hex[:8]}",
+            "cluster_id": seeded["cluster_id"],
+            "target": "stub-index",
+            # template_id is now the SWAP TARGET, not the parent's template.
+            "template_id": swap_target_id,
+            "query_set_id": seeded["query_set_id"],
+            "judgment_list_id": seeded["judgment_list_id"],
+            # Search space matches the SWAP TARGET's declared bm25_k1.
+            "search_space": {
+                "params": {
+                    "bm25_k1": {"type": "float", "low": 0.5, "high": 1.5},
+                }
+            },
+            "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
+            "config": {"max_trials": 5},
+            "parent": {
+                "proposal_id": seeded["proposal_id"],
+                "followup_index": 0,
+            },
+        }
+        response = await async_client.post("/api/v1/studies", json=body)
+        assert response.status_code == 201, response.text
+        new_id = response.json()["id"]
+
+        factory = get_session_factory()
+        async with factory() as db:
+            new_study = await db.get(Study, new_id)
+            assert new_study is not None
+            # AC-12 trinity: template swapped + both lineage columns set.
+            assert new_study.template_id == swap_target_id
+            assert new_study.parent_proposal_id == seeded["proposal_id"]
+            assert new_study.parent_proposal_followup_index == 0
 
 
 @pytest.mark.integration
