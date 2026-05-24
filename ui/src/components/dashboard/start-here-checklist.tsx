@@ -3,6 +3,7 @@
 import Link from 'next/link';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ResetDemoStateButton } from '@/components/dashboard/reset-demo-state-button';
 
 /**
  * First-run "Start here" checklist for the dashboard.
@@ -146,6 +147,16 @@ export function StartHereChecklist({
             );
           })}
         </ol>
+        {!hasClusters && !hasQuerySetsWithJudgments && !hasStudies && (
+          <details className="mt-4 border-t pt-4 text-sm" data-testid="reset-demo-state-disclosure">
+            <summary className="cursor-pointer text-muted-foreground">
+              or skip ahead — reset to demo state
+            </summary>
+            <div className="mt-3">
+              <ResetDemoStateButton />
+            </div>
+          </details>
+        )}
       </CardContent>
     </Card>
   );

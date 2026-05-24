@@ -101,6 +101,8 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("delete", "/api/v1/_test/judgment-lists/{judgment_list_id}", "204"),
     ("delete", "/api/v1/_test/query-sets/{query_set_id}", "204"),
     ("delete", "/api/v1/_test/query-templates/{template_id}", "204"),
+    # feat_home_demo_reseed_endpoint Story 1.2 — demo-state reseed endpoint.
+    ("post", "/api/v1/_test/demo/reseed", "200"),
 ]
 
 

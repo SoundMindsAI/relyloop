@@ -167,3 +167,26 @@ async def test_test_delete_endpoints_return_404_outside_development(
     body = response.json()
     assert body["detail"]["error_code"] == "RESOURCE_NOT_FOUND"
     assert body["detail"]["retryable"] is False
+
+
+# ---------------------------------------------------------------------------
+# feat_home_demo_reseed_endpoint Story 3.1 — env-guard contract for the
+# new ``POST /api/v1/_test/demo/reseed`` endpoint. Asserts 404
+# RESOURCE_NOT_FOUND (the env-guard envelope, NOT a feature-specific
+# code) for every non-dev environment.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("environment", _NON_DEV_ENVIRONMENTS)
+async def test_demo_reseed_returns_404_outside_development(environment: str) -> None:
+    """The reseed endpoint MUST NOT be reachable in any non-development
+    environment — same envelope shape as "endpoint not registered" so
+    operators probing a production install can't discover the surface.
+    """
+    app = _build_test_app(environment)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/api/v1/_test/demo/reseed", json={})
+    assert response.status_code == httpx.codes.NOT_FOUND
+    body = response.json()
+    assert body["detail"]["error_code"] == "RESOURCE_NOT_FOUND"
+    assert body["detail"]["retryable"] is False
