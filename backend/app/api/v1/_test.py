@@ -16,20 +16,52 @@ insertion path).
 
 from __future__ import annotations
 
+import logging
 from typing import Annotated, Any
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict, Field
-from sqlalchemy import exists, select
+from sqlalchemy import exists, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.core.settings import Settings, get_settings
 from backend.app.db import repo
 from backend.app.db.models import Digest, JudgmentList, Proposal, Study
-from backend.app.db.session import get_db
+from backend.app.db.session import get_db, get_engine
+from backend.app.services.demo_seeding import (
+    _ES_DELETE_AUTH,
+    _OS_DELETE_AUTH,
+    _TRUNCATE_DEMO_TABLES_SQL,
+    DEMO_RESEED_LOCK_KEY,
+    ReseedSummary,
+    _resolve_engine_base_url,
+    reseed_demo_state,
+)
 from backend.app.services.test_seeding import seed_study_completed_with_digest
+from scripts.seed_meaningful_demos import (
+    DEMO_ES_INDICES,
+    DEMO_OS_INDICES,
+)
+from scripts.seed_meaningful_demos import (
+    ES as _CLI_ES,
+)
+from scripts.seed_meaningful_demos import (
+    OS as _CLI_OS,
+)
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+# feat_home_demo_reseed_endpoint Story 1.2 — test hook for AC-12 (cleanup-
+# while-locked race). Production callers MUST leave this ``None``; the
+# integration test monkeypatches it to a ``threading.Event`` so the test
+# can fire a concurrent reseed during the cleanup pass and observe the
+# 409 SEED_IN_PROGRESS response. Documented module-private; no production
+# code path reads or writes it. Per the plan §3.2 Task 8.
+_demo_reseed_cleanup_test_gate: Any = None
 
 # Subpath chosen to make the test surface visually distinct from the
 # production API. Anything under ``/api/v1/_test/...`` is gated and
@@ -434,3 +466,212 @@ async def delete_test_query_template(
         )
     await db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ---------------------------------------------------------------------------
+# feat_home_demo_reseed_endpoint Story 1.2 — POST /api/v1/_test/demo/reseed.
+#
+# Orchestrates a full wipe + reseed of the 4 demo scenarios from
+# ``scripts/seed_meaningful_demos.py``. Gated by ``_require_development_env``
+# so it returns 404 outside dev (same envelope as "not registered" — see
+# spec §11/§FR-2).
+#
+# Architecture per spec §5/§10:
+#   - Acquires a Postgres session-level advisory lock on a DEDICATED
+#     pinned ``AsyncConnection`` (NOT the request-scoped ``AsyncSession``
+#     from ``get_db``). Per FR-3 / AC-16, holding the lock on a
+#     dedicated connection guarantees the same backend pid holds the
+#     lock for the entire orchestration window, including the cleanup
+#     pass on failure.
+#   - Constructs TWO ``httpx.AsyncClient`` instances per FR-1c:
+#       * ``api_client`` — self-calls ``http://localhost:8000`` (uses
+#         FastAPI's loopback to hit the same process).
+#       * ``engine_client`` — absolute URLs against ES/OS.
+#     Each carries the per-call timeout from
+#     ``settings.demo_reseed_per_call_http_timeout_s``. Per FR-4 there
+#     is NO outer wall-clock timeout — only the per-call ceiling.
+#   - On any exception, rolls back the caller's session, runs
+#     :func:`_run_demo_reseed_cleanup` under the held lock (using a
+#     fresh DB connection — cycle-1 finding B1), then raises 503
+#     SEED_FAILED.
+#   - Releases the advisory lock in ``finally`` (only if it was
+#     successfully acquired — cycle-14 finding B1).
+# ---------------------------------------------------------------------------
+
+
+async def _run_demo_reseed_cleanup(engine_client: httpx.AsyncClient) -> None:
+    """Best-effort cleanup pass. Per spec FR-2.
+
+    Opens a FRESH DB connection via the module's engine (NOT the
+    caller's ``AsyncSession``, which may be in a broken/rolled-back
+    state after the mid-flight exception). Each cleanup step
+    (TRUNCATE, index DELETEs) tolerates every error so cleanup always
+    completes. Runs while the route handler still holds the advisory
+    lock — so concurrent reseeds 409 until the handler unlocks.
+
+    Cycle-1 GPT-5.5 plan review B1 — cleanup MUST use a fresh DB unit,
+    not the caller's session.
+    """
+    # AC-12 test hook: a ``threading.Event`` injected by the integration
+    # test gates the cleanup pass on a signal from the test, letting the
+    # test fire a concurrent reseed during the window when the cleanup
+    # is mid-flight but the advisory lock is still held.
+    if _demo_reseed_cleanup_test_gate is not None:
+        import asyncio
+
+        await asyncio.to_thread(_demo_reseed_cleanup_test_gate.wait)
+
+    engine = get_engine()
+    try:
+        async with engine.begin() as cleanup_conn:
+            await cleanup_conn.execute(text(_TRUNCATE_DEMO_TABLES_SQL))
+        logger.info("demo_reseed_cleanup_truncated")
+    except Exception as exc:  # noqa: BLE001 - best-effort cleanup
+        logger.warning("demo_reseed_cleanup_truncate_failed", extra={"exc": str(exc)})
+
+    es_base = _resolve_engine_base_url(_CLI_ES)
+    for idx in DEMO_ES_INDICES:
+        try:
+            resp = await engine_client.delete(
+                f"{es_base}/{idx}", auth=httpx.BasicAuth(*_ES_DELETE_AUTH)
+            )
+            if resp.status_code not in (200, 204, 404):
+                logger.info(
+                    "demo_reseed_cleanup_es_delete_unexpected_status",
+                    extra={"idx": idx, "status": resp.status_code},
+                )
+        except Exception as exc:  # noqa: BLE001 - best-effort cleanup
+            logger.info(
+                "demo_reseed_cleanup_es_delete_skipped",
+                extra={"idx": idx, "exc": str(exc)},
+            )
+
+    os_base = _resolve_engine_base_url(_CLI_OS)
+    for idx in DEMO_OS_INDICES:
+        try:
+            resp = await engine_client.delete(
+                f"{os_base}/{idx}", auth=httpx.BasicAuth(*_OS_DELETE_AUTH)
+            )
+            if resp.status_code not in (200, 204, 404):
+                logger.info(
+                    "demo_reseed_cleanup_os_delete_unexpected_status",
+                    extra={"idx": idx, "status": resp.status_code},
+                )
+        except Exception as exc:  # noqa: BLE001 - best-effort cleanup
+            logger.info(
+                "demo_reseed_cleanup_os_delete_skipped",
+                extra={"idx": idx, "exc": str(exc)},
+            )
+
+
+@router.post(
+    f"{_TEST_PREFIX}/demo/reseed",
+    response_model=ReseedSummary,
+    status_code=status.HTTP_200_OK,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Wipe + reseed all 4 demo scenarios (dev-only)",
+    description=(
+        "Wipes the demo Postgres tables and ES/OS indices, then re-seeds "
+        "the 4 demo scenarios from ``scripts/seed_meaningful_demos.py``. "
+        "Gated by ``ENVIRONMENT=development`` — 404 RESOURCE_NOT_FOUND "
+        "outside dev. Per feat_home_demo_reseed_endpoint spec."
+    ),
+)
+async def reseed_demo(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> ReseedSummary:
+    """See module-level block comment above."""
+    engine = get_engine()
+    async with engine.connect() as lock_conn:
+        acquired = False  # Sentinel; set True only after successful acquisition.
+        try:
+            acquired = bool(
+                (
+                    await lock_conn.execute(
+                        text("SELECT pg_try_advisory_lock(:k)"),
+                        {"k": DEMO_RESEED_LOCK_KEY},
+                    )
+                ).scalar_one()
+            )
+            # Close the implicit txn SQLAlchemy autobegan for the SELECT.
+            # Per cycle-14 plan review B1 — if this commit raises, the
+            # ``finally`` block still runs the unlock under the
+            # ``acquired`` guard.
+            await lock_conn.commit()
+
+            if not acquired:
+                raise _err(
+                    409,
+                    "SEED_IN_PROGRESS",
+                    "A demo reseed is already running; wait for it to complete.",
+                    True,
+                )
+
+            timeout = httpx.Timeout(settings.demo_reseed_per_call_http_timeout_s)
+            async with (
+                httpx.AsyncClient(base_url="http://localhost:8000", timeout=timeout) as api_client,
+                httpx.AsyncClient(timeout=timeout) as engine_client,
+            ):
+                try:
+                    logger.info("demo_reseed_started")
+                    summary = await reseed_demo_state(db, api_client, engine_client)
+                    logger.info(
+                        "demo_reseed_completed",
+                        extra={"duration_ms": summary.duration_ms},
+                    )
+                    return summary
+                except HTTPException:
+                    # Propagate our own envelope responses verbatim.
+                    raise
+                except Exception as exc:  # noqa: BLE001 - route handler boundary
+                    logger.warning(
+                        "demo_reseed_failed",
+                        extra={
+                            "exc_class": type(exc).__name__,
+                            "exc": str(exc),
+                        },
+                    )
+                    # Roll back the caller's session before cleanup so
+                    # the request's transaction-scope teardown is clean
+                    # (cycle-2 plan-review finding A2).
+                    try:
+                        await db.rollback()
+                    except Exception as rb_exc:  # noqa: BLE001
+                        logger.warning(
+                            "demo_reseed_caller_session_rollback_failed",
+                            extra={"exc": str(rb_exc)},
+                        )
+                    await _run_demo_reseed_cleanup(engine_client)
+                    raise _err(
+                        503,
+                        "SEED_FAILED",
+                        (
+                            "Demo reseed failed mid-flight. Cleanup applied. "
+                            "On a timeout edge, run `docker compose restart api` "
+                            "before retry — see the demo-reseed runbook."
+                        ),
+                        True,
+                    ) from exc
+        finally:
+            if acquired:
+                released = bool(
+                    (
+                        await lock_conn.execute(
+                            text("SELECT pg_advisory_unlock(:k)"),
+                            {"k": DEMO_RESEED_LOCK_KEY},
+                        )
+                    ).scalar_one()
+                )
+                await lock_conn.commit()
+                if released:
+                    logger.info(
+                        "demo_reseed_advisory_unlock",
+                        extra={"released": True, "key": DEMO_RESEED_LOCK_KEY},
+                    )
+                else:
+                    logger.warning(
+                        "demo_reseed_advisory_unlock_returned_false",
+                        extra={"released": False, "key": DEMO_RESEED_LOCK_KEY},
+                    )

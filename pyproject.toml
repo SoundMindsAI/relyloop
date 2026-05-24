@@ -169,6 +169,16 @@ disallow_incomplete_defs = false
 disallow_untyped_decorators = false
 warn_return_any = false
 
+# ``scripts/seed_meaningful_demos.py`` is an operator CLI (run from the host
+# shell, not part of the API process). Its dict literals are untyped on
+# purpose — keeping the source readable as a flat scenario catalogue.
+# feat_home_demo_reseed_endpoint imports ``SCENARIOS`` / ``TRUNCATE_TABLES``
+# at the module boundary and casts to a typed shape there; we don't want
+# mypy --strict to follow the import back into the CLI.
+[[tool.mypy.overrides]]
+module = "scripts.*"
+ignore_errors = true
+
 # Third-party libraries without py.typed marker / stubs.
 #
 # (infra_ir_measures_migration removed the pytrec_eval module override here:
