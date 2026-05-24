@@ -32,9 +32,9 @@
 - Known UX limitation (deliberate): Cancel-from-completed-root requires operator to navigate to the in-flight descendant. Per D-13 direct-children scoping. Documented in `docs/03_runbooks/auto-followup-debugging.md` (Story 4.1).
 
 ## Implementation
-- Status: In Progress — PR #223 open and CI green; awaiting merge. All 10 stories complete + all 3 phase gates passed.
-- Branch: `feature/auto-followup-studies`
-- PR: [#223](https://github.com/SoundMindsAI/relyloop/pull/223) (opened 2026-05-23, CI all 5 jobs green, Gemini Code Assist 1 Medium accepted + applied, final GPT-5.5 review 2 Medium accepted + shipped).
+- Status: Complete — merged into main as PR #223 squash `20cf183a` on 2026-05-24.
+- Branch: `feature/auto-followup-studies` (deleted post-merge).
+- PR: [#223](https://github.com/SoundMindsAI/relyloop/pull/223) — CI all 5 jobs green, Gemini Code Assist 1 Medium accepted + applied (`auto_followup.py:215` defensive `.get()`), final GPT-5.5 cross-model review 2 Medium accepted + shipped (Story 3.2 wizard depth-selector vitest + Story 3.3 E2E spec).
 - Stories complete (10/10):
   - **Story 1.1** — Chain-gate domain + StudyConfigSpec field + error-handler prefix parser. Commit `b32645c1`.
   - **Story 1.2** — NO-OP discovery: `narrow_around_winner` was already extracted. Commit `33e9ccc7`.
