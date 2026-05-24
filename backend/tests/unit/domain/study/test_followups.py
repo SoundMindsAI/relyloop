@@ -15,9 +15,11 @@ import pytest
 from pydantic import ValidationError
 
 from backend.app.domain.study.followups import (
+    FOLLOWUP_KIND_VALUES,
     FollowupItemAdapter,
     FollowupListAdapter,
     NarrowFollowup,
+    SwapTemplateFollowup,
     TextFollowup,
     WidenFollowup,
     serialize_followup_list,
@@ -54,6 +56,20 @@ def _make_text() -> dict[str, object]:
         "kind": "text",
         "rationale": "try a different analyzer",
         "search_space": None,
+    }
+
+
+# 36-char UUIDv7-shaped fixture string (matches the SwapTemplateFollowup
+# template_id min/max length constraint).
+VALID_TEMPLATE_ID = "01931e8a-1234-7890-abcd-ef0123456789"
+
+
+def _make_swap_template() -> dict[str, object]:
+    return {
+        "kind": "swap_template",
+        "rationale": "swap to template B because phrase params dominate",
+        "template_id": VALID_TEMPLATE_ID,
+        "search_space": VALID_SEARCH_SPACE_DICT,
     }
 
 
@@ -120,6 +136,52 @@ class TestTextFollowup:
             FollowupItemAdapter.validate_python(raw)
 
 
+class TestSwapTemplateFollowup:
+    def test_round_trip(self) -> None:
+        raw = _make_swap_template()
+        parsed = FollowupItemAdapter.validate_python(raw)
+        assert isinstance(parsed, SwapTemplateFollowup)
+        dumped = parsed.model_dump(mode="json")
+        assert dumped["kind"] == "swap_template"
+        assert dumped["template_id"] == VALID_TEMPLATE_ID
+        assert isinstance(dumped["search_space"], dict)
+        re_parsed = FollowupItemAdapter.validate_python(dumped)
+        assert isinstance(re_parsed, SwapTemplateFollowup)
+
+    def test_rejects_short_template_id(self) -> None:
+        raw = _make_swap_template()
+        raw["template_id"] = "too-short"
+        with pytest.raises(ValidationError):
+            FollowupItemAdapter.validate_python(raw)
+
+    def test_rejects_long_template_id(self) -> None:
+        raw = _make_swap_template()
+        raw["template_id"] = "0" * 50
+        with pytest.raises(ValidationError):
+            FollowupItemAdapter.validate_python(raw)
+
+    def test_rejects_null_search_space(self) -> None:
+        raw = _make_swap_template()
+        raw["search_space"] = None
+        with pytest.raises(ValidationError):
+            FollowupItemAdapter.validate_python(raw)
+
+    def test_rejects_extra_field(self) -> None:
+        raw = _make_swap_template()
+        raw["extra_field"] = "nope"
+        with pytest.raises(ValidationError):
+            FollowupItemAdapter.validate_python(raw)
+
+
+class TestFollowupKindValues:
+    def test_tuple_length_and_tail(self) -> None:
+        # Source-of-truth tuple is locked at 4 entries; swap_template appended
+        # at the tail per feat_digest_executable_followups_swap_template AC-14.
+        assert len(FOLLOWUP_KIND_VALUES) == 4
+        assert FOLLOWUP_KIND_VALUES[-1] == "swap_template"
+        assert FOLLOWUP_KIND_VALUES == ("narrow", "widen", "text", "swap_template")
+
+
 class TestDiscriminator:
     def test_rejects_unknown_kind(self) -> None:
         with pytest.raises(ValidationError):
@@ -148,7 +210,7 @@ class TestSerializeFollowupList:
     def test_round_trip_via_serialize(self) -> None:
         # Mixed-kind list — annotate explicitly so mypy widens to the
         # discriminated-union element type rather than the join (BaseModel).
-        items: list[NarrowFollowup | TextFollowup | WidenFollowup] = [
+        items: list[NarrowFollowup | WidenFollowup | TextFollowup | SwapTemplateFollowup] = [
             NarrowFollowup(
                 kind="narrow",
                 rationale="narrow",
