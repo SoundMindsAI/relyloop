@@ -6,34 +6,28 @@ _Reflects feature-folder state as of **2026-05-24** (latest mtime of any planned
 
 ## Next up
 
-**[feat_home_demo_reseed_endpoint](../02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a "Reset to demo state" button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser.
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_home_demo_reseed_endpoint/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **73 / 74** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **74 / 74** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **14** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 14 important to file, not blocking |
+| → P2 (default) | 13 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 2 |
-| Legacy "Path to MVP1" | 10 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (90)
+### Done (91)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -50,6 +44,7 @@ Plan approved; run /impl-execute to ship
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
 | [feat_github_webhook](implemented_features/2026_05_12_feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `infra_adapter_elastic` `feat_github_pr_worker` | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
+| [feat_home_demo_reseed_endpoint](implemented_features/2026_05_24_feat_home_demo_reseed_endpoint/feature_spec.md) | Feature | A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a "Reset to demo state" button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser. | — | [PR #228](https://github.com/SoundMindsAI/relyloop/pull/228) merged 2026-05-24 |
 | [feat_home_first_run_demo_nudge](implemented_features/2026_05_22_feat_home_first_run_demo_nudge/feature_spec.md) | Feature | An operator landing on a freshly-seeded stack sees an unambiguous banner above the dashboard's empty/populated content that names the present demo clusters, explains they ship with realistic queries + | — | [PR #188](https://github.com/SoundMindsAI/relyloop/pull/188) merged 2026-05-22 |
 | [feat_judgments_periodic_resume_sweep](implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/feature_spec.md) | Feature | A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status='generating'` row via deterministi | — | [PR #104](https://github.com/SoundMindsAI/relyloop/pull/104) merged 2026-05-12 |
 | [feat_llm_judgments](implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) merged 2026-05-11 |
@@ -132,11 +127,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [feat_home_demo_reseed_endpoint](../02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md) | Feature | A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a "Reset to demo state" button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser. | — | [PR #188](https://github.com/SoundMindsAI/relyloop/pull/188) |
+_None._
 
 ### Spec (0)
 
@@ -172,8 +165,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_home_demo_reseed_endpoint["home demo reseed endpoint"]
-  class feat_home_demo_reseed_endpoint plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -320,6 +311,8 @@ graph LR
   class feat_auto_followup_studies done;
   feat_digest_executable_followups["digest executable followups"]
   class feat_digest_executable_followups done;
+  feat_home_demo_reseed_endpoint["home demo reseed endpoint"]
+  class feat_home_demo_reseed_endpoint done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments

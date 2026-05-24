@@ -1,7 +1,7 @@
 # Implementation Plan — feat_home_demo_reseed_endpoint
 
 **Date:** 2026-05-23
-**Status:** Draft
+**Status:** Complete (PR #228, merged 2026-05-24 as squash commit `ad6ff826`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Absolute Rules #2, #6, #8, #10), [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md), [`docs/03_runbooks/local-dev.md`](../../../03_runbooks/local-dev.md)
 
