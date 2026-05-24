@@ -19,7 +19,7 @@
 - Fail-loud tests: assert explicit status/shape/errors.
 - Keep repository patterns consistent with existing digest / studies modules.
 - Keep increments narrow enough to verify independently — backend domain → migration → worker → API contract → frontend → E2E.
-- **Phase scope:** Phase 1 only (Tier A — `narrow` / `widen` / `text` kinds). Phase 2 (`swap_template`) tracked in [`phase2_idea.md`](./phase2_idea.md); Phase 3 (`edit_template`) split out 2026-05-24 to standalone backlog folder at [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md) (template-editor UI prerequisite is genuinely beyond MVP1 scope).
+- **Phase scope:** Phase 1 only (Tier A — `narrow` / `widen` / `text` kinds). Both deferred phases split out to standalone folders on 2026-05-24: Phase 2 (`swap_template`) at [`../feat_digest_executable_followups_swap_template/`](../feat_digest_executable_followups_swap_template/idea.md); Phase 3 (`edit_template`) at [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md) (template-editor UI prerequisite is genuinely beyond MVP1 scope).
 
 ## 1) Scope traceability (FR → epics/phases)
 
@@ -46,9 +46,9 @@
 
 **Spec error-code coverage vs plan:** Spec §8.5 introduces 3 codes; all covered by Story 4.2 contract tests (`PROPOSAL_NOT_FOUND` / `DIGEST_NOT_FOUND` / `FOLLOWUP_INDEX_OUT_OF_RANGE`).
 
-**Deferred phases verified tracked:**
-- `phase2_idea.md` present (Tier B `swap_template`) — `ls` confirmed 2026-05-23.
-- `../backlog_feat_digest_template_edit_followups/idea.md` present (Tier C `edit_template`) — split out from `phase3_idea.md` on 2026-05-24 into a standalone backlog folder because the template-editor UI prerequisite is genuinely beyond MVP1 scope.
+**Deferred phases verified tracked (both split to standalone folders 2026-05-24):**
+- [`../feat_digest_executable_followups_swap_template/idea.md`](../feat_digest_executable_followups_swap_template/idea.md) (Tier B `swap_template`) — split out from `phase2_idea.md` so it ships cleanly through `/pipeline --auto` with standard artifact names.
+- [`../backlog_feat_digest_template_edit_followups/idea.md`](../backlog_feat_digest_template_edit_followups/idea.md) (Tier C `edit_template`) — split out from `phase3_idea.md` into a standalone backlog folder because the template-editor UI prerequisite is genuinely beyond MVP1 scope.
 
 ## 2) Delivery structure
 
@@ -1210,7 +1210,7 @@ Plan testing explicitly by layer and map to stories.
 - [ ] `api-conventions.md` — add `PROPOSAL_NOT_FOUND`, `DIGEST_NOT_FOUND`, `FOLLOWUP_INDEX_OUT_OF_RANGE` to the error-code catalog.
 
 ### 4.2 Product docs (`docs/02_product/`)
-- [ ] No change (this spec lives here; companion `phase2_idea.md` present in this folder; Phase 3 tracked in standalone backlog folder at `../backlog_feat_digest_template_edit_followups/`).
+- [ ] No change (this spec lives here; both deferred phases split to standalone sibling folders 2026-05-24: Phase 2 at `../feat_digest_executable_followups_swap_template/`, Phase 3 at `../backlog_feat_digest_template_edit_followups/`).
 
 ### 4.3 Runbooks (`docs/03_runbooks/`)
 - [ ] Add an entry to a digest-debugging runbook (or extend the agent-debugging runbook): "If all followups appear as `Suggestion` cards, check the worker logs for `digest_followup_validation_downgraded` to see whether the LLM is emitting invalid `search_space` payloads."
@@ -1246,7 +1246,7 @@ Plan testing explicitly by layer and map to stories.
 
 - [ ] Behavioral parity proven by Story 5.1 vitest + Story 6.1 E2E.
 - [ ] `cd ui && pnpm lint && pnpm typecheck && pnpm test` clean.
-- [ ] No expansion of product scope (Phase 2 + 3 explicitly deferred via tracking files).
+- [ ] No expansion of product scope (Phase 2 + 3 explicitly deferred — both split to standalone sibling folders 2026-05-24, see Phase scope note at line 22).
 
 ---
 
