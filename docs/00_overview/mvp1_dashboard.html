@@ -397,7 +397,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">73 / 74</div>
+      <div class="value">74 / 75</div>
       <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:99%"></span></div>
     </div>
@@ -408,7 +408,7 @@ footer {
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">1</div>
+      <div class="value">2</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">9</div>
+      <div class="value">10</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      5 idea-only feat/infra folders (not yet scoped into MVP1)
+      4 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -464,19 +464,6 @@ footer {
   <div class="kanban">
 <div class="col idea">
   <h3>Idea <span class="count">13</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_home_demo_reseed_endpoint">Home Demo Reseed Endpoint</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Phase 1 ships the banner + badges that signal &quot;this is demo data.&quot; It does NOT close the recovery loop for operators who blew away their dev DB and want to re-seed the meaningful demos from inside the</div>
-
-
-</div>
-
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/feat_study_baseline_trial">Study Baseline Trial</a></div>
@@ -621,6 +608,19 @@ footer {
 </div>
 
 
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_vitest_jsdom_localstorage_failures">Vitest Jsdom Localstorage Failures</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">`pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error:</div>
+
+
+</div>
+
+
 <div class="card chore" data-prefix="chore" data-priority="Backlog">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead">E2E Seed Acme Helper Dead</a></div>
   <div class="meta">
@@ -663,7 +663,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">90</span></h3>
+  <h3>Done <span class="count">91</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -831,6 +831,19 @@ footer {
   <div class="one-liner">GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`.</div>
 
   <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">infra_adapter_elastic</span><span class="dep-chip">feat_github_pr_worker</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_24_feat_home_demo_reseed_endpoint/feature_spec.md">Home Demo Reseed Endpoint</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/228">PR #228</a> <span>merged 2026-05-24</span>
+  </div>
+  <div class="one-liner">A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a &quot;Reset to demo state&quot; button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser.</div>
+
+
 </div>
 
 
@@ -1995,6 +2008,8 @@ footer {
   class feat_auto_followup_studies done;
   feat_digest_executable_followups[&quot;digest executable followups&quot;]
   class feat_digest_executable_followups done;
+  feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
+  class feat_home_demo_reseed_endpoint done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2196,6 +2211,8 @@ footer {
   class feat_auto_followup_studies done;
   feat_digest_executable_followups[&quot;digest executable followups&quot;]
   class feat_digest_executable_followups done;
+  feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
+  class feat_home_demo_reseed_endpoint done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
