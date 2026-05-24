@@ -102,10 +102,12 @@ def _stub_cluster_credentials(tmp_path_factory: pytest.TempPathFactory) -> Any:
     fail with ``CredentialsMissing`` → 503 ``CLUSTER_UNREACHABLE``.
 
     Mount a tmp file with the ``local-es`` + ``local-opensearch``
-    credentials the demo scenarios reference, point ``Settings.cluster_credentials_file``
-    at it via direct dict mutation, and reset on teardown.
+    credentials the demo scenarios reference, set
+    ``CLUSTER_CREDENTIALS_FILE`` so the env-var read survives the
+    autouse ``_clear_settings_caches`` fixture (which runs before
+    every test and dumps the Settings lru_cache).
     """
-    from backend.app.core.settings import get_settings
+    import os
 
     tmp = tmp_path_factory.mktemp("demo_reseed_credentials")
     creds_file = tmp / "cluster_credentials.yaml"
@@ -117,23 +119,15 @@ def _stub_cluster_credentials(tmp_path_factory: pytest.TempPathFactory) -> Any:
         "  username: admin\n"
         "  password: admin\n"
     )
-    settings = get_settings()
-    original_file = settings.__dict__.get("cluster_credentials_file")
-    original_yaml = settings.__dict__.get("cluster_credentials_yaml")
-    settings.__dict__["cluster_credentials_file"] = creds_file
-    # Bust the @cached_property so the YAML is re-read from the new path.
-    settings.__dict__.pop("cluster_credentials_yaml", None)
+    original = os.environ.get("CLUSTER_CREDENTIALS_FILE")
+    os.environ["CLUSTER_CREDENTIALS_FILE"] = str(creds_file)
     try:
         yield
     finally:
-        if original_file is None:
-            settings.__dict__.pop("cluster_credentials_file", None)
+        if original is None:
+            os.environ.pop("CLUSTER_CREDENTIALS_FILE", None)
         else:
-            settings.__dict__["cluster_credentials_file"] = original_file
-        if original_yaml is None:
-            settings.__dict__.pop("cluster_credentials_yaml", None)
-        else:
-            settings.__dict__["cluster_credentials_yaml"] = original_yaml
+            os.environ["CLUSTER_CREDENTIALS_FILE"] = original
 
 
 @pytest.fixture(scope="module", autouse=True)

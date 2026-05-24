@@ -67,9 +67,10 @@ def _stub_cluster_credentials(tmp_path: Any) -> Any:
     """Mount cluster_credentials.yaml so the cluster-create probe inside
     the orchestrator can resolve ``local-es`` / ``local-opensearch``.
     See the sibling fixture in ``test_demo_seeding.py`` for the
-    detailed rationale.
+    detailed rationale (uses CLUSTER_CREDENTIALS_FILE env var to
+    survive the autouse ``_clear_settings_caches`` reset).
     """
-    from backend.app.core.settings import get_settings
+    import os
 
     creds_file = tmp_path / "cluster_credentials.yaml"
     creds_file.write_text(
@@ -80,22 +81,15 @@ def _stub_cluster_credentials(tmp_path: Any) -> Any:
         "  username: admin\n"
         "  password: admin\n"
     )
-    settings = get_settings()
-    original_file = settings.__dict__.get("cluster_credentials_file")
-    original_yaml = settings.__dict__.get("cluster_credentials_yaml")
-    settings.__dict__["cluster_credentials_file"] = creds_file
-    settings.__dict__.pop("cluster_credentials_yaml", None)
+    original = os.environ.get("CLUSTER_CREDENTIALS_FILE")
+    os.environ["CLUSTER_CREDENTIALS_FILE"] = str(creds_file)
     try:
         yield
     finally:
-        if original_file is None:
-            settings.__dict__.pop("cluster_credentials_file", None)
+        if original is None:
+            os.environ.pop("CLUSTER_CREDENTIALS_FILE", None)
         else:
-            settings.__dict__["cluster_credentials_file"] = original_file
-        if original_yaml is None:
-            settings.__dict__.pop("cluster_credentials_yaml", None)
-        else:
-            settings.__dict__["cluster_credentials_yaml"] = original_yaml
+            os.environ["CLUSTER_CREDENTIALS_FILE"] = original
 
 
 @pytest.fixture(autouse=True)
