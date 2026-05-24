@@ -90,6 +90,36 @@ if not postgres_reachable() or not _engine_reachable():
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(scope="module", autouse=True)
+def _patch_engine_resolver_for_test_host() -> Any:
+    """The production resolver maps localhost:9200/9201 → Compose-DNS
+    elasticsearch:9200/opensearch:9201 — correct for the API container at
+    runtime. In the test environment the in-process uvicorn runs on the
+    GHA runner HOST (not in a container), where the Compose-DNS names
+    don't resolve (services are reachable only via forwarded ports).
+
+    Patch both the service module's resolver AND the route handler's
+    re-import of the same symbol so engine self-calls go through to
+    127.0.0.1:9200 / 9201 — the ports the GHA workflow forwards.
+    """
+    import backend.app.api.v1._test as test_mod
+    import backend.app.services.demo_seeding as svc_mod
+
+    def passthrough(host_base_url: str) -> str:
+        # Map the CLI's host URLs to the test process's reachable ports.
+        if host_base_url == "http://localhost:9200":
+            return "http://127.0.0.1:9200"
+        if host_base_url == "http://localhost:9201":
+            return "http://127.0.0.1:9201"
+        raise ValueError(f"unexpected URL in test resolver: {host_base_url}")
+
+    with (
+        patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
+        patch.object(test_mod, "_resolve_engine_base_url", passthrough),
+    ):
+        yield
+
+
 @pytest_asyncio.fixture(scope="module")
 async def demo_reseed_base_url() -> AsyncIterator[str]:
     with running_uvicorn() as base_url:
@@ -345,8 +375,9 @@ async def test_reseed_mid_flight_engine_failure_returns_503_and_cleans_up(
 
     async def counting_put(self: httpx.AsyncClient, url: Any, *args: Any, **kwargs: Any) -> Any:
         # Only count engine-targeted PUTs (i.e., not the api self-call client).
+        # Match by port — engine clients hit :9200 / :9201; api self-calls hit :8000.
         url_str = str(url)
-        if "elasticsearch:" in url_str or "opensearch:" in url_str:
+        if ":9200" in url_str or ":9201" in url_str:
             call_count["engine_put"] += 1
             if call_count["engine_put"] > fail_threshold:
                 raise httpx.ConnectError("simulated ES unreachable", request=None)
@@ -416,9 +447,13 @@ async def test_dual_client_contract_no_role_mixing(
     es_basic = "Basic " + _b64.b64encode(b"elastic:changeme").decode()
     os_basic = "Basic " + _b64.b64encode(b"admin:admin").decode()
 
-    api_requests = [r for r in recorded if "localhost:8000" in r["url"]]
-    es_requests = [r for r in recorded if "elasticsearch:9200" in r["url"]]
-    os_requests = [r for r in recorded if "opensearch:9201" in r["url"]]
+    # In the test environment the resolver is patched to ``127.0.0.1`` —
+    # the production resolver uses ``elasticsearch`` / ``opensearch`` Compose
+    # DNS names. Partition requests by port instead of hostname so the
+    # role-mixing assertions are robust across either resolver.
+    api_requests = [r for r in recorded if ":8000" in r["url"]]
+    es_requests = [r for r in recorded if ":9200" in r["url"]]
+    os_requests = [r for r in recorded if ":9201" in r["url"]]
     # Sanity: each client did its job.
     assert len(api_requests) > 0, "no api-client self-calls recorded"
     assert len(es_requests) > 0, "no engine ES requests recorded"
@@ -426,7 +461,7 @@ async def test_dual_client_contract_no_role_mixing(
     # No role mixing.
     for r in api_requests:
         assert r["auth_header"] is None, f"api request unexpectedly carries auth: {r}"
-        assert "elasticsearch:" not in r["url"] and "opensearch:" not in r["url"]
+        assert ":9200" not in r["url"] and ":9201" not in r["url"]
     for r in es_requests:
         assert r["auth_header"] == es_basic, (
             f"ES request wrong auth: {r['auth_header']} (expected {es_basic})"

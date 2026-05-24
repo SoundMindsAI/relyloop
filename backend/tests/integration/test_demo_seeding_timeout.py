@@ -62,6 +62,28 @@ if not postgres_reachable() or not _engine_reachable():
     )
 
 
+@pytest.fixture(autouse=True)
+def _patch_engine_resolver_for_test_host() -> Any:
+    """Same rationale as the sibling fixture in ``test_demo_seeding.py`` —
+    the test process is on the GHA runner host, not in a container, so
+    the production resolver's Compose-DNS names don't resolve."""
+    import backend.app.api.v1._test as test_mod
+    import backend.app.services.demo_seeding as svc_mod
+
+    def passthrough(host_base_url: str) -> str:
+        if host_base_url == "http://localhost:9200":
+            return "http://127.0.0.1:9200"
+        if host_base_url == "http://localhost:9201":
+            return "http://127.0.0.1:9201"
+        raise ValueError(f"unexpected URL in test resolver: {host_base_url}")
+
+    with (
+        patch.object(svc_mod, "_resolve_engine_base_url", passthrough),
+        patch.object(test_mod, "_resolve_engine_base_url", passthrough),
+    ):
+        yield
+
+
 # Function-scoped uvicorn — one fresh server per test in this file so the
 # ReadTimeout residual cannot pollute later tests in the module.
 @pytest_asyncio.fixture
