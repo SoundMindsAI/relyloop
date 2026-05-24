@@ -88,10 +88,11 @@ Tiered. Tier A reshapes the LLM output and adds the "Run this followup" button f
 - **LLM prompt extension** to teach the model when to suggest a swap (typically: parameter-importance distribution is highly skewed, suggesting some params are dead weight; OR several winning trials cluster around a sub-set of params that map cleanly onto a different template's declared params).
 - **UI surface:** swap-template followups render with a side-by-side comparison of the two templates' `declared_params` before the operator commits.
 
-### Tier C (stretch / probably deferred) — template-edit suggestions
+### Tier C (split out 2026-05-24 to standalone backlog folder) — template-edit suggestions
 
 - **`kind: "edit_template"`** carrying a proposed JSON-patch on the parent template's `body_jsonata` (or equivalent). The LLM could suggest "add a `category^2` field-boost to the template body." Today templates are operator-authored only; this would let LLM suggestions flow into template edits with an explicit review step.
-- **Likely out of scope for MVP1.** Template edits change query rendering semantics — a much larger trust-and-validation surface than search-space narrowing. Captured here to acknowledge the natural extension; feature spec defers.
+- **Likely out of scope for MVP1.** Template edits change query rendering semantics — a much larger trust-and-validation surface than search-space narrowing.
+- **Now tracked in [`../backlog_feat_digest_template_edit_followups/idea.md`](../backlog_feat_digest_template_edit_followups/idea.md)** with explicit promotion criteria (drops the `backlog_` prefix once Phase 2 has shipped + the template-editor UI prerequisite is met).
 
 ### Out of scope for Tier A/B
 

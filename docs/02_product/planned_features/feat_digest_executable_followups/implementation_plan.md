@@ -19,7 +19,7 @@
 - Fail-loud tests: assert explicit status/shape/errors.
 - Keep repository patterns consistent with existing digest / studies modules.
 - Keep increments narrow enough to verify independently — backend domain → migration → worker → API contract → frontend → E2E.
-- **Phase scope:** Phase 1 only (Tier A — `narrow` / `widen` / `text` kinds). Phase 2 (`swap_template`) tracked in [`phase2_idea.md`](./phase2_idea.md); Phase 3 (`edit_template`) tracked in [`phase3_idea.md`](./phase3_idea.md). Both deferred trackers verified present.
+- **Phase scope:** Phase 1 only (Tier A — `narrow` / `widen` / `text` kinds). Phase 2 (`swap_template`) tracked in [`phase2_idea.md`](./phase2_idea.md); Phase 3 (`edit_template`) split out 2026-05-24 to standalone backlog folder at [`../backlog_feat_digest_template_edit_followups/`](../backlog_feat_digest_template_edit_followups/idea.md) (template-editor UI prerequisite is genuinely beyond MVP1 scope).
 
 ## 1) Scope traceability (FR → epics/phases)
 
@@ -48,7 +48,7 @@
 
 **Deferred phases verified tracked:**
 - `phase2_idea.md` present (Tier B `swap_template`) — `ls` confirmed 2026-05-23.
-- `phase3_idea.md` present (Tier C `edit_template`) — `ls` confirmed 2026-05-23.
+- `../backlog_feat_digest_template_edit_followups/idea.md` present (Tier C `edit_template`) — split out from `phase3_idea.md` on 2026-05-24 into a standalone backlog folder because the template-editor UI prerequisite is genuinely beyond MVP1 scope.
 
 ## 2) Delivery structure
 
@@ -1210,7 +1210,7 @@ Plan testing explicitly by layer and map to stories.
 - [ ] `api-conventions.md` — add `PROPOSAL_NOT_FOUND`, `DIGEST_NOT_FOUND`, `FOLLOWUP_INDEX_OUT_OF_RANGE` to the error-code catalog.
 
 ### 4.2 Product docs (`docs/02_product/`)
-- [ ] No change (this spec lives here; companion phase2/phase3 ideas already present).
+- [ ] No change (this spec lives here; companion `phase2_idea.md` present in this folder; Phase 3 tracked in standalone backlog folder at `../backlog_feat_digest_template_edit_followups/`).
 
 ### 4.3 Runbooks (`docs/03_runbooks/`)
 - [ ] Add an entry to a digest-debugging runbook (or extend the agent-debugging runbook): "If all followups appear as `Suggestion` cards, check the worker logs for `digest_followup_validation_downgraded` to see whether the LLM is emitting invalid `search_space` payloads."
