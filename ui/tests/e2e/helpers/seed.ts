@@ -701,6 +701,16 @@ export type SeedFollowupItem =
       kind: 'text';
       rationale: string;
       search_space: null;
+    }
+  | {
+      // feat_digest_executable_followups_swap_template Story 5.1 — fourth
+      // discriminator variant. template_id MUST be a 36-char UUID
+      // matching a seeded query_template id (the worker downgrades
+      // unknown ids to text with reason=not_found per FR-8).
+      kind: 'swap_template';
+      rationale: string;
+      template_id: string;
+      search_space: Record<string, unknown>;
     };
 
 export async function seedStudyCompletedWithDigest(args: {

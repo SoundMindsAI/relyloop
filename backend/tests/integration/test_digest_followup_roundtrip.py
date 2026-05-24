@@ -13,11 +13,19 @@ Asserts the persisted JSONB:
 - the downgraded item's rationale starts with ``[validation failed:
   search-space cardinality estimate exceeds 10^6"``
 - a ``digest_followup_validation_downgraded`` WARN event was emitted.
+
+feat_digest_executable_followups_swap_template Story 2.3: extends with a
+swap_template happy-path case (a second template seeded into the
+catalogue + an LLM payload containing one valid ``swap_template`` item)
+and an AC-13 case (single-template install → the worker omits the
+``<available_templates>`` block AND the LLM payload omits swap_template
+items entirely).
 """
 
 from __future__ import annotations
 
 import logging
+import uuid
 from typing import Any
 
 import pytest
@@ -140,3 +148,135 @@ class TestWorkerStructuredFollowupRoundTrip:
         # The downgrade WARN was emitted.
         event_types = [getattr(r, "event_type", None) for r in caplog.records]
         assert "digest_followup_validation_downgraded" in event_types
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+class TestWorkerSwapTemplateRoundTrip:
+    """Worker round-trip covering the swap_template happy path + AC-13."""
+
+    async def test_swap_template_happy_path_remaps_and_persists(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """LLM emits one swap_template item against a seeded catalogue.
+
+        Worker fetches the catalogue, runs the remap helper, and persists
+        the merged search_space (intersection bounds from LLM + heuristic
+        defaults for the disjoint phrase_slop param).
+        """
+        # Seed parent study against template A (title_boost + tie_breaker).
+        # best_trial_params MUST be a subset of declared_params — otherwise
+        # the worker computes a non-empty `dropped` set and pre-pends a
+        # "params no longer declared" text item, producing 2 followups
+        # instead of 1 (the assertion at line 227 catches this regression).
+        seeded = await seed_completed_study(
+            declared_params={
+                "title_boost": "float",
+                "tie_breaker": "float",
+            },
+            best_trial_params={"title_boost": 0.8, "tie_breaker": 0.34},
+        )
+        # Seed an alternative template B (same engine_type, sharing title_boost
+        # + adding phrase_slop) so the worker's catalogue fetch finds it.
+        factory = get_session_factory()
+        async with factory() as db:
+            swap_target = await repo.create_query_template(
+                db,
+                id=str(uuid.uuid4()),
+                name=f"swap-{uuid.uuid4().hex[:8]}",
+                engine_type="elasticsearch",
+                body='{"query": {"match_all": {}}}',
+                declared_params={
+                    "title_boost": "float",
+                    "phrase_slop": "int",
+                },
+                version=1,
+            )
+            await db.commit()
+            swap_target_id = swap_target.id
+
+        settings = get_settings()
+        settings.__dict__["openai_api_key"] = "sk-test"
+        redis_client = Redis.from_url(settings.redis_url, decode_responses=False)
+        try:
+            await stub_capability(redis_client, structured_output="ok")
+        finally:
+            await redis_client.aclose()
+
+        swap_followup: dict[str, Any] = {
+            "kind": "swap_template",
+            "rationale": "swap to template B for phrase_slop coverage",
+            "template_id": swap_target_id,
+            "search_space": {
+                "params": {
+                    "title_boost": {"type": "float", "low": 0.5, "high": 2.0},
+                }
+            },
+        }
+        patch_async_openai(
+            monkeypatch,
+            make_openai_response(
+                narrative="Swap-template happy path.",
+                suggested_followups=[swap_followup],
+            ),
+        )
+        from backend.workers.digest import generate_digest
+
+        await generate_digest({}, seeded["study_id"])
+
+        async with factory() as db:
+            digest = await repo.get_digest_for_study(db, seeded["study_id"])
+        assert digest is not None
+        followups = digest.suggested_followups
+        assert len(followups) == 1
+        f = followups[0]
+        assert f["kind"] == "swap_template"
+        assert f["template_id"] == swap_target_id
+        # Worker's remap step merged: intersection (title_boost from LLM) +
+        # heuristic phrase_slop defaults.
+        assert "title_boost" in f["search_space"]["params"]
+        assert "phrase_slop" in f["search_space"]["params"]
+        # LLM-emitted title_boost bounds preserved verbatim.
+        assert f["search_space"]["params"]["title_boost"]["low"] == 0.5
+        assert f["search_space"]["params"]["title_boost"]["high"] == 2.0
+
+    async def test_single_template_install_no_swap_template_persisted(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """AC-13: when the catalogue is empty (only the parent template is
+        registered), the worker omits ``<available_templates>`` from the
+        prompt and the LLM should not emit swap_template items. If the LLM
+        misbehaves, the persisted swap_template would be downgraded to
+        ``text`` with reason=not_found — assert no swap_template lands.
+        """
+        seeded = await seed_completed_study()
+        settings = get_settings()
+        settings.__dict__["openai_api_key"] = "sk-test"
+        redis_client = Redis.from_url(settings.redis_url, decode_responses=False)
+        try:
+            await stub_capability(redis_client, structured_output="ok")
+        finally:
+            await redis_client.aclose()
+        # LLM emits two harmless text items — no swap_template in this case.
+        patch_async_openai(
+            monkeypatch,
+            make_openai_response(
+                narrative="Single template install.",
+                suggested_followups=[
+                    "Add brand-disambiguation queries",
+                    "Consider adding a category facet",
+                ],
+            ),
+        )
+        from backend.workers.digest import generate_digest
+
+        await generate_digest({}, seeded["study_id"])
+
+        factory = get_session_factory()
+        async with factory() as db:
+            digest = await repo.get_digest_for_study(db, seeded["study_id"])
+        assert digest is not None
+        kinds = {f["kind"] for f in digest.suggested_followups}
+        assert "swap_template" not in kinds

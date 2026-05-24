@@ -202,13 +202,26 @@ def make_openai_response(
     normalized: list[dict[str, Any]] = []
     for item in suggested_followups:
         if isinstance(item, str):
-            normalized.append({"kind": "text", "rationale": item, "search_space_json": ""})
+            # feat_digest_executable_followups_swap_template Story 2.1: every
+            # item must carry ``template_id`` (empty-string sentinel for
+            # non-swap kinds — worker pre-cleans per spec D-29).
+            normalized.append(
+                {
+                    "kind": "text",
+                    "rationale": item,
+                    "search_space_json": "",
+                    "template_id": "",
+                }
+            )
         elif isinstance(item, dict):
             if "search_space_json" in item:
-                # Already in wire shape — pass through.
-                normalized.append(item)
+                # Already in wire shape — pass through after defaulting
+                # template_id to "" for backwards compatibility with the
+                # pre-swap_template (Tier-A) wire shape.
+                normalized.append({"template_id": "", **item})
             else:
-                # Translate {kind, rationale, search_space} → wire shape.
+                # Translate {kind, rationale, search_space[, template_id]}
+                # → wire shape.
                 ss = item.get("search_space")
                 ss_json = "" if ss is None else _json.dumps(ss)
                 normalized.append(
@@ -216,6 +229,7 @@ def make_openai_response(
                         "kind": item.get("kind", "text"),
                         "rationale": item.get("rationale", ""),
                         "search_space_json": ss_json,
+                        "template_id": item.get("template_id", ""),
                     }
                 )
     payload = {"narrative": narrative, "suggested_followups": normalized}

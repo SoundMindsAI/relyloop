@@ -316,6 +316,66 @@ def test_system_prompt_has_fr6_opening_guidance_and_block_inventory() -> None:
     assert "9. `<per_query_outcomes>`" in system
 
 
+def test_user_prompt_includes_parent_template_declared_params_when_provided() -> None:
+    """feat_digest_executable_followups_swap_template Story 2.2 (FR-6).
+
+    When the worker passes ``parent_template_declared_params``, the new
+    ``<parent_template_declared_params>`` block must render with the
+    canonical JSON shape.
+    """
+    output = render_digest_user_prompt(
+        **CANONICAL_KWARGS,  # type: ignore[arg-type]
+        parent_template_declared_params={"title_boost": "float", "tie_breaker": "int"},
+    )
+    assert "<parent_template_declared_params>" in output
+    assert '"title_boost": "float"' in output
+    assert '"tie_breaker": "int"' in output
+
+
+def test_user_prompt_omits_parent_template_declared_params_when_absent() -> None:
+    """When the kwarg is None, the block must be entirely absent."""
+    output = render_digest_user_prompt(**CANONICAL_KWARGS)  # type: ignore[arg-type]
+    assert "<parent_template_declared_params>" not in output
+
+
+def test_user_prompt_includes_available_templates_when_provided() -> None:
+    """feat_digest_executable_followups_swap_template Story 2.2 (FR-6).
+
+    When the worker passes a non-empty ``available_templates`` catalogue,
+    each entry must render as a compact JSON line inside the
+    ``<available_templates>`` block.
+    """
+    catalogue = [
+        {
+            "id": "01931e8a-1234-7890-abcd-ef0123456789",
+            "name": "products-multi-match",
+            "version": 3,
+            "declared_params": {"title_boost": "float", "phrase_slop": "int"},
+        }
+    ]
+    output = render_digest_user_prompt(
+        **CANONICAL_KWARGS,  # type: ignore[arg-type]
+        available_templates=catalogue,
+    )
+    assert "<available_templates>" in output
+    assert "01931e8a-1234-7890-abcd-ef0123456789" in output
+    assert "products-multi-match" in output
+    assert '"declared_params"' in output
+
+
+def test_user_prompt_omits_available_templates_when_absent_or_empty() -> None:
+    """AC-13: catalogue-empty path renders no `<available_templates>` block."""
+    # None case
+    output_none = render_digest_user_prompt(**CANONICAL_KWARGS)  # type: ignore[arg-type]
+    assert "<available_templates>" not in output_none
+    # Empty list also treated as absent by the Jinja {% if %} truthy check.
+    output_empty = render_digest_user_prompt(
+        **CANONICAL_KWARGS,  # type: ignore[arg-type]
+        available_templates=[],
+    )
+    assert "<available_templates>" not in output_empty
+
+
 def test_sandbox_rejects_attribute_access() -> None:
     """Defense in depth: SandboxedEnvironment blocks dunder-access from template authors.
 

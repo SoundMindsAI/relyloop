@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,6 +8,15 @@ import {
   SuggestedFollowupsPanel,
 } from '@/components/proposals/suggested-followups-panel';
 import { TooltipProvider } from '@/components/ui/tooltip';
+
+// Mock the useTemplate hook so the per-card swap-target fetches return
+// deterministic data without TanStack Query firing real network calls.
+vi.mock('@/lib/api/query-templates', () => ({
+  useTemplate: vi.fn(),
+}));
+// Re-import after mock so the test body controls the implementation.
+import { useTemplate } from '@/lib/api/query-templates';
+const mockedUseTemplate = vi.mocked(useTemplate);
 
 // feat_digest_executable_followups Story 5.1 — covers all 6 rows in the
 // legacy-parity table plus the kind-discriminated card markup.
@@ -35,14 +45,65 @@ const TEXT: FollowupItem = {
   search_space: null,
 };
 
+const SWAP_TARGET_A_ID = '01931e8a-aaaa-7890-abcd-aaaaaaaaaaaa';
+const SWAP_TARGET_B_ID = '01931e8a-bbbb-7890-abcd-bbbbbbbbbbbb';
+
+const SWAP_TEMPLATE_A: FollowupItem = {
+  kind: 'swap_template',
+  rationale: 'swap to template A for phrase_slop coverage',
+  template_id: SWAP_TARGET_A_ID,
+  search_space: VALID_SEARCH_SPACE,
+};
+
+const SWAP_TEMPLATE_B: FollowupItem = {
+  kind: 'swap_template',
+  rationale: 'swap to template B for a richer field-boost set',
+  template_id: SWAP_TARGET_B_ID,
+  search_space: VALID_SEARCH_SPACE,
+};
+
+function _mockTemplateOk(declaredParams: Record<string, string>) {
+  return {
+    data: {
+      id: 'test-tpl',
+      name: 'test-template',
+      version: 1,
+      declared_params: declaredParams,
+    },
+    isLoading: false,
+    error: null,
+  } as unknown as ReturnType<typeof useTemplate>;
+}
+
+function _mockTemplateLoading() {
+  return {
+    data: undefined,
+    isLoading: true,
+    error: null,
+  } as unknown as ReturnType<typeof useTemplate>;
+}
+
+function _mockTemplateError() {
+  return {
+    data: undefined,
+    isLoading: false,
+    error: new Error('boom'),
+  } as unknown as ReturnType<typeof useTemplate>;
+}
+
 function renderPanel(props: Partial<React.ComponentProps<typeof SuggestedFollowupsPanel>> = {}) {
   const onRun = props.onRun ?? vi.fn();
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   return {
     onRun,
     ...render(
-      <TooltipProvider>
-        <SuggestedFollowupsPanel followups={[NARROW, WIDEN, TEXT]} onRun={onRun} {...props} />
-      </TooltipProvider>,
+      <QueryClientProvider client={qc}>
+        <TooltipProvider>
+          <SuggestedFollowupsPanel followups={[NARROW, WIDEN, TEXT]} onRun={onRun} {...props} />
+        </TooltipProvider>
+      </QueryClientProvider>,
     ),
   };
 }
@@ -153,6 +214,84 @@ describe('<SuggestedFollowupsPanel />', () => {
       renderPanel();
       expect(screen.getByTestId('followup-0-proposed-search-space')).toBeInTheDocument();
       expect(screen.getByTestId('followup-1-proposed-search-space')).toBeInTheDocument();
+    });
+  });
+
+  describe('feat_digest_executable_followups_swap_template Story 3.2', () => {
+    it('renders the Swap template badge + run button + declared-params + search-space data-testids', () => {
+      mockedUseTemplate.mockReturnValue(
+        _mockTemplateOk({ title_boost: 'float', phrase_slop: 'int' }),
+      );
+      renderPanel({
+        followups: [SWAP_TEMPLATE_A],
+        parentTemplate: {
+          declared_params: { title_boost: 'float', tie_breaker: 'int' },
+        },
+      });
+      expect(screen.getByText('Swap template')).toBeInTheDocument();
+      expect(screen.getByTestId('followup-0-card')).toBeInTheDocument();
+      expect(screen.getByTestId('followup-0-declared-params-diff')).toBeInTheDocument();
+      expect(screen.getByTestId('followup-0-parent-declared-params')).toBeInTheDocument();
+      expect(screen.getByTestId('followup-0-swap-declared-params')).toBeInTheDocument();
+      expect(screen.getByTestId('followup-0-show-search-space')).toBeInTheDocument();
+      expect(screen.getByTestId('followup-0-show-declared-params')).toBeInTheDocument();
+      expect(screen.getByTestId('followup-0-run')).toBeInTheDocument();
+    });
+
+    it('renders the per-card loading state on the swap-target column when useTemplate is loading', () => {
+      mockedUseTemplate.mockReturnValue(_mockTemplateLoading());
+      renderPanel({
+        followups: [SWAP_TEMPLATE_A],
+        parentTemplate: { declared_params: { title_boost: 'float' } },
+      });
+      expect(screen.getByTestId('followup-0-swap-declared-params-loading')).toBeInTheDocument();
+    });
+
+    it('renders the per-card error state when the swap-target fetch errors', () => {
+      mockedUseTemplate.mockReturnValue(_mockTemplateError());
+      renderPanel({
+        followups: [SWAP_TEMPLATE_A],
+        parentTemplate: { declared_params: { title_boost: 'float' } },
+      });
+      expect(screen.getByTestId('followup-0-swap-declared-params-error')).toBeInTheDocument();
+      // Run button stays enabled even when the comparison view fails to load.
+      expect(screen.getByTestId('followup-0-run')).toBeInTheDocument();
+    });
+
+    it('Run button on swap_template card fires onRun(index)', async () => {
+      mockedUseTemplate.mockReturnValue(
+        _mockTemplateOk({ title_boost: 'float', phrase_slop: 'int' }),
+      );
+      const user = userEvent.setup();
+      const { onRun } = renderPanel({
+        followups: [TEXT, SWAP_TEMPLATE_A],
+        parentTemplate: { declared_params: { title_boost: 'float' } },
+      });
+      await user.click(screen.getByTestId('followup-1-run'));
+      expect(onRun).toHaveBeenCalledTimes(1);
+      expect(onRun).toHaveBeenCalledWith(1);
+    });
+
+    it('multi-target case: two swap_template cards each fetch their own swap target', async () => {
+      // First call → target A; second call → target B.
+      mockedUseTemplate.mockImplementation((id: string | null | undefined) => {
+        if (id === SWAP_TARGET_A_ID) {
+          return _mockTemplateOk({ title_boost: 'float', phrase_slop: 'int' });
+        }
+        return _mockTemplateOk({ title_boost: 'float', bm25_b: 'float' });
+      });
+      renderPanel({
+        followups: [SWAP_TEMPLATE_A, SWAP_TEMPLATE_B],
+        parentTemplate: { declared_params: { title_boost: 'float' } },
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId('followup-0-swap-declared-params')).toBeInTheDocument();
+        expect(screen.getByTestId('followup-1-swap-declared-params')).toBeInTheDocument();
+      });
+      // Both per-card useTemplate calls fired (one per distinct template id).
+      const calledIds = mockedUseTemplate.mock.calls.map((c) => c[0]);
+      expect(calledIds).toContain(SWAP_TARGET_A_ID);
+      expect(calledIds).toContain(SWAP_TARGET_B_ID);
     });
   });
 });

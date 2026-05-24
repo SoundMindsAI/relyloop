@@ -60,7 +60,7 @@ logger = logging.getLogger(__name__)
 _TRUNCATE_LIMIT = 200
 
 
-def _truncate(text: str) -> str:
+def truncate_validation_error(text: str) -> str:
     """Head-and-tail truncate ``text`` to keep log lines bounded.
 
     For strings longer than ``2 * _TRUNCATE_LIMIT`` characters, returns the
@@ -71,10 +71,20 @@ def _truncate(text: str) -> str:
     LLM payload doesn't flood structured logs while still preserving the
     field-path-and-message info Pydantic puts at the end of its
     ValidationError repr.
+
+    Public per ``feat_digest_executable_followups_swap_template`` D-33 + Story
+    2.3 — the digest worker imports this symbol for its swap_template
+    downgrade WARN events so the truncation contract is canonical (single
+    source of truth across the worker + parser layers).
     """
     if len(text) <= 2 * _TRUNCATE_LIMIT:
         return text
     return text[:_TRUNCATE_LIMIT] + "...[truncated]..." + text[-_TRUNCATE_LIMIT:]
+
+
+# Back-compat private alias preserved so internal call sites at lines below
+# (and any out-of-tree readers) keep importing the same callable.
+_truncate = truncate_validation_error
 
 
 class NarrowFollowup(BaseModel):
@@ -107,20 +117,41 @@ class TextFollowup(BaseModel):
     search_space: None = None
 
 
+class SwapTemplateFollowup(BaseModel):
+    """A 'swap_template' followup — re-run against a different query template.
+
+    Carries the LLM-proposed bounds for params shared with the parent template
+    in ``search_space``. The digest worker calls
+    :func:`backend.app.domain.study.template_swap.remap_search_space_for_swap_target`
+    after parsing to merge these bounds with heuristic defaults for any
+    swap-target params not shared with the parent.
+
+    Owner: ``feat_digest_executable_followups_swap_template`` (Tier B).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["swap_template"]
+    rationale: str
+    template_id: str = Field(min_length=36, max_length=36)
+    search_space: SearchSpace
+
+
 type FollowupItem = Annotated[
-    NarrowFollowup | WidenFollowup | TextFollowup,
+    NarrowFollowup | WidenFollowup | TextFollowup | SwapTemplateFollowup,
     Field(discriminator="kind"),
 ]
-"""Discriminated union over the three concrete followup kinds."""
+"""Discriminated union over the four concrete followup kinds."""
 
 # Tuple constant used by the CI source-of-truth grep gate
 # (``scripts/ci/verify_enum_source_of_truth.sh`` calls
 # ``backend.tests.contract.test_enum_source_of_truth_helpers``, which can
 # resolve ``tuple``/``frozenset``/``Literal`` symbols but not the
 # ``FollowupItem`` ``Annotated`` alias). Mirrors the per-class
-# ``Literal["narrow"|"widen"|"text"]`` discriminators exactly; frontend
-# ``ui/src/lib/enums.ts FOLLOWUP_KIND_VALUES`` cites this constant.
-FOLLOWUP_KIND_VALUES: tuple[str, ...] = ("narrow", "widen", "text")
+# ``Literal["narrow"|"widen"|"text"|"swap_template"]`` discriminators
+# exactly; frontend ``ui/src/lib/enums.ts FOLLOWUP_KIND_VALUES`` cites
+# this constant.
+FOLLOWUP_KIND_VALUES: tuple[str, ...] = ("narrow", "widen", "text", "swap_template")
 
 FollowupItemAdapter: TypeAdapter[FollowupItem] = TypeAdapter(FollowupItem)
 FollowupListAdapter: TypeAdapter[list[FollowupItem]] = TypeAdapter(list[FollowupItem])
@@ -328,8 +359,10 @@ __all__ = [
     "FollowupItemAdapter",
     "FollowupListAdapter",
     "NarrowFollowup",
+    "SwapTemplateFollowup",
     "TextFollowup",
     "WidenFollowup",
     "parse_followup_list",
     "serialize_followup_list",
+    "truncate_validation_error",
 ]

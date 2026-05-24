@@ -503,6 +503,17 @@ export const glossary = {
     short: "Compare this followup's proposed search space against the parent study's.",
     ariaLabel: 'More information about the search-space diff',
   },
+  // Source-of-truth: backend/app/domain/study/followups.py SwapTemplateFollowup
+  'proposal.followup_kind_swap_template': {
+    short:
+      'Try a different query template. Shared params keep LLM bounds; new params get heuristic defaults you can edit.',
+    ariaLabel: 'More information about swap-template follow-ups',
+  },
+  'proposal.followup_declared_params_diff': {
+    short:
+      'Compare parent template params to swap target. Shared keep LLM bounds; new get defaults; dropped are removed.',
+    ariaLabel: 'More information about the declared-params diff',
+  },
   'proposal.status_filter': {
     short:
       'Filter the proposals list by lifecycle state. "All" shows every proposal regardless of where it is in the open-PR / merge flow.',
