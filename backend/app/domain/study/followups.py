@@ -101,6 +101,15 @@ type FollowupItem = Annotated[
 ]
 """Discriminated union over the three concrete followup kinds."""
 
+# Tuple constant used by the CI source-of-truth grep gate
+# (``scripts/ci/verify_enum_source_of_truth.sh`` calls
+# ``backend.tests.contract.test_enum_source_of_truth_helpers``, which can
+# resolve ``tuple``/``frozenset``/``Literal`` symbols but not the
+# ``FollowupItem`` ``Annotated`` alias). Mirrors the per-class
+# ``Literal["narrow"|"widen"|"text"]`` discriminators exactly; frontend
+# ``ui/src/lib/enums.ts FOLLOWUP_KIND_VALUES`` cites this constant.
+FOLLOWUP_KIND_VALUES: tuple[str, ...] = ("narrow", "widen", "text")
+
 FollowupItemAdapter: TypeAdapter[FollowupItem] = TypeAdapter(FollowupItem)
 FollowupListAdapter: TypeAdapter[list[FollowupItem]] = TypeAdapter(list[FollowupItem])
 
@@ -302,6 +311,7 @@ def serialize_followup_list(items: list[FollowupItem]) -> list[dict[str, Any]]:
 
 
 __all__ = [
+    "FOLLOWUP_KIND_VALUES",
     "FollowupItem",
     "FollowupItemAdapter",
     "FollowupListAdapter",

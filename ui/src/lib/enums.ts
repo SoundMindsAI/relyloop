@@ -244,7 +244,6 @@ export type ProposalSource = (typeof PROPOSAL_SOURCE_VALUES)[number];
 // backend FollowupItem discriminator. The values flow back to the backend
 // only indirectly (via persisted JSONB), but the frontend uses them to
 // branch UI per card kind.
-// Values must match backend/app/domain/study/followups.py FollowupItem.kind
-// (Literal['narrow'] | Literal['widen'] | Literal['text']).
+// Values must match backend/app/domain/study/followups.py FOLLOWUP_KIND_VALUES
 export const FOLLOWUP_KIND_VALUES = ['narrow', 'widen', 'text'] as const;
 export type FollowupKind = (typeof FOLLOWUP_KIND_VALUES)[number];
