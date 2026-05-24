@@ -336,10 +336,15 @@ class TestStudiesWithParentFollowup:
             "template_id": swap_target_id,
             "query_set_id": seeded["query_set_id"],
             "judgment_list_id": seeded["judgment_list_id"],
-            # Search space matches the SWAP TARGET's declared bm25_k1.
+            # Search space must cover ALL of the SWAP TARGET's declared
+            # params (bm25_k1 + phrase_slop) — SEARCH_SPACE_MISSING_DECLARED_PARAM
+            # otherwise. The phrase_slop bounds mirror what the worker's
+            # cross-template heuristic-fill would produce via
+            # build_starter_search_space for the disjoint-set entry.
             "search_space": {
                 "params": {
                     "bm25_k1": {"type": "float", "low": 0.5, "high": 1.5},
+                    "phrase_slop": {"type": "int", "low": 0, "high": 3},
                 }
             },
             "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
