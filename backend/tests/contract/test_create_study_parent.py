@@ -77,11 +77,25 @@ class TestOpenAPISurface:
 
 
 class TestNewErrorCodesSurfacedByRouter:
-    """All three new error codes are emitted by the create_study handler."""
+    """All five new error codes are emitted by the create_study handler.
+
+    The first three (PROPOSAL_NOT_FOUND, DIGEST_NOT_FOUND,
+    FOLLOWUP_INDEX_OUT_OF_RANGE) were introduced by Story 4.2 of
+    feat_digest_executable_followups; the latter two
+    (PARENT_STUDY_NOT_FOUND, PARENT_STUDY_WRONG_CLUSTER) are added by
+    feat_study_clone_from_previous Story 1.2 / FR-8 / D-9 (early-placement
+    parent-study FK validation).
+    """
 
     @pytest.mark.parametrize(
         "code",
-        ["PROPOSAL_NOT_FOUND", "DIGEST_NOT_FOUND", "FOLLOWUP_INDEX_OUT_OF_RANGE"],
+        [
+            "PROPOSAL_NOT_FOUND",
+            "DIGEST_NOT_FOUND",
+            "FOLLOWUP_INDEX_OUT_OF_RANGE",
+            "PARENT_STUDY_NOT_FOUND",
+            "PARENT_STUDY_WRONG_CLUSTER",
+        ],
     )
     def test_router_source_contains_code(self, code: str) -> None:
         assert code in _studies_router_source(), f"expected {code!r} to be raised in studies router"

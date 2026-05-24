@@ -121,18 +121,27 @@ async def test_clone_suppresses_auto_followup_via_layer_2_idempotency(
 ) -> None:
     """FR-15 / D-10 / AC-12 — manual clone B already exists → worker drops auto-spawn.
 
-    Per AC-12 the lifecycle is: parent A (running, auto_followup_depth=1) →
-    create clone B via POST → A transitions to completed → invoke worker.
-    The plan's Story 1.3 step (g) (post-cycle-1 patches) simplifies to:
-    seed A as completed directly (the worker only reads A's status at
-    invocation time; the lifecycle ordering doesn't change what the LAYER-2
-    check observes).
+    Follows AC-12 lifecycle precisely:
+      (i)   seed parent A as 'running' with auto_followup_depth=1
+      (ii)  create clone B via the POST API code path with parent_study_id=A
+      (iii) transition A to 'completed' via direct DB write (mirrors the
+            _seed_parent_chain pattern in test_auto_followup.py — bypasses
+            the orchestrator since tests run hermetically; the state-guard
+            sentinel context authorizes the ORM update)
+      (iv)  invoke enqueue_followup_study(ctx, A.id) directly
+      (v)   assert duplicate-drop event + unchanged child list
+
+    Per cycle-2 finding F4 (accepted at plan time): the AC-12 lifecycle
+    ordering is meaningful — clone must exist BEFORE the worker fires,
+    which only happens after A reaches 'completed'. Replicating that
+    sequence is the strictest test of the FR-15 invariant.
     """
+    from backend.app.services.study_state import _GUARD_KEY
     from backend.workers.auto_followup import enqueue_followup_study
 
     ids = await _seed_minimum_for_clone()
 
-    # Step (i): seed parent A as 'completed' with auto_followup_depth=1.
+    # Step (i): seed parent A as 'running' with auto_followup_depth=1.
     parent_a_id = str(uuid.uuid4())
     factory = get_session_factory()
     async with factory() as db:
@@ -148,12 +157,13 @@ async def test_clone_suppresses_auto_followup_via_layer_2_idempotency(
             search_space={"params": {"bm25_k1": {"type": "float", "low": 0.1, "high": 2.0}}},
             objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
             config={"max_trials": 20, "auto_followup_depth": 1},
-            status="completed",
+            status="running",  # AC-12: parent is in-flight when clone arrives
             optuna_study_name=parent_a_id,
         )
         await db.commit()
 
-    # Step (ii): create clone B via the NEW POST API code path.
+    # Step (ii): create clone B via the NEW POST API code path
+    # while A is still 'running' (AC-12 ordering).
     body = {
         "name": "clone-b",
         "cluster_id": ids["cluster_id"],
@@ -176,7 +186,22 @@ async def test_clone_suppresses_auto_followup_via_layer_2_idempotency(
     assert len(children_before) == 1
     assert children_before[0].id == clone_b_id
 
-    # Step (iii/iv): invoke the auto_followup worker on A. The LAYER-2
+    # Step (iii): transition A from 'running' to 'completed' via direct
+    # DB write under the state-guard sentinel (mirrors _seed_parent_chain's
+    # pattern at test_auto_followup.py:155-163). The orchestrator that
+    # would normally make this transition is bypassed in tests.
+    async with factory() as db:
+        parent = await repo.get_study(db, parent_a_id)
+        assert parent is not None
+        db.sync_session.info[_GUARD_KEY] = True
+        try:
+            parent.status = "completed"
+            await db.flush()
+        finally:
+            db.sync_session.info.pop(_GUARD_KEY, None)
+        await db.commit()
+
+    # Step (iv): invoke the auto_followup worker on A. The LAYER-2
     # idempotency check at auto_followup.py:87 should fire because
     # list_children_of_study(A.id) returns [B].
     ctx, arq_pool = _make_arq_ctx(monkeypatch)
