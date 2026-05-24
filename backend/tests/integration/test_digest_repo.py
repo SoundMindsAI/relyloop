@@ -103,13 +103,19 @@ async def test_create_digest_and_fetch_by_study() -> None:
             narrative="rich narrative",
             parameter_importance={"field_boosts.title": 0.5, "tie_breaker": 0.5},
             recommended_config={"field_boosts.title": 4.5},
-            suggested_followups=["try fuzziness=AUTO"],
+            # JSONB column carries the discriminated-union FollowupItem
+            # shape; one ``text`` item is the simplest non-empty case.
+            suggested_followups=[
+                {"kind": "text", "rationale": "try fuzziness=AUTO", "search_space": None}
+            ],
             generated_by="openai:gpt-4o-2024-08-06",
         )
         await db.commit()
         assert d.id == digest_id
         assert d.study_id == study_id
-        assert d.suggested_followups == ["try fuzziness=AUTO"]
+        assert d.suggested_followups == [
+            {"kind": "text", "rationale": "try fuzziness=AUTO", "search_space": None}
+        ]
 
     async with factory() as db:
         fetched = await repo.get_digest_for_study(db, study_id)
