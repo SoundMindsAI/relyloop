@@ -685,14 +685,46 @@ export async function seedProposal(args: {
  * vitest component layer with mocked data — the orchestrator + digest
  * worker can't be reliably driven to completion in a Playwright timeout.
  */
+/**
+ * feat_digest_executable_followups Story 6.1 — discriminated-union
+ * FollowupItem shape that `seedStudyCompletedWithDigest` accepts for the
+ * digest's `suggested_followups`. Mirrors
+ * `backend/app/domain/study/followups.py` (FollowupItem).
+ */
+export type SeedFollowupItem =
+  | {
+      kind: 'narrow' | 'widen';
+      rationale: string;
+      search_space: Record<string, unknown>;
+    }
+  | {
+      kind: 'text';
+      rationale: string;
+      search_space: null;
+    };
+
 export async function seedStudyCompletedWithDigest(args: {
   clusterId: string;
   querySetId: string;
   templateId: string;
   judgmentListId: string;
   withPendingProposal?: boolean;
+  /**
+   * Optional structured `FollowupItem` list to seed on the digest. When
+   * omitted, the backend seeder writes two default text-kind items. The
+   * Run-followup E2E spec passes a `narrow` item so it can drive the
+   * per-card Run button + modal prefill flow.
+   */
+  suggestedFollowups?: SeedFollowupItem[];
 }): Promise<CompletedStudySeed> {
-  const { clusterId, querySetId, templateId, judgmentListId, withPendingProposal = true } = args;
+  const {
+    clusterId,
+    querySetId,
+    templateId,
+    judgmentListId,
+    withPendingProposal = true,
+    suggestedFollowups,
+  } = args;
   const result = await post<{ study_id: string; digest_id: string; proposal_id: string | null }>(
     '/api/v1/_test/studies/seed-completed',
     {
@@ -701,6 +733,7 @@ export async function seedStudyCompletedWithDigest(args: {
       template_id: templateId,
       judgment_list_id: judgmentListId,
       with_pending_proposal: withPendingProposal,
+      ...(suggestedFollowups !== undefined ? { suggested_followups: suggestedFollowups } : {}),
     },
   );
   // Register all 3 IDs (or 2 if no proposal) so global-teardown drains them
