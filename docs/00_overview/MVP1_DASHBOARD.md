@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-24** (latest mtime of any planned
 
 ## Next up
 
-**[feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/feature_spec.md)** — Feature, currently in **Plan**
 
 > The LLM emits a discriminated union (`narrow` \| `widen` \| `text`) for each followup with a structured `search_space` when applicable.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_digest_executable_followups --auto
+/impl-execute docs/02_product/planned_features/feat_digest_executable_followups/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -131,15 +131,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_digest_executable_followups](../02_product/planned_features/feat_digest_executable_followups/feature_spec.md) | Feature | The LLM emits a discriminated union (`narrow` \| `widen` \| `text`) for each followup with a structured `search_space` when applicable. | — | [PR #223](https://github.com/SoundMindsAI/relyloop/pull/223) merged 2026-05-24 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (12)
 
@@ -170,7 +170,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_digest_executable_followups["digest executable followups"]
-  class feat_digest_executable_followups spec;
+  class feat_digest_executable_followups plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
