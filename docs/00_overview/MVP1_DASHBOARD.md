@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-24** (latest mtime of any planned
 
 ## Next up
 
-**[feat_home_demo_reseed_endpoint](../02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_home_demo_reseed_endpoint](../02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md)** — Feature, currently in **Plan**
 
 > A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a "Reset to demo state" button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/feat_home_demo_reseed_endpoint --auto
+/impl-execute docs/02_product/planned_features/feat_home_demo_reseed_endpoint/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -132,15 +132,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_home_demo_reseed_endpoint](../02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md) | Feature | A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a "Reset to demo state" button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser. | — | [PR #188](https://github.com/SoundMindsAI/relyloop/pull/188) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (13)
 
@@ -172,7 +172,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_home_demo_reseed_endpoint["home demo reseed endpoint"]
-  class feat_home_demo_reseed_endpoint spec;
+  class feat_home_demo_reseed_endpoint plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]

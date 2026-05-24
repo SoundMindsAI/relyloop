@@ -19,7 +19,15 @@
 - Phases: single-phase delivery (no Phase 2 deferred).
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-23
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 ran 14 cycles. Each cycle introduced 1-2 net-new findings that were accepted and patched (the plan has a hard architecture — dual httpx clients, session-level advisory lock on dedicated pinned `AsyncConnection`, no outer `asyncio.wait_for` (per-call HTTP ceiling only), `httpx.ReadTimeout` restart-then-retry recovery, in-process uvicorn integration-test topology with thread-safe AC-12 synchronization, AC-5 monkeypatched mid-loop engine failure, AC-13 explicit `demo_reseed_api_call_started` logs, AC-16 classid/objid `pg_locks` derivation). Pattern converged with diminishing findings (4 → 2 → 3 → 2 → 4 → 3 → 2 → 1 → 2 → 3 → 2 → 2 → 1 → 2). Plan ships with documented residuals on (a) `httpx.ReadTimeout` server-side late-commit recovery requires `docker compose restart api` (deliberate; alternative is server-side fencing primitives out of scope for MVP1), (b) AC-5 uses monkeypatched engine failure not container-stop (spec amended cycle 13 to allow either). All 16 ACs assigned to stories.
+- Stories: 8 stories across 3 epics
+  - Epic 1 (backend): Story 1.0 (Settings field), Story 1.1 (service module), Story 1.2 (route handler)
+  - Epic 2 (frontend): Story 2.1 (dashboard button + dialog + vitest)
+  - Epic 3 (tests + docs): Story 3.1 (contract tests), Story 3.2 (integration tests), Story 3.3 (Playwright E2E), Story 3.4 (runbook + api-conventions)
+- Phases covered: single-phase delivery (no deferred phases per spec §3 Phase boundaries).
 
 ## Implementation
 - Status: Not started
