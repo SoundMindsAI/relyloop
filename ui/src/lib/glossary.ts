@@ -637,6 +637,47 @@ export const glossary = {
       'Reference for per-query comparison. Runner-up = second-best trial. Baseline = no-tuning trial (Phase 2).',
     ariaLabel: 'More information about the comparison reference',
   },
+
+  // ---------------------------------------------------------------------------
+  // feat_auto_followup_studies Story 3.1 — 4 chain-panel + wizard entries.
+  // Text from feature_spec.md §11 tooltip inventory. Mirrors the FR-9
+  // catalog (auto_followup_* events) where the chain semantics are
+  // defined.
+  // ---------------------------------------------------------------------------
+  auto_followup_depth: {
+    short:
+      'Run up to N follow-up studies after this one completes. Each follow-up narrows the search space around the winner.',
+    long: [
+      'When set, RelyLoop automatically chains studies overnight: after a study completes, the next study uses `propose_search_space(prior_study_id=…)` to narrow numeric bounds ±50% around the prior winner, then runs deterministically.',
+      '',
+      'The chain halts on any of: no lift over the baseline (winner ≤ baseline + 0.5%); the daily LLM budget would exceed 80%; the parent study terminated abnormally (5 consecutive failures, no-signal cutoff, or operator cancel); or the depth counter hits 0.',
+      '',
+      'Every chain member still produces a manual-review proposal — no PR opens automatically.',
+    ].join('\n'),
+    ariaLabel: 'More information about auto-followup depth',
+  },
+  auto_followup_chain: {
+    short:
+      'RelyLoop ran follow-up studies automatically based on this study’s winner. Each follow-up narrowed the search bounds.',
+    long: [
+      'The chain links a sequence of studies via `studies.parent_study_id`. Each child re-uses the parent’s cluster, target, template, query set, judgment list, and objective; only the search space narrows around the prior winner.',
+      '',
+      'The chain ends when there’s no further lift, when the daily LLM budget is exhausted, when a study fails, or when the depth counter reaches 0.',
+      '',
+      'To stop a running chain, navigate to the currently in-flight study (the most recent non-terminal member) and use Cancel — the cascade will halt any pending children.',
+    ].join('\n'),
+    ariaLabel: 'More information about the auto-followup chain',
+  },
+  lift_gate: {
+    short:
+      'A follow-up only enqueues when the parent’s winner beat the first-decile baseline by at least 0.5%. Smaller lifts are likely noise.',
+    ariaLabel: 'More information about the lift gate',
+  },
+  auto_followup_budget_skip: {
+    short:
+      'Daily LLM budget is near its cap — follow-up chains are paused until the budget resets at UTC midnight.',
+    ariaLabel: 'More information about auto-followup budget skip',
+  },
 } as const satisfies Record<string, GlossaryEntry>;
 
 // =============================================================================

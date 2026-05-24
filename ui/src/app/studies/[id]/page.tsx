@@ -4,6 +4,7 @@ import { Suspense, use } from 'react';
 
 import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { AutoFollowupChainPanel } from '@/components/studies/auto-followup-chain-panel';
 import { ConfidencePanel } from '@/components/studies/confidence-panel';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
@@ -13,7 +14,7 @@ import { trialsColumns } from '@/components/studies/trials-table.column-config';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useStudyDigest } from '@/lib/api/digests';
 import { useProposalForStudy } from '@/lib/api/proposals';
-import { useStudy, useStudyTrials } from '@/lib/api/studies';
+import { useStudy, useStudyChildren, useStudyTrials } from '@/lib/api/studies';
 import { TRIAL_SORT_VALUES, type TrialSort } from '@/lib/enums';
 
 interface RouteProps {
@@ -55,6 +56,7 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
   });
   const digestQ = useStudyDigest(studyId);
   const proposalQ = useProposalForStudy(studyId);
+  const childrenQ = useStudyChildren(studyId);
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-6">
@@ -68,9 +70,10 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
           <>
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold tracking-tight">Study detail</h1>
-              <StudyActionBar study={study} />
+              <StudyActionBar study={study} chainChildren={childrenQ.data?.data ?? []} />
             </div>
             <StudyHeader study={study} />
+            <AutoFollowupChainPanel study={study} chainChildren={childrenQ.data?.data ?? []} />
             <ConfidencePanel confidence={study.confidence} />
             <Card>
               <CardHeader>

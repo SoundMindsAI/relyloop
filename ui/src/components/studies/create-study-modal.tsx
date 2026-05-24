@@ -37,6 +37,7 @@ import { useTemplates, useTemplate } from '@/lib/api/query-templates';
 import { useQuerySets } from '@/lib/api/query-sets';
 import { useCreateStudy } from '@/lib/api/studies';
 import {
+  AUTO_FOLLOWUP_DEPTH_WIZARD_VALUES,
   OBJECTIVE_DIRECTION_VALUES,
   OBJECTIVE_K_VALUES,
   OBJECTIVE_METRIC_VALUES,
@@ -139,6 +140,12 @@ interface FormValues {
   sampler?: SamplerKind;
   pruner?: PrunerKind;
   seed?: number | '';
+  // feat_auto_followup_studies Story 3.2 — wizard-side opt-in depth.
+  // Wizard-`0` is the OFF sentinel: it maps to `undefined` at payload time
+  // so `auto_followup_depth` is omitted from `config` (defaults to null on
+  // the wire, which the backend treats as "off"). Wire-`0` is reserved for
+  // the worker's decrement path per FR-1 + D-12 — the wizard never sends it.
+  auto_followup_depth?: 0 | 1 | 2 | 3 | 4 | 5;
 }
 
 const STEP_TITLES = [
@@ -524,6 +531,7 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
       sampler?: SamplerKind;
       pruner?: PrunerKind;
       seed?: number;
+      auto_followup_depth?: number;
     };
     const config: ConfigSpec = {};
     if (typeof values.max_trials === 'number') config.max_trials = values.max_trials;
@@ -533,6 +541,12 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
     if (values.sampler) config.sampler = values.sampler;
     if (values.pruner) config.pruner = values.pruner;
     if (typeof values.seed === 'number') config.seed = values.seed;
+    // feat_auto_followup_studies Story 3.2 — wizard-`0` = "Off" sentinel
+    // maps to omit-from-config (NOT to wire-`0`). Wire-`0` is reserved for
+    // the worker's decrement-to-terminal path per FR-1 + D-12.
+    if (typeof values.auto_followup_depth === 'number' && values.auto_followup_depth > 0) {
+      config.auto_followup_depth = values.auto_followup_depth;
+    }
 
     setSubmitting(true);
     create.mutate(
@@ -1094,6 +1108,44 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
               <p className="text-xs text-muted-foreground">
                 Provide either max trials or a time budget — both gates apply when both are set.
               </p>
+              {/*
+                feat_auto_followup_studies Story 3.2 — wizard depth selector (FR-11).
+                Source-of-truth: backend/app/api/v1/schemas.py StudyConfigSpec.auto_followup_depth
+                (validator enforces 0..5; wizard sends undefined for "Off" — wire-0 is
+                worker-internal terminal-state and the wizard never sends it per D-12).
+              */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1">
+                  <Label htmlFor="cs-auto-followup">Auto-followup chain</Label>
+                  <InfoTooltip glossaryKey="auto_followup_depth" />
+                </div>
+                <Select
+                  value={String(values.auto_followup_depth ?? 0)}
+                  onValueChange={(v: string) => {
+                    const n = Number.parseInt(v, 10);
+                    if (n === 0) {
+                      form.setValue('auto_followup_depth', undefined);
+                    } else {
+                      form.setValue('auto_followup_depth', n as 1 | 2 | 3 | 4 | 5);
+                    }
+                  }}
+                >
+                  <SelectTrigger id="cs-auto-followup" data-testid="cs-auto-followup">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {AUTO_FOLLOWUP_DEPTH_WIZARD_VALUES.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n === 0 ? 'Off' : n === 1 ? '1 follow-up' : `${n} follow-ups`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Run additional studies overnight, each narrowing around the previous winner. Halts
+                  on no lift, exhausted budget, or failed parent.
+                </p>
+              </div>
             </div>
           )}
           <DialogFooter>

@@ -90,6 +90,19 @@ export type ComparisonAgainst = (typeof COMPARISON_AGAINST_VALUES)[number];
 export const OBJECTIVE_K_VALUES = [1, 3, 5, 10, 20, 50, 100] as const;
 export type ObjectiveK = (typeof OBJECTIVE_K_VALUES)[number];
 
+// feat_auto_followup_studies Story 3.2 wizard-facing depth options.
+//
+// Wizard-only values: the wizard NEVER sends wire-`0` (per FR-1 + D-12,
+// wire-`0` is the worker-internal terminal-state value). The `0` here is
+// the wizard's "Off" sentinel that maps to undefined at submit time.
+//
+// Source-of-truth (backend): backend/app/api/v1/schemas.py
+// StudyConfigSpec.auto_followup_depth — validator enforces 0..5 with
+// None|undefined meaning "off". The wizard restricts to the user-facing
+// 0..5 subset where 0 = off and 1..5 = enabled depths.
+export const AUTO_FOLLOWUP_DEPTH_WIZARD_VALUES = [0, 1, 2, 3, 4, 5] as const;
+export type AutoFollowupDepthWizard = (typeof AUTO_FOLLOWUP_DEPTH_WIZARD_VALUES)[number];
+
 // Values must match backend/app/api/v1/schemas.py ObjectiveDirection.
 export const OBJECTIVE_DIRECTION_VALUES = ['maximize', 'minimize'] as const;
 export type ObjectiveDirection = (typeof OBJECTIVE_DIRECTION_VALUES)[number];

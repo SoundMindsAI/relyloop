@@ -110,17 +110,61 @@ export function useCreateStudy(): UseMutationResult<StudyDetail, ApiError, Creat
   });
 }
 
-export function useCancelStudy(id: string): UseMutationResult<StudyDetail, ApiError, void> {
+/**
+ * Cancel-mutation argument shape (feat_auto_followup_studies Story 3.3).
+ *
+ * The backend's POST /api/v1/studies/{id}/cancel endpoint accepts an
+ * optional `?cascade=<bool>` query param (default `true` per spec D-9).
+ * When the operator opens the cancel modal on a parent that has in-flight
+ * chain children, the radio lets them pick the parent-only (`cascade=false`)
+ * or full-cascade (`cascade=true`) path; the mutation forwards whichever
+ * the operator selected.
+ *
+ * Backwards-compat: callers can still pass `undefined` (or `{}`) and get
+ * the default cascade=true behavior.
+ */
+export interface CancelStudyVars {
+  cascade?: boolean;
+}
+
+export function useCancelStudy(
+  id: string,
+): UseMutationResult<StudyDetail, ApiError, CancelStudyVars | undefined> {
   const qc = useQueryClient();
-  return useMutation<StudyDetail, ApiError, void>({
-    mutationFn: async () => {
-      const { data } = await apiClient.post<StudyDetail>(`/api/v1/studies/${id}/cancel`, {});
+  return useMutation<StudyDetail, ApiError, CancelStudyVars | undefined>({
+    mutationFn: async (vars) => {
+      const cascade = vars?.cascade ?? true;
+      const { data } = await apiClient.post<StudyDetail>(
+        `/api/v1/studies/${id}/cancel?cascade=${cascade}`,
+        {},
+      );
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['studies', id] });
       qc.invalidateQueries({ queryKey: ['studies', id, 'trials'] });
+      qc.invalidateQueries({ queryKey: ['studies', id, 'children'] });
       qc.invalidateQueries({ queryKey: ['studies'] });
+    },
+  });
+}
+
+/**
+ * List direct child studies of a parent (feat_auto_followup_studies Story 3.1,
+ * FR-10 backend).
+ *
+ * Hits GET /api/v1/studies/{id}/children. Returns the same StudyListResponse
+ * shape as `useStudies`, but for direct children only (per D-13). Used by
+ * the auto-followup chain panel on the study detail page.
+ */
+export function useStudyChildren(studyId: string): UseQueryResult<StudyListPage, ApiError> {
+  return useQuery<StudyListPage, ApiError>({
+    queryKey: ['studies', studyId, 'children'],
+    queryFn: async () => {
+      const { data, headers } = await apiClient.get<StudyListResponse>(
+        `/api/v1/studies/${studyId}/children`,
+      );
+      return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? data.data.length) };
     },
   });
 }

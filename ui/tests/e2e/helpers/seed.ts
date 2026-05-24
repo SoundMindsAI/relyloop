@@ -592,6 +592,13 @@ export async function seedStudy(args: {
    * a non-default target on both the JL and the study.
    */
   target?: string;
+  /**
+   * Auto-followup chain depth (1..5). When set, the study's
+   * `config.auto_followup_depth` opts into the chain. Tests that exercise
+   * the chain panel's remaining-depth indicator or the wizard's depth
+   * selector should pass this.
+   */
+  autoFollowupDepth?: number;
 }): Promise<StudySeed> {
   const {
     clusterId,
@@ -600,9 +607,18 @@ export async function seedStudy(args: {
     judgmentListId,
     maxTrials = 2,
     target = 'products',
+    autoFollowupDepth,
   } = args;
   const suffix = randomUUID().slice(0, 8);
   const name = `e2e-study-${suffix}`;
+  const config: Record<string, unknown> = {
+    max_trials: maxTrials,
+    sampler: 'tpe',
+    pruner: 'none',
+  };
+  if (typeof autoFollowupDepth === 'number') {
+    config.auto_followup_depth = autoFollowupDepth;
+  }
   const study = await post<{ id: string; name: string }>('/api/v1/studies', {
     name,
     cluster_id: clusterId,
@@ -616,7 +632,7 @@ export async function seedStudy(args: {
       },
     },
     objective: { metric: 'ndcg', k: 10, direction: 'maximize' },
-    config: { max_trials: maxTrials, sampler: 'tpe', pruner: 'none' },
+    config,
   });
   appendForCleanup('study', study.id);
   return { id: study.id, name: study.name };

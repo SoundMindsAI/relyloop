@@ -162,6 +162,35 @@ async def list_queued_study_ids(db: AsyncSession) -> list[str]:
     return list((await db.execute(stmt)).scalars().all())
 
 
+async def list_children_of_study(
+    db: AsyncSession,
+    parent_study_id: str,
+) -> Sequence[Study]:
+    """Return DIRECT children of ``parent_study_id`` (Story 1.3, FR-10 + D-13).
+
+    Filters by ``parent_study_id == parent_study_id``. Ordered by
+    ``created_at ASC`` so the UI chain panel renders the oldest direct
+    child first (chains are linear in v1 so there's at most one child;
+    ordering matters only if a future feature lets a single parent fan
+    out to multiple children).
+
+    Returns an empty :class:`~collections.abc.Sequence` (not ``None``) for
+    a study with no children — the children endpoint returns
+    ``{"data": [], "next_cursor": null}`` for childless rather than 404.
+
+    No ``deleted_at`` filter: Study has no soft-delete column in MVP1;
+    the only delete path is ``hard_delete_study`` for test-only cleanup
+    (so deleted rows are gone, not flagged). If MVP4 adds soft-delete,
+    revisit this filter.
+    """
+    stmt = (
+        select(Study)
+        .where(Study.parent_study_id == parent_study_id)
+        .order_by(Study.created_at.asc(), Study.id.asc())
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
 # ---------------------------------------------------------------------------
 # chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
 # ---------------------------------------------------------------------------
