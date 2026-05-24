@@ -4,11 +4,11 @@
 **Status:** Idea — surfaced during the 2026-05-21 Karpathy-loop audit.
 **Priority:** P2 — turns LLM-suggested followups from dead text into actionable proposals. Medium-scope feature; needs an LLM-output schema change + new UI affordance. High value once it lands but no immediate pain pushing it now.
 **Origin:** Standalone audit at `~/.claude/plans/compressed-sparking-hamming.md` — recommendation #4. The audit observation: the digest worker's LLM output already includes `suggested_followups`, but the field is shaped as plain strings, rendered in the proposals UI as bullet text, and has no path back into `create_study` or `propose_search_space`. Operators read suggestions like "narrow the title_boost range to [0.5, 3.0]" and have to manually translate them into a new study configuration.
-**Depends on:** None. Composes with [`feat_auto_followup_studies`](../feat_auto_followup_studies/idea.md) (which automates the deterministic followup); this feature handles the **LLM-suggested** followups separately.
+**Depends on:** None block this. Substrate now shipped: [`feat_auto_followup_studies`](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/idea.md) (merged 2026-05-24 as PR #223 squash `20cf183a`) handles the **deterministic** auto-chain followup; this feature handles the orthogonal **LLM-suggested** followups so the two compounding paths coexist.
 
 ## Problem
 
-The digest worker's LLM contract at [`backend/workers/digest.py:168-189`](../../../../backend/workers/digest.py) defines `suggested_followups` as a flat `array of string`:
+The digest worker's LLM contract at [`backend/workers/digest.py:169-182`](../../../../backend/workers/digest.py#L169-L182) defines `suggested_followups` as a flat `array of string`:
 
 ```python
 DIGEST_RESPONSE_SCHEMA = {
@@ -31,7 +31,11 @@ The strings are LLM-generated freeform — typical examples (from real digest ou
 - "Investigate the `tie_breaker` parameter — its importance was 0.18 but the search space only sampled three values."
 - "Add a `category_boost` parameter to the template since several winning trials suggest category prioritization matters."
 
-These suggestions are useful — but **operationally inert**. They render as bullet text on the proposal detail page at [`ui/src/app/proposals/[id]/page.tsx`](../../../../ui/src/app/proposals/%5Bid%5D/page.tsx). The operator must:
+These suggestions are useful — but **operationally inert**. They render as bullet text via [`SuggestedFollowupsPanel`](../../../../ui/src/components/proposals/suggested-followups-panel.tsx) on the proposal detail page at [`ui/src/app/proposals/[id]/page.tsx`](../../../../ui/src/app/proposals/%5Bid%5D/page.tsx).
+
+**Existing half-built affordance (worth subsuming).** Each bullet today renders with a "Create study from this hypothesis" button that links to `/studies?hypothesis=<urlencoded text>`. But the `/studies` landing page **never reads the `hypothesis` query param** (verified 2026-05-24 — `grep "hypothesis\|searchParams" ui/src/app/studies/page.tsx` returns zero matches). The button looks like it works but silently drops its payload. This feature should retire the dead `?hypothesis=` path and replace it with the structured one-click flow described below. (If we ship the new flow without removing the old button, operators get two buttons with different semantics — confusing.)
+
+The operator's actual workflow today:
 
 1. Read each suggestion.
 2. Translate it into a `search_space` JSON manually.
@@ -42,7 +46,7 @@ These suggestions are useful — but **operationally inert**. They render as bul
 
 That's the 6-step manual workflow every overnight digest produces *up to 5 times*. The Karpathy-loop equivalent is one click: "Run this followup." The data the LLM has at digest time is rich enough to populate a `CreateStudyRequest` deterministically — the only missing piece is the JSON structure to carry it.
 
-The audit's framing: this is the **smaller** of the two compounding gaps. [`feat_auto_followup_studies`](../feat_auto_followup_studies/idea.md) handles the *deterministic* compounding (Optuna's TPE narrowed around a winner). This feature handles the *LLM-suggested* compounding (the model spotting patterns Optuna can't, like "the importance signal suggests adding a new dimension"). Both are needed; they cover orthogonal failure modes.
+The audit's framing: this is the **smaller** of the two compounding gaps. [`feat_auto_followup_studies`](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/idea.md) (now shipped) handles the *deterministic* compounding (Optuna's TPE narrowed around a winner). This feature handles the *LLM-suggested* compounding (the model spotting patterns Optuna can't, like "the importance signal suggests adding a new dimension"). Both are needed; they cover orthogonal failure modes.
 
 ## Proposed capabilities
 
@@ -50,7 +54,7 @@ Tiered. Tier A reshapes the LLM output and adds the "Run this followup" button f
 
 ### Tier A — structured followups for "narrow / widen" within the same template
 
-- **New LLM output schema** in [`backend/workers/digest.py:168-189`](../../../../backend/workers/digest.py):
+- **New LLM output schema** in [`backend/workers/digest.py:169-182`](../../../../backend/workers/digest.py#L169-L182):
   ```python
   {
       "narrative": str,
@@ -72,7 +76,10 @@ Tiered. Tier A reshapes the LLM output and adds the "Run this followup" button f
   - "Narrow"/"Widen" followups render as a card with: rationale text, a collapsed "Show search space" detail (renders the diff vs parent study), and a primary "Run this followup" button.
   - "Run this followup" pre-fills the create-study modal with: parent study's cluster/target/template/query_set/judgment_list/objective + the LLM's proposed `search_space` + parent's stop conditions. Operator reviews + submits.
   - "Text" followups render unchanged — bullet text. The kind discriminator means freeform suggestions stay supported indefinitely.
-- **Traceability.** New nullable column `studies.parent_proposal_followup_index: int | None` records "this study was created from followup #N of proposal X." Lets the UI render "Study A.2 was suggested by digest from proposal B at index 3." Helps the team measure whether LLM-suggested followups produce wins.
+- **Traceability.** Two new nullable columns on `studies` — the index alone is unmoored without the proposal ID:
+  - `parent_proposal_id: str | None` — FK to `proposals(id) ON DELETE SET NULL`, partial B-tree index on `WHERE parent_proposal_id IS NOT NULL`.
+  - `parent_proposal_followup_index: int | None` — 0-based position in the parent proposal's structured `suggested_followups` array.
+  - Lets the UI render "Study A.2 was suggested by digest from proposal B at index 3." Helps the team measure whether LLM-suggested followups produce wins. Composes cleanly with the `parent_study_id` self-FK that `feat_auto_followup_studies` already uses for the deterministic chain — the two columns are orthogonal (a study can have both: a parent study via the auto-chain AND a parent proposal via the LLM-suggested click).
 
 ### Tier B — `swap_template` followups
 
@@ -88,15 +95,17 @@ Tiered. Tier A reshapes the LLM output and adds the "Run this followup" button f
 
 ### Out of scope for Tier A/B
 
-- **Auto-running followups without operator click.** That's [`feat_auto_followup_studies`](../feat_auto_followup_studies/idea.md). This feature stays in the "human clicks one button" lane — the LLM proposes; the operator commits.
+- **Auto-running followups without operator click.** That's [`feat_auto_followup_studies`](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/idea.md) (shipped). This feature stays in the "human clicks one button" lane — the LLM proposes; the operator commits.
 - **Followups that span multiple studies.** A meta-followup like "run studies A.1 and A.2 in parallel with different starting points" would need its own surface. Not now.
 - **Persistence of "I tried this LLM followup and it didn't help."** A negative-result feedback loop into future LLM prompts (so the model learns the operator's preferences) is an interesting MVP4 idea, gated on Langfuse. Out of scope now.
 
 ## Scope signals
 
-- **Backend:** ~400 LOC. New Pydantic models for the followup discriminated union (~30) + LLM prompt updates (~60 in `.system.md` + `.user.jinja`) + validator at digest-persist time (~40) + new `parent_proposal_followup_index` column + migration (~30) + service-layer "create study from followup" helper (~80) + tests across unit/integration/contract (~150).
-- **Frontend:** ~400 LOC. Followup card component with kind discriminator (~150) + "Run this followup" prefill workflow (~80) + search-space diff renderer (~100) + tests (~70). Tier B adds ~200 LOC for the swap-template comparison.
-- **Migration:** one Alembic migration adding `studies.parent_proposal_followup_index INT NULL`. Strictly additive. Round-trip-clean.
+- **Backend:** ~450 LOC. New Pydantic models for the followup discriminated union (~30) + LLM prompt updates (~60 in `.system.md` + `.user.jinja`) + validator at digest-persist time (~40) + read-path adapter that wraps old `list[str]` rows as `[{kind: "text", rationale: <string>, search_space: null}]` so the UI handles both shapes uniformly (~30) + new `studies.parent_proposal_id` FK + `studies.parent_proposal_followup_index` column + migration (~50) + service-layer "create study from followup" helper (~80) + tests across unit/integration/contract (~150).
+- **Frontend:** ~450 LOC. Followup card component with kind discriminator (~150) + "Run this followup" prefill workflow (~80) + search-space diff renderer (~100) + retire the dead `?hypothesis=` path in `suggested-followups-panel.tsx` (~20) + tests (~100). Tier B adds ~200 LOC for the swap-template comparison.
+- **Migration story (two migrations, NOT strictly additive):**
+  1. **`studies` column adds** — `parent_proposal_id VARCHAR(36) NULL` FK to `proposals(id) ON DELETE SET NULL` + partial B-tree index on `WHERE parent_proposal_id IS NOT NULL` + `parent_proposal_followup_index INT NULL`. Additive, round-trip-clean.
+  2. **`digests.suggested_followups` column-type change** — current schema (verified 2026-05-24 at [`backend/app/db/models/digest.py:49`](../../../../backend/app/db/models/digest.py#L49)) declares the column as `ARRAY(Text)` with `server_default=sa.text("ARRAY[]::TEXT[]")`. Storing the new discriminated union requires either: (a) ALTER the column type to `JSONB` with USING-clause backfill that wraps each existing `text` value as `{kind: "text", rationale: <text>, search_space: null}`, OR (b) add a new column `suggested_followups_structured JSONB` and dual-write during a deprecation window. Option (a) is simpler and cleaner — there's no production data to preserve in MVP1 (single-tenant on developer laptops). Lock to (a) at spec time. Round-trip: downgrade reverses the type change + flattens structured rows back to `array[rationale]` (lossy but safe — any non-text kinds are downgrade-only on dev DBs that haven't shipped). Idempotency-guard with `IF EXISTS` on the type-change clause.
 - **Config:** none.
 - **Audit events:** N/A (MVP1). At MVP2: `digest.followup_run_clicked` + `study.created_from_followup` as canonical audit events.
 - **Tests:**
@@ -107,14 +116,14 @@ Tiered. Tier A reshapes the LLM output and adds the "Run this followup" button f
 
 ## Why not inline today
 
-1. **LLM-contract change.** Reshaping `suggested_followups` from `string[]` to a discriminated union touches the response schema, the prompt files, the validator, the digest worker's parse logic, the storage representation in `digests.followups` JSONB, AND the UI renderer. Multiple coordinated surfaces — outside drive-by budget.
-2. **Backward compatibility.** Existing digests in the DB have the old shape. The read path needs an adapter that wraps old strings into the new structure. Small but real — easy to get wrong as a drive-by.
+1. **LLM-contract change.** Reshaping `suggested_followups` from `string[]` to a discriminated union touches the response schema, the prompt files, the validator, the digest worker's parse logic, the storage representation in `digests.suggested_followups` (which is currently `ARRAY(Text)`, not JSONB — requires a column-type migration), AND the UI renderer. Multiple coordinated surfaces — outside drive-by budget.
+2. **Backward compatibility.** Existing digests in the DB have the old `list[str]` shape. The read path needs an adapter that wraps old strings into the new structure AND the column-type migration needs a USING-clause backfill that performs the same wrap server-side. Small but real — easy to get wrong as a drive-by.
 3. **Real UX design surface.** The "Run this followup" workflow is a new top-level user action — how it renders, what it pre-fills, what it shows in the search-space diff are decisions worth scrutinizing in a spec.
-4. **Composes with another planned feature.** [`feat_auto_followup_studies`](../feat_auto_followup_studies/idea.md) and this idea cover orthogonal compounding paths (deterministic vs LLM-suggested). Shipping them in coordinated order — auto-followup first to establish the autonomy trust model, then this to add LLM-suggested manual overrides — gives reviewers a coherent story. Either could ship first, but the coordination is worth planning, not improvising.
+4. **Composes with already-shipped substrate.** [`feat_auto_followup_studies`](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/idea.md) merged 2026-05-24 (PR #223 squash `20cf183a`) — auto-chain shipped first per the operator's preferred sequence (autonomy trust model established before adding LLM-suggested manual overrides). This idea now layers on top of that substrate rather than coordinating with it. The two cover orthogonal compounding paths (deterministic Optuna-narrow vs LLM-suggested transformations).
 
 ## Relationship to other work
 
-- **Most-leveraged in combination with [`feat_auto_followup_studies`](../feat_auto_followup_studies/idea.md)** — the auto-chain provides the deterministic "narrow around winner" path; this feature adds the LLM-suggested "but consider widening on this axis" path. Together they cover what Karpathy's per-experiment agent does (propose a single change per experiment, then evaluate) — Optuna's TPE handles the within-study sampling, and these two features handle the across-study hypothesis evolution.
+- **Most-leveraged in combination with [`feat_auto_followup_studies`](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/idea.md)** (shipped) — the auto-chain provides the deterministic "narrow around winner" path; this feature adds the LLM-suggested "but consider widening on this axis" path. Together they cover what Karpathy's per-experiment agent does (propose a single change per experiment, then evaluate) — Optuna's TPE handles the within-study sampling, and these two features handle the across-study hypothesis evolution.
 - **Adjacent to [`feat_pr_metric_confidence`](../feat_pr_metric_confidence/idea.md)** — the confidence framing (CI bands, named regressors) can feed into the followup prompts. "The winner is at +0.13 NDCG with a noise floor of σ=0.02 and 2 regressing queries" is much richer LLM context than "winner is 0.84" for proposing the next experiment.
 - **Reuses [`feat_agent_propose_search_space`](../../../00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/)** (shipped 2026-05-21) — the underlying `search_space_defaults.py` heuristic is the natural fallback when the LLM proposes a `swap_template` followup that has a partial `search_space` (the disjoint params get heuristic bounds).
 - **Composes with [`feat_create_study_search_space_builder`](../../../00_overview/implemented_features/2026_05_20_feat_create_study_search_space_builder/)** (shipped 2026-05-20) — the visual editor for `search_space` rows is where "Run this followup" lands, pre-populated. The diff visualization can leverage the same row primitive.

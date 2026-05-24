@@ -96,7 +96,11 @@ describe('Proposal detail page (Story 3.1 shell)', () => {
               narrative: '## Summary',
               parameter_importance: {},
               recommended_config: {},
-              suggested_followups: ['try BM25 tweak'],
+              // feat_digest_executable_followups Story 4.1: suggested_followups
+              // are now {kind, rationale, search_space} dicts.
+              suggested_followups: [
+                { kind: 'text', rationale: 'try BM25 tweak', search_space: null },
+              ],
               generated_at: '2026-05-12T00:00:00Z',
             },
           }),
@@ -112,10 +116,12 @@ describe('Proposal detail page (Story 3.1 shell)', () => {
       expect(screen.getByTestId('config-diff-row-slop')).toBeInTheDocument();
       expect(screen.getByTestId('metric-delta-pct')).toHaveTextContent('(+55.0%)');
       expect(screen.getByTestId('suggested-followups-list')).toBeInTheDocument();
-      expect(screen.getByTestId('followup-0-create-study')).toHaveAttribute(
-        'href',
-        '/studies?hypothesis=try%20BM25%20tweak',
-      );
+      // feat_digest_executable_followups Story 5.1 / FR-12: legacy
+      // `?hypothesis=` link is retired; per-card test-ids replace it.
+      expect(screen.getByTestId('followup-0-card')).toBeInTheDocument();
+      expect(screen.getByText('try BM25 tweak')).toBeInTheDocument();
+      // Text-kind cards have NO Run button.
+      expect(screen.queryByTestId('followup-0-run')).toBeNull();
     });
   });
 

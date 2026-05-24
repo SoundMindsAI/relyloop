@@ -239,3 +239,11 @@ export type ProposalSortKey = (typeof PROPOSAL_SORT_VALUES)[number];
 // Values must match backend/app/api/v1/schemas.py ProposalSourceWire.
 export const PROPOSAL_SOURCE_VALUES = ['study', 'manual'] as const;
 export type ProposalSource = (typeof PROPOSAL_SOURCE_VALUES)[number];
+
+// feat_digest_executable_followups Story 5.1 — frontend mirror of the
+// backend FollowupItem discriminator. The values flow back to the backend
+// only indirectly (via persisted JSONB), but the frontend uses them to
+// branch UI per card kind.
+// Values must match backend/app/domain/study/followups.py FOLLOWUP_KIND_VALUES
+export const FOLLOWUP_KIND_VALUES = ['narrow', 'widen', 'text'] as const;
+export type FollowupKind = (typeof FOLLOWUP_KIND_VALUES)[number];

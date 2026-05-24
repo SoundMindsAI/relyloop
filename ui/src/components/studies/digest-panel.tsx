@@ -94,7 +94,12 @@ export function DigestPanel({
             </p>
             <ul className="mt-1 list-inside list-disc text-sm">
               {followups.map((f, i) => (
-                <li key={`followup-${i}`}>{f}</li>
+                // feat_digest_executable_followups Story 4.1 — followups
+                // are now {kind, rationale, search_space} dicts; the
+                // study-page digest panel renders only the rationale as a
+                // simple bullet (the rich card UI lives on the proposal-
+                // detail page; this study summary is intentionally compact).
+                <li key={`followup-${i}`}>{f.rationale}</li>
               ))}
             </ul>
           </section>

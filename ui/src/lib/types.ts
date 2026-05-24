@@ -383,14 +383,50 @@ export interface paths {
     put?: never;
     /**
      * Cancel Study
-     * @description Cancel a study (FR-1 + AC-3).
+     * @description Cancel a study (Story 2.3, FR-8 + AC-8/AC-9).
      *
-     *     Routes through :func:`services.study_state.cancel_study`. The
-     *     orchestrator detects the new status on its next poll tick and drains
-     *     in-flight trials. Cancelling an already-terminal study (completed /
-     *     cancelled / failed) raises ``InvalidStateTransition`` → 409.
+     *     Optionally cascades to in-flight chain children.
+     *
+     *     ``?cascade=true`` (default): routes through
+     *     :func:`services.study_state.cancel_study_with_chain_cascade` —
+     *     cancels the parent (if in-flight) AND recursively cancels in-flight
+     *     descendants. Tolerates terminal parents (recurses through completed
+     *     intermediates to reach an in-flight grandchild).
+     *
+     *     ``?cascade=false``: routes through the original
+     *     :func:`services.study_state.cancel_study` — single-study cancel,
+     *     preserves the existing 409 error contract on terminal parents
+     *     (AC-9 wire contract).
      */
     post: operations['cancel_study_api_v1_studies__study_id__cancel_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/studies/{study_id}/children': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Study Children
+     * @description List direct child studies of a parent (FR-10 + D-13).
+     *
+     *     Returns ``{"data": [], "next_cursor": null}`` for a study with no
+     *     children — empty data array, NOT 404. 404 only fires when the parent
+     *     study itself is missing.
+     *
+     *     Per D-13 (direct-children-only): does NOT return transitive
+     *     descendants. The chain panel renders parent ↑ + direct children ↓;
+     *     operators walk lineage one hop per page navigation.
+     */
+    get: operations['list_study_children_api_v1_studies__study_id__children_get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -765,6 +801,15 @@ export interface paths {
     /**
      * Get Config Repo Endpoint
      * @description Detail by id; 404 ``CONFIG_REPO_NOT_FOUND`` if missing.
+     *
+     *     feat_config_repo_baseline_tracking FR-4 — when
+     *     ``last_merged_proposal_id`` is set, embed the pointed-at proposal as a
+     *     :class:`ProposalSummary` with ``is_currently_live=True``. The embed-side
+     *     derivation uses the pointer context directly (NOT the generic
+     *     ``proposals → clusters → config_repos`` JOIN used elsewhere) so the
+     *     badge renders correctly even when the proposal's cluster was later
+     *     unwired from this config_repo (spec §19 "Cluster-with-config_repo-
+     *     rotated" decision-log entry).
      */
     get: operations['get_config_repo_endpoint_api_v1_config_repos__config_repo_id__get'];
     put?: never;
@@ -1114,6 +1159,22 @@ export interface components {
       human_samples: components['schemas']['CalibrationSample'][];
     };
     /**
+     * CategoricalParam
+     * @description Discrete choice parameter.
+     *
+     *     Optuna ``suggest_categorical`` handles strings, ints, floats, and bools
+     *     as choices.
+     */
+    CategoricalParam: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'categorical';
+      /** Choices */
+      choices: (string | number | boolean)[];
+    };
+    /**
      * ClusterAggregateHealth
      * @description Aggregate counts for the ``elasticsearch_clusters`` /healthz field (Story 3.5).
      *
@@ -1262,7 +1323,6 @@ export interface components {
       webhook_secret_ref: string | null;
       /** Webhook Registration Error */
       webhook_registration_error: string | null;
-      /** Last Merged Proposal — feat_config_repo_baseline_tracking FR-4 */
       last_merged_proposal?: components['schemas']['ProposalSummary'] | null;
       /**
        * Created At
@@ -1513,6 +1573,10 @@ export interface components {
      *     :class:`backend.app.domain.study.search_space.SearchSpace` so
      *     :exc:`pydantic.ValidationError` produces the spec's 400
      *     ``INVALID_SEARCH_SPACE`` (per Story 3.3 task 2).
+     *
+     *     feat_digest_executable_followups Story 4.2 — optional ``parent`` field
+     *     records the parent proposal + followup-index lineage when the study
+     *     was spawned from a digest "Run this followup" action (FR-11).
      */
     CreateStudyRequest: {
       /** Name */
@@ -1533,10 +1597,17 @@ export interface components {
       };
       objective: components['schemas']['ObjectiveSpec'];
       config: components['schemas']['StudyConfigSpec'];
+      parent?: components['schemas']['ParentFollowupRef'] | null;
     };
     /**
      * DigestResponse
      * @description Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
+     *
+     *     feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+     *     now a discriminated-union list (NarrowFollowup | WidenFollowup |
+     *     TextFollowup), populated by the digest handler via
+     *     ``parse_followup_list(digest.suggested_followups, ...)`` so legacy or
+     *     malformed JSONB payloads never crash the response.
      */
     DigestResponse: {
       /** Id */
@@ -1554,7 +1625,7 @@ export interface components {
         [key: string]: unknown;
       };
       /** Suggested Followups */
-      suggested_followups: string[];
+      suggested_followups: components['schemas']['FollowupItem'][];
       /** Generated By */
       generated_by: string;
       /**
@@ -1577,6 +1648,33 @@ export interface components {
       /** Doc Count */
       doc_count?: number | null;
     };
+    /**
+     * FloatParam
+     * @description Continuous float parameter.
+     *
+     *     ``log=True`` enables log-uniform sampling
+     *     (Optuna's ``suggest_float(..., log=True)``); requires ``low > 0``.
+     */
+    FloatParam: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'float';
+      /** Low */
+      low: number;
+      /** High */
+      high: number;
+      /**
+       * Log
+       * @default false
+       */
+      log: boolean;
+    };
+    FollowupItem:
+      | components['schemas']['NarrowFollowup']
+      | components['schemas']['WidenFollowup']
+      | components['schemas']['TextFollowup'];
     /**
      * GenerateJudgmentsResponse
      * @description Response of ``POST /api/v1/judgments/generate``.
@@ -1700,6 +1798,21 @@ export interface components {
       rubric: string;
       /** Judgments */
       judgments: components['schemas']['ImportJudgmentItem'][];
+    };
+    /**
+     * IntParam
+     * @description Integer parameter inclusive of both bounds.
+     */
+    IntParam: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      type: 'int';
+      /** Low */
+      low: number;
+      /** High */
+      high: number;
     };
     /**
      * JudgmentListDetail
@@ -1884,6 +1997,20 @@ export interface components {
       created_at: string;
     };
     /**
+     * NarrowFollowup
+     * @description A 'narrow' followup — re-run with a tighter range than the parent.
+     */
+    NarrowFollowup: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      kind: 'narrow';
+      /** Rationale */
+      rationale: string;
+      search_space: components['schemas']['SearchSpace'];
+    };
+    /**
      * ObjectiveSpec
      * @description Wire shape of ``studies.objective`` (write-side validated at create).
      *
@@ -1969,6 +2096,27 @@ export interface components {
       notes?: string | null;
     };
     /**
+     * ParentFollowupRef
+     * @description Optional lineage payload on ``POST /api/v1/studies``.
+     *
+     *     feat_digest_executable_followups FR-11 — when the operator clicks
+     *     "Run this followup" on a proposal's digest card, the create-study
+     *     payload carries the parent proposal's id + the 0-based index into
+     *     the digest's ``suggested_followups`` array so the spawned study
+     *     remembers where it came from.
+     *
+     *     ``proposal_id`` is a UUIDv7 (36-char hex). The exact-length bound
+     *     forces malformed strings to surface as 422 ``VALIDATION_ERROR``
+     *     rather than reach the DB FK check and emerge as a 404
+     *     ``PROPOSAL_NOT_FOUND``.
+     */
+    ParentFollowupRef: {
+      /** Proposal Id */
+      proposal_id: string;
+      /** Followup Index */
+      followup_index: number;
+    };
+    /**
      * PerQueryOutcomesShape
      * @description Per-query outcome counts + the top-5 named regressors.
      */
@@ -2028,10 +2176,10 @@ export interface components {
       /** Rejected Reason */
       rejected_reason: string | null;
       /**
-       * Is Currently Live — feat_config_repo_baseline_tracking FR-5
+       * Is Currently Live
        * @default false
        */
-      is_currently_live?: boolean;
+      is_currently_live: boolean;
       digest: components['schemas']['_DigestEmbed'] | null;
       /**
        * Created At
@@ -2064,10 +2212,10 @@ export interface components {
         [key: string]: unknown;
       } | null;
       /**
-       * Is Currently Live — feat_config_repo_baseline_tracking FR-5
+       * Is Currently Live
        * @default false
        */
-      is_currently_live?: boolean;
+      is_currently_live: boolean;
       /**
        * Created At
        * Format: date-time
@@ -2365,6 +2513,29 @@ export interface components {
       fields: components['schemas']['FieldSpec'][];
     };
     /**
+     * SearchSpace
+     * @description Pydantic model for the ``studies.search_space`` JSONB column.
+     *
+     *     Wire format::
+     *
+     *         {
+     *             "params": {
+     *                 "boost_title": {"type": "float", "low": 0.1, "high": 10.0, "log": true},
+     *                 "min_should_match": {"type": "int", "low": 1, "high": 5},
+     *                 "operator": {"type": "categorical", "choices": ["and", "or"]},
+     *             }
+     *         }
+     */
+    SearchSpace: {
+      /** Params */
+      params: {
+        [key: string]:
+          | components['schemas']['FloatParam']
+          | components['schemas']['IntParam']
+          | components['schemas']['CategoricalParam'];
+      };
+    };
+    /**
      * SeedCompletedStudyRequest
      * @description Payload for ``POST /api/v1/_test/studies/seed-completed``.
      *
@@ -2469,6 +2640,8 @@ export interface components {
       seed?: number | null;
       /** Secondary Metrics */
       secondary_metrics?: string[] | null;
+      /** Auto Followup Depth */
+      auto_followup_depth?: number | null;
     };
     /**
      * StudyDetail
@@ -2632,6 +2805,21 @@ export interface components {
       data: components['schemas']['TargetInfo'][];
     };
     /**
+     * TextFollowup
+     * @description A free-form textual suggestion — no auto-prefill, operator interprets.
+     */
+    TextFollowup: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      kind: 'text';
+      /** Rationale */
+      rationale: string;
+      /** Search Space */
+      search_space?: null;
+    };
+    /**
      * TrialDetail
      * @description ``GET /api/v1/studies/{id}/trials`` response row.
      */
@@ -2730,6 +2918,20 @@ export interface components {
       ctx?: Record<string, never>;
     };
     /**
+     * WidenFollowup
+     * @description A 'widen' followup — re-run with a broader range than the parent.
+     */
+    WidenFollowup: {
+      /**
+       * @description discriminator enum property added by openapi-typescript
+       * @enum {string}
+       */
+      kind: 'widen';
+      /** Rationale */
+      rationale: string;
+      search_space: components['schemas']['SearchSpace'];
+    };
+    /**
      * _ClusterEmbed
      * @description Inline cluster summary on proposal responses.
      */
@@ -2746,6 +2948,9 @@ export interface components {
     /**
      * _DigestEmbed
      * @description Inline digest summary on the proposal-detail response.
+     *
+     *     feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+     *     now a discriminated-union list (see ``DigestResponse``).
      */
     _DigestEmbed: {
       /** Id */
@@ -2761,7 +2966,7 @@ export interface components {
         [key: string]: unknown;
       };
       /** Suggested Followups */
-      suggested_followups: string[];
+      suggested_followups: components['schemas']['FollowupItem'][];
       /**
        * Generated At
        * Format: date-time
@@ -3565,7 +3770,9 @@ export interface operations {
   };
   cancel_study_api_v1_studies__study_id__cancel_post: {
     parameters: {
-      query?: never;
+      query?: {
+        cascade?: string;
+      };
       header?: never;
       path: {
         study_id: string;
@@ -3581,6 +3788,37 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['StudyDetail'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_study_children_api_v1_studies__study_id__children_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        study_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StudyListResponse'];
         };
       };
       /** @description Validation Error */
@@ -3929,6 +4167,7 @@ export interface operations {
         source?: ('study' | 'manual') | null;
         template_id?: string | null;
         study_id?: string | null;
+        is_last_merged?: boolean | null;
         cursor?: string | null;
         limit?: number;
         sort?:

@@ -56,6 +56,7 @@ from backend.app.api.v1.schemas import (
 from backend.app.db import repo
 from backend.app.db.models import Study
 from backend.app.db.session import get_db
+from backend.app.domain.study.followups import parse_followup_list
 from backend.app.domain.study.search_space import (
     MissingDeclaredParamError,
     SearchSpace,
@@ -318,6 +319,65 @@ async def create_study(
                 False,
             )
 
+    # 3d. Parent-followup lineage validation
+    # (feat_digest_executable_followups Story 4.2, FR-11).
+    # When the operator clicks "Run this followup" the modal POSTs with
+    # ``parent: {proposal_id, followup_index}``. We validate:
+    #   1. The proposal exists (404 PROPOSAL_NOT_FOUND, non-retryable).
+    #   2. The proposal's parent study has a digest already
+    #      (404 DIGEST_NOT_FOUND, retryable — the digest worker may
+    #      still be running).
+    #   3. The followup_index is within bounds against the digest's
+    #      parsed suggested_followups (422 FOLLOWUP_INDEX_OUT_OF_RANGE,
+    #      non-retryable — caused by a stale UI; operator must refresh).
+    parent_proposal_id: str | None = None
+    parent_followup_index: int | None = None
+    if body.parent is not None:
+        proposal_row = await repo.get_proposal(db, body.parent.proposal_id)
+        if proposal_row is None:
+            raise _err(
+                404,
+                "PROPOSAL_NOT_FOUND",
+                f"proposal {body.parent.proposal_id} not found",
+                False,
+            )
+        if proposal_row.study_id is None:
+            # Manual proposals have no parent study → no digest → no
+            # followups. Treat as DIGEST_NOT_FOUND (non-retryable since
+            # no digest will ever be generated for a manual proposal).
+            raise _err(
+                404,
+                "DIGEST_NOT_FOUND",
+                f"proposal {proposal_row.id} is manual and has no digest",
+                False,
+            )
+        parent_digest = await repo.get_digest_for_study(db, proposal_row.study_id)
+        if parent_digest is None:
+            raise _err(
+                404,
+                "DIGEST_NOT_FOUND",
+                f"proposal {proposal_row.id} has no digest yet",
+                True,
+            )
+        parsed_followups = parse_followup_list(
+            parent_digest.suggested_followups,
+            study_id=parent_digest.study_id,
+            proposal_id=proposal_row.id,
+        )
+        if body.parent.followup_index >= len(parsed_followups):
+            raise _err(
+                422,
+                "FOLLOWUP_INDEX_OUT_OF_RANGE",
+                (
+                    f"parent.followup_index={body.parent.followup_index} exceeds the "
+                    f"digest's suggested_followups length ({len(parsed_followups)}) "
+                    f"for proposal {proposal_row.id}"
+                ),
+                False,
+            )
+        parent_proposal_id = body.parent.proposal_id
+        parent_followup_index = body.parent.followup_index
+
     # 4. Serialize config with exclude_none + exclude_unset (C3-F1 + Story 1.5).
     config_payload = body.config.model_dump(exclude_none=True, exclude_unset=True)
 
@@ -337,6 +397,8 @@ async def create_study(
         config=config_payload,
         status="queued",
         optuna_study_name=study_id,
+        parent_proposal_id=parent_proposal_id,
+        parent_proposal_followup_index=parent_followup_index,
     )
     await db.commit()
 

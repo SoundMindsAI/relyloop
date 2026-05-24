@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AUTH_KIND_VALUES,
   ENVIRONMENT_VALUES,
+  FOLLOWUP_KIND_VALUES,
   HEALTH_STATUS_VALUES,
   JUDGMENT_SOURCE_VALUES,
   OBJECTIVE_DIRECTION_VALUES,
@@ -84,6 +85,24 @@ describe('glossary parity against ui/src/lib/enums.ts (FR-4 / AC-5)', () => {
 
   it('cluster.environment — every Environment value has a key + no extras', () => {
     expectGlossaryGroundedAgainstEnums('cluster.environment', ENVIRONMENT_VALUES);
+  });
+});
+
+describe('feat_digest_executable_followups Story 5.3 — followup glossary keys', () => {
+  it('every FollowupKind value has a glossary key + no extras', () => {
+    // The kind-keys use a flat naming pattern (proposal.followup_kind_<kind>)
+    // rather than a dot prefix, so we check each key individually rather
+    // than via the expectGlossaryGroundedAgainstEnums helper.
+    for (const kind of FOLLOWUP_KIND_VALUES) {
+      const key = `proposal.followup_kind_${kind}` as const;
+      expect(glossary[key], `glossary[${key}] missing`).toBeDefined();
+      expect(glossary[key]?.short).toBeTruthy();
+    }
+  });
+
+  it('the Run button + search-space-diff glossary keys are populated', () => {
+    expect(glossary['proposal.followup_run_button']?.short).toBeTruthy();
+    expect(glossary['proposal.followup_search_space_diff']?.short).toBeTruthy();
   });
 });
 

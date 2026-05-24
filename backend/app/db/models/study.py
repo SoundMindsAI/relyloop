@@ -17,6 +17,12 @@ Notable columns:
 - ``optuna_study_name`` UNIQUE — convention is ``str(studies.id)`` so the
   Optuna RDB row is trivially traceable to the application row.
 - ``parent_study_id`` self-FK — for forks (MVP2).
+- ``parent_proposal_id`` / ``parent_proposal_followup_index`` — lineage
+  for studies spawned from a digest "Run this followup" action
+  (feat_digest_executable_followups). Both must be NULL or both must
+  be set with index ≥ 0 (DB CHECK ``studies_parent_proposal_pair_check``);
+  the BEFORE DELETE trigger on ``proposals`` NULLs the pair atomically
+  when the parent proposal is hard-deleted.
 - ``best_metric`` / ``best_trial_id`` — denormalized for fast study-list
   rendering; populated by the orchestrator on completion.
 """
@@ -26,7 +32,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -73,6 +79,19 @@ class Study(Base):
         String(36), ForeignKey("studies.id"), nullable=True
     )
     """Self-FK for fork lineage (MVP2 surface)."""
+    parent_proposal_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("proposals.id"), nullable=True
+    )
+    """FK to the parent proposal whose digest spawned this study
+    (feat_digest_executable_followups). Paired with
+    ``parent_proposal_followup_index``; the DB CHECK
+    ``studies_parent_proposal_pair_check`` enforces both-set-or-both-NULL.
+    A BEFORE DELETE trigger on ``proposals`` NULLs the pair atomically
+    when the parent proposal is hard-deleted."""
+    parent_proposal_followup_index: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    """0-based index into the parent digest's ``suggested_followups``
+    array. Recorded for audit only — the followup payload itself was
+    inlined into ``search_space`` / ``name`` at study-create time."""
     baseline_metric: Mapped[float | None] = mapped_column(Float, nullable=True)
     """Single non-Optuna trial run before Optuna starts; populated by the orchestrator."""
     best_metric: Mapped[float | None] = mapped_column(Float, nullable=True)

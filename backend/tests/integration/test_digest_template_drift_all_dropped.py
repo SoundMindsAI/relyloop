@@ -66,10 +66,14 @@ async def test_all_dropped_writes_empty_recommendation_and_deletes_proposal(
         digest = await repo.get_digest_for_study(db, seeded["study_id"])
         assert digest is not None
         assert digest.recommended_config == {}
-        # First follow-up flags the drift with the count.
-        assert digest.suggested_followups[0].startswith("Best trial used 4 params no longer")
+        # First follow-up is a text-kind dict whose rationale flags the drift count.
+        first = digest.suggested_followups[0]
+        assert isinstance(first, dict)
+        assert first.get("kind") == "text"
+        assert isinstance(first.get("rationale"), str)
+        assert first["rationale"].startswith("Best trial used 4 params no longer")
         for dropped in ("old_param_a", "old_param_b"):
-            assert dropped in digest.suggested_followups[0]
+            assert dropped in first["rationale"]
 
         # Pending proposal DELETED (unshippable artifact).
         proposal = await repo.get_proposal(db, seeded["proposal_id"])
