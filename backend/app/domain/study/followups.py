@@ -50,19 +50,31 @@ logger = logging.getLogger(__name__)
 
 
 # Max length of the validation error or unparseable item string embedded in
-# WARN logs or downgrade rationales — keeps log lines bounded.
+# WARN logs or downgrade rationales — keeps log lines bounded. Per Gemini
+# Code Assist feedback on PR #225: Pydantic ValidationError strings put the
+# most specific field path at the *end* (e.g. "narrow.search_space.params.x
+# .float Value error, float param: low (5.0) must be < high (1.0)"), so a
+# pure head-truncate at 200 chars cuts the field info off. We use a
+# head-and-tail truncation so both the leading context AND the trailing
+# field-path-and-message survive.
 _TRUNCATE_LIMIT = 200
 
 
 def _truncate(text: str) -> str:
-    """Truncate ``text`` to ``_TRUNCATE_LIMIT`` characters with an ellipsis.
+    """Head-and-tail truncate ``text`` to keep log lines bounded.
+
+    For strings longer than ``2 * _TRUNCATE_LIMIT`` characters, returns the
+    first ``_TRUNCATE_LIMIT`` chars + an ellipsis marker + the last
+    ``_TRUNCATE_LIMIT`` chars. For shorter strings, returns ``text`` unchanged.
 
     Used for WARN-log fields and downgrade-rationale prefixes so a runaway
-    LLM payload doesn't flood structured logs.
+    LLM payload doesn't flood structured logs while still preserving the
+    field-path-and-message info Pydantic puts at the end of its
+    ValidationError repr.
     """
-    if len(text) <= _TRUNCATE_LIMIT:
+    if len(text) <= 2 * _TRUNCATE_LIMIT:
         return text
-    return text[:_TRUNCATE_LIMIT] + "..."
+    return text[:_TRUNCATE_LIMIT] + "...[truncated]..." + text[-_TRUNCATE_LIMIT:]
 
 
 class NarrowFollowup(BaseModel):

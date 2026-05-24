@@ -153,13 +153,21 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
       pruner?: PrunerKind;
       seed?: number;
     };
+    // Defensively truncate the parent study name so the assembled prefill
+    // name stays within the backend's 256-char ``CreateStudyRequest.name``
+    // bound (per Gemini Code Assist feedback on PR #225). The suffix
+    // ``" — followup #NN (widen)"`` is at most ~26 chars, so capping the
+    // parent name at 200 leaves comfortable headroom.
+    const PARENT_NAME_MAX = 200;
+    const truncatedParentName =
+      s.name.length > PARENT_NAME_MAX ? s.name.slice(0, PARENT_NAME_MAX) + '...' : s.name;
     return {
       cluster_id: s.cluster_id,
       target: s.target,
       template_id: s.template_id,
       query_set_id: s.query_set_id,
       judgment_list_id: s.judgment_list_id,
-      name: `${s.name} — followup #${runFollowupIndex + 1} (${f.kind})`,
+      name: `${truncatedParentName} — followup #${runFollowupIndex + 1} (${f.kind})`,
       search_space_text: JSON.stringify(f.search_space, null, 2),
       metric: objective.metric,
       k: objective.k,
