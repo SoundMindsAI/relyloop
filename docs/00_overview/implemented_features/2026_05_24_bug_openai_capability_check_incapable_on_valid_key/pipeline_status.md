@@ -29,7 +29,16 @@
 - Phases covered: single phase (no deferred phases)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-24
+- PR: [#234](https://github.com/SoundMindsAI/relyloop/pull/234) (squash-merged as `d69189db`, admin-merged)
+- CI in-scope jobs: all green (backend lint+typecheck+tests+coverage, frontend lint+typecheck+tests+build, docker buildx, fast-lane unit)
+- CI smoke gate: pre-existing failure from [`bug_demo_clusters_unreachable_in_healthz`](../../planned_features/bug_demo_clusters_unreachable_in_healthz/idea.md) (same failure on `main` at commits `791642e0` + `ad6ff826`; admin-merge precedent set by PR #232 + PR #228). Out of scope for this PR.
+- Stories completed: 4/4 (1.1 CapabilityResult field + 1.2 probe refactor + cache-layer tests + 1.3 /healthz response + endpoint tests + contract tests + 1.4 architecture doc)
+- Tests: +15 new/updated cases across 4 test files (7 in test_capability_check.py + 5 in test_health.py + 1 in test_probes.py + 2 in test_health_contract.py)
+- Phase-gate review: GPT-5.5 — 3 findings (F1 Medium + F3 Low accepted in commit `3a40ec1a`; F2 Low rejected with counter-evidence — dashboard regen is the auto-run pre-commit hook)
+- Final cross-model review: GPT-5.5 — 1 Low finding (test-helper type hints) deferred as non-regression follow-up (matches existing file convention; `make typecheck` is green)
+- Gemini Code Assist: clean review, zero line-level findings
 
 ## Branch
-- `bug/openai-capability-check-models-endpoint-observability`
+- `bug/openai-capability-check-models-endpoint-observability` (deleted post-merge)

@@ -15,19 +15,19 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **75 / 75** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **1** high-value, ready when P0 clears |
+| → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 14 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 5 |
-| Legacy "Path to MVP1" | 12 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 4 |
+| Legacy "Path to MVP1" | 11 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (92)
+### Done (93)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -119,6 +119,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | Complete |
 | [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie | — | Complete |
+| [bug_openai_capability_check_incapable_on_valid_key](implemented_features/2026_05_24_bug_openai_capability_check_incapable_on_valid_key/feature_spec.md) | Bug | `/healthz` exposes which probe failed (specifically: surfaces `models_endpoint` status) and, when the failure was an HTTP error, the status code that triggered it (e.g., 401 → bad key; 429 → quota). | — | [PR #234](https://github.com/SoundMindsAI/relyloop/pull/234) merged 2026-05-24 |
 | [bug_pr_reconciler_blocked_by_closed_fallback](implemented_features/2026_05_23_bug_pr_reconciler_blocked_by_closed_fallback/idea.md) | Bug | The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-209`](../../backend/app/api/webhooks/github.py#L181-L209) handles the eventual-consistency case where GitHub delivers `pull_requ | — | Complete |
 | [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | The test ([`test_query_sets_router_queries.py:202-231`](../../backend/tests/integration/test_query_sets_router_queries.py#L202-L231)) seeds 5 queries via `_seed_set(5)`… | — | Complete |
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | `backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment: | — | Complete |
@@ -128,11 +129,9 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P1 | [bug_openai_capability_check_incapable_on_valid_key](../02_product/planned_features/bug_openai_capability_check_incapable_on_valid_key/feature_spec.md) | Bug | `/healthz` exposes which probe failed (specifically: surfaces `models_endpoint` status) and, when the failure was an HTTP error, the status code that triggered it (e.g., 401 → bad key; 429 → quota). | — | [PR #232](https://github.com/SoundMindsAI/relyloop/pull/232) |
+_None._
 
 ### Spec (0)
 
