@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-24** (latest mtime of any planned
 
 ## Next up
 
-**[feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/feature_spec.md)** — Feature, currently in **Plan**
+**[feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/feature_spec.md)** — Feature, currently in **Implementing**
 
 > A "Clone study" button on the study-detail page opens `CreateStudyModal` pre-filled with the source study's fields (cluster, target, query set, judgment list, template, search space, objective, config).
 
-Plan approved; run /impl-execute to ship
+Implementation in progress — resume to finish
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_study_clone_from_previous/implementation_plan.md --all
+/impl-execute docs/02_product/planned_features/feat_study_clone_from_previous/implementation_plan.md --all  # resume in-progress
 ```
 
 ## MVP1 Progress
@@ -29,7 +29,7 @@ Plan approved; run /impl-execute to ship
 | Open bugs | 5 |
 | Legacy "Path to MVP1" | 13 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
-| In flight | 0 feature(s) actively shipping |
+| In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -130,15 +130,15 @@ Plan approved; run /impl-execute to ship
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | `backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment: | — | Complete |
 | [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | Complete |
 
-### Implementing (0)
-
-_None._
-
-### Plan (1)
+### Implementing (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_study_clone_from_previous](../02_product/planned_features/feat_study_clone_from_previous/feature_spec.md) | Feature | A "Clone study" button on the study-detail page opens `CreateStudyModal` pre-filled with the source study's fields (cluster, target, query set, judgment list, template, search space, objective, config | — | [PR #225](https://github.com/SoundMindsAI/relyloop/pull/225) |
+
+### Plan (0)
+
+_None._
 
 ### Spec (0)
 
@@ -177,7 +177,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_study_clone_from_previous["study clone from previous"]
-  class feat_study_clone_from_previous plan;
+  class feat_study_clone_from_previous implement;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
