@@ -1,15 +1,15 @@
 # `swap_template` LLM-suggested followups for the digest worker
 
-**Date:** 2026-05-23 (originated as `phase2_idea.md` inside [`feat_digest_executable_followups/`](../feat_digest_executable_followups/idea.md); split into this standalone folder 2026-05-24 so it ships cleanly through `/pipeline --auto` with standard artifact names and a clean feature branch).
+**Date:** 2026-05-23 (originated as `phase2_idea.md` inside [`feat_digest_executable_followups/`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md); split into this standalone folder 2026-05-24 so it ships cleanly through `/pipeline --auto` with standard artifact names and a clean feature branch).
 
 **Status:** Idea — ready for `/pipeline`.
 
-**Priority:** P2 — actionable extension of [`feat_digest_executable_followups`](../feat_digest_executable_followups/idea.md) Phase 1 (Tier A, shipped 2026-05-24 as PR #225 squash `83c526f2`). All substrate is in place; this is a pure extension of the existing `FollowupItem` discriminated union with one new kind variant plus its UI surface.
+**Priority:** P2 — actionable extension of [`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 (Tier A, shipped 2026-05-24 as PR #225 squash `83c526f2`). All substrate is in place; this is a pure extension of the existing `FollowupItem` discriminated union with one new kind variant plus its UI surface.
 
-**Origin:** [`feat_digest_executable_followups`](../feat_digest_executable_followups/feature_spec.md) §3 ("Out of scope" → Tier B) + sibling [`idea.md`](../feat_digest_executable_followups/idea.md) §"Tier B — `swap_template` followups". Originally captured as `phase2_idea.md` inside that folder; split into a standalone folder per the 2026-05-24 decision (see PR #227 for the sibling Phase-3 split to backlog, and the rationale for splitting deferred phases out before pipelining them in `impl-execute` Step 8.6).
+**Origin:** [`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/feature_spec.md) §3 ("Out of scope" → Tier B) + sibling [`idea.md`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) §"Tier B — `swap_template` followups". Originally captured as `phase2_idea.md` inside that folder; split into a standalone folder per the 2026-05-24 decision (see PR #227 for the sibling Phase-3 split to backlog, and the rationale for splitting deferred phases out before pipelining them in `impl-execute` Step 8.6).
 
 **Depends on (all met):**
-- [`feat_digest_executable_followups`](../feat_digest_executable_followups/idea.md) Phase 1 — **shipped 2026-05-24 as PR #225 squash `83c526f2`.** ✅ Substrate (Pydantic discriminated-union `FollowupItem`, JSONB `digests.suggested_followups` column, `studies.parent_proposal_id` + `parent_proposal_followup_index` lineage columns, `POST /api/v1/studies` `parent` body, "Run this followup" UI scaffolding, `useStudy(parent_study_id)` lazy prefetch) all in place.
+- [`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 — **shipped 2026-05-24 as PR #225 squash `83c526f2`.** ✅ Substrate (Pydantic discriminated-union `FollowupItem`, JSONB `digests.suggested_followups` column, `studies.parent_proposal_id` + `parent_proposal_followup_index` lineage columns, `POST /api/v1/studies` `parent` body, "Run this followup" UI scaffolding, `useStudy(parent_study_id)` lazy prefetch) all in place.
 - [`feat_agent_propose_search_space`](../../../00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/idea.md) — **shipped 2026-05-21 as PR #175 squash `5d29355`.** ✅ Provides `backend/app/domain/study/search_space_defaults.py` for the disjoint-set heuristic bounds.
 
 ## Problem
@@ -45,7 +45,7 @@ Phase 1 of `feat_digest_executable_followups` handles `narrow` / `widen` / `text
 
 ## Relationship to other work
 
-- **Builds on [`feat_digest_executable_followups`](../feat_digest_executable_followups/idea.md) Phase 1 substrate** — discriminated-union schema, JSONB column, lineage columns, and "Run this followup" UI scaffolding all already landed.
+- **Builds on [`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 substrate** — discriminated-union schema, JSONB column, lineage columns, and "Run this followup" UI scaffolding all already landed.
 - **Reuses [`backend/app/domain/study/search_space_defaults.py`](../../../../backend/app/domain/study/search_space_defaults.py)** from `feat_agent_propose_search_space` (shipped 2026-05-21) for the disjoint-set heuristic bounds.
 - **Reuses `feat_create_study_search_space_builder` row primitives** (shipped 2026-05-20) for the cross-template comparison (when feasible).
 - **Adjacent backlog item:** [`../backlog_feat_digest_template_edit_followups/idea.md`](../backlog_feat_digest_template_edit_followups/idea.md) — the Tier C `edit_template` extension, prefixed `backlog_` because its template-editor UI prerequisite doesn't exist. Promotes out of `backlog_` once this feature ships AND the editor lands.
