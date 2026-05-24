@@ -30,4 +30,5 @@
 - Phases covered: single-phase delivery (no deferred phases per spec §3 Phase boundaries).
 
 ## Implementation
-- Status: Not started
+- Status: Complete (PR #228, merged 2026-05-24 as squash commit `ad6ff826`)
+- Adjudicated 2 Gemini Code Assist comments (both Medium, both accepted) + 5 GPT-5.5 final-review findings (1 High + 2 Medium accepted, 1 Medium rejected as stale, 1 Low deferred).
