@@ -1316,7 +1316,7 @@ Plan testing explicitly by layer and map to stories.
 ## 9) Execution tracker
 
 ### Current sprint
-- [ ] Story 1.1 — followups.py domain module
+- [x] Story 1.1 — followups.py domain module
 - [ ] Story 2.1 — worker structured-output schema + validator wiring
 - [ ] Story 2.2 — LLM prompts
 - [ ] Story 2.3 — worker integration test

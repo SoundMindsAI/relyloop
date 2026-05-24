@@ -473,6 +473,36 @@ export const glossary = {
       "LLM-generated next-study hypotheses based on this study's parameter-importance pattern. Click to seed a new study.",
     ariaLabel: 'More information about suggested follow-ups',
   },
+  // feat_digest_executable_followups Story 5.3 — five glossary keys for
+  // the per-card kind badges, the Run button, and the search-space diff
+  // toggle on the rewritten SuggestedFollowupsPanel.
+  // Source-of-truth: backend/app/domain/study/followups.py NarrowFollowup
+  'proposal.followup_kind_narrow': {
+    short:
+      "The study's winning configuration sits in a sub-region of the prior search space. This followup re-runs with a tighter range to confirm.",
+    ariaLabel: 'More information about narrow follow-ups',
+  },
+  // Source-of-truth: backend/app/domain/study/followups.py WidenFollowup
+  'proposal.followup_kind_widen': {
+    short:
+      'The winning configuration hit an edge of the prior search space. This followup re-runs with a broader range to find a better setting.',
+    ariaLabel: 'More information about widen follow-ups',
+  },
+  // Source-of-truth: backend/app/domain/study/followups.py TextFollowup
+  'proposal.followup_kind_text': {
+    short:
+      'A free-form suggestion from the LLM. Needs operator interpretation — no auto-prefill available.',
+    ariaLabel: 'More information about text follow-ups',
+  },
+  'proposal.followup_run_button': {
+    short:
+      'Opens the create-study wizard pre-filled with this followup’s settings. You can review and edit before submitting.',
+    ariaLabel: 'More information about the run-followup button',
+  },
+  'proposal.followup_search_space_diff': {
+    short: "Compare this followup's proposed search space against the parent study's.",
+    ariaLabel: 'More information about the search-space diff',
+  },
   'proposal.status_filter': {
     short:
       'Filter the proposals list by lifecycle state. "All" shows every proposal regardless of where it is in the open-PR / merge flow.',

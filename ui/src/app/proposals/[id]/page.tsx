@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, use, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, use, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { InfoTooltip } from '@/components/common/info-tooltip';
@@ -12,8 +12,17 @@ import { PrPanel } from '@/components/proposals/pr-panel';
 import { ProposalHeader } from '@/components/proposals/proposal-header';
 import { RejectDialog } from '@/components/proposals/reject-dialog';
 import { SuggestedFollowupsPanel } from '@/components/proposals/suggested-followups-panel';
+import { CreateStudyModal, type PrefillValues } from '@/components/studies/create-study-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useOpenPR, useProposal } from '@/lib/api/proposals';
+import { useStudy } from '@/lib/api/studies';
+import type {
+  ObjectiveDirection,
+  ObjectiveK,
+  ObjectiveMetric,
+  PrunerKind,
+  SamplerKind,
+} from '@/lib/enums';
 
 interface RouteProps {
   params: Promise<{ id: string }>;
@@ -108,6 +117,64 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
     };
   }, []);
 
+  // feat_digest_executable_followups Story 5.2 — "Run this followup" orchestration.
+  // The panel reports the clicked index via `onRun`; the page lazily fetches
+  // the parent study (gated on actionable followups + Run click) and assembles
+  // the PrefillValues that open the CreateStudyModal.
+  const [runFollowupIndex, setRunFollowupIndex] = useState<number | null>(null);
+  const proposal = proposalQ.data ?? null;
+  const followups = proposal?.digest?.suggested_followups ?? [];
+  const hasActionableFollowup = followups.some((f) => f.kind === 'narrow' || f.kind === 'widen');
+  const parentStudyId = proposal?.study_id ?? null;
+  // GPT-5.5 cycle-1 F2: enable the parent fetch whenever the proposal has
+  // at least one actionable followup, not only on Run click, so the panel's
+  // "Show search space" detail can render the diff vs parent pre-click.
+  const parentStudy = useStudy(parentStudyId ?? '', {
+    enabled: parentStudyId !== null && hasActionableFollowup,
+  });
+
+  const prefillValues: PrefillValues | undefined = useMemo(() => {
+    if (runFollowupIndex === null) return undefined;
+    if (!proposal || !parentStudy.data || followups.length === 0) return undefined;
+    const f = followups[runFollowupIndex];
+    if (!f || (f.kind !== 'narrow' && f.kind !== 'widen')) return undefined;
+    const s = parentStudy.data;
+    const objective = s.objective as {
+      metric: ObjectiveMetric;
+      k?: ObjectiveK;
+      direction: ObjectiveDirection;
+    };
+    const config = s.config as {
+      max_trials?: number;
+      time_budget_min?: number;
+      parallelism?: number;
+      trial_timeout_s?: number;
+      sampler?: SamplerKind;
+      pruner?: PrunerKind;
+      seed?: number;
+    };
+    return {
+      cluster_id: s.cluster_id,
+      target: s.target,
+      template_id: s.template_id,
+      query_set_id: s.query_set_id,
+      judgment_list_id: s.judgment_list_id,
+      name: `${s.name} — followup #${runFollowupIndex + 1} (${f.kind})`,
+      search_space_text: JSON.stringify(f.search_space, null, 2),
+      metric: objective.metric,
+      k: objective.k,
+      direction: objective.direction,
+      max_trials: config.max_trials ?? '',
+      time_budget_min: config.time_budget_min ?? '',
+      parallelism: config.parallelism ?? '',
+      trial_timeout_s: config.trial_timeout_s ?? '',
+      sampler: config.sampler,
+      pruner: config.pruner,
+      seed: config.seed ?? '',
+      parent: { proposal_id: proposal.id, followup_index: runFollowupIndex },
+    };
+  }, [runFollowupIndex, proposal, parentStudy.data, followups]);
+
   // ?action=open_pr auto-trigger — fires fireOpenPR once per mount when the
   // URL carries the query param + the proposal is pending. Strips the param
   // via router.replace so a remount/back-nav with the same URL does NOT
@@ -193,11 +260,27 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
             </div>
             {proposal.digest?.suggested_followups &&
               proposal.digest.suggested_followups.length > 0 && (
-                <SuggestedFollowupsPanel followups={proposal.digest.suggested_followups} />
+                <SuggestedFollowupsPanel
+                  followups={proposal.digest.suggested_followups}
+                  onRun={setRunFollowupIndex}
+                  parentSearchSpace={
+                    (parentStudy.data?.search_space as Record<string, unknown> | undefined) ??
+                    undefined
+                  }
+                  parentStudyLoading={parentStudy.isLoading}
+                  parentStudyError={parentStudy.error ?? null}
+                />
               )}
           </>
         )}
       </DetailPageShell>
+      <CreateStudyModal
+        open={prefillValues !== undefined}
+        onOpenChange={(o) => {
+          if (!o) setRunFollowupIndex(null);
+        }}
+        initialValues={prefillValues}
+      />
     </main>
   );
 }
