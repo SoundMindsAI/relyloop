@@ -596,6 +596,19 @@ class TestModelsEndpointInHealthzResponse:
         assert "Invalid Bearer token" not in log_blob, log_blob
         assert FORBIDDEN_FRAGMENT not in log_blob, log_blob
 
+        # WARN at step=models_endpoint with status_code=401 MUST exist (pinning
+        # the structured fields, not just text-searching log_blob). Per
+        # phase-gate review F1: the endpoint-layer AC-10 test should mirror
+        # the cache-layer test's WARN assertion so the regression guard is
+        # symmetric across both surfaces.
+        from backend.tests._log_helpers import assert_log_level
+
+        step_events = [e for e in captured if e.get("step") == "models_endpoint"]
+        assert step_events, captured
+        for entry in step_events:
+            assert_log_level(entry, "warning")
+        assert any(e.get("status_code") == 401 for e in step_events), step_events
+
         # /healthz response raw text (NOT just the parsed JSON — checks the
         # full serialized body including any field).
         assert "Invalid Bearer token" not in resp.text, resp.text

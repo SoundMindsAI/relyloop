@@ -95,7 +95,19 @@ The step-1-failure payload (e.g., bad API key returns HTTP 401 from `GET /models
 
 **Cascade on step-1 failure.** When `models_endpoint == "fail"`, steps 2–4 are skipped and reported as `"untested"` (probing chat / function-calling / structured-output is meaningless against an unreachable endpoint). `/healthz` surfaces this combination as `subsystems.openai: "incapable"` + `openai_capabilities.models_endpoint: "fail"` + 3× `"untested"`. The `models_endpoint_status_code` field tells the operator *why* step 1 failed: `401 → bad key`, `403 → quota/billing`, `429 → rate-limited`, `5xx → upstream outage`, `null → network unreachable (DNS / timeout / connection-refused)`. The OpenAI response body is intentionally never captured — bodies can quote the bearer token back, so only the integer status code is stored (CLAUDE.md Absolute Rule #10). Detailed failure context (URL, error text) stays in the api container's WARN log per [`backend/app/llm/capability_check.py:67-80`](../../backend/app/llm/capability_check.py).
 
-The corresponding `/healthz` `openai_capabilities` block carries five required fields — `models_endpoint_status_code` is required-but-nullable (the JSON key is always present with explicit `null` when not applicable):
+The corresponding `/healthz` `openai_capabilities` block carries five required fields — `models_endpoint_status_code` is required-but-nullable (the JSON key is always present with explicit `null` when not applicable). Success-path projection:
+
+```json
+"openai_capabilities": {
+  "models_endpoint": "ok",
+  "models_endpoint_status_code": null,
+  "chat": "ok",
+  "function_calling": "ok",
+  "structured_output": "ok"
+}
+```
+
+Failure-path projection (e.g., bad key — surfaces `subsystems.openai: "incapable"` upstream):
 
 ```json
 "openai_capabilities": {
