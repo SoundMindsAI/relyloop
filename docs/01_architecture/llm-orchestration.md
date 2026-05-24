@@ -63,19 +63,51 @@ The API container performs a self-test on startup against `OPENAI_BASE_URL`:
 3. **Function calling:** `POST {base_url}/chat/completions` with a single trivial tool definition (`echo(text)`) and `tool_choice="required"` — verify the response includes a parseable `tool_calls` field.
 4. **Structured output:** `POST {base_url}/chat/completions` with `response_format={type: "json_schema", ...}` for a trivial Pydantic shape — verify the response parses into the schema.
 
-Results are stored in Redis under `openai:capabilities:{base_url_hash}` (24h TTL):
+Results are stored in Redis under `openai:capabilities:{base_url_hash}` (24h TTL). The success-path payload:
 
 ```json
 {
   "base_url": "http://ollama:11434/v1",
   "model": "llama3.1:70b-instruct",
   "models_endpoint": "ok",
+  "models_endpoint_status_code": null,
   "chat_completion": "ok",
   "function_calling": "ok",
-  "structured_output": "degraded",
+  "structured_output": "ok",
   "tested_at": "2026-05-09T12:00:00Z"
 }
 ```
+
+The step-1-failure payload (e.g., bad API key returns HTTP 401 from `GET /models`):
+
+```json
+{
+  "base_url": "https://api.openai.com/v1",
+  "model": "gpt-4o-2024-08-06",
+  "models_endpoint": "fail",
+  "models_endpoint_status_code": 401,
+  "chat_completion": "untested",
+  "function_calling": "untested",
+  "structured_output": "untested",
+  "tested_at": "2026-05-24T10:00:00Z"
+}
+```
+
+**Cascade on step-1 failure.** When `models_endpoint == "fail"`, steps 2–4 are skipped and reported as `"untested"` (probing chat / function-calling / structured-output is meaningless against an unreachable endpoint). `/healthz` surfaces this combination as `subsystems.openai: "incapable"` + `openai_capabilities.models_endpoint: "fail"` + 3× `"untested"`. The `models_endpoint_status_code` field tells the operator *why* step 1 failed: `401 → bad key`, `403 → quota/billing`, `429 → rate-limited`, `5xx → upstream outage`, `null → network unreachable (DNS / timeout / connection-refused)`. The OpenAI response body is intentionally never captured — bodies can quote the bearer token back, so only the integer status code is stored (CLAUDE.md Absolute Rule #10). Detailed failure context (URL, error text) stays in the api container's WARN log per [`backend/app/llm/capability_check.py:67-80`](../../backend/app/llm/capability_check.py).
+
+The corresponding `/healthz` `openai_capabilities` block carries five required fields — `models_endpoint_status_code` is required-but-nullable (the JSON key is always present with explicit `null` when not applicable):
+
+```json
+"openai_capabilities": {
+  "models_endpoint": "fail",
+  "models_endpoint_status_code": 401,
+  "chat": "untested",
+  "function_calling": "untested",
+  "structured_output": "untested"
+}
+```
+
+**Repo-secret vs operator `.env` divergence.** The `OPENAI_API_KEY_TEST` value populated in GitHub Actions' repo secret may not match any individual operator's `./secrets/openai_key` file. If CI's smoke gate reports `models_endpoint: "fail"` + `models_endpoint_status_code: 401`, the next step is to rotate the repo secret with a known-good key. Per CLAUDE.md operator-environment handoff, repo secrets are operator-only — Claude cannot modify them. The smoke job's diagnostic surface for this case is the `smoke-logs.txt` artifact built at [`.github/workflows/pr.yml:444-445`](../../.github/workflows/pr.yml) (the `Wait for /healthz` step's failure-step curl at `pr.yml:364` does NOT fire on openai-incapable because the wait loop succeeds — overall `status: ok`).
 
 The application reads capabilities at request time and:
 - **Chat orchestrator** runs with whatever's available; degrades gracefully when tool-calling fails (refuses to dispatch tools, asks user to use UI instead)
