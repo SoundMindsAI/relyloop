@@ -25,6 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from backend.app.adapters.protocol import TargetInfo
 from backend.app.core.settings import get_settings
 from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
+from backend.app.domain.study.followups import FollowupItem as FollowupItem
 
 # ``ConfidenceShape`` is defined in :mod:`backend.app.domain.study.confidence`
 # (the canonical assembler module per Story 1.3). The explicit ``as`` re-export
@@ -939,14 +940,21 @@ proposals_pr_state_check.
 
 
 class DigestResponse(BaseModel):
-    """Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3)."""
+    """Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
+
+    feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+    now a discriminated-union list (NarrowFollowup | WidenFollowup |
+    TextFollowup), populated by the digest handler via
+    ``parse_followup_list(digest.suggested_followups, ...)`` so legacy or
+    malformed JSONB payloads never crash the response.
+    """
 
     id: str
     study_id: str
     narrative: str
     parameter_importance: dict[str, float]
     recommended_config: dict[str, Any]
-    suggested_followups: list[str]
+    suggested_followups: list[FollowupItem]
     generated_by: str
     generated_at: datetime
 
@@ -997,13 +1005,17 @@ class _StudySummary(BaseModel):
 
 
 class _DigestEmbed(BaseModel):
-    """Inline digest summary on the proposal-detail response."""
+    """Inline digest summary on the proposal-detail response.
+
+    feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+    now a discriminated-union list (see ``DigestResponse``).
+    """
 
     id: str
     narrative: str
     parameter_importance: dict[str, float]
     recommended_config: dict[str, Any]
-    suggested_followups: list[str]
+    suggested_followups: list[FollowupItem]
     generated_at: datetime
 
 
