@@ -62,6 +62,10 @@ from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.models import Proposal
 from backend.app.db.session import get_session_factory
+from backend.app.domain.study.followups import (
+    parse_followup_list,
+    serialize_followup_list,
+)
 from backend.app.domain.study.template_defaults import compute_default_params
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
 from backend.app.llm.budget_gate import peek_daily_total, record_cost
@@ -166,13 +170,42 @@ _FAILURE_NARRATIVE = "No successful trials in this study. Diagnose using the wor
 # is computed deterministically from best-trial params filtered to
 # currently-declared template params (per spec FR-5 + cycle-1 F5 / cycle-2 F1).
 # Module-level so the contract test can import + assert shape.
+#
+# feat_digest_executable_followups Story 2.1 — suggested_followups is now an
+# array of {kind, rationale, search_space_json} objects. The discriminator
+# is ``kind`` ∈ {narrow, widen, text}. To stay within OpenAI's strict-mode
+# JSON schema constraints (which forbid open-ended object subschemas like
+# the inner ``SearchSpace.params`` map with arbitrary param-name keys), we
+# ship ``search_space`` to the LLM as ``search_space_json`` — a string
+# carrying the JSON-encoded SearchSpace body for narrow/widen items, and
+# an empty string for text items. The worker parses + validates
+# ``search_space_json`` through ``parse_followup_list``; invalid JSON or
+# invalid SearchSpace contents downgrade the item to ``text`` per the
+# defensive parser contract. Capability-degraded path persists ``[]``
+# per D-27.
 DIGEST_RESPONSE_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "narrative": {"type": "string"},
         "suggested_followups": {
             "type": "array",
-            "items": {"type": "string"},
+            "items": {
+                "type": "object",
+                "properties": {
+                    "kind": {"type": "string", "enum": ["narrow", "widen", "text"]},
+                    "rationale": {"type": "string"},
+                    "search_space_json": {
+                        "type": "string",
+                        "description": (
+                            "JSON-encoded SearchSpace body for narrow/widen items; "
+                            "empty string for text items. Worker parses + validates "
+                            "via backend.app.domain.study.followups.parse_followup_list."
+                        ),
+                    },
+                },
+                "required": ["kind", "rationale", "search_space_json"],
+                "additionalProperties": False,
+            },
             "maxItems": 5,  # cycle-1 F4: wired into the schema, not just prose
         },
     },
@@ -413,6 +446,10 @@ async def _call_openai_for_digest(
         if not isinstance(parsed, dict):
             raise ValueError("digest LLM response is not a JSON object")
         narrative = parsed.get("narrative")
+        # feat_digest_executable_followups Story 2.1: per-item shape is
+        # enforced upstream by the JSON-schema (response_format) and
+        # downstream by parse_followup_list — the worker only verifies
+        # the top-level types here.
         followups = parsed.get("suggested_followups", [])
         if not isinstance(narrative, str) or not isinstance(followups, list):
             raise ValueError("digest LLM response missing required fields")
@@ -711,6 +748,10 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     dropped_template_params=dropped,
                     include_recommendation=structured_output_enabled and not all_dropped,
                     confidence=confidence_payload,
+                    # feat_digest_executable_followups Story 2.2 — the LLM
+                    # needs the parent search-space to author narrow / widen
+                    # follow-ups (FR-8).
+                    parent_search_space=study.search_space,
                 )
                 bundle = load_digest_prompts()
                 openai_client = AsyncOpenAI(api_key=api_key, base_url=settings.openai_base_url)
@@ -749,30 +790,96 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                 cost_usd = compute_call_cost(model, input_tokens, output_tokens)
 
                 # Step 13 — Merge follow-ups.
-                # The capability-fallback (degraded) path persists no
-                # follow-ups per spec AC-11 — the LLM didn't generate
-                # any, and the deterministic drift-followup is moot
-                # because we're also dropping the recommended_config in
-                # that path (see Step 14/15).
-                followups: list[str] = []
+                # feat_digest_executable_followups Story 2.1: followups are
+                # now structured dicts (FollowupItem shape). The capability-
+                # fallback (degraded) path persists no follow-ups per spec
+                # AC-11 / D-27 — the LLM didn't generate any, and the
+                # deterministic drift-followup is moot because we're also
+                # dropping the recommended_config in that path. The drift
+                # item is built as a text-kind followup and prepended to the
+                # LLM list; the merged list is validated through
+                # parse_followup_list which downgrades any invalid LLM
+                # narrow/widen items to text (or drops them outright).
+                followup_dicts: list[dict[str, Any]] = []
                 if structured_output_enabled:
                     if all_dropped:
                         sample = ", ".join(dropped[:5])
                         ellipsis = "..." if len(dropped) > 5 else ""
-                        followups.append(
-                            f"Best trial used {len(dropped)} params no longer declared "
-                            f"on the template ({sample}{ellipsis}). The recommendation is "
-                            "empty. Re-add the dropped params to the template or treat "
-                            "this study as stale."
+                        followup_dicts.append(
+                            {
+                                "kind": "text",
+                                "rationale": (
+                                    f"Best trial used {len(dropped)} params no longer declared "
+                                    f"on the template ({sample}{ellipsis}). The recommendation is "
+                                    "empty. Re-add the dropped params to the template or treat "
+                                    "this study as stale."
+                                ),
+                                "search_space": None,
+                            }
                         )
                     elif dropped:
-                        followups.append(
-                            f"Best trial used params no longer declared on the "
-                            f"template: {dropped}. Re-establish them or accept the "
-                            "filtered config."
+                        followup_dicts.append(
+                            {
+                                "kind": "text",
+                                "rationale": (
+                                    f"Best trial used params no longer declared on the "
+                                    f"template: {dropped}. Re-establish them or accept the "
+                                    "filtered config."
+                                ),
+                                "search_space": None,
+                            }
                         )
-                    followups.extend(parsed.get("suggested_followups", []) or [])
-                    followups = followups[:5]
+                    # feat_digest_executable_followups Story 2.1 — the LLM
+                    # ships search_space as a JSON string (search_space_json)
+                    # to satisfy OpenAI strict-mode JSON-schema constraints.
+                    # Translate to the {kind, rationale, search_space} shape
+                    # parse_followup_list expects: decode the JSON string for
+                    # narrow/widen, drop the field for text. Bad JSON =>
+                    # search_space stays missing => Pydantic rejects =>
+                    # parse_followup_list downgrades to text (or drops).
+                    for raw_item in parsed.get("suggested_followups", []) or []:
+                        if not isinstance(raw_item, dict):
+                            followup_dicts.append(raw_item)
+                            continue
+                        kind = raw_item.get("kind")
+                        rationale = raw_item.get("rationale")
+                        ss_json = raw_item.get("search_space_json", "")
+                        if kind in ("narrow", "widen"):
+                            try:
+                                ss_decoded = json.loads(ss_json) if ss_json else None
+                            except (json.JSONDecodeError, TypeError):
+                                ss_decoded = None
+                            followup_dicts.append(
+                                {
+                                    "kind": kind,
+                                    "rationale": rationale,
+                                    "search_space": ss_decoded,
+                                }
+                            )
+                        else:
+                            followup_dicts.append(
+                                {
+                                    "kind": kind,
+                                    "rationale": rationale,
+                                    "search_space": None,
+                                }
+                            )
+
+                # Validate + downgrade-or-drop through the defensive parser.
+                # proposal.id is in-scope at this point (resolved in Step 7).
+                parsed_followups = parse_followup_list(
+                    followup_dicts,
+                    study_id=study_id,
+                    proposal_id=proposal.id,
+                )
+                parsed_followups = parsed_followups[:5]
+                followups_json = serialize_followup_list(parsed_followups)
+                # Per-kind counts for the digest_complete observability log
+                # (so operators can spot LLM mode drift without grepping
+                # individual WARN events).
+                followups_narrow_count = sum(1 for f in parsed_followups if f.kind == "narrow")
+                followups_widen_count = sum(1 for f in parsed_followups if f.kind == "widen")
+                followups_text_count = sum(1 for f in parsed_followups if f.kind == "text")
 
                 # Step 14 — Persisted recommended_config + config_diff.
                 # Per spec AC-11, the capability-fallback path persists
@@ -802,7 +909,10 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                         narrative=parsed["narrative"],
                         parameter_importance=parameter_importance,
                         recommended_config=persisted_recommended_config,
-                        suggested_followups=followups,
+                        # feat_digest_executable_followups Story 2.1: pass
+                        # the JSONB-safe list[dict] shape after the
+                        # parse-and-downgrade round-trip + serialize_followup_list.
+                        suggested_followups=followups_json,
                         generated_by=f"openai:{model}",
                     )
                 except IntegrityError:
@@ -866,6 +976,11 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     cost_usd=cost_usd,
                     running_total_usd=new_total,
                     duration_ms=int((time.monotonic() - started_at) * 1000),
+                    # feat_digest_executable_followups Story 2.1: per-kind
+                    # counts so operators can spot LLM mode drift.
+                    followups_narrow_count=followups_narrow_count,
+                    followups_widen_count=followups_widen_count,
+                    followups_text_count=followups_text_count,
                 )
 
                 # feat_auto_followup_studies Story 2.2 — auto-chain trigger.

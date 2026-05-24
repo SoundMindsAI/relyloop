@@ -55,6 +55,13 @@ type RefetchInterval<TData> =
 
 export interface UseStudyOptions {
   refetchInterval?: RefetchInterval<StudyDetail>;
+  /**
+   * feat_digest_executable_followups Story 5.2 — gate the fetch so the
+   * proposal-detail page can lazily load the parent study only when at
+   * least one ``narrow``/``widen`` followup is actionable, avoiding a
+   * wasteful request on proposals whose digests are all ``text`` items.
+   */
+  enabled?: boolean;
 }
 
 export function useStudy(
@@ -68,6 +75,7 @@ export function useStudy(
       return data;
     },
     refetchInterval: options.refetchInterval ?? false,
+    enabled: options.enabled ?? true,
   });
 }
 

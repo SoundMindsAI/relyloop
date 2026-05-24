@@ -156,12 +156,49 @@ const STEP_TITLES = [
   'Objective + config',
 ] as const;
 
+/**
+ * feat_digest_executable_followups Story 5.2 — prefill payload for the
+ * "Run this followup" flow. Carries the parent-study-derived form-field
+ * values plus the lineage tuple that gets sent in the POST body's
+ * ``parent`` field.
+ */
+export interface PrefillValues {
+  cluster_id: string;
+  target: string;
+  template_id: string;
+  query_set_id: string;
+  judgment_list_id: string;
+  name: string;
+  search_space_text: string;
+  metric: ObjectiveMetric;
+  k?: ObjectiveK;
+  direction: ObjectiveDirection;
+  max_trials?: number | '';
+  time_budget_min?: number | '';
+  parallelism?: number | '';
+  trial_timeout_s?: number | '';
+  sampler?: SamplerKind;
+  pruner?: PrunerKind;
+  seed?: number | '';
+  parent: {
+    proposal_id: string;
+    followup_index: number;
+  };
+}
+
 export interface CreateStudyModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * feat_digest_executable_followups Story 5.2 — when provided, the modal
+   * opens with the form fields pre-populated from the parent study and the
+   * POST body carries the ``parent`` lineage payload. Re-renders with a
+   * different ``initialValues`` reset the form to the new values.
+   */
+  initialValues?: PrefillValues;
 }
 
-export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) {
+export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateStudyModalProps) {
   const create = useCreateStudy();
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -249,6 +286,35 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
       setManualMode(false);
     }
   }, [open]);
+
+  // feat_digest_executable_followups Story 5.2 — when ``initialValues`` is
+  // provided AND the modal is open, reset the form with the prefill payload.
+  // Runs AFTER the manualMode-reset effect above (React fires effects in
+  // declaration order). Re-renders with a different ``initialValues``
+  // reset the form to the new values per AC-2 / D-19.
+  useEffect(() => {
+    if (open && initialValues) {
+      form.reset({
+        cluster_id: initialValues.cluster_id,
+        target: initialValues.target,
+        template_id: initialValues.template_id,
+        query_set_id: initialValues.query_set_id,
+        judgment_list_id: initialValues.judgment_list_id,
+        name: initialValues.name,
+        search_space_text: initialValues.search_space_text,
+        metric: initialValues.metric,
+        k: initialValues.k,
+        direction: initialValues.direction,
+        max_trials: initialValues.max_trials,
+        time_budget_min: initialValues.time_budget_min,
+        parallelism: initialValues.parallelism,
+        trial_timeout_s: initialValues.trial_timeout_s,
+        sampler: initialValues.sampler,
+        pruner: initialValues.pruner,
+        seed: initialValues.seed,
+      });
+    }
+  }, [open, initialValues, form]);
 
   // FR-5 auto-engage: when the targets query fails with TARGETS_FORBIDDEN,
   // silently flip into manual mode. `open` is in BOTH the guard AND the
@@ -560,6 +626,18 @@ export function CreateStudyModal({ open, onOpenChange }: CreateStudyModalProps) 
         search_space,
         objective,
         config,
+        // feat_digest_executable_followups Story 5.2 — when the modal was
+        // opened with prefill (the "Run this followup" flow), attach the
+        // lineage tuple so the backend records parent_proposal_id +
+        // parent_proposal_followup_index on the new study row.
+        ...(initialValues?.parent
+          ? {
+              parent: {
+                proposal_id: initialValues.parent.proposal_id,
+                followup_index: initialValues.parent.followup_index,
+              },
+            }
+          : {}),
       },
       {
         onSuccess: () => {

@@ -25,6 +25,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from backend.app.adapters.protocol import TargetInfo
 from backend.app.core.settings import get_settings
 from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
+from backend.app.domain.study.followups import FollowupItem as FollowupItem
 
 # ``ConfidenceShape`` is defined in :mod:`backend.app.domain.study.confidence`
 # (the canonical assembler module per Story 1.3). The explicit ``as`` re-export
@@ -610,6 +611,25 @@ class StudyConfigSpec(BaseModel):
         return self
 
 
+class ParentFollowupRef(BaseModel):
+    """Optional lineage payload on ``POST /api/v1/studies``.
+
+    feat_digest_executable_followups FR-11 — when the operator clicks
+    "Run this followup" on a proposal's digest card, the create-study
+    payload carries the parent proposal's id + the 0-based index into
+    the digest's ``suggested_followups`` array so the spawned study
+    remembers where it came from.
+
+    ``proposal_id`` is a UUIDv7 (36-char hex). The exact-length bound
+    forces malformed strings to surface as 422 ``VALIDATION_ERROR``
+    rather than reach the DB FK check and emerge as a 404
+    ``PROPOSAL_NOT_FOUND``.
+    """
+
+    proposal_id: str = Field(min_length=36, max_length=36)
+    followup_index: int = Field(ge=0)
+
+
 class CreateStudyRequest(BaseModel):
     """``POST /api/v1/studies`` body.
 
@@ -617,6 +637,10 @@ class CreateStudyRequest(BaseModel):
     :class:`backend.app.domain.study.search_space.SearchSpace` so
     :exc:`pydantic.ValidationError` produces the spec's 400
     ``INVALID_SEARCH_SPACE`` (per Story 3.3 task 2).
+
+    feat_digest_executable_followups Story 4.2 — optional ``parent`` field
+    records the parent proposal + followup-index lineage when the study
+    was spawned from a digest "Run this followup" action (FR-11).
     """
 
     name: str = Field(min_length=1, max_length=256)
@@ -628,6 +652,7 @@ class CreateStudyRequest(BaseModel):
     search_space: dict[str, Any]
     objective: ObjectiveSpec
     config: StudyConfigSpec
+    parent: ParentFollowupRef | None = None
 
 
 class TrialsSummaryShape(BaseModel):
@@ -939,14 +964,21 @@ proposals_pr_state_check.
 
 
 class DigestResponse(BaseModel):
-    """Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3)."""
+    """Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
+
+    feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+    now a discriminated-union list (NarrowFollowup | WidenFollowup |
+    TextFollowup), populated by the digest handler via
+    ``parse_followup_list(digest.suggested_followups, ...)`` so legacy or
+    malformed JSONB payloads never crash the response.
+    """
 
     id: str
     study_id: str
     narrative: str
     parameter_importance: dict[str, float]
     recommended_config: dict[str, Any]
-    suggested_followups: list[str]
+    suggested_followups: list[FollowupItem]
     generated_by: str
     generated_at: datetime
 
@@ -997,13 +1029,17 @@ class _StudySummary(BaseModel):
 
 
 class _DigestEmbed(BaseModel):
-    """Inline digest summary on the proposal-detail response."""
+    """Inline digest summary on the proposal-detail response.
+
+    feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+    now a discriminated-union list (see ``DigestResponse``).
+    """
 
     id: str
     narrative: str
     parameter_importance: dict[str, float]
     recommended_config: dict[str, Any]
-    suggested_followups: list[str]
+    suggested_followups: list[FollowupItem]
     generated_at: datetime
 
 

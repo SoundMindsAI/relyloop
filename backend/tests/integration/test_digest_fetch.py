@@ -33,7 +33,11 @@ async def test_fetch_existing_digest_returns_200(async_client: httpx.AsyncClient
             narrative="canonical narrative",
             parameter_importance={"field_boosts.title": 0.5, "tie_breaker": 0.5},
             recommended_config={"field_boosts.title": 4.7},
-            suggested_followups=["try fuzziness=AUTO"],
+            # feat_digest_executable_followups Story 4.1: the column is now
+            # JSONB carrying the discriminated-union FollowupItem shape.
+            suggested_followups=[
+                {"kind": "text", "rationale": "try fuzziness=AUTO", "search_space": None}
+            ],
             generated_by="openai:gpt-4o-2024-08-06",
         )
         await db.commit()
@@ -43,7 +47,9 @@ async def test_fetch_existing_digest_returns_200(async_client: httpx.AsyncClient
     body = response.json()
     assert body["narrative"] == "canonical narrative"
     assert body["recommended_config"] == {"field_boosts.title": 4.7}
-    assert body["suggested_followups"] == ["try fuzziness=AUTO"]
+    assert body["suggested_followups"] == [
+        {"kind": "text", "rationale": "try fuzziness=AUTO", "search_space": None}
+    ]
     assert body["generated_by"] == "openai:gpt-4o-2024-08-06"
 
 

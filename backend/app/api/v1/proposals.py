@@ -69,6 +69,7 @@ from backend.app.db.repo._sort import (
 )
 from backend.app.db.repo.proposal import _PROPOSAL_SORT_COLUMNS, InvalidStateTransition
 from backend.app.db.session import get_db
+from backend.app.domain.study.followups import parse_followup_list
 from backend.app.services import agent_proposals_dispatch
 
 router = APIRouter()
@@ -158,7 +159,14 @@ async def _assemble_proposal_detail(db: AsyncSession, proposal: Proposal) -> Pro
                 narrative=digest.narrative,
                 parameter_importance=digest.parameter_importance,
                 recommended_config=digest.recommended_config,
-                suggested_followups=digest.suggested_followups,
+                # feat_digest_executable_followups Story 4.1 — wrap the raw
+                # JSONB through the defensive parser so legacy or malformed
+                # payloads never crash the response.
+                suggested_followups=parse_followup_list(
+                    digest.suggested_followups,
+                    study_id=digest.study_id,
+                    proposal_id=proposal.id,
+                ),
                 generated_at=digest.generated_at,
             )
 
@@ -288,7 +296,13 @@ async def get_study_digest(
         narrative=digest.narrative,
         parameter_importance=digest.parameter_importance,
         recommended_config=digest.recommended_config,
-        suggested_followups=digest.suggested_followups,
+        # feat_digest_executable_followups Story 4.1 — wrap the raw JSONB
+        # through the defensive parser so legacy or malformed payloads
+        # never crash the response.
+        suggested_followups=parse_followup_list(
+            digest.suggested_followups,
+            study_id=digest.study_id,
+        ),
         generated_by=digest.generated_by,
         generated_at=digest.generated_at,
     )

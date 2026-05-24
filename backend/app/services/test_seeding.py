@@ -48,6 +48,7 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
     with_pending_proposal: bool = True,
     winner_per_query: dict[str, dict[str, Any]] | None = None,
     runner_up_per_query: dict[str, dict[str, Any]] | None = None,
+    suggested_followups: list[dict[str, Any]] | None = None,
 ) -> SeededStudyTriple:
     """Insert a complete study + 2 trials + digest (+ optional pending proposal).
 
@@ -157,6 +158,23 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
     )
 
     digest_id = str(uuid_utils.uuid7())
+    # feat_digest_executable_followups Story 6.1 — the column is now JSONB
+    # carrying ``[{kind, rationale, search_space}]`` dicts. Default to two
+    # text-kind items (preserving the pre-Story-3.3 visible behavior); the
+    # E2E happy-path test overrides via the new ``suggested_followups``
+    # kwarg to inject a structured ``narrow`` item.
+    default_followups: list[dict[str, Any]] = [
+        {
+            "kind": "text",
+            "rationale": "Try varying `description.boost` next.",
+            "search_space": None,
+        },
+        {
+            "kind": "text",
+            "rationale": "Run with a larger query set to confirm the lift holds.",
+            "search_space": None,
+        },
+    ]
     await repo.create_digest(
         db,
         id=digest_id,
@@ -168,10 +186,9 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         ),
         parameter_importance={"title.boost": 1.0},
         recommended_config={"title.boost": 2.5},
-        suggested_followups=[
-            "Try varying `description.boost` next.",
-            "Run with a larger query set to confirm the lift holds.",
-        ],
+        suggested_followups=(
+            suggested_followups if suggested_followups is not None else default_followups
+        ),
         generated_by="local:e2e_seed",
     )
 

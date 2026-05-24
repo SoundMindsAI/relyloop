@@ -170,7 +170,7 @@ async def seed_completed_study(
 def make_openai_response(
     *,
     narrative: str = "Test digest narrative.",
-    suggested_followups: list[str] | None = None,
+    suggested_followups: list[str] | list[dict[str, Any]] | None = None,
     prompt_tokens: int = 1000,
     completion_tokens: int = 500,
 ) -> Any:
@@ -179,11 +179,46 @@ def make_openai_response(
     The worker calls ``client.chat.completions.create(...)`` and expects
     ``.choices[0].message.content`` to be a JSON string and
     ``.usage.prompt_tokens`` / ``.usage.completion_tokens``.
+
+    feat_digest_executable_followups Story 2.1: ``suggested_followups``
+    accepts three input shapes:
+
+    1. Legacy ``list[str]`` — each string becomes a ``text``-kind item.
+    2. New ``list[dict]`` with ``{kind, rationale, search_space}`` —
+       the helper translates ``search_space`` (object | null) into
+       ``search_space_json`` (JSON-encoded string) to match the worker's
+       structured-output schema (the schema ships search_space as a
+       string to satisfy OpenAI strict-mode JSON-schema constraints).
+    3. New ``list[dict]`` already in ``{kind, rationale, search_space_json}``
+       wire shape — passed through unchanged.
     """
     if suggested_followups is None:
         suggested_followups = ["Try a wider tie_breaker range", "Add brand-disambiguation queries"]
-    payload = {"narrative": narrative, "suggested_followups": suggested_followups}
+    # Normalize all input shapes to the wire format
+    # ``{kind, rationale, search_space_json}`` that the worker's response_format
+    # schema expects.
     import json as _json
+
+    normalized: list[dict[str, Any]] = []
+    for item in suggested_followups:
+        if isinstance(item, str):
+            normalized.append({"kind": "text", "rationale": item, "search_space_json": ""})
+        elif isinstance(item, dict):
+            if "search_space_json" in item:
+                # Already in wire shape — pass through.
+                normalized.append(item)
+            else:
+                # Translate {kind, rationale, search_space} → wire shape.
+                ss = item.get("search_space")
+                ss_json = "" if ss is None else _json.dumps(ss)
+                normalized.append(
+                    {
+                        "kind": item.get("kind", "text"),
+                        "rationale": item.get("rationale", ""),
+                        "search_space_json": ss_json,
+                    }
+                )
+    payload = {"narrative": narrative, "suggested_followups": normalized}
 
     msg = MagicMock()
     msg.content = _json.dumps(payload)

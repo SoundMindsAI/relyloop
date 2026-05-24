@@ -69,12 +69,21 @@ async def test_dropped_param_excluded_from_recommended_config_and_flagged_in_fol
         assert digest is not None
         # recommended_config filtered to declared.
         assert set(digest.recommended_config.keys()) == {"field_boosts.title", "tie_breaker"}
-        # First follow-up mentions the dropped keys.
-        assert digest.suggested_followups[0].startswith("Best trial used params no longer")
+        # First follow-up is a text-kind item whose rationale mentions the dropped keys.
+        first = digest.suggested_followups[0]
+        assert isinstance(first, dict)
+        assert first.get("kind") == "text"
+        assert isinstance(first.get("rationale"), str)
+        assert first["rationale"].startswith("Best trial used params no longer")
         for dropped_key in ("fuzziness", "operator"):
-            assert dropped_key in digest.suggested_followups[0]
-        # LLM-supplied follow-up is preserved (after the deterministic prefix).
-        assert "LLM-followup" in digest.suggested_followups
+            assert dropped_key in first["rationale"]
+        # LLM-supplied follow-up is preserved as a separate ``text`` item.
+        rationales = [
+            item["rationale"]
+            for item in digest.suggested_followups
+            if isinstance(item, dict) and isinstance(item.get("rationale"), str)
+        ]
+        assert any("LLM-followup" in r for r in rationales)
 
         proposal = await repo.get_proposal(db, seeded["proposal_id"])
         assert proposal is not None

@@ -114,6 +114,16 @@ class SeedCompletedStudyRequest(BaseModel):
             "Optional per-query metrics for the runner-up trial; pairs with `winner_per_query`."
         ),
     )
+    suggested_followups: list[dict[str, Any]] | None = Field(
+        default=None,
+        description=(
+            "feat_digest_executable_followups Story 6.1 — optional structured "
+            "FollowupItem list (`[{kind, rationale, search_space}]`) to seed "
+            "on the digest. When omitted, the seeder writes two default text-kind "
+            "items. The E2E Run-followup spec passes a `narrow` item so it can "
+            "drive the per-card Run button + modal prefill flow."
+        ),
+    )
 
 
 class SeedCompletedStudyResponse(BaseModel):
@@ -164,6 +174,7 @@ async def seed_completed_study(  # pragma: no cover  - integration only
         with_pending_proposal=body.with_pending_proposal,
         winner_per_query=body.winner_per_query,
         runner_up_per_query=body.runner_up_per_query,
+        suggested_followups=body.suggested_followups,
     )
     await db.commit()
     return SeedCompletedStudyResponse(
