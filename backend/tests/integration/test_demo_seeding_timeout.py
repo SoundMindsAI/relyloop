@@ -152,6 +152,7 @@ async def test_reseed_per_call_timeout_returns_503(
       ``demo_reseed_per_call_http_timeout_s`` to 1 — bypasses the
       ``ge=30`` validator without weakening the production rule.
     """
+    from backend.app.api.v1 import _test as test_mod
     from backend.app.core.settings import get_settings
     from backend.app.services import test_seeding
 
@@ -164,7 +165,10 @@ async def test_reseed_per_call_timeout_returns_503(
     original_timeout = settings.__dict__.get("demo_reseed_per_call_http_timeout_s")
     settings.__dict__["demo_reseed_per_call_http_timeout_s"] = 1
     try:
-        with patch.object(test_seeding, "seed_study_completed_with_digest", _slow_seed):
+        with (
+            patch.object(test_seeding, "seed_study_completed_with_digest", _slow_seed),
+            patch.object(test_mod, "seed_study_completed_with_digest", _slow_seed),
+        ):
             response = await demo_reseed_client_function_scoped.post(
                 "/api/v1/_test/demo/reseed", json={}, timeout=60.0
             )
