@@ -166,11 +166,16 @@ class TestWorkerSwapTemplateRoundTrip:
         defaults for the disjoint phrase_slop param).
         """
         # Seed parent study against template A (title_boost + tie_breaker).
+        # best_trial_params MUST be a subset of declared_params — otherwise
+        # the worker computes a non-empty `dropped` set and pre-pends a
+        # "params no longer declared" text item, producing 2 followups
+        # instead of 1 (the assertion at line 227 catches this regression).
         seeded = await seed_completed_study(
             declared_params={
                 "title_boost": "float",
                 "tie_breaker": "float",
             },
+            best_trial_params={"title_boost": 0.8, "tie_breaker": 0.34},
         )
         # Seed an alternative template B (same engine_type, sharing title_boost
         # + adding phrase_slop) so the worker's catalogue fetch finds it.
