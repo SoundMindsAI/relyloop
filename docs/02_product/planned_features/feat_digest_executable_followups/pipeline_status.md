@@ -25,4 +25,9 @@
 - Phases covered: Phase 1 (Tier A — `narrow` / `widen` / `text` followup kinds). Phase 2 (Tier B `swap_template`) deferred via `phase2_idea.md`; Phase 3 (Tier C `edit_template`) deferred via `phase3_idea.md`.
 
 ## Implementation
-- Status: Not started
+- Status: Phase 1 Complete — merged into main as PR #225 squash `83c526f2` on 2026-05-24.
+- Branch: `feature/digest-executable-followups` (deleted post-merge).
+- PR: [#225](https://github.com/SoundMindsAI/relyloop/pull/225) — CI all 7 jobs green, Gemini Code Assist 2 Medium accepted + applied (head-and-tail truncate + parent-name 200-char cap), final GPT-5.5 cross-model review 3 findings (1 accepted as documented drift — `search_space_json` string workaround captured in plan §9; 2 rejected with cited counter-evidence — repo `**fields` passthrough + types.ts already regenerated).
+- All 16 stories shipped across 6 epics. Test deltas: backend unit 1282 → 1316 (+34); +5 integration, +6 contract, +19 vitest, +1 Playwright E2E. Alembic head moves from `0017_proposals_last_polled_at` to `0019_digests_suggested_followups_jsonb` (two migrations: 0018 studies parent_proposal columns + BEFORE DELETE trigger + partial index, 0019 ARRAY(Text) → JSONB column-type change via PL/pgSQL helpers).
+- **Folder stays in `planned_features/`** because Phase 2 (`phase2_idea.md` — `swap_template` kind) and Phase 3 (`phase3_idea.md` — `edit_template` kind) remain deferred per the spec's phase boundaries. Run `/pipeline docs/02_product/planned_features/feat_digest_executable_followups/phase2_idea.md` to start the next deferred phase.
+- Tangential capture: `bug_markdown_doc_localstorage_undefined_jsdom/idea.md` — pre-existing vitest failure in unrelated guide-viewer tests, captured per CLAUDE.md tangential-discoveries rule.
