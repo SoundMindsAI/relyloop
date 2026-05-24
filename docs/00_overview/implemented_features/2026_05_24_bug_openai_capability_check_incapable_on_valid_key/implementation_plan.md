@@ -1,7 +1,7 @@
 # Implementation Plan — OpenAI capability check: surface `models_endpoint` status in `/healthz`
 
 **Date:** 2026-05-24
-**Status:** Draft
+**Status:** Complete (PR #234, merged 2026-05-24 as squash commit `d69189db`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../CLAUDE.md) Absolute Rules #6 (`/healthz` unauthenticated), #10 (never log/expose secrets), #11 (`/healthz` per-probe 200ms budget); [llm-orchestration.md §"Capability check at startup"](../../../01_architecture/llm-orchestration.md).
 
