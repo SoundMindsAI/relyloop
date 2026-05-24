@@ -403,12 +403,12 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">16</div>
+      <div class="value">15</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">5</div>
+      <div class="value">4</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">12</div>
+      <div class="value">11</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -667,19 +667,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card bug" data-prefix="bug" data-priority="P1">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_openai_capability_check_incapable_on_valid_key/feature_spec.md">Openai Capability Check Incapable On Valid Key</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/232">PR #232</a>
-  </div>
-  <div class="one-liner">`/healthz` exposes which probe failed (specifically: surfaces `models_endpoint` status) and, when the failure was an HTTP error, the status code that triggered it (e.g., 401 → bad key; 429 → quota).</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -689,7 +677,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">92</span></h3>
+  <h3>Done <span class="count">93</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1830,6 +1818,19 @@ footer {
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_24_bug_openai_capability_check_incapable_on_valid_key/feature_spec.md">Openai Capability Check Incapable On Valid Key</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/234">PR #234</a> <span>merged 2026-05-24</span>
+  </div>
+  <div class="one-liner">`/healthz` exposes which probe failed (specifically: surfaces `models_endpoint` status) and, when the failure was an HTTP error, the status code that triggered it (e.g., 401 → bad key; 429 → quota).</div>
 
 
 </div>
