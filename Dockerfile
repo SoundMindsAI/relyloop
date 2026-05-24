@@ -93,6 +93,13 @@ COPY --from=deps --chown=relyloop:relyloop /app/.venv /app/.venv
 COPY --chown=relyloop:relyloop backend/ /app/backend/
 COPY --chown=relyloop:relyloop migrations/ /app/migrations/
 COPY --chown=relyloop:relyloop prompts/ /app/prompts/
+# scripts/ is needed at runtime because backend/app/services/demo_seeding.py
+# imports SCENARIOS + TRUNCATE_TABLES + DEMO_ES_INDICES + DEMO_OS_INDICES
+# from scripts/seed_meaningful_demos.py (per feat_home_demo_reseed_endpoint
+# PR #228 locked decision D2: reuse the CLI's constants rather than
+# refactor them into a shared module). Without this COPY the api container
+# crashes on startup with `ModuleNotFoundError: No module named 'scripts'`.
+COPY --chown=relyloop:relyloop scripts/ /app/scripts/
 COPY --chown=relyloop:relyloop alembic.ini /app/alembic.ini
 COPY --chown=relyloop:relyloop pyproject.toml uv.lock README.md LICENSE /app/
 
