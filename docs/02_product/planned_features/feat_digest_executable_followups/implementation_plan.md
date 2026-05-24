@@ -1317,27 +1317,27 @@ Plan testing explicitly by layer and map to stories.
 
 ### Current sprint
 - [x] Story 1.1 — followups.py domain module
-- [ ] Story 2.1 — worker structured-output schema + validator wiring
-- [ ] Story 2.2 — LLM prompts
-- [ ] Story 2.3 — worker integration test
-- [ ] Story 3.1 — migration 0018 (studies columns + trigger)
-- [ ] Story 3.2 — Study ORM update
-- [ ] Story 3.3 — migration 0019 (digests JSONB type change)
-- [ ] Story 3.4 — CHECK constraint integration test
-- [ ] Story 3.5 — BEFORE DELETE trigger integration test
-- [ ] Story 3.6 — migration round-trip integration test
-- [ ] Story 4.1 — schema wire-shape + wrapper
-- [ ] Story 4.2 — POST /studies parent body
-- [ ] Story 5.1 — SuggestedFollowupsPanel rewrite
-- [ ] Story 5.2 — Create-study modal prefill flow
-- [ ] Story 5.3 — Glossary additions
-- [ ] Story 6.1 — Playwright E2E happy path
+- [x] Story 2.1 — worker structured-output schema + validator wiring
+- [x] Story 2.2 — LLM prompts
+- [x] Story 2.3 — worker integration test
+- [x] Story 3.1 — migration 0018 (studies columns + trigger)
+- [x] Story 3.2 — Study ORM update
+- [x] Story 3.3 — migration 0019 (digests JSONB type change)
+- [x] Story 3.4 — CHECK constraint integration test
+- [x] Story 3.5 — BEFORE DELETE trigger integration test
+- [x] Story 3.6 — migration round-trip integration test
+- [x] Story 4.1 — schema wire-shape + wrapper
+- [x] Story 4.2 — POST /studies parent body
+- [x] Story 5.1 — SuggestedFollowupsPanel rewrite
+- [x] Story 5.2 — Create-study modal prefill flow
+- [x] Story 5.3 — Glossary additions
+- [x] Story 6.1 — Playwright E2E happy path
 
 ### Blocked items
 - None.
 
 ### Done this sprint
-- (none yet)
+- All 16 stories complete (2026-05-24).
 
 ---
 

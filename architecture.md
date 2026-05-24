@@ -123,6 +123,11 @@ backend/
                  CI / runner-up gap / late-trial 1σ / convergence regime /
                  per-query outcome helpers; pure-Python orchestrator
                  returning None on every FR-7 degraded path);
+                 study/followups.py (feat_digest_executable_followups —
+                 FollowupItem discriminated union (narrow/widen/text) +
+                 parse_followup_list defensive ingest + serialize_followup_list
+                 JSONB serializer; the worker validates LLM payloads through
+                 this module, downgrading invalid narrow/widen items to text);
                  git/{redaction,validation}.py from feat_github_pr_worker
                  (GitHub PAT redaction + repo_url + config_path validators)
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
@@ -193,7 +198,13 @@ migrations/      Alembic config + versions/ (0001 baseline + 0002 clusters
                  feat_data_table_primitive + 0014 clusters_target_filter
                  from feat_cluster_target_filter + 0015 trials_per_query_metrics
                  from feat_pr_metric_confidence — nullable JSONB column +
-                 CHECK constraint enforcing IS NULL OR jsonb_typeof = 'object')
+                 CHECK constraint enforcing IS NULL OR jsonb_typeof = 'object'
+                 + 0018 studies_parent_proposal + 0019 digests_suggested_followups_jsonb
+                 from feat_digest_executable_followups — paired
+                 studies.parent_proposal_id/parent_proposal_followup_index
+                 columns with CHECK + partial index + BEFORE DELETE trigger
+                 + digests.suggested_followups column-type change to JSONB
+                 via PL/pgSQL helper functions)
 docs/            00_overview / 01_architecture / 02_product / 03_runbooks /
                  04_security / 05_quality / 08_guides
 ```

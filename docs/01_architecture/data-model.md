@@ -209,6 +209,8 @@ CREATE TABLE studies (
     failed_reason       TEXT,                          -- populated when status='failed'
     optuna_study_name   TEXT NOT NULL UNIQUE,          -- convention: optuna_study_name = str(studies.id)
     parent_study_id     UUID REFERENCES studies(id),   -- for forks (MVP2)
+    parent_proposal_id  VARCHAR(36) REFERENCES proposals(id),  -- feat_digest_executable_followups (0018) — set when this study was spawned from a digest "Run this followup"
+    parent_proposal_followup_index INT,                -- 0-based index into the parent digest's suggested_followups; paired with parent_proposal_id (CHECK enforces both-NULL or both-set-with-index>=0); BEFORE DELETE trigger on proposals atomically NULLs both columns on parent hard-delete
     baseline_metric     REAL,                          -- single non-Optuna trial run before Optuna starts; populated by orchestrator
     best_metric         REAL,
     best_trial_id       UUID,
@@ -250,7 +252,7 @@ CREATE TABLE digests (
     narrative               TEXT NOT NULL,
     parameter_importance    JSONB NOT NULL,
     recommended_config      JSONB NOT NULL,
-    suggested_followups     TEXT[],
+    suggested_followups     JSONB NOT NULL DEFAULT '[]'::jsonb,  -- feat_digest_executable_followups (0019) — was TEXT[]; now a JSONB array of FollowupItem dicts (`{kind, rationale, search_space}` per backend/app/domain/study/followups.py)
     generated_by            TEXT NOT NULL,             -- LLM model name + version
     -- lineage columns added at MVP2
     generated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
