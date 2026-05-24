@@ -477,11 +477,17 @@ async def test_cancel_endpoint_round_trip(async_client: httpx.AsyncClient) -> No
     assert create.status_code == 201
     study_id = create.json()["id"]
 
-    cancel = await async_client.post(f"/api/v1/studies/{study_id}/cancel")
+    # cascade=false preserves the legacy single-cancel contract: cancel a
+    # queued study → 200, second cancel on a terminal study → 409 with
+    # INVALID_STATE_TRANSITION. The default changed to cascade=true with
+    # feat_auto_followup_studies (cycle-3 C3-1 + AC-9) — that path is
+    # tolerant of terminal parents and would return 200 here, so this
+    # test pins the cascade=false branch.
+    cancel = await async_client.post(f"/api/v1/studies/{study_id}/cancel?cascade=false")
     assert cancel.status_code == 200
     assert cancel.json()["status"] == "cancelled"
 
-    cancel2 = await async_client.post(f"/api/v1/studies/{study_id}/cancel")
+    cancel2 = await async_client.post(f"/api/v1/studies/{study_id}/cancel?cascade=false")
     assert cancel2.status_code == 409
     assert cancel2.json()["detail"]["error_code"] == "INVALID_STATE_TRANSITION"
 

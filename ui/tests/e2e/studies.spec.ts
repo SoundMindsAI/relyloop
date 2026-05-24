@@ -250,9 +250,11 @@ test.describe('/studies', () => {
 
     const isEnabled = await cancelBtn.isEnabled();
     if (isEnabled) {
+      // The frontend appends `?cascade=true` (per feat_auto_followup_studies
+      // D-6 default) so match the path with `includes()`, not `endsWith()`.
       const postPromise = page.waitForResponse(
         (resp) =>
-          resp.url().endsWith(`/api/v1/studies/${study.id}/cancel`) &&
+          resp.url().includes(`/api/v1/studies/${study.id}/cancel`) &&
           resp.request().method() === 'POST',
         { timeout: 10_000 },
       );

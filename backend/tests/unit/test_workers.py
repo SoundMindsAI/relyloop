@@ -58,6 +58,8 @@ def test_worker_settings_importable(_settings_env: None) -> None:
         "generate_judgments_llm",
         "open_pr",
         "register_webhook",
+        # feat_auto_followup_studies Story 2.1
+        "enqueue_followup_study",
     }
 
 

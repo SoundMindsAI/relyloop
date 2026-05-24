@@ -31,6 +31,7 @@ envelope shape.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, status
@@ -39,6 +40,28 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
+
+
+# --- Custom error-code prefix parser (feat_auto_followup_studies Story 1.1) -
+#
+# When a Pydantic ``model_validator`` raises ``ValueError("MY_CODE: human msg")``
+# and the leading token matches both the regex below AND the allowlist,
+# the validation_exception_handler emits ``error_code=MY_CODE`` instead of
+# the default ``VALIDATION_ERROR``. Lets feature validators surface
+# spec-required error codes without per-validator handler logic.
+#
+# The regex is intentionally strict (uppercase snake-case, length 3..64)
+# so plain English messages don't accidentally match. The allowlist is
+# the authoritative whitelist — adding a new code requires adding it
+# here in the same PR that introduces the validator.
+
+_CUSTOM_ERROR_CODE_RE = re.compile(r"^(?P<code>[A-Z][A-Z0-9_]{2,63}):\s*(?P<message>.+)$")
+_CUSTOM_ERROR_CODE_ALLOWLIST: frozenset[str] = frozenset(
+    {
+        # feat_auto_followup_studies Story 1.1 — StudyConfigSpec.auto_followup_depth
+        "AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE",
+    }
+)
 
 
 class ErrorEnvelope(BaseModel):
@@ -108,9 +131,33 @@ async def validation_exception_handler(
     so clients can branch on ``error_code: VALIDATION_ERROR`` and still
     surface specific guidance. (Per-field structured detail arrives at GA v1
     when full RFC 7807 lands.)
+
+    feat_auto_followup_studies Story 1.1: if a ValueError raised by a
+    ``model_validator`` has a ``<ALLOWLISTED_CODE>: human msg`` prefix, the
+    response emits ``error_code=<ALLOWLISTED_CODE>`` instead of the generic
+    ``VALIDATION_ERROR``. Single-finding errors only — multi-error responses
+    fall through to the generic envelope.
     """
+    errors = exc.errors()
+
+    if len(errors) == 1:
+        raw_msg = str(errors[0].get("msg", ""))
+        # Pydantic wraps ValueErrors in "Value error, <original message>".
+        # Strip that wrapper so the prefix parser sees the original message.
+        stripped = raw_msg.removeprefix("Value error, ")
+        match = _CUSTOM_ERROR_CODE_RE.match(stripped)
+        if match and match.group("code") in _CUSTOM_ERROR_CODE_ALLOWLIST:
+            return JSONResponse(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                content=_envelope(
+                    match.group("code"),
+                    match.group("message"),
+                    False,
+                ),
+            )
+
     field_errors = [
-        f"{'.'.join(str(x) for x in e.get('loc', []))}: {e.get('msg', '?')}" for e in exc.errors()
+        f"{'.'.join(str(x) for x in e.get('loc', []))}: {e.get('msg', '?')}" for e in errors
     ]
     message = "Request validation failed: " + "; ".join(field_errors)
     return JSONResponse(

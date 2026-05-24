@@ -455,6 +455,27 @@ async def get_study_detail(
 # ---------------------------------------------------------------------------
 
 
+def _parse_cascade(cascade: str = Query(default="true")) -> bool:
+    """Parse the ``?cascade=`` query param case-insensitively.
+
+    feat_auto_followup_studies Story 2.3, FR-8. Custom parser instead of
+    a Pydantic ``bool`` to override FastAPI's default 422 envelope for
+    parse failures — we want the project's canonical
+    ``INVALID_CASCADE_PARAM`` (400) per spec §8.5.
+    """
+    normalized = cascade.strip().lower()
+    if normalized == "true":
+        return True
+    if normalized == "false":
+        return False
+    raise _err(
+        400,
+        "INVALID_CASCADE_PARAM",
+        "?cascade= must be one of: true, false (case-insensitive)",
+        False,
+    )
+
+
 @router.post(
     "/studies/{study_id}/cancel",
     response_model=StudyDetail,
@@ -463,16 +484,28 @@ async def get_study_detail(
 async def cancel_study(
     study_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
+    cascade: Annotated[bool, Depends(_parse_cascade)] = True,
 ) -> StudyDetail:
-    """Cancel a study (FR-1 + AC-3).
+    """Cancel a study (Story 2.3, FR-8 + AC-8/AC-9).
 
-    Routes through :func:`services.study_state.cancel_study`. The
-    orchestrator detects the new status on its next poll tick and drains
-    in-flight trials. Cancelling an already-terminal study (completed /
-    cancelled / failed) raises ``InvalidStateTransition`` → 409.
+    Optionally cascades to in-flight chain children.
+
+    ``?cascade=true`` (default): routes through
+    :func:`services.study_state.cancel_study_with_chain_cascade` —
+    cancels the parent (if in-flight) AND recursively cancels in-flight
+    descendants. Tolerates terminal parents (recurses through completed
+    intermediates to reach an in-flight grandchild).
+
+    ``?cascade=false``: routes through the original
+    :func:`services.study_state.cancel_study` — single-study cancel,
+    preserves the existing 409 error contract on terminal parents
+    (AC-9 wire contract).
     """
     try:
-        row = await study_state.cancel_study(db, study_id)
+        if cascade:
+            row = await study_state.cancel_study_with_chain_cascade(db, study_id, cascade=True)
+        else:
+            row = await study_state.cancel_study(db, study_id)
         await db.commit()
     except study_state.StudyNotFound as exc:
         raise _err(404, "STUDY_NOT_FOUND", f"study {study_id} not found", False) from exc
@@ -480,6 +513,38 @@ async def cancel_study(
         await db.rollback()
         raise _err(409, "INVALID_STATE_TRANSITION", str(exc), False) from exc
     return await _detail(db, row)
+
+
+@router.get(
+    "/studies/{study_id}/children",
+    response_model=StudyListResponse,
+    tags=["studies"],
+)
+async def list_study_children(
+    study_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> StudyListResponse:
+    """List direct child studies of a parent (FR-10 + D-13).
+
+    Returns ``{"data": [], "next_cursor": null}`` for a study with no
+    children — empty data array, NOT 404. 404 only fires when the parent
+    study itself is missing.
+
+    Per D-13 (direct-children-only): does NOT return transitive
+    descendants. The chain panel renders parent ↑ + direct children ↓;
+    operators walk lineage one hop per page navigation.
+    """
+    parent = await repo.get_study(db, study_id)
+    if parent is None:
+        raise _err(404, "STUDY_NOT_FOUND", f"study {study_id} not found", False)
+    children = await repo.list_children_of_study(db, study_id)
+    # Direct children of any single parent are at most 1 (linear chains in v1),
+    # so we never paginate this endpoint. has_more is always False.
+    return StudyListResponse(
+        data=[_summary(c) for c in children],
+        next_cursor=None,
+        has_more=False,
+    )
 
 
 # ---------------------------------------------------------------------------

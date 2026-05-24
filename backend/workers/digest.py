@@ -867,6 +867,59 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     running_total_usd=new_total,
                     duration_ms=int((time.monotonic() - started_at) * 1000),
                 )
+
+                # feat_auto_followup_studies Story 2.2 — auto-chain trigger.
+                # Fires AFTER:
+                #   (a) pending-proposal commit (line 850 above),
+                #   (b) _safe_record_cost (line 853 above — parent's budget
+                #       delta is now visible to the followup worker's
+                #       budget peek), and
+                #   (c) the digest_complete success log.
+                #
+                # The followup worker re-peeks the budget (FR-6) — and we
+                # only fire here on the success path, so failure / short-
+                # circuit branches of generate_digest don't enqueue a child.
+                # Study.status == 'completed' is guaranteed by the gate at
+                # line 453 (early-return on anything else).
+                #
+                # Per FR-1 + D-12: trigger on `is not None` (NOT > 0) so
+                # the depth-0 worker-set terminal leaf emits its own
+                # auto_followup_depth_exhausted event.
+                #
+                # Per spec §9 layer-1 idempotency: deterministic _job_id
+                # makes Arq drop duplicate deliveries at the queue level.
+                # The worker has a layer-2 list_children_of_study backstop.
+                #
+                # Per cycle-1 finding C1-5: failure-warning events use
+                # `digest_followup_*` event_type prefixes (NOT `auto_followup_*`)
+                # so the FR-9 8-event catalog stays exact.
+                auto_depth = study.config.get("auto_followup_depth")
+                if auto_depth is not None:
+                    arq_pool = ctx.get("arq_pool")
+                    if arq_pool is None:
+                        logger.warning(
+                            "digest worker: arq_pool missing in ctx; cannot enqueue auto-followup",
+                            event_type="digest_followup_enqueue_pool_missing",
+                            study_id=study_id,
+                        )
+                    else:
+                        try:
+                            await arq_pool.enqueue_job(
+                                "enqueue_followup_study",
+                                study_id,
+                                _job_id=f"enqueue_followup_study:{study_id}",
+                            )
+                        except Exception as exc:  # noqa: BLE001 — best-effort
+                            # Mirrors orchestrator.py:452-460 digest_enqueue_failed
+                            # pattern. Chain ends here; the parent's proposal
+                            # is still created. Operator can re-trigger via
+                            # shell if needed.
+                            logger.warning(
+                                "digest worker: auto-followup enqueue failed; chain ends here",
+                                event_type="digest_followup_enqueue_failed",
+                                study_id=study_id,
+                                error=str(exc),
+                            )
     finally:
         if openai_client is not None:
             try:

@@ -77,6 +77,7 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("get", "/api/v1/studies", "200"),
     ("get", "/api/v1/studies/{study_id}", "200"),
     ("post", "/api/v1/studies/{study_id}/cancel", "200"),
+    ("get", "/api/v1/studies/{study_id}/children", "200"),
     ("get", "/api/v1/studies/{study_id}/trials", "200"),
     # ----- /api/v1/proposals (feat_digest_proposal + feat_github_pr_worker) -----
     ("get", "/api/v1/studies/{study_id}/digest", "200"),
