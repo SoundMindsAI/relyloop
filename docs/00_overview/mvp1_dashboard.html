@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Infra, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md">Agent Sibling Worktree Isolation</a></div>
+    <div class="one-liner">Add a tight &quot;Working in sibling worktrees&quot; section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and therefore leak to the main worktree when writ</div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -395,20 +395,20 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">78 / 78</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">78 / 79</div>
+      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">16</div>
+      <div class="value">18</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">7</div>
+      <div class="value">8</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">15</div>
+      <div class="value">17</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">14</div>
+      <div class="value">17</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      2 idea-only feat/infra folders (not yet scoped into MVP1)
+      1 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">16</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_agent_sibling_worktree_isolation">Agent Sibling Worktree Isolation</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Running an autonomous agent in a sibling git worktree while the operator&#x27;s main checkout has the Docker Compose stack up exposes two surfaces that aren&#x27;t designed for parallel work:</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">17</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_study_preflight_real_engine_integration">Study Preflight Real Engine Integration</a></div>
@@ -544,6 +531,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_state_md_size_compression">State Md Size Compression</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">`state.md` is structured around two concerns conflated into one file:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_studies_post_arq_spy_fixture">Studies Post Arq Spy Fixture</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -603,6 +603,19 @@ footer {
 
   </div>
   <div class="one-liner">[`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch">Dockerfile Venv Root Owned After User Switch</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">The `Dockerfile` has this ordering at the bottom of the `runtime` stage:</div>
 
 
 </div>
@@ -680,7 +693,19 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md">Agent Sibling Worktree Isolation</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/249">PR #249</a> <span>merged 2026-05-23</span>
+  </div>
+  <div class="one-liner">Add a tight &quot;Working in sibling worktrees&quot; section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there</div>
+  <div class="deferred">deferred: Phase 3</div>
+
+</div>
 
 </div>
 
@@ -1965,6 +1990,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
+  class infra_agent_sibling_worktree_isolation plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2174,6 +2201,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
+  class infra_agent_sibling_worktree_isolation plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]

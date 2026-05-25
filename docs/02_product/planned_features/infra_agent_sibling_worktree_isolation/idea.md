@@ -32,11 +32,13 @@ The alternative paths each have problems:
 
 A short block in `CLAUDE.md` (or in the briefing template the operator uses when launching autonomous agents) covering:
 
-- The bind-mount anchor pitfall: the shared Docker stack's bind mounts point to the operator's main worktree, not the sibling. **Do not use `docker cp` or `docker exec` + redirection to write files into bind-mounted paths.**
-- The recommended pattern for running migrations / tests against the sibling worktree (capability B below).
-- A note on which paths are safe to touch from a sibling worktree (`/private/tmp/<worktree>/**`) vs. which leak (`./migrations/`, `./samples/`, `./data/`, anything bound into a container).
+- The bind-mount anchor pitfall: the shared Docker stack's bind mounts all point to the operator's main worktree, NOT the sibling. Verified in [`docker-compose.yml`](../../../../docker-compose.yml): `migrate` mounts `./migrations:/app/migrations` (line 76) and `./alembic.ini:/app/alembic.ini:ro` (line 77); `api` mounts `./data/repo-clones:/var/lib/relyloop/repos` (line 112), `./migrations:/app/migrations` (line 119), `./alembic.ini:/app/alembic.ini:ro` (line 120), and `./samples:/app/samples:ro` (line 125); `worker` mounts only `./data/repo-clones:/var/lib/relyloop/repos` (line 167); `postgres` mounts `./data/postgres:/var/lib/postgresql/data` (line 28); `redis` mounts `./data/redis:/data` (line 40). **Do not use `docker cp` or `docker exec` + redirection to write files into bind-mounted paths.** (Service attribution corrected during /spec-gen 2026-05-25: the original idea-brief mis-attributed `./migrations`, `./alembic.ini`, and `./samples` to `worker`; the `worker` service only binds `./data/repo-clones`.)
+- The "safe paths" catalog — sibling-only host paths that never leak: `/private/tmp/<worktree>/backend/`, `/private/tmp/<worktree>/ui/`, `/private/tmp/<worktree>/docs/`. Leaky paths (the agent must NOT write here via `docker cp` / `docker exec` from a sibling): `./migrations/`, `./samples/`, `./data/postgres/`, `./data/redis/`, `./data/repo-clones/`, `./alembic.ini`.
+- A pointer to the recommended pattern for running migrations / tests against the sibling worktree (capability B below).
 
-Scope: ~30-50 lines added to `CLAUDE.md`. No code changes.
+**Coordination with shipped content** (added since this idea was written 2026-05-23): the existing [`impl-execute` skill](../../../../.claude/skills/impl-execute/SKILL.md) already covers worktree **lifecycle** at three points — Step 0a "Worktree pre-flight" (audit + recommend removals before a feature run), Step 6b "Parallel test agents" (`Agent({ isolation: "worktree" })` for layered test writing), Step 9.3 "Agent worktree sweep" (post-merge cleanup of `.claude/worktrees/agent-*`). Capability (A) is purely additive — it documents the **runtime data path** pitfall (bind-mount leak surface) that lifecycle audits don't catch. The two are complementary, not redundant.
+
+Scope: ~30–50 lines added to `CLAUDE.md` (likely under a new "Working in sibling worktrees" subsection or appended to "Common Pitfalls"). No code changes.
 
 ### B. `scripts/run-tests-in-worktree.sh` (or a `make test-worktree` target)
 
@@ -52,9 +54,11 @@ Scope: ~80-120 LOC shell script; one new `Makefile` target. No backend or fronte
 
 ### C. Optional: separate Alembic test database per worktree
 
-The deepest fix. The Alembic round-trip verification in the agent flow (`alembic upgrade head && alembic downgrade -1 && alembic upgrade head`) runs against the shared Postgres. If the main worktree's branch has a migration in flight and the sibling worktree also has one, the rev_id space could collide. Mitigation: a per-worktree `DATABASE_URL` env override that points at a worktree-scoped DB. Could be derived from the worktree path hash.
+The deepest fix. The Alembic round-trip verification in the agent flow (`alembic upgrade head && alembic downgrade -1 && alembic upgrade head`) runs against the shared Postgres. If the main worktree's branch has a migration in flight and the sibling worktree also has one, the rev_id space could collide. Mitigation: a per-worktree `DATABASE_URL` override that points at a worktree-scoped DB (derived from the worktree path hash).
 
-Scope: ~20 LOC in the test-bootstrap path; needs design review with the Alembic conventions in `CLAUDE.md` Rule #5.
+**Constraint (locked at spec time):** CLAUDE.md Rule #2 forbids bare `DATABASE_URL` env vars — the current production / dev path is `DATABASE_URL_FILE` (mounted secret at `./secrets/database_url`, verified at [`docker-compose.yml:68,95,153`](../../../../docker-compose.yml#L68)). Any per-worktree override MUST follow the same `*_FILE`-mounted-secret pattern (e.g., a `./secrets/database_url.worktree-<hash>` file per worktree, OR a flag on the script-B entrypoint that writes a temporary `*_FILE` mount on the fly). See D-2 below.
+
+Scope: ~20 LOC in the test-bootstrap path; needs design review with the Alembic conventions in `CLAUDE.md` Rule #5 AND the secrets convention in Rule #2.
 
 ## Scope signals
 
@@ -69,8 +73,21 @@ Scope: ~20 LOC in the test-bootstrap path; needs design review with the Alembic 
 
 We've successfully shipped exactly one feature this way (the reconciler agent run). The friction is real but bounded; the workaround the agent landed on worked reliably. If we plan to do more parallel-feature shipping with autonomous agents, capability (A) is cheap (~30 min) and worth doing proactively. Capability (B) waits for a second parallel-agent run that hits the same friction. Capability (C) waits for a migration-collision incident.
 
+**Status as of 2026-05-25:** between this idea's date (2026-05-23) and now, the [`impl-execute`](../../../../.claude/skills/impl-execute/SKILL.md) skill picked up worktree-lifecycle coverage (Step 0a + 6b + 9.3 — see "Coordination" note in capability A above). Those don't replace this idea — they cover when worktrees are listed/cleaned, not what's safe to write to from inside them — but they reduce capability (A)'s scope to the bind-mount + safe-paths bullet specifically.
+
+## Decisions to lock at spec time
+
+- **D-1 (phase split):** Phase 1 ships **capability (A) only** — a `CLAUDE.md` "Working in sibling worktrees" subsection covering the bind-mount pitfall + safe-paths catalog. Capabilities (B) and (C) are deferred to separate `chore_` ideas that get captured if-and-when the friction recurs. Rationale: (A) is ~30 min of work, immediately useful, and the missing piece relative to the worktree lifecycle coverage already shipped in [`impl-execute`'s Step 0a / 6b / 9.3](../../../../.claude/skills/impl-execute/SKILL.md). (B) waits for a second parallel-agent test-execution event; (C) waits for a migration-collision incident. Matches the rationale in "Why deferred" above.
+- **D-2 (secrets convention for capability C, if it ever ships):** Any per-worktree `DATABASE_URL` override MUST use the `*_FILE`-mounted-secret pattern (CLAUDE.md Rule #2). No bare env vars. The most likely concrete shape: a `./secrets/database_url.worktree-<hash>` file generated on the fly by the script-B entrypoint, mounted into the one-shot container via Docker's secrets primitive or a temp bind mount.
+
+## Open questions for /spec-gen
+
+- **OQ-1:** Where in `CLAUDE.md` should the new content live? **Recommended default:** a new top-level "Working in sibling worktrees" section between "Common Pitfalls" and "Bug Fix Protocol", because the content is more than a pitfall (it's a small operational pattern) but doesn't need its own architecture-doc page.
+- **OQ-2:** Should the safe/leaky path catalog be a static prose list, OR a generated table from `docker-compose.yml` (e.g., a `make doctor-worktree` target that diffs bind-mount sources against the current `pwd`)? **Recommended default:** static prose list in v1; tooling waits until the second parallel-agent event.
+- **OQ-3:** Does capability (A) need an inline "what to do instead" recipe for the agent — i.e., the verbose 8+ `-v` flag pattern the reconciler agent landed on? **Recommended default:** yes — include a fenced shell example so future agents don't re-derive it.
+
 ## Relationship to other work
 
-- **Predicated on** the worktree-based autonomous agent flow (no formal predecessor; established ad-hoc by the `chore_reconciler_terminal_closed_no_poll` run).
-- **Coordinates with** `bug_smoke_create_study_modal_e2e_max_trials_fill` only in that both are CI/test-infra concerns surfaced 2026-05-23; otherwise independent.
+- **Predicated on** the worktree-based autonomous agent flow (no formal predecessor; established ad-hoc by the `chore_reconciler_terminal_closed_no_poll` run, PR #216 merged 2026-05-23).
+- **Complements shipped impl-execute coverage** (added since this idea was written): Step 0a worktree pre-flight + Step 6b parallel-test-agent worktrees + Step 9.3 post-merge worktree sweep cover *lifecycle*. Capability (A) adds *runtime data path* guidance not covered by those steps.
 - **Possible future coordination:** if we ever build a "managed agents in the cloud" path (per the conversation that surfaced these observations), capabilities (B) and (C) become moot for cloud-hosted runs but still useful for local parallel work.
