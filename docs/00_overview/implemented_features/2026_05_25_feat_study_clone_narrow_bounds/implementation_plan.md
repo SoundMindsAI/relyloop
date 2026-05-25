@@ -1,7 +1,7 @@
 # Implementation Plan — feat_study_clone_narrow_bounds
 
 **Date:** 2026-05-25
-**Status:** Draft (pending GPT-5.5 cycle 1)
+**Status:** Complete (PR #247, squash-merged 2026-05-25 as `8b58d3d9`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md), [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md)
 
