@@ -369,7 +369,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP1 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-05-24 (latest mtime of any
+    Reflects feature-folder state as of 2026-05-25 (latest mtime of any
     <code>docs/02_product/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -403,12 +403,12 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">15</div>
+      <div class="value">16</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">4</div>
+      <div class="value">5</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">14</div>
+      <div class="value">15</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">11</div>
+      <div class="value">12</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -596,19 +596,6 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_demo_clusters_unreachable_in_healthz">Demo Clusters Unreachable In Healthz</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Idea — surfaced during PR #232 smoke-cascade unblock on 2026-05-24.</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_dockerfile_missing_scripts_dir">Dockerfile Missing Scripts Dir</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -647,6 +634,19 @@ footer {
 </div>
 
 
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive">Webhook Concurrent Merge Race Timing Sensitive</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI.</div>
+
+
+</div>
+
+
 <div class="card chore" data-prefix="chore" data-priority="Backlog">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead">E2E Seed Acme Helper Dead</a></div>
   <div class="meta">
@@ -667,7 +667,19 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_demo_clusters_unreachable_in_healthz/feature_spec.md">Demo Clusters Unreachable In Healthz</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/232">PR #232</a>
+  </div>
+  <div class="one-liner">**After** the warmup task completes (typically within ~5 seconds of API startup, bounded by per-cluster `httpx` probe latency), `/healthz` reports the accurate `healthy` / `unreachable` aggregate for </div>
+
+
+</div>
 
 </div>
 
