@@ -48,6 +48,13 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
     if winner is None:
         return None
 
+    # Q1a: baseline trial (feat_study_baseline_trial FR-4). Only fetched
+    # when the study has baseline_trial_id stamped — i.e., the baseline
+    # phase ran AND succeeded AND was stamped via FR-12.
+    baseline_trial: Trial | None = None
+    if study.baseline_trial_id is not None:
+        baseline_trial = await repo.get_trial(db, study.baseline_trial_id)
+
     # Q2: runner-up trial — 2nd-best complete trial by primary_metric.
     # FR-11: exclude baseline rows so the runner-up classification compares
     # ONLY against Optuna trials (the baseline lives under its own surface).
@@ -110,6 +117,7 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
         study_best_metric=study.best_metric,
         winner_trial=winner,
         runner_up_trial=runner_up,
+        baseline_trial=baseline_trial,
         complete_trials_summary=complete_trials_summary,
         query_text_by_id=query_text_by_id,
     )

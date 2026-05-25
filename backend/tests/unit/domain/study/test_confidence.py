@@ -461,6 +461,120 @@ class TestComputeStudyConfidence:
         assert result.convergence is None  # only 1 trial < CONVERGENCE_MIN_COMPLETE
 
 
+class TestBaselineBranch:
+    """FR-4 baseline-branch coverage for compute_study_confidence.
+
+    When study.baseline_trial_id is stamped AND the baseline trial has
+    per_query_metrics, the comparison source flips from runner-up to
+    baseline (AC-4). Otherwise falls back to runner-up (AC-5 / AC-6).
+    """
+
+    def test_baseline_branch_when_baseline_has_per_query(self) -> None:
+        """AC-4: baseline + winner both have per_query → comparison_against = baseline."""
+        winner = _trial(
+            optuna_trial_number=5,
+            primary_metric=0.7,
+            per_query_metrics={
+                "q1": {"ndcg@10": 0.7},
+                "q2": {"ndcg@10": 0.5},
+            },
+        )
+        baseline = _trial(
+            optuna_trial_number=-1,  # baseline sentinel
+            primary_metric=0.5,
+            per_query_metrics={
+                "q1": {"ndcg@10": 0.4},
+                "q2": {"ndcg@10": 0.6},
+            },
+        )
+        runner_up = _trial(
+            optuna_trial_number=2,
+            primary_metric=0.65,
+            per_query_metrics={
+                "q1": {"ndcg@10": 0.66},
+                "q2": {"ndcg@10": 0.51},
+            },
+        )
+
+        result = compute_study_confidence(
+            study_objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            study_best_metric=0.7,
+            winner_trial=winner,
+            runner_up_trial=runner_up,
+            baseline_trial=baseline,
+            complete_trials_summary=[(0.7, 5), (0.65, 2)],
+            query_text_by_id={"q1": "q1 text", "q2": "q2 text"},
+        )
+        assert result is not None
+        assert result.per_query_outcomes is not None
+        # Comparison is against baseline now, NOT runner_up.
+        assert result.per_query_outcomes.comparison_against == "baseline"
+        # q1: winner 0.7 - baseline 0.4 = +0.3 > 0.01 → improved
+        # q2: winner 0.5 - baseline 0.6 = -0.1 < -0.01 → regressed
+        assert result.per_query_outcomes.improved == 1
+        assert result.per_query_outcomes.regressed == 1
+
+    def test_falls_back_to_runner_up_when_baseline_is_none(self) -> None:
+        """AC-5: baseline_trial=None falls back to runner-up comparison."""
+        winner = _trial(
+            optuna_trial_number=5,
+            primary_metric=0.7,
+            per_query_metrics={"q1": {"ndcg@10": 0.7}},
+        )
+        runner_up = _trial(
+            optuna_trial_number=2,
+            primary_metric=0.65,
+            per_query_metrics={"q1": {"ndcg@10": 0.66}},
+        )
+        result = compute_study_confidence(
+            study_objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            study_best_metric=0.7,
+            winner_trial=winner,
+            runner_up_trial=runner_up,
+            baseline_trial=None,
+            complete_trials_summary=[(0.7, 5), (0.65, 2)],
+            query_text_by_id={},
+        )
+        assert result is not None
+        assert result.per_query_outcomes is not None
+        assert result.per_query_outcomes.comparison_against == "runner_up"
+
+    def test_falls_back_to_runner_up_when_baseline_has_no_per_query(self) -> None:
+        """AC-6: baseline_trial has per_query_metrics=None → fall back to runner-up.
+
+        This is the "baseline failed mid-score" edge case where the
+        baseline row exists but never got per-query data populated.
+        """
+        winner = _trial(
+            optuna_trial_number=5,
+            primary_metric=0.7,
+            per_query_metrics={"q1": {"ndcg@10": 0.7}},
+        )
+        baseline = _trial(
+            optuna_trial_number=-1,
+            primary_metric=0.5,
+            per_query_metrics=None,  # the AC-6 edge
+        )
+        runner_up = _trial(
+            optuna_trial_number=2,
+            primary_metric=0.65,
+            per_query_metrics={"q1": {"ndcg@10": 0.66}},
+        )
+        result = compute_study_confidence(
+            study_objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            study_best_metric=0.7,
+            winner_trial=winner,
+            runner_up_trial=runner_up,
+            baseline_trial=baseline,
+            complete_trials_summary=[(0.7, 5), (0.65, 2)],
+            query_text_by_id={},
+        )
+        assert result is not None
+        assert result.per_query_outcomes is not None
+        # Falls back to runner-up.
+        assert result.per_query_outcomes.comparison_against == "runner_up"
+
+
 # Sanity check that all constants are defined and referenced (drift guard).
 def test_constants_exported() -> None:
     assert BOOTSTRAP_MIN_N_QUERIES == 5

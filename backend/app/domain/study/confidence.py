@@ -501,6 +501,7 @@ def compute_study_confidence(
     runner_up_trial: Any | None,
     complete_trials_summary: list[tuple[float, int]],
     query_text_by_id: dict[str, str] | None = None,
+    baseline_trial: Any | None = None,
 ) -> ConfidenceShape | None:
     """Assemble the ``ConfidenceShape`` from pre-fetched DB data.
 
@@ -602,14 +603,27 @@ def compute_study_confidence(
     # (cycle-2 GPT-5.5 F2 fix; AC-16 1-complete-trial case).
     ci_95 = bootstrap_ci_95(winner_values_for_metric)
 
-    # Comparison-based per-query signal — requires BOTH winner + runner-up
-    # to have per_query_metrics (the runner-up's primary_metric alone is
-    # not enough to compute deltas).
+    # Comparison-based per-query signal — requires winner + a comparison
+    # trial (baseline OR runner-up) to have per_query_metrics.
+    #
+    # feat_study_baseline_trial FR-4: prefer the baseline trial when set
+    # AND it has per_query_metrics. Otherwise fall back to runner-up #2.
+    # The 5 existing tests asserting `comparison_against == "runner_up"`
+    # stay green because their fixtures don't set baseline_trial.
     per_query_outcomes: PerQueryOutcomesShape | None = None
-    if runner_up_trial is not None and winner_per_query and runner_up_trial.per_query_metrics:
+    comparison_trial: Any | None = None
+    comparison_against_value: str = "runner_up"
+    if baseline_trial is not None and baseline_trial.per_query_metrics:
+        comparison_trial = baseline_trial
+        comparison_against_value = "baseline"
+    elif runner_up_trial is not None and runner_up_trial.per_query_metrics:
+        comparison_trial = runner_up_trial
+        comparison_against_value = "runner_up"
+
+    if comparison_trial is not None and winner_per_query:
         outcome = compute_outcome_summary(
             winner_per_query=winner_per_query,
-            comparison_per_query=runner_up_trial.per_query_metrics,
+            comparison_per_query=comparison_trial.per_query_metrics,
             metric=per_query_key,
         )
         if outcome is not None:
@@ -621,7 +635,7 @@ def compute_study_confidence(
                 improved=outcome.improved,
                 unchanged=outcome.unchanged,
                 regressed=outcome.regressed,
-                comparison_against="runner_up",  # FR-3 locked for Phase 1
+                comparison_against=comparison_against_value,
                 top_regressors=regressor_rows,
             )
 

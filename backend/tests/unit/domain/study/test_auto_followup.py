@@ -31,12 +31,15 @@ def _study(
     status: str = "completed",
     best_metric: float | None = 0.5,
     auto_followup_depth: int | None = 3,
+    baseline_metric: float | None = None,
 ) -> SimpleNamespace:
     """Build a Study stand-in. The domain function reads ``status``,
-    ``best_metric``, and ``config[auto_followup_depth]`` only."""
+    ``best_metric``, ``config[auto_followup_depth]``, and (post-
+    feat_study_baseline_trial) ``baseline_metric``."""
     return SimpleNamespace(
         status=status,
         best_metric=best_metric,
+        baseline_metric=baseline_metric,
         config={"auto_followup_depth": auto_followup_depth},
     )
 
@@ -104,10 +107,83 @@ class TestComputeFirstDecileMax:
         trials += [_trial(num=i, metric=0.9) for i in range(2, 20)]
         assert compute_first_decile_max(trials) == 0.5
 
+    def test_minimize_returns_min_not_max(self) -> None:
+        """feat_study_baseline_trial FR-5: direction-aware extremum."""
+        trials = [_trial(num=0, metric=0.5), _trial(num=1, metric=0.2)]
+        trials += [_trial(num=i, metric=0.9) for i in range(2, 20)]
+        # len=20 → first 2 trials. Maximize: max(0.5, 0.2) = 0.5.
+        assert compute_first_decile_max(trials, "maximize") == 0.5
+        # Minimize: min(0.5, 0.2) = 0.2.
+        assert compute_first_decile_max(trials, "minimize") == 0.2
+
 
 # ---------------------------------------------------------------------------
 # evaluate_chain_gate
 # ---------------------------------------------------------------------------
+
+
+class TestEvaluateChainGateBaselineBranch:
+    """feat_study_baseline_trial FR-5: explicit-baseline branch."""
+
+    def test_baseline_branch_enqueues_when_lift_exceeds_epsilon(self) -> None:
+        """AC-7: parent.baseline_metric set → lift = best - baseline."""
+        parent = _study(best_metric=0.65, baseline_metric=0.55, auto_followup_depth=3)
+        # complete_trials is irrelevant when baseline_metric is set.
+        outcome = evaluate_chain_gate(parent, [], direction="maximize")
+        assert outcome.decision is ChainGateDecision.ENQUEUE
+        assert outcome.lift == pytest.approx(0.10)
+        # first_decile_max is None when the explicit-baseline branch fires.
+        assert outcome.first_decile_max is None
+
+    def test_baseline_branch_skips_when_lift_within_epsilon(self) -> None:
+        parent = _study(best_metric=0.553, baseline_metric=0.55, auto_followup_depth=3)
+        outcome = evaluate_chain_gate(parent, [], direction="maximize")
+        assert outcome.decision is ChainGateDecision.SKIP_NO_LIFT
+        assert outcome.lift == pytest.approx(0.003)
+        assert outcome.first_decile_max is None
+
+    def test_fallback_to_first_decile_when_baseline_metric_is_none(self) -> None:
+        """AC-8: baseline_metric=None → falls back to first-decile."""
+        trials = [_trial(num=i, metric=0.30) for i in range(20)]
+        parent = _study(best_metric=0.65, baseline_metric=None, auto_followup_depth=3)
+        outcome = evaluate_chain_gate(parent, trials, direction="maximize")
+        assert outcome.decision is ChainGateDecision.ENQUEUE
+        assert outcome.lift == pytest.approx(0.35)
+        assert outcome.first_decile_max == 0.30
+
+
+class TestEvaluateChainGateDirectionAware:
+    """feat_study_baseline_trial FR-5 / AC-18."""
+
+    def test_minimize_direction_with_baseline(self) -> None:
+        """AC-18: minimize objective inverts lift sign so 'better than
+        baseline' is always positive."""
+        # Lower is better. winner 0.30 beats baseline 0.50 by 0.20.
+        parent = _study(best_metric=0.30, baseline_metric=0.50, auto_followup_depth=3)
+        outcome = evaluate_chain_gate(parent, [], direction="minimize")
+        assert outcome.decision is ChainGateDecision.ENQUEUE
+        assert outcome.lift == pytest.approx(0.20)
+
+    def test_minimize_direction_with_first_decile_fallback(self) -> None:
+        """Minimize + first-decile fallback: extremum is min, lift is
+        first_decile_min - best."""
+        # First decile of 20 trials → first 2 trials.
+        trials = [_trial(num=0, metric=0.5), _trial(num=1, metric=0.4)]
+        trials += [_trial(num=i, metric=0.1) for i in range(2, 20)]
+        # Minimize: first_decile_min = 0.4. winner = 0.10 beats by 0.30.
+        parent = _study(best_metric=0.10, baseline_metric=None, auto_followup_depth=3)
+        outcome = evaluate_chain_gate(parent, trials, direction="minimize")
+        assert outcome.decision is ChainGateDecision.ENQUEUE
+        assert outcome.lift == pytest.approx(0.30)
+        assert outcome.first_decile_max == 0.4  # the min in minimize mode
+
+    def test_maximize_default_preserves_backward_compat(self) -> None:
+        """No direction kwarg → defaults to maximize (existing behavior)."""
+        trials = [_trial(num=i, metric=0.30) for i in range(20)]
+        parent = _study(best_metric=0.42, auto_followup_depth=3)
+        outcome = evaluate_chain_gate(parent, trials)
+        assert outcome.decision is ChainGateDecision.ENQUEUE
+        assert outcome.lift == pytest.approx(0.12)
 
 
 class TestEvaluateChainGate:
