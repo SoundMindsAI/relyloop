@@ -78,6 +78,17 @@ function seedListEndpoint() {
 
 function seedValidSource() {
   server.use(
+    // feat_study_clone_narrow_bounds Story 1.3 — the modal now calls
+    // useStudyDigest unconditionally when cloneSource is set. These v1
+    // page.clone tests verify the banner, not Step-4 narrow-bounds —
+    // a 404 DIGEST_NOT_READY keeps the FR-1 narrow-bounds gate closed
+    // and the surface invisible.
+    http.get(`${API_BASE}/api/v1/studies/${VALID_SOURCE_ID}/digest`, () =>
+      HttpResponse.json(
+        { detail: { error_code: 'DIGEST_NOT_READY', message: 'no digest', retryable: true } },
+        { status: 404 },
+      ),
+    ),
     http.get(`${API_BASE}/api/v1/studies/${VALID_SOURCE_ID}`, () =>
       HttpResponse.json({
         id: VALID_SOURCE_ID,
