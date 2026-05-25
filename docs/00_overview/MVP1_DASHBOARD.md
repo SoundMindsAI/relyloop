@@ -142,15 +142,15 @@ Implementation in progress — resume to finish
 |---|---|---|---|---|---|---|
 | 1 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [chore_dashboard_regen_quoted_pr_false_positive](../02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/feature_spec.md) | Chore | Priority-3 fuzzy match no longer matches PR-merge phrases that live inside backtick-fenced segments. | — | [PR #99](https://github.com/SoundMindsAI/relyloop/pull/99) merged 2026-05-15 |
+| 1 | P2 | [chore_dashboard_regen_quoted_pr_false_positive](../02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/feature_spec.md) | Chore | Priority-3 fuzzy match no longer matches PR-merge phrases that live inside backtick-fenced segments. | — | [PR #1](https://github.com/SoundMindsAI/relyloop/pull/1) merged 2026-05-15 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (15)
 
@@ -184,7 +184,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   chore_dashboard_regen_quoted_pr_false_positive["dashboard regen quoted pr false positive"]
-  class chore_dashboard_regen_quoted_pr_false_positive spec;
+  class chore_dashboard_regen_quoted_pr_false_positive plan;
   infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
   class infra_agent_sibling_worktree_isolation implement;
   infra_foundation["foundation"]
