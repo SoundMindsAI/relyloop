@@ -145,9 +145,11 @@ Implementation in progress — resume to finish
 
 _None._
 
-### Spec (0)
+### Spec (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [chore_e2e_seed_acme_idea_obsolete](../02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/feature_spec.md) | Chore | Both stale artifacts updated to reflect reality. | — | [PR #247](https://github.com/SoundMindsAI/relyloop/pull/247) |
 
 ### Idea (17)
 
