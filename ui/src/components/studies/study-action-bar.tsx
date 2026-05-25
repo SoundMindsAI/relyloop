@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 import {
@@ -13,6 +14,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Label } from '@/components/ui/label';
 import { useCancelStudy, type StudyDetail, type StudySummary } from '@/lib/api/studies';
 
@@ -31,11 +33,28 @@ export interface StudyActionBarProps {
 }
 
 export function StudyActionBar({ study, chainChildren = [] }: StudyActionBarProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   // Per spec D-6: default the cascade radio to "true" when shown.
   const [cascade, setCascade] = useState(true);
+  // feat_study_clone_from_previous FR-11: when cloning a `running` source,
+  // surface an AlertDialog asking the operator to confirm. Terminal-state
+  // sources (completed/failed/cancelled/queued) navigate directly without
+  // the dialog.
+  const [cloneConfirmOpen, setCloneConfirmOpen] = useState(false);
   const cancel = useCancelStudy(study.id);
   const canCancel = study.status === 'running' || study.status === 'queued';
+
+  const navigateToClone = () => {
+    router.push(`/studies?clone_from=${study.id}`);
+  };
+  const handleClone = () => {
+    if (study.status === 'running') {
+      setCloneConfirmOpen(true);
+    } else {
+      navigateToClone();
+    }
+  };
 
   // Per FR-8 + cycle-1 C1-8 + cycle-2 C2-4: show the cascade radio when
   // EITHER (a) the parent has an in-flight direct child, OR (b) the
@@ -52,6 +71,10 @@ export function StudyActionBar({ study, chainChildren = [] }: StudyActionBarProp
 
   return (
     <div className="flex items-center gap-3">
+      <Button variant="outline" onClick={handleClone} data-testid="clone-study">
+        Clone study
+      </Button>
+      <InfoTooltip glossaryKey="study.clone_button" />
       <Button
         variant="destructive"
         disabled={!canCancel || cancel.isPending}
@@ -124,6 +147,29 @@ export function StudyActionBar({ study, chainChildren = [] }: StudyActionBarProp
               }}
             >
               Cancel study
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={cloneConfirmOpen} onOpenChange={setCloneConfirmOpen}>
+        <AlertDialogContent data-testid="clone-running-confirm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clone an in-progress study?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &ldquo;{study.name}&rdquo; is still running. The clone will use the current
+              configuration but its trials are still being tuned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="clone-confirm-proceed"
+              onClick={() => {
+                setCloneConfirmOpen(false);
+                navigateToClone();
+              }}
+            >
+              Clone anyway
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
