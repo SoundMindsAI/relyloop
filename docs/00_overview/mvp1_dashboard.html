@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
-    <div class="title"><a href="../../docs/02_product/planned_features/feat_study_baseline_trial/feature_spec.md">Study Baseline Trial</a></div>
-    <div class="one-liner">The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence analytics + auto-followup gate + digest nar</div>
-    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
-    <code class="cmd">/impl-execute docs/02_product/planned_features/feat_study_baseline_trial/implementation_plan.md --all</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">76 / 77</div>
-      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:99%"></span></div>
+      <div class="value">77 / 77</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">17</div>
+      <div class="value">16</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">16</div>
+      <div class="value">15</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">14</div>
+      <div class="value">13</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -680,19 +680,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_baseline_trial/feature_spec.md">Study Baseline Trial</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/180">PR #180</a> <span>merged 2026-05-21</span>
-  </div>
-  <div class="one-liner">The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence ana</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -702,7 +690,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">95</span></h3>
+  <h3>Done <span class="count">96</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1000,6 +988,19 @@ footer {
   <div class="one-liner">A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §&quot;Routes (MVP1)&quot;](../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgment re</div>
 
   <div class="deps">depends on: <span class="dep-chip">infra_foundation</span><span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_digest_proposal</span><span class="dep-chip">feat_llm_judgments</span><span class="dep-chip">infra_adapter_elastic</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_25_feat_study_baseline_trial/feature_spec.md">Study Baseline Trial</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/180">PR #180</a> <span>merged 2026-05-21</span>
+  </div>
+  <div class="one-liner">The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence ana</div>
+
+
 </div>
 
 
@@ -1951,8 +1952,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_study_baseline_trial[&quot;study baseline trial&quot;]
-  class feat_study_baseline_trial plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2103,6 +2102,8 @@ footer {
   class feat_digest_executable_followups_swap_template done;
   feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
   class feat_home_demo_reseed_endpoint done;
+  feat_study_baseline_trial[&quot;study baseline trial&quot;]
+  class feat_study_baseline_trial done;
   feat_study_clone_from_previous[&quot;study clone from previous&quot;]
   class feat_study_clone_from_previous done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -2158,8 +2159,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_study_baseline_trial[&quot;study baseline trial&quot;]
-  class feat_study_baseline_trial plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2310,6 +2309,8 @@ footer {
   class feat_digest_executable_followups_swap_template done;
   feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
   class feat_home_demo_reseed_endpoint done;
+  feat_study_baseline_trial[&quot;study baseline trial&quot;]
+  class feat_study_baseline_trial done;
   feat_study_clone_from_previous[&quot;study clone from previous&quot;]
   class feat_study_clone_from_previous done;
   feat_study_lifecycle --&gt; feat_digest_proposal
