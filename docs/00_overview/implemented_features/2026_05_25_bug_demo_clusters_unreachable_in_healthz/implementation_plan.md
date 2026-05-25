@@ -1,7 +1,7 @@
 # Implementation Plan — Cluster health warmup at API startup
 
 **Date:** 2026-05-24
-**Status:** Draft
+**Status:** Complete (PR #236, merged 2026-05-25 as squash commit `70b2ae46`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../CLAUDE.md) Absolute Rules #6 (`/healthz` unauthenticated), #10 (never log/expose secrets), #11 (`/healthz` per-probe 200ms budget); [llm-orchestration.md §"Capability check at startup"](../../../01_architecture/llm-orchestration.md) (the canonical fire-and-forget startup-task pattern this plan mirrors).
 
