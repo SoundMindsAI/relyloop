@@ -17,7 +17,12 @@
 - FRs: 5 (FR-1 through FR-4 ship in PR A; FR-5 ships in PR B)
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-25
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 cycle 1 produced 5 findings (2 High, 3 Low); all 5 accepted and patched. Cycle 2 produced 3 Low-severity findings, all accepted and patched (no High after patch → stop rule satisfied without cycle 3).
+- Stories: 5 total across 2 epics (Epic 1 = Stories 1.1–1.4 in PR A; Epic 2 = Story 2.1 in PR B)
+- Phases covered: single phase (two-PR rollout per spec §3)
 
 ## Implementation
 - Status: Not started
