@@ -15,25 +15,16 @@ grepping `ui/tests/e2e/*.spec.ts` for each helper.
 | `seedJudgmentList` | `judgments-data-table.spec.ts`, `judgments.spec.ts` | `judgment_list` |
 | `seedFullChain` | `judgments-data-table.spec.ts`, `studies-create-target-dropdown.spec.ts`, `studies-create-validation.spec.ts`, `studies-by-cluster-data-table.spec.ts`, `studies-create-builder.spec.ts`, `studies-data-table.spec.ts`, `studies.spec.ts`, `trials-data-table.spec.ts` | delegated (sub-helpers register) |
 | `seedStudy` | `studies-by-cluster-data-table.spec.ts`, `studies-data-table.spec.ts`, `trials-data-table.spec.ts`, `studies.spec.ts` | `study` |
-| `seedAcmeProductsChain` | **0 specs** — currently uncalled (see "Gaps" below) | `cluster`, `query_set`, `query_template`, `judgment_list`, `study` |
+| `seedAcmeProductsChain` | `guides/06_create_and_monitor_study.spec.ts` | `cluster`, `query_set`, `query_template`, `judgment_list`, `study` |
 | `seedStudyCompletedWithDigest` | `studies.spec.ts` | `study`, `digest`, optional `proposal` |
 | `seedStudyCompletedWithPerQueryMetrics` | `studies.spec.ts` | same |
 
 ## Gaps
 
-`seedAcmeProductsChain` has no spec caller. The helper itself is correctly
-instrumented — every resource it creates is appended to the cleanup
-registry — so the cleanup pipeline is not at risk. But the helper currently
-contributes nothing to the test surface, which is a tangential dead-code
-observation, not a Story 1.2 gap.
-
-Captured as a tangential idea file:
-[`docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../../../../docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md).
-The follow-up will either delete the helper or wire a spec that uses it.
+None as of 2026-05-25 — see commit `2cbcb93b` for the helper's first real caller wiring. The cleanup-registry pipeline remains correctly instrumented for every helper in the §2 inventory.
 
 ## Verdict
 
-8 of 9 helpers in the spec §2 inventory are covered by at least one
-existing Playwright spec; the 9th (`seedAcmeProductsChain`) is dead code,
-captured as a separate idea file. The cleanup registry will be exercised
+9 of 9 helpers in the spec §2 inventory are covered by at least one
+existing Playwright spec. The cleanup registry will be exercised
 on every run by ≥1 caller for every code path the system needs to drain.
