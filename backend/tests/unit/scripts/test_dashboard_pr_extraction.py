@@ -31,6 +31,7 @@ from scripts.build_mvp1_dashboard import (
     _extract_metadata_block,
     _extract_pr_number,
     _load_implemented,
+    _strip_backtick_quoted_segments,
 )
 
 # Canonical precedent idea bodies — derived from real legacy idea.md files
@@ -359,3 +360,63 @@ class TestRegexConstants:
         # `\b` boundary must reject `**PR:** #99abc`.
         assert _IDEA_PR_FRONTMATTER_RE.search("**PR:** #99abc") is None
         assert _IDEA_PR_FRONTMATTER_RE.search("**PR:** #99") is not None
+
+
+class TestBacktickStripPriority3:
+    """Locks the false-positive rejection added by chore_dashboard_regen_quoted_pr_false_positive.
+
+    Spec FR-3 / ACs 6-12. The priority-3 fuzzy regexes at
+    scripts/build_mvp1_dashboard.py:629 and :632 must not match
+    backtick-quoted PR-merge phrases, while still matching legitimate
+    un-backticked own-PR prose (regression guard via AC-9).
+    """
+
+    def test_ac6_inline_backtick_quoted_merged_pr_returns_none(self) -> None:
+        # Inline-backtick `merged ... PR #N` (second-regex order).
+        spec = (
+            "Some prose.\n\n"
+            "Example: `**Depends on:** [infra_foundation] -- merged via PR #4 (2026-05-09)`\n\n"
+            "More prose."
+        )
+        assert _extract_pr_number("", "", spec, "") is None
+
+    def test_ac7_multiline_triple_backtick_block_with_merged_pr_returns_none(self) -> None:
+        # Multi-line triple-backtick block whose body contains a merged-PR phrase.
+        spec = "Header.\n\n```python\n# Example: see PR #99 (merged 2026-05-15)\n```\n\nFooter."
+        assert _extract_pr_number("", "", spec, "") is None
+
+    def test_ac8_inline_backtick_with_pr_first_then_merged_returns_none(self) -> None:
+        # First-regex ordering: PR #N ... merged (complement of AC-6).
+        spec = "Note: `PR #42 was merged on 2026-05-01` for context."
+        assert _extract_pr_number("", "", spec, "") is None
+
+    def test_ac9_unbacktickend_prose_own_pr_still_matches(self) -> None:
+        # Regression guard: un-backticked own-PR prose still matches priority-3.
+        spec = "## Status\n\nThis feature merged 2026-05-15 as PR #200 (squash)."
+        assert _extract_pr_number("", "", spec, "") == 200
+
+    def test_ac10_backtick_strip_runs_before_dependency_table_strip(self) -> None:
+        # Verify the helpers compose correctly: backtick strip removes its
+        # scope without touching dependency-table-row content (which the
+        # sibling helper handles).
+        text = "| foo | Implemented (PR #1) |\n\n`Example: merged via PR #99`\n\nMore."
+        result = _strip_backtick_quoted_segments(text)
+        assert "PR #99" not in result
+        assert "| foo | Implemented (PR #1) |" in result
+
+    def test_ac11_empty_backtick_segment_does_not_crash(self) -> None:
+        # Empty inline `` and empty triple-backtick ```\n``` must be removed
+        # without raising IndexError/TypeError/regex error.
+        text = "before `` after\n```\n```\nfinal"
+        result = _strip_backtick_quoted_segments(text)
+        assert isinstance(result, str)
+        # Empty inline span is removed.
+        assert "``" not in result
+        # Triple-backtick fence is removed.
+        assert "```" not in result
+
+    def test_ac12_single_line_triple_backtick_fence_returns_none(self) -> None:
+        # Single-line ```...``` (no embedded newline). A regex matching only
+        # ```\n...\n``` would miss this and produce a false positive.
+        spec = "Inline example: ```PR #77 merged 2026-05-03``` for context."
+        assert _extract_pr_number("", "", spec, "") is None
