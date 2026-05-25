@@ -1,9 +1,9 @@
 # Implementation Plan — feat_study_clone_from_previous
 
 **Date:** 2026-05-24
-**Status:** Draft (pending GPT-5.5 cycle 1)
+**Status:** Complete (PR #243, merged 2026-05-25 via admin squash, commit `34118ade`)
 **Primary spec:** [feature_spec.md](feature_spec.md) (15 FRs, 17 ACs, 12 locked decisions)
-**Target branch:** `feature/study-clone-from-previous` (already created off `origin/main` be98b9b1 in the active worktree)
+**Target branch:** `feature/study-clone-from-previous` (deleted post-merge)
 
 ## 0) Planning principles
 
