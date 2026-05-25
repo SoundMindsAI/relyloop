@@ -60,6 +60,7 @@ from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
 from backend.workers.auto_followup import enqueue_followup_study
+from backend.workers.baseline import run_baseline_trial
 from backend.workers.digest import generate_digest
 from backend.workers.git_pr import open_pr
 from backend.workers.judgments import generate_judgments_llm
@@ -209,6 +210,7 @@ class WorkerSettings:
 
     functions: list[Any] = [
         run_trial,
+        run_baseline_trial,  # feat_study_baseline_trial Story 1.4
         func(start_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
         func(resume_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
         generate_digest,

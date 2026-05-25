@@ -224,12 +224,14 @@ async def aggregate_trials_summary(db: AsyncSession, study_id: str) -> TrialsSum
             func.max(Trial.primary_metric).filter(Trial.status == "complete").label("best"),
         )
         .where(Trial.study_id == study_id)
+        .where(Trial.is_baseline.is_(False))  # FR-11: exclude baseline from aggregates
         .cte("summary")
     )
 
     winner = (
         select(Trial.id)
         .where(Trial.study_id == study_id)
+        .where(Trial.is_baseline.is_(False))  # FR-11
         .where(Trial.status == "complete")
         .where(Trial.primary_metric == summary.c.best)
         .order_by(Trial.optuna_trial_number)  # deterministic tiebreak

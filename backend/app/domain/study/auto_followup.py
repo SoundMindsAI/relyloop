@@ -3,12 +3,24 @@
 Pure domain function deciding whether a completed study should enqueue
 a follow-up. No DB, no I/O, no async.
 
-Per spec FR-2a (and locked in D-3): the gate is "lift-over-first-decile."
-The parent's winner must beat the max metric of the parent's earliest
-decile of complete trials by at least ``epsilon`` (default 0.005). When
-``feat_study_baseline_trial`` ships and populates ``studies.baseline_metric``,
-FR-2b activates and this module switches to "lift-over-baseline" via a
-one-line change in :func:`evaluate_chain_gate`.
+Per spec FR-2a (and locked in D-3): the gate is "lift-over-first-decile"
+when no explicit baseline exists. **FR-2b activated** by
+``feat_study_baseline_trial`` (2026-05-25): when
+``parent.baseline_metric IS NOT NULL`` (i.e., the orchestrator's baseline
+phase ran and successfully stamped the study), lift is computed directly
+against the explicit baseline. Otherwise the existing implicit-baseline
+(first-decile-max) fallback fires unchanged.
+
+**Direction-aware** (feat_study_baseline_trial FR-5): the gate now takes
+a ``direction: Literal["maximize", "minimize"]`` kwarg (default
+``"maximize"`` preserves the existing behavior). For minimize objectives,
+lift signs flip so "better than baseline" is always positive — closes
+a latent bug in the maximize-only implementation when minimize studies
+land. ``ChainGateOutcome.first_decile_max`` is the legacy name kept for
+backward compatibility; conceptually it's now the "first-decile extremum"
+(max for maximize, min for minimize). Existing callers can rely on the
+field name and the maximize-default; direction-aware callers pass
+``parent.objective.get('direction')``.
 
 Ordering note: the spec/plan referenced ``created_at`` for trial sorting,
 but :class:`~backend.app.db.models.trial.Trial` exposes ``started_at``
@@ -26,7 +38,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 
 class ChainGateDecision(StrEnum):
@@ -58,8 +70,11 @@ class ChainGateOutcome:
     epsilon: float = 0.005
 
 
-def compute_first_decile_max(complete_trials: Iterable[Any]) -> float | None:
-    """Return max(primary_metric) over the first decile of complete trials.
+def compute_first_decile_max(
+    complete_trials: Iterable[Any],
+    direction: Literal["maximize", "minimize"] = "maximize",
+) -> float | None:
+    """Return the first-decile extremum of complete trials' primary_metric.
 
     First decile = ``complete_trials_sorted[:max(1, len // 10)]`` (floor
     division, per spec FR-2a). Boundary cases:
@@ -73,6 +88,13 @@ def compute_first_decile_max(complete_trials: Iterable[Any]) -> float | None:
     Sort key is ``optuna_trial_number`` ASC — see module docstring for
     why this is the right ordering field.
 
+    For ``direction='maximize'`` (the default, preserving existing
+    behavior) returns ``max(primary_metric)`` over the decile. For
+    ``direction='minimize'`` returns ``min(primary_metric)`` — i.e., the
+    most-easily-beaten value, which is the right baseline-shaped
+    comparison point under minimize semantics (feat_study_baseline_trial
+    FR-5).
+
     Returns ``None`` when the first-decile slice has no usable
     ``primary_metric`` values (all NULL, or zero trials).
     """
@@ -85,7 +107,7 @@ def compute_first_decile_max(complete_trials: Iterable[Any]) -> float | None:
     metrics: list[float] = [t.primary_metric for t in decile if t.primary_metric is not None]
     if not metrics:
         return None
-    return max(metrics)
+    return max(metrics) if direction == "maximize" else min(metrics)
 
 
 def evaluate_chain_gate(
@@ -93,35 +115,37 @@ def evaluate_chain_gate(
     complete_trials: Iterable[Any],
     *,
     epsilon: float = 0.005,
+    direction: Literal["maximize", "minimize"] = "maximize",
 ) -> ChainGateOutcome:
     """Decide whether to enqueue a follow-up study for ``parent``.
 
     Inputs are loaded by the caller — this function does no I/O.
 
-    Duck-typed signature (parent is Any) mirrors the
-    :func:`backend.app.domain.study.confidence.compute_study_confidence`
-    pattern at confidence.py:496 — lets tests pass ``SimpleNamespace``
-    stand-ins without a Protocol class. Caller passes a real
-    :class:`~backend.app.db.models.study.Study` in production; tests pass
-    a SimpleNamespace with the required attributes
-    (``status``, ``best_metric``, ``config``).
+    **feat_study_baseline_trial FR-5 activation**: when
+    ``parent.baseline_metric IS NOT NULL`` (the orchestrator's baseline
+    phase stamped the study), lift is computed directly against the
+    explicit baseline. Otherwise the existing first-decile fallback
+    fires unchanged. ``ChainGateOutcome.first_decile_max`` is populated
+    ONLY when the fallback branch ran; the explicit-baseline branch
+    leaves it ``None`` (and the ``lift`` field carries the
+    explicit-baseline computation).
+
+    **Direction-aware** (FR-5): the ``direction`` kwarg flips lift signs
+    for minimize objectives so the ``lift > epsilon`` gate predicate
+    works the same for both directions. Default ``"maximize"`` preserves
+    backward compatibility — existing callers that don't pass
+    ``direction`` continue to work.
 
     Decision matrix (in evaluation order):
 
     1. ``parent.status in {'failed', 'cancelled'}`` → SKIP_PARENT_FAILED.
-       Defensive: the digest worker doesn't run on failed studies
-       (verified at backend/workers/orchestrator.py:452 — digest enqueue
-       only fires from ``_stop()`` after the ``completed`` transition),
-       so this branch fires only on manual invocation or race-with-cancel.
-    2. ``config.auto_followup_depth`` missing or ``== 0`` →
-       SKIP_DEPTH_EXHAUSTED. The depth=0 leaf (worker-set terminal value
-       per FR-1 + D-12) hits this branch on its own enqueue invocation,
-       which is how the chain ends.
-    3. ``parent.best_metric is None`` → SKIP_NO_LIFT (cannot compute
-       lift without a winner; defensive).
-    4. ``first_decile_max`` is ``None`` (no usable trials) → SKIP_NO_LIFT.
-    5. ``best_metric > first_decile_max + epsilon`` → ENQUEUE.
-       Otherwise → SKIP_NO_LIFT.
+    2. ``config.auto_followup_depth`` missing or ``== 0`` → SKIP_DEPTH_EXHAUSTED.
+    3. ``parent.best_metric is None`` → SKIP_NO_LIFT (defensive).
+    4. **Explicit baseline (FR-5)**: ``parent.baseline_metric IS NOT NULL`` →
+       ``lift = (best - baseline)`` (maximize) or ``(baseline - best)``
+       (minimize). Gate on ``lift > epsilon``.
+    5. **Fallback**: ``first_decile_max`` is ``None`` → SKIP_NO_LIFT.
+    6. Direction-normalized lift over first-decile extremum.
     """
     if parent.status in {"failed", "cancelled"}:
         return ChainGateOutcome(
@@ -144,7 +168,26 @@ def evaluate_chain_gate(
             epsilon=epsilon,
         )
 
-    first_decile_max = compute_first_decile_max(complete_trials)
+    # FR-5: explicit-baseline branch — prefer parent.baseline_metric when set.
+    baseline_metric = getattr(parent, "baseline_metric", None)
+    if baseline_metric is not None:
+        lift = _direction_normalized_lift(parent.best_metric, baseline_metric, direction)
+        if lift > epsilon:
+            return ChainGateOutcome(
+                decision=ChainGateDecision.ENQUEUE,
+                lift=lift,
+                first_decile_max=None,  # explicit-baseline branch — no decile compute
+                epsilon=epsilon,
+            )
+        return ChainGateOutcome(
+            decision=ChainGateDecision.SKIP_NO_LIFT,
+            lift=lift,
+            first_decile_max=None,
+            epsilon=epsilon,
+        )
+
+    # Fallback: first-decile-extremum (implicit baseline, direction-aware).
+    first_decile_max = compute_first_decile_max(complete_trials, direction)
     if first_decile_max is None:
         return ChainGateOutcome(
             decision=ChainGateDecision.SKIP_NO_LIFT,
@@ -153,7 +196,7 @@ def evaluate_chain_gate(
             epsilon=epsilon,
         )
 
-    lift = parent.best_metric - first_decile_max
+    lift = _direction_normalized_lift(parent.best_metric, first_decile_max, direction)
     if lift > epsilon:
         return ChainGateOutcome(
             decision=ChainGateDecision.ENQUEUE,
@@ -167,3 +210,14 @@ def evaluate_chain_gate(
         first_decile_max=first_decile_max,
         epsilon=epsilon,
     )
+
+
+def _direction_normalized_lift(
+    best_metric: float,
+    baseline_metric: float,
+    direction: Literal["maximize", "minimize"],
+) -> float:
+    """Normalize lift sign so "better than baseline" is always positive."""
+    if direction == "minimize":
+        return baseline_metric - best_metric
+    return best_metric - baseline_metric

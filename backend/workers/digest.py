@@ -842,9 +842,13 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     )
                     await _persist_zero_trials_digest(db, study)
                     return
+                # FR-11: exclude baseline from the top-10 list — the digest
+                # surfaces Optuna's exploration; baseline is reported
+                # separately via study.baseline_metric.
                 top_stmt = (
                     select(Trial)
                     .where(Trial.study_id == study_id)
+                    .where(Trial.is_baseline.is_(False))
                     .where(Trial.status == "complete")
                     .order_by(Trial.primary_metric.desc())
                     .limit(TOP_K_TRIALS)

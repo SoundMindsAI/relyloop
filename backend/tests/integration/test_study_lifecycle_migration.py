@@ -422,6 +422,7 @@ class TestNotNullCoverage:
         ("studies", "optuna_study_name", "NO"),
         ("studies", "parent_study_id", "YES"),
         ("studies", "baseline_metric", "YES"),
+        ("studies", "baseline_trial_id", "YES"),  # feat_study_baseline_trial 0020
         ("studies", "best_metric", "YES"),
         ("studies", "best_trial_id", "YES"),
         ("studies", "created_at", "NO"),
@@ -439,6 +440,7 @@ class TestNotNullCoverage:
         ("trials", "error", "YES"),
         ("trials", "started_at", "YES"),
         ("trials", "ended_at", "YES"),
+        ("trials", "is_baseline", "NO"),  # feat_study_baseline_trial 0020
         # proposals
         ("proposals", "id", "NO"),
         ("proposals", "study_id", "YES"),

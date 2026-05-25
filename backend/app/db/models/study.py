@@ -93,7 +93,16 @@ class Study(Base):
     array. Recorded for audit only — the followup payload itself was
     inlined into ``search_space`` / ``name`` at study-create time."""
     baseline_metric: Mapped[float | None] = mapped_column(Float, nullable=True)
-    """Single non-Optuna trial run before Optuna starts; populated by the orchestrator."""
+    """Single non-Optuna trial run before Optuna starts; populated by the
+    orchestrator via :func:`backend.app.services.study_state.stamp_baseline_trial`
+    (feat_study_baseline_trial FR-12). NULL until baseline trial completes;
+    stays NULL when baseline is skipped or fails."""
+    baseline_trial_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    """Denormalized FK to the baseline trial row (the ``is_baseline=TRUE``
+    trial in the ``trials`` table for this study). Not a formal FK — same
+    rationale as ``best_trial_id`` below: the orchestrator stamps it after
+    the baseline trial completes, no enforce-at-DB constraint
+    (feat_study_baseline_trial FR-1)."""
     best_metric: Mapped[float | None] = mapped_column(Float, nullable=True)
     """Denormalized winner metric value; set on study completion."""
     best_trial_id: Mapped[str | None] = mapped_column(String(36), nullable=True)

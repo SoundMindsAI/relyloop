@@ -60,6 +60,8 @@ def test_worker_settings_importable(_settings_env: None) -> None:
         "register_webhook",
         # feat_auto_followup_studies Story 2.1
         "enqueue_followup_study",
+        # feat_study_baseline_trial Story 1.4
+        "run_baseline_trial",
     }
 
 

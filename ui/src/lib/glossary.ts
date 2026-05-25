@@ -690,8 +690,13 @@ export const glossary = {
   },
   'confidence.comparison_against': {
     short:
-      'Reference for per-query comparison. Runner-up = second-best trial. Baseline = no-tuning trial (Phase 2).',
+      'Comparison reference. "Baseline" = the no-tuning baseline trial (preferred). "Runner-up" = the second-best Optuna trial (fallback).',
     ariaLabel: 'More information about the comparison reference',
+  },
+  'trials.is_baseline': {
+    short:
+      'A no-tuning trial run before Optuna started, using your production params. Used as the comparison reference for the confidence outcomes.',
+    ariaLabel: 'More information about baseline trials',
   },
 
   // ---------------------------------------------------------------------------

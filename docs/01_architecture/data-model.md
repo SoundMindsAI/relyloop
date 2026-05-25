@@ -211,7 +211,8 @@ CREATE TABLE studies (
     parent_study_id     UUID REFERENCES studies(id),   -- for forks (MVP2)
     parent_proposal_id  VARCHAR(36) REFERENCES proposals(id),  -- feat_digest_executable_followups (0018) — set when this study was spawned from a digest "Run this followup"
     parent_proposal_followup_index INT,                -- 0-based index into the parent digest's suggested_followups; paired with parent_proposal_id (CHECK enforces both-NULL or both-set-with-index>=0); BEFORE DELETE trigger on proposals atomically NULLs both columns on parent hard-delete
-    baseline_metric     REAL,                          -- single non-Optuna trial run before Optuna starts; populated by orchestrator
+    baseline_metric     REAL,                          -- single non-Optuna trial run before Optuna starts; populated by orchestrator + worker self-stamp via services.study_state.stamp_baseline_trial (feat_study_baseline_trial 0020)
+    baseline_trial_id   VARCHAR(36),                   -- denormalized FK to the is_baseline=TRUE trial row (feat_study_baseline_trial 0020); not a formal FK — orchestrator stamps it post-completion
     best_metric         REAL,
     best_trial_id       UUID,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -232,11 +233,18 @@ CREATE TABLE trials (
     error               TEXT,
     started_at          TIMESTAMPTZ,
     ended_at            TIMESTAMPTZ,
+    is_baseline         BOOLEAN NOT NULL DEFAULT FALSE, -- feat_study_baseline_trial (0020) — TRUE only for the off-band non-Optuna baseline trial (optuna_trial_number=-1 sentinel)
     CONSTRAINT trials_per_query_metrics_object_check
         CHECK (per_query_metrics IS NULL OR jsonb_typeof(per_query_metrics) = 'object')
 );
 
 CREATE INDEX trials_study_metric ON trials (study_id, primary_metric DESC NULLS LAST);
+-- feat_study_baseline_trial (0020) — at most one COMPLETE baseline per study.
+-- Combined with Arq _job_id dedupe + FR-12 stamping helper's WHERE baseline_trial_id IS NULL
+-- predicate, this is the 3-layer defense against orchestrator double-enqueue on resume (D-16).
+CREATE UNIQUE INDEX uq_trials_study_baseline_complete
+    ON trials (study_id)
+    WHERE is_baseline = TRUE AND status = 'complete';
 ```
 
 `trials` is hard-delete only (no `deleted_at`) — when a study is removed, trials cascade-delete with it; trial history is regenerable from Optuna's RDB if needed.
