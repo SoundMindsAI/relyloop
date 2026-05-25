@@ -422,6 +422,7 @@ docker run --rm --user root \
   --network relyloop_default \
   -e DATABASE_URL_FILE=/run/secrets/database_url \
   -e PYTHONDONTWRITEBYTECODE=1 \
+  -e RELYLOOP_IN_WORKTREE_CONTAINER=1 \
   -v "$MAIN_REPO/secrets/database_url:/run/secrets/database_url:ro" \
   -v "$PWD/CLAUDE.md:/app/CLAUDE.md:ro" \
   -v "$PWD/backend:/app/backend" \
