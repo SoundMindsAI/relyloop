@@ -420,3 +420,24 @@ class TestBacktickStripPriority3:
         # ```\n...\n``` would miss this and produce a false positive.
         spec = "Inline example: ```PR #77 merged 2026-05-03``` for context."
         assert _extract_pr_number("", "", spec, "") is None
+
+    def test_ac13_four_backtick_outer_with_inner_three_backtick_returns_none(self) -> None:
+        # Spec FR-1 "3 or more backticks": a 4-backtick outer fence wrapping
+        # an inner 3-backtick block must strip as ONE outer unit. A naive
+        # `\`{3,}.*?\`{3,}` regex (without same-width backreference) would
+        # close at the first inner 3-backtick fence, leaving the rest of
+        # the outer fence (and any PR# inside it after the inner block)
+        # un-stripped. The fix uses backreference `(\`{3,}).*?\1` to
+        # enforce same-width close.
+        # Added per GPT-5.5 Epic 1 phase-gate review (Medium finding) on PR #?.
+        spec = (
+            "intro\n"
+            "````md\n"
+            "```python\n"
+            "# PR #99 merged 2026-05-15\n"
+            "```\n"
+            "end of outer fence\n"
+            "````\n"
+            "footer"
+        )
+        assert _extract_pr_number("", "", spec, "") is None

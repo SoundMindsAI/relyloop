@@ -516,7 +516,10 @@ def _strip_backtick_quoted_segments(text: str) -> str:
     this feature's own.
     """
     # Pass A: triple-backtick fences (multi-line, single-line, empty).
-    text = re.sub(r"`{3,}.*?`{3,}", "", text, flags=re.DOTALL)
+    # Backreference enforces same-width close so a 4-backtick outer fence
+    # containing an inner 3-backtick block is stripped as ONE outer unit
+    # (the inner 3-fence doesn't match \1's captured 4-backticks).
+    text = re.sub(r"(`{3,}).*?\1", "", text, flags=re.DOTALL)
     # Pass B: inline backtick spans (zero-or-more chars; matches empty ``).
     text = re.sub(r"`[^`\n]*`", "", text)
     return text
