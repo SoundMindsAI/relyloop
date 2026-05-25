@@ -520,8 +520,12 @@ def _strip_backtick_quoted_segments(text: str) -> str:
     # containing an inner 3-backtick block is stripped as ONE outer unit
     # (the inner 3-fence doesn't match \1's captured 4-backticks).
     text = re.sub(r"(`{3,}).*?\1", "", text, flags=re.DOTALL)
-    # Pass B: inline backtick spans (zero-or-more chars; matches empty ``).
-    text = re.sub(r"`[^`\n]*`", "", text)
+    # Pass B: inline backtick spans of width 1 or 2, with same-width backref close.
+    # Width-2 (`` ``foo`` ``) is rare in markdown but appears when a span needs to
+    # contain a literal single backtick. Width-1 covers the common `foo` case and
+    # the empty `` `` (group 1 = 1 backtick, `[^\n]*?` matches 0 chars, `\1` matches
+    # the second backtick). Caught by Gemini Code Assist review on PR #253.
+    text = re.sub(r"(`{1,2})[^\n]*?\1", "", text)
     return text
 
 
