@@ -99,7 +99,7 @@ def _strip_backtick_quoted_segments(text: str) -> str:
 - Function exists at the planned location: `grep -n '^def _strip_backtick_quoted_segments' scripts/build_mvp1_dashboard.py` returns one line, and it appears immediately after `_strip_dependency_table_rows`'s end.
 - Importable: `python3 -c "from scripts.build_mvp1_dashboard import _strip_backtick_quoted_segments; print(_strip_backtick_quoted_segments('test'))"` returns `'test'`.
 - Multi-line strip works: `python3 -c "from scripts.build_mvp1_dashboard import _strip_backtick_quoted_segments as f; print(repr(f('a\n\`\`\`\nbody\n\`\`\`\nb')))"` returns `"'a\n\nb'"` (or similar with the fence + body fully removed).
-- Single-line strip works: `python3 -c "from scripts.build_mvp1_dashboard import _strip_backtick_quoted_segments as f; print(f('a \`\`\`PR #1 merged\`\`\` b'))"` does not contain `PR #1`.
+- Single-line strip works: smoke-verified via `python3 -c "..."` with a single-line triple-backtick fence containing a sample merged-PR phrase; the phrase is absent from the result. (Concrete fence text intentionally omitted here to avoid triggering the very priority-3 false-positive this chore fixes when the dashboard regen scans this plan file.)
 - Inline strip works (incl. empty): `python3 -c "from scripts.build_mvp1_dashboard import _strip_backtick_quoted_segments as f; print(f('before \`\` middle \`x\` after'))"` does not contain `x` AND does not raise.
 - Pre-commit hooks pass (no `--no-verify`).
 
@@ -155,64 +155,13 @@ def _strip_backtick_quoted_segments(text: str) -> str:
 1. Re-Read the existing import block at the top of `backend/tests/unit/scripts/test_dashboard_pr_extraction.py` to confirm the import shape (current block imports `_extract_pr_number` and the regex constants from the same module).
 2. Add `_strip_backtick_quoted_segments` to the import block (alphabetical or end-of-list — match existing style).
 3. Re-Read the end of the file (last ~30 lines) to locate the `TestBackwardCompat` class's last test method, which is the insertion point for the new class.
-4. Append the new class:
-
-```python
-class TestBacktickStripPriority3:
-    """Locks the false-positive rejection added by chore_dashboard_regen_quoted_pr_false_positive.
-
-    Spec FR-3 / ACs 6-12. The priority-3 fuzzy regexes at scripts/build_mvp1_dashboard.py:629
-    and :632 must not match backtick-quoted PR-merge phrases, while still matching legitimate
-    un-backticked own-PR prose (regression guard via AC-9).
-    """
-
-    def test_ac6_inline_backtick_quoted_merged_pr_returns_none(self) -> None:
-        # `**Depends on:** [infra_foundation] -- merged via PR #4 (2026-05-09)` (inline backtick)
-        spec = (
-            "Some prose.\n\n"
-            "Example: `**Depends on:** [infra_foundation] -- merged via PR #4 (2026-05-09)`\n\n"
-            "More prose."
-        )
-        assert _extract_pr_number("", "", spec, "") is None
-
-    def test_ac7_multiline_triple_backtick_block_with_merged_pr_returns_none(self) -> None:
-        spec = "Header.\n\n```python\n# Example: see PR #99 (merged 2026-05-15)\n```\n\nFooter."
-        assert _extract_pr_number("", "", spec, "") is None
-
-    def test_ac8_inline_backtick_with_pr_first_then_merged_returns_none(self) -> None:
-        # First-regex ordering: PR #N ... merged
-        spec = "Note: `PR #42 was merged on 2026-05-01` for context."
-        assert _extract_pr_number("", "", spec, "") is None
-
-    def test_ac9_unbacktickend_prose_own_pr_still_matches(self) -> None:
-        # Regression guard: un-backticked own-PR prose still matches priority-3 fuzzy.
-        spec = "## Status\n\nThis feature merged 2026-05-15 as PR #200 (squash)."
-        assert _extract_pr_number("", "", spec, "") == 200
-
-    def test_ac10_backtick_strip_runs_before_dependency_table_strip(self) -> None:
-        # Verify the helpers compose correctly: backtick strip removes its scope without
-        # touching dependency-table-row content (which the sibling helper handles).
-        text = "| foo | Implemented (PR #1) |\n\n`Example: merged via PR #99`\n\nMore."
-        result = _strip_backtick_quoted_segments(text)
-        assert "PR #99" not in result
-        assert "| foo | Implemented (PR #1) |" in result
-
-    def test_ac11_empty_backtick_segment_does_not_crash(self) -> None:
-        # Empty inline span `` and empty triple-backtick fence ```\n``` must be removed
-        # without raising IndexError/TypeError/regex error.
-        text = "before `` after\n```\n```\nfinal"
-        result = _strip_backtick_quoted_segments(text)
-        assert isinstance(result, str)
-        # The empty segments must be removed (substituted with empty string).
-        assert "``" not in result
-        assert "```" not in result
-
-    def test_ac12_single_line_triple_backtick_fence_returns_none(self) -> None:
-        # Single-line ```...``` (no embedded newline). A regex that only matches
-        # multi-line ```\n...\n``` would miss this and produce a false positive.
-        spec = "Inline example: ```PR #77 merged 2026-05-03``` for context."
-        assert _extract_pr_number("", "", spec, "") is None
-```
+4. Append the new class. **Source intentionally NOT inlined here** to avoid the priority-3 self-triggering issue (the plan file itself would be scanned by dashboard regen). The full test source is the deliverable — write it directly in the target file following the existing test patterns. Required shape (per ACs 6–12, mapped 1-to-1):
+   - Class docstring: cites spec FR-3 and lists the AC IDs covered.
+   - 7 test methods named `test_ac6_*` through `test_ac12_*` (one per AC), each with the exact name spelled out in FR-3 of the spec.
+   - Methods 6, 7, 8, 12 call `_extract_pr_number("", "", spec, "")` with a fixture string containing the AC's specific backtick-quoted PR-merge shape and assert `is None`.
+   - Method 9 (regression guard) asserts that un-backticked own-PR prose still matches priority-3 fuzzy (the chore must not break the legitimate use case).
+   - Method 10 calls `_strip_backtick_quoted_segments` directly and asserts that backtick-fenced PR# is removed while dependency-table-row PR# is preserved (verifies helper composition order).
+   - Method 11 asserts empty backtick segments (`` `` `` and ` ``````) are removed without raising.
 
 5. Save the file; pre-commit hooks run.
 6. Run the targeted test: `.venv/bin/pytest backend/tests/unit/scripts/test_dashboard_pr_extraction.py::TestBacktickStripPriority3 -v` — all 7 tests must pass.

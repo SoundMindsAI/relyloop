@@ -190,49 +190,42 @@ N/A — no UI changes. Dev-infra script behavioral fix.
 
 ### AC-6: Inline-backtick-quoted merged-PR phrase (`merged ... PR #N` order) returns None
 
-- Given a `spec` string containing an inline-backtick segment with a quoted merged-PR phrase, e.g., `` `**Depends on:** [infra_foundation] — merged via PR #4 (2026-05-09)` ``, AND no other PR#-bearing content in `pipe`/`plan`/`idea`.
+- Given a `spec` string containing an inline-backtick segment with a quoted merged-PR phrase (second-regex order: `merged ... PR #N`), AND no other PR#-bearing content in `pipe`/`plan`/`idea`.
 - When `_extract_pr_number(pipe="", plan="", spec=<above>, idea="")` is called.
 - Then the return value **MUST** be `None` (the priority-3 fuzzy regex does not match the stripped input; no other priority fires).
-  - Example values:
-    - Input: `spec = "Some prose.\n\nExample: ` + chr(96) + `**Depends on:** [infra_foundation] — merged via PR #4 (2026-05-09)` + chr(96) + `\n\nMore prose."`
-    - Expected: `_extract_pr_number("", "", spec, "") == None`
+  - Notes: Exact fixture lives in `backend/tests/unit/scripts/test_dashboard_pr_extraction.py::TestBacktickStripPriority3::test_ac6_inline_backtick_quoted_merged_pr_returns_none`. Inline text omitted here to avoid self-triggering the priority-3 false-positive on this spec file during dashboard regen.
 
 ### AC-7: Multi-line triple-backtick code block with merged-PR phrase returns None
 
 - Given a `spec` string containing a multi-line triple-backtick code block whose body contains a merged-PR phrase.
 - When `_extract_pr_number(pipe="", plan="", spec=<above>, idea="")` is called.
 - Then the return value **MUST** be `None`.
-  - Example values:
-    - Input: ``spec = "Header.\n\n```python\n# Example: see PR #99 (merged 2026-05-15)\n```\n\nFooter."``
-    - Expected: `_extract_pr_number("", "", spec, "") == None`
+  - Notes: Exact fixture lives in `backend/tests/unit/scripts/test_dashboard_pr_extraction.py::TestBacktickStripPriority3::test_ac7_multiline_triple_backtick_block_with_merged_pr_returns_none`. Inline text omitted here to avoid self-triggering the priority-3 false-positive on this spec file during dashboard regen.
 
 ### AC-8: Inline-backtick-quoted `PR #N ... merged` (other regex order) returns None
 
 - Given a `spec` string containing an inline-backtick segment with a quoted `PR #N ... merged` phrase (the FIRST priority-3 regex order, complementing AC-6 which tests the second).
 - When `_extract_pr_number("", "", spec, "")` is called.
 - Then the return value **MUST** be `None`.
-  - Example values:
-    - Input: `spec = "Note: ` + chr(96) + `PR #42 was merged on 2026-05-01` + chr(96) + ` for context."`
-    - Expected: `_extract_pr_number("", "", spec, "") == None`
+  - Notes: Exact fixture lives in `backend/tests/unit/scripts/test_dashboard_pr_extraction.py::TestBacktickStripPriority3::test_ac8_inline_backtick_with_pr_first_then_merged_returns_none`. Inline text omitted here to avoid self-triggering the priority-3 false-positive on this spec file during dashboard regen.
 
 ### AC-9: Un-backticked own-PR prose still matches priority-3
 
-- Given a `spec` string containing a legitimate own-PR assertion in prose (NOT inside any backtick segment), e.g., `## Status\n\nThis feature merged 2026-05-15 as PR #200 (squash).`
+- Given a `spec` string containing a legitimate own-PR assertion in prose (NOT inside any backtick segment). The exact text fixture lives in the test class (see Notes).
 - When `_extract_pr_number("", "", spec, "")` is called.
-- Then the return value **MUST** be `200` (the priority-3 fuzzy regex still matches un-backticked prose).
-  - Example values:
-    - Input: `spec = "## Status\n\nThis feature merged 2026-05-15 as PR #200 (squash)."`
-    - Expected: `_extract_pr_number("", "", spec, "") == 200`
+- Then the return value **MUST** be the PR# embedded in the prose (the priority-3 fuzzy regex still matches un-backticked prose).
+  - Notes: Exact spec/expected pair lives in `backend/tests/unit/scripts/test_dashboard_pr_extraction.py::TestBacktickStripPriority3::test_ac9_unbacktickend_prose_own_pr_still_matches`. Placed there (not inline here) to avoid triggering the priority-3 false-positive on this spec file itself when the dashboard regen runs.
 
 ### AC-10: `_strip_backtick_quoted_segments` runs before `_strip_dependency_table_rows`
 
 - Given a multi-line input containing BOTH a backtick-fenced PR# AND a dependency-table-row PR#.
 - When `_strip_backtick_quoted_segments` is called directly on the input.
 - Then the returned string **MUST NOT** contain the backtick-fenced content, AND **MUST** still contain the dependency-table-row content unchanged (proving the new helper does not encroach on the dependency-row helper's scope).
-  - Example values:
-    - Input: ``text = "| foo | Implemented (PR #1) |\n\n`Example: merged via PR #99`\n\nMore."``
-    - Expected substring present: `"| foo | Implemented (PR #1) |"`
-    - Expected substring absent: `"PR #99"`
+  - Example values (concrete PR# placeholders intentionally use 9000-range to avoid triggering the very priority-3 false-positive this chore fixes when dashboard regen scans this spec file):
+    - Input: a string containing a markdown table-row dependency cite AND an inline-backtick quoted merged-PR phrase.
+    - Expected substring present: the table-row cite (which `_strip_dependency_table_rows` handles separately).
+    - Expected substring absent: the inline-backtick quoted PR# (which `_strip_backtick_quoted_segments` removes).
+    - (Exact text fixtures live in `backend/tests/unit/scripts/test_dashboard_pr_extraction.py::TestBacktickStripPriority3::test_ac10_*` per FR-3.)
 
 ### AC-11: Empty backtick segment does not crash
 
@@ -245,12 +238,10 @@ N/A — no UI changes. Dev-infra script behavioral fix.
 
 ### AC-12: Single-line triple-backtick fence with merged-PR phrase returns None
 
-- Given a `spec` string containing a SINGLE-line triple-backtick fence (no embedded newline between the opening and closing fences) whose body contains a merged-PR phrase. This is a distinct shape from AC-7's multi-line case — handlers that only match `` ``` ... \n ... \n ``` `` will silently miss this.
+- Given a `spec` string containing a SINGLE-line triple-backtick fence (no embedded newline between the opening and closing fences) whose body contains a merged-PR phrase. This is a distinct shape from AC-7's multi-line case — handlers that only match multi-line fences will silently miss this.
 - When `_extract_pr_number("", "", spec, "")` is called.
 - Then the return value **MUST** be `None`.
-  - Example values:
-    - Input: ``spec = "Inline example: ```PR #77 merged 2026-05-03``` for context."``
-    - Expected: `_extract_pr_number("", "", spec, "") == None`
+  - Notes: Exact fixture lives in `backend/tests/unit/scripts/test_dashboard_pr_extraction.py::TestBacktickStripPriority3::test_ac12_single_line_triple_backtick_fence_returns_none`. Inline text omitted here per the same self-triggering avoidance as AC-7.
 
 ## 13) Non-functional requirements
 
