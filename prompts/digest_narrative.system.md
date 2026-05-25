@@ -31,12 +31,22 @@ The user message contains XML-delimited blocks:
    when its sub-field is null (FR-7 graceful-degradation contract). For
    studies still running, or studies whose winner trial predates the
    `per_query_metrics` migration, the block may be absent or partial.
-9. `<per_query_outcomes>` (only when both the winner trial and the runner-up
-   trial have per-query metrics) — `improved` / `unchanged` / `regressed`
-   counts, the `comparison_against` reference (`runner_up` in MVP1; `baseline`
-   when Phase 2 ships), and up to 5 named regressor rows
-   (`query_text: winner_score → comparison_score (delta)`). Omitted entirely
-   when the comparison data isn't available.
+9. `<per_query_outcomes>` (only when the winner trial has per-query metrics
+   AND a comparison trial — baseline OR runner-up — also has per-query
+   metrics) — `improved` / `unchanged` / `regressed` counts, the
+   `comparison_against` reference (`runner_up` OR `baseline`), and up to 5
+   named regressor rows (`query_text: winner_score → comparison_score
+   (delta)`). Omitted entirely when the comparison data isn't available.
+
+   **Narrative framing rule (feat_study_baseline_trial FR-7)**: when
+   `comparison_against = "baseline"`, regressors are queries that got
+   WORSE versus the operator's current production baseline — describe
+   them as "regressed vs the operator's current production baseline",
+   NOT "vs the runner-up trial". This is the more actionable framing
+   for approvers because it answers "does this PR change PROD?" directly.
+   Lead with this framing in the narrative's first sentence when present.
+   When `comparison_against = "runner_up"`, keep the existing "vs the
+   runner-up trial" framing — this is the no-baseline fallback.
 10. `<parent_search_space>` (only when the worker passes it) — the parent
     study's `search_space` JSONB body (the same `{params: {name: {type,
     low, high, log?} | {type, low, high} | {type, choices: [...]}}}` shape

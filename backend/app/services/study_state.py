@@ -44,10 +44,11 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 import structlog
-from sqlalchemy import event, inspect, select
+from sqlalchemy import event, inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import Session
 
+from backend.app.db import repo
 from backend.app.db.models import Study
 
 logger = structlog.get_logger(__name__)
@@ -59,6 +60,26 @@ logger = structlog.get_logger(__name__)
 
 class StudyNotFound(Exception):
     """Router → 404 ``STUDY_NOT_FOUND``."""
+
+
+class BaselineTrialNotFound(Exception):
+    """Raised by :func:`stamp_baseline_trial` when ``trial_id`` doesn't exist.
+
+    feat_study_baseline_trial FR-12 — the orchestrator / worker MUST pass a
+    pre-generated UUIDv7 that corresponds to an inserted row by the time
+    the helper is called. Missing rows indicate either a cascade race or a
+    caller bug.
+    """
+
+
+class InvalidBaselineTrialState(Exception):
+    """Raised when the loaded baseline trial row has unexpected attributes.
+
+    feat_study_baseline_trial FR-12 — preconditions: ``trial.study_id ==
+    study_id``, ``trial.is_baseline == True``, ``trial.status == 'complete'``.
+    Anything else is a caller bug (the helper refuses to stamp
+    ``baseline_trial_id`` against a non-baseline / non-complete row).
+    """
 
 
 class InvalidStateTransition(Exception):
@@ -367,6 +388,93 @@ async def fail_study(
         failed_reason=failed_reason,
     )
     return study
+
+
+# ---------------------------------------------------------------------------
+# Baseline-trial stamping helper (feat_study_baseline_trial FR-12)
+# ---------------------------------------------------------------------------
+
+
+async def stamp_baseline_trial(
+    db: AsyncSession,
+    study_id: str,
+    trial_id: str,
+    primary_metric: float,
+) -> bool:
+    """Stamp ``studies.baseline_trial_id`` + ``baseline_metric`` idempotently.
+
+    Single chokepoint for all three paths that durably write the baseline
+    FK (feat_study_baseline_trial D-12):
+
+    1. The orchestrator's fast-path stamp (FR-2 step 7).
+    2. The worker's self-stamp on successful baseline completion
+       (FR-10 step 7).
+    3. The ``resume_study`` re-stamp for unstamped complete baselines
+       (spec §9 idempotency).
+
+    Returns ``True`` if this caller stamped (1 row affected by the UPDATE);
+    ``False`` if a sibling already stamped (race-tolerant — the
+    ``WHERE baseline_trial_id IS NULL`` predicate makes this idempotent).
+
+    Raises :class:`BaselineTrialNotFound` if the trial row is missing
+    (caller bug — the orchestrator pre-generates the UUIDv7 and the worker
+    INSERTed before calling). Raises :class:`InvalidBaselineTrialState`
+    if the row's ``study_id`` / ``is_baseline`` / ``status`` don't match
+    expectations.
+
+    **Commit is left to the caller.** Both the orchestrator and the worker
+    MUST call ``await db.commit()`` after this returns to durably land the
+    stamp. The async-session pattern in :func:`complete_study` /
+    :func:`fail_study` above sets the precedent.
+    """
+    trial = await repo.get_trial(db, trial_id)
+    if trial is None:
+        raise BaselineTrialNotFound(f"baseline trial {trial_id!r} not found in trials table")
+    if trial.study_id != study_id:
+        raise InvalidBaselineTrialState(
+            f"baseline trial {trial_id!r} has study_id={trial.study_id!r}, expected {study_id!r}"
+        )
+    if not trial.is_baseline:
+        raise InvalidBaselineTrialState(
+            f"trial {trial_id!r} is not a baseline row (is_baseline=False)"
+        )
+    if trial.status != "complete":
+        raise InvalidBaselineTrialState(
+            f"baseline trial {trial_id!r} status={trial.status!r}, expected 'complete'"
+        )
+
+    # Idempotent UPDATE — only stamps if not already stamped.
+    result = await db.execute(
+        text(
+            "UPDATE studies "
+            "SET baseline_trial_id = :trial_id, baseline_metric = :primary_metric "
+            "WHERE id = :study_id AND baseline_trial_id IS NULL "
+            "RETURNING id"
+        ),
+        {
+            "trial_id": trial_id,
+            "primary_metric": primary_metric,
+            "study_id": study_id,
+        },
+    )
+    stamped = result.fetchone() is not None
+    if stamped:
+        logger.info(
+            "baseline_stamped",
+            event_type="baseline_stamped",
+            study_id=study_id,
+            trial_id=trial_id,
+            primary_metric=primary_metric,
+        )
+    else:
+        logger.info(
+            "baseline_stamp_no_op",
+            event_type="baseline_stamp_no_op",
+            study_id=study_id,
+            trial_id=trial_id,
+            reason="baseline_trial_id_already_set",
+        )
+    return stamped
 
 
 # ---------------------------------------------------------------------------

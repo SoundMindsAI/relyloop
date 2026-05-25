@@ -69,13 +69,24 @@ class _InProcessPool:
         self.run_trial_tasks: list[asyncio.Task[None]] = []
         self.enqueued: list[tuple[str, tuple[Any, ...]]] = []
 
-    async def enqueue_job(self, func_name: str, *args: Any, **_kwargs: Any) -> None:
+    async def enqueue_job(self, func_name: str, *args: Any, **_kwargs: Any) -> object:
         self.enqueued.append((func_name, args))
         if func_name == "run_trial":
             from backend.workers.trials import run_trial
 
             task = asyncio.create_task(run_trial({"optuna_storage": self._storage}, *args))
             self.run_trial_tasks.append(task)
+        elif func_name == "run_baseline_trial":
+            # feat_study_baseline_trial Story 1.7: orchestrator enqueues
+            # run_baseline_trial before the Optuna loop. Dispatch inline
+            # so the wait helpers can observe a terminal trial row.
+            from backend.workers.baseline import run_baseline_trial
+
+            task = asyncio.create_task(run_baseline_trial({}, *args))
+            self.run_trial_tasks.append(task)
+        # Return a non-None sentinel so the orchestrator's BaselineEnqueueResult
+        # treats this as kind='enqueued' rather than 'deduped'.
+        return object()
 
     async def close(self) -> None:
         for task in self.run_trial_tasks:
@@ -95,7 +106,14 @@ async def _running_orchestrator(
 
     # Speed up the polling loop for tests.
     original_tick = orchestrator._REPLENISH_TICK_S
+    original_baseline_floor = orchestrator._BASELINE_WAIT_FLOOR_S
+    original_baseline_margin = orchestrator._BASELINE_WAIT_MARGIN_S
     orchestrator._REPLENISH_TICK_S = tick_s
+    # feat_study_baseline_trial: cap the baseline-phase wait at ~2s in
+    # tests (production default 60s minimum is too slow for the
+    # 30s-test-timeout test_study_cancel test).
+    orchestrator._BASELINE_WAIT_FLOOR_S = 2.0
+    orchestrator._BASELINE_WAIT_MARGIN_S = 1.0
     storage = pool._storage
     ctx: dict[str, Any] = {"optuna_storage": storage, "arq_pool": pool}
     task = asyncio.create_task(orchestrator.start_study(ctx, fixture.study_id))
@@ -103,6 +121,8 @@ async def _running_orchestrator(
         yield task
     finally:
         orchestrator._REPLENISH_TICK_S = original_tick
+        orchestrator._BASELINE_WAIT_FLOOR_S = original_baseline_floor
+        orchestrator._BASELINE_WAIT_MARGIN_S = original_baseline_margin
         if not task.done():
             task.cancel()
             with pytest.raises((asyncio.CancelledError, BaseException)):

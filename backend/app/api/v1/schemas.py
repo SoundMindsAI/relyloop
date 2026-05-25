@@ -575,6 +575,12 @@ class StudyConfigSpec(BaseModel):
     pruner: PrunerKind | None = None
     seed: int | None = None
     secondary_metrics: list[str] | None = None
+    baseline_params: dict[str, str | int | float | bool | None] | None = None
+    """feat_study_baseline_trial FR-6: explicit baseline-trial params (tier
+    b of the resolver fallback). Stored as-is inside ``studies.config``
+    JSONB. Discriminated-value dict forbids nested objects/arrays —
+    Pydantic emits ``VALIDATION_ERROR`` (422) on violation. Stays in
+    ``config`` (not a top-level column) per spec D-7."""
     auto_followup_depth: int | None = Field(default=None)
     """feat_auto_followup_studies FR-1 + D-12: 0..5 valid; 0 is the
     worker-internal terminal-state value (operators set None to opt out).
@@ -696,6 +702,7 @@ class StudyDetail(BaseModel):
     optuna_study_name: str
     parent_study_id: str | None
     baseline_metric: float | None
+    baseline_trial_id: str | None
     best_metric: float | None
     best_trial_id: str | None
     created_at: datetime
@@ -748,6 +755,11 @@ class TrialDetail(BaseModel):
     error: str | None
     started_at: datetime | None
     ended_at: datetime | None
+    is_baseline: bool = False
+    """feat_study_baseline_trial FR-8 — TRUE only for the off-band
+    non-Optuna baseline trial. The frontend uses this to filter the
+    trials-table by default and to render the "Baseline" badge under the
+    "Show baseline trial" toggle (FR-9)."""
 
 
 class TrialListResponse(BaseModel):

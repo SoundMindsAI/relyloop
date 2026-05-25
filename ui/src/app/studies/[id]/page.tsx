@@ -1,8 +1,10 @@
 'use client';
 import Link from 'next/link';
-import { Suspense, use } from 'react';
+import { Suspense, use, useMemo, useState } from 'react';
 
 import { DetailPageShell } from '@/components/common/detail-page-shell';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AutoFollowupChainPanel } from '@/components/studies/auto-followup-chain-panel';
 import { ConfidencePanel } from '@/components/studies/confidence-panel';
@@ -75,23 +77,7 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
             <StudyHeader study={study} />
             <AutoFollowupChainPanel study={study} chainChildren={childrenQ.data?.data ?? []} />
             <ConfidencePanel confidence={study.confidence} />
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Trials</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <TrialsTable
-                  rows={trialsQ.data?.data ?? []}
-                  totalCount={trialsQ.data?.totalCount}
-                  has_more={trialsQ.data?.has_more ?? false}
-                  next_cursor={trialsQ.data?.next_cursor ?? null}
-                  isLoading={trialsQ.isPending}
-                  isError={trialsQ.isError}
-                  urlState={urlState}
-                  tableId={`trials-${studyId}`}
-                />
-              </CardContent>
-            </Card>
+            <TrialsCard trialsQ={trialsQ} urlState={urlState} tableId={`trials-${studyId}`} />
             {study.status === 'completed' && digestQ.data && (
               <DigestPanel
                 digest={digestQ.data}
@@ -104,6 +90,72 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
         )}
       </DetailPageShell>
     </main>
+  );
+}
+
+/**
+ * Trials card with the feat_study_baseline_trial FR-9 "Show baseline
+ * trial" toggle.
+ *
+ * The trials-listing API returns BOTH Optuna and baseline rows (FR-11
+ * intentionally exempts that helper from the is_baseline=FALSE filter
+ * so the UI can render them). This component filters baseline rows out
+ * of the visible data by default and exposes a toggle to reveal them.
+ * When revealed, the baseline row sits at the top of the table with a
+ * "Baseline" badge.
+ */
+function TrialsCard({
+  trialsQ,
+  urlState,
+  tableId,
+}: {
+  trialsQ: ReturnType<typeof useStudyTrials>;
+  urlState: ReturnType<typeof useDataTableUrlState>;
+  tableId: string;
+}) {
+  const [showBaseline, setShowBaseline] = useState(false);
+  const data = trialsQ.data?.data ?? [];
+  const baselineRows = useMemo(() => data.filter((r) => r.is_baseline), [data]);
+  const visibleRows = useMemo(
+    () => (showBaseline ? data : data.filter((r) => !r.is_baseline)),
+    [data, showBaseline],
+  );
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <CardTitle className="text-base">Trials</CardTitle>
+        {baselineRows.length > 0 && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant={showBaseline ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowBaseline((v) => !v)}
+              data-testid="trials-toggle-baseline"
+            >
+              {showBaseline ? 'Hide baseline trial' : 'Show baseline trial'}
+            </Button>
+            {showBaseline && (
+              <Badge variant="secondary" data-testid="trials-baseline-badge">
+                Baseline
+              </Badge>
+            )}
+          </div>
+        )}
+      </CardHeader>
+      <CardContent>
+        <TrialsTable
+          rows={visibleRows}
+          totalCount={trialsQ.data?.totalCount}
+          has_more={trialsQ.data?.has_more ?? false}
+          next_cursor={trialsQ.data?.next_cursor ?? null}
+          isLoading={trialsQ.isPending}
+          isError={trialsQ.isError}
+          urlState={urlState}
+          tableId={tableId}
+        />
+      </CardContent>
+    </Card>
   );
 }
 

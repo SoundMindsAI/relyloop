@@ -33,7 +33,17 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import CheckConstraint, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -97,3 +107,13 @@ class Trial(Base):
     whatever step raised (adapter, render, search, score)."""
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    is_baseline: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default=text("FALSE"))
+    """Marker for the off-band non-Optuna baseline trial
+    (feat_study_baseline_trial FR-1). The baseline trial is one row per
+    study with ``optuna_trial_number=-1`` (NOT-NULL sentinel filler) and
+    ``is_baseline=TRUE``. Optuna's RDB never sees this row — the discriminator
+    is the boolean flag, not the trial number. Every aggregate / list /
+    confidence read path under :mod:`backend.app.db.repo.trial` MUST filter
+    ``is_baseline=FALSE`` (FR-11). The trials-listing API helper is the
+    one exception — it returns both Optuna and baseline rows so the UI
+    can render them under the "Show baseline trial" toggle (FR-9)."""
