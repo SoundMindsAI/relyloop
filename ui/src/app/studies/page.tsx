@@ -1,17 +1,71 @@
 'use client';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CreateStudyModal } from '@/components/studies/create-study-modal';
+import { CreateStudyModal, type PrefillValues } from '@/components/studies/create-study-modal';
+import { buildPrefillFromStudy } from '@/components/studies/prefill-from-study';
 import { StudiesTable } from '@/components/studies/studies-table';
 import { studiesColumns } from '@/components/studies/studies-table.column-config';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
-import { useStudies } from '@/lib/api/studies';
+import { useStudies, useStudy } from '@/lib/api/studies';
 
 function StudiesPageInner() {
   const urlState = useDataTableUrlState('studies', studiesColumns, { defaultPageSize: 50 });
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [createOpen, setCreateOpen] = useState(false);
+  // feat_study_clone_from_previous Story 2.3 — deep-link state for
+  // ``/studies?clone_from=<source_id>``. One-shot via useRef so the
+  // effect can set cloneInitialValues without depending on it (avoids
+  // the stale-closure shape that would re-fire mid-render).
+  const [cloneInitialValues, setCloneInitialValues] = useState<PrefillValues | null>(null);
+  const cloneEffectFired = useRef(false);
+
+  // FR-4 / D-11: distinguish presence (?clone_from=…) from absence
+  // (no key). A trimmed empty value is treated the same as garbage —
+  // toast + open empty modal. A 36-char UUID is the only valid shape.
+  const hasCloneFrom = searchParams.has('clone_from');
+  const cloneFromId = searchParams.get('clone_from')?.trim() || null;
+  const cloneFromValid = cloneFromId !== null && cloneFromId.length === 36;
+  const cloneSource = useStudy(cloneFromId ?? '', { enabled: cloneFromValid });
+
+  // The deep-link reader's whole job is to react to URL + source-fetch
+  // state and seed the modal's local state. The useRef one-shot prevents
+  // cascading re-fires. Moving this logic out of useEffect would require
+  // running fetches during render — not appropriate here.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    if (!hasCloneFrom) return;
+    if (cloneEffectFired.current) return;
+    if (!cloneFromValid) {
+      cloneEffectFired.current = true;
+      setCloneInitialValues(null);
+      toast.error('Invalid clone-from id — opening empty create form');
+      router.replace('/studies');
+      setCreateOpen(true);
+      return;
+    }
+    if (cloneSource.isError) {
+      cloneEffectFired.current = true;
+      setCloneInitialValues(null);
+      toast.error(`Source study ${cloneFromId} not found — opening empty create form`);
+      router.replace('/studies');
+      setCreateOpen(true);
+      return;
+    }
+    if (cloneSource.data) {
+      cloneEffectFired.current = true;
+      setCloneInitialValues(buildPrefillFromStudy(cloneSource.data));
+      setCreateOpen(true);
+      router.replace('/studies');
+    }
+    // Dependencies: presence + validity + id + fetch state.
+    // cloneInitialValues intentionally omitted — guarded by useRef one-shot.
+  }, [hasCloneFrom, cloneFromValid, cloneFromId, cloneSource.data, cloneSource.isError, router]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const query = useStudies({
     status: urlState.filters['status'],
@@ -44,7 +98,20 @@ function StudiesPageInner() {
           />
         </CardContent>
       </Card>
-      <CreateStudyModal open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateStudyModal
+        open={createOpen}
+        onOpenChange={(open) => {
+          setCreateOpen(open);
+          if (!open) {
+            // Clear prefill on close so the next "Create study" click
+            // opens a fresh modal; re-arm the one-shot so subsequent
+            // ?clone_from=… links in the same session still fire.
+            setCloneInitialValues(null);
+            cloneEffectFired.current = false;
+          }
+        }}
+        initialValues={cloneInitialValues ?? undefined}
+      />
     </main>
   );
 }
