@@ -3,7 +3,7 @@
 # `make` (no target) prints this help block.
 
 .DEFAULT_GOAL := help
-.PHONY: help fmt lint typecheck test test-unit test-integration test-contract \
+.PHONY: help fmt lint typecheck test test-unit test-integration test-contract test-worktree \
         backend-fmt backend-lint backend-typecheck \
         ui-fmt ui-lint ui-typecheck ui-test ui-build ui-dev \
         pre-commit pre-commit-install \
@@ -61,6 +61,9 @@ test-integration:  ## Run backend integration tests from host (Postgres tests sk
 test-contract:  ## Run backend contract tests (response shape + error codes)
 	@uv run pytest backend/tests/contract/ ; rc=$$?; \
 	  [ $$rc -eq 0 ] || [ $$rc -eq 5 ] || exit $$rc   # exit 5 = no tests yet; OK pre-Story-3.2
+
+test-worktree:  ## Run tests in a one-shot container that mounts the sibling worktree (use CMD="..." to override). Phase 2 of infra_agent_sibling_worktree_isolation.
+	@bash scripts/run-tests-in-worktree.sh $(if $(CMD),--cmd "$(CMD)")
 
 # ---------- Pre-commit (Story 1.4) ----------
 
