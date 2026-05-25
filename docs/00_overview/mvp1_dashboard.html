@@ -397,9 +397,9 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">79 / 80</div>
-      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:99%"></span></div>
+      <div class="value">79 / 81</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">16</span></h3>
+  <h3>Idea <span class="count">15</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_study_preflight_real_engine_integration">Study Preflight Real Engine Integration</a></div>
@@ -499,19 +499,6 @@ footer {
 
   </div>
   <div class="one-liner">`feat_auto_followup_studies` Story 3.3 specified a Playwright E2E spec that seeds a 3-node chain (root R → middle M → leaf L) and asserts:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive">Dashboard Regen Quoted Pr False Positive</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">[`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py#L581)&#x27;s priority-3 fuzzy match has two regexes (verified 2026-05-25 against current main at `2a24fae4`):</div>
 
 
 </div>
@@ -675,7 +662,19 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/feature_spec.md">Dashboard Regen Quoted Pr False Positive</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/99">PR #99</a> <span>merged 2026-05-15</span>
+  </div>
+  <div class="one-liner">Priority-3 fuzzy match no longer matches PR-merge phrases that live inside backtick-fenced segments.</div>
+
+
+</div>
 
 </div>
 
@@ -1990,6 +1989,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_dashboard_regen_quoted_pr_false_positive[&quot;dashboard regen quoted pr false positive&quot;]
+  class chore_dashboard_regen_quoted_pr_false_positive spec;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
   infra_foundation[&quot;foundation&quot;]
@@ -2203,6 +2204,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_dashboard_regen_quoted_pr_false_positive[&quot;dashboard regen quoted pr false positive&quot;]
+  class chore_dashboard_regen_quoted_pr_false_positive spec;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
   infra_foundation[&quot;foundation&quot;]
