@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-25** (latest mtime of any planned
 
 ## Next up
 
-**[infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md)** — Infra, currently in **Spec**
+**[infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md)** — Infra, currently in **Plan**
 
 > Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and therefore leak to the main worktree when writ
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/02_product/planned_features/infra_agent_sibling_worktree_isolation --auto
+/impl-execute docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/implementation_plan.md --all
 ```
 
 ## MVP1 Progress
@@ -139,15 +139,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #216](https://github.com/SoundMindsAI/relyloop/pull/216) merged 2026-05-23 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (15)
 
@@ -181,7 +181,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
-  class infra_agent_sibling_worktree_isolation spec;
+  class infra_agent_sibling_worktree_isolation plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
