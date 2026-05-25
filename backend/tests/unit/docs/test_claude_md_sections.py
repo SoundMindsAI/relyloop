@@ -205,7 +205,7 @@ class TestWorkingInSiblingWorktreesSection:
         or competing recipes have historically caused agents to follow
         the wrong one.
         """
-        bash_fence_count = sum(1 for line in section_body.split("\n") if line.rstrip() == "```bash")
+        bash_fence_count = sum(1 for line in section_body.split("\n") if line.strip() == "```bash")
         assert bash_fence_count == 1, (
             f"Expected exactly one '```bash' fenced code block in the "
             f"'Working in sibling worktrees' section, found {bash_fence_count}. "

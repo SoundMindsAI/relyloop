@@ -403,8 +403,9 @@ Use a one-shot `docker run` invocation that mounts the **sibling worktree's** so
 
 ```bash
 # Run from the sibling worktree's root (e.g., /private/tmp/relyloop-<slug>).
-# $MAIN_REPO is the operator's main checkout (typically /Users/ericstarr/relyloop).
-MAIN_REPO=/Users/ericstarr/relyloop
+# $MAIN_REPO is the operator's main checkout, resolved dynamically — `git
+# worktree list` always lists the main worktree first.
+MAIN_REPO=$(git worktree list | awk '{print $1; exit}')
 docker run --rm \
   --network relyloop_default \
   -e DATABASE_URL_FILE=/run/secrets/database_url \
