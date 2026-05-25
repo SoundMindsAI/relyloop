@@ -21,15 +21,7 @@ grepping `ui/tests/e2e/*.spec.ts` for each helper.
 
 ## Gaps
 
-`seedAcmeProductsChain` has no spec caller. The helper itself is correctly
-instrumented — every resource it creates is appended to the cleanup
-registry — so the cleanup pipeline is not at risk. But the helper currently
-contributes nothing to the test surface, which is a tangential dead-code
-observation, not a Story 1.2 gap.
-
-Captured as a tangential idea file:
-[`docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../../../../docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md).
-The follow-up will either delete the helper or wire a spec that uses it.
+None as of 2026-05-25 — see commit `2cbcb93b` for the helper's first real caller wiring. The cleanup-registry pipeline remains correctly instrumented for every helper in the §2 inventory.
 
 ## Verdict
 
