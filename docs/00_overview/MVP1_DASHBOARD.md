@@ -20,15 +20,15 @@ Plan approved; run /impl-execute to ship
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **76 / 76** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **76 / 77** (99%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 16 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 6 |
-| Legacy "Path to MVP1" | 13 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
+| Legacy "Path to MVP1" | 14 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 3 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -137,35 +137,36 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [feat_study_baseline_trial](../02_product/planned_features/feat_study_baseline_trial/feature_spec.md) | Feature | The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence ana | — | [PR #180](https://github.com/SoundMindsAI/relyloop/pull/180) merged 2026-05-21 |
 
 ### Spec (0)
 
 _None._
 
-### Idea (17)
+### Idea (16)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [feat_study_baseline_trial](../02_product/planned_features/feat_study_baseline_trial/idea.md) | Feature | `studies.baseline_metric` exists as a column on the `studies` table (declared in `feat_study_lifecycle` Phase 1, [`backend/app/db/models/study.py:76`](../../backend/app/db/models/study.py#L76)) with t | — | Idea — deferred Phase 2 work from `feat_pr_metric_confidence` (Phase 1 merged 2026-05-21 as PR #180 squash `d0a8358`). |
-| 2 | P2 | [feat_study_clone_narrow_bounds](../02_product/planned_features/feat_study_clone_narrow_bounds/idea.md) | Feature | `feat_study_clone_from_previous` v1 ships verbatim-copy + editable-fields. The next iteration friction is: after cloning, the engineer must manually narrow the `search_space` bounds around the best-tr | — | Idea — deferred follow-up of [`feat_study_clone_from_previous`](../feat_study_clone_from_previous/) (per that spec's locked D-3). |
-| 3 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/idea.md) | Infra | Running an autonomous agent in a sibling git worktree while the operator's main checkout has the Docker Compose stack up exposes two surfaces that aren't designed for parallel work: | — | Idea — tangential observations from the autonomous `chore_reconciler_terminal_closed_no_poll` agent run (PR #216, merged 2026-05-23) |
-| 4 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 5 | P2 | [chore_auto_followup_completed_parent_stop_chain_race](../02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race/idea.md) | Chore | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Idea — surfaced during the Epic 1+2 phase-gate GPT-5.5 review of `feat_auto_followup_studies` (cumulative-diff review finding F2, accepted in part as a future-work capture) |
-| 6 | P2 | [chore_auto_followup_e2e_chain_seed_helper](../02_product/planned_features/chore_auto_followup_e2e_chain_seed_helper/idea.md) | Chore | `feat_auto_followup_studies` Story 3.3 specified a Playwright E2E spec that seeds a 3-node chain (root R → middle M → leaf L) and asserts: | — | Idea |
-| 7 | P2 | [chore_dashboard_regen_quoted_pr_false_positive](../02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/idea.md) | Chore | [`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py#L572)'s priority-3 fuzzy match has two regexes: | — | Idea — surfaced during `chore_dashboard_pr_extraction_from_idea` empirical verification (2026-05-23) |
-| 8 | P2 | [chore_e2e_seed_acme_idea_obsolete](../02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/idea.md) | Chore | [`chore_e2e_seed_acme_helper_dead/idea.md`](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) (dated 2026-05-21) proposed two paths: | — | Idea — surfaced during `chore_migration_test_head_brittleness` `/idea-preflight` pick (2026-05-23) |
-| 9 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 10 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 11 | P2 | [bug_datatable_col_vis_density_localstorage_undefined_jsdom](../02_product/planned_features/bug_datatable_col_vis_density_localstorage_undefined_jsdom/idea.md) | Bug | The first integration test in the file (`toggling a column off via the menu removes its cells and persists to localStorage`, line 148) accesses `window.localStorage` successfully. By the time the 3rd– | — | Idea — captured during feat_study_clone_from_previous Story 2.1 vitest sweep |
-| 12 | P2 | [bug_dockerfile_missing_scripts_dir](../02_product/planned_features/bug_dockerfile_missing_scripts_dir/idea.md) | Bug | [`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`: | — | **Fixed** in PR #232 commit (this branch). Idea file captures the bug + the fix + the systemic lesson for future contributors. |
-| 13 | P2 | [bug_markdown_doc_localstorage_undefined_jsdom](../02_product/planned_features/bug_markdown_doc_localstorage_undefined_jsdom/idea.md) | Bug | The afterEach hook unconditionally calls `window.localStorage.removeItem(...)` after each test, but `window.localStorage` is `undefined` in the test environment by the time the hook runs — either the  | — | Idea — captured during feat_digest_executable_followups implementation (Story 5.1 vitest sweep) |
-| 14 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
-| 15 | P2 | [bug_vitest_jsdom_localstorage_failures](../02_product/planned_features/bug_vitest_jsdom_localstorage_failures/idea.md) | Bug | `pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error: | — | open. |
-| 16 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 17 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
+| 1 | P2 | [feat_study_clone_narrow_bounds](../02_product/planned_features/feat_study_clone_narrow_bounds/idea.md) | Feature | `feat_study_clone_from_previous` v1 ships verbatim-copy + editable-fields. The next iteration friction is: after cloning, the engineer must manually narrow the `search_space` bounds around the best-tr | — | Idea — deferred follow-up of [`feat_study_clone_from_previous`](../feat_study_clone_from_previous/) (per that spec's locked D-3). |
+| 2 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/idea.md) | Infra | Running an autonomous agent in a sibling git worktree while the operator's main checkout has the Docker Compose stack up exposes two surfaces that aren't designed for parallel work: | — | Idea — tangential observations from the autonomous `chore_reconciler_terminal_closed_no_poll` agent run (PR #216, merged 2026-05-23) |
+| 3 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| 4 | P2 | [chore_auto_followup_completed_parent_stop_chain_race](../02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race/idea.md) | Chore | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Idea — surfaced during the Epic 1+2 phase-gate GPT-5.5 review of `feat_auto_followup_studies` (cumulative-diff review finding F2, accepted in part as a future-work capture) |
+| 5 | P2 | [chore_auto_followup_e2e_chain_seed_helper](../02_product/planned_features/chore_auto_followup_e2e_chain_seed_helper/idea.md) | Chore | `feat_auto_followup_studies` Story 3.3 specified a Playwright E2E spec that seeds a 3-node chain (root R → middle M → leaf L) and asserts: | — | Idea |
+| 6 | P2 | [chore_dashboard_regen_quoted_pr_false_positive](../02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/idea.md) | Chore | [`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py#L572)'s priority-3 fuzzy match has two regexes: | — | Idea — surfaced during `chore_dashboard_pr_extraction_from_idea` empirical verification (2026-05-23) |
+| 7 | P2 | [chore_e2e_seed_acme_idea_obsolete](../02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/idea.md) | Chore | [`chore_e2e_seed_acme_helper_dead/idea.md`](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) (dated 2026-05-21) proposed two paths: | — | Idea — surfaced during `chore_migration_test_head_brittleness` `/idea-preflight` pick (2026-05-23) |
+| 8 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| 9 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| 10 | P2 | [bug_datatable_col_vis_density_localstorage_undefined_jsdom](../02_product/planned_features/bug_datatable_col_vis_density_localstorage_undefined_jsdom/idea.md) | Bug | The first integration test in the file (`toggling a column off via the menu removes its cells and persists to localStorage`, line 148) accesses `window.localStorage` successfully. By the time the 3rd– | — | Idea — captured during feat_study_clone_from_previous Story 2.1 vitest sweep |
+| 11 | P2 | [bug_dockerfile_missing_scripts_dir](../02_product/planned_features/bug_dockerfile_missing_scripts_dir/idea.md) | Bug | [`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`: | — | **Fixed** in PR #232 commit (this branch). Idea file captures the bug + the fix + the systemic lesson for future contributors. |
+| 12 | P2 | [bug_markdown_doc_localstorage_undefined_jsdom](../02_product/planned_features/bug_markdown_doc_localstorage_undefined_jsdom/idea.md) | Bug | The afterEach hook unconditionally calls `window.localStorage.removeItem(...)` after each test, but `window.localStorage` is `undefined` in the test environment by the time the hook runs — either the  | — | Idea — captured during feat_digest_executable_followups implementation (Story 5.1 vitest sweep) |
+| 13 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
+| 14 | P2 | [bug_vitest_jsdom_localstorage_failures](../02_product/planned_features/bug_vitest_jsdom_localstorage_failures/idea.md) | Bug | `pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error: | — | open. |
+| 15 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 16 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit |
 
 ## Dependency graph
 
