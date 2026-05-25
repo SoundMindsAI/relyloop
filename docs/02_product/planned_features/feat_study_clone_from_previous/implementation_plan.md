@@ -816,7 +816,7 @@ Per spec §16: backend + frontend deploy together from a single PR (RelyLoop CI 
 - [x] **Story 2.1** — Extend `PrefillValues` + write `buildPrefillFromStudy` helper + glossary entries
 - [x] **Story 2.2** — "Clone study" button + running-confirm + cloned-from banner + payload serializer hygiene
 - [x] **Story 2.3** — Deep-link `?clone_from` wiring on `/studies` page + invalid-param handling
-- [ ] **Story 3.1** — Playwright real-backend E2E + `ui-architecture.md` paragraph + follow-up idea verification
+- [x] **Story 3.1** — Playwright real-backend E2E + `ui-architecture.md` paragraph + follow-up idea verification
 
 ### Blocked items
 
