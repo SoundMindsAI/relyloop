@@ -397,9 +397,9 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">78 / 79</div>
-      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:99%"></span></div>
+      <div class="value">78 / 80</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">17</div>
+      <div class="value">18</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      1 idea-only feat/infra folders (not yet scoped into MVP1)
+      0 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">17</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_study_preflight_real_engine_integration">Study Preflight Real Engine Integration</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`feat_study_preflight_overlap_probe`&#x27;s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use…</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">16</span></h3>
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race">Auto Followup Completed Parent Stop Chain Race</a></div>
@@ -688,7 +675,19 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_study_preflight_real_engine_integration/feature_spec.md">Study Preflight Real Engine Integration</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/193">PR #193</a> <span>merged 2026-05-22</span>
+  </div>
+  <div class="one-liner">Replace AC-1 through AC-4b with real-engine variants that (a) seed `judgments.doc_id` rows for a representative query, (b) bulk-index a controlled subset of those `doc_id` values into the ES service-c</div>
+
+
+</div>
 
 </div>
 
@@ -1992,6 +1991,8 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
+  infra_study_preflight_real_engine_integration[&quot;study preflight real engine integration&quot;]
+  class infra_study_preflight_real_engine_integration spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2203,6 +2204,8 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
+  infra_study_preflight_real_engine_integration[&quot;study preflight real engine integration&quot;]
+  class infra_study_preflight_real_engine_integration spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
