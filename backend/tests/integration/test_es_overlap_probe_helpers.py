@@ -132,15 +132,22 @@ async def test_delete_overlap_probe_index_is_idempotent() -> None:
     es_url = _es_base_url()
     target = f"overlap-probe-helper-test-{uuid.uuid4().hex}"
 
-    # 404 path — index never created.
-    await delete_overlap_probe_index(es_url, target)  # must not raise
+    try:
+        # 404 path — index never created.
+        await delete_overlap_probe_index(es_url, target)  # must not raise
 
-    # 200 path — create then delete.
-    await bulk_index_overlap_probe_docs(es_url, target, ["x"])
-    await delete_overlap_probe_index(es_url, target)  # must not raise
+        # 200 path — create then delete.
+        await bulk_index_overlap_probe_docs(es_url, target, ["x"])
+        await delete_overlap_probe_index(es_url, target)  # must not raise
 
-    # Re-running the DELETE on the now-removed index is also clean.
-    await delete_overlap_probe_index(es_url, target)
+        # Re-running the DELETE on the now-removed index is also clean.
+        await delete_overlap_probe_index(es_url, target)
+    finally:
+        # Plan drift caught by GPT-5.5 final review: if bulk_index_... raises
+        # between PUT and the explicit DELETE assertions above, the helper-test
+        # index would leak. Belt-and-suspenders cleanup ensures isolation
+        # discipline matches the 5 rewritten AC tests + smoke tests (a)/(b).
+        await delete_overlap_probe_index(es_url, target)
 
 
 # ---------------------------------------------------------------------------
