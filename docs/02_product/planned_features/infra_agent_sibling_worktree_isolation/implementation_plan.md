@@ -1,7 +1,7 @@
 # Implementation Plan — Sibling-worktree isolation guidance in CLAUDE.md (Phase 1)
 
 **Date:** 2026-05-25
-**Status:** Draft
+**Status:** In Progress (PR #249 open; Phase 1 + Phase 2 shipped on the branch; final GPT-5.5 review converged at cycle 3)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):**
 - [`CLAUDE.md`](../../../../CLAUDE.md) — Absolute Rules #2 (secrets via mounted files), #7 (Conventional Commits), §"Bug Fix Protocol" (regression test discipline)
@@ -670,9 +670,13 @@ None. This feature is purely additive — adds one section + one test file. No e
 
 ### Current sprint
 
-- [ ] Story 1.1 — Add `## Working in sibling worktrees` section to CLAUDE.md
-- [ ] Story 1.2 — Add 5-test regression suite at `backend/tests/unit/docs/test_claude_md_sections.py`
-- [ ] Story 1.3 — Verify deferred-phase tracking artifacts satisfy AC-8
+- [x] Story 1.1 — Add `## Working in sibling worktrees` section to CLAUDE.md (commit `2c79bc32`)
+- [x] Story 1.2 — Add 5-test regression suite at `backend/tests/unit/docs/test_claude_md_sections.py` (commit `dc630ae4`)
+- [x] Story 1.3 — Verify deferred-phase tracking artifacts satisfy AC-8 (verified in session; no in-place edits needed)
+- [x] Story 2.1 — Write `scripts/run-tests-in-worktree.sh` + `make test-worktree` + smoke test (commit `b964ef20`)
+- [x] Story 2.2 — Runbook + CLAUDE.md shortcut subsection + remove shipped `phase2_idea.md` (commit `b964ef20`)
+- [x] Story 2.3 — Operator-path verification: `make test-worktree CMD="pytest backend/tests/unit/docs/ -v"` exited 0 against the live stack; zero leak; both default and CMD-override paths verified
+- [x] Final Gemini adjudication (commit `e2dcf333`) + final GPT-5.5 cycle 3 converged (commits `bdb35e59`, `a0131ab2`)
 
 ### Blocked items
 
