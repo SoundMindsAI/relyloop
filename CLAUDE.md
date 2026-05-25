@@ -365,6 +365,74 @@ When you add a `<select>`, filter dropdown, status badge, sort control, or any f
 - **Do not** suppress the WARN log from a failed OpenAI capability check. The log is the operator's signal that LLM-dependent features (judgment generation, digest narrative, chat tool dispatch) will degrade or refuse. Cache the partial result; surface in `/healthz`; never silently treat the endpoint as healthy.
 - **Do not** INSERT or UPDATE the `search_vector` column on any of the six tables that own one (clusters, studies, query_sets, query_templates, judgment_lists, conversations). Postgres maintains it via `GENERATED ALWAYS AS … STORED` — any write attempt fails with `cannot insert into column "search_vector"`. The SQLAlchemy ORM models intentionally do NOT declare the column for this reason. See [`docs/01_architecture/data-model.md` §"Full-text search vectors"](docs/01_architecture/data-model.md).
 
+## Working in sibling worktrees
+
+When an autonomous agent works in a sibling git worktree (e.g., `/private/tmp/relyloop-<slug>`) while the operator's main checkout (`/Users/ericstarr/relyloop`) has the Docker Compose stack running, the shared Docker bind mounts defined in [`docker-compose.yml`](docker-compose.yml) all anchor to the **main worktree**, not the sibling. Writes through a running shared container can land bytes in the wrong worktree silently (for writable mounts) or fail with `EROFS` (for read-only mounts). This was surfaced concretely by the `chore_reconciler_terminal_closed_no_poll` agent run ([PR #216](https://github.com/SoundMindsAI/relyloop/pull/216), merged 2026-05-23), where a migration file written via `docker cp` into a shared container's `/app/migrations/` appeared as an untracked file in the operator's main worktree.
+
+### Compose-anchored host paths
+
+The Compose stack at [`docker-compose.yml`](docker-compose.yml) binds these host paths into one or more service containers. Writes through a running shared container to the in-container target resolve to **the main worktree's** host path.
+
+| Host path | Writability | Service(s) | Failure mode (container-mediated write) |
+|---|---|---|---|
+| `./migrations/` | writable | `migrate` ([docker-compose.yml:76](docker-compose.yml#L76)), `api` ([docker-compose.yml:119](docker-compose.yml#L119)) | bytes silently propagate to main worktree's `./migrations/` |
+| `./alembic.ini` | read-only (`:ro`) | `migrate` ([docker-compose.yml:77](docker-compose.yml#L77)), `api` ([docker-compose.yml:120](docker-compose.yml#L120)) | container-mediated writes fail with `EROFS` / read-only filesystem; the file is anchored to the main worktree but cannot be modified through the shared container |
+| `./samples/` | read-only (`:ro`) | `api` ([docker-compose.yml:125](docker-compose.yml#L125)) | container-mediated writes fail with `EROFS` / read-only filesystem; the file is anchored to the main worktree but cannot be modified through the shared container |
+| `./data/postgres/` | writable | `postgres` ([docker-compose.yml:28](docker-compose.yml#L28)) | bytes silently propagate to main worktree's `./data/postgres/` |
+| `./data/redis/` | writable | `redis` ([docker-compose.yml:40](docker-compose.yml#L40)) | bytes silently propagate to main worktree's `./data/redis/` |
+| `./data/repo-clones/` | writable | `api` ([docker-compose.yml:112](docker-compose.yml#L112)), `worker` ([docker-compose.yml:167](docker-compose.yml#L167)) | bytes silently propagate to main worktree's `./data/repo-clones/` |
+
+If you edit `docker-compose.yml`, re-verify the line citations above in the same PR. The unit test at [`backend/tests/unit/docs/test_claude_md_sections.py`](backend/tests/unit/docs/test_claude_md_sections.py) does not enforce line-number freshness — it asserts only that the catalog rows for `./migrations/`, `./alembic.ini`, and `./samples/` do not list `worker`, that the row for `./data/repo-clones/` does list `worker`, and that the section contains no bare `DATABASE_URL=...` env var pointing at a database URL.
+
+### Safe paths
+
+**Direct writes from the sibling worktree's filesystem are always safe.** The `Edit`, `Write`, and `git` tools (and any plain Unix command run outside a container) write to the sibling's own copy of the file. This includes paths whose **base name** matches a Compose bind source: `/private/tmp/<slug>/backend/`, `/private/tmp/<slug>/ui/`, `/private/tmp/<slug>/docs/`, `/private/tmp/<slug>/migrations/0042_foo.py`, `/private/tmp/<slug>/samples/products.json`, and `/private/tmp/<slug>/alembic.ini` are all sibling-local. The Compose stack's bind mounts target the **main worktree's** `./migrations/`, not "any worktree's `migrations/`".
+
+**Writes through an already-running shared Compose service container resolve to the main worktree's bind source** — silently for writable mounts, loudly with `EROFS` for read-only mounts. Forbidden command shapes (whether invoked from a sibling worktree or anywhere else):
+
+- `docker cp <local> <container>:<bind-mounted-path>`
+- `docker compose cp <local> <service>:<bind-mounted-path>`
+- `docker exec <container> sh -c '... > <bind-mounted-path>'`
+- `docker compose exec <service> sh -c '... > <bind-mounted-path>'`
+
+The hazard is the bind source the running container resolves to, not the command form. Any debug stubs created during sibling-worktree work are still subject to the "Local-stub hygiene" rule below.
+
+### Running tests against a sibling worktree (one-shot container recipe)
+
+Use a one-shot `docker run` invocation that mounts the **sibling worktree's** source tree and joins the existing Compose network. The DB-secret mount honors Absolute Rule #2: never bare `DATABASE_URL=...` env var, always the `*_FILE`-mounted pattern matching `docker-compose.yml` lines 68 / 95 / 153.
+
+```bash
+# Run from the sibling worktree's root (e.g., /private/tmp/relyloop-<slug>).
+# $MAIN_REPO is the operator's main checkout (typically /Users/ericstarr/relyloop).
+MAIN_REPO=/Users/ericstarr/relyloop
+docker run --rm \
+  --network relyloop_default \
+  -e DATABASE_URL_FILE=/run/secrets/database_url \
+  -v "$MAIN_REPO/secrets/database_url:/run/secrets/database_url:ro" \
+  -v "$PWD/backend:/app/backend" \
+  -v "$PWD/migrations:/app/migrations" \
+  -v "$PWD/scripts:/app/scripts" \
+  -v "$PWD/pyproject.toml:/app/pyproject.toml:ro" \
+  -v "$PWD/uv.lock:/app/uv.lock:ro" \
+  -v "$PWD/alembic.ini:/app/alembic.ini:ro" \
+  -v "$PWD/docker-compose.yml:/app/docker-compose.yml:ro" \
+  -v "$PWD/Makefile:/app/Makefile:ro" \
+  -v "$PWD/samples:/app/samples:ro" \
+  "relyloop/api:${RELYLOOP_GIT_SHA:-dev}" \
+  pytest backend/tests/unit/ -v
+```
+
+### Worktree lifecycle (cross-reference)
+
+This section covers the **runtime data path** (what's safe to write to from inside a sibling worktree). For worktree **lifecycle** — audit before launching, spawn parallel test agents with `Agent({ isolation: "worktree" })`, and sweep stale worktrees after a feature merges — see [`impl-execute` SKILL.md](.claude/skills/impl-execute/SKILL.md) Step 0a, Step 6b, and Step 9.3. The two coverages are complementary, not redundant.
+
+### Deferred capabilities
+
+Two follow-on capabilities are tracked as deferred-phase ideas in the feature's planned-features folder, picked up when the friction recurs:
+
+- [`phase2_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md) — a `scripts/run-tests-in-worktree.sh` (or `make test-worktree` target) that wraps the recipe above.
+- [`phase3_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec).
+
 ## Bug Fix Protocol
 
 When fixing a bug, follow this sequence:
