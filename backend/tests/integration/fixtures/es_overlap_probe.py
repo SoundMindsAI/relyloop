@@ -272,8 +272,10 @@ async def bulk_index_overlap_probe_docs(
                 first_error = next(
                     (
                         item["index"].get("error")
-                        for item in payload["items"]
-                        if "error" in item.get("index", {})
+                        for item in payload.get("items", [])
+                        if isinstance(item, dict)
+                        and isinstance(item.get("index"), dict)
+                        and "error" in item["index"]
                     ),
                     None,
                 )
