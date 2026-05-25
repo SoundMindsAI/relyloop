@@ -651,7 +651,9 @@ def _extract_pr_number(pipe: str, plan: str, spec: str, idea: str = "") -> int |
     # before fuzzy matching so cites like ``| feat_study_lifecycle Phase 1
     # | All stories | Implemented (PR #18, #25) | …`` don't masquerade as
     # this feature's PR.
-    combined = _strip_dependency_table_rows(pipe + "\n" + plan + "\n" + spec)
+    combined = _strip_dependency_table_rows(
+        _strip_backtick_quoted_segments(pipe + "\n" + plan + "\n" + spec)
+    )
     m = re.search(r"PR[^a-zA-Z\n]{0,5}#(\d+)[^.\n]{0,80}merged", combined)
     if m:
         return int(m.group(1))
