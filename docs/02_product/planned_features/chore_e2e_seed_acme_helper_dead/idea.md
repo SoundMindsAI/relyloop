@@ -1,7 +1,7 @@
 # chore_e2e_seed_acme_helper_dead
 
 **Date:** 2026-05-21
-**Status:** Idea — surfaced during `chore_e2e_test_rows_isolation` Story 1.2 coverage audit
+**Status:** Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR.
 **Priority:** Backlog
 **Origin:** Surfaced by [`ui/tests/e2e/helpers/coverage-audit.md`](../../../../ui/tests/e2e/helpers/coverage-audit.md) — the §3.4 DoD audit found `seedAcmeProductsChain` at [`ui/tests/e2e/helpers/seed.ts:378`](../../../../ui/tests/e2e/helpers/seed.ts) has zero Playwright spec callers in `ui/tests/e2e/*.spec.ts`.
 **Depends on:** None.

@@ -141,13 +141,11 @@ Implementation in progress — resume to finish
 |---|---|---|---|---|---|---|
 | 1 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
 
-### Plan (0)
+### Plan (1)
 
-_None._
-
-### Spec (0)
-
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [chore_e2e_seed_acme_idea_obsolete](../02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/feature_spec.md) | Chore | Both stale artifacts updated to reflect reality. | — | [PR #247](https://github.com/SoundMindsAI/relyloop/pull/247) |
 
 ### Idea (17)
 
