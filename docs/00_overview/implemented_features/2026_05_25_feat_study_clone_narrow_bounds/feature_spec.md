@@ -1,7 +1,7 @@
 # Feature Specification — Clone study: "narrow bounds" smart-rewrite action
 
 **Date:** 2026-05-25
-**Status:** Draft (pending GPT-5.5 cycle 1)
+**Status:** Implemented (PR #247, squash-merged 2026-05-25 as `8b58d3d9`)
 **Owners:** soundminds.ai (engineering)
 **Related docs:**
 - [idea.md](idea.md) — preflighted 2026-05-25

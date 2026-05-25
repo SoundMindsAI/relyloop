@@ -6,34 +6,28 @@ _Reflects feature-folder state as of **2026-05-25** (latest mtime of any planned
 
 ## Next up
 
-**[feat_study_clone_narrow_bounds](../02_product/planned_features/feat_study_clone_narrow_bounds/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP1 features shipped 🎉
 
-> A new opt-in checkbox on Step 4 of the cloned `CreateStudyModal` rewrites the prefilled `search_space_text` JSON so each numeric `low/high` clamps to ±20% around the source study's winning param value (read from `GET /api/v1/studies/{id}/di
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/02_product/planned_features/feat_study_clone_narrow_bounds/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **77 / 78** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **78 / 78** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 16 important to file, not blocking |
+| → P2 (default) | 15 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 7 |
-| Legacy "Path to MVP1" | 15 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 14 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (96)
+### Done (97)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -62,6 +56,7 @@ Plan approved; run /impl-execute to ship
 | [feat_studies_ui](implemented_features/2026_05_12_feat_studies_ui/feature_spec.md) | Feature | A Next.js app provides 9 of the 11 MVP1 routes from [`ui-architecture.md` §"Routes (MVP1)"](../01_architecture/ui-architecture.md): dashboard, clusters list/detail, query sets list/detail, judgment re | `infra_foundation` `feat_study_lifecycle` `feat_digest_proposal` `feat_llm_judgments` `infra_adapter_elastic` | [PR #50](https://github.com/SoundMindsAI/relyloop/pull/50) merged 2026-05-12 |
 | [feat_study_baseline_trial](implemented_features/2026_05_25_feat_study_baseline_trial/feature_spec.md) | Feature | The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence ana | — | [PR #180](https://github.com/SoundMindsAI/relyloop/pull/180) merged 2026-05-21 |
 | [feat_study_clone_from_previous](implemented_features/2026_05_25_feat_study_clone_from_previous/feature_spec.md) | Feature | A "Clone study" button on the study-detail page opens `CreateStudyModal` pre-filled with the source study's fields (cluster, target, query set, judgment list, template, search space, objective, config | — | [PR #243](https://github.com/SoundMindsAI/relyloop/pull/243) merged 2026-05-25 |
+| [feat_study_clone_narrow_bounds](implemented_features/2026_05_25_feat_study_clone_narrow_bounds/feature_spec.md) | Feature | A new opt-in checkbox on Step 4 of the cloned `CreateStudyModal` rewrites the prefilled `search_space_text` JSON so each numeric `low/high` clamps to ±20% around the source study's winning param value | — | [PR #247](https://github.com/SoundMindsAI/relyloop/pull/247) merged 2026-05-25 |
 | [feat_study_lifecycle](implemented_features/2026_05_10_feat_study_lifecycle/feature_spec.md) | Feature | A relevance engineer creates a study via API or chat, the orchestrator enqueues N parallel `run_trial` jobs, trials accumulate in real time on the study detail page, the orchestrator detects stop-cond | — | [PR #18](https://github.com/SoundMindsAI/relyloop/pull/18) merged 2026-05-10 |
 | [feat_study_preflight_overlap_probe](implemented_features/2026_05_22_feat_study_preflight_overlap_probe/feature_spec.md) | Feature | `POST /api/v1/studies` issues a single bounded `ids`-existence query against the study's target asking "for the *first* query in the query set that has any judgments (chosen deterministically by `id A | — | [PR #193](https://github.com/SoundMindsAI/relyloop/pull/193) merged 2026-05-21 |
 | [feat_study_target_judgment_mismatch_guard](implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard/feature_spec.md) | Feature | `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422). | — | [PR #184](https://github.com/SoundMindsAI/relyloop/pull/184) merged 2026-05-21 |
@@ -138,11 +133,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [feat_study_clone_narrow_bounds](../02_product/planned_features/feat_study_clone_narrow_bounds/feature_spec.md) | Feature | A new opt-in checkbox on Step 4 of the cloned `CreateStudyModal` rewrites the prefilled `search_space_text` JSON so each numeric `low/high` clamps to ±20% around the source study's winning param value | — | [PR #243](https://github.com/SoundMindsAI/relyloop/pull/243) |
+_None._
 
 ### Spec (0)
 
@@ -180,8 +173,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_study_clone_narrow_bounds["study clone narrow bounds"]
-  class feat_study_clone_narrow_bounds plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -336,6 +327,8 @@ graph LR
   class feat_study_baseline_trial done;
   feat_study_clone_from_previous["study clone from previous"]
   class feat_study_clone_from_previous done;
+  feat_study_clone_narrow_bounds["study clone narrow bounds"]
+  class feat_study_clone_narrow_bounds done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
