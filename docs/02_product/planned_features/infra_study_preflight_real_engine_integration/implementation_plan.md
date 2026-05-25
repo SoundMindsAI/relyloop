@@ -1,7 +1,7 @@
 # Implementation Plan — infra_study_preflight_real_engine_integration
 
 **Date:** 2026-05-25
-**Status:** Draft
+**Status:** In Progress (all 3 stories committed; PR not yet opened)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):**
 - [CLAUDE.md](../../../../CLAUDE.md) — Absolute Rules #2, #4, #7 (Conventional Commits), test conventions, integration-test mocking policy
@@ -460,9 +460,9 @@ After merge, no operator action required. CI will continue to run the workflow; 
 
 ### Current sprint
 
-- [ ] Story 1.1 — Extract reachability helper
-- [ ] Story 1.2 — New fixture helper module + 4 smoke tests
-- [ ] Story 1.3 — Rewrite AC-1..AC-4b + 2 CI sentinels + docs
+- [x] Story 1.1 — Extract reachability helper (committed)
+- [x] Story 1.2 — New fixture helper module + 4 smoke tests + 2 CI sentinels (committed; sentinels co-located with the helper smoke file rather than split into Story 1.3 — same test module, logical home)
+- [x] Story 1.3 — Rewrite AC-1..AC-4b + docs refresh (committed)
 
 ### Blocked items
 
