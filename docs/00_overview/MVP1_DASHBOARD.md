@@ -6,9 +6,15 @@ _Reflects feature-folder state as of **2026-05-25** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP1 features shipped 🎉
+**[feat_study_baseline_trial](../02_product/planned_features/feat_study_baseline_trial/feature_spec.md)** — Feature, currently in **Spec**
 
-Pull from the Idea backlog or capture a new feature spec.
+> The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence analytics + auto-followup gate + digest nar
+
+Spec exists; run /pipeline to generate the implementation plan + ship
+
+```bash
+/pipeline docs/02_product/planned_features/feat_study_baseline_trial --auto
+```
 
 ## MVP1 Progress
 
@@ -172,6 +178,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_baseline_trial["study baseline trial"]
+  class feat_study_baseline_trial spec;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]

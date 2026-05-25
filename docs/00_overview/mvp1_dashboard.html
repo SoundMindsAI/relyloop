@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP1 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Spec</strong></div>
+    <div class="title"><a href="../../docs/02_product/planned_features/feat_study_baseline_trial/feature_spec.md">Study Baseline Trial</a></div>
+    <div class="one-liner">The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence analytics + auto-followup gate + digest nar</div>
+    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
+    <code class="cmd">/pipeline docs/02_product/planned_features/feat_study_baseline_trial --auto</code>
   </div>
 </section>
 
@@ -395,7 +395,7 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
       <div class="value">76 / 76</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
@@ -442,7 +442,7 @@ footer {
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      4 idea-only feat/infra folders (not yet scoped into MVP1)
+      3 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -688,7 +688,19 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_study_baseline_trial/feature_spec.md">Study Baseline Trial</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/180">PR #180</a> <span>merged 2026-05-21</span>
+  </div>
+  <div class="one-liner">The orchestrator runs a single non-Optuna baseline trial before Optuna starts, persists it as a real `Trial` row, stamps `studies.baseline_metric` + `studies.baseline_trial_id`, and the confidence ana</div>
+
+
+</div>
 
 </div>
 
@@ -1952,6 +1964,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_baseline_trial[&quot;study baseline trial&quot;]
+  class feat_study_baseline_trial spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2157,6 +2171,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_baseline_trial[&quot;study baseline trial&quot;]
+  class feat_study_baseline_trial spec;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
