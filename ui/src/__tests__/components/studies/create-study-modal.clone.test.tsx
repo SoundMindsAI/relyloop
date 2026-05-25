@@ -160,6 +160,17 @@ function mockBackend() {
       postBodies.push(body);
       return HttpResponse.json({ id: 'st-new', name: 'cloned', status: 'queued' });
     }),
+    // feat_study_clone_narrow_bounds Story 1.3 — the modal now calls
+    // useStudyDigest unconditionally when cloneSource is set (Rules of
+    // Hooks; gated via { enabled: Boolean(cloneSourceId) }). These v1
+    // clone tests don't exercise Step 4, so a 404 DIGEST_NOT_READY keeps
+    // the FR-1 narrow-bounds gate closed and the surface invisible.
+    http.get(`${API_BASE}/api/v1/studies/${CLONE_SOURCE_ID}/digest`, () =>
+      HttpResponse.json(
+        { detail: { error_code: 'DIGEST_NOT_READY', message: 'no digest', retryable: true } },
+        { status: 404 },
+      ),
+    ),
   );
   return { postBodies };
 }

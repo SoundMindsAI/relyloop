@@ -277,6 +277,25 @@ export const glossary = {
     ariaLabel: 'About the cloned-from banner',
   },
 
+  // feat_study_clone_narrow_bounds spec FR-13. Opt-in Step-4 checkbox that
+  // rewrites the cloned search_space ±20% around the source's winning values.
+  'study.narrow_bounds_checkbox': {
+    short:
+      "Tightens each numeric range to ±20% around the source's winning values. Categoricals and missing-from-winner params are left untouched.",
+    long: [
+      "Each numeric `low`/`high` clamps to ±20% around the source's winning value (read from its recommended config). Narrowing never widens — clamps intersect with the original bounds.",
+      '',
+      '- `float` → `[winner × 0.8, winner × 1.2]`',
+      '- `int` → same clamp, then rounded to integer bounds (`ceil` low, `floor` high — tightens inward to the nearest valid integer pair); single-value ranges (`low === high`) are valid',
+      "- `categorical` → left untouched (choices aren't subsetted by the winning value)",
+      '',
+      '**Skipped:** params not in the winner, winners outside current bounds, log-uniform floats whose narrowed `low` would land at or below zero.',
+      '',
+      "**Uncheck to restore the source's bounds** — manual edits to the rewritten JSON are discarded.",
+    ].join('\n'),
+    ariaLabel: 'About the narrow-bounds checkbox',
+  },
+
   // -------------------------------------------------------------------------
   // Trials table (FR-8)
   // -------------------------------------------------------------------------

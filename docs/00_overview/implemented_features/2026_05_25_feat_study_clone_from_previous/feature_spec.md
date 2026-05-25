@@ -97,6 +97,7 @@ This spec adds two new error codes (`PARENT_STUDY_NOT_FOUND`, `PARENT_STUDY_WRON
 ### Out of scope (deferred / cross-feature)
 
 - **"Narrow bounds" smart action** — deferred to `feat_study_clone_narrow_bounds` (per D-3). The follow-up idea folder gets created in §15 doc-update step.
+  - **Update (2026-05-25):** the narrow-bounds smart action shipped via [`feat_study_clone_narrow_bounds`](../../../02_product/planned_features/feat_study_clone_narrow_bounds/feature_spec.md). See its FR-1 through FR-14 for the implemented surface — Step-4 opt-in checkbox + reference panel; pure-frontend rewrite via the `narrowBoundsAroundWinner` helper at `ui/src/lib/narrow-bounds.ts`; gated on `cloneSource` + `useStudyDigest` success + non-empty `recommended_config`.
 - **Read-only "best trial params" reference panel** in the modal — OQ-1 default = no; deferred to the narrow-bounds follow-up that owns the smart-rewrite UX.
 - **Lineage telemetry event** (Langfuse / SigNoz) — OQ-2 default = no; captured as MVP2 follow-up.
 - **`study.cloned` audit event** — MVP2 (audit_log table doesn't exist in MVP1).
