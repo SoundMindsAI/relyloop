@@ -496,6 +496,32 @@ def _strip_dependency_table_rows(text: str) -> str:
     return _DEP_ROW_RE.sub("", text)
 
 
+def _strip_backtick_quoted_segments(text: str) -> str:
+    """Remove backtick-fenced segments before fuzzy PR# matching.
+
+    Strips three fence flavors in one pass: multi-line triple-backtick
+    blocks (```...``` spanning newlines), single-line triple-backtick
+    fences (```...``` on one line), and empty fences (``````). A second
+    pass strips inline backtick spans (`...`, including the empty span
+    `` per spec AC-11).
+
+    The 3-or-more backtick quantifier (per spec FR-1) accommodates
+    markdown's 4+ backtick convention for embedding 3-backtick blocks.
+
+    Composes with _strip_dependency_table_rows in _extract_pr_number's
+    priority-3 path (see chore_dashboard_regen_quoted_pr_false_positive
+    spec FR-2). Without this strip, quoted PR-merge phrases like
+    ``merged via PR #4`` in spec narrative would false-positively match
+    the priority-3 fuzzy regex and return another feature's PR# as
+    this feature's own.
+    """
+    # Pass A: triple-backtick fences (multi-line, single-line, empty).
+    text = re.sub(r"`{3,}.*?`{3,}", "", text, flags=re.DOTALL)
+    # Pass B: inline backtick spans (zero-or-more chars; matches empty ``).
+    text = re.sub(r"`[^`\n]*`", "", text)
+    return text
+
+
 # Spec FR-2 Pattern A — own-PR shipped status with optional markdown link.
 # Each \b is immediately after a \d+ capture (digit↔non-digit transition);
 # placing \b after `]` or `)` would fail because both are non-word characters.
