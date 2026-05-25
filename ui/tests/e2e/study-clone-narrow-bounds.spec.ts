@@ -24,8 +24,6 @@ import { expect, test } from '@playwright/test';
 
 import { seedFullChain, seedStudyCompletedWithDigest } from './helpers/seed';
 
-const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
-
 test('Clone study → narrow bounds → submit → persisted search_space is clamped', async ({
   page,
   request,

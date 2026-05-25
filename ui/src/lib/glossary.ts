@@ -286,7 +286,7 @@ export const glossary = {
       "Each numeric `low`/`high` clamps to ±20% around the source's winning value (read from its recommended config). Narrowing never widens — clamps intersect with the original bounds.",
       '',
       '- `float` → `[winner × 0.8, winner × 1.2]`',
-      '- `int` → same clamp, rounded outward (`ceil` low / `floor` high); single-value ranges (`low === high`) are valid',
+      '- `int` → same clamp, then rounded to integer bounds (`ceil` low, `floor` high — tightens inward to the nearest valid integer pair); single-value ranges (`low === high`) are valid',
       "- `categorical` → left untouched (choices aren't subsetted by the winning value)",
       '',
       '**Skipped:** params not in the winner, winners outside current bounds, log-uniform floats whose narrowed `low` would land at or below zero.',
