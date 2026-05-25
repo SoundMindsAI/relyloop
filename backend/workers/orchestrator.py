@@ -537,10 +537,13 @@ async def _wait_for_baseline_trial_by_id(
     trial_id: str,
     wait_s: float,
 ) -> Trial | None:
-    """Poll trials by ``id = trial_id`` until terminal or timeout.
+    """Poll trials by ``id = trial_id`` until terminal, cancel, or timeout.
 
     Used when ``BaselineEnqueueResult.kind == 'enqueued'`` — the orchestrator
     knows the exact trial_id it generated.
+
+    Returns ``None`` on timeout OR on cancel (status leaves 'running'); the
+    caller's polling loop sees the status change on its own tick and exits.
     """
     deadline = asyncio.get_event_loop().time() + wait_s
     while True:
@@ -552,8 +555,10 @@ async def _wait_for_baseline_trial_by_id(
                 .limit(1)
             )
             trial = (await db.execute(stmt)).scalar_one_or_none()
-        if trial is not None:
-            return trial
+            if trial is not None:
+                return trial
+            if await _study_cancelled(db, study_id):
+                return None
         if asyncio.get_event_loop().time() >= deadline:
             return None
         await asyncio.sleep(_REPLENISH_TICK_S)
@@ -564,7 +569,7 @@ async def _wait_for_baseline_trial_by_study(
     study_id: str,
     wait_s: float,
 ) -> Trial | None:
-    """Poll trials by ``study_id + is_baseline=TRUE`` until terminal or timeout.
+    """Poll trials by ``study_id + is_baseline=TRUE`` until terminal, cancel, or timeout.
 
     Used when ``BaselineEnqueueResult.kind == 'deduped'`` — the original
     enqueue's trial_id is unknown to this orchestrator invocation, so we
@@ -574,11 +579,25 @@ async def _wait_for_baseline_trial_by_study(
     while True:
         async with session_factory() as db:
             trial = await _find_terminal_baseline_row(db, study_id)
-        if trial is not None:
-            return trial
+            if trial is not None:
+                return trial
+            if await _study_cancelled(db, study_id):
+                return None
         if asyncio.get_event_loop().time() >= deadline:
             return None
         await asyncio.sleep(_REPLENISH_TICK_S)
+
+
+async def _study_cancelled(db: AsyncSession, study_id: str) -> bool:
+    """Return True if the study is no longer ``running``.
+
+    Cancel-aware bail-out for the baseline wait helpers — without this, an
+    operator cancel mid-baseline would have to wait out the full
+    ``_BASELINE_WAIT_FLOOR_S`` (60s) before the orchestrator's polling loop
+    saw the new status.
+    """
+    current = await repo.get_study(db, study_id)
+    return current is None or current.status != "running"
 
 
 # ---------------------------------------------------------------------------
