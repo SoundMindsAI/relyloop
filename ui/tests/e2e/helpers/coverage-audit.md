@@ -25,7 +25,6 @@ None as of 2026-05-25 — see commit `2cbcb93b` for the helper's first real call
 
 ## Verdict
 
-8 of 9 helpers in the spec §2 inventory are covered by at least one
-existing Playwright spec; the 9th (`seedAcmeProductsChain`) is dead code,
-captured as a separate idea file. The cleanup registry will be exercised
+9 of 9 helpers in the spec §2 inventory are covered by at least one
+existing Playwright spec. The cleanup registry will be exercised
 on every run by ≥1 caller for every code path the system needs to drain.
