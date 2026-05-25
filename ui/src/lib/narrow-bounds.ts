@@ -75,7 +75,14 @@ export function narrowBoundsAroundWinner(
   winnerParams: Record<string, unknown>,
   percent: number = DEFAULT_PERCENT,
 ): NarrowBoundsResult {
-  const parsed = JSON.parse(spaceJson) as SearchSpaceShape;
+  const parsed = JSON.parse(spaceJson) as SearchSpaceShape | null;
+  // Defensive: valid JSON includes ``null``, ``[]``, ``{}``, etc. — anything
+  // that doesn't carry ``params`` returns a no-op result rather than throwing
+  // TypeError. The server-side ``SearchSpace.model_validate`` is the canonical
+  // structural validator; this helper is the rewriter, not the validator.
+  if (parsed === null || typeof parsed !== 'object' || !parsed.params) {
+    return { json: spaceJson, narrowed: [], skipped: [] };
+  }
   const narrowed: string[] = [];
   const skipped: { name: string; reason: SkipReason }[] = [];
   const p = percent / 100;
@@ -94,6 +101,15 @@ export function narrowBoundsAroundWinner(
     const winner = winnerParams[name];
     if (typeof winner !== 'number') {
       skipped.push({ name, reason: 'non_numeric_winner' });
+      continue;
+    }
+    // D-10 explicit zero-winner skip — applies to BOTH float and int types.
+    // Without this guard, IntParam with winner=0 falls through to ``[0, 0]``
+    // (because ``0 > 0`` is false), inconsistent with FloatParam where the
+    // strict-inequality check catches it. The spec lock says winner=0 always
+    // skips with degenerate_intersection — no positive-width range.
+    if (winner === 0) {
+      skipped.push({ name, reason: 'degenerate_intersection' });
       continue;
     }
 

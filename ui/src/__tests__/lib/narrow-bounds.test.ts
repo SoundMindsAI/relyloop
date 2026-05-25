@@ -266,4 +266,35 @@ describe('narrowBoundsAroundWinner — multi-param + edge cases', () => {
   it('malformed JSON throws SyntaxError', () => {
     expect(() => narrowBoundsAroundWinner('not json', {})).toThrow(SyntaxError);
   });
+
+  it('parses to null → no-op (returns input bytes, empty narrowed + skipped)', () => {
+    // Defensive case (Gemini-flagged): JSON.parse('null') is valid JSON
+    // but not a SearchSpace shape. Don't TypeError — return no-op.
+    const result = narrowBoundsAroundWinner('null', {});
+    expect(result.narrowed).toEqual([]);
+    expect(result.skipped).toEqual([]);
+    expect(result.json).toBe('null');
+  });
+
+  it('parses to object without params → no-op', () => {
+    const result = narrowBoundsAroundWinner('{}', { x: 1 });
+    expect(result.narrowed).toEqual([]);
+    expect(result.skipped).toEqual([]);
+    expect(result.json).toBe('{}');
+  });
+
+  it('Int winner = 0 → degenerate_intersection skip (D-10 consistency with float)', () => {
+    // Without the explicit winner === 0 guard, IntParam with winner=0
+    // would fall through to [0, 0] because `0 > 0` is false. Spec lock
+    // D-10 says winner=0 always collapses to degenerate.
+    const input = spaceJson({
+      n: { type: 'int', low: -10, high: 10 },
+    });
+    const result = narrowBoundsAroundWinner(input, { n: 0 }, 20);
+    expect(result.narrowed).toEqual([]);
+    expect(result.skipped).toEqual([{ name: 'n', reason: 'degenerate_intersection' }]);
+    const parsed = parseSpace(result.json);
+    // Original bounds preserved.
+    expect(parsed.params['n']).toEqual({ type: 'int', low: -10, high: 10 });
+  });
 });

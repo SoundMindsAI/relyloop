@@ -402,11 +402,14 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
   const originalSpaceJsonRef = useRef<string | null>(null);
 
   // FR-1: checkbox + reference panel render iff both gates pass.
+  // Optional chaining + nullish coalescing defends against an API shape
+  // that drops ``recommended_config`` (the Pydantic model has it required +
+  // non-null, but an evolving wire contract or test fixture could send a
+  // partial response — better to fail closed).
   const narrowBoundsGateOpen =
     Boolean(initialValues?.cloneSource) &&
     sourceDigest.status === 'success' &&
-    sourceDigest.data !== undefined &&
-    Object.keys(sourceDigest.data.recommended_config).length > 0;
+    Object.keys(sourceDigest.data?.recommended_config ?? {}).length > 0;
 
   // FR-7: reset checkbox + ref on every modal close.
   useEffect(() => {
