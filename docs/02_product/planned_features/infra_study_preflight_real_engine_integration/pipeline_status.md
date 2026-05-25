@@ -13,7 +13,12 @@
 - Phases: 1 total, 1 covered by spec (single phase)
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-25
+- File: [implementation_plan.md](implementation_plan.md)
+- Cross-model review: GPT-5.5 passed (3 cycles — 13 findings total, all accepted, severity descent: Medium-dominant → Medium → Medium/Low, no High at any cycle)
+- Stories: 3 total in Epic 1 (sequential — Story 1.1 refactor → Story 1.2 fixture+smoke → Story 1.3 rewrites+sentinels+docs)
+- Phases covered: single phase (the only phase)
 
 ## Implementation
 - Status: Not started
