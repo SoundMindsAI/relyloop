@@ -35,21 +35,23 @@ import asyncio
 import hashlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 
 import optuna
 import structlog
 import uuid_utils
 from arq.connections import ArqRedis, RedisSettings, create_pool
 from sqlalchemy import select, text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
-from backend.app.db.models import Trial
+from backend.app.db.models import Study, Trial
 from backend.app.db.repo.trial import TrialsSummary, aggregate_trials_summary
 from backend.app.db.session import get_session_factory
+from backend.app.domain.study.baseline_resolver import resolve_baseline_params
 from backend.app.domain.study.search_space import SearchSpace, apply_search_space
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
 from backend.app.services import study_state
@@ -62,6 +64,18 @@ logger = structlog.get_logger(__name__)
 
 _REPLENISH_TICK_S = 1.0
 """Spec §19 decision log: orchestrator polls every 1s."""
+
+_BASELINE_WAIT_CEILING_S = 600.0
+"""feat_study_baseline_trial FR-2 step 5: maximum orchestrator wait for the
+baseline trial (10 minutes — long enough for slow engines, short enough
+that operators notice). For trial_timeout_s > 570s, wait deliberately
+gives up before the worker; FR-10 self-stamp covers late completions."""
+
+_BASELINE_WAIT_FLOOR_S = 60.0
+"""Minimum baseline wait — floor for studies with very short trial timeouts."""
+
+_BASELINE_WAIT_MARGIN_S = 30.0
+"""Slack above the worker's per-trial timeout for queue + DB latency."""
 
 _DRAIN_TIMEOUT_S = 30.0
 """Spec FR-4 cancel path: wait up to 30s for in-flight trials to terminate."""
@@ -168,6 +182,12 @@ async def start_study(ctx: dict[str, Any], study_id: str) -> None:
     # exception path here re-raises for Arq retry, which is a no-op since
     # the JSON won't change on retry).
     space = SearchSpace.model_validate(study.search_space)
+
+    # C'. Baseline phase (feat_study_baseline_trial FR-2). Runs ONCE between
+    # search-space parse and the Optuna polling loop. Skipped silently when
+    # the study already has baseline_trial_id stamped (resume path) or when
+    # the resolver returns None (no params to run).
+    await _run_baseline_phase(session_factory, arq_pool, study_id)
 
     # D. Polling loop — fresh session per tick (C3-F2 cycle-3 fix).
     settings = get_settings()
@@ -310,6 +330,255 @@ async def resume_study(ctx: dict[str, Any], study_id: str) -> None:
     study, per Phase 2 Story 1.3).
     """
     await start_study(ctx, study_id)
+
+
+# ---------------------------------------------------------------------------
+# Baseline phase (feat_study_baseline_trial FR-2 + FR-3 + FR-12)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class BaselineEnqueueResult:
+    """Discriminated result from :func:`_resolve_and_enqueue_baseline`.
+
+    feat_study_baseline_trial plan-cycle-2 F2: the orchestrator must
+    distinguish three terminal cases that drive different wait strategies.
+
+    * ``"skipped"``  — resolver returned None (no params) OR study already
+      has a complete baseline stamped (resume path). Proceed straight to
+      Optuna phase.
+    * ``"enqueued"`` — fresh job accepted by Arq. Wait by ``trial_id``.
+    * ``"deduped"``  — Arq rejected as duplicate (an earlier orchestrator
+      invocation already enqueued for this study). Wait by ``study_id``
+      since the original ``trial_id`` is unknown to this invocation.
+    """
+
+    kind: Literal["skipped", "enqueued", "deduped"]
+    trial_id: str | None = None  # set when kind == "enqueued"
+
+
+async def _run_baseline_phase(
+    session_factory: async_sessionmaker[AsyncSession],
+    arq_pool: ArqRedis,
+    study_id: str,
+) -> None:
+    """Run the FR-2 baseline phase: resolve → enqueue → wait → stamp.
+
+    Single entry point called from ``start_study``. Handles all three
+    BaselineEnqueueResult kinds + the resume path (where a complete
+    baseline row already exists). NEVER raises — failures are logged
+    and the orchestrator proceeds to the Optuna phase.
+    """
+    # 1. Resume re-stamp: if a complete baseline already exists but
+    # baseline_trial_id is NULL (worker crashed mid-stamp), stamp now.
+    async with session_factory() as db:
+        study = await repo.get_study(db, study_id)
+        if study is None:
+            return
+        if study.baseline_trial_id is not None:
+            # Already stamped — nothing to do.
+            return
+        existing = await _find_terminal_baseline_row(db, study_id)
+        if existing is not None and existing.status == "complete":
+            try:
+                await study_state.stamp_baseline_trial(
+                    db, study_id, existing.id, float(existing.primary_metric or 0.0)
+                )
+                await db.commit()
+            except (
+                study_state.BaselineTrialNotFound,
+                study_state.InvalidBaselineTrialState,
+            ):
+                await db.rollback()
+            return
+        if existing is not None and existing.status == "failed":
+            # Failed baseline (from a prior run) — do NOT retry; proceed.
+            logger.info(
+                "baseline phase skipped — prior baseline failed",
+                event_type="baseline_skipped",
+                study_id=study_id,
+                reason="prior_baseline_failed",
+            )
+            return
+
+    # 2. Resolve params + enqueue.
+    async with session_factory() as db:
+        study = await repo.get_study(db, study_id)
+        if study is None:
+            return
+        result = await _resolve_and_enqueue_baseline(db, arq_pool, study)
+
+    # 3. Dispatch.
+    if result.kind == "skipped":
+        return
+
+    wait_s = _compute_baseline_wait_s(study)
+
+    trial: Trial | None
+    if result.kind == "enqueued":
+        if result.trial_id is None:
+            raise RuntimeError("BaselineEnqueueResult(kind='enqueued') must carry a trial_id")
+        trial = await _wait_for_baseline_trial_by_id(
+            session_factory, study_id, result.trial_id, wait_s
+        )
+    else:  # deduped
+        trial = await _wait_for_baseline_trial_by_study(session_factory, study_id, wait_s)
+
+    # 4. Stamp (or log + proceed).
+    if trial is None:
+        logger.warning(
+            "baseline wait timeout — proceeding to Optuna; worker will self-stamp",
+            event_type="baseline_wait_timeout",
+            study_id=study_id,
+            wait_s=wait_s,
+        )
+        return
+    if trial.status == "complete":
+        async with session_factory() as db:
+            try:
+                await study_state.stamp_baseline_trial(
+                    db, study_id, trial.id, float(trial.primary_metric or 0.0)
+                )
+                await db.commit()
+            except (
+                study_state.BaselineTrialNotFound,
+                study_state.InvalidBaselineTrialState,
+            ) as exc:
+                await db.rollback()
+                logger.warning(
+                    "baseline stamp from orchestrator failed — worker self-stamp should cover",
+                    event_type="baseline_orchestrator_stamp_error",
+                    study_id=study_id,
+                    error=str(exc)[:200],
+                )
+    else:  # failed
+        logger.warning(
+            "baseline trial failed — proceeding to Optuna without baseline",
+            event_type="baseline_failed",
+            study_id=study_id,
+            error=(trial.error or "")[:200],
+        )
+
+
+def _compute_baseline_wait_s(study: Study) -> float:
+    """FR-2 step 5: ``min(600, max(60, trial_timeout_s + 30))``."""
+    settings = get_settings()
+    trial_timeout_s = study.config.get("trial_timeout_s") or settings.studies_default_timeout_s
+    return min(
+        _BASELINE_WAIT_CEILING_S,
+        max(_BASELINE_WAIT_FLOOR_S, float(trial_timeout_s) + _BASELINE_WAIT_MARGIN_S),
+    )
+
+
+async def _find_terminal_baseline_row(db: AsyncSession, study_id: str) -> Trial | None:
+    """Return any terminal is_baseline=TRUE row for this study, or None."""
+    stmt = (
+        select(Trial)
+        .where(Trial.study_id == study_id)
+        .where(Trial.is_baseline.is_(True))
+        .where(Trial.status.in_(("complete", "failed", "pruned")))
+        .limit(1)
+    )
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+
+async def _resolve_and_enqueue_baseline(
+    db: AsyncSession,
+    arq_pool: ArqRedis,
+    study: Study,
+) -> BaselineEnqueueResult:
+    """Resolve baseline params (FR-3) and enqueue the Arq job (FR-2 step 3).
+
+    Uses ``_job_id=f"baseline:{study.id}"`` for Arq deduplication so a
+    resume invocation cannot enqueue a duplicate baseline job (defense
+    layer 1 of the 3-layer resume-race guard per D-16).
+    """
+    params = await resolve_baseline_params(db, study)
+    if params is None:
+        logger.info(
+            "baseline phase skipped — resolver returned no params",
+            event_type="baseline_skipped",
+            study_id=study.id,
+            reason="resolver_returned_none",
+        )
+        return BaselineEnqueueResult(kind="skipped")
+
+    trial_id = str(uuid_utils.uuid7())
+    job_id = f"baseline:{study.id}"
+    job = await arq_pool.enqueue_job(
+        "run_baseline_trial",
+        study.id,
+        trial_id,
+        params,
+        _job_id=job_id,
+    )
+    if job is None:
+        # Arq rejected as duplicate — original job still queued/running.
+        logger.info(
+            "baseline enqueue deduped — original job still in flight",
+            event_type="baseline_enqueue_deduped",
+            study_id=study.id,
+            attempted_trial_id=trial_id,
+        )
+        return BaselineEnqueueResult(kind="deduped")
+
+    logger.info(
+        "baseline trial enqueued",
+        event_type="baseline_enqueued",
+        study_id=study.id,
+        trial_id=trial_id,
+    )
+    return BaselineEnqueueResult(kind="enqueued", trial_id=trial_id)
+
+
+async def _wait_for_baseline_trial_by_id(
+    session_factory: async_sessionmaker[AsyncSession],
+    study_id: str,
+    trial_id: str,
+    wait_s: float,
+) -> Trial | None:
+    """Poll trials by ``id = trial_id`` until terminal or timeout.
+
+    Used when ``BaselineEnqueueResult.kind == 'enqueued'`` — the orchestrator
+    knows the exact trial_id it generated.
+    """
+    deadline = asyncio.get_event_loop().time() + wait_s
+    while True:
+        async with session_factory() as db:
+            stmt = (
+                select(Trial)
+                .where(Trial.id == trial_id)
+                .where(Trial.status.in_(("complete", "failed", "pruned")))
+                .limit(1)
+            )
+            trial = (await db.execute(stmt)).scalar_one_or_none()
+        if trial is not None:
+            return trial
+        if asyncio.get_event_loop().time() >= deadline:
+            return None
+        await asyncio.sleep(_REPLENISH_TICK_S)
+
+
+async def _wait_for_baseline_trial_by_study(
+    session_factory: async_sessionmaker[AsyncSession],
+    study_id: str,
+    wait_s: float,
+) -> Trial | None:
+    """Poll trials by ``study_id + is_baseline=TRUE`` until terminal or timeout.
+
+    Used when ``BaselineEnqueueResult.kind == 'deduped'`` — the original
+    enqueue's trial_id is unknown to this orchestrator invocation, so we
+    observe any terminal baseline row for the study (per plan-cycle-2 F2).
+    """
+    deadline = asyncio.get_event_loop().time() + wait_s
+    while True:
+        async with session_factory() as db:
+            trial = await _find_terminal_baseline_row(db, study_id)
+        if trial is not None:
+            return trial
+        if asyncio.get_event_loop().time() >= deadline:
+            return None
+        await asyncio.sleep(_REPLENISH_TICK_S)
 
 
 # ---------------------------------------------------------------------------
