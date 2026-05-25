@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">78 / 80</div>
+      <div class="value">80 / 82</div>
       <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">19</div>
+      <div class="value">18</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">18</div>
+      <div class="value">17</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">18</div>
+      <div class="value">17</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">17</span></h3>
+  <h3>Idea <span class="count">16</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/infra_test_worktree_missing_integration_envs">Test Worktree Missing Integration Envs</a></div>
@@ -505,26 +505,13 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive">Dashboard Regen Quoted Pr False Positive</a></div>
+  <div class="name"><a href="../../docs/02_product/planned_features/chore_dashboard_regen_priority4_dependency_cite_false_positive">Dashboard Regen Priority4 Dependency Cite False Positive</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">[`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py#L572)&#x27;s priority-3 fuzzy match has two regexes:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete">E2E Seed Acme Idea Obsolete</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">[`chore_e2e_seed_acme_helper_dead/idea.md`](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) (dated 2026-05-21) proposed two paths:</div>
+  <div class="one-liner">[`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py)&#x27;s priority-4 last-resort fallback (after pipeline_status / plan-Status / priority-3 fuzzy / priority-3.5 strict idea-body / priority-3.6 f</div>
 
 
 </div>
@@ -727,7 +714,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">97</span></h3>
+  <h3>Done <span class="count">99</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1393,6 +1380,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive/feature_spec.md">Dashboard Regen Quoted Pr False Positive</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/253">PR #253</a> <span>merged 2026-05-25</span>
+  </div>
+  <div class="one-liner">Priority-3 fuzzy match no longer matches PR-merge phrases that live inside backtick-fenced segments.</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack">Data Table Columnvisibility Tanstack</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1426,6 +1426,19 @@ footer {
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">…</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/feature_spec.md">E2E Seed Acme Idea Obsolete</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/250">PR #250</a> <span>merged 2026-05-25</span>
+  </div>
+  <div class="one-liner">Both stale artifacts updated to reflect reality.</div>
 
 
 </div>
@@ -2156,6 +2169,10 @@ footer {
   class feat_digest_executable_followups_swap_template done;
   feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
   class feat_home_demo_reseed_endpoint done;
+  chore_dashboard_regen_quoted_pr_false_positive[&quot;dashboard regen quoted pr false positive&quot;]
+  class chore_dashboard_regen_quoted_pr_false_positive done;
+  chore_e2e_seed_acme_idea_obsolete[&quot;e2e seed acme idea obsolete&quot;]
+  class chore_e2e_seed_acme_idea_obsolete done;
   feat_study_baseline_trial[&quot;study baseline trial&quot;]
   class feat_study_baseline_trial done;
   feat_study_clone_from_previous[&quot;study clone from previous&quot;]
@@ -2369,6 +2386,10 @@ footer {
   class feat_digest_executable_followups_swap_template done;
   feat_home_demo_reseed_endpoint[&quot;home demo reseed endpoint&quot;]
   class feat_home_demo_reseed_endpoint done;
+  chore_dashboard_regen_quoted_pr_false_positive[&quot;dashboard regen quoted pr false positive&quot;]
+  class chore_dashboard_regen_quoted_pr_false_positive done;
+  chore_e2e_seed_acme_idea_obsolete[&quot;e2e seed acme idea obsolete&quot;]
+  class chore_e2e_seed_acme_idea_obsolete done;
   feat_study_baseline_trial[&quot;study baseline trial&quot;]
   class feat_study_baseline_trial done;
   feat_study_clone_from_previous[&quot;study clone from previous&quot;]

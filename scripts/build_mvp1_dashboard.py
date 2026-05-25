@@ -496,6 +496,39 @@ def _strip_dependency_table_rows(text: str) -> str:
     return _DEP_ROW_RE.sub("", text)
 
 
+def _strip_backtick_quoted_segments(text: str) -> str:
+    """Remove backtick-fenced segments before fuzzy PR# matching.
+
+    Strips three fence flavors in one pass: multi-line triple-backtick
+    blocks (```...``` spanning newlines), single-line triple-backtick
+    fences (```...``` on one line), and empty fences (``````). A second
+    pass strips inline backtick spans (`...`, including the empty span
+    `` per spec AC-11).
+
+    The 3-or-more backtick quantifier (per spec FR-1) accommodates
+    markdown's 4+ backtick convention for embedding 3-backtick blocks.
+
+    Composes with _strip_dependency_table_rows in _extract_pr_number's
+    priority-3 path (see chore_dashboard_regen_quoted_pr_false_positive
+    spec FR-2). Without this strip, quoted PR-merge phrases like
+    ``merged via PR #4`` in spec narrative would false-positively match
+    the priority-3 fuzzy regex and return another feature's PR# as
+    this feature's own.
+    """
+    # Pass A: triple-backtick fences (multi-line, single-line, empty).
+    # Backreference enforces same-width close so a 4-backtick outer fence
+    # containing an inner 3-backtick block is stripped as ONE outer unit
+    # (the inner 3-fence doesn't match \1's captured 4-backticks).
+    text = re.sub(r"(`{3,}).*?\1", "", text, flags=re.DOTALL)
+    # Pass B: inline backtick spans of width 1 or 2, with same-width backref close.
+    # Width-2 (`` ``foo`` ``) is rare in markdown but appears when a span needs to
+    # contain a literal single backtick. Width-1 covers the common `foo` case and
+    # the empty `` `` (group 1 = 1 backtick, `[^\n]*?` matches 0 chars, `\1` matches
+    # the second backtick). Caught by Gemini Code Assist review on PR #253.
+    text = re.sub(r"(`{1,2})[^\n]*?\1", "", text)
+    return text
+
+
 # Spec FR-2 Pattern A — own-PR shipped status with optional markdown link.
 # Each \b is immediately after a \d+ capture (digit↔non-digit transition);
 # placing \b after `]` or `)` would fail because both are non-word characters.
@@ -587,9 +620,12 @@ def _extract_pr_number(pipe: str, plan: str, spec: str, idea: str = "") -> int |
        formats.
     2. The plan's `**Status:**` header (catches in-flight features).
     3. A `merged`-context match across pipe + plan + spec (catches features
-       described in narrative form elsewhere). Dependency-table rows are
-       stripped first so PR numbers cited as "Implemented (PR #N)" in a
-       Dependencies row don't leak through.
+       described in narrative form elsewhere). Backtick-fenced segments
+       (multi-line ```...```, single-line ```...```, inline `...`) are
+       stripped via _strip_backtick_quoted_segments BEFORE dependency-table
+       rows, so quoted PR-merge phrases in spec narrative don't leak through
+       either. PR numbers cited as "Implemented (PR #N)" in a Dependencies
+       table row are stripped second so they likewise don't leak through.
     3.5. Strict line-anchored idea-body patterns (own-PR assertions: Pattern
        A `**Status:** **Shipped** as PR #N`, Pattern B
        `**Status:** **Implemented — PR #N`, Pattern C line-start
@@ -625,7 +661,9 @@ def _extract_pr_number(pipe: str, plan: str, spec: str, idea: str = "") -> int |
     # before fuzzy matching so cites like ``| feat_study_lifecycle Phase 1
     # | All stories | Implemented (PR #18, #25) | …`` don't masquerade as
     # this feature's PR.
-    combined = _strip_dependency_table_rows(pipe + "\n" + plan + "\n" + spec)
+    combined = _strip_dependency_table_rows(
+        _strip_backtick_quoted_segments(pipe + "\n" + plan + "\n" + spec)
+    )
     m = re.search(r"PR[^a-zA-Z\n]{0,5}#(\d+)[^.\n]{0,80}merged", combined)
     if m:
         return int(m.group(1))
