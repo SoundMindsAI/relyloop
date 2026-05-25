@@ -1,7 +1,7 @@
 # Implementation Plan — chore_dashboard_regen_quoted_pr_false_positive
 
 **Date:** 2026-05-25
-**Status:** Ready for Execution
+**Status:** Complete (PR #253 merged 2026-05-25 as squash `20bcb36d`; PR B finalization in flight)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) — two-PR finalization pattern, never `--no-verify`; [`impl-execute SKILL.md`](../../../../.claude/skills/impl-execute/SKILL.md) — Step 7 finalization
 
@@ -319,14 +319,16 @@ No new test files (additive to the existing `test_dashboard_pr_extraction.py`). 
 
 | Story | Status | Commit SHA |
 |---|---|---|
-| 1.1 — Add `_strip_backtick_quoted_segments` helper | [ ] | — |
-| 1.2 — Wire helper into `_extract_pr_number` priority-3 | [ ] | — |
-| 1.3 — Add `TestBacktickStripPriority3` class (7 methods) | [ ] | — |
-| 1.4 — Insert docstring note about backtick strip | [ ] | — |
-| Epic 1 phase gate | [ ] | — |
-| **PR A** | [ ] | — |
-| 2.1 — git mv + state.md update | [ ] | — |
-| **PR B** | [ ] | — |
+| 1.1 — Add `_strip_backtick_quoted_segments` helper | [x] | `9d127fb9` |
+| 1.2 — Wire helper into `_extract_pr_number` priority-3 | [x] | `65db54e2` |
+| 1.3 — Add `TestBacktickStripPriority3` class (8 methods — AC-13 added per phase-gate) | [x] | `80190f43` + `f5dd98b3` (AC-13 + backref regex) |
+| 1.4 — Insert docstring note about backtick strip | [x] | `e50537f5` |
+| Epic 1 phase gate | [x] | GPT-5.5 cumulative review: 1 Medium accepted (`f5dd98b3` backref + AC-13) |
+| Final GPT-5.5 review | [x] | 1 Medium accepted in part: spec/plan rewrite (`a18aba19`) + filed follow-on `chore_dashboard_regen_priority4_dependency_cite_false_positive` |
+| Gemini Code Assist | [x] | 1 High accepted: double-backtick fix (`5b595bc9`) |
+| **PR A** | [x] | [#253](https://github.com/SoundMindsAI/relyloop/pull/253) merged 2026-05-25T21:53:09Z as squash `20bcb36d` |
+| 2.1 — git mv + state.md update | [x] | this finalization commit |
+| **PR B** | [ ] | in flight |
 
 ## 8) Open questions
 
