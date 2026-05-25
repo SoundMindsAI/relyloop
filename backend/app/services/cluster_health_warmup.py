@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from typing import Any
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -74,8 +75,15 @@ async def run_cluster_health_warmup_background(
         )
         # Continue — per-cluster probes still fire; their failures still log.
 
+    # Collect cluster rows under SHORT-LIVED DB sessions, then probe
+    # OUTSIDE the session so the per-cluster HTTP timeout (~5s per
+    # adapter.health_check) doesn't hold an asyncpg connection. Holding
+    # the session during HTTP probes triggers connection-pool contention
+    # with concurrent test fixtures + production endpoints — caught by
+    # CI's `test_ac7_concurrent_merges_serialize_via_row_lock` running
+    # against the lifespan-spawned warmup.
     failures = 0
-    count = 0
+    clusters: list[Any] = []
     try:
         async with db_factory() as db:
             registered = await repo.count_clusters(db)
@@ -88,24 +96,13 @@ async def run_cluster_health_warmup_background(
                 page = await repo.list_clusters(db, cursor=cursor, limit=200)
                 if not page:
                     break
-                for c in page:
-                    count += 1
-                    try:
-                        await cluster_svc.get_or_probe_health(redis_client, c)
-                    except asyncio.CancelledError:
-                        raise
-                    except Exception as exc:  # noqa: BLE001 — per-cluster swallow
-                        failures += 1
-                        logger.warning(
-                            "cluster_health_warmup_cluster_failed",
-                            cluster_id=c.id,
-                            cluster_name=c.name,
-                            error=str(exc),
-                        )
+                clusters.extend(page)
                 if len(page) < 200:
                     break
                 last = page[-1]
                 cursor = (last.created_at, last.id)
+        # DB session is released here. Probes that follow do not hold any
+        # asyncpg connection.
     except asyncio.CancelledError:
         raise
     except Exception as exc:  # noqa: BLE001 — task-level swallow
@@ -114,6 +111,21 @@ async def run_cluster_health_warmup_background(
             error=str(exc),
         )
         return
+
+    count = len(clusters)
+    for c in clusters:
+        try:
+            await cluster_svc.get_or_probe_health(redis_client, c)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 — per-cluster swallow
+            failures += 1
+            logger.warning(
+                "cluster_health_warmup_cluster_failed",
+                cluster_id=c.id,
+                cluster_name=c.name,
+                error=str(exc),
+            )
 
     duration_ms = int((time.monotonic() - start) * 1000)
     logger.info(

@@ -370,17 +370,31 @@ class TestRedisDownAtStart:
 
 
 class TestShutdownCancellation:
-    async def test_cancellation_releases_db_session(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """FR-4 / D-10: cancel mid-loop; assert __aexit__ ran on the
-        ``async with db_factory() as db:`` context manager.
+    async def test_cancellation_during_probe_does_not_leak_session(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """FR-4 / D-10 (refactored — see CI feedback on PR #236 round 1):
 
-        Synchronization (per plan cycle-1 B3): use two ``asyncio.Event``s
-        to gate the cancellation precisely on the in-loop state — a fixed
-        sleep would be flaky on slow runners.
+        The warmup loads all cluster rows under a SHORT-LIVED DB session,
+        then releases the session BEFORE the per-cluster probe loop. This
+        prevents asyncpg-pool contention when per-cluster HTTP probes
+        stall on fake URLs (which made
+        test_ac7_concurrent_merges_serialize_via_row_lock fail under
+        the lifespan-spawned warmup).
+
+        Test invariants:
+         - DB session enters + exits CLEANLY before any probe runs (no
+           CancelledError seen by __aexit__).
+         - Per-cluster probe receives CancelledError when task.cancel()
+           is called mid-loop.
+         - The session was already released by the time cancellation
+           arrives, so there's no possibility of a "session never
+           released" leak under cancellation.
         """
         clusters = [_make_cluster(f"c{i}", idx=i) for i in range(3)]
         probe_started = asyncio.Event()
         blocker = asyncio.Event()
+        cancel_seen_in_probe = asyncio.Event()
 
         async def _count(_db: Any) -> int:
             return len(clusters)
@@ -391,7 +405,11 @@ class TestShutdownCancellation:
         async def _probe(_redis: Any, _cluster: Cluster) -> HealthStatus:
             probe_started.set()
             # Block forever until cancellation arrives.
-            await blocker.wait()
+            try:
+                await blocker.wait()
+            except asyncio.CancelledError:
+                cancel_seen_in_probe.set()
+                raise
             return HealthStatus(
                 status="green",
                 checked_at=datetime.now(UTC).isoformat(),
@@ -409,16 +427,21 @@ class TestShutdownCancellation:
 
         # Synchronization point: wait for the probe to have entered the loop.
         await probe_started.wait()
-        # Sanity: the warmup entered `async with db_factory()`.
+        # The DB session entered AND exited cleanly BEFORE any probe started
+        # (the refactor moves probes outside the `async with db_factory()`
+        # block to avoid asyncpg-pool contention with concurrent endpoint
+        # handlers).
         assert session.enter_calls == 1
-        assert session.exit_calls == 0
+        assert session.exit_calls == 1
+        assert session.last_exit_exc_type is None  # clean exit, no exception
 
-        # Now cancel and confirm CancelledError propagates.
+        # Now cancel and confirm CancelledError propagates through the probe.
         task.cancel()
         with pytest.raises(asyncio.CancelledError):
             await task
 
-        # FR-4 / D-10 invariant: __aexit__ ran (DB session released).
+        # The probe coroutine saw the cancellation.
+        assert cancel_seen_in_probe.is_set()
+        # Session counters unchanged from before cancellation — the session
+        # was already released; no double-close, no leak.
         assert session.exit_calls == 1
-        # Confirm the __aexit__ saw the cancellation exception.
-        assert session.last_exit_exc_type is asyncio.CancelledError
