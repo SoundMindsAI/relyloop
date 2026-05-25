@@ -33,10 +33,12 @@ import {
   useClusterTargets,
   type TargetSummary,
 } from '@/lib/api/clusters';
+import { useStudyDigest } from '@/lib/api/digests';
 import { useJudgmentLists } from '@/lib/api/judgments';
 import { useTemplates, useTemplate } from '@/lib/api/query-templates';
 import { useQuerySets } from '@/lib/api/query-sets';
 import { useCreateStudy } from '@/lib/api/studies';
+import { narrowBoundsAroundWinner } from '@/lib/narrow-bounds';
 import {
   AUTO_FOLLOWUP_DEPTH_WIZARD_VALUES,
   OBJECTIVE_DIRECTION_VALUES,
@@ -388,6 +390,80 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
   const autoFillTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchSpaceError, setSearchSpaceError] = useState<string | null>(null);
   const [placeholderWarning, setPlaceholderWarning] = useState(false);
+
+  // feat_study_clone_narrow_bounds Story 1.3 — Step-4 opt-in checkbox state.
+  // Called unconditionally per Rules of Hooks; the `enabled` gate suppresses
+  // the network request when there's no clone source (FR-1, D-12).
+  const cloneSourceId = initialValues?.cloneSource?.id;
+  const sourceDigest = useStudyDigest(cloneSourceId, {
+    enabled: Boolean(cloneSourceId),
+  });
+  const [narrowBoundsChecked, setNarrowBoundsChecked] = useState(false);
+  const originalSpaceJsonRef = useRef<string | null>(null);
+
+  // FR-1: checkbox + reference panel render iff both gates pass.
+  // Optional chaining + nullish coalescing defends against an API shape
+  // that drops ``recommended_config`` (the Pydantic model has it required +
+  // non-null, but an evolving wire contract or test fixture could send a
+  // partial response — better to fail closed).
+  const narrowBoundsGateOpen =
+    Boolean(initialValues?.cloneSource) &&
+    sourceDigest.status === 'success' &&
+    Object.keys(sourceDigest.data?.recommended_config ?? {}).length > 0;
+
+  // FR-7: reset checkbox + ref on every modal close.
+  useEffect(() => {
+    if (!open) {
+      setNarrowBoundsChecked(false);
+      originalSpaceJsonRef.current = null;
+    }
+  }, [open]);
+
+  // FR-4 + FR-5: check/uncheck handler.
+  const handleNarrowBoundsToggle = (next: boolean) => {
+    if (next) {
+      // false → true.
+      // §4 Anti-pattern precondition guard: do not invoke the rewrite when
+      // the textarea is in a known-malformed state. Force the engineer to
+      // resolve the JSON error first.
+      if (searchSpaceError !== null) {
+        toast.error('Resolve the search-space JSON error before narrowing bounds.');
+        originalSpaceJsonRef.current = null;
+        // Stay unchecked.
+        return;
+      }
+      const currentText = form.getValues('search_space_text');
+      originalSpaceJsonRef.current = currentText;
+      try {
+        const recommended = sourceDigest.data?.recommended_config ?? {};
+        const result = narrowBoundsAroundWinner(currentText, recommended, 20);
+        if (result.narrowed.length === 0) {
+          // D-11: no-op leaves the textarea bytes exact. Toast explains why.
+          toast(
+            'No params narrowed — every param is categorical, missing from the winner, or its winner is outside the current bounds.',
+          );
+        } else {
+          form.setValue('search_space_text', result.json);
+        }
+        setNarrowBoundsChecked(true);
+      } catch (err) {
+        const msg =
+          err instanceof SyntaxError
+            ? "Couldn't narrow bounds: search-space JSON is invalid — fix it and try again."
+            : `Couldn't narrow bounds: ${err instanceof Error ? err.message : String(err)}`;
+        toast.error(msg);
+        originalSpaceJsonRef.current = null;
+        // Stay unchecked.
+      }
+    } else {
+      // true → false. Restore the captured baseline; clear ref.
+      if (originalSpaceJsonRef.current !== null) {
+        form.setValue('search_space_text', originalSpaceJsonRef.current);
+        originalSpaceJsonRef.current = null;
+      }
+      setNarrowBoundsChecked(false);
+    }
+  };
 
   useEffect(() => {
     return () => {
@@ -924,6 +1000,65 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                 <Label htmlFor="cs-name">Study name</Label>
                 <Input id="cs-name" {...form.register('name')} />
               </div>
+              {/* feat_study_clone_narrow_bounds Story 1.3 — opt-in smart-rewrite
+                  of the cloned search_space. Hidden entirely when not cloning
+                  or when the source has no digest (FR-1, D-1: hide-vs-disable). */}
+              {narrowBoundsGateOpen && (
+                <div
+                  className="rounded-md border border-border bg-muted/40 p-3 space-y-2"
+                  data-testid="narrow-bounds-section"
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      id="cs-narrow-bounds"
+                      type="checkbox"
+                      checked={narrowBoundsChecked}
+                      onChange={(ev) => handleNarrowBoundsToggle(ev.target.checked)}
+                      data-testid="narrow-bounds-checkbox"
+                      className="mt-0.5 h-4 w-4 rounded border-border"
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor="cs-narrow-bounds"
+                        className="text-sm font-medium leading-snug flex items-center gap-1"
+                      >
+                        {"Narrow bounds around the source study's winning params (±20%)"}
+                        <InfoTooltip glossaryKey="study.narrow_bounds_checkbox" />
+                      </Label>
+                    </div>
+                  </div>
+                  {/* FR-8: collapsible reference panel — native <details>.
+                      Reads from cloneSource.name (UI-only metadata) so user
+                      edits to the form's `name` field don't corrupt the
+                      panel header (banner-style stability per v1 spec D-12). */}
+                  <details
+                    className="text-xs text-muted-foreground"
+                    data-testid="narrow-bounds-reference-panel"
+                  >
+                    <summary className="cursor-pointer select-none hover:text-foreground">
+                      Best-trial values from <strong>{initialValues?.cloneSource?.name}</strong>
+                    </summary>
+                    <table className="mt-2 w-full text-left">
+                      <thead>
+                        <tr>
+                          <th className="font-medium pr-4">Param</th>
+                          <th className="font-medium">Winning value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(sourceDigest.data?.recommended_config ?? {})
+                          .sort(([a], [b]) => a.localeCompare(b))
+                          .map(([name, value]) => (
+                            <tr key={name} data-testid="narrow-bounds-reference-row">
+                              <td className="pr-4 font-mono">{name}</td>
+                              <td className="font-mono">{JSON.stringify(value)}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </details>
+                </div>
+              )}
               <ResponsiveLayout
                 builder={
                   <SearchSpaceBuilder
