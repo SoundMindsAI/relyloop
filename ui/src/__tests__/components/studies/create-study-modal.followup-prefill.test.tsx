@@ -242,7 +242,7 @@ describe('CreateStudyModal — followup prefill (Story 5.2)', () => {
 
     await waitFor(() => expect(postBodies.length).toBeGreaterThan(0));
     expect(postBodies[0]!.parent).toEqual({
-      proposal_id: PREFILL.parent.proposal_id,
+      proposal_id: PREFILL.parent!.proposal_id,
       followup_index: 0,
     });
   });

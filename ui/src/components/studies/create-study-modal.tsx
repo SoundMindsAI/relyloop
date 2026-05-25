@@ -161,6 +161,13 @@ const STEP_TITLES = [
  * "Run this followup" flow. Carries the parent-study-derived form-field
  * values plus the lineage tuple that gets sent in the POST body's
  * ``parent`` field.
+ *
+ * feat_study_clone_from_previous Story 2.1 — widened with two clone-mode
+ * fields. ``parent`` became optional so the clone path (which carries no
+ * proposal-followup lineage) can omit it; ``parent_study_id`` carries the
+ * source study's id into the POST body (FR-6 / FR-7); ``cloneSource`` is
+ * UI-only metadata read by the cloned-from banner (FR-12 / D-12) — the
+ * modal's submit serializer MUST exclude it from the wire payload.
  */
 export interface PrefillValues {
   cluster_id: string;
@@ -180,9 +187,14 @@ export interface PrefillValues {
   sampler?: SamplerKind;
   pruner?: PrunerKind;
   seed?: number | '';
-  parent: {
+  parent?: {
     proposal_id: string;
     followup_index: number;
+  };
+  parent_study_id?: string;
+  cloneSource?: {
+    id: string;
+    name: string;
   };
 }
 
