@@ -22,9 +22,10 @@
 - Phases covered: Phase 1 only (capability A from the idea). Phase 2 (capability B = `scripts/run-tests-in-worktree.sh`) and Phase 3 (capability C = per-worktree `DATABASE_URL_FILE` override) remain deferred per spec D-1.
 
 ## Implementation
-- Status: PR created (PR #249 open — awaiting merge)
+- Status: Complete (PR #249 admin-merged as squash commit `22f878f` on 2026-05-25 at 20:23 UTC)
 - Date: 2026-05-25
-- Branch: `feature/infra-agent-sibling-worktree-isolation`
+- Branch: `feature/infra-agent-sibling-worktree-isolation` (deleted on merge)
+- Merge type: admin squash-merge — non-smoke checks all green; pre-existing `smoke (operator-path tutorial flow)` failure on `main` (tracked by `bug_smoke_dashboard_demo_state_locator_missing`) bypassed per the route-(a) annotation on the PR.
 - Scope expanded mid-PR: Phase 2 (capability B, `make test-worktree` + `scripts/run-tests-in-worktree.sh` + smoke + runbook) shipped on the same branch alongside Phase 1, per operator approval. Phase 3 (capability C) remains deferred per `phase3_idea.md`.
 - Final commits: 10 on the branch (idea preflight → spec → plan → Story 1.1/1.2 → Phase 1 Gemini fixes → tangential capture → Phase 2 implementation → Phase 2 cycle-1 fix → final cycle-2 doc fix).
 - Cross-model review: GPT-5.5 spec 3 cycles (17 findings, all accepted); GPT-5.5 plan 3 cycles (12 findings, all accepted); Phase 2 GPT-5.5 1 cycle (6 findings, all accepted); Gemini Code Assist on Phase 1 (2 findings, both accepted); final GPT-5.5 3 cycles (2 findings, both accepted, cycle 3 converged with empty findings).
