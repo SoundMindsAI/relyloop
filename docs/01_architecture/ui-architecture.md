@@ -374,6 +374,12 @@ The `/studies` page reads an optional `?clone_from=<source_study_id>` query para
 
 The entry-point button lives in `StudyActionBar` on the study-detail page (NOT on the digest panel — D-7 / FR-2 regression assertion guards this). Cloning a `running` source opens an `AlertDialog` (`data-testid="clone-running-confirm"`) before navigation (FR-11); terminal-state sources navigate directly.
 
+### Step-4 derived-value toggles (`feat_study_clone_narrow_bounds`)
+
+When the create-study wizard is in clone mode and the source study has a digest, Step 4 renders an opt-in "Narrow bounds around the source study's winning params (±20%)" checkbox above the existing search-space editor. The toggle is the canonical "derived-value" pattern: an opt-in transformation of a prefilled form field with restore-on-uncheck via a `useRef`. The transformation logic is a pure helper at [`ui/src/lib/narrow-bounds.ts`](../../ui/src/lib/narrow-bounds.ts) (`narrowBoundsAroundWinner(spaceJson, winnerParams, percent)`) that mirrors every per-type `SearchSpace.model_validate` constraint (FloatParam `low < high`, log-uniform `low > 0`, IntParam `low <= high`, categorical untouched) so the rewritten JSON is structurally valid by construction. On the modal side, the invariant is **capture-on-true** for the baseline (overwrite the ref on every `false → true`) and **clear-on-false** (nullify on every `true → false` and on modal close). Post-rewrite manual edits to the textarea are discarded on uncheck — intentional per the [feat_study_clone_narrow_bounds spec FR-6](../02_product/planned_features/feat_study_clone_narrow_bounds/feature_spec.md). The FR-1 visibility gate (`cloneSource` present AND `useStudyDigest` success AND `recommended_config` non-empty) **hides** the surface entirely rather than disabling it when the gate is closed — a disabled affordance would falsely imply the operator could enable it.
+
+The widened `useStudyDigest(studyId, { enabled? })` signature (mirroring `useStudy(id, { enabled })` at [`ui/src/lib/api/studies.ts`](../../ui/src/lib/api/studies.ts)) is what makes Rules-of-Hooks compliance work alongside the conditional gate: the hook is called unconditionally at the top of `CreateStudyModal`, and `enabled: Boolean(initialValues?.cloneSource?.id)` suppresses the network request on the non-clone path. Existing single-argument callers are unaffected by the additive opts arg.
+
 ## Reserved for later releases
 
 | Capability | Activates at |
