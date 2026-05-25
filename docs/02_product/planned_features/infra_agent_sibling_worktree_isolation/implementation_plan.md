@@ -365,6 +365,119 @@ def section_body(claude_md_text: str) -> str:
 
 ---
 
+## Epic 2 — Phase 2: test-runner automation (added 2026-05-25 via on-PR scope expansion)
+
+### Story 2.1 — Write `scripts/run-tests-in-worktree.sh` + `make test-worktree` target + smoke test
+
+**Outcome:** FR-8, FR-9, FR-10 satisfied. The script mechanizes the FR-4 recipe; the Makefile target is the operator-facing entrypoint; the smoke test asserts argument parsing and command construction without depending on a running Docker daemon (CI hermeticity preserved).
+
+**New files**
+
+| File | Purpose |
+|---|---|
+| `scripts/run-tests-in-worktree.sh` | Auto-detect main + sibling worktree paths, validate `secrets/database_url`, build the `docker run` argv with the 9 canonical bind mounts + DB-secret mount, support `--dry-run` (print argv only) and `--cmd "<command>"` override flags. Default command: `pytest backend/tests/unit/ -v`. Image: `relyloop/api:${RELYLOOP_GIT_SHA:-dev}`. Network: `${COMPOSE_PROJECT_NAME:-relyloop}_default`. Sub-200 LOC bash. |
+| `backend/tests/unit/scripts/test_run_tests_in_worktree.py` | 4 pytest tests covering the dry-run argv shape, missing-secret error path, not-in-worktree error path, and `--cmd` override propagation. All tests invoke the script via `subprocess.run` with `--dry-run` — no real `docker` calls. Pattern reference: `backend/tests/unit/scripts/test_dashboard_truncation.py:14` for the `_REPO_ROOT = Path(__file__).resolve().parents[4]` resolution. |
+
+**Modified files**
+
+| File | Change |
+|---|---|
+| `Makefile` | Add a `test-worktree` target near the existing `test-unit` / `test-integration` group. The target invokes `bash scripts/run-tests-in-worktree.sh $(if $(CMD),--cmd "$(CMD)")` so `make test-worktree CMD="pytest backend/tests/integration -v"` propagates the override. |
+
+**Endpoints / Pydantic schemas / Key interfaces** — N/A (shell script + Makefile target, not Python module).
+
+**UI element inventory / State dependency analysis / Legacy behavior parity** — N/A (no UI).
+
+**Tasks**
+
+1. **Read context.** Re-read [`docker-compose.yml`](../../../../docker-compose.yml) lines 28, 40, 76, 77, 112, 119, 120, 125, 167 to confirm the canonical bind-mount targets match. Re-read CLAUDE.md `### Running tests against a sibling worktree` recipe block (Story 1.1's output) to confirm the script's argv exactly mirrors the documented recipe. Read [`scripts/install.sh`](../../../../scripts/install.sh) for the existing bash style + the `set -euo pipefail` convention.
+2. **Write `scripts/run-tests-in-worktree.sh`.** Use `set -euo pipefail`. Parse `--dry-run` and `--cmd "<command>"` flags via a simple `while [[ $# -gt 0 ]]; do case "$1" in ...` loop. Resolve `WORKTREE_ROOT=$(git rev-parse --show-toplevel)` and exit-fail with a clear stderr message if the command fails. Resolve `MAIN_REPO=$(git worktree list | awk '{print $1; exit}')`. Validate `[ -r "$MAIN_REPO/secrets/database_url" ]` and exit-fail otherwise. Build the `docker run` argv as a bash array. In `--dry-run` mode, `printf '%s\n' "${ARGV[@]}"`; otherwise `exec docker "${ARGV[@]}"`. End with `chmod +x` (committed via `git update-index --chmod=+x` if needed).
+3. **Add the `test-worktree` Makefile target.** Read the existing `Makefile` to find the right neighborhood (likely between `test-contract` and `up`). Use `bash scripts/run-tests-in-worktree.sh $(if $(CMD),--cmd "$(CMD)")` so empty `CMD` falls through to the script's default. Add `.PHONY: test-worktree` to the existing `.PHONY` list.
+4. **Write the smoke test file.** 4 tests as specified in spec §7 FR-10. Each test uses `subprocess.run([str(_REPO_ROOT / "scripts/run-tests-in-worktree.sh"), "--dry-run", ...], capture_output=True, text=True, env={...})`. Manipulate the environment to simulate the missing-secret + not-in-worktree paths (e.g., `cwd=tmp_path` for the latter; setting a `RELYLOOP_FORCE_MISSING_SECRET=1` env var that the script honors, OR move the secret file with `monkeypatch` in a fixture).
+5. **Run the smoke test.** `.venv/bin/pytest backend/tests/unit/scripts/test_run_tests_in_worktree.py -v --tb=short`. All 4 tests pass.
+6. **Pre-commit gate.** `make fmt && make lint && make typecheck && .venv/bin/ruff format --check backend/`. All green.
+7. **Commit.** `feat(worktree-isolation): scripts/run-tests-in-worktree.sh + make test-worktree target + smoke test`.
+
+**Definition of Done (DoD)**
+
+- [ ] `scripts/run-tests-in-worktree.sh` exists and is executable (`-rwxr-xr-x`).
+- [ ] `make test-worktree` runs the script (verified by Story 2.3's operator-path step).
+- [ ] `backend/tests/unit/scripts/test_run_tests_in_worktree.py` has 4 tests, all passing.
+- [ ] Smoke test runs in <2s and does not require a Docker daemon (verified by inspecting test sources — no `docker` invocation).
+- [ ] `make lint` + `make typecheck` + `.venv/bin/ruff format --check backend/` all pass.
+
+---
+
+### Story 2.2 — Runbook + CLAUDE.md shortcut subsection + remove `phase2_idea.md`
+
+**Outcome:** FR-11, FR-12 satisfied. Human operators have a runbook entry point; agents reading CLAUDE.md see the `make test-worktree` shortcut alongside the canonical recipe; the now-shipped capability B is removed from deferred tracking.
+
+**New files**
+
+| File | Purpose |
+|---|---|
+| `docs/03_runbooks/parallel-worktrees.md` | ≤80-line human-facing operating procedure: when to use sibling worktrees, how to create one, how to launch an agent, how to run tests via `make test-worktree`, cross-reference to CLAUDE.md data-path constraints and impl-execute lifecycle steps, cleanup. |
+
+**Modified files**
+
+| File | Change |
+|---|---|
+| `CLAUDE.md` | (a) Insert a new `### Shortcut: \`make test-worktree\`` subsection immediately before `### Running tests against a sibling worktree (one-shot container recipe)` inside the `## Working in sibling worktrees` section. The subsection is prose only (no new fenced code blocks — FR-7 test #5 stays satisfied). (b) Update the `### Deferred capabilities` subsection: remove the `phase2_idea.md` bullet (capability B shipped); keep the `phase3_idea.md` bullet. (c) Add a `parallel-worktrees.md` row to the `## Key Runbooks` table at the bottom of the file. |
+
+**Deleted files**
+
+| File | Reason |
+|---|---|
+| `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md` | Capability B is no longer deferred — it shipped in Story 2.1. Phase 2's design intent is fully captured in the Phase 2 expansion section of `feature_spec.md` (§3) and in the new code itself. Keeping the idea file would create a stale "this is deferred" claim. |
+
+**Tasks**
+
+1. **Write the runbook.** Use the existing runbook style (see `docs/03_runbooks/local-dev.md` if it exists yet, otherwise mirror the docstring shape from `.claude/skills/impl-execute/SKILL.md`). Sections: Overview → When to use a sibling worktree → Create + launch → Run tests via `make test-worktree` → Cross-references → Cleanup. Max 80 lines per FR-11.
+2. **Insert the CLAUDE.md shortcut subsection.** One paragraph: explains that `make test-worktree` wraps the recipe below, supports `CMD="<override>"`, and points at `scripts/run-tests-in-worktree.sh` for the implementation. NO new fenced code blocks (preserves FR-7 test #5 invariant).
+3. **Update the CLAUDE.md `### Deferred capabilities` subsection.** Delete the `phase2_idea.md` bullet. Keep the `phase3_idea.md` bullet. Optionally tighten the surrounding prose to reflect that one capability has shipped.
+4. **Update the CLAUDE.md `## Key Runbooks` table.** Add a new row: `| Parallel-worktree workflow (sibling checkouts, make test-worktree, leak prevention) | [`docs/03_runbooks/parallel-worktrees.md`] (PR #249) |` matching the surrounding table style.
+5. **Delete `phase2_idea.md`.** `git rm docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md`.
+6. **Verify the FR-7 regression suite still passes.** `.venv/bin/pytest backend/tests/unit/docs/ -v` — all 5 tests green.
+7. **Pre-commit gate.** `make lint && make typecheck` (Python untouched, but verify nothing regresses).
+8. **Commit.** `docs(worktree-isolation): runbook + CLAUDE.md shortcut + remove shipped phase2_idea`.
+
+**Definition of Done (DoD)**
+
+- [ ] `docs/03_runbooks/parallel-worktrees.md` exists, ≤80 lines, follows the project runbook style.
+- [ ] CLAUDE.md `## Working in sibling worktrees` section gained a `### Shortcut: \`make test-worktree\`` subsection in the correct position; the `### Deferred capabilities` subsection lost the phase2 bullet; the section still passes all 5 regression tests in `backend/tests/unit/docs/`.
+- [ ] CLAUDE.md `## Key Runbooks` table has a new row for the parallel-worktrees runbook.
+- [ ] `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md` is deleted.
+- [ ] No bypass of pre-commit hooks.
+
+---
+
+### Story 2.3 — Operator-path verification: run `make test-worktree` end-to-end
+
+**Outcome:** AC-11 satisfied. The CLAUDE.md Step 3 mandatory operator-path verification for new Makefile targets runs end-to-end against the live Compose stack: `make test-worktree` spins up a one-shot container, runs the in-container `pytest` command, and exits 0. The operator's main-worktree paths are NOT modified (no leak).
+
+**New files** — None.
+
+**Modified files** — None.
+
+**Tasks**
+
+1. **Verify the Compose stack is healthy.** `docker compose ps` shows all services `Up <duration> (healthy)`. If not, `make up`.
+2. **Verify `secrets/database_url` exists in the main repo.** `ls -la secrets/database_url`.
+3. **Snapshot leaky-path state before the run.** `git status` baseline + `ls migrations/ samples/ alembic.ini data/postgres/ data/redis/ data/repo-clones/` checksums (or just `git status` — any new untracked files post-run would be a leak).
+4. **Run `make test-worktree`.** Default invocation; this hits the script's default command `pytest backend/tests/unit/ -v`. Capture exit code + a sample of the output.
+5. **Run `make test-worktree CMD="pytest backend/tests/unit/docs/ -v"`.** Override-command verification — should exit 0 and the script's progress line should show the override command.
+6. **Verify no leak.** `git status` post-run should show the SAME state as before — no new untracked files in `./migrations/`, `./samples/`, `./alembic.ini`, `./data/*/`. If anything appears, it's a leak — the script has a bind-mount bug.
+7. **Document the verification in the PR description.** Add the captured exit codes + the leak-check result.
+
+**Definition of Done (DoD)**
+
+- [ ] `make test-worktree` exits 0 against the live stack.
+- [ ] `make test-worktree CMD=...` exits 0 with the override command visible in the script's progress output.
+- [ ] `git status` is unchanged post-run (no leak into the operator's main worktree).
+- [ ] Evidence captured in the PR description's "Test plan" section.
+
+---
+
 ## UI Guidance
 
 **No frontend scope.** This feature does not add, move, or remove any UI element. The "audience" of the new CLAUDE.md section is autonomous agents (and humans browsing the repo root in their editor); CLAUDE.md is markdown, not a rendered UI. The plan-level UI Guidance subsections (insertion point markup, analogous markup patterns, visual consistency, interaction behavior, handler functions, navigation placement, tooltips, legacy behavior parity, client-side persistence) are intentionally omitted with explicit acknowledgment that this is correct for a docs-only PR.

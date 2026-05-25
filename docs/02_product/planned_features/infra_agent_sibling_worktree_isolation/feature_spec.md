@@ -66,13 +66,24 @@ The new section will be validated by (a) content review at PR time (Story accept
 
 **Note on artifact set vs. idea's "no code changes" phrasing:** The idea brief said Phase 1 is "no code changes." This spec adds **one** pytest file (`backend/tests/unit/docs/test_claude_md_sections.py`) plus the `phase2_idea.md` / `phase3_idea.md` / `pipeline_status.md` tracking files in this feature's directory. The regression test exists because every change in this repo follows the Bug Fix Protocol's "regression test for every fix" rule (`CLAUDE.md` §"Bug Fix Protocol" step 4) and the spec-gen Step 10 mandate for deferred-phase tracking — they're process-required artifacts, not capability creep. The spirit of the idea's "no code changes" was "no production code changes" and that remains true: nothing in `backend/app/`, `ui/src/`, `migrations/`, or `scripts/` is modified.
 
+### Phase 2 expansion — added 2026-05-25 after operator approval
+
+After Phase 1 stories shipped on PR #249, the operator approved expanding scope to include capability B (the test-runner script) on the same branch — the implement-over-defer rubric applies cleanly because the design forks are all pre-locked (D-1 phase boundary, D-2 secrets pattern, FR-4 mount-set + image-tag + network), no operator-judgment forks remain. Phase 3 (capability C) stays deferred per `phase3_idea.md` Backlog priority because three operator-judgment forks remain unresolved (secret-file shape, DB naming, cleanup trigger). The Phase 2 additions in scope:
+
+- A `scripts/run-tests-in-worktree.sh` entrypoint that mechanizes the one-shot container recipe from FR-4. The script auto-detects the sibling worktree (`git rev-parse --show-toplevel`) and the main worktree (`git worktree list | awk '{print $1; exit}'`), validates that `$MAIN_REPO/secrets/database_url` exists, mounts the canonical 9 source paths, joins the existing Compose network, and forwards CLI args to a configurable command (default: `pytest backend/tests/unit/`).
+- A `make test-worktree` Makefile target wrapping the script. Operators can override the command via `make test-worktree CMD="pytest backend/tests/integration -v"`.
+- A `--dry-run` mode on the script that prints the constructed `docker run` command without executing it. This is what the script's smoke test asserts against.
+- A smoke test at `backend/tests/unit/scripts/test_run_tests_in_worktree.py` covering argument parsing, the `--dry-run` command-construction output, and clear-error paths for missing prerequisites (no `secrets/database_url`, no Compose network, not in a worktree). The test does NOT actually run Docker — it shells out to the script with `--dry-run` and asserts on stdout. CI hermeticity preserved.
+- A runbook at `docs/03_runbooks/parallel-worktrees.md` (≤80 lines) explaining the parallel-worktree workflow end-to-end: launching an agent in a sibling worktree, using `make test-worktree`, what the leaky-paths catalog means in operator terms, when to escalate.
+- Updates to the CLAUDE.md `## Working in sibling worktrees` section to reference `make test-worktree` as the canonical shortcut (the existing fenced recipe stays for transparency — operators benefit from understanding what the script does internally). A new `### Shortcut: \`make test-worktree\`` subsection sits before the existing `### Running tests against a sibling worktree` recipe subsection.
+- Delete `phase2_idea.md` — capability B is no longer deferred. `phase3_idea.md` stays.
+
 ### Out of scope
 
-- `scripts/run-tests-in-worktree.sh` (capability B from the idea) — deferred. Phase 2 `phase2_idea.md`.
-- Per-worktree `DATABASE_URL_FILE` override (capability C from the idea) — deferred. Phase 3 `phase3_idea.md`.
+- Per-worktree `DATABASE_URL_FILE` override (capability C from the idea) — deferred. Phase 3 `phase3_idea.md` stays for when a migration-collision incident motivates it.
 - A `make doctor-worktree` target or any other tooling that introspects `docker-compose.yml` to generate the path catalog dynamically (OQ-2 recommended default: static prose list in v1).
 - Edits to `architecture.md` or `state.md` content beyond the standard end-of-feature `state.md` "recent changes" entry. The new content lives in `CLAUDE.md` only — that's the file agents auto-read on every session.
-- Any changes to `docker-compose.yml`, `Makefile`, or backend/frontend code.
+- Any changes to `docker-compose.yml`. (Phase 2 DOES touch `Makefile` and `scripts/` per the expansion above; only `docker-compose.yml` remains untouched.)
 
 ### API convention check
 
@@ -191,6 +202,66 @@ N/A — `audit_log` lands at MVP2 per [`docs/01_architecture/data-model.md` §"F
     5. `test_section_has_exactly_one_fenced_bash_block` — count fenced code blocks opening with the literal token ` ```bash` (three backticks + the word `bash`) inside the section body and assert exactly one. **Why:** FR-4 mandates exactly one recipe; copy-paste or competing recipes have historically caused agents to follow the wrong one.
   - The tests **MUST NOT** assert specific `docker-compose.yml` line numbers, specific path strings beyond the patterns enumerated above, or any property that would shift on a normal `docker-compose.yml` edit. Line-number staleness remains a PR-review concern (OQ-2 deferred).
 - Notes: This is the substantive sharpening from GPT-5.5 cycle 1 findings #5 and #6 (expand from header-only to historical-failure-mode coverage) and cycle 2 finding #4 (test #4 retargeted from broad section-wide regex to specific catalog-row inspection to eliminate the false-positive risk against legitimate prose). The 5 tests collectively run in well under one second.
+
+### Phase 2 — FR-8 through FR-12 (added 2026-05-25 via on-PR scope expansion)
+
+### FR-8: `scripts/run-tests-in-worktree.sh` script
+
+- Requirement:
+  - A new shell script **MUST** live at `scripts/run-tests-in-worktree.sh`, executable (`chmod +x`), with the standard `#!/usr/bin/env bash` shebang and `set -euo pipefail` for fail-fast semantics.
+  - The script **MUST** auto-detect the sibling worktree's absolute path via `git rev-parse --show-toplevel` from the script's invocation `pwd`. If the script is not invoked from inside a git worktree, it **MUST** exit with a clear error message naming the missing prerequisite (no silent failure).
+  - The script **MUST** auto-detect the main worktree's absolute path via `git worktree list | awk '{print $1; exit}'`. Per git convention, the main worktree is always listed first.
+  - The script **MUST** validate `$MAIN_REPO/secrets/database_url` exists and is readable BEFORE invoking `docker run`. Missing-secret produces a clear error mentioning CLAUDE.md Rule #2 and pointing at the secret-generation step in `scripts/install.sh`.
+  - The script **MUST** join the existing Compose network. Default network name: `relyloop_default` (per `docker compose --project-name relyloop` convention). The script **SHOULD** allow override via the `COMPOSE_PROJECT_NAME` environment variable (resolved as `${COMPOSE_PROJECT_NAME:-relyloop}_default`).
+  - The script **MUST** mount the 9 source paths locked in spec FR-4 (`backend/`, `migrations/`, `scripts/`, `pyproject.toml`, `uv.lock`, `alembic.ini`, `docker-compose.yml`, `Makefile`, `samples/`) PLUS the project-root `CLAUDE.md` file (added during Phase 2 operator-path verification — the doc-checker test at `backend/tests/unit/docs/test_claude_md_sections.py` reads `CLAUDE.md` at `_REPO_ROOT/CLAUDE.md`, and without the mount the test ERRORs inside the container). Mount target paths under `/app/` to match the production image layout. The DB-secret mount uses `-v "$MAIN_REPO/secrets/database_url:/run/secrets/database_url:ro"` and the script passes `-e DATABASE_URL_FILE=/run/secrets/database_url`.
+  - The script **MUST** include the workarounds for `bug_dockerfile_venv_root_owned_after_user_switch` until that Dockerfile bug ships its fix: `--user root` on the docker run AND `-e PYTHONDONTWRITEBYTECODE=1` env var. Rationale: the production image's `/app/.venv` package-metadata files are owned by root (Dockerfile line 107 `RUN uv sync --frozen --no-dev` runs before the `USER relyloop` switch at line 109), which blocks `uv run`'s implicit sync from rewriting `relyloop-0.1.0.dist-info/INSTALLER`. `--user root` bypasses the permission check; `PYTHONDONTWRITEBYTECODE=1` prevents the root-user container from writing `__pycache__/` directories into the bind-mounted host paths (backend/, migrations/, scripts/) where they would leak as root-owned files on the host. Both workarounds become deletable once the Dockerfile bug ships its fix.
+  - The script **MUST** support a `--dry-run` flag that prints the constructed `docker run` argv to stdout without executing it. Format: one argument per line, ordered as it would appear in the command. The smoke test asserts against this output.
+  - The script **MUST** support a `--cmd "<command>"` flag (default: `pytest backend/tests/unit/ -v`) to override the in-container command. Positional args after `--cmd` parsing pass through.
+  - The script **MUST** use the `relyloop/api:${RELYLOOP_GIT_SHA:-dev}` image (matching `docker-compose.yml` lines 54 / 81 / 136).
+  - The script **SHOULD** print a one-line "running tests in container <container-id-prefix>..." progress line before invoking `docker run`, and a "exited with code N" line after — operators see what's happening.
+- Notes: Mechanizes FR-4's recipe. All design forks pre-locked by D-1 (Phase scope), D-2 (secrets pattern), and FR-4 (mount set + image tag + network).
+
+### FR-9: `make test-worktree` Makefile target
+
+- Requirement:
+  - A new target `test-worktree` **MUST** live in the top-level `Makefile`. It invokes `scripts/run-tests-in-worktree.sh` and forwards a configurable `CMD` Make variable.
+  - Default invocation `make test-worktree` runs the script with no `--cmd` (the script's own default of `pytest backend/tests/unit/ -v` applies).
+  - Override invocation `make test-worktree CMD="pytest backend/tests/integration -v"` passes the override through to the script's `--cmd` flag.
+  - The target **MUST** print a help-line if the operator runs `make test-worktree --help` or `make help` (if a `help` target exists; otherwise skip).
+- Notes: Thin wrapper. Operator-path verification (CLAUDE.md Step 3 mandate) requires running `make test-worktree` end-to-end against the live stack and confirming the in-container pytest passes.
+
+### FR-10: Smoke test for the script
+
+- Requirement:
+  - A new test file at `backend/tests/unit/scripts/test_run_tests_in_worktree.py` **MUST** cover:
+    1. `test_dry_run_outputs_canonical_argv` — invokes the script with `--dry-run` via `subprocess.run`, asserts stdout contains the expected `docker run --rm --network ...` argv with all 9 source bind mounts AND the `DATABASE_URL_FILE` env var AND the `relyloop/api:dev` image (or whatever `$RELYLOOP_GIT_SHA` resolves to in the test env).
+    2. `test_errors_on_missing_secret_file` — temporarily move/hide `$MAIN_REPO/secrets/database_url` (via env-var override or by running the script in a tempdir that pretends to be a fake main repo), invoke with `--dry-run`, assert non-zero exit + stderr message mentioning the missing secret.
+    3. `test_errors_when_not_in_worktree` — invoke the script from a path that's not inside a git worktree (e.g., `/tmp/<scratch>`), assert non-zero exit + stderr message naming the prerequisite.
+    4. `test_cmd_override_appears_in_argv` — invoke with `--dry-run --cmd "pytest foo"`, assert the constructed argv ends with `pytest foo` (or split equivalent), NOT the default.
+  - Tests **MUST NOT** actually run `docker` — all assertions are against `--dry-run` stdout. CI hermeticity preserved (the existing CI smoke job's Docker dependency is already covered by the operator-path verification, not by these unit tests).
+  - Pattern reference: `backend/tests/unit/scripts/test_dashboard_truncation.py` for the repo-root resolution and the `subprocess.run` style.
+- Notes: 4 tests minimum (the implementer shipped 6 — adding `test_required_bind_mounts_all_present` for granular per-mount assertions and `test_cmd_override_requires_value` for the `--cmd` usage-error path). ≤250 LOC total. Sub-second runtime.
+
+### FR-11: Runbook `docs/03_runbooks/parallel-worktrees.md`
+
+- Requirement:
+  - A new markdown runbook at `docs/03_runbooks/parallel-worktrees.md`, ≤100 lines (relaxed from the original ≤80 cap after Phase 2 GPT-5.5 review added a "Residual root-file risk" subsection covering the `bug_dockerfile_venv_root_owned_after_user_switch` workaround's side effects), **MUST** explain the parallel-worktree workflow end-to-end for human operators:
+    1. When to use a sibling worktree (parallel-agent shipping, experimental feature branches that don't disturb the main stack).
+    2. How to create a sibling worktree (`git worktree add /private/tmp/relyloop-<slug> -b <branch>`).
+    3. How to launch an autonomous agent inside it (no canonical entry-point yet; operator-managed).
+    4. How to run tests safely (`make test-worktree` from inside the sibling).
+    5. Cross-reference to the CLAUDE.md "Working in sibling worktrees" section for the data-path constraints, and to `impl-execute` Step 0a / 6b / 9.3 for the lifecycle steps.
+    6. Cleanup (`git worktree remove`, `git branch -D`).
+  - The runbook **MUST** be linked from CLAUDE.md's "Key Runbooks" table at the bottom of the file.
+- Notes: Human-facing operating procedure. The CLAUDE.md section is agent-facing; this runbook is the matching human-facing surface.
+
+### FR-12: CLAUDE.md section reference to `make test-worktree`
+
+- Requirement:
+  - The CLAUDE.md `## Working in sibling worktrees` section **MUST** gain a new sub-heading `### Shortcut: \`make test-worktree\`` immediately before the existing `### Running tests against a sibling worktree (one-shot container recipe)` sub-heading. The shortcut subsection explains in one paragraph that `make test-worktree` wraps the recipe below, supports `CMD=` override, and points at `scripts/run-tests-in-worktree.sh` for the implementation.
+  - The existing `\`\`\`bash` recipe **MUST** remain intact — it's the operator's transparency window into what the script does. FR-7 test #5 (exactly one fenced bash block) still applies; the new shortcut subsection MUST NOT introduce a second `\`\`\`bash` fence.
+  - The `### Deferred capabilities` subsection **MUST** be updated: the `phase2_idea.md` bullet **MUST** be removed (capability B is no longer deferred — it shipped). The `phase3_idea.md` bullet stays.
+- Notes: Minor edits to the Phase 1 section. FR-5 cross-reference to impl-execute stays unchanged. FR-7 test #5 invariant preserved (the new subsection is prose only; no new bash fence).
 
 ## 8) API and data contract baseline
 
@@ -326,11 +397,13 @@ N/A — no UI surface.
 - Then the section explicitly links to [`impl-execute` Step 0a](../../../../.claude/skills/impl-execute/SKILL.md), Step 6b, and Step 9.3
 - And the text frames the relationship as "lifecycle vs. runtime data path" (this section adds the runtime data path coverage that the impl-execute lifecycle steps don't cover)
 
-### AC-6: Forward-pointer to deferred phases
+### AC-6: Forward-pointer to deferred phases (Phase 2 expansion: B is no longer deferred)
 
-- Given the new section
-- When a reader inspects the closing lines
-- Then the section names the deferred capabilities (B: `scripts/run-tests-in-worktree.sh`; C: per-worktree `DATABASE_URL_FILE`) and links to `phase2_idea.md` and `phase3_idea.md` in this feature's directory
+- Given the new section's `### Deferred capabilities` subsection
+- When a reader inspects it
+- Then the subsection lists capability C (per-worktree `DATABASE_URL_FILE`) with a link to `phase3_idea.md` in this feature's directory
+- And the subsection does NOT list capability B / `phase2_idea.md` (capability B shipped in Phase 2; `phase2_idea.md` was deleted as part of the Phase 2 expansion)
+- And `phase2_idea.md` does NOT exist on disk in this feature's directory after Phase 2 ships
 
 ### AC-7: Regression checks fail on the five enumerated failure modes
 
@@ -345,12 +418,44 @@ N/A — no UI surface.
   - `test_section_has_exactly_one_fenced_bash_block` fails if the section has zero or more than one ` ```bash` fence
 - And each failing test reports the specific failure mode in its assertion message (no opaque "False is not True" diffs)
 
-### AC-8: `phase2_idea.md` and `phase3_idea.md` exist in this feature's directory after Phase 1 PR merges
+### AC-8: `phase3_idea.md` exists in this feature's directory after PR merges (Phase 2 expansion: `phase2_idea.md` is deleted because capability B shipped)
 
 - Given the post-merge state of `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/`
 - When a reader lists the directory
-- Then both `phase2_idea.md` (capability B) and `phase3_idea.md` (capability C) exist
-- And each file follows [`feature_templates/idea-template.md`](../feature_templates/idea-template.md), includes an Origin pointer back to this spec, and re-states the deferred decisions (D-1 phase split, D-2 secrets convention)
+- Then `phase3_idea.md` (capability C) exists
+- And `phase2_idea.md` does NOT exist (it was deleted when capability B shipped in Phase 2)
+- And `phase3_idea.md` follows [`feature_templates/idea-template.md`](../feature_templates/idea-template.md), includes an Origin pointer back to this spec, and re-states both D-1 (phase split) and D-2 (secrets convention)
+
+### AC-9: `scripts/run-tests-in-worktree.sh` constructs the expected `docker run` invocation
+
+- Given the new shell script at `scripts/run-tests-in-worktree.sh`
+- When a developer invokes `scripts/run-tests-in-worktree.sh --dry-run` from inside the main worktree (or from a sibling worktree)
+- Then the script prints the constructed `docker run` argv to stdout (one argument per line, in canonical order)
+- And the argv contains: `--rm`, `--user root` (workaround for `bug_dockerfile_venv_root_owned_after_user_switch`), `--network <relyloop-default-or-override>`, `-e DATABASE_URL_FILE=/run/secrets/database_url`, `-e PYTHONDONTWRITEBYTECODE=1` (same bug workaround — prevents root-owned `__pycache__` leak), exactly 11 `-v` mounts (the DB secret + `CLAUDE.md` + the 9 source paths from FR-4), the `relyloop/api:${RELYLOOP_GIT_SHA:-dev}` image tag, and the default command `uv run pytest backend/tests/unit/ -v` (the `uv run` prefix triggers on-demand dev-dep installation since the production image is built with `--no-dev`)
+- And the script exits 0 from `--dry-run` mode
+
+### AC-10: Script fails with clear errors on missing prerequisites
+
+- Given the script
+- When invoked with a missing `$MAIN_REPO/secrets/database_url` file
+- Then the script exits non-zero with a stderr message that names the missing file AND references CLAUDE.md Rule #2 AND points at `scripts/install.sh` for secret regeneration
+- And when invoked from a path outside any git worktree, the script exits non-zero with a stderr message naming the prerequisite (`must be run from inside a git worktree`)
+
+### AC-11: `make test-worktree` end-to-end run passes
+
+- Given the live Compose stack (`make up` healthy) and the new `make test-worktree` target
+- When the operator runs `make test-worktree` from inside the main worktree
+- Then the script spins up a one-shot container against the Compose network, runs `pytest backend/tests/unit/ -v` inside it, and exits 0
+- And the operator's main-worktree `./migrations/`, `./samples/`, `./alembic.ini` are NOT modified by the run (no leak)
+- And the smoke-test alternative `make test-worktree CMD="pytest backend/tests/unit/docs/ -v"` invokes the override command (verified by the script's progress line showing the override)
+
+### AC-12: Runbook + CLAUDE.md shortcut subsection are present
+
+- Given `docs/03_runbooks/parallel-worktrees.md`
+- When a reader inspects it
+- Then the file exists, is ≤80 lines, follows the project's runbook markdown style, and is linked from CLAUDE.md's "Key Runbooks" table
+- And CLAUDE.md's `## Working in sibling worktrees` section has a new `### Shortcut: \`make test-worktree\`` subsection immediately before the existing `### Running tests against a sibling worktree (one-shot container recipe)` subsection
+- And FR-7 test #5 (exactly one fenced `bash` block in the section) still passes — the new shortcut subsection introduces no new `\`\`\`bash` fence
 
 ## 13) Non-functional requirements
 

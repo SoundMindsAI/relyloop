@@ -397,19 +397,33 @@ If you edit `docker-compose.yml`, re-verify the line citations above in the same
 
 The hazard is the bind source the running container resolves to, not the command form. Any debug stubs created during sibling-worktree work are still subject to the "Local-stub hygiene" rule below.
 
+### Shortcut: `make test-worktree`
+
+Most operators don't need to type the full recipe below — `make test-worktree` from inside a sibling worktree wraps it. The Makefile target invokes [`scripts/run-tests-in-worktree.sh`](scripts/run-tests-in-worktree.sh) which auto-detects the main repo path, validates the DB secret, and spins up the one-shot container. Override the command via `CMD=`:
+
+- `make test-worktree` — runs `uv run pytest backend/tests/unit/ -v` inside the container.
+- `make test-worktree CMD="pytest backend/tests/integration -v"` — overrides the in-container command. The script prepends `uv run` automatically (the production image is built `--no-dev`, so dev deps install on-demand via `uv run`).
+- `bash scripts/run-tests-in-worktree.sh --dry-run` — print the constructed `docker run` argv without executing it.
+
+See the [`parallel-worktrees.md` runbook](docs/03_runbooks/parallel-worktrees.md) for the human-facing operational guide.
+
 ### Running tests against a sibling worktree (one-shot container recipe)
 
-Use a one-shot `docker run` invocation that mounts the **sibling worktree's** source tree and joins the existing Compose network. The DB-secret mount honors Absolute Rule #2: never bare `DATABASE_URL=...` env var, always the `*_FILE`-mounted pattern matching `docker-compose.yml` lines 68 / 95 / 153.
+The recipe `make test-worktree` wraps is below — useful for understanding what the script does internally, or for one-off invocations where you want to tweak a flag. Honors Absolute Rule #2: never bare `DATABASE_URL=...` env var, always the `*_FILE`-mounted pattern matching `docker-compose.yml` lines 68 / 95 / 153.
+
+The `--user root` + `PYTHONDONTWRITEBYTECODE=1` flags work around `bug_dockerfile_venv_root_owned_after_user_switch` (the production image's `/app/.venv` package metadata is root-owned because `Dockerfile:107` runs `uv sync` before `USER relyloop` at line 109; `uv run`'s implicit sync can't rewrite those files without root). Both flags become deletable when the Dockerfile bug ships its fix.
 
 ```bash
 # Run from the sibling worktree's root (e.g., /private/tmp/relyloop-<slug>).
 # $MAIN_REPO is the operator's main checkout, resolved dynamically — `git
 # worktree list` always lists the main worktree first.
 MAIN_REPO=$(git worktree list | awk '{print $1; exit}')
-docker run --rm \
+docker run --rm --user root \
   --network relyloop_default \
   -e DATABASE_URL_FILE=/run/secrets/database_url \
+  -e PYTHONDONTWRITEBYTECODE=1 \
   -v "$MAIN_REPO/secrets/database_url:/run/secrets/database_url:ro" \
+  -v "$PWD/CLAUDE.md:/app/CLAUDE.md:ro" \
   -v "$PWD/backend:/app/backend" \
   -v "$PWD/migrations:/app/migrations" \
   -v "$PWD/scripts:/app/scripts" \
@@ -420,7 +434,7 @@ docker run --rm \
   -v "$PWD/Makefile:/app/Makefile:ro" \
   -v "$PWD/samples:/app/samples:ro" \
   "relyloop/api:${RELYLOOP_GIT_SHA:-dev}" \
-  pytest backend/tests/unit/ -v
+  uv run pytest backend/tests/unit/ -v
 ```
 
 ### Worktree lifecycle (cross-reference)
@@ -429,10 +443,11 @@ This section covers the **runtime data path** (what's safe to write to from insi
 
 ### Deferred capabilities
 
-Two follow-on capabilities are tracked as deferred-phase ideas in the feature's planned-features folder, picked up when the friction recurs:
+One follow-on capability remains tracked as a deferred-phase idea in the feature's planned-features folder, picked up when the friction recurs:
 
-- [`phase2_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md) — a `scripts/run-tests-in-worktree.sh` (or `make test-worktree` target) that wraps the recipe above.
-- [`phase3_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec).
+- [`phase3_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec). Picked up on a migration-collision incident between concurrent worktrees sharing the same Postgres.
+
+Phase 2 (capability B, the `make test-worktree` automation) shipped on PR #249 alongside Phase 1 — see the Shortcut subsection above and [`docs/03_runbooks/parallel-worktrees.md`](docs/03_runbooks/parallel-worktrees.md).
 
 ## Bug Fix Protocol
 
@@ -563,3 +578,4 @@ Run `/pipeline status` for the live view from spec dependencies.
 | LLM-as-judge worker debugging + calibration / overrides | [`docs/03_runbooks/judgment-generation-debugging.md`](docs/03_runbooks/judgment-generation-debugging.md) (`feat_llm_judgments`) |
 | What data leaves the cluster on each judgment-generation call | [`docs/04_security/llm-data-flow.md`](docs/04_security/llm-data-flow.md) (`feat_llm_judgments` §15) |
 | Chat-agent debugging — replay a conversation, force a tool dispatch, inspect SSE events | [`docs/03_runbooks/agent-debugging.md`](docs/03_runbooks/agent-debugging.md) (`feat_chat_agent`) |
+| Parallel-worktree workflow — sibling checkouts, `make test-worktree`, leak prevention | [`docs/03_runbooks/parallel-worktrees.md`](docs/03_runbooks/parallel-worktrees.md) (`infra_agent_sibling_worktree_isolation` Phase 2) |
