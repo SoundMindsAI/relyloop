@@ -15,7 +15,7 @@ grepping `ui/tests/e2e/*.spec.ts` for each helper.
 | `seedJudgmentList` | `judgments-data-table.spec.ts`, `judgments.spec.ts` | `judgment_list` |
 | `seedFullChain` | `judgments-data-table.spec.ts`, `studies-create-target-dropdown.spec.ts`, `studies-create-validation.spec.ts`, `studies-by-cluster-data-table.spec.ts`, `studies-create-builder.spec.ts`, `studies-data-table.spec.ts`, `studies.spec.ts`, `trials-data-table.spec.ts` | delegated (sub-helpers register) |
 | `seedStudy` | `studies-by-cluster-data-table.spec.ts`, `studies-data-table.spec.ts`, `trials-data-table.spec.ts`, `studies.spec.ts` | `study` |
-| `seedAcmeProductsChain` | **0 specs** — currently uncalled (see "Gaps" below) | `cluster`, `query_set`, `query_template`, `judgment_list`, `study` |
+| `seedAcmeProductsChain` | `guides/06_create_and_monitor_study.spec.ts` | `cluster`, `query_set`, `query_template`, `judgment_list`, `study` |
 | `seedStudyCompletedWithDigest` | `studies.spec.ts` | `study`, `digest`, optional `proposal` |
 | `seedStudyCompletedWithPerQueryMetrics` | `studies.spec.ts` | same |
 
