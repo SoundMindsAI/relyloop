@@ -46,7 +46,11 @@ from backend.app.api.v1 import studies as studies_router
 from backend.app.api.webhooks import github as webhook_github_router
 from backend.app.core.logging import configure_logging, get_logger
 from backend.app.core.settings import get_settings
+from backend.app.db.session import get_session_factory
 from backend.app.llm.capability_check import run_capability_check_background
+from backend.app.services.cluster_health_warmup import (
+    run_cluster_health_warmup_background,
+)
 
 # Configure logging eagerly at module load so anything that runs during app
 # construction (e.g. settings validation in lifespan, future startup hooks)
@@ -91,6 +95,15 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
         )
     )
 
+    # bug_demo_clusters_unreachable_in_healthz Story 1.3: warm the
+    # cluster:health:* Redis cache so /healthz reports truthful counts
+    # within ~5s of boot. Fire-and-forget, same shutdown semantics as
+    # cap_task above (cancel/await/swallow at the end of lifespan).
+    db_factory = get_session_factory()
+    warmup_task = asyncio.create_task(
+        run_cluster_health_warmup_background(db_factory, redis_client)
+    )
+
     # Build the Arq pool used by Phase 2's POST /api/v1/studies to
     # enqueue the start_study orchestrator job. The pool is best-effort:
     # if Redis isn't reachable we log + skip (the study row still lands
@@ -127,6 +140,21 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
             except Exception as exc:  # noqa: BLE001 — shutdown swallow
                 logger.warning(
                     "Capability check task raised during shutdown",
+                    error=str(exc),
+                )
+        # Cancel the cluster-health warmup task (Story 1.3 / FR-4).
+        # Mirrors the capability-check shutdown above. The warmup function's
+        # `async with db_factory() as db:` releases the DB session on
+        # CancelledError propagation per spec §19 D-10.
+        if not warmup_task.done():
+            warmup_task.cancel()
+            try:
+                await warmup_task
+            except asyncio.CancelledError:
+                pass
+            except Exception as exc:  # noqa: BLE001 — shutdown swallow
+                logger.warning(
+                    "Cluster health warmup task raised during shutdown",
                     error=str(exc),
                 )
         await redis_client.aclose()
