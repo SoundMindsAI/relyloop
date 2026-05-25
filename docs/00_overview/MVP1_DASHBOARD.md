@@ -15,19 +15,19 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **75 / 75** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 15 important to file, not blocking |
+| → P2 (default) | 14 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 5 |
-| Legacy "Path to MVP1" | 12 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 4 |
+| Legacy "Path to MVP1" | 11 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (93)
+### Done (94)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -112,6 +112,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_dashboard_banner_dismiss_persistence_flake](implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Complete |
 | [bug_dashboard_classifier_half_step_releases](implemented_features/2026_05_23_bug_dashboard_classifier_half_step_releases/idea.md) | Bug | The MVP1.5 release tier was introduced 2026-05-23 via PR #200 (canonical release matrix + spec §27 + tech-stack.md). But the dashboard regen script's release classifier at… | — | Complete |
 | [bug_dashboard_depends_on_column_bloat](implemented_features/2026_05_23_bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and `mvp1_dashboard. | — | Complete |
+| [bug_demo_clusters_unreachable_in_healthz](implemented_features/2026_05_25_bug_demo_clusters_unreachable_in_healthz/feature_spec.md) | Bug | **After** the warmup task completes (typically within ~5 seconds of API startup, bounded by per-cluster `httpx` probe latency), `/healthz` reports the accurate `healthy` / `unreachable` aggregate for  | — | [PR #236](https://github.com/SoundMindsAI/relyloop/pull/236) merged 2026-05-25 |
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module- | — | Complete |
 | [bug_e2e_target_dropdown_flake](implemented_features/2026_05_20_bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Complete |
@@ -129,11 +130,9 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [bug_demo_clusters_unreachable_in_healthz](../02_product/planned_features/bug_demo_clusters_unreachable_in_healthz/feature_spec.md) | Bug | **After** the warmup task completes (typically within ~5 seconds of API startup, bounded by per-cluster `httpx` probe latency), `/healthz` reports the accurate `healthy` / `unreachable` aggregate for  | — | [PR #232](https://github.com/SoundMindsAI/relyloop/pull/232) |
+_None._
 
 ### Spec (0)
 

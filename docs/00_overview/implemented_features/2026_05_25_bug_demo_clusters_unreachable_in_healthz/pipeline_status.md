@@ -37,7 +37,18 @@
   - Cycle 3: bounded polling for both operator-path verification AND AC-8 in-process capture pattern
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-25
+- PR: [#236](https://github.com/SoundMindsAI/relyloop/pull/236) (squash-merged as `70b2ae46`, admin-merged)
+- CI in-scope jobs: all green (backend lint+typecheck+tests+coverage, frontend lint+typecheck+tests+build, docker buildx, fast-lane unit)
+- CI smoke gate: pre-existing failure from the dashboard banner E2E (same as PR #228 / PR #232 / PR #234); admin-merge precedent applies. Decoupled from this `/healthz` bug per spec §19 D-6.
+- Stories completed: 4/4 (1.1 FR-7 cache-write fix · 1.2 warmup service module · 1.3 lifespan wiring · 1.4 data-model.md doc) + integration tests added in phase-gate-fix commit `d3a63bf6`.
+- Tests: 16 new/updated cases — 3 in test_cluster_service.py (AC-3 + AC-11) + 7 in test_cluster_health_warmup.py unit + 4 in test_main_lifespan.py incl env-var-gate (AC-1 + AC-7 + env-var test) + 3 contract assertions extended in test_cluster_health_warmup.py integration (AC-8/AC-9/AC-10, skip outside CI service containers)
+- Phase-gate review: GPT-5.5 — 1 Medium finding (missing integration test file) accepted + shipped in commit `d3a63bf6`
+- Final cross-model review: GPT-5.5 — 4 findings (3 Medium + 1 Low) all accepted; biggest was refactor to per-page session lifecycle (commit `7716a04e`) for bounded memory + cleaner asyncpg pool behavior
+- Gemini Code Assist: clean review, zero line-level findings
+- CI rounds: 3 fix iterations after PR open — (1) per-page refactor, (2) env-var gate `RELYLOOP_DISABLE_STARTUP_WARMUP` to avoid asyncio interleaving with the latent webhook merge-handler row-lock race, (3) explicit `monkeypatch.delenv` for unit test isolation
+- Tangential bug captured: [`bug_webhook_concurrent_merge_race_timing_sensitive`](../../planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) — real production-correctness bug in webhook merge-handler row-lock; deterministically reproducible by adding any second lifespan task; P2 next-ticket candidate
 
 ## Branch
-- `bug/demo-clusters-unreachable-in-healthz`
+- `bug/demo-clusters-unreachable-in-healthz` (deleted post-merge by `gh pr merge --delete-branch`)
