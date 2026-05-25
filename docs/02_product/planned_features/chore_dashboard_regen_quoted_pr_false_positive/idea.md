@@ -4,11 +4,11 @@
 **Status:** Idea — surfaced during `chore_dashboard_pr_extraction_from_idea` empirical verification (2026-05-23)
 **Priority:** P2 — cosmetic-only; affects planned-feature rows in `MVP1_DASHBOARD.md`'s Plan/Spec sections when a feature's spec/plan/idea body cites other features' PR-merge phrases in narrative text. No effect on shipped-feature accuracy. (The dashboard regen script at [`scripts/build_mvp1_dashboard.py:240-245`](../../../../scripts/build_mvp1_dashboard.py#L240) only recognizes P0/P1/P2/Backlog and coerces anything else to P2; setting P2 explicitly to keep the idea-file and dashboard tier columns aligned — surfaced by Gemini on the finalization PR.)
 **Origin:** During `chore_dashboard_pr_extraction_from_idea` (this chore's sibling) empirical verification, `_load_planned` for the chore's own folder extracted `PR #4` (which belongs to `infra_foundation`) because the chore's spec content includes AC-4's example body `**Depends on:** [infra_foundation] — merged via PR #4 (2026-05-09)`. The pre-existing priority-3 fuzzy regex `merged[^.\n]{0,80}PR[^a-zA-Z\n]{0,5}#(\d+)` matched the narrative quote and returned `4` as this feature's PR number. Multiple other AC bodies in the spec (AC-9, AC-10) had similar patterns; the rendered dashboard row for the chore in the Plan section showed misleading values like `[PR #4] merged 2026-05-15` despite the chore being planned-only.
-**Depends on:** None. (Builds on top of [`bug_dashboard_depends_on_column_bloat`](../../../00_overview/implemented_features/2026_05_23_bug_dashboard_depends_on_column_bloat/) PR #208 + `chore_dashboard_pr_extraction_from_idea` PR-TBD.)
+**Depends on:** None. (Builds on top of [`bug_dashboard_depends_on_column_bloat`](../../../00_overview/implemented_features/2026_05_23_bug_dashboard_depends_on_column_bloat/) PR #208 + [`chore_dashboard_pr_extraction_from_idea`](../../../00_overview/implemented_features/2026_05_23_chore_dashboard_pr_extraction_from_idea/) PR #221 — both shipped 2026-05-23.)
 
 ## Problem
 
-[`_extract_pr_number`](../../../../scripts/build_mvp1_dashboard.py#L572)'s priority-3 fuzzy match has two regexes:
+[`_extract_pr_number`](../../../../scripts/build_mvp1_dashboard.py#L581)'s priority-3 fuzzy match has two regexes (verified 2026-05-25 against current main at `2a24fae4`):
 
 ```python
 m = re.search(r"PR[^a-zA-Z\n]{0,5}#(\d+)[^.\n]{0,80}merged", combined)
@@ -35,7 +35,7 @@ The chore tried to scrub the literal triggers from its own spec but found they'r
 
 ## Why deferred from `chore_dashboard_pr_extraction_from_idea`
 
-Out of scope for that chore — its scope was extending `_extract_pr_number` with strict idea-body patterns (priorities 3.5 and 3.6), NOT modifying the pre-existing priority-3 fuzzy match. The strict patterns work correctly; the fuzzy match's quoted-PR false positives are an independent surface.
+Out of scope for that chore (shipped 2026-05-23 as PR #221) — its scope was extending `_extract_pr_number` with strict idea-body patterns (priorities 3.5 and 3.6), NOT modifying the pre-existing priority-3 fuzzy match. The strict patterns work correctly (per `_extract_pr_number` docstring at `scripts/build_mvp1_dashboard.py:581-608`); the fuzzy match's quoted-PR false positives are an independent surface.
 
 The cosmetic effect (one wrong PR# on the chore's own planned-feature row in the dashboard until it merges) was accepted because (a) it's planned-only — once merged, `_load_implemented` takes over and the chore's actual PR number replaces the rendered value, AND (b) it does not affect any shipped-feature row's accuracy.
 
