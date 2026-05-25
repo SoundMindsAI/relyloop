@@ -368,6 +368,12 @@ These pair with the Step-5 tri-state k field, which renders required / optional 
 - `K_REQUIRED` (frontend) ↔ `_K_REQUIRED_METRICS` ([`backend/app/api/v1/schemas.py:474`](../../backend/app/api/v1/schemas.py)) — asserted by `ui/src/__tests__/components/studies/k-required.test.ts` and `backend/tests/contract/test_k_required_membership.py`.
 - `K_IGNORED` (frontend) ↔ the metric token mapper at `backend/app/eval/scoring.py:32` — asserted by `ui/src/__tests__/components/studies/k-ignored.test.ts` and `backend/tests/unit/eval/test_scoring_metric_tokens.py`.
 
+### Deep-link `?clone_from=<id>` (`feat_study_clone_from_previous`)
+
+The `/studies` page reads an optional `?clone_from=<source_study_id>` query param. When present, it fetches `GET /api/v1/studies/{id}`, builds prefill via [`buildPrefillFromStudy`](../../ui/src/components/studies/prefill-from-study.ts), opens `CreateStudyModal` with `initialValues`, and clears the param via `router.replace('/studies')` so refresh / back-navigation doesn't reopen the modal. The reader lives inside `StudiesPageInner` under the `<Suspense>` boundary required by Next 16 `useSearchParams`, and uses a `useRef` one-shot so the effect doesn't re-fire on its own state writes. Invalid params (empty after trim, non-36-char length) and source-fetch errors (404 on a 36-char id that doesn't exist) all converge on the same "toast.error + `router.replace` + open empty modal" UX. The banner copy reads from the UI-only `PrefillValues.cloneSource` field — never from the editable `name` form value — so editing the name leaves the lineage label intact (D-12 in the feat spec). The submit-payload serializer is field-by-field on purpose: `cloneSource` is never spread into the wire payload, but both `parent` (proposal-followup lineage) and `parent_study_id` (clone lineage) are forwarded when set (the two axes are independent per D-5 / FR-10).
+
+The entry-point button lives in `StudyActionBar` on the study-detail page (NOT on the digest panel — D-7 / FR-2 regression assertion guards this). Cloning a `running` source opens an `AlertDialog` (`data-testid="clone-running-confirm"`) before navigation (FR-11); terminal-state sources navigate directly.
+
 ## Reserved for later releases
 
 | Capability | Activates at |

@@ -1313,3 +1313,269 @@ async def test_post_study_fr4_service_layer_cluster_unreachable(
     assert resp.status_code == 201, resp.text
     skipped = find_log_events(cap, event="studies.preflight.overlap_probe.skipped")
     assert any(e.get("reason") == "unreachable" for e in skipped)
+
+
+# ---------------------------------------------------------------------------
+# feat_study_clone_from_previous Story 1.3 — backend integration tests for
+# manual clone via POST with parent_study_id (FR-8, FR-9, FR-10, FR-14, D-9).
+# ---------------------------------------------------------------------------
+
+
+async def _seed_completed_source_study(
+    ids: dict[str, str],
+    *,
+    status: str = "completed",
+) -> str:
+    """Seed a source Study row with the given status; return its id.
+
+    Used as the "parent" / "source" study for clone test cases. The plan's
+    Story 1.3 step (i) cites the _seed_parent_chain pattern from
+    test_auto_followup.py:37; this is the lightweight equivalent for the
+    cases that don't need a trial chain.
+    """
+    factory = get_session_factory()
+    async with factory() as db:
+        source_id = str(uuid.uuid4())
+        await repo.create_study(
+            db,
+            id=source_id,
+            name=f"src-{uuid.uuid4().hex[:8]}",
+            cluster_id=ids["cluster_id"],
+            target="stub-index",
+            template_id=ids["template_id"],
+            query_set_id=ids["query_set_id"],
+            judgment_list_id=ids["judgment_list_id"],
+            search_space=_VALID_SEARCH_SPACE,
+            objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            config={"max_trials": 20},
+            status=status,
+            optuna_study_name=source_id,
+        )
+        await db.commit()
+    return source_id
+
+
+async def test_clone_happy_path_persists_parent_study_id(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """FR-9 / AC-5 case (a) — POST with valid parent_study_id → 201 + GET returns it."""
+    ids = await _seed_minimum_for_post_studies()
+    source_id = await _seed_completed_source_study(ids)
+    body = {
+        "name": "clone-of-source",
+        "cluster_id": ids["cluster_id"],
+        "target": "stub-index",
+        "template_id": ids["template_id"],
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": source_id,
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 201, resp.text
+    new_id = resp.json()["id"]
+    # Round-trip via GET
+    got = await async_client.get(f"/api/v1/studies/{new_id}")
+    assert got.status_code == 200
+    assert got.json()["parent_study_id"] == source_id
+
+
+async def test_clone_missing_parent_returns_404_parent_study_not_found(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """FR-8 / AC-6 case (b) — POST with non-existent parent_study_id → 404."""
+    ids = await _seed_minimum_for_post_studies()
+    nonexistent = "00000000-0000-7000-8000-000000000000"
+    body = {
+        "name": "missing-parent",
+        "cluster_id": ids["cluster_id"],
+        "target": "stub-index",
+        "template_id": ids["template_id"],
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": nonexistent,
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 404, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "PARENT_STUDY_NOT_FOUND"
+    assert detail["retryable"] is False
+    assert nonexistent in detail["message"]
+
+
+async def test_clone_wrong_cluster_returns_422_parent_study_wrong_cluster(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """FR-8 / AC-7 case (c) — POST with parent on cluster X and cluster_id=Y → 422.
+
+    Seeds TWO independent cluster setups, then POSTs with the Y-cluster's
+    cluster/template/qs/jl but the X-cluster source as parent_study_id.
+    """
+    ids_x = await _seed_minimum_for_post_studies()
+    ids_y = await _seed_minimum_for_post_studies()
+    source_on_x = await _seed_completed_source_study(ids_x)
+    body = {
+        "name": "wrong-cluster",
+        "cluster_id": ids_y["cluster_id"],  # Y
+        "target": "stub-index",
+        "template_id": ids_y["template_id"],
+        "query_set_id": ids_y["query_set_id"],
+        "judgment_list_id": ids_y["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": source_on_x,  # on X
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "PARENT_STUDY_WRONG_CLUSTER"
+    assert detail["retryable"] is False
+
+
+async def test_clone_with_both_parent_and_parent_study_id_persists_both(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """FR-10 / AC-10 case (d) — POST with BOTH parent_study_id AND parent (followup ref).
+
+    Both lineage axes are independent; both DB columns must be populated.
+    """
+    ids = await _seed_minimum_for_post_studies()
+    source_id = await _seed_completed_source_study(ids)
+    # Seed a proposal + digest so the followup lineage validation also passes.
+    factory = get_session_factory()
+    async with factory() as db:
+        proposal_id = str(uuid.uuid4())
+        await repo.create_proposal(
+            db,
+            id=proposal_id,
+            study_id=source_id,
+            cluster_id=ids["cluster_id"],
+            template_id=ids["template_id"],
+            config_diff={"bm25_k1": {"from": 1.0, "to": 1.5}},
+            status="pending",
+        )
+        await repo.create_digest(
+            db,
+            id=str(uuid.uuid4()),
+            study_id=source_id,
+            narrative="x",
+            parameter_importance={},
+            recommended_config={},
+            suggested_followups=[
+                {
+                    "kind": "narrow",
+                    "rationale": "narrow around best",
+                    "search_space": _VALID_SEARCH_SPACE,
+                }
+            ],
+            generated_by="openai:gpt-4o-2024-08-06",
+        )
+        await db.commit()
+
+    body = {
+        "name": "both-lineage",
+        "cluster_id": ids["cluster_id"],
+        "target": "stub-index",
+        "template_id": ids["template_id"],
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": source_id,
+        "parent": {"proposal_id": proposal_id, "followup_index": 0},
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 201, resp.text
+    new_id = resp.json()["id"]
+    # Read back from DB to verify both columns persisted.
+    factory = get_session_factory()
+    async with factory() as db:
+        row = await repo.get_study(db, new_id)
+    assert row is not None
+    assert row.parent_study_id == source_id
+    assert row.parent_proposal_id == proposal_id
+    assert row.parent_proposal_followup_index == 0
+
+
+async def test_clone_validation_order_parent_study_check_fires_before_judgment_cluster_check(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """FR-8 / D-9 / AC-13 case (e) — early-placement of parent-study FK check.
+
+    Constructs a scenario where BOTH PARENT_STUDY_WRONG_CLUSTER (FR-8)
+    AND JUDGMENT_CLUSTER_MISMATCH (existing line 255 check) would fail.
+    Per D-9 the parent-study check is placed EARLIER → expected error is
+    PARENT_STUDY_WRONG_CLUSTER (NOT JUDGMENT_CLUSTER_MISMATCH).
+    """
+    ids_x = await _seed_minimum_for_post_studies()
+    ids_y = await _seed_minimum_for_post_studies()
+    source_on_x = await _seed_completed_source_study(ids_x)
+    body = {
+        "name": "validation-order",
+        "cluster_id": ids_y["cluster_id"],  # Y
+        "target": "stub-index",
+        "template_id": ids_y["template_id"],
+        "query_set_id": ids_y["query_set_id"],
+        # judgment_list belongs to X — would fire JUDGMENT_CLUSTER_MISMATCH
+        # if FR-8's PARENT_STUDY_WRONG_CLUSTER weren't placed earlier.
+        "judgment_list_id": ids_x["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": source_on_x,  # on X — also wrong-cluster
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "PARENT_STUDY_WRONG_CLUSTER", (
+        f"D-9: parent-study check must fire before jl-cluster check; got {detail!r}"
+    )
+
+
+async def test_clone_cascade_cancel_includes_clone_child(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """FR-14 / AC-11 case (f) — cascade-cancel of a parent finds the clone child via FK.
+
+    (i) Seed parent A as 'running' directly (the POST API always creates
+        'queued' studies; direct seed mirrors _seed_parent_chain).
+    (ii) Create clone B via the NEW POST code path with parent_study_id=A.id
+         (B comes back as 'queued').
+    (iii) Cancel A with cascade=true.
+    (iv) Assert both A and B end in 'cancelled'.
+    """
+    ids = await _seed_minimum_for_post_studies()
+    parent_a_id = await _seed_completed_source_study(ids, status="running")
+    body = {
+        "name": "clone-of-running-parent",
+        "cluster_id": ids["cluster_id"],
+        "target": "stub-index",
+        "template_id": ids["template_id"],
+        "query_set_id": ids["query_set_id"],
+        "judgment_list_id": ids["judgment_list_id"],
+        "search_space": _VALID_SEARCH_SPACE,
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": parent_a_id,
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 201, resp.text
+    clone_b_id = resp.json()["id"]
+    # Cancel parent A with cascade=true → both should end cancelled.
+    resp_cancel = await async_client.post(f"/api/v1/studies/{parent_a_id}/cancel?cascade=true")
+    assert resp_cancel.status_code == 200, resp_cancel.text
+    # Read back both rows.
+    got_a = await async_client.get(f"/api/v1/studies/{parent_a_id}")
+    got_b = await async_client.get(f"/api/v1/studies/{clone_b_id}")
+    assert got_a.json()["status"] == "cancelled"
+    assert got_b.json()["status"] == "cancelled", (
+        "FR-14: clone child must be discovered by list_children_of_study via "
+        "parent_study_id and cancelled by the cascade"
+    )

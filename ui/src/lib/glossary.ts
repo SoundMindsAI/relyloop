@@ -263,6 +263,21 @@ export const glossary = {
   },
 
   // -------------------------------------------------------------------------
+  // Study clone (feat_study_clone_from_previous spec §11 / FR-13)
+  // -------------------------------------------------------------------------
+
+  'study.clone_button': {
+    short:
+      "Open the create-study form pre-filled with this study's settings. Useful for iterating with narrowed bounds or a different objective.",
+    ariaLabel: 'About the Clone study button',
+  },
+  'study.cloned_from_banner': {
+    short:
+      'This study will be created as a fork of the linked source. The lineage is recorded for future reference.',
+    ariaLabel: 'About the cloned-from banner',
+  },
+
+  // -------------------------------------------------------------------------
   // Trials table (FR-8)
   // -------------------------------------------------------------------------
 

@@ -1056,6 +1056,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/_test/demo/reseed': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Wipe + reseed all 4 demo scenarios (dev-only)
+     * @description Wipes the demo Postgres tables and ES/OS indices, then re-seeds the 4 demo scenarios from ``scripts/seed_meaningful_demos.py``. Gated by ``ENVIRONMENT=development`` — 404 RESOURCE_NOT_FOUND outside dev. Per feat_home_demo_reseed_endpoint spec.
+     */
+    post: operations['reseed_demo_api_v1__test_demo_reseed_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/webhooks/github': {
     parameters: {
       query?: never;
@@ -1598,6 +1618,11 @@ export interface components {
       objective: components['schemas']['ObjectiveSpec'];
       config: components['schemas']['StudyConfigSpec'];
       parent?: components['schemas']['ParentFollowupRef'] | null;
+      /**
+       * Parent Study Id
+       * @description feat_study_clone_from_previous FR-7 — when the operator clones an existing study via the study-detail Clone button, this carries the source study's id. Server validates existence (404 PARENT_STUDY_NOT_FOUND) and same-cluster (422 PARENT_STUDY_WRONG_CLUSTER) before persisting to studies.parent_study_id. Independent of the proposal-lineage 'parent' field (D-5); both may be set.
+       */
+      parent_study_id?: string | null;
     };
     /**
      * DigestResponse
@@ -2444,6 +2469,26 @@ export interface components {
       reason?: string | null;
     };
     /**
+     * ReseedSummary
+     * @description Returned by :func:`reseed_demo_state` on success.
+     *
+     *     Per spec §9 Required invariants, every counter is exactly 4 on the
+     *     happy path; ``duration_ms`` is wall-clock from orchestration start
+     *     to the rename commit.
+     */
+    ReseedSummary: {
+      /** Clusters Created */
+      clusters_created: number;
+      /** Query Sets Created */
+      query_sets_created: number;
+      /** Studies Completed */
+      studies_completed: number;
+      /** Proposals Created */
+      proposals_created: number;
+      /** Duration Ms */
+      duration_ms: number;
+    };
+    /**
      * RunQueryHit
      * @description One hit in the ``run_query`` response.
      */
@@ -2577,6 +2622,15 @@ export interface components {
           [key: string]: unknown;
         };
       } | null;
+      /**
+       * Suggested Followups
+       * @description feat_digest_executable_followups Story 6.1 — optional structured FollowupItem list (`[{kind, rationale, search_space}]`) to seed on the digest. When omitted, the seeder writes two default text-kind items. The E2E Run-followup spec passes a `narrow` item so it can drive the per-card Run button + modal prefill flow.
+       */
+      suggested_followups?:
+        | {
+            [key: string]: unknown;
+          }[]
+        | null;
     };
     /**
      * SeedCompletedStudyResponse
@@ -2781,16 +2835,6 @@ export interface components {
       elasticsearch_clusters: components['schemas']['ClusterAggregateHealth'];
     };
     /**
-     * TargetInfo
-     * @description One target (index / collection) on a cluster.
-     */
-    TargetInfo: {
-      /** Name */
-      name: string;
-      /** Doc Count */
-      doc_count?: number | null;
-    };
-    /**
      * SwapTemplateFollowup
      * @description A 'swap_template' followup — re-run against a different query template.
      *
@@ -2813,6 +2857,16 @@ export interface components {
       /** Template Id */
       template_id: string;
       search_space: components['schemas']['SearchSpace'];
+    };
+    /**
+     * TargetInfo
+     * @description One target (index / collection) on a cluster.
+     */
+    TargetInfo: {
+      /** Name */
+      name: string;
+      /** Doc Count */
+      doc_count?: number | null;
     };
     /**
      * TargetListResponse
@@ -4823,6 +4877,26 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  reseed_demo_api_v1__test_demo_reseed_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReseedSummary'];
         };
       };
     };

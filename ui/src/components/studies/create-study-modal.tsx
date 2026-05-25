@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -161,6 +162,13 @@ const STEP_TITLES = [
  * "Run this followup" flow. Carries the parent-study-derived form-field
  * values plus the lineage tuple that gets sent in the POST body's
  * ``parent`` field.
+ *
+ * feat_study_clone_from_previous Story 2.1 — widened with two clone-mode
+ * fields. ``parent`` became optional so the clone path (which carries no
+ * proposal-followup lineage) can omit it; ``parent_study_id`` carries the
+ * source study's id into the POST body (FR-6 / FR-7); ``cloneSource`` is
+ * UI-only metadata read by the cloned-from banner (FR-12 / D-12) — the
+ * modal's submit serializer MUST exclude it from the wire payload.
  */
 export interface PrefillValues {
   cluster_id: string;
@@ -180,9 +188,14 @@ export interface PrefillValues {
   sampler?: SamplerKind;
   pruner?: PrunerKind;
   seed?: number | '';
-  parent: {
+  parent?: {
     proposal_id: string;
     followup_index: number;
+  };
+  parent_study_id?: string;
+  cloneSource?: {
+    id: string;
+    name: string;
   };
 }
 
@@ -629,6 +642,15 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
     }
 
     setSubmitting(true);
+    // Lineage attachment — the two axes are independent per D-5 / FR-10 of
+    // feat_study_clone_from_previous; both may travel on the same request:
+    //   * `parent` — proposal-followup lineage (feat_digest_executable_followups
+    //     Story 5.2). Set by the proposals/[id] "Run this followup" flow.
+    //   * `parent_study_id` — clone lineage (feat_study_clone_from_previous
+    //     FR-6 / FR-7). Set by the /studies?clone_from=… deep-link flow.
+    // `initialValues.cloneSource` is UI-only per D-12 (read by the
+    // cloned-from banner above) and MUST NOT be serialized — the payload
+    // below is field-by-field on purpose; no `...initialValues` spread.
     create.mutate(
       {
         name: values.name,
@@ -640,10 +662,6 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
         search_space,
         objective,
         config,
-        // feat_digest_executable_followups Story 5.2 — when the modal was
-        // opened with prefill (the "Run this followup" flow), attach the
-        // lineage tuple so the backend records parent_proposal_id +
-        // parent_proposal_followup_index on the new study row.
         ...(initialValues?.parent
           ? {
               parent: {
@@ -651,6 +669,9 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                 followup_index: initialValues.parent.followup_index,
               },
             }
+          : {}),
+        ...(initialValues?.parent_study_id
+          ? { parent_study_id: initialValues.parent_study_id }
           : {}),
       },
       {
@@ -676,6 +697,24 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
             Step {step + 1} of {STEP_TITLES.length} — {STEP_TITLES[step]}
           </DialogDescription>
         </DialogHeader>
+        {initialValues?.cloneSource && (
+          <div
+            className="mb-4 rounded-md border bg-muted/40 px-4 py-2 text-sm"
+            data-testid="cloned-from-banner"
+          >
+            Cloned from study <strong>{initialValues.cloneSource.name}</strong>
+            {' · '}
+            <Link
+              href={`/studies/${initialValues.cloneSource.id}`}
+              className="underline hover:text-foreground/80"
+            >
+              view source
+            </Link>
+            <span className="ml-1">
+              <InfoTooltip glossaryKey="study.cloned_from_banner" />
+            </span>
+          </div>
+        )}
         <form
           // Submission goes exclusively through the explicit submit-button
           // onClick below — the form's submit event is swallowed so that any
