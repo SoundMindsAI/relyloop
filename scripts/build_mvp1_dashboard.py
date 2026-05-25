@@ -613,9 +613,12 @@ def _extract_pr_number(pipe: str, plan: str, spec: str, idea: str = "") -> int |
        formats.
     2. The plan's `**Status:**` header (catches in-flight features).
     3. A `merged`-context match across pipe + plan + spec (catches features
-       described in narrative form elsewhere). Dependency-table rows are
-       stripped first so PR numbers cited as "Implemented (PR #N)" in a
-       Dependencies row don't leak through.
+       described in narrative form elsewhere). Backtick-fenced segments
+       (multi-line ```...```, single-line ```...```, inline `...`) are
+       stripped via _strip_backtick_quoted_segments BEFORE dependency-table
+       rows, so quoted PR-merge phrases in spec narrative don't leak through
+       either. PR numbers cited as "Implemented (PR #N)" in a Dependencies
+       table row are stripped second so they likewise don't leak through.
     3.5. Strict line-anchored idea-body patterns (own-PR assertions: Pattern
        A `**Status:** **Shipped** as PR #N`, Pattern B
        `**Status:** **Implemented — PR #N`, Pattern C line-start
