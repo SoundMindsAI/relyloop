@@ -154,6 +154,7 @@ ARGV=(
   --network "$NETWORK_NAME"
   -e "DATABASE_URL_FILE=/run/secrets/database_url"
   -e "PYTHONDONTWRITEBYTECODE=1"
+  -e "RELYLOOP_IN_WORKTREE_CONTAINER=1"
   -v "$SECRET_FILE:/run/secrets/database_url:ro"
   -v "$WORKTREE_ROOT/CLAUDE.md:/app/CLAUDE.md:ro"
   -v "$WORKTREE_ROOT/backend:/app/backend"

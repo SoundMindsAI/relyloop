@@ -31,6 +31,24 @@ import pytest
 _REPO_ROOT: Final[Path] = Path(__file__).resolve().parents[4]
 _SCRIPT: Final[Path] = _REPO_ROOT / "scripts" / "run-tests-in-worktree.sh"
 
+# Skip the whole module when running INSIDE the one-shot worktree container
+# launched by scripts/run-tests-in-worktree.sh itself. The script sets
+# RELYLOOP_IN_WORKTREE_CONTAINER=1 in the container env; inside that container
+# `/app` is not a git worktree (the script mounts source paths individually,
+# not `.git`), so the script's `git rev-parse --show-toplevel` prerequisite
+# check would fail. The smoke tests are host-only by design — they exercise
+# the script, not the in-container test runner. Skipping cleanly when nested
+# preserves `make test-worktree` (default `pytest backend/tests/unit/ -v`)
+# usability: operators see "N skipped" instead of N spurious failures.
+pytestmark = pytest.mark.skipif(
+    os.environ.get("RELYLOOP_IN_WORKTREE_CONTAINER") == "1",
+    reason=(
+        "Script smoke tests are host-only — they invoke scripts/run-tests-in-"
+        "worktree.sh, which requires a git worktree at cwd. The one-shot "
+        "container doesn't mount .git. Run these from the host instead."
+    ),
+)
+
 
 def _make_fake_main(tmp_path: Path, *, with_secret: bool = True) -> Path:
     """Build a fake main-repo directory at tmp_path/fake-main.
