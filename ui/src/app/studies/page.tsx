@@ -32,6 +32,18 @@ function StudiesPageInner() {
   const cloneFromValid = cloneFromId !== null && cloneFromId.length === 36;
   const cloneSource = useStudy(cloneFromId ?? '', { enabled: cloneFromValid });
 
+  // Re-arm the one-shot when the source id changes. Covers the
+  // in-app navigation case where the user goes from
+  // `?clone_from=A` to `?clone_from=B` without closing the modal —
+  // without this reset, the previous A-fire would block the B-fire
+  // (Gemini PR #243 review finding #1). Fires on every cloneFromId
+  // change including the post-fire `router.replace('/studies')` that
+  // sets cloneFromId back to null; that re-set is harmless because
+  // the main effect's `if (!hasCloneFrom) return` short-circuits.
+  useEffect(() => {
+    cloneEffectFired.current = false;
+  }, [cloneFromId]);
+
   // The deep-link reader's whole job is to react to URL + source-fetch
   // state and seed the modal's local state. The useRef one-shot prevents
   // cascading re-fires. Moving this logic out of useEffect would require

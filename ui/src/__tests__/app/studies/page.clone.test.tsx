@@ -226,4 +226,68 @@ describe('StudiesPage — ?clone_from deep-link (Story 2.3)', () => {
     expect(screen.queryByTestId('cloned-from-banner')).toBeNull();
     expect(lastReplace).toBe('/studies');
   });
+
+  // Gemini PR #243 review finding #1 — when the user clicks Clone on
+  // a SECOND study without closing the modal from a prior clone, the
+  // one-shot useRef must re-arm so the prefill for B replaces A's.
+  // Guarded by the secondary `useEffect(() => { cloneEffectFired.current = false }, [cloneFromId])`.
+  it('(vii) navigation between two valid clone_from ids — second prefill replaces the first', async () => {
+    const SECOND_SOURCE_ID = '01970000-0000-7000-8000-0000000def00';
+    // First render: clone_from=A → banner with source A's name.
+    mockedSearch = `clone_from=${VALID_SOURCE_ID}`;
+    seedListEndpoint();
+    seedValidSource();
+    const { unmount } = await renderPage();
+    await waitFor(() => expect(screen.getByTestId('cloned-from-banner')).toBeInTheDocument());
+    expect(screen.getByTestId('cloned-from-banner')).toHaveTextContent('source-study-for-clone');
+    unmount();
+
+    server.resetHandlers();
+    toastErrorMock.mockReset();
+    lastReplace = '';
+
+    // Second render: clone_from=B → banner with source B's name.
+    // Simulates the Story 2.2 "user clicks Clone on a different study"
+    // flow where the URL changes from ?clone_from=A to ?clone_from=B
+    // and the page must seed the modal with B's prefill (not stale A).
+    mockedSearch = `clone_from=${SECOND_SOURCE_ID}`;
+    seedListEndpoint();
+    server.use(
+      http.get(`${API_BASE}/api/v1/studies/${SECOND_SOURCE_ID}`, () =>
+        HttpResponse.json({
+          id: SECOND_SOURCE_ID,
+          name: 'second-source-study',
+          cluster_id: 'c1',
+          target: 'products',
+          template_id: 'tpl1',
+          query_set_id: 'qs1',
+          judgment_list_id: 'jl1',
+          search_space: { params: {} },
+          objective: { metric: 'ndcg', k: 10, direction: 'maximize' },
+          config: { max_trials: 100 },
+          status: 'completed',
+          failed_reason: null,
+          optuna_study_name: 'second-source-study',
+          parent_study_id: null,
+          baseline_metric: 0.3,
+          best_metric: 0.4,
+          best_trial_id: null,
+          created_at: '2026-05-24T00:00:00Z',
+          started_at: '2026-05-24T00:01:00Z',
+          completed_at: '2026-05-24T00:30:00Z',
+          trials_summary: {
+            total: 100,
+            complete: 100,
+            failed: 0,
+            pruned: 0,
+            best_primary_metric: 0.4,
+          },
+        }),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => expect(screen.getByTestId('cloned-from-banner')).toBeInTheDocument());
+    expect(screen.getByTestId('cloned-from-banner')).toHaveTextContent('second-source-study');
+    expect(lastReplace).toBe('/studies');
+  });
 });
