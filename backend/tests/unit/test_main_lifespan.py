@@ -176,6 +176,14 @@ class TestLifespanShutdownCancels:
         CancelledError MUST be observed inside the warmup coroutine
         (proving main.py's cancel/await/swallow ran).
         """
+        # Ensure the integration-conftest-set RELYLOOP_DISABLE_STARTUP_WARMUP
+        # doesn't leak into this unit test. Pytest collects integration test
+        # modules before running unit tests, so the integration conftest's
+        # module-level `os.environ.setdefault` may have already set this
+        # env var. Without the delenv, the warmup task would not spawn and
+        # `await started.wait()` would time out.
+        monkeypatch.delenv("RELYLOOP_DISABLE_STARTUP_WARMUP", raising=False)
+
         started = asyncio.Event()
         cancel_seen = asyncio.Event()
 
