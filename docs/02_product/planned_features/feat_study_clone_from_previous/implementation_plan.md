@@ -813,7 +813,7 @@ Per spec §16: backend + frontend deploy together from a single PR (RelyLoop CI 
 - [ ] **Story 1.1** — Add `parent_study_id` to `CreateStudyRequest`
 - [ ] **Story 1.2** — Validate + persist `parent_study_id` in `_create_study`
 - [ ] **Story 1.3** — Backend regression tests (cascade-of-clone + auto_followup self-suppression + validation-order + happy-path)
-- [ ] **Story 2.1** — Extend `PrefillValues` + write `buildPrefillFromStudy` helper + glossary entries
+- [x] **Story 2.1** — Extend `PrefillValues` + write `buildPrefillFromStudy` helper + glossary entries
 - [ ] **Story 2.2** — "Clone study" button + running-confirm + cloned-from banner + payload serializer hygiene
 - [ ] **Story 2.3** — Deep-link `?clone_from` wiring on `/studies` page + invalid-param handling
 - [ ] **Story 3.1** — Playwright real-backend E2E + `ui-architecture.md` paragraph + follow-up idea verification
