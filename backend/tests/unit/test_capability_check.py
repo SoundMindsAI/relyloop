@@ -335,6 +335,153 @@ class TestBackgroundRunner:
 
 
 # ---------------------------------------------------------------------------
+# models_endpoint_status_code — surfaces the HTTP status on probe failure
+# (bug_openai_capability_check_incapable_on_valid_key, Story 1.2 / AC-3..AC-5/AC-8)
+# ---------------------------------------------------------------------------
+
+
+class TestModelsEndpointStatusCode:
+    async def test_http_401_captures_status_code(self) -> None:
+        """AC-3: bad-key returns models_endpoint='fail' + status_code=401."""
+        redis = _make_redis()
+        transport = _build_handler(models_status=401)
+        with structlog.testing.capture_logs() as captured:
+            async with httpx.AsyncClient(transport=transport) as http:
+                result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+        assert result.models_endpoint == "fail"
+        assert result.models_endpoint_status_code == 401
+        assert result.chat_completion == "untested"
+        # WARN log MUST carry the structured `status_code` field per cycle-1 B3.
+        step_events = [e for e in captured if e.get("step") == "models_endpoint"]
+        assert step_events, captured
+        for entry in step_events:
+            assert_log_level(entry, "warning")
+        assert any(e.get("status_code") == 401 for e in step_events), step_events
+
+    async def test_http_429_captures_status_code(self) -> None:
+        """Rate-limited case — operator can distinguish from auth failure."""
+        redis = _make_redis()
+        transport = _build_handler(models_status=429)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+        assert result.models_endpoint == "fail"
+        assert result.models_endpoint_status_code == 429
+
+    async def test_http_500_captures_status_code(self) -> None:
+        """Upstream-outage case — operator can distinguish from local config issues."""
+        redis = _make_redis()
+        transport = _build_handler(models_status=500)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+        assert result.models_endpoint == "fail"
+        assert result.models_endpoint_status_code == 500
+
+    async def test_network_error_reports_none_status_code(self) -> None:
+        """AC-4: network-class failure (httpx.HTTPError) yields models_endpoint='fail' + None."""
+        redis = _make_redis()
+
+        def _raise(_request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("simulated DNS failure")
+
+        transport = httpx.MockTransport(_raise)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+        assert result.models_endpoint == "fail"
+        assert result.models_endpoint_status_code is None
+
+    async def test_success_path_reports_none_status_code(self) -> None:
+        """AC-5: status_code stays None on the happy path (no 200 noise)."""
+        redis = _make_redis()
+        async with httpx.AsyncClient(transport=_build_handler()) as http:
+            result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+        assert result.models_endpoint == "ok"
+        assert result.models_endpoint_status_code is None
+
+    def test_pre_fix_cached_row_deserializes_with_status_code_none(self) -> None:
+        """AC-8: a CapabilityResult JSON serialized before this fix (no
+        ``models_endpoint_status_code`` key) deserializes cleanly with the
+        new field defaulting to None.
+        """
+        legacy_json = json.dumps(
+            {
+                "base_url": BASE_URL,
+                "model": MODEL,
+                "models_endpoint": "ok",
+                "chat_completion": "ok",
+                "function_calling": "ok",
+                "structured_output": "ok",
+                "tested_at": "2026-05-09T12:00:00Z",
+            }
+        )
+        result = CapabilityResult.model_validate_json(legacy_json)
+        assert result.models_endpoint == "ok"
+        assert result.models_endpoint_status_code is None
+
+
+# ---------------------------------------------------------------------------
+# AC-10 — security redaction (cache layer)
+# (bug_openai_capability_check_incapable_on_valid_key, Story 1.2)
+# ---------------------------------------------------------------------------
+
+
+class TestSecurityRedaction:
+    """The integer HTTP status code MAY be cached/logged; the response body MUST NOT.
+
+    OpenAI 401 bodies quote the bad bearer token back (e.g.
+    ``{"error":{"message":"Invalid Bearer token: sk-..."}}``). Surfacing the
+    body in CapabilityResult/Redis/logs would leak the secret to anyone
+    polling /healthz or tailing api logs. CLAUDE.md Absolute Rule #10 +
+    feature_spec.md AC-10.
+    """
+
+    FORBIDDEN_TOKEN_TEXT = "Invalid Bearer token: sk-redacted-token-abc"
+    FORBIDDEN_TOKEN_FRAGMENT = "sk-redacted-token-abc"
+
+    async def test_401_body_does_not_leak_into_cache_or_logs(self) -> None:
+        redis = _make_redis()
+
+        def handler(request: httpx.Request) -> httpx.Response:
+            assert request.url.path.endswith("/models")
+            # Body literally contains the secret-like token that we MUST redact.
+            return httpx.Response(
+                401,
+                json={"error": {"message": self.FORBIDDEN_TOKEN_TEXT}},
+                request=request,
+            )
+
+        transport = httpx.MockTransport(handler)
+        with structlog.testing.capture_logs() as captured:
+            async with httpx.AsyncClient(transport=transport) as http:
+                result = await check_capabilities(BASE_URL, API_KEY, MODEL, redis, http_client=http)
+
+        # Positive case: integer status code IS captured for the operator's diagnostic.
+        assert result.models_endpoint_status_code == 401
+
+        # Negative case: neither the cached JSON nor structlog contains the body.
+        cached_json = result.model_dump_json()
+        assert "Invalid Bearer token" not in cached_json, cached_json
+        assert self.FORBIDDEN_TOKEN_FRAGMENT not in cached_json, cached_json
+
+        # Capture every structlog event's stringified form (covers all fields,
+        # not just `message`).
+        log_blob = "".join(repr(e) for e in captured)
+        assert "Invalid Bearer token" not in log_blob, log_blob
+        assert self.FORBIDDEN_TOKEN_FRAGMENT not in log_blob, log_blob
+
+        # WARN-level event for step=models_endpoint MUST exist with status_code=401.
+        step_events = [e for e in captured if e.get("step") == "models_endpoint"]
+        assert step_events, captured
+        for entry in step_events:
+            assert_log_level(entry, "warning")
+        assert any(e.get("status_code") == 401 for e in step_events), step_events
+
+        # Sanity check: the value the Redis mock received is also clean.
+        cached_arg = redis.set.call_args.args[1]
+        assert "Invalid Bearer token" not in cached_arg, cached_arg
+        assert self.FORBIDDEN_TOKEN_FRAGMENT not in cached_arg, cached_arg
+
+
+# ---------------------------------------------------------------------------
 # cache_key is stable + sha256-based
 # ---------------------------------------------------------------------------
 

@@ -31,6 +31,7 @@ Three autouse fixtures:
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncIterator
 
 import httpx
@@ -39,6 +40,18 @@ from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 
 from backend.tests.conftest import postgres_reachable
+
+# Disable the lifespan-spawned cluster-health warmup task during
+# integration tests. The warmup interleaves on the event loop with the
+# test body and perturbs the timing of the latent webhook merge-handler
+# row-lock race captured at
+# docs/02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
+# Production deployments leave this UNSET so the warmup runs. Tests that
+# need to exercise the warmup explicitly (e.g.
+# backend/tests/integration/test_cluster_health_warmup.py) call
+# `run_cluster_health_warmup_background` directly and don't depend on
+# the lifespan-spawn path.
+os.environ.setdefault("RELYLOOP_DISABLE_STARTUP_WARMUP", "1")
 
 
 @pytest_asyncio.fixture(autouse=True)

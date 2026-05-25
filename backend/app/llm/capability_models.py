@@ -33,4 +33,12 @@ class CapabilityResult(BaseModel):
     structured_output: Literal["ok", "fail", "untested"] = Field(
         description="Whether response_format=json_schema produced parseable JSON"
     )
+    models_endpoint_status_code: int | None = Field(
+        default=None,
+        description=(
+            "HTTP status code captured when models_endpoint='fail' AND the failure "
+            "was an HTTP response (>= 400). None for success / network-class failure "
+            "/ pre-fix cached rows."
+        ),
+    )
     tested_at: datetime = Field(description="UTC timestamp when the check ran")

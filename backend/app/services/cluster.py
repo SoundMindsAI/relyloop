@@ -202,11 +202,17 @@ async def get_or_probe_health(redis: Redis, cluster: Cluster) -> HealthStatus:
     try:
         adapter = build_adapter(cluster)
     except CredentialsMissing as exc:
-        return HealthStatus(
+        # Cache the synthetic unreachable result so probe_registered_clusters
+        # (cache-only aggregate per CLAUDE.md Absolute Rule #11) sees a
+        # cached "fail" instead of cache-miss for credentials-missing
+        # clusters. Per bug_demo_clusters_unreachable_in_healthz spec FR-7.
+        health = HealthStatus(
             status="unreachable",
             checked_at=datetime.now(UTC).isoformat(),
             error=f"credentials resolution failed: {exc}",
         )
+        await write_cached_health(redis, cluster.id, health)
+        return health
     try:
         health = await adapter.health_check()
     finally:

@@ -414,6 +414,21 @@ storage = optuna.storages.RDBStorage(
 
 This co-tenancy is intentional — see [`tech-stack.md`](tech-stack.md) §"Infrastructure" — Postgres is sized to handle both.
 
+## Cluster health caching
+
+Per-cluster reachability is tracked in Redis at `cluster:health:{cluster_id}` with a 30s TTL (Decision Log 2026-05-09 — [`backend/app/adapters/health_cache.py`](../../backend/app/adapters/health_cache.py)). The cache backs two reads:
+
+- [`GET /api/v1/clusters/{id}`](../../backend/app/api/v1/clusters.py) (the detail endpoint) and the per-row health summary in [`GET /api/v1/clusters`](../../backend/app/api/v1/clusters.py) — avoid re-probing on every page render.
+- The `subsystems.elasticsearch_clusters` aggregate in `/healthz` ([`backend/app/api/probes.py:95`](../../backend/app/api/probes.py)) — reads-only, cache-miss-equals-`unreachable` per CLAUDE.md Absolute Rule #11 (`/healthz` can't live-probe inside its 200ms budget).
+
+The cache is populated through three complementary paths:
+
+1. **Registration:** [`register_cluster`](../../backend/app/services/cluster.py) probes the cluster and writes the cached `HealthStatus` to Redis before returning the new cluster to the API caller. So `POST /api/v1/clusters` always lands with a fresh cache row.
+2. **Lazy on-demand:** [`get_or_probe_health`](../../backend/app/services/cluster.py) reads the cache first; on miss, it probes and writes. Called from the per-row health summary on the list endpoint and from the detail endpoint. **Every branch** — cache hit, successful probe, AND `CredentialsMissing` exception — ends with a populated cache row (the `CredentialsMissing` cache-write shipped in `bug_demo_clusters_unreachable_in_healthz`).
+3. **Startup warmup:** [`run_cluster_health_warmup_background`](../../backend/app/services/cluster_health_warmup.py) (fire-and-forget background task spawned by the FastAPI `lifespan` hook in [`backend/app/main.py`](../../backend/app/main.py)) pages through all registered clusters at API startup and calls `get_or_probe_health` for each. This closes the cold-cache gap between boot and the first `/api/v1/clusters` request, which would otherwise cause `/healthz` to report `elasticsearch_clusters.unreachable: N` for ~30s post-boot.
+
+**`/healthz` race-window caveat:** the aggregate `elasticsearch_clusters` field in `/healthz` is a cache-only read (no live probes inside the request budget). For roughly the first ~5 seconds after API startup, while the warmup task is running, `/healthz` may still report cache-miss-as-`unreachable` for clusters the warmup hasn't yet reached. Operators polling `/healthz` immediately after `make up` should expect to see the count converge as the warmup completes.
+
 ## Cross-references
 
 - Stack choices (Postgres 16, SQLAlchemy 2.0, Alembic): [`tech-stack.md`](tech-stack.md)
