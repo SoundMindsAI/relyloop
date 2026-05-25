@@ -49,10 +49,13 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
         return None
 
     # Q2: runner-up trial — 2nd-best complete trial by primary_metric.
+    # FR-11: exclude baseline rows so the runner-up classification compares
+    # ONLY against Optuna trials (the baseline lives under its own surface).
     runner_up_stmt = (
         select(Trial)
         .where(
             Trial.study_id == study.id,
+            Trial.is_baseline.is_(False),
             Trial.status == "complete",
             Trial.id != winner.id,
         )
@@ -62,9 +65,14 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
     runner_up = (await db.execute(runner_up_stmt)).scalar_one_or_none()
 
     # Q3: complete-trials projection — (primary_metric, optuna_trial_number).
+    # FR-11: exclude baseline rows from convergence/late-stddev aggregates.
     summary_stmt = (
         select(Trial.primary_metric, Trial.optuna_trial_number)
-        .where(Trial.study_id == study.id, Trial.status == "complete")
+        .where(
+            Trial.study_id == study.id,
+            Trial.is_baseline.is_(False),
+            Trial.status == "complete",
+        )
         .order_by(Trial.optuna_trial_number.asc())
     )
     summary_rows = (await db.execute(summary_stmt)).all()

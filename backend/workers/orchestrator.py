@@ -324,9 +324,16 @@ async def _last_n_all_failed(db: AsyncSession, study_id: str, *, n: int) -> bool
     trials exist, returns False (insufficient signal). A single non-failed
     trial in the window resets the streak.
     """
+    # FR-11: exclude the baseline row (is_baseline=TRUE, optuna_trial_number=-1)
+    # from the "last N trials" streak check. Without this filter, after the
+    # baseline phase completes but before the first Optuna trial reaches
+    # terminal, ORDER BY optuna_trial_number DESC LIMIT n could return only
+    # the baseline row — a failed baseline would spuriously trigger the
+    # "5 consecutive failures" abort even though no Optuna trial ran.
     stmt = (
         select(Trial.status)
         .where(Trial.study_id == study_id)
+        .where(Trial.is_baseline.is_(False))
         .order_by(Trial.optuna_trial_number.desc())
         .limit(n)
     )
@@ -356,9 +363,12 @@ async def _last_n_all_zero(db: AsyncSession, study_id: str, *, n: int) -> bool:
     producing false-positive aborts whenever a non-zero, failed, or
     pruned row sits inside the recent window.
     """
+    # FR-11: same rationale as _last_n_all_failed — exclude the baseline
+    # row so a failed baseline can't trigger the no-signal abort.
     stmt = (
         select(Trial.status, Trial.primary_metric)
         .where(Trial.study_id == study_id)
+        .where(Trial.is_baseline.is_(False))
         .order_by(Trial.optuna_trial_number.desc())
         .limit(n)
     )

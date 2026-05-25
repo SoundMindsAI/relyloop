@@ -137,6 +137,7 @@ async def _detail(db: AsyncSession, row: Study) -> StudyDetail:
         optuna_study_name=row.optuna_study_name,
         parent_study_id=row.parent_study_id,
         baseline_metric=row.baseline_metric,
+        baseline_trial_id=row.baseline_trial_id,
         best_metric=row.best_metric,
         best_trial_id=row.best_trial_id,
         created_at=row.created_at,
@@ -726,6 +727,7 @@ async def list_study_trials(
                 error=t.error,
                 started_at=t.started_at,
                 ended_at=t.ended_at,
+                is_baseline=t.is_baseline,
             )
             for t in rows
         ],
