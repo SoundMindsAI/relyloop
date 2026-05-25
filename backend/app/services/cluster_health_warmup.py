@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any
 
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -75,34 +74,51 @@ async def run_cluster_health_warmup_background(
         )
         # Continue — per-cluster probes still fire; their failures still log.
 
-    # Collect cluster rows under SHORT-LIVED DB sessions, then probe
-    # OUTSIDE the session so the per-cluster HTTP timeout (~5s per
-    # adapter.health_check) doesn't hold an asyncpg connection. Holding
-    # the session during HTTP probes triggers connection-pool contention
-    # with concurrent test fixtures + production endpoints — caught by
-    # CI's `test_ac7_concurrent_merges_serialize_via_row_lock` running
-    # against the lifespan-spawned warmup.
+    # Per-page session lifecycle (post-CI-feedback refactor): each
+    # paginated read opens + closes a SHORT-LIVED DB session, then
+    # probes that page's clusters OUTSIDE the session so per-cluster
+    # HTTP timeouts (~5s per adapter.health_check) don't hold an asyncpg
+    # connection. The original design held one session across the entire
+    # walk; that starved concurrent endpoint handlers competing for the
+    # same connection pool (caught by CI's
+    # test_ac7_concurrent_merges_serialize_via_row_lock).
     failures = 0
-    clusters: list[Any] = []
+    count = 0
+    cursor: tuple[object, str] | None = None
     try:
+        # Single short-lived session for the empty-registry check so we
+        # don't spawn a connection just to find nothing to do.
         async with db_factory() as db:
             registered = await repo.count_clusters(db)
-            if registered == 0:
-                logger.info("cluster_health_warmup_skipped", count=0)
-                return
+        if registered == 0:
+            logger.info("cluster_health_warmup_skipped", count=0)
+            return
 
-            cursor: tuple[object, str] | None = None
-            while True:
+        while True:
+            # Load ONE page under a short session, then release.
+            async with db_factory() as db:
                 page = await repo.list_clusters(db, cursor=cursor, limit=200)
-                if not page:
-                    break
-                clusters.extend(page)
-                if len(page) < 200:
-                    break
-                last = page[-1]
-                cursor = (last.created_at, last.id)
-        # DB session is released here. Probes that follow do not hold any
-        # asyncpg connection.
+            if not page:
+                break
+            # Probe this page's clusters with NO DB session held.
+            for c in page:
+                count += 1
+                try:
+                    await cluster_svc.get_or_probe_health(redis_client, c)
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:  # noqa: BLE001 — per-cluster swallow
+                    failures += 1
+                    logger.warning(
+                        "cluster_health_warmup_cluster_failed",
+                        cluster_id=c.id,
+                        cluster_name=c.name,
+                        error=str(exc),
+                    )
+            if len(page) < 200:
+                break
+            last = page[-1]
+            cursor = (last.created_at, last.id)
     except asyncio.CancelledError:
         raise
     except Exception as exc:  # noqa: BLE001 — task-level swallow
@@ -111,21 +127,6 @@ async def run_cluster_health_warmup_background(
             error=str(exc),
         )
         return
-
-    count = len(clusters)
-    for c in clusters:
-        try:
-            await cluster_svc.get_or_probe_health(redis_client, c)
-        except asyncio.CancelledError:
-            raise
-        except Exception as exc:  # noqa: BLE001 — per-cluster swallow
-            failures += 1
-            logger.warning(
-                "cluster_health_warmup_cluster_failed",
-                cluster_id=c.id,
-                cluster_name=c.name,
-                error=str(exc),
-            )
 
     duration_ms = int((time.monotonic() - start) * 1000)
     logger.info(

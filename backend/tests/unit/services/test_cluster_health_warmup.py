@@ -427,12 +427,12 @@ class TestShutdownCancellation:
 
         # Synchronization point: wait for the probe to have entered the loop.
         await probe_started.wait()
-        # The DB session entered AND exited cleanly BEFORE any probe started
-        # (the refactor moves probes outside the `async with db_factory()`
-        # block to avoid asyncpg-pool contention with concurrent endpoint
-        # handlers).
-        assert session.enter_calls == 1
-        assert session.exit_calls == 1
+        # The per-page refactor opens TWO sessions before reaching the probe
+        # loop: (1) count_clusters, (2) first page's list_clusters. Each
+        # opens AND exits cleanly before its respective work — no session
+        # is held during the per-cluster HTTP probes.
+        assert session.enter_calls == 2
+        assert session.exit_calls == 2
         assert session.last_exit_exc_type is None  # clean exit, no exception
 
         # Now cancel and confirm CancelledError propagates through the probe.
@@ -442,6 +442,6 @@ class TestShutdownCancellation:
 
         # The probe coroutine saw the cancellation.
         assert cancel_seen_in_probe.is_set()
-        # Session counters unchanged from before cancellation — the session
-        # was already released; no double-close, no leak.
-        assert session.exit_calls == 1
+        # Session counters unchanged from before cancellation — both sessions
+        # were already released; no double-close, no leak.
+        assert session.exit_calls == 2

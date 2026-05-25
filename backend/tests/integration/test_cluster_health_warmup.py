@@ -167,17 +167,26 @@ class TestAC8HappyPath:
             cached = await redis_client.get(cluster_cache_key(cid))
             assert cached is not None, f"cluster:health:{cid} not populated"
 
-        # 6) /healthz aggregate now reflects 2 healthy clusters.
-        # NOTE: the cluster URL ``http://elasticsearch:9200`` resolves inside
-        # the Compose network but may not from the test runner. We assert
-        # that the aggregate's ``registered`` count is at least 2 — the
-        # healthy/unreachable split depends on whether the test runner can
-        # reach the engine. The deterministic AC-8 guarantee is that warmup
-        # POPULATES the cache, not that the underlying engines respond.
+        # 6) /healthz aggregate reflects the populated cache: both seeded
+        # clusters MUST be accounted for (healthy + unreachable sum to at
+        # least 2). The healthy/unreachable split depends on whether the
+        # test runner can reach `http://elasticsearch:9200` (works inside
+        # the Compose network; may not from the test runner). What this
+        # test deterministically guarantees per AC-8 + the cache-key-exists
+        # assertions above:
+        #   - warmup POPULATED the cache for both clusters (no cache miss)
+        #   - aggregate.registered count includes them
+        #   - aggregate.healthy + .unreachable accounts for them (no
+        #     silent miss-count where they're dropped from the aggregate)
         resp = await async_client.get("/healthz")
         body = resp.json()
         agg = body["subsystems"]["elasticsearch_clusters"]
         assert agg["registered"] >= 2, agg
+        # The warmup populated cache → both clusters appear in healthy OR
+        # unreachable, summing to at least 2 (no cluster falls off the
+        # aggregate due to a third state).
+        accounted_for = agg["healthy"] + agg["unreachable"]
+        assert accounted_for == agg["registered"], agg
 
 
 class TestAC9ResponseContractUnchanged:
@@ -207,8 +216,24 @@ class TestAC9ResponseContractUnchanged:
             first = body["data"][0]
             # ClusterSummary always has these keys; `health_check` is populated
             # from get_or_probe_health (cache-first now thanks to warmup).
-            for key in ("id", "name", "engine_type", "environment", "base_url"):
+            # Per final-review F4: assert the FULL expected key set,
+            # including health_check, so a regression that drops a field
+            # is caught.
+            for key in (
+                "id",
+                "name",
+                "engine_type",
+                "environment",
+                "base_url",
+                "health_check",
+            ):
                 assert key in first, first
+            # Verify health_check substructure (status + checked_at) — the
+            # public contract per ClusterSummary schema.
+            health = first["health_check"]
+            assert isinstance(health, dict), health
+            assert "status" in health
+            assert "checked_at" in health
 
 
 class TestAC10OutOfBandLazyWarm:
@@ -229,9 +254,12 @@ class TestAC10OutOfBandLazyWarm:
         await _delete_cache_keys(redis_client, [initial_id])
         await run_cluster_health_warmup_background(db_factory, redis_client)
 
-        # 2) After warmup: /healthz registered >= 1.
+        # 2) After warmup: capture the BASELINE aggregate (per final-review
+        #    F3 — we'll assert the delta below, not just registered count).
         body_before = (await async_client.get("/healthz")).json()
-        registered_before = body_before["subsystems"]["elasticsearch_clusters"]["registered"]
+        agg_before = body_before["subsystems"]["elasticsearch_clusters"]
+        registered_before = agg_before["registered"]
+        unreachable_before = agg_before["unreachable"]
         assert registered_before >= 1
 
         # 3) Out-of-band insert via direct ORM + commit (per plan cycle-1 B4 —
@@ -243,12 +271,15 @@ class TestAC10OutOfBandLazyWarm:
             await db.commit()  # CRITICAL — without this commit, /healthz's
             # separate DB session wouldn't see the row (B4).
 
-        # 4) /healthz registered count incremented; new cluster is cache-miss-unreachable
-        # because nothing has lazy-warmed it yet.
+        # 4) /healthz registered count + unreachable count both increment by 1
+        #    (per final-review F3 — the cache-miss-equals-unreachable
+        #    semantic at probes.py:124-126 means the new cluster shows up
+        #    in unreachable, not in healthy).
         body_after_insert = (await async_client.get("/healthz")).json()
         agg_after_insert = body_after_insert["subsystems"]["elasticsearch_clusters"]
         assert agg_after_insert["registered"] == registered_before + 1
-        # The new cluster has no cache row → counted as unreachable.
+        assert agg_after_insert["unreachable"] == unreachable_before + 1
+        # The new cluster has no cache row → confirms the cache-miss path.
         cached = await redis_client.get(cluster_cache_key(new_cluster_id))
         assert cached is None, "new cluster MUST be cache-miss before lazy-warm"
 
@@ -257,6 +288,17 @@ class TestAC10OutOfBandLazyWarm:
         #    populating cache.
         list_resp = await async_client.get("/api/v1/clusters?limit=200")
         assert list_resp.status_code == 200
+
+        # 6) /healthz unreachable count returns to the original baseline
+        #    (the new cluster is now in healthy OR unreachable depending on
+        #    engine reachability — but it's NO LONGER cache-miss-unreachable;
+        #    it has a definitive cached status). Per final-review F3.
+        body_after_warm = (await async_client.get("/healthz")).json()
+        agg_after_warm = body_after_warm["subsystems"]["elasticsearch_clusters"]
+        assert agg_after_warm["registered"] == registered_before + 1
+        # The full aggregate is back to "every cluster has a cached state":
+        accounted_for_after = agg_after_warm["healthy"] + agg_after_warm["unreachable"]
+        assert accounted_for_after == agg_after_warm["registered"]
 
         # 6) New cluster's cache row exists post-list.
         cached_after = await redis_client.get(cluster_cache_key(new_cluster_id))
