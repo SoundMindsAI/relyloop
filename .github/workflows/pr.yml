@@ -172,13 +172,29 @@ jobs:
             mypy-ruff-${{ runner.os }}-
 
       - name: Write file-based secrets (CI parity with mounted-secrets pattern)
-        # Pydantic Settings reads DATABASE_URL_FILE / POSTGRES_PASSWORD_FILE.
-        # In CI we materialize them from the service-container env values.
+        # Pydantic Settings reads DATABASE_URL_FILE / POSTGRES_PASSWORD_FILE /
+        # CLUSTER_CREDENTIALS_FILE. In CI we materialize them from the
+        # service-container env values. The cluster_credentials.yaml entry
+        # mirrors the heredoc in the "Seed cluster credentials" step further
+        # down — the smoke job and the pytest job both need local-es
+        # credentials so cluster registration + the
+        # infra_study_preflight_real_engine_integration helper's FR-6
+        # pre-flight both pass against the elasticsearch:9200 service container.
         run: |
           echo "testpassword" > "${RUNNER_TEMP}/postgres_password"
           echo "postgresql+asyncpg://relyloop:testpassword@localhost:5432/relyloop" \
             > "${RUNNER_TEMP}/database_url"
-          chmod 600 "${RUNNER_TEMP}/postgres_password" "${RUNNER_TEMP}/database_url"
+          cat > "${RUNNER_TEMP}/cluster_credentials.yaml" <<'EOY'
+          local-es:
+            username: elastic
+            password: changeme
+          local-opensearch:
+            username: admin
+            password: admin
+          EOY
+          chmod 600 "${RUNNER_TEMP}/postgres_password" \
+                    "${RUNNER_TEMP}/database_url" \
+                    "${RUNNER_TEMP}/cluster_credentials.yaml"
 
       - name: ruff check
         run: uv run ruff check .
@@ -193,6 +209,7 @@ jobs:
         env:
           DATABASE_URL_FILE: ${{ runner.temp }}/database_url
           POSTGRES_PASSWORD_FILE: ${{ runner.temp }}/postgres_password
+          CLUSTER_CREDENTIALS_FILE: ${{ runner.temp }}/cluster_credentials.yaml
           REDIS_URL: redis://localhost:6379/0
           OPENAI_BASE_URL: https://api.openai.com/v1
           OPENAI_MODEL: gpt-4o-2024-08-06
