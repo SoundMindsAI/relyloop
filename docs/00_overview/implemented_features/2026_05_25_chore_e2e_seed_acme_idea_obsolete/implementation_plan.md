@@ -1,7 +1,7 @@
 # Implementation Plan — chore_e2e_seed_acme_idea_obsolete
 
 **Date:** 2026-05-25
-**Status:** Ready for Execution
+**Status:** Complete (PR #250 merged 2026-05-25; PR B finalization in flight)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) — "Tangential discoveries" rubric, two-PR finalization pattern; [`impl-execute SKILL.md`](../../../../.claude/skills/impl-execute/SKILL.md) — Step 7 finalization
 
@@ -282,14 +282,14 @@ No new test files. No orphaned test files. Coverage gate (80% Python per CLAUDE.
 
 | Story | Status | Commit SHA |
 |---|---|---|
-| 1.1 — Close obsolete idea Status line | [ ] | — |
-| 1.2 — Refresh matrix row | [ ] | — |
-| 1.3 — Refresh ## Gaps body | [ ] | — |
-| 1.4 — Refresh ## Verdict | [ ] | — |
-| Epic 1 phase gate | [ ] | — |
-| **PR A** | [ ] | — |
-| 2.1 — git mv + state.md update | [ ] | — |
-| **PR B** | [ ] | — |
+| 1.1 — Close obsolete idea Status line | [x] | `69e89d8a` (post-rebase; orig `66d6ab75`) |
+| 1.2 — Refresh matrix row | [x] | `9d36c2a5` (post-rebase; orig `10a4337a`) |
+| 1.3 — Refresh ## Gaps body | [x] | `c4875efd` (post-rebase; orig `daf0ce86`) |
+| 1.4 — Refresh ## Verdict | [x] | `1b7d1f53` (post-rebase; orig `b0a54fab`) |
+| Epic 1 phase gate | [x] | 0 GPT-5.5 findings; 1427 unit tests passing; pnpm typecheck/lint clean |
+| **PR A** | [x] | [#250](https://github.com/SoundMindsAI/relyloop/pull/250) merged 2026-05-25T20:47:32Z as squash `05f3d486` |
+| 2.1 — git mv + state.md update | [x] | this finalization commit |
+| **PR B** | [ ] | in flight |
 
 ## 8) Open questions
 
