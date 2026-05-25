@@ -21,7 +21,20 @@
   - D-10: Split shutdown tests across `test_main_lifespan.py` + `test_cluster_health_warmup.py` (cycle-2 catch)
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-05-24
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 — 3 cycles to cap (11 findings: 6 cycle 1 + 3 cycle 2 + 2 cycle 3; all 11 accepted)
+- Stories: 4 (Story 1.1 FR-7 cache-write fix · Story 1.2 warmup service module · Story 1.3 lifespan wiring · Story 1.4 architecture doc)
+- Test coverage: 12 new unit cases (2 in test_cluster_service.py · 7 in test_cluster_health_warmup.py · 3 in test_main_lifespan.py) + 3 integration cases
+- Phases covered: single phase (no deferred phases)
+- Notable cycle catches:
+  - Cycle 1 A1 (High): structlog `event` field — first positional arg IS the event field; corrected to use stable identifier as the message
+  - Cycle 1 B4 (High): AC-10 missing `await db.commit()` — `repo.create_cluster` only flushes; caller commits
+  - Cycle 2 A1: `repo.create_cluster` line range corrected (28-32 → 39-45)
+  - Cycle 2 B1: lifespan tests need fakes for Redis/arq/session_factory or they hang on real I/O
+  - Cycle 2 B2: shutdown test uses explicit cancel-seen Event instead of weak "no warning" check
+  - Cycle 3: bounded polling for both operator-path verification AND AC-8 in-process capture pattern
 
 ## Implementation
 - Status: Not started
