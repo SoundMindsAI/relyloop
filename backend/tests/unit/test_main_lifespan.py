@@ -102,6 +102,9 @@ class TestLifespanSpawnsBothTasks:
         _patched_externals: dict[str, Any],
     ) -> None:
         """AC-1: both background coroutines are invoked when lifespan enters."""
+        # Ensure the env-var gate is NOT set (default-spawn behavior).
+        monkeypatch.delenv("RELYLOOP_DISABLE_STARTUP_WARMUP", raising=False)
+
         cap_invocations: list[dict[str, Any]] = []
         warmup_invocations: list[tuple[Any, Any]] = []
 
@@ -124,6 +127,41 @@ class TestLifespanSpawnsBothTasks:
         # warmup receives the patched factory + redis client.
         assert warmup_invocations[0][0] is _patched_externals["factory"]
         assert warmup_invocations[0][1] is _patched_externals["redis"]
+
+    async def test_lifespan_skips_warmup_when_env_var_set(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        _patched_externals: dict[str, Any],
+    ) -> None:
+        """RELYLOOP_DISABLE_STARTUP_WARMUP=1 skips the warmup task entirely.
+
+        Used by integration-test conftest to avoid event-loop interleaving
+        with the latent webhook merge-handler row-lock race captured at
+        docs/02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
+        Capability-check task is unaffected.
+        """
+        monkeypatch.setenv("RELYLOOP_DISABLE_STARTUP_WARMUP", "1")
+
+        cap_invocations: list[dict[str, Any]] = []
+        warmup_invocations: list[tuple[Any, Any]] = []
+
+        async def _fake_cap(**kwargs: Any) -> None:
+            cap_invocations.append(kwargs)
+
+        async def _fake_warmup(db_factory: Any, redis_client: Any) -> None:
+            warmup_invocations.append((db_factory, redis_client))
+
+        monkeypatch.setattr(app_main, "run_capability_check_background", _fake_cap)
+        monkeypatch.setattr(app_main, "run_cluster_health_warmup_background", _fake_warmup)
+
+        app = FastAPI()
+        async with app_main.lifespan(app):
+            await asyncio.sleep(0)
+
+        # Capability check still spawns (orthogonal feature).
+        assert len(cap_invocations) == 1
+        # Warmup is gated off — coroutine NEVER called.
+        assert len(warmup_invocations) == 0, warmup_invocations
 
 
 class TestLifespanShutdownCancels:
