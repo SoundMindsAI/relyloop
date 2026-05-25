@@ -1,10 +1,22 @@
 /**
- * feat_digest_executable_followups Story 5.2 — modal prefill flow tests.
+ * feat_study_clone_from_previous Story 2.2 — CreateStudyModal clone-mode tests.
  *
- * Covers:
- *   (a) When `initialValues` is provided, the form fields populate from prefill.
- *   (b) Submitting attaches the `parent` lineage payload to the POST body.
- *   (c) When `initialValues` is omitted, the POST body has no `parent` field.
+ * Covers FR-6 / FR-10 / FR-12 / D-12 + ACs 4 / 5 / 9 / 15 / 16:
+ *   (a) parent_study_id set → POST payload includes parent_study_id AND
+ *       lacks `cloneSource` as an own property (hasOwnProperty check —
+ *       catches both leaked `{ id, name }` AND the subtler `undefined`
+ *       leak from a stray `...initialValues` spread).
+ *   (b) Banner renders when initialValues.cloneSource is present (FR-12).
+ *   (c) Banner absent when cloneSource absent — INCLUDING the synthetic
+ *       case where parent_study_id is set but cloneSource is not.
+ *   (d) Regression: modal still works when neither parent nor
+ *       parent_study_id nor cloneSource is set (existing "New study" flow).
+ *   (g) Existing `parent: ParentFollowupRef` lineage preserved (regression
+ *       guard against the serializer accidentally dropping the
+ *       proposal-followup lineage).
+ *   (h) Both lineage axes set simultaneously (clone-of-a-followup-study):
+ *       POST payload has BOTH `parent` AND `parent_study_id`; `cloneSource`
+ *       is absent (FR-10 + D-12 round-trip at the frontend layer).
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -31,6 +43,9 @@ const { CreateStudyModal } = await import('@/components/studies/create-study-mod
 type PrefillValues = import('@/components/studies/create-study-modal').PrefillValues;
 
 const API_BASE = 'http://api.test';
+const CLONE_SOURCE_ID = '01970000-0000-7000-8000-000000000abc';
+const CLONE_SOURCE_NAME = 'parent-study-being-cloned';
+const PROPOSAL_ID = 'p' + 'a'.repeat(35);
 
 function wrap(node: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -43,6 +58,7 @@ function wrap(node: ReactNode) {
 
 interface PostBody {
   parent?: { proposal_id: string; followup_index: number };
+  parent_study_id?: string;
   [key: string]: unknown;
 }
 
@@ -142,19 +158,19 @@ function mockBackend() {
     http.post(`${API_BASE}/api/v1/studies`, async ({ request }) => {
       const body = (await request.json()) as PostBody;
       postBodies.push(body);
-      return HttpResponse.json({ id: 'st-new', name: 'demo', status: 'queued' });
+      return HttpResponse.json({ id: 'st-new', name: 'cloned', status: 'queued' });
     }),
   );
   return { postBodies };
 }
 
-const PREFILL: PrefillValues = {
+const CLONE_PREFILL: PrefillValues = {
   cluster_id: 'c1',
   target: 'products',
   template_id: 'tpl1',
   query_set_id: 'qs1',
   judgment_list_id: 'jl1',
-  name: 'parent-study — followup #1 (narrow)',
+  name: `${CLONE_SOURCE_NAME} (clone)`,
   search_space_text: JSON.stringify(
     { params: { boost_title: { type: 'float', low: 1.0, high: 2.0 } } },
     null,
@@ -167,26 +183,13 @@ const PREFILL: PrefillValues = {
   parallelism: 4,
   sampler: 'tpe',
   pruner: 'median',
-  parent: { proposal_id: 'p' + 'a'.repeat(35), followup_index: 0 },
+  parent_study_id: CLONE_SOURCE_ID,
+  cloneSource: { id: CLONE_SOURCE_ID, name: CLONE_SOURCE_NAME },
 };
 
-/**
- * Walk the wizard from step 1 to step 4 (Search space), assuming all field
- * values are already set (whether by prefill or test seed). Each call to
- * step-next requires the prerequisite-step fields to be populated; we
- * trust the prefill or seed to have done that.
- *
- * After this call, the wizard is at step 4 (search space + objective +
- * config) and the Create study submit button is on-screen.
- */
 async function walkToFinalStep(): Promise<void> {
-  // Step 1 — pick cluster + target (prefill sets both; the user still has to
-  // confirm by clicking through, OR we can fire the change to nudge the
-  // controlled values into the DOM).
+  // Step 1 — cluster + target.
   await waitFor(() => expect(screen.getByRole('option', { name: /local-es/ })).toBeInTheDocument());
-  // The select onChange handler maps to the form, so trigger a change even
-  // if the prefill already set the value — confirms the dropdown surfaces the
-  // value as selected for the test.
   fireEvent.change(screen.getByLabelText('Cluster'), { target: { value: 'c1' } });
   await waitFor(() =>
     expect(screen.queryAllByRole('option', { name: /products/ }).length).toBeGreaterThan(0),
@@ -196,7 +199,7 @@ async function walkToFinalStep(): Promise<void> {
   });
   fireEvent.click(screen.getByTestId('step-next'));
 
-  // Step 2 — data sources (query set + judgment list).
+  // Step 2 — data sources.
   await waitFor(() => expect(screen.getByTestId('step-2')).toBeInTheDocument());
   await waitFor(() =>
     expect(screen.queryAllByRole('option', { name: 'demo' }).length).toBeGreaterThan(0),
@@ -216,70 +219,114 @@ async function walkToFinalStep(): Promise<void> {
   });
   fireEvent.click(screen.getByTestId('step-next'));
 
-  // Step 4 — identity (study name).
+  // Step 4 — identity (name + search space).
   await waitFor(() => expect(screen.getByTestId('step-4')).toBeInTheDocument());
 }
 
-describe('CreateStudyModal — followup prefill (Story 5.2)', () => {
+describe('CreateStudyModal — clone-mode banner + serializer hygiene', () => {
   afterEach(() => server.resetHandlers());
 
-  it('renders the prefilled study name when initialValues is passed', async () => {
+  // (b) Banner renders when initialValues.cloneSource is present (FR-12).
+  it('(b) renders the cloned-from banner when initialValues.cloneSource is set', () => {
     mockBackend();
-    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={PREFILL} />);
-    await walkToFinalStep();
-    const nameInput = (await screen.findByLabelText('Study name')) as HTMLInputElement;
-    expect(nameInput.value).toBe('parent-study — followup #1 (narrow)');
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={CLONE_PREFILL} />);
+    const banner = screen.getByTestId('cloned-from-banner');
+    expect(banner).toBeInTheDocument();
+    expect(banner).toHaveTextContent(CLONE_SOURCE_NAME);
+    const viewSourceLink = screen.getByRole('link', { name: /view source/i });
+    expect(viewSourceLink).toHaveAttribute('href', `/studies/${CLONE_SOURCE_ID}`);
   });
 
-  it('attaches the parent lineage payload to the POST body on submit', async () => {
+  // (c) Banner absent when cloneSource absent — even if parent_study_id is set.
+  it('(c) omits the banner when cloneSource is absent (even if parent_study_id set)', () => {
+    mockBackend();
+    const noBannerPrefill: PrefillValues = { ...CLONE_PREFILL };
+    delete noBannerPrefill.cloneSource;
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={noBannerPrefill} />);
+    expect(screen.queryByTestId('cloned-from-banner')).toBeNull();
+  });
+
+  // (c) Banner absent in the no-prefill case (existing "New study" flow).
+  it('(c) omits the banner when no initialValues is passed', () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    expect(screen.queryByTestId('cloned-from-banner')).toBeNull();
+  });
+
+  // (a) + (e) Serializer hygiene: parent_study_id in payload; cloneSource excluded.
+  it('(a) POST body carries parent_study_id AND has no cloneSource own property', async () => {
     const { postBodies } = mockBackend();
-    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={PREFILL} />);
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={CLONE_PREFILL} />);
     await walkToFinalStep();
     fireEvent.click(screen.getByTestId('step-next'));
     await waitFor(() => expect(screen.getByTestId('step-5')).toBeInTheDocument());
-
     fireEvent.click(screen.getByRole('button', { name: /Create study/i }));
 
     await waitFor(() => expect(postBodies.length).toBeGreaterThan(0));
-    expect(postBodies[0]!.parent).toEqual({
-      proposal_id: PREFILL.parent!.proposal_id,
-      followup_index: 0,
-    });
+    const payload = postBodies[0]!;
+    expect(payload).toHaveProperty('parent_study_id', CLONE_SOURCE_ID);
+    // hasOwnProperty catches both `cloneSource: {…}` AND `cloneSource: undefined`
+    // leaks from a stray ...initialValues spread (D-12).
+    expect(Object.prototype.hasOwnProperty.call(payload, 'cloneSource')).toBe(false);
   });
 
-  it('omits the parent field when initialValues is not provided (regression check)', async () => {
+  // (d) Regression: modal still works when no lineage / no prefill set.
+  it('(d) POST body omits both lineage fields when initialValues is undefined', async () => {
     const { postBodies } = mockBackend();
     wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
     await walkToFinalStep();
-    // The wizard's Step 4 (identity) needs a name when no prefill is set.
     fireEvent.change(screen.getByLabelText('Study name'), {
-      target: { value: 'manual-no-parent' },
+      target: { value: 'manual-no-lineage' },
     });
     fireEvent.click(screen.getByTestId('step-next'));
     await waitFor(() => expect(screen.getByTestId('step-5')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /Create study/i }));
 
     await waitFor(() => expect(postBodies.length).toBeGreaterThan(0));
-    expect('parent' in (postBodies[0] ?? {})).toBe(false);
+    const payload = postBodies[0]!;
+    expect('parent' in payload).toBe(false);
+    expect('parent_study_id' in payload).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(payload, 'cloneSource')).toBe(false);
   });
 
-  it('AC-16 (Story 3.5): autofill suppression preserves the prefilled search_space_text', async () => {
-    // Use the canonical PREFILL but verify that the textarea content stays
-    // verbatim — the data-testid step-4 panel is where the autofill
-    // effect (keyed on templateBody) would normally overwrite the
-    // textarea. The FR-14 guard short-circuits it when the prefill
-    // carries a non-empty search_space_text.
-    mockBackend();
-    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={PREFILL} />);
+  // (g) Regression: proposal-followup `parent` lineage preserved through the serializer.
+  it('(g) POST body preserves parent {proposal_id, followup_index} when set (regression guard)', async () => {
+    const { postBodies } = mockBackend();
+    const followupOnly: PrefillValues = {
+      ...CLONE_PREFILL,
+      parent: { proposal_id: PROPOSAL_ID, followup_index: 0 },
+    };
+    delete followupOnly.parent_study_id;
+    delete followupOnly.cloneSource;
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={followupOnly} />);
     await walkToFinalStep();
-    // step-4 contains the textarea (created at step === 3 — 0-based step
-    // index, 1-based data-testid).
-    const searchSpaceTextarea = (await screen.findByTestId(
-      'cs-search-space',
-    )) as HTMLTextAreaElement;
-    // Must STILL match the prefilled JSON — NOT the auto-generated
-    // starter space for template tpl1 (which would have a boost_title
-    // float, no surrounding curly-brace structure beyond that).
-    expect(searchSpaceTextarea.value).toBe(PREFILL.search_space_text);
+    fireEvent.click(screen.getByTestId('step-next'));
+    await waitFor(() => expect(screen.getByTestId('step-5')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Create study/i }));
+
+    await waitFor(() => expect(postBodies.length).toBeGreaterThan(0));
+    const payload = postBodies[0]!;
+    expect(payload.parent).toEqual({ proposal_id: PROPOSAL_ID, followup_index: 0 });
+    expect('parent_study_id' in payload).toBe(false);
+  });
+
+  // (h) Both lineage axes set simultaneously: parent + parent_study_id; cloneSource excluded.
+  it('(h) POST body carries BOTH parent and parent_study_id when both lineage axes are set', async () => {
+    const { postBodies } = mockBackend();
+    const bothPrefill: PrefillValues = {
+      ...CLONE_PREFILL,
+      parent: { proposal_id: PROPOSAL_ID, followup_index: 2 },
+    };
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} initialValues={bothPrefill} />);
+    await walkToFinalStep();
+    fireEvent.click(screen.getByTestId('step-next'));
+    await waitFor(() => expect(screen.getByTestId('step-5')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /Create study/i }));
+
+    await waitFor(() => expect(postBodies.length).toBeGreaterThan(0));
+    const payload = postBodies[0]!;
+    expect(payload.parent).toEqual({ proposal_id: PROPOSAL_ID, followup_index: 2 });
+    expect(payload.parent_study_id).toBe(CLONE_SOURCE_ID);
+    expect(Object.prototype.hasOwnProperty.call(payload, 'cloneSource')).toBe(false);
   });
 });

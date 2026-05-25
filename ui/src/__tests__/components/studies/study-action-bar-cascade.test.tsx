@@ -27,6 +27,18 @@ vi.mock('sonner', () => ({
   Toaster: () => null,
 }));
 
+// feat_study_clone_from_previous Story 2.2 added `useRouter` to
+// StudyActionBar for the Clone-button navigate path. The cascade tests
+// don't navigate, but they still need the router stub so `useRouter()`
+// doesn't throw "invariant expected app router to be mounted" during
+// render.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: (_url: string) => {},
+    replace: (_url: string) => {},
+  }),
+}));
+
 const API_BASE = 'http://api.test';
 
 function wrap(node: ReactNode) {

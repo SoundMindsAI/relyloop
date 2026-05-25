@@ -214,3 +214,57 @@ async def test_insufficient_judgment_overlap_envelope_shape(
     assert detail["retryable"] is False
     assert "0 of 3 probed" in detail["message"]
     assert "judged_doc_count=3" in detail["message"]
+
+
+# ---------------------------------------------------------------------------
+# feat_study_clone_from_previous FR-7 + AC-8 — parent_study_id length-bound
+# ---------------------------------------------------------------------------
+
+
+async def test_parent_study_id_too_short_returns_422_validation_error(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """feat_study_clone_from_previous AC-8 — Pydantic length check fires before FK lookup.
+
+    A 35-char parent_study_id (one short of the 36-char UUIDv7 bound) must
+    surface as a 422 VALIDATION_ERROR at request-parsing time, NOT as a
+    404 PARENT_STUDY_NOT_FOUND from the FK lookup.
+    """
+    body = {
+        "name": "short-parent-id",
+        "cluster_id": "00000000-0000-7000-8000-000000000000",
+        "target": "stub-index",
+        "template_id": "00000000-0000-7000-8000-000000000001",
+        "query_set_id": "00000000-0000-7000-8000-000000000002",
+        "judgment_list_id": "00000000-0000-7000-8000-000000000003",
+        "search_space": {"params": {"bm25_k1": {"type": "float", "low": 0.1, "high": 2.0}}},
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": "x" * 35,  # 35 chars — one short of the 36-char bound
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "VALIDATION_ERROR"
+
+
+async def test_parent_study_id_too_long_returns_422_validation_error(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """feat_study_clone_from_previous AC-8 — Pydantic length check fires for over-length too."""
+    body = {
+        "name": "long-parent-id",
+        "cluster_id": "00000000-0000-7000-8000-000000000000",
+        "target": "stub-index",
+        "template_id": "00000000-0000-7000-8000-000000000001",
+        "query_set_id": "00000000-0000-7000-8000-000000000002",
+        "judgment_list_id": "00000000-0000-7000-8000-000000000003",
+        "search_space": {"params": {"bm25_k1": {"type": "float", "low": 0.1, "high": 2.0}}},
+        "objective": {"metric": "ndcg", "k": 10},
+        "config": {"max_trials": 20},
+        "parent_study_id": "x" * 37,  # 37 chars — one over the 36-char bound
+    }
+    resp = await async_client.post("/api/v1/studies", json=body)
+    assert resp.status_code == 422, resp.text
+    detail = resp.json()["detail"]
+    assert detail["error_code"] == "VALIDATION_ERROR"
