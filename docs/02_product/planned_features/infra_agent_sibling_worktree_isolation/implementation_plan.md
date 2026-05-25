@@ -1,7 +1,7 @@
 # Implementation Plan — Sibling-worktree isolation guidance in CLAUDE.md (Phase 1)
 
 **Date:** 2026-05-25
-**Status:** In Progress (PR #249 open; Phase 1 + Phase 2 shipped on the branch; final GPT-5.5 review converged at cycle 3)
+**Status:** Complete (PR #249 admin-merged 2026-05-25 as squash commit `22f878f`; Phase 1 + Phase 2 shipped; Phase 3 deferred per `phase3_idea.md`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):**
 - [`CLAUDE.md`](../../../../CLAUDE.md) — Absolute Rules #2 (secrets via mounted files), #7 (Conventional Commits), §"Bug Fix Protocol" (regression test discipline)
