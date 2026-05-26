@@ -43,6 +43,30 @@ def _find_line_index(lines: list[str], substring: str, *, after: int = 0) -> int
     )
 
 
+def _find_directive(lines: list[str], directive: str, args: str, *, after: int = 0) -> int:
+    """Return the index of the first actual Dockerfile directive matching `directive args`.
+
+    Skips comment lines (lines whose stripped form starts with `#`) and any
+    line where the directive token is embedded in prose rather than at the
+    start. This is the load-bearing matcher for assertions that must NOT be
+    fooled by Dockerfile comments mentioning the directive by name.
+
+    Match shape: `<directive> <args>` after stripping leading whitespace. Trailing
+    text (e.g., line-continuation backslash, trailing comment) is allowed.
+    """
+    needle = f"{directive} {args}"
+    for i in range(after, len(lines)):
+        stripped = lines[i].lstrip()
+        if stripped.startswith("#"):
+            continue
+        if stripped.startswith(needle):
+            return i
+    raise AssertionError(
+        f"Dockerfile does not contain a `{needle}` directive at or after index {after} "
+        "(comment lines mentioning the directive in prose are ignored)"
+    )
+
+
 class TestRuntimeStageVenvOwnership:
     """bug_dockerfile_venv_root_owned_after_user_switch — `USER relyloop`
     must fire BEFORE the runtime-stage `RUN uv sync --frozen --no-dev` so
@@ -57,12 +81,15 @@ class TestRuntimeStageVenvOwnership:
 
     def test_user_switch_appears_before_runtime_uv_sync(self, dockerfile_lines: list[str]) -> None:
         runtime_start = _find_line_index(dockerfile_lines, "FROM base AS runtime")
-        user_switch_idx = _find_line_index(dockerfile_lines, "USER relyloop", after=runtime_start)
+        # Match actual directives only — Dockerfile comments mentioning the
+        # `USER relyloop` directive in prose must not satisfy these lookups
+        # (per GPT-5.5 round-2 review: substring matching was too weak).
+        user_switch_idx = _find_directive(dockerfile_lines, "USER", "relyloop", after=runtime_start)
         # The runtime-stage `uv sync` is the one WITHOUT `--no-install-project`.
         # The deps-stage sync (line ~70) has that flag; the runtime-stage one
         # installs the project package itself, which is the load-bearing call.
-        uv_sync_idx = _find_line_index(
-            dockerfile_lines, "uv sync --frozen --no-dev", after=user_switch_idx
+        uv_sync_idx = _find_directive(
+            dockerfile_lines, "RUN", "uv sync --frozen --no-dev", after=user_switch_idx
         )
         # Sanity check: confirm we matched the runtime-stage sync, not a future
         # rearrangement that put the deps-stage sync after the USER directive.
