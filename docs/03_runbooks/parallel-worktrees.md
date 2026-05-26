@@ -37,13 +37,25 @@ make test-worktree CMD="pytest backend/tests/integration -v"    # override the c
 make test-worktree CMD="alembic upgrade head"                   # also works for non-test commands
 ```
 
-The script (`scripts/run-tests-in-worktree.sh`) auto-detects both worktree paths, validates that the main repo's `secrets/database_url` exists, mounts the sibling's source tree into a one-shot `relyloop/api:${RELYLOOP_GIT_SHA:-dev}` container, joins the existing Compose network so postgres / redis / elasticsearch / opensearch are reachable by hostname, and runs the command. The one-shot container is removed on exit (`--rm`); the container's own mutable layer doesn't persist.
+The script (`scripts/run-tests-in-worktree.sh`) auto-detects both worktree paths, validates that the main repo's `secrets/database_url` AND `secrets/postgres_password` exist (both required — the `postgres_reachable()` skip gate at [`backend/tests/conftest.py:50-72`](../../backend/tests/conftest.py#L50-L72) checks for BOTH env vars before declaring Postgres reachable), mounts the sibling's source tree into a one-shot `relyloop/api:${RELYLOOP_GIT_SHA:-dev}` container, joins the existing Compose network so postgres / redis / elasticsearch / opensearch are reachable by hostname, and runs the command. The one-shot container is removed on exit (`--rm`); the container's own mutable layer doesn't persist. If either required secret is missing, the script exits with a clear error pointing at `bash scripts/install.sh` for regeneration — operators who have ever run `make up` already have both files.
+
+Optionally, when `$MAIN_REPO/secrets/cluster_credentials.yaml` is present and non-empty, the script mounts it at `/run/secrets/cluster_credentials` (matching `docker-compose.yml` lines 102/160) so cluster-credential-dependent tests like the overlap-probe AC tests in [`backend/tests/integration/test_studies_api.py:827-944`](../../backend/tests/integration/test_studies_api.py#L827-L944) execute against a real cluster inside the one-shot container. When the file is absent, empty, or unreadable, the mount is silently omitted and cluster-credential-dependent tests fall back to their existing test-side skip gates (`@es_required` decorator, the FR-6 helper guard at [`backend/tests/integration/test_es_overlap_probe_helpers.py:170-203`](../../backend/tests/integration/test_es_overlap_probe_helpers.py#L170-L203)) — no spurious failures, no misleading "Postgres not reachable" skip messages.
 
 For commands that need quoted args (e.g., `pytest -k 'foo bar'`), use `--` instead of `--cmd` so bash array semantics preserve the quoting:
 
 ```bash
 bash scripts/run-tests-in-worktree.sh -- pytest -k 'foo bar'
 ```
+
+### Adding a new `*_FILE` env var to the Compose stack
+
+When a contributor adds a new `*_FILE` env var to [`docker-compose.yml`](../../docker-compose.yml), the same PR MUST update three places to keep `make test-worktree` consistent with the long-running stack:
+
+1. [`scripts/run-tests-in-worktree.sh`](../../scripts/run-tests-in-worktree.sh) — add a prereq check (fail-loud `[[ -r "$FILE" ]]` for required secrets; `[[ -r && -s ]]` mount-if-present probe for optional secrets) and add the `-e` + `-v` pair to the `ARGV` block.
+2. [`CLAUDE.md`](../../CLAUDE.md) §"Running tests against a sibling worktree (one-shot container recipe)" — add the matching `-e` + `-v` lines to the fenced bash block (optional mounts use the `CLUSTER_CREDS_ARGS=()` array-splice pattern, NOT inline backslash-continued comments which would break operator copy-paste).
+3. This runbook — extend the §"Run tests safely" prerequisites paragraph above to mention the new env var and its semantics.
+
+Without all three updates, worktree-tested suites that depend on the new env var will silently skip — the exact failure mode that `infra_test_worktree_missing_integration_envs` (PR landing this contract) was created to prevent.
 
 ### Residual root-file risk (until `bug_dockerfile_venv_root_owned_after_user_switch` ships its fix)
 

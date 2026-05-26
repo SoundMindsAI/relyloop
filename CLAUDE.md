@@ -418,12 +418,32 @@ The `--user root` + `PYTHONDONTWRITEBYTECODE=1` flags work around `bug_dockerfil
 # $MAIN_REPO is the operator's main checkout, resolved dynamically — `git
 # worktree list` always lists the main worktree first.
 MAIN_REPO=$(git worktree list | awk '{print $1; exit}')
+
+# Optional: cluster_credentials.yaml is only present when the operator has
+# registered an ES cluster (via scripts/install.sh or manually). When present,
+# the api / worker compose services mount it at /run/secrets/cluster_credentials
+# (docker-compose.yml lines 102, 160); mirror that here for parity so
+# acquire_adapter() and the seed_minimum_for_overlap_probe_real_engine() helper
+# resolve credentials correctly inside the one-shot container. When absent, the
+# array stays empty and the splice contributes nothing — cluster-credential-
+# dependent tests fall back to their existing test-side skip gates.
+CLUSTER_CREDS_ARGS=()
+if [[ -r "$MAIN_REPO/secrets/cluster_credentials.yaml" && -s "$MAIN_REPO/secrets/cluster_credentials.yaml" ]]; then
+  CLUSTER_CREDS_ARGS=(
+    -e "CLUSTER_CREDENTIALS_FILE=/run/secrets/cluster_credentials"
+    -v "$MAIN_REPO/secrets/cluster_credentials.yaml:/run/secrets/cluster_credentials:ro"
+  )
+fi
+
 docker run --rm --user root \
   --network relyloop_default \
   -e DATABASE_URL_FILE=/run/secrets/database_url \
+  -e POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password \
   -e PYTHONDONTWRITEBYTECODE=1 \
   -e RELYLOOP_IN_WORKTREE_CONTAINER=1 \
   -v "$MAIN_REPO/secrets/database_url:/run/secrets/database_url:ro" \
+  -v "$MAIN_REPO/secrets/postgres_password:/run/secrets/postgres_password:ro" \
+  "${CLUSTER_CREDS_ARGS[@]+"${CLUSTER_CREDS_ARGS[@]}"}" \
   -v "$PWD/CLAUDE.md:/app/CLAUDE.md:ro" \
   -v "$PWD/backend:/app/backend" \
   -v "$PWD/migrations:/app/migrations" \
