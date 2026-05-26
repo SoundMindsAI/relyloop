@@ -50,18 +50,35 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _make_fake_main(tmp_path: Path, *, with_secret: bool = True) -> Path:
+def _make_fake_main(
+    tmp_path: Path,
+    *,
+    with_secret: bool = True,
+    with_cluster_credentials: bool = False,
+) -> Path:
     """Build a fake main-repo directory at tmp_path/fake-main.
 
-    Optionally includes a non-empty `secrets/database_url` file so the
-    script's prerequisite check passes. Returns the absolute path the test
-    should pass as `RELYLOOP_MAIN_REPO=`.
+    With `with_secret=True` (default), creates BOTH `secrets/database_url`
+    AND `secrets/postgres_password` — both are now prerequisites for the
+    script (per infra_test_worktree_missing_integration_envs FR-1, the
+    postgres_password file is required; the DB-secret check still applies).
+
+    With `with_cluster_credentials=True`, also creates
+    `secrets/cluster_credentials.yaml` with a non-empty placeholder so the
+    optional FR-2 mount probe succeeds.
+
+    Returns the absolute path the test should pass as `RELYLOOP_MAIN_REPO=`.
     """
     fake_main = tmp_path / "fake-main"
     (fake_main / "secrets").mkdir(parents=True)
     if with_secret:
         (fake_main / "secrets" / "database_url").write_text(
             "postgresql+asyncpg://relyloop:fake@postgres/relyloop\n"
+        )
+        (fake_main / "secrets" / "postgres_password").write_text("fakepw\n")
+    if with_cluster_credentials:
+        (fake_main / "secrets" / "cluster_credentials.yaml").write_text(
+            "local-es: {username: x, password: y}\n"
         )
     return fake_main
 
@@ -127,18 +144,29 @@ class TestDryRunArgvShape:
         assert "root" in argv_lines  # value paired with --user
         assert "--network" in argv_lines
         assert "DATABASE_URL_FILE=/run/secrets/database_url" in argv_lines
+        assert "POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password" in argv_lines
         assert "PYTHONDONTWRITEBYTECODE=1" in argv_lines
         # Count docker `-v` MOUNT flags only (each is paired with a `host:container[:ro]`
         # value containing a colon). Naive `line == "-v"` counts also catch the
         # pytest verbose flag at the end of the default command, so we look at
-        # adjacent pairs. FR-8 + Phase 2 operator-path verification finding:
-        # DB secret + CLAUDE.md + 9 source paths = 11 mounts total.
+        # adjacent pairs. FR-8 + Phase 2 operator-path verification + the
+        # infra_test_worktree_missing_integration_envs FR-1 addition: DB secret
+        # + postgres_password + CLAUDE.md + 9 source paths = 12 mounts when no
+        # cluster_credentials.yaml is present in the fake main repo.
         v_mount_count = sum(
             1 for i, line in enumerate(argv_lines[:-1]) if line == "-v" and ":" in argv_lines[i + 1]
         )
-        assert v_mount_count == 11, (
-            f"Expected exactly 11 -v mounts (DB secret + CLAUDE.md + 9 source "
-            f"paths per FR-8); found {v_mount_count}. argv: {argv_lines!r}"
+        assert v_mount_count == 12, (
+            f"Expected exactly 12 -v mounts (DB secret + postgres_password + "
+            f"CLAUDE.md + 9 source paths per FR-8 + infra_test_worktree_missing_"
+            f"integration_envs FR-1); found {v_mount_count}. argv: {argv_lines!r}"
+        )
+        # The postgres_password mount must target the canonical compose path so
+        # Pydantic-settings auto-binding inside the container resolves the
+        # `POSTGRES_PASSWORD_FILE` env var to a readable mounted secret.
+        assert any("/run/secrets/postgres_password:ro" in line for line in argv_lines), (
+            f"Expected a -v mount targeting /run/secrets/postgres_password:ro "
+            f"(matches docker-compose.yml lines 69, 96, 154); argv: {argv_lines!r}"
         )
         # With RELYLOOP_GIT_SHA cleared, the image tag is exactly `relyloop/api:dev`.
         assert "relyloop/api:dev" in argv_lines, (
@@ -160,9 +188,12 @@ class TestDryRunArgvShape:
         )
         assert result.returncode == 0
         stdout = result.stdout
-        # Each of the 11 mount target paths must appear in some -v argument.
+        # Each of the 12 mount target paths must appear in some -v argument.
+        # postgres_password was added by infra_test_worktree_missing_integration_envs
+        # FR-1; the other 11 are the original FR-8 + Phase 2 mount set.
         for target in (
             "/run/secrets/database_url:ro",
+            "/run/secrets/postgres_password:ro",
             "/app/CLAUDE.md:ro",
             "/app/backend",
             "/app/migrations",
@@ -207,6 +238,39 @@ class TestErrorPaths:
             f"Error should reference CLAUDE.md Absolute Rule #2; stderr={result.stderr!r}"
         )
         # AC-10 also requires pointing at scripts/install.sh for regeneration.
+        assert "scripts/install.sh" in result.stderr, (
+            f"Error should point at scripts/install.sh for secret regeneration; "
+            f"stderr={result.stderr!r}"
+        )
+
+    def test_errors_on_missing_postgres_password_file(self, tmp_path: Path) -> None:
+        """If $MAIN_REPO/secrets/postgres_password is missing, the script exits 5
+        with a clear error that references Rule #2 and the scripts/install.sh
+        regeneration command (infra_test_worktree_missing_integration_envs
+        AC-2).
+        """
+        # Build a fake main repo with database_url but NOT postgres_password.
+        fake_main = _make_fake_main(tmp_path)
+        (fake_main / "secrets" / "postgres_password").unlink()
+
+        result = _run(
+            "--dry-run",
+            cwd=_REPO_ROOT,
+            env_overrides={"RELYLOOP_MAIN_REPO": str(fake_main)},
+        )
+        assert result.returncode == 5, (
+            f"Expected exit 5 for missing postgres_password; got {result.returncode}. "
+            f"stdout={result.stdout!r} stderr={result.stderr!r}"
+        )
+        # Error references the missing path.
+        assert "secrets/postgres_password" in result.stderr, (
+            f"Error should name the missing path; stderr={result.stderr!r}"
+        )
+        # AC-2 requires the error to mention Rule #2.
+        assert "Rule #2" in result.stderr, (
+            f"Error should reference CLAUDE.md Absolute Rule #2; stderr={result.stderr!r}"
+        )
+        # AC-2 also requires pointing at scripts/install.sh for regeneration.
         assert "scripts/install.sh" in result.stderr, (
             f"Error should point at scripts/install.sh for secret regeneration; "
             f"stderr={result.stderr!r}"
@@ -326,4 +390,149 @@ class TestCmdOverride:
         )
         assert "--cmd" in result.stderr or "positional" in result.stderr.lower(), (
             f"Error should explain the conflict; stderr={result.stderr!r}"
+        )
+
+
+class TestClusterCredentialsOptionalMount:
+    """infra_test_worktree_missing_integration_envs FR-2 + FR-3: optional
+    CLUSTER_CREDENTIALS_FILE propagation with mount-if-present semantics
+    and a --dry-run stderr hint when the probe fails.
+    """
+
+    def test_cluster_credentials_mounted_when_host_file_present(self, tmp_path: Path) -> None:
+        """When secrets/cluster_credentials.yaml is readable and non-empty,
+        the script adds the CLUSTER_CREDENTIALS_FILE env var + mount to argv
+        (AC-3). The total mount count becomes 13 (the 12-mount baseline plus
+        the new cluster_credentials entry).
+        """
+        fake_main = _make_fake_main(tmp_path, with_cluster_credentials=True)
+        result = _run(
+            "--dry-run",
+            cwd=_REPO_ROOT,
+            env_overrides={
+                "RELYLOOP_MAIN_REPO": str(fake_main),
+                "RELYLOOP_GIT_SHA": "",
+            },
+        )
+        assert result.returncode == 0, (
+            f"Expected exit 0 for present cluster_credentials; got {result.returncode}. "
+            f"stderr={result.stderr!r}"
+        )
+        argv_lines = result.stdout.strip().split("\n")
+
+        # The env-var token must appear in argv.
+        assert "CLUSTER_CREDENTIALS_FILE=/run/secrets/cluster_credentials" in argv_lines, (
+            f"Expected CLUSTER_CREDENTIALS_FILE env var in argv; argv: {argv_lines!r}"
+        )
+
+        # The mount target must match docker-compose.yml lines 102, 160.
+        assert any("/run/secrets/cluster_credentials:ro" in line for line in argv_lines), (
+            f"Expected a -v mount targeting /run/secrets/cluster_credentials:ro "
+            f"(matches docker-compose.yml lines 102, 160); argv: {argv_lines!r}"
+        )
+
+        # Mount count is now 13 (12 baseline + 1 conditional).
+        v_mount_count = sum(
+            1 for i, line in enumerate(argv_lines[:-1]) if line == "-v" and ":" in argv_lines[i + 1]
+        )
+        assert v_mount_count == 13, (
+            f"Expected exactly 13 -v mounts when cluster_credentials.yaml is "
+            f"present (12 baseline + 1 cluster_credentials); found {v_mount_count}. "
+            f"argv: {argv_lines!r}"
+        )
+
+        # When mount succeeds, the FR-3 skip hint MUST NOT appear.
+        assert "skipped optional mount" not in result.stderr, (
+            f"FR-3 stderr hint should NOT fire when the probe succeeds; stderr={result.stderr!r}"
+        )
+
+    @pytest.mark.parametrize(
+        "mode",
+        ["absent", "empty", "unreadable"],
+    )
+    def test_cluster_credentials_skipped_when_host_file_absent_or_empty(
+        self, tmp_path: Path, mode: str
+    ) -> None:
+        """FR-2 + FR-3: parametrized across all three skip modes (absent /
+        empty / unreadable). For each, the script must:
+          - exit 0 (skip is a normal path, not an error)
+          - omit CLUSTER_CREDENTIALS_FILE from argv (no env var, no mount)
+          - keep v_mount_count at the 12-mount baseline
+          - emit the FR-3 skip hint to stderr (--dry-run only)
+
+        Covers AC-4 (absent), AC-5 (empty), and the readability-probe addition
+        from spec D-0 (unreadable). The unreadable subcase skips when the test
+        runner has euid 0 (root can read 0o000 files; chmod can't enforce the
+        unreadable state under root) per spec D-0a.
+        """
+        if mode == "unreadable" and os.geteuid() == 0:
+            pytest.skip(
+                "unreadable subcase requires non-root euid — chmod 0o000 does "
+                "not block root reads, so the probe would still succeed under "
+                "root and the test's mount-count assertion would falsely fail"
+            )
+
+        # Build a fake main repo with database_url + postgres_password but
+        # without cluster_credentials.yaml; then create the file in the
+        # requested skip-mode state.
+        fake_main = _make_fake_main(tmp_path)
+        creds_path = fake_main / "secrets" / "cluster_credentials.yaml"
+        original_mode: int | None = None
+
+        try:
+            if mode == "absent":
+                # File does not exist — _make_fake_main(with_cluster_credentials=False)
+                # is the default; nothing more to do.
+                pass
+            elif mode == "empty":
+                creds_path.write_text("")
+            elif mode == "unreadable":
+                creds_path.write_text("local-es: {username: x, password: y}\n")
+                original_mode = creds_path.stat().st_mode & 0o777
+                os.chmod(creds_path, 0o000)
+
+            result = _run(
+                "--dry-run",
+                cwd=_REPO_ROOT,
+                env_overrides={
+                    "RELYLOOP_MAIN_REPO": str(fake_main),
+                    "RELYLOOP_GIT_SHA": "",
+                },
+            )
+        finally:
+            # Restore perms so pytest's tmp_path cleanup can delete the file.
+            if original_mode is not None and creds_path.exists():
+                os.chmod(creds_path, original_mode)
+
+        assert result.returncode == 0, (
+            f"Expected exit 0 when cluster_credentials is in skip mode {mode!r}; "
+            f"got {result.returncode}. stdout={result.stdout!r} stderr={result.stderr!r}"
+        )
+        argv_lines = result.stdout.strip().split("\n")
+
+        # The env-var token must NOT appear in argv.
+        assert "CLUSTER_CREDENTIALS_FILE=/run/secrets/cluster_credentials" not in argv_lines, (
+            f"CLUSTER_CREDENTIALS_FILE leaked into argv despite skip mode "
+            f"{mode!r}; argv: {argv_lines!r}"
+        )
+
+        # The mount target must NOT appear in argv.
+        assert not any("/run/secrets/cluster_credentials:ro" in line for line in argv_lines), (
+            f"cluster_credentials mount leaked into argv despite skip mode "
+            f"{mode!r}; argv: {argv_lines!r}"
+        )
+
+        # Mount count stays at the 12-mount baseline.
+        v_mount_count = sum(
+            1 for i, line in enumerate(argv_lines[:-1]) if line == "-v" and ":" in argv_lines[i + 1]
+        )
+        assert v_mount_count == 12, (
+            f"Expected 12 -v mounts in skip mode {mode!r} (no cluster_credentials "
+            f"added); found {v_mount_count}. argv: {argv_lines!r}"
+        )
+
+        # FR-3: --dry-run mode emits the skip hint to stderr.
+        assert "skipped optional mount: CLUSTER_CREDENTIALS_FILE" in result.stderr, (
+            f"FR-3 stderr hint should fire in --dry-run mode for skip mode "
+            f"{mode!r}; stderr={result.stderr!r}"
         )
