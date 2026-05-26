@@ -2,7 +2,7 @@
 
 **Date noticed:** 2026-05-24
 **Origin:** Pre-push gate during impl-execute of `feat_home_demo_reseed_endpoint`. Running `pnpm vitest run` on the worktree reported `733 passed, 31 failed`, all 31 failures clustered in 4 files all touching `window.localStorage`. Confirmed pre-existing by stashing the feature branch changes (the failures persisted on the baseline).
-**Status:** open.
+**Status:** Closed 2026-05-26 — failures stopped reproducing on main between 2026-05-24 and 2026-05-26 (3 consecutive `pnpm test` runs at 860/860 on current main commit `2d2328b1`); defensive shim added to `ui/src/__tests__/setup.ts` in the same PR as defense-in-depth so the race can't return undetected. Resolves this idea AND the two sibling captures (`bug_datatable_col_vis_density_localstorage_undefined_jsdom`, `bug_markdown_doc_localstorage_undefined_jsdom`) that were filed independently for subsets of the same 4-file failure cluster.
 
 ## Problem
 
