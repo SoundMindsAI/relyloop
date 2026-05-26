@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">81 / 83</div>
-      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:98%"></span></div>
+      <div class="value">82 / 83</div>
+      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">19</div>
+      <div class="value">18</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">18</div>
+      <div class="value">17</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">19</div>
+      <div class="value">18</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -693,19 +693,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_test_worktree_missing_integration_envs/feature_spec.md">Test Worktree Missing Integration Envs</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/255">PR #255</a> <span>merged 2026-05-25</span>
-  </div>
-  <div class="one-liner">`scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -727,7 +715,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">100</span></h3>
+  <h3>Done <span class="count">101</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1283,6 +1271,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/255">PR #255</a> <span>merged 2026-05-22</span>
   </div>
   <div class="one-liner">Replace AC-1 through AC-4b with real-engine variants that (a) seed `judgments.doc_id` rows for a representative query, (b) bulk-index a controlled subset of those `doc_id` values into the ES service-c</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs/feature_spec.md">Test Worktree Missing Integration Envs</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/257">PR #257</a> <span>merged 2026-05-26</span>
+  </div>
+  <div class="one-liner">`scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer</div>
 
 
 </div>
@@ -2043,8 +2044,6 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
-  infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
-  class infra_test_worktree_missing_integration_envs plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2207,6 +2206,8 @@ footer {
   class feat_study_clone_narrow_bounds done;
   infra_study_preflight_real_engine_integration[&quot;study preflight real engine integration&quot;]
   class infra_study_preflight_real_engine_integration done;
+  infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
+  class infra_test_worktree_missing_integration_envs done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2262,8 +2263,6 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
-  infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
-  class infra_test_worktree_missing_integration_envs plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2426,6 +2425,8 @@ footer {
   class feat_study_clone_narrow_bounds done;
   infra_study_preflight_real_engine_integration[&quot;study preflight real engine integration&quot;]
   class infra_study_preflight_real_engine_integration done;
+  infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
+  class infra_test_worktree_missing_integration_envs done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
