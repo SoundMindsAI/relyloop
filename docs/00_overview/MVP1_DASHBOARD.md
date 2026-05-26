@@ -20,20 +20,20 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **81 / 83** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **19** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **82 / 83** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **18** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 18 important to file, not blocking |
+| → P2 (default) | 17 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 9 |
-| Legacy "Path to MVP1" | 19 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 18 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (100)
+### Done (101)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -80,6 +80,7 @@ Implementation in progress — resume to finish
 | [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | `Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the  | — | Complete |
 | [infra_structlog_test_helpers](implemented_features/2026_05_14_infra_structlog_test_helpers/idea.md) | Infra | The repo currently has two distinct, half-overlapping patterns for asserting structlog events from tests: | — | Complete |
 | [infra_study_preflight_real_engine_integration](implemented_features/2026_05_25_infra_study_preflight_real_engine_integration/feature_spec.md) | Infra | Replace AC-1 through AC-4b with real-engine variants that (a) seed `judgments.doc_id` rows for a representative query, (b) bulk-index a controlled subset of those `doc_id` values into the ES service-c | — | [PR #255](https://github.com/SoundMindsAI/relyloop/pull/255) merged 2026-05-22 |
+| [infra_test_worktree_missing_integration_envs](implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs/feature_spec.md) | Infra | `scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer | — | [PR #257](https://github.com/SoundMindsAI/relyloop/pull/257) merged 2026-05-26 |
 | [infra_uv_sync_drops_precommit](implemented_features/2026_05_21_infra_uv_sync_drops_precommit/idea.md) | Infra | Complete | — | Complete |
 | [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page renders each conversation row as `title + relative timestamp (created_at) + count` via [`ui/src/components/chat/conversation-list.tsx:30-49`](../ui/src/components/chat/conversati | — | Complete |
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | `.github/workflows/pr.yml` has a `paths-ignore` filter that skips the entire workflow when *every* changed path matches: | — | Complete |
@@ -144,11 +145,9 @@ Implementation in progress — resume to finish
 |---|---|---|---|---|---|---|
 | 1 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [infra_test_worktree_missing_integration_envs](../02_product/planned_features/infra_test_worktree_missing_integration_envs/feature_spec.md) | Infra | `scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer | — | [PR #255](https://github.com/SoundMindsAI/relyloop/pull/255) merged 2026-05-25 |
+_None._
 
 ### Spec (0)
 
@@ -189,8 +188,6 @@ graph LR
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
   class infra_agent_sibling_worktree_isolation implement;
-  infra_test_worktree_missing_integration_envs["test worktree missing integration envs"]
-  class infra_test_worktree_missing_integration_envs plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -353,6 +350,8 @@ graph LR
   class feat_study_clone_narrow_bounds done;
   infra_study_preflight_real_engine_integration["study preflight real engine integration"]
   class infra_study_preflight_real_engine_integration done;
+  infra_test_worktree_missing_integration_envs["test worktree missing integration envs"]
+  class infra_test_worktree_missing_integration_envs done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
