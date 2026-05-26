@@ -156,6 +156,8 @@ This exercises the same code path as the CI test (`alembic upgrade head` → `al
 
 If you want the round-trip test to actually run from your shell, you'd need to either expose Postgres on `127.0.0.1:5432` (changes spec — don't ship that) or run via the dev-deps container pattern below.
 
+**Real-engine overlap-probe tests** (5 rewrites at AC-1..AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py) + helper smoke tests in [`backend/tests/integration/test_es_overlap_probe_helpers.py`](../../backend/tests/integration/test_es_overlap_probe_helpers.py), landed by `infra_study_preflight_real_engine_integration`) need both ES reachable at `http://localhost:9200` (or `http://elasticsearch:9200` in-container) AND a `local-es:` entry in `./secrets/cluster_credentials.yaml`. Tests carry `@es_required` and skip cleanly when ES is unreachable; the helper calls `pytest.skip(...)` when `local-es` is missing locally and `RuntimeError` when missing under `CI=true`. Two CI-only sentinels (`test_overlap_probe_real_engine_sentinel` + `test_overlap_probe_real_engine_credentials_sentinel`) fail loudly in CI if either dependency regresses in the workflow.
+
 ### In-container integration tests (canonical pattern)
 
 When the host-skip rows above need to actually run (typically while debugging

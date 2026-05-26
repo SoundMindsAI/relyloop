@@ -20,14 +20,14 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **80 / 81** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **80 / 82** (98%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **18** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 16 important to file, not blocking |
+| → P2 (default) | 17 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 8 |
-| Legacy "Path to MVP1" | 16 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 17 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
@@ -143,9 +143,11 @@ Implementation in progress — resume to finish
 |---|---|---|---|---|---|---|
 | 1 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
 
-### Plan (0)
+### Plan (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/feature_spec.md) | Infra | Replace AC-1 through AC-4b with real-engine variants that (a) seed `judgments.doc_id` rows for a representative query, (b) bulk-index a controlled subset of those `doc_id` values into the ES service-c | — | [PR #193](https://github.com/SoundMindsAI/relyloop/pull/193) merged 2026-05-22 |
 
 ### Spec (0)
 
@@ -155,7 +157,7 @@ _None._
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [infra_study_preflight_real_engine_integration](../02_product/planned_features/infra_study_preflight_real_engine_integration/idea.md) | Infra | `feat_study_preflight_overlap_probe`'s integration tests (AC-1 through AC-4b in [`backend/tests/integration/test_studies_api.py`](../../backend/tests/integration/test_studies_api.py)) use… | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| 1 | P2 | [infra_test_worktree_missing_integration_envs](../02_product/planned_features/infra_test_worktree_missing_integration_envs/idea.md) | Infra | `scripts/run-tests-in-worktree.sh` was designed for **unit tests** (the default `CMD` is `pytest backend/tests/unit/ -v`) which don't need Postgres or cluster credentials. When operators override `CMD | — | Idea — surfaced during `infra_study_preflight_real_engine_integration` Story 1.3 implementation (PR pending). |
 | 2 | P2 | [chore_auto_followup_completed_parent_stop_chain_race](../02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race/idea.md) | Chore | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Idea — surfaced during the Epic 1+2 phase-gate GPT-5.5 review of `feat_auto_followup_studies` (cumulative-diff review finding F2, accepted in part as a future-work capture) |
 | 3 | P2 | [chore_auto_followup_e2e_chain_seed_helper](../02_product/planned_features/chore_auto_followup_e2e_chain_seed_helper/idea.md) | Chore | `feat_auto_followup_studies` Story 3.3 specified a Playwright E2E spec that seeds a 3-node chain (root R → middle M → leaf L) and asserts: | — | Idea |
 | 4 | P2 | [chore_dashboard_regen_priority4_dependency_cite_false_positive](../02_product/planned_features/chore_dashboard_regen_priority4_dependency_cite_false_positive/idea.md) | Chore | [`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py)'s priority-4 last-resort fallback (after pipeline_status / plan-Status / priority-3 fuzzy / priority-3.5 strict idea-body / priority-3.6 f | — | Idea — surfaced during `chore_dashboard_regen_quoted_pr_false_positive` final-review (PR #253, 2026-05-25) by GPT-5.5 cross-model review |
@@ -185,6 +187,8 @@ graph LR
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
   class infra_agent_sibling_worktree_isolation implement;
+  infra_study_preflight_real_engine_integration["study preflight real engine integration"]
+  class infra_study_preflight_real_engine_integration plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
