@@ -103,18 +103,20 @@ COPY --chown=relyloop:relyloop scripts/ /app/scripts/
 COPY --chown=relyloop:relyloop alembic.ini /app/alembic.ini
 COPY --chown=relyloop:relyloop pyproject.toml uv.lock README.md LICENSE /app/
 
+# Switch to the unprivileged user BEFORE the project-install `uv sync` so the
+# `relyloop-0.1.0.dist-info/*` files it writes land as relyloop:relyloop.
+# Doing this here instead of after the sync avoids a 385MB chown layer (a
+# `RUN chown -R /app/.venv` step would copy-up the entire venv into a new
+# overlay layer). All inputs uv sync touches are already relyloop-owned:
+# /app/.venv via the COPY --chown above (line 89), source + project metadata
+# via the chowned COPYs (lines 93-104), and /home/relyloop for uv's cache via
+# useradd --create-home (line 86). UV_LINK_MODE=copy (base ENV, line 26)
+# avoids hardlink-permission issues. See
+# bug_dockerfile_venv_root_owned_after_user_switch.
+USER relyloop
+
 # Install the project package itself (deps already installed in deps stage).
 RUN uv sync --frozen --no-dev
-
-# The `uv sync` above runs as root (USER directive doesn't fire until the
-# next line) and writes `relyloop-0.1.0.dist-info/*` as `root:root` inside
-# the venv that line 89 had previously fully chowned to relyloop. Re-assert
-# the invariant so any one-shot container running `uv run` / `uv sync` as
-# the relyloop user (e.g. `make test-worktree`) doesn't EACCES rewriting
-# those files. See bug_dockerfile_venv_root_owned_after_user_switch.
-RUN chown -R relyloop:relyloop /app/.venv
-
-USER relyloop
 
 EXPOSE 8000
 
