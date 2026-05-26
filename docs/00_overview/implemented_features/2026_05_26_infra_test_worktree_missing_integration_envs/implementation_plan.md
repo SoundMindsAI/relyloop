@@ -1,7 +1,7 @@
 # Implementation Plan — Propagate `POSTGRES_PASSWORD_FILE` + optional `CLUSTER_CREDENTIALS_FILE` to `make test-worktree`
 
 **Date:** 2026-05-25
-**Status:** Ready for Execution
+**Status:** Complete (PR #257, merged 2026-05-26 as squash commit `4ffc83a5`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md` §"Absolute Rules" #2 (secrets via mounted files)](../../../../CLAUDE.md), [`docker-compose.yml`](../../../../docker-compose.yml) (canonical env-var → mount-path source-of-truth)
 
@@ -455,8 +455,8 @@ All work lands in one PR titled per the conventional-commit convention: `infra(t
 
 ### Current sprint
 
-- [ ] Story 1.1 — Patch script + smoke tests
-- [ ] Story 1.2 — Sync CLAUDE.md + runbook
+- [x] Story 1.1 — Patch script + smoke tests
+- [x] Story 1.2 — Sync CLAUDE.md + runbook
 
 ### Blocked items
 
@@ -464,7 +464,9 @@ None.
 
 ### Done this sprint
 
-(populated by `impl-execute` as stories complete)
+- [x] Story 1.1 — `scripts/run-tests-in-worktree.sh` patched + `backend/tests/unit/scripts/test_run_tests_in_worktree.py` extended; 13/13 smoke tests pass; operator-path verification ran 43 integration tests via `make test-worktree` (43 passed, 0 skipped — pre-PR baseline was all 43 skipping). Commits: `e2dde338` (initial), `309a8080` (Gemini Windows-portability fix on the unreadable test subcase).
+- [x] Story 1.2 — `CLAUDE.md` recipe + `docs/03_runbooks/parallel-worktrees.md` synced with the new propagation behavior; FR-7 regression test from `infra_agent_sibling_worktree_isolation` Phase 1 still passes (5/5). Commits: `45339a3b` (initial), `309a8080` (Gemini docker-compose mapping fix in spec + idea), `e5629e90` (final-review CLAUDE.md mapping fix).
+- [x] Tangential discoveries captured: `chore_db_session_skip_reason_disambiguation/idea.md` (commit `b88d93fd`) + `bug_smoke_followup_clone_e2e_flakes/idea.md` (commit `de2aad10`).
 
 ## 10) Story-by-Story Verification Gate
 
