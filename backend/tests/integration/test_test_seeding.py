@@ -42,7 +42,7 @@ async def _seed_fk_chain() -> dict[str, str]:
             name=f"sd-tmpl-{uuid.uuid4().hex[:8]}",
             engine_type="elasticsearch",
             body='{"query": {"match_all": {}}}',
-            declared_params={"title.boost": {"type": "float", "min": 0.5, "max": 5.0}},
+            declared_params={"boost": {"type": "float", "min": 0.5, "max": 5.0}},
             version=1,
         )
         query_set = await repo.create_query_set(
