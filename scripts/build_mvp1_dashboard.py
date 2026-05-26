@@ -503,7 +503,9 @@ def _strip_dependency_table_rows(text: str) -> str:
 # — without this, priority-4's last-resort `#N` fallback picks up the
 # first dependency PR# as the feature's own.
 _DEP_FOOTNOTE_RE = re.compile(
-    r"^\s*(?:[-*]\s+)?(?:\*\*)?(?:Depends on|Dependencies|Depended on)(?:\*\*)?:\s*[^\n]*$",
+    r"^\s*(?:[-*+]\s+)?(?:\*\*)?"
+    r"(?:Depends on|Dependencies|Dependency|Depended on)"
+    r"(?:\*\*)?:\s*[^\n]*$",
     flags=re.MULTILINE | re.IGNORECASE,
 )
 

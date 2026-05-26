@@ -503,6 +503,16 @@ class TestPriority4DependencyFootnoteFalsePositive:
         spec = "**Dependencies:** foo PR #42 + bar PR #43.\n"
         assert _extract_pr_number("", "", spec, "") is None
 
+    def test_plus_bullet_and_singular_dependency_variants_returns_none(self) -> None:
+        # Standard markdown allows `+` as a list bullet (alongside `-` and `*`);
+        # singular `Dependency:` is a real-world variant for single-dep cites.
+        # Both must be stripped. Added per Gemini Code Assist Medium finding
+        # on PR #277.
+        spec_plus_bullet = "+ Depends on: foo PR #42 + bar PR #43.\n"
+        assert _extract_pr_number("", "", spec_plus_bullet, "") is None
+        spec_singular = "**Dependency:** foo PR #99\n"
+        assert _extract_pr_number("", "", spec_singular, "") is None
+
     def test_legitimate_own_pr_in_priority4_fallback_still_works(self) -> None:
         # Negative guard: priority-4's last-resort fallback must still
         # catch legitimate own-PR# cites that don't sit on a Depends-on
