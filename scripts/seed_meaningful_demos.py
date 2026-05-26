@@ -669,17 +669,110 @@ def seed_scenario(s: dict) -> dict:
     jlist_id = jlist["id"]
     print(f"  judgment-list: {jlist_id} ({len(judgments)} judgments)")
 
-    # 8. Seed completed study via test endpoint
-    seeded = post(
-        "/_test/studies/seed-completed",
-        {
-            "cluster_id": cluster_id,
-            "query_set_id": qset_id,
-            "template_id": template_id,
-            "judgment_list_id": jlist_id,
-            "with_pending_proposal": True,
-        },
-    )
+    # 8. Seed completed study via test endpoint.
+    #
+    # For the acme-products scenario specifically, also create a second
+    # template (the swap target) and inject the three actionable followup
+    # kinds (narrow / widen / swap_template) so the digest panel renders
+    # "Run this followup" buttons. The other three scenarios keep the
+    # default text-kind followups — they're informational backups in case
+    # a demo runs against a different scenario. See
+    # docs/08_guides/quick-tour.md for the demo flow this powers.
+    seed_payload: dict = {
+        "cluster_id": cluster_id,
+        "query_set_id": qset_id,
+        "template_id": template_id,
+        "judgment_list_id": jlist_id,
+        "with_pending_proposal": True,
+    }
+    if s["slug"] == "acme-products-prod":
+        # Second template — function_score with recency-decay shape, same
+        # declared_params as the parent (`title_boost: float`) so the
+        # LLM-suggested {params: {title_boost: ...}} bounds validate.
+        swap_template = post(
+            "/query-templates",
+            {
+                "name": "function-score-recency-decay-v1",
+                "engine_type": s["engine_type"],
+                "body": json.dumps(
+                    {
+                        "query": {
+                            "function_score": {
+                                "query": {
+                                    "multi_match": {
+                                        "query": "{{ query_text }}",
+                                        "fields": [
+                                            "title^{{ title_boost }}",
+                                            "description",
+                                            "brand^2",
+                                        ],
+                                        "type": "best_fields",
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ),
+                "declared_params": s["template_declared_params"],
+            },
+        )
+        swap_template_id = swap_template["id"]
+        print(f"  swap template: {swap_template_id} (function-score-recency-decay-v1)")
+        seed_payload["suggested_followups"] = [
+            {
+                "kind": "narrow",
+                "rationale": (
+                    "Tighten title_boost bounds around the winning value (2.5) "
+                    "to extract the last few percentage points."
+                ),
+                "search_space": {
+                    "params": {
+                        "title_boost": {
+                            "type": "float",
+                            "low": 1.8,
+                            "high": 3.2,
+                            "log": False,
+                        }
+                    }
+                },
+            },
+            {
+                "kind": "widen",
+                "rationale": (
+                    "Test title_boost values further from the winner to "
+                    "confirm 2.5 isn't a local maximum."
+                ),
+                "search_space": {
+                    "params": {
+                        "title_boost": {
+                            "type": "float",
+                            "low": 0.1,
+                            "high": 5.0,
+                            "log": False,
+                        }
+                    }
+                },
+            },
+            {
+                "kind": "swap_template",
+                "rationale": (
+                    "Test whether a function_score template with recency "
+                    "decay beats the multi_match winner."
+                ),
+                "template_id": swap_template_id,
+                "search_space": {
+                    "params": {
+                        "title_boost": {
+                            "type": "float",
+                            "low": 0.5,
+                            "high": 2.5,
+                            "log": False,
+                        }
+                    }
+                },
+            },
+        ]
+    seeded = post("/_test/studies/seed-completed", seed_payload)
     study_id = seeded["study_id"]
     print(f"  study: {study_id} (completed)")
 
