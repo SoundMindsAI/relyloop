@@ -21,19 +21,19 @@ Implementation in progress — resume to finish
 | Metric | Value |
 |---|---|
 | Scoped items done | **84 / 85** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 12 important to file, not blocking |
+| → P2 (default) | 11 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 5 |
-| Legacy "Path to MVP1" | 12 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 4 |
+| Legacy "Path to MVP1" | 11 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (107)
+### Done (108)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -132,6 +132,7 @@ Implementation in progress — resume to finish
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module- | — | Complete |
 | [bug_dockerfile_missing_scripts_dir](implemented_features/2026_05_24_bug_dockerfile_missing_scripts_dir/idea.md) | Bug | [`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`: | — | Complete |
+| [bug_dockerfile_venv_root_owned_after_user_switch](implemented_features/2026_05_26_bug_dockerfile_venv_root_owned_after_user_switch/idea.md) | Bug | The `Dockerfile` has this ordering at the bottom of the `runtime` stage: | — | Complete |
 | [bug_e2e_target_dropdown_flake](implemented_features/2026_05_20_bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Complete |
 | [bug_env_file_corrupted_during_session](implemented_features/2026_05_13_bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation session.… | — | Complete |
 | [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | Complete |
@@ -159,7 +160,7 @@ _None._
 
 _None._
 
-### Idea (12)
+### Idea (11)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -170,11 +171,10 @@ _None._
 | 5 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 6 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | 7 | P2 | [bug_clone_e2e_seed_template_params_mismatch](../02_product/planned_features/bug_clone_e2e_seed_template_params_mismatch/idea.md) | Bug | Two helpers produce inconsistent fixture state: | — | Idea — surfaced during `feat_study_clone_narrow_bounds` Story 1.4 (E2E spec authoring). |
-| 8 | P2 | [bug_dockerfile_venv_root_owned_after_user_switch](../02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch/idea.md) | Bug | The `Dockerfile` has this ordering at the bottom of the `runtime` stage: | — | Idea — surfaced during `/impl-execute` Phase 2 operator-path verification of `make test-worktree` (PR #249, `infra_agent_sibling_worktree_isolation`). |
-| 9 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
-| 10 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
-| 11 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 12 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
+| 8 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
+| 9 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
+| 10 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 11 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
 
 ## Dependency graph
 
