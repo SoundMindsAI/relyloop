@@ -305,6 +305,12 @@ async def cancel_study_with_chain_cascade(
             previous_depth = parent.config.get("auto_followup_depth", 0)
             if previous_depth > 0:
                 parent.config = {**parent.config, "auto_followup_depth": 0}
+                # Explicit flush mirrors cancel_study / complete_study /
+                # fail_study / start_study. The mutation would land at the
+                # caller's commit via auto-flush either way, but the
+                # explicit call keeps state-mutating service methods on a
+                # single convention.
+                await db.flush()
                 logger.info(
                     "auto_followup chain stopped via cascade depth zero-out",
                     event_type="auto_followup_cascade_stop_chain_via_config_mutation",
