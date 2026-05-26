@@ -397,9 +397,9 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">81 / 82</div>
-      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:99%"></span></div>
+      <div class="value">81 / 83</div>
+      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:98%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">16</div>
+      <div class="value">17</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      1 idea-only feat/infra folders (not yet scoped into MVP1)
+      0 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">16</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/infra_test_worktree_missing_integration_envs">Test Worktree Missing Integration Envs</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`scripts/run-tests-in-worktree.sh` was designed for **unit tests** (the default `CMD` is `pytest backend/tests/unit/ -v`) which don&#x27;t need Postgres or cluster credentials. When operators override `CMD</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">15</span></h3>
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race">Auto Followup Completed Parent Stop Chain Race</a></div>
@@ -680,7 +667,19 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_test_worktree_missing_integration_envs/feature_spec.md">Test Worktree Missing Integration Envs</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/255">PR #255</a> <span>merged 2026-05-25</span>
+  </div>
+  <div class="one-liner">`scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer</div>
+
+
+</div>
 
 </div>
 
@@ -2018,6 +2017,8 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
+  infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
+  class infra_test_worktree_missing_integration_envs plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2235,6 +2236,8 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
+  infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
+  class infra_test_worktree_missing_integration_envs plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
