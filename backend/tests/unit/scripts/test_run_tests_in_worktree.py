@@ -465,11 +465,15 @@ class TestClusterCredentialsOptionalMount:
         runner has euid 0 (root can read 0o000 files; chmod can't enforce the
         unreadable state under root) per spec D-0a.
         """
-        if mode == "unreadable" and os.geteuid() == 0:
+        if mode == "unreadable" and (
+            os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0)
+        ):
             pytest.skip(
-                "unreadable subcase requires non-root euid — chmod 0o000 does "
-                "not block root reads, so the probe would still succeed under "
-                "root and the test's mount-count assertion would falsely fail"
+                "unreadable subcase requires a non-Windows platform and a "
+                "non-root euid — chmod 0o000 doesn't restrict reads on "
+                "Windows (NTFS ACLs work differently) and root bypasses "
+                "POSIX mode bits, so the probe would still succeed and the "
+                "test's mount-count assertion would falsely fail"
             )
 
         # Build a fake main repo with database_url + postgres_password but

@@ -31,8 +31,8 @@ The two `*_FILE` env vars proposed below already have authoritative definitions 
 
 | Env var | Canonical in-container path | Source-of-truth | Host secret file |
 |---|---|---|---|
-| `POSTGRES_PASSWORD_FILE` | `/run/secrets/postgres_password` | [`docker-compose.yml:69`](../../../../docker-compose.yml#L69) (api), [`:96`](../../../../docker-compose.yml#L96) (worker), [`:154`](../../../../docker-compose.yml#L154) (migrate) | `$MAIN_REPO/secrets/postgres_password` |
-| `CLUSTER_CREDENTIALS_FILE` | `/run/secrets/cluster_credentials` | [`docker-compose.yml:102`](../../../../docker-compose.yml#L102) (worker), [`:160`](../../../../docker-compose.yml#L160) (migrate) | `$MAIN_REPO/secrets/cluster_credentials.yaml` |
+| `POSTGRES_PASSWORD_FILE` | `/run/secrets/postgres_password` | [`docker-compose.yml:69`](../../../../docker-compose.yml#L69) (migrate), [`:96`](../../../../docker-compose.yml#L96) (api), [`:154`](../../../../docker-compose.yml#L154) (worker) | `$MAIN_REPO/secrets/postgres_password` |
+| `CLUSTER_CREDENTIALS_FILE` | `/run/secrets/cluster_credentials` | [`docker-compose.yml:102`](../../../../docker-compose.yml#L102) (api), [`:160`](../../../../docker-compose.yml#L160) (worker) | `$MAIN_REPO/secrets/cluster_credentials.yaml` |
 
 The mount/env names in the worktree-test script MUST match these exactly so the resolved `Settings` object inside the one-shot container behaves identically to the long-running api/worker containers (cf. [`backend/app/core/settings.py:100-104`](../../../../backend/app/core/settings.py#L100-L104) for the `cluster_credentials_file` Pydantic field).
 
