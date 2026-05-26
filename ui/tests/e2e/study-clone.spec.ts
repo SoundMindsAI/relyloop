@@ -76,7 +76,12 @@ test('Clone study from study-detail → banner + parent_study_id round-trip', as
   );
   await page.getByRole('button', { name: /Create study/i }).click();
   const postResponse = await postResponsePromise;
-  expect(postResponse.ok()).toBe(true);
+  // Spec-correct create semantics: assert 201 explicitly so a future
+  // 200/202/204 regression doesn't silently pass. Kept in lockstep
+  // with the same assertion in study-clone-narrow-bounds.spec.ts (per
+  // GPT-5.5 review on PR #273 — flagging the same loose .ok() pattern
+  // in both files; tightening one without the other creates drift).
+  expect(postResponse.status()).toBe(201);
   const created = (await postResponse.json()) as { id: string; parent_study_id: string | null };
 
   // FR-6 / FR-9 round-trip: the create endpoint persists parent_study_id.
