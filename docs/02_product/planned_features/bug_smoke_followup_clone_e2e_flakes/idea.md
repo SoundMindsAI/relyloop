@@ -1,24 +1,36 @@
 # Smoke-lane Playwright flakes: `followup_run.spec.ts` + `study-clone.spec.ts`
 
-**Date:** 2026-05-25
+**Date:** 2026-05-25 (idea narrowed 2026-05-26 per `/idea-preflight` audit — 2 of the 3 originally-captured failures have stopped recurring on `main`; see "Updated empirical state" below)
 **Status:** Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`).
-**Priority:** P2 — every PR's smoke job is currently red on these; degrades the signal of CI and forces operators to mentally subtract these from every red-job verdict before merge.
-**Depends on:** none — self-contained Playwright test triage. May overlap with [`bug_dashboard_banner_dismiss_persistence_flake/`](../bug_dashboard_banner_dismiss_persistence_flake/idea.md) and [`bug_smoke_dashboard_demo_state_locator_missing/`](../bug_smoke_dashboard_demo_state_locator_missing/idea.md) — those cover the dashboard subset of smoke failures.
+**Priority:** P2 — every PR's smoke job is currently red on the remaining failure; degrades the signal of CI and forces operators to mentally subtract it from every red-job verdict before merge. (Bump to P1 if a tenant-facing demo is imminent — the `swap_template` followup is a visible-in-the-UI feature.)
+**Depends on:** none — self-contained Playwright test triage. The dashboard-subset siblings (originally cited as overlap candidates) have both shipped: [`bug_dashboard_banner_dismiss_persistence_flake`](../../../00_overview/implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md) merged 2026-05-23 and [`bug_smoke_dashboard_demo_state_locator_missing`](../../../00_overview/implemented_features/2026_05_26_bug_smoke_dashboard_demo_state_locator_missing/idea.md) merged 2026-05-26.
 
 ## Origin
 
-During CI for [PR #257](https://github.com/SoundMindsAI/relyloop/pull/257) (`infra_test_worktree_missing_integration_envs`), the `smoke (operator-path tutorial flow)` job reported 6 Playwright failures. Cross-checked against `main` commit `9928d763`'s run (`gh run view 26424739002`) — same `smoke` job conclusion=`failure`, same set of failures. So the failures are not a regression introduced by PR #257.
+During CI for [PR #257](https://github.com/SoundMindsAI/relyloop/pull/257) (`infra_test_worktree_missing_integration_envs`, merged 2026-05-26), the `smoke (operator-path tutorial flow)` job reported 6 Playwright failures. Cross-checked against `main` commit `9928d763`'s run (`gh run view 26424739002`) — same `smoke` job conclusion=`failure`, same set of failures. So the failures were not a regression introduced by PR #257.
 
-Two of the failing tests are already captured as Idea-stage bugs:
+Two of the failing tests were already captured as Idea-stage bugs and have since both **shipped/closed**:
 
-- `dashboard.spec.ts:47` + `dashboard.spec.ts:63` — covered by [`bug_dashboard_banner_dismiss_persistence_flake/`](../bug_dashboard_banner_dismiss_persistence_flake/idea.md).
-- `dashboard-reseed.spec.ts:77` — covered by [`bug_smoke_dashboard_demo_state_locator_missing/`](../bug_smoke_dashboard_demo_state_locator_missing/idea.md).
+- `dashboard.spec.ts:47` + `dashboard.spec.ts:63` — covered by [`bug_dashboard_banner_dismiss_persistence_flake`](../../../00_overview/implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md), shipped 2026-05-23.
+- `dashboard-reseed.spec.ts:77` — covered by [`bug_smoke_dashboard_demo_state_locator_missing`](../../../00_overview/implemented_features/2026_05_26_bug_smoke_dashboard_demo_state_locator_missing/idea.md), shipped 2026-05-26.
 
-The remaining three failures don't appear in the existing planned-features backlog and this idea captures them so the next infra-sweep agent has a tracked target:
+The remaining three failures (this idea's original scope) were:
 
-1. `ui/tests/e2e/followup_run.spec.ts:28` — `Run this followup → modal opens prefilled → submit creates lineage-linked study`. Failure: `Error: locator.click: Test timeout of 30000ms exceeded.`
-2. `ui/tests/e2e/followup_run.spec.ts:111` — `swap_template followup → Run → modal opens with swap-target template + creates study with template_id=B (AC-12)`. Failure: `Error: expect(received).toBe(expected)` (assertion mismatch — likely related to the swap-template payload shape).
-3. `ui/tests/e2e/study-clone.spec.ts:24` — `Clone study from study-detail → banner + parent_study_id round-trip`. (Failure cause not parsed from log — needs Playwright report download.)
+1. `ui/tests/e2e/followup_run.spec.ts:28` — `Run this followup → modal opens prefilled → submit creates lineage-linked study`. Original failure: `Error: locator.click: Test timeout of 30000ms exceeded.`
+2. `ui/tests/e2e/followup_run.spec.ts:111` — `swap_template followup → Run → modal opens with swap-target template + creates study with template_id=B (AC-12)`. Original failure: `Error: expect(received).toBe(expected)` at line 186 (assertion: `expect(newStudy!.template_id).toBe(swapTarget.id)`) — likely a payload-shape regression in the followup → study conversion.
+3. `ui/tests/e2e/study-clone.spec.ts:24` — `Clone study from study-detail → banner + parent_study_id round-trip`. Original failure cause was not parsed from the log.
+
+## Updated empirical state (2026-05-26, idea-preflight)
+
+Sampling the 5 most-recent `main` CI runs (latest: `26478434314` on SHA `d696817`) reveals **only `followup_run.spec.ts:111` is still failing** — the other two have stopped recurring. The narrowed scope:
+
+| Test | Original status | Current status (2026-05-26) |
+|---|---|---|
+| `followup_run.spec.ts:28` | Failing with locator.click timeout | **No longer in main-CI failure logs.** Likely a transient seed-race that has stopped firing — possibly resolved indirectly by the `bug_dashboard_banner_dismiss_persistence_flake` fix (shared seed-state machinery). |
+| `followup_run.spec.ts:111` | Failing on `template_id` equality assertion | **STILL FAILING on every main run** for 5 consecutive runs. This is the real recurring bug; remaining scope of this idea. |
+| `study-clone.spec.ts:24` | Unknown root cause | **No longer in main-CI failure logs.** Likely a transient flake or resolved indirectly. |
+
+The folder name `bug_smoke_followup_clone_e2e_flakes` over-claims relative to the current evidence; a future bug-fix engineer should focus exclusively on the `swap_template` payload-shape regression at `followup_run.spec.ts:111` (assertion at `:186`). The other two tests have proven stable enough on main that they can be treated as resolved-by-attrition unless they recur.
 
 ## Problem
 
@@ -60,7 +72,7 @@ Mixing all six failures into one bug-fix PR would conflate distinct root causes 
 
 ## Coordinates with
 
-- **[`bug_dashboard_banner_dismiss_persistence_flake/`](../bug_dashboard_banner_dismiss_persistence_flake/idea.md)** — same smoke job, different test files, possibly different root causes.
-- **[`bug_smoke_dashboard_demo_state_locator_missing/`](../bug_smoke_dashboard_demo_state_locator_missing/idea.md)** — same smoke job, possibly the same `demo-data-banner` testID resolution issue affecting `dashboard-reseed.spec.ts:77`.
-- **[`feat_auto_followup_studies`](../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/)** — the feature whose followup-related E2E coverage `followup_run.spec.ts` exercises.
-- **[`feat_study_clone_from_previous`](../../00_overview/implemented_features/2026_05_25_feat_study_clone_from_previous/)** — the feature whose `study-clone.spec.ts` exercises; recent merge that may have introduced the regression.
+- **[`bug_dashboard_banner_dismiss_persistence_flake`](../../../00_overview/implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md)** — shipped 2026-05-23. Same smoke job, different test files; may have indirectly stabilized this idea's `followup_run.spec.ts:28` failure via shared seed-state machinery.
+- **[`bug_smoke_dashboard_demo_state_locator_missing`](../../../00_overview/implemented_features/2026_05_26_bug_smoke_dashboard_demo_state_locator_missing/idea.md)** — shipped 2026-05-26. Resolved `dashboard-reseed.spec.ts:77` via `demo-data-banner` testID fix.
+- **[`feat_auto_followup_studies`](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/)** — the feature whose followup-related E2E coverage `followup_run.spec.ts` exercises. The remaining `:111` failure points at this feature's `swap_template` payload path.
+- **[`feat_study_clone_from_previous`](../../../00_overview/implemented_features/2026_05_25_feat_study_clone_from_previous/)** — the feature `study-clone.spec.ts` exercises; recent merge that may have introduced (and then resolved, given the failure no longer recurs) the `study-clone.spec.ts:24` issue.
