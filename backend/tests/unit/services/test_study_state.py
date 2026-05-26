@@ -469,6 +469,139 @@ async def test_cascade_handles_already_cancelled_child_idempotently(
     assert running_grandchild.status == "cancelled"  # reached via recursion
 
 
+# ---------------------------------------------------------------------------
+# bug_auto_followup_completed_parent_stop_chain_race — Option A fix
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_cascade_zeroes_completed_parent_depth_to_break_pending_enqueue_race(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Stop-chain race fix: when the cascade traverses a `completed` parent
+    with `auto_followup_depth > 0`, it MUST zero the depth so a pending
+    `enqueue_followup_study(parent_id)` Arq job — fired by the digest worker
+    before the cascade ran but still sitting in the queue — observes
+    SKIP_DEPTH_EXHAUSTED on its load and refuses to create a child.
+
+    Reproduces the race deterministically without timer/thread coordination:
+    we don't actually enqueue the Arq job; we assert (a) the cascade mutated
+    the depth, AND (b) the chain gate, when invoked directly against the
+    post-cascade parent, returns SKIP_DEPTH_EXHAUSTED — which is what the
+    worker would observe."""
+    # Lazy import — domain.study.auto_followup is the gate's home; the
+    # production code at backend/workers/auto_followup.py:104 calls
+    # evaluate_chain_gate the same way.
+    from backend.app.domain.study.auto_followup import (
+        ChainGateDecision,
+        evaluate_chain_gate,
+    )
+
+    parent = _build_study_with_id("p1", status="completed")
+    parent.config = {"max_trials": 10, "auto_followup_depth": 2}
+    parent.best_metric = 0.85
+    parent.baseline_metric = 0.65  # so the gate's lift branch passes pre-mutation
+    db = _MultiStudyFakeSession({"p1": parent})
+
+    # Sanity: pre-cascade, the gate would ENQUEUE if the worker fired now.
+    pre_outcome = evaluate_chain_gate(parent, [])
+    assert pre_outcome.decision is ChainGateDecision.ENQUEUE
+
+    async def fake_list_children(_db: Any, _parent_id: str) -> list[Study]:
+        return []
+
+    monkeypatch.setattr("backend.app.db.repo.list_children_of_study", fake_list_children)
+
+    await study_state.cancel_study_with_chain_cascade(db, "p1")  # type: ignore[arg-type]
+
+    assert parent.status == "completed"  # cascade leaves terminal parents alone
+    assert parent.config["auto_followup_depth"] == 0  # the fix
+
+    # Post-cascade, a pending worker's gate would short-circuit.
+    post_outcome = evaluate_chain_gate(parent, [])
+    assert post_outcome.decision is ChainGateDecision.SKIP_DEPTH_EXHAUSTED
+
+
+@pytest.mark.asyncio
+async def test_cascade_does_not_mutate_depth_when_already_zero(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Minimal-mutation guard: if `auto_followup_depth` is already 0 (the
+    parent was a depth-0 leaf), the cascade doesn't touch config. Asserted
+    by config-dict identity preservation so future readers can see the
+    cascade left the parent's JSONB alone."""
+    parent = _build_study_with_id("p1", status="completed")
+    parent.config = {"max_trials": 10, "auto_followup_depth": 0}
+    config_before = parent.config  # capture identity, not just value
+    db = _MultiStudyFakeSession({"p1": parent})
+
+    async def fake_list_children(_db: Any, _parent_id: str) -> list[Study]:
+        return []
+
+    monkeypatch.setattr("backend.app.db.repo.list_children_of_study", fake_list_children)
+
+    await study_state.cancel_study_with_chain_cascade(db, "p1")  # type: ignore[arg-type]
+
+    # No reassignment → same dict instance.
+    assert parent.config is config_before
+
+
+@pytest.mark.asyncio
+async def test_cascade_does_not_mutate_depth_on_in_flight_parent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In-flight parents never had a pending followup-enqueue (digest only
+    fires on `completed`), so the depth-zeroing fix must NOT widen its
+    surface to running/queued parents. Their config stays intact; the
+    cascade's existing cancel_study path handles the chain-stop."""
+    parent = _build_study_with_id("p1", status="running")
+    parent.config = {"max_trials": 10, "auto_followup_depth": 2}
+    db = _MultiStudyFakeSession({"p1": parent})
+
+    async def fake_list_children(_db: Any, _parent_id: str) -> list[Study]:
+        return []
+
+    monkeypatch.setattr("backend.app.db.repo.list_children_of_study", fake_list_children)
+
+    await study_state.cancel_study_with_chain_cascade(db, "p1")  # type: ignore[arg-type]
+
+    assert parent.status == "cancelled"
+    assert parent.config["auto_followup_depth"] == 2  # untouched
+
+
+@pytest.mark.asyncio
+async def test_cascade_zeroes_depth_recursively_on_completed_chain_intermediates(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Depth-3 chain where root + middle are both `completed` with
+    `auto_followup_depth > 0`. Both must have their depth zeroed (each
+    intermediate could have its own pending enqueue-followup job). The
+    recursion at cancel_study_with_chain_cascade re-enters with each
+    child as the new parent, so the mutation naturally propagates."""
+    root = _build_study_with_id("R", status="completed")
+    root.config = {"max_trials": 10, "auto_followup_depth": 2}
+    middle = _build_study_with_id("M", status="completed", parent_id="R")
+    middle.config = {"max_trials": 10, "auto_followup_depth": 1}
+    leaf = _build_study_with_id("L", status="running", parent_id="M")
+    leaf.config = {"max_trials": 10, "auto_followup_depth": 0}
+    db = _MultiStudyFakeSession({"R": root, "M": middle, "L": leaf})
+
+    async def fake_list_children(_db: Any, parent_id: str) -> list[Study]:
+        if parent_id == "R":
+            return [middle]
+        if parent_id == "M":
+            return [leaf]
+        return []
+
+    monkeypatch.setattr("backend.app.db.repo.list_children_of_study", fake_list_children)
+
+    await study_state.cancel_study_with_chain_cascade(db, "R")  # type: ignore[arg-type]
+
+    assert root.config["auto_followup_depth"] == 0
+    assert middle.config["auto_followup_depth"] == 0
+    assert leaf.status == "cancelled"  # in-flight leaf gets the normal cancel
+
+
 def test_guard_ignores_non_study_objects() -> None:
     """Other ORM models in the dirty set are ignored — only Study is protected."""
 

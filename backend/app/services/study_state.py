@@ -290,6 +290,27 @@ async def cancel_study_with_chain_cascade(
             study_id=study_id,
             parent_status=parent.status,
         )
+        # bug_auto_followup_completed_parent_stop_chain_race — Option A.
+        # The FR-1 digest trigger may have enqueued enqueue_followup_study(study_id)
+        # before this cascade fired. Without intervention, the Arq worker —
+        # running after this transaction commits — would load the parent
+        # (still 'completed'), pass the chain gate (depth > 0, best_metric
+        # set, lift > epsilon), and create a child the operator thought
+        # they stopped. Zero the depth in the same transaction so the
+        # pending worker's gate at backend/app/domain/study/auto_followup.py
+        # returns SKIP_DEPTH_EXHAUSTED on its load. Scoped to 'completed'
+        # parents only: 'cancelled' / 'failed' parents already short-circuit
+        # at the gate's SKIP_PARENT_FAILED branch.
+        if parent.status == "completed":
+            previous_depth = parent.config.get("auto_followup_depth", 0)
+            if previous_depth > 0:
+                parent.config = {**parent.config, "auto_followup_depth": 0}
+                logger.info(
+                    "auto_followup chain stopped via cascade depth zero-out",
+                    event_type="auto_followup_cascade_stop_chain_via_config_mutation",
+                    study_id=study_id,
+                    previous_depth=previous_depth,
+                )
 
     # Cascade into direct children (C3-1: traverse all, not just in-flight).
     children = await repo.list_children_of_study(db, study_id)
