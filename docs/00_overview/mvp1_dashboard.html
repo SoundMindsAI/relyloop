@@ -397,18 +397,18 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">82 / 83</div>
+      <div class="value">83 / 84</div>
       <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">15</div>
+      <div class="value">13</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">6</div>
+      <div class="value">5</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">14</div>
+      <div class="value">12</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">15</div>
+      <div class="value">13</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">14</span></h3>
+  <h3>Idea <span class="count">12</span></h3>
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race">Auto Followup Completed Parent Stop Chain Race</a></div>
@@ -499,19 +499,6 @@ footer {
 
   </div>
   <div class="one-liner">[`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py)&#x27;s priority-4 last-resort fallback (after pipeline_status / plan-Status / priority-3 fuzzy / priority-3.5 strict idea-body / priority-3.6 f</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/chore_db_session_skip_reason_disambiguation">Db Session Skip Reason Disambiguation</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">When an integration test skips, the reason string should tell the operator which precondition failed:</div>
 
 
 </div>
@@ -564,19 +551,6 @@ footer {
 
   </div>
   <div class="one-liner">Two helpers produce inconsistent fixture state:</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_dockerfile_missing_scripts_dir">Dockerfile Missing Scripts Dir</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">[`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`:</div>
 
 
 </div>
@@ -676,7 +650,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">104</span></h3>
+  <h3>Done <span class="count">106</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1394,6 +1368,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_26_chore_db_session_skip_reason_disambiguation">Db Session Skip Reason Disambiguation</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-05-26</span>
+  </div>
+  <div class="one-liner">When an integration test skips, the reason string should tell the operator which precondition failed:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_detail_page_shell_primitive">Detail Page Shell Primitive</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1875,6 +1862,19 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_24_bug_dockerfile_missing_scripts_dir">Dockerfile Missing Scripts Dir</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-05-24</span>
+  </div>
+  <div class="one-liner">[`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_bug_e2e_target_dropdown_flake">E2E Target Dropdown Flake</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -2206,6 +2206,8 @@ footer {
   class feat_study_clone_narrow_bounds done;
   infra_study_preflight_real_engine_integration[&quot;study preflight real engine integration&quot;]
   class infra_study_preflight_real_engine_integration done;
+  chore_db_session_skip_reason_disambiguation[&quot;db session skip reason disambiguation&quot;]
+  class chore_db_session_skip_reason_disambiguation done;
   infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
   class infra_test_worktree_missing_integration_envs done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -2425,6 +2427,8 @@ footer {
   class feat_study_clone_narrow_bounds done;
   infra_study_preflight_real_engine_integration[&quot;study preflight real engine integration&quot;]
   class infra_study_preflight_real_engine_integration done;
+  chore_db_session_skip_reason_disambiguation[&quot;db session skip reason disambiguation&quot;]
+  class chore_db_session_skip_reason_disambiguation done;
   infra_test_worktree_missing_integration_envs[&quot;test worktree missing integration envs&quot;]
   class infra_test_worktree_missing_integration_envs done;
   feat_study_lifecycle --&gt; feat_digest_proposal
