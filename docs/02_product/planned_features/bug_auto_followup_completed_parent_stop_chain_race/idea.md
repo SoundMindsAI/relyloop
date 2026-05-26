@@ -1,9 +1,9 @@
-# Chore — `auto_followup` cascade race with pending followup-enqueue Arq job on completed parents
+# Bug — `auto_followup` cascade race with pending followup-enqueue Arq job on completed parents
 
-**Date:** 2026-05-23
+**Date:** 2026-05-23 (folder renamed `chore_` → `bug_` on 2026-05-26 per `/idea-preflight` audit — operator-visible behavior makes this bug-shaped, not chore-shaped per [feature_templates/README.md](../feature_templates/README.md))
 **Status:** Idea — surfaced during the Epic 1+2 phase-gate GPT-5.5 review of `feat_auto_followup_studies` (cumulative-diff review finding F2, accepted in part as a future-work capture)
 **Priority:** P2 — small race window, recoverable by manual cancel; not blocking MVP1 ship
-**Origin:** [`feat_auto_followup_studies/implementation_plan.md` §9 Execution tracker — Epic 2 phase gate](../feat_auto_followup_studies/implementation_plan.md), GPT-5.5 phase-gate finding F2
+**Origin:** [`feat_auto_followup_studies/implementation_plan.md` §9 Execution tracker — Epic 2 phase gate](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/implementation_plan.md), GPT-5.5 phase-gate finding F2
 
 ## Problem
 
@@ -80,5 +80,5 @@ Trade-offs:
 
 ## Relationship to other work
 
-- **Co-evolves with [`chore_auto_followup_parent_advisory_lock`](../chore_auto_followup_parent_advisory_lock/idea.md)** (also deferred per D-11) — Option C above is the unified-mechanism fix that obsoletes both. If the operator reports either race, prioritize Option C over A/B.
+- **Co-evolves with the D-11-deferred layer-2 advisory-lock approach** (see [`feat_auto_followup_studies/feature_spec.md` D-11](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/feature_spec.md) and [`implementation_plan.md` §9 finding F2](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/implementation_plan.md), named `chore_auto_followup_parent_advisory_lock` in the deferral note but never captured as a standalone idea file). Option C above is the unified-mechanism fix that obsoletes both. If the operator reports either race, prioritize Option C over A/B.
 - **Coordinates with future `feat_chain_audit_view`** (not yet captured) — when MVP2's `audit_log` lands, the cascade-vs-worker race becomes observable in the audit trail; that's the right time to decide whether Options A/B/C are worth shipping or whether the race is rare enough to leave documented-only.
