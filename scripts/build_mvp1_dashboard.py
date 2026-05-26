@@ -496,6 +496,40 @@ def _strip_dependency_table_rows(text: str) -> str:
     return _DEP_ROW_RE.sub("", text)
 
 
+# Narrative dependency-cite footnotes (single-line form). Catches the
+# `**Depends on:** ... PR #N` / `- Depends on: ... PR #N` /
+# `**Dependencies:** ... PR #N` patterns that the table-row strip above
+# does NOT cover. Per chore_dashboard_regen_priority4_dependency_cite_false_positive
+# — without this, priority-4's last-resort `#N` fallback picks up the
+# first dependency PR# as the feature's own.
+_DEP_FOOTNOTE_RE = re.compile(
+    r"^\s*(?:[-*+]\s+)?(?:\*\*)?"
+    r"(?:Depends on|Dependencies|Dependency|Depended on)"
+    r"(?:\*\*)?:\s*[^\n]*$",
+    flags=re.MULTILINE | re.IGNORECASE,
+)
+
+
+def _strip_dependency_footnote_lines(text: str) -> str:
+    """Drop single-line narrative dependency-cite footnotes.
+
+    Sibling to :func:`_strip_dependency_table_rows`. The table-row strip
+    only handles markdown-table rows (lines starting with ``|``); this
+    helper handles the inline-footnote shapes commonly used in idea
+    bodies and feature specs:
+
+    * ``**Depends on:** foo PR #208 + bar PR #221``
+    * ``- Depends on: foo PR #N`` (bullet list)
+    * ``**Dependencies:** foo PR #N`` (plural form)
+    * ``Depended on: foo PR #N`` (past tense, rarer)
+
+    Composes with :func:`_strip_dependency_table_rows` and
+    :func:`_strip_backtick_quoted_segments` at :func:`_extract_pr_number`'s
+    priority-3/4 entry point.
+    """
+    return _DEP_FOOTNOTE_RE.sub("", text)
+
+
 def _strip_backtick_quoted_segments(text: str) -> str:
     """Remove backtick-fenced segments before fuzzy PR# matching.
 
@@ -661,8 +695,10 @@ def _extract_pr_number(pipe: str, plan: str, spec: str, idea: str = "") -> int |
     # before fuzzy matching so cites like ``| feat_study_lifecycle Phase 1
     # | All stories | Implemented (PR #18, #25) | …`` don't masquerade as
     # this feature's PR.
-    combined = _strip_dependency_table_rows(
-        _strip_backtick_quoted_segments(pipe + "\n" + plan + "\n" + spec)
+    combined = _strip_dependency_footnote_lines(
+        _strip_dependency_table_rows(
+            _strip_backtick_quoted_segments(pipe + "\n" + plan + "\n" + spec)
+        )
     )
     m = re.search(r"PR[^a-zA-Z\n]{0,5}#(\d+)[^.\n]{0,80}merged", combined)
     if m:

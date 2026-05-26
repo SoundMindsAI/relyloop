@@ -441,3 +441,83 @@ class TestBacktickStripPriority3:
             "footer"
         )
         assert _extract_pr_number("", "", spec, "") is None
+
+
+class TestPriority4DependencyFootnoteFalsePositive:
+    """Locks the false-positive rejection added by
+    chore_dashboard_regen_priority4_dependency_cite_false_positive.
+
+    Priority-3 (backtick-strip + fuzzy `merged`-context) handles inline
+    backtick fences and dependency-table rows. Priority-4 (last-resort
+    `#N` fallback at scripts/build_mvp1_dashboard.py:694) scans the
+    combined pipe+plan+spec text AFTER `_strip_dependency_table_rows`,
+    which only strips MARKDOWN TABLE rows (lines starting with `|`).
+
+    Before this chore: narrative footnotes like
+    `**Depends on:** ... PR #208 + ... PR #221 — both shipped ...`
+    leak through priority-4 and the first `#N` is misread as the
+    feature's own PR.
+
+    After: a sibling `_strip_dependency_footnote_lines` helper strips
+    `**Depends on:** ...` / `Depends on: ...` / `**Dependencies:** ...`
+    line variants before priority-4's regex runs.
+    """
+
+    def test_minimal_footnote_with_two_dep_prs_returns_none(self) -> None:
+        # Bare reproducer: priority-4's last-resort scan must NOT pick
+        # the first `#N` from a narrative "Depends on:" line.
+        spec = (
+            "## Some section\n\n"
+            "Body prose that doesn't cite any PR.\n\n"
+            "**Depends on:** foo PR #208 + bar PR #221 — both shipped 2026-05-23.\n"
+        )
+        assert _extract_pr_number("", "", spec, "") is None
+
+    def test_pr253_canonical_dep_footnote_in_spec_returns_none(self) -> None:
+        # Canonical regression fixture: the actual footnote from PR #253's
+        # idea.md, placed in spec position (where priority-4's pipe+plan+spec
+        # scan would catch it for a planned/specced feature). All
+        # priority-3 paths fail (no "merged" context after backtick-strip);
+        # priority-3.5/3.6 miss (no Status frontmatter); the dashboard
+        # previously rendered PR #208 (the first `#N` priority-4 found)
+        # as this feature's own PR.
+        spec = (
+            "## Dependencies\n\n"
+            "**Depends on:** None. (Builds on top of "
+            "[`bug_dashboard_depends_on_column_bloat`](../foo/) PR #208 + "
+            "[`chore_dashboard_pr_extraction_from_idea`](../bar/) PR #221 "
+            "— both shipped 2026-05-23.)\n\n"
+            "## Problem\n\nBody prose.\n"
+        )
+        assert _extract_pr_number("", "", spec, "") is None
+
+    def test_unbolded_depends_on_variant_returns_none(self) -> None:
+        # `Depends on:` (no asterisks) is just as common in narrative
+        # bullet lists. Must also be stripped.
+        spec = "- Depends on: foo PR #42 + bar PR #43.\n"
+        assert _extract_pr_number("", "", spec, "") is None
+
+    def test_dependencies_plural_variant_returns_none(self) -> None:
+        # `**Dependencies:**` (plural form) is another common header in
+        # feature specs. Must also be stripped.
+        spec = "**Dependencies:** foo PR #42 + bar PR #43.\n"
+        assert _extract_pr_number("", "", spec, "") is None
+
+    def test_plus_bullet_and_singular_dependency_variants_returns_none(self) -> None:
+        # Standard markdown allows `+` as a list bullet (alongside `-` and `*`);
+        # singular `Dependency:` is a real-world variant for single-dep cites.
+        # Both must be stripped. Added per Gemini Code Assist Medium finding
+        # on PR #277.
+        spec_plus_bullet = "+ Depends on: foo PR #42 + bar PR #43.\n"
+        assert _extract_pr_number("", "", spec_plus_bullet, "") is None
+        spec_singular = "**Dependency:** foo PR #99\n"
+        assert _extract_pr_number("", "", spec_singular, "") is None
+
+    def test_legitimate_own_pr_in_priority4_fallback_still_works(self) -> None:
+        # Negative guard: priority-4's last-resort fallback must still
+        # catch legitimate own-PR# cites that don't sit on a Depends-on
+        # line. This text has no "merged" (priority-3 misses), no Status
+        # frontmatter (priority-3.5/3.6 miss), but does have a bare
+        # `PR #99` in body prose — priority-4 should return 99.
+        spec = "## Release notes\n\nReleased as PR #99 in early access."
+        assert _extract_pr_number("", "", spec, "") == 99
