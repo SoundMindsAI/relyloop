@@ -108,6 +108,42 @@ if [[ ! -r "$SECRET_FILE" ]]; then
   exit 4
 fi
 
+# POSTGRES_PASSWORD_FILE prerequisite: required for any test that uses
+# postgres_reachable() (backend/tests/conftest.py:50-72), which gates on BOTH
+# DATABASE_URL_FILE and POSTGRES_PASSWORD_FILE being present in env. Mirror
+# the DB-secret check shape exactly (same indentation, same Rule #2 reference,
+# same install.sh remediation pointer). Exit code 5 is the next sequential
+# after the existing exits 2/3/4.
+PG_PASSWORD_FILE="$MAIN_REPO/secrets/postgres_password"
+if [[ ! -r "$PG_PASSWORD_FILE" ]]; then
+  echo "ERROR: missing or unreadable Postgres password secret at: $PG_PASSWORD_FILE" >&2
+  echo "       CLAUDE.md Absolute Rule #2 requires secrets-via-mounted-files; bare" >&2
+  echo "       POSTGRES_PASSWORD= env vars are forbidden. Regenerate via:" >&2
+  echo "         bash $MAIN_REPO/scripts/install.sh" >&2
+  echo "       (or 'make up' from the main worktree, which auto-generates secrets" >&2
+  echo "       on first run by invoking scripts/install.sh)." >&2
+  exit 5
+fi
+
+# CLUSTER_CREDENTIALS_FILE probe: optional. Mount only when the host file is
+# readable AND non-empty. When absent / empty / unreadable, skip silently
+# (unit tests, contract tests, and DB-only integration tests don't need
+# cluster credentials, and cluster-credential-dependent tests have their own
+# test-side skip gates: @es_required, FR-6 helper guard at
+# backend/tests/integration/test_es_overlap_probe_helpers.py:170-203).
+# In --dry-run mode only, emit a single-line stderr hint so operators
+# inspecting the constructed argv see what was skipped and why.
+CLUSTER_CREDS_HOST="$MAIN_REPO/secrets/cluster_credentials.yaml"
+CLUSTER_CREDS_ARGS=()
+if [[ -r "$CLUSTER_CREDS_HOST" && -s "$CLUSTER_CREDS_HOST" ]]; then
+  CLUSTER_CREDS_ARGS=(
+    -e "CLUSTER_CREDENTIALS_FILE=/run/secrets/cluster_credentials"
+    -v "$CLUSTER_CREDS_HOST:/run/secrets/cluster_credentials:ro"
+  )
+elif [[ "$DRY_RUN" -eq 1 ]]; then
+  echo "# skipped optional mount: CLUSTER_CREDENTIALS_FILE (host file not present, empty, or unreadable at $CLUSTER_CREDS_HOST)" >&2
+fi
+
 # Compose network name follows Docker Compose's `${project_name}_default`
 # convention. `relyloop` is the default project name when `make up` runs
 # without an override.
@@ -153,9 +189,12 @@ ARGV=(
   --user root
   --network "$NETWORK_NAME"
   -e "DATABASE_URL_FILE=/run/secrets/database_url"
+  -e "POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password"
   -e "PYTHONDONTWRITEBYTECODE=1"
   -e "RELYLOOP_IN_WORKTREE_CONTAINER=1"
   -v "$SECRET_FILE:/run/secrets/database_url:ro"
+  -v "$PG_PASSWORD_FILE:/run/secrets/postgres_password:ro"
+  "${CLUSTER_CREDS_ARGS[@]+"${CLUSTER_CREDS_ARGS[@]}"}"
   -v "$WORKTREE_ROOT/CLAUDE.md:/app/CLAUDE.md:ro"
   -v "$WORKTREE_ROOT/backend:/app/backend"
   -v "$WORKTREE_ROOT/migrations:/app/migrations"
