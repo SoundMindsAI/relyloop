@@ -1,7 +1,7 @@
 # Implementation Plan — infra_study_preflight_real_engine_integration
 
 **Date:** 2026-05-25
-**Status:** In Progress (all 3 stories committed; PR not yet opened)
+**Status:** Complete (PR #255, squash-merged as `9928d76` on 2026-05-25)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):**
 - [CLAUDE.md](../../../../CLAUDE.md) — Absolute Rules #2, #4, #7 (Conventional Commits), test conventions, integration-test mocking policy
