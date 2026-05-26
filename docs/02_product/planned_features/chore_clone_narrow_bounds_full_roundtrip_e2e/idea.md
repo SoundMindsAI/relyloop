@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-26
 **Status:** Idea — surfaced during `/bug-fix` for `bug_clone_e2e_seed_template_params_mismatch` (PR landing 2026-05-26).
-**Priority:** P3 — adds an E2E gate that's not currently present but isn't blocking anything. The narrowing algorithm itself is unit-tested at `ui/src/__tests__/lib/narrow-bounds.test.ts`; this would add the missing browser-level round-trip coverage.
+**Priority:** P2 — adds an E2E gate that's not currently present but isn't blocking anything. The narrowing algorithm itself is unit-tested at `ui/src/__tests__/lib/narrow-bounds.test.ts`; this would add the missing browser-level round-trip coverage.
 **Origin:** Bug fix for `bug_clone_e2e_seed_template_params_mismatch`. Before that fix, the spec deliberately stopped at the textarea assertion because Step-4 Next was blocked by the seed-helper/template mismatch. The fix unblocks the submit step, so the spec CAN now be extended — but doing so in the same PR would have been scope creep.
 **Depends on:** `bug_clone_e2e_seed_template_params_mismatch` (PR landing 2026-05-26) merging. Once that's in, this spec extension can land any time.
 
