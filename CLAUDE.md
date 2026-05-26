@@ -421,7 +421,7 @@ MAIN_REPO=$(git worktree list | awk '{print $1; exit}')
 
 # Optional: cluster_credentials.yaml is only present when the operator has
 # registered an ES cluster (via scripts/install.sh or manually). When present,
-# the worker / migrate compose services mount it at /run/secrets/cluster_credentials
+# the api / worker compose services mount it at /run/secrets/cluster_credentials
 # (docker-compose.yml lines 102, 160); mirror that here for parity so
 # acquire_adapter() and the seed_minimum_for_overlap_probe_real_engine() helper
 # resolve credentials correctly inside the one-shot container. When absent, the
