@@ -2,13 +2,13 @@
 
 **Date:** 2026-05-26
 **Status:** Idea — surfaced during `/bug-fix --ship` for `bug_dockerfile_venv_root_owned_after_user_switch` (PR landing 2026-05-26).
-**Priority:** P3 — the recently-shipped static Dockerfile-parse unit test ([backend/tests/unit/test_dockerfile_runtime_stage.py](../../../../backend/tests/unit/test_dockerfile_runtime_stage.py)) catches the load-bearing case (someone deletes the chown line). This idea covers the orthogonal "Dockerfile builds but post-build runtime state is somehow wrong" case, which is a much smaller risk surface but trivial to add.
-**Origin:** Bug fix for `bug_dockerfile_venv_root_owned_after_user_switch` (commit 58835184). The fix's `bug_fix.md` Decision #3 explicitly chose the static unit test over a CI smoke step because adding it would have extended the bug-fix PR into pr.yml — a different subsystem. Capturing the deferred option here.
+**Priority:** P3 — the recently-shipped static Dockerfile-parse unit test ([backend/tests/unit/test_dockerfile_runtime_stage.py](../../../../backend/tests/unit/test_dockerfile_runtime_stage.py)) catches the load-bearing structural case (someone moves `USER relyloop` back after the runtime-stage `uv sync`, OR adds a `RUN chown -R /app/.venv` "to be safe" that would silently bloat the image). This idea covers the orthogonal "Dockerfile builds but post-build runtime state is somehow wrong" case, which is a much smaller risk surface but trivial to add.
+**Origin:** Bug fix for `bug_dockerfile_venv_root_owned_after_user_switch` (PR #263). The fix's `bug_fix.md` Decision #3 explicitly chose the static unit test over a CI smoke step because adding it would have extended the bug-fix PR into pr.yml — a different subsystem. Capturing the deferred option here.
 **Depends on:** None.
 
 ## Problem
 
-CI's `docker buildx (relyloop/api)` job at [.github/workflows/pr.yml:481-503](../../../../.github/workflows/pr.yml#L481-L503) builds the runtime image with `push: false` and `cache-to: type=gha,mode=max` — it verifies buildability but never runs the image. The static Dockerfile-parse unit test catches structural regressions in the file but cannot catch runtime-state regressions (e.g., `chown` runs but doesn't propagate to all files because of a future build-cache interaction, `uv sync` behavior shifts in a future uv release, etc.).
+CI's `docker buildx (relyloop/api)` job at [.github/workflows/pr.yml:481-503](../../../../.github/workflows/pr.yml#L481-L503) builds the runtime image with `push: false` and `cache-to: type=gha,mode=max` — it verifies buildability but never runs the image. The static Dockerfile-parse unit test catches structural regressions in the file but cannot catch runtime-state regressions (e.g., a future uv release silently rearranges where it writes dist-info files; an unrelated USER-directive edit accidentally regresses to running the runtime-stage `uv sync` as root; an upstream Python base image switches default UID).
 
 The reproducer-format from `bug_dockerfile_venv_root_owned_after_user_switch` is one shell command:
 
@@ -55,5 +55,5 @@ The list of invariants is extensible — future Dockerfile bugs surface as new a
 
 ## Relationship to other work
 
-- **Originating bug:** `bug_dockerfile_venv_root_owned_after_user_switch` (the chown fix that triggered this observation).
+- **Originating bug:** `bug_dockerfile_venv_root_owned_after_user_switch` (the USER-before-uv-sync fix that triggered this observation).
 - **Adjacent:** `infra_ci_smoke_makeup` (idea — broader systemic CI smoke covering `make up` and other operator-paths). Could bundle.

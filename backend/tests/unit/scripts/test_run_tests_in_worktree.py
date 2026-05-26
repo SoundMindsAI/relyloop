@@ -138,17 +138,18 @@ class TestDryRunArgvShape:
             f"first line was {argv_lines[0]!r}"
         )
         # Post-bug_dockerfile_venv_root_owned_after_user_switch fix: the
-        # `--user root` workaround was reverted (the Dockerfile now chowns
-        # the venv to relyloop), and `PYTHONDONTWRITEBYTECODE=1` was dropped
+        # `--user root` workaround was reverted (the Dockerfile now switches
+        # `USER relyloop` BEFORE the runtime-stage `uv sync` so the venv stays
+        # fully relyloop-owned), and `PYTHONDONTWRITEBYTECODE=1` was dropped
         # from the `-e` flag list (already set in Dockerfile:23's base ENV).
         # Negative assertions guard against re-adding the workaround.
         assert "run" in argv_lines
         assert "--rm" in argv_lines
         assert "--user" not in argv_lines, (
-            "--user flag must NOT be set; the Dockerfile venv-chown fix removed "
-            "the need for the --user root workaround. If you're re-adding it, "
-            "first check whether bug_dockerfile_venv_root_owned_after_user_switch "
-            "regressed."
+            "--user flag must NOT be set; the Dockerfile USER-before-uv-sync "
+            "fix removed the need for the --user root workaround. If you're "
+            "re-adding it, first check whether "
+            "bug_dockerfile_venv_root_owned_after_user_switch regressed."
         )
         assert "PYTHONDONTWRITEBYTECODE=1" not in argv_lines, (
             "PYTHONDONTWRITEBYTECODE=1 -e flag is redundant — already set in "
