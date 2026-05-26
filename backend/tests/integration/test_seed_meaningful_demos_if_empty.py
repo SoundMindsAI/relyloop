@@ -60,7 +60,9 @@ def _insert_cluster_sql(*, soft_deleted: bool) -> tuple[str, dict[str, object]]:
 
     ``soft_deleted=True`` populates ``deleted_at``; otherwise leaves it
     NULL. The unique fixture ID + ts-suffixed name make repeated inserts
-    in the same transaction non-colliding.
+    in the same transaction non-colliding. The `clusters` table has
+    `created_at` + `deleted_at` only (no `updated_at`) per
+    backend/app/db/models/cluster.py:83-88.
     """
     now = datetime.now(UTC)
     cluster_id = str(uuid.uuid4())
@@ -68,16 +70,15 @@ def _insert_cluster_sql(*, soft_deleted: bool) -> tuple[str, dict[str, object]]:
         "id": cluster_id,
         "name": f"sd-fixture-{cluster_id[:8]}",
         "created_at": now,
-        "updated_at": now,
         "deleted_at": now if soft_deleted else None,
     }
     sql = (
         "INSERT INTO clusters "
         "(id, name, engine_type, environment, base_url, auth_kind, "
-        "credentials_ref, created_at, updated_at, deleted_at) "
+        "credentials_ref, created_at, deleted_at) "
         "VALUES (:id, :name, 'elasticsearch', 'dev', "
         "'http://stub:9200', 'es_basic', 'stub-ref', "
-        ":created_at, :updated_at, :deleted_at)"
+        ":created_at, :deleted_at)"
     )
     return sql, params
 
