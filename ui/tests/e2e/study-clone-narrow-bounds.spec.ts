@@ -17,14 +17,22 @@
  *   3. Walk Steps 1-3 of the modal, land on Step 4.
  *   4. Assert the narrow-bounds checkbox is visible (FR-1 gate open).
  *   5. Check it; parse the textarea; assert the clamped numeric bounds.
- *   6. Submit; assert the new study's persisted `search_space` carries
- *      the same narrowed bounds (FR-12: server accepted the rewrite).
+ *      Uncheck; assert the textarea restores to the source's bounds.
+ *      Re-check to lock the clamped state in for submit.
+ *   6. Advance to Step 5; click "Create study"; capture the POST response
+ *      and the new study id. GET /api/v1/studies/{new_id} via `request`;
+ *      assert the persisted `search_space.params.boost.low/high` carry
+ *      the clamped [2.0, 3.0] bounds (FR-12 — server accepted the
+ *      rewrite) AND `parent_study_id === sourceId` (FR-9 — lineage
+ *      round-trip mirrors the v1 clone-spec at study-clone.spec.ts:24).
  */
 import { expect, test } from '@playwright/test';
 
 import { seedFullChain, seedStudyCompletedWithDigest } from './helpers/seed';
 
-test('Clone study → narrow bounds → textarea is clamped and restores on uncheck', async ({
+const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
+
+test('Clone study → narrow bounds → submit → persisted search_space is clamped', async ({
   page,
   request,
 }) => {
@@ -58,7 +66,7 @@ test('Clone study → narrow bounds → textarea is clamped and restores on unch
   const checkbox = page.getByTestId('narrow-bounds-checkbox');
   await expect(checkbox).toBeVisible({ timeout: 10_000 });
 
-  // 5. Check it; read the textarea; assert the clamp.
+  // 5a. Check it; read the textarea; assert the clamp.
   await checkbox.check();
   const textareaValue = await page.getByTestId('cs-search-space').inputValue();
   const parsed = JSON.parse(textareaValue) as {
@@ -71,8 +79,8 @@ test('Clone study → narrow bounds → textarea is clamped and restores on unch
   expect(parsed.params.boost.low).toBeCloseTo(2.0, 6);
   expect(parsed.params.boost.high).toBeCloseTo(3.0, 6);
 
-  // 6. Uncheck → assert textarea restores to the verbatim source bounds.
-  //    Validates FR-5 (uncheck → restore) at the browser layer.
+  // 5b. Uncheck → assert textarea restores to the verbatim source bounds.
+  //     Validates FR-5 (uncheck → restore) at the browser layer.
   await checkbox.uncheck();
   const restoredValue = await page.getByTestId('cs-search-space').inputValue();
   const restored = JSON.parse(restoredValue) as {
@@ -81,12 +89,45 @@ test('Clone study → narrow bounds → textarea is clamped and restores on unch
   expect(restored.params.boost.low).toBe(0.5);
   expect(restored.params.boost.high).toBe(5.0);
 
-  // Server-side acceptance of the narrowed JSON via full clone → narrow →
-  // submit → GET-the-new-study round-trip is intentionally not exercised
-  // here — that coverage belongs in a follow-up spec extension once the
-  // remaining smoke-stack flakes (bug_smoke_followup_clone_e2e_flakes,
-  // bug_smoke_dashboard_demo_state_locator_missing) stop polluting the
-  // CI signal. The narrowing algorithm itself is covered by the unit
-  // invariant at ui/src/__tests__/lib/narrow-bounds.test.ts.
-  void request;
+  // 5c. Re-check to put the textarea back to the clamped state for submit.
+  //     (We want to verify the SERVER receives + persists the narrowed
+  //     bounds, not the source bounds.)
+  await checkbox.check();
+
+  // 6. Advance Step 4 → 5 (objective + config), submit, capture the POST
+  //    response. Pattern mirrors ui/tests/e2e/study-clone.spec.ts:24.
+  await page.getByTestId('step-next').click();
+  await expect(page.getByTestId('step-5')).toBeVisible();
+
+  const postResponsePromise = page.waitForResponse(
+    (r) => r.url().endsWith('/api/v1/studies') && r.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: /Create study/i }).click();
+  const postResponse = await postResponsePromise;
+  expect(postResponse.ok()).toBe(true);
+  const created = (await postResponse.json()) as {
+    id: string;
+    parent_study_id: string | null;
+  };
+
+  // FR-9 round-trip — clone lineage persisted (same assertion as v1 clone-spec).
+  expect(created.parent_study_id).toBe(sourceId);
+
+  // FR-12 round-trip — re-fetch the new study and confirm the persisted
+  // search_space carries the narrowed [2.0, 3.0] bounds. This is the
+  // load-bearing assertion this spec extension exists to add: the server
+  // accepted the textarea-driven rewrite and the bounds round-trip via
+  // GET. The narrowing algorithm itself is also covered by the unit
+  // invariant at ui/src/__tests__/lib/narrow-bounds.test.ts; this spec
+  // confirms the wire contract holds end-to-end.
+  const reloadResp = await request.get(`${API_BASE}/api/v1/studies/${created.id}`);
+  expect(reloadResp.ok()).toBe(true);
+  const reloaded = (await reloadResp.json()) as {
+    parent_study_id: string | null;
+    search_space: { params: { boost: { type: string; low: number; high: number } } };
+  };
+  expect(reloaded.parent_study_id).toBe(sourceId);
+  expect(reloaded.search_space.params.boost.type).toBe('float');
+  expect(reloaded.search_space.params.boost.low).toBeCloseTo(2.0, 6);
+  expect(reloaded.search_space.params.boost.high).toBeCloseTo(3.0, 6);
 });
