@@ -232,8 +232,12 @@ test.describe('/studies — auto-followup chain', () => {
 
     // Submit with the default (cascade=true). Assert the DELETE fires with
     // ?cascade=true by intercepting the response.
+    // Frontend fires POST /api/v1/studies/{id}/cancel?cascade=…
+    // (see useCancelStudy at ui/src/lib/api/studies.ts:138-158), NOT DELETE.
     const cancelRespPromise = page.waitForResponse(
-      (resp) => resp.url().includes(`/api/v1/studies/${middleId}`) && resp.request().method() === 'DELETE',
+      (resp) =>
+        resp.url().includes(`/api/v1/studies/${middleId}/cancel`) &&
+        resp.request().method() === 'POST',
     );
     await page.getByTestId('confirm-cancel').click();
     const cancelResp = await cancelRespPromise;
@@ -263,8 +267,12 @@ test.describe('/studies — auto-followup chain', () => {
     await expect(page.getByTestId('cascade-false')).toBeChecked();
     await expect(page.getByTestId('cascade-true')).not.toBeChecked();
 
+    // Frontend fires POST /api/v1/studies/{id}/cancel?cascade=…
+    // (see useCancelStudy at ui/src/lib/api/studies.ts:138-158), NOT DELETE.
     const cancelRespPromise = page.waitForResponse(
-      (resp) => resp.url().includes(`/api/v1/studies/${middleId}`) && resp.request().method() === 'DELETE',
+      (resp) =>
+        resp.url().includes(`/api/v1/studies/${middleId}/cancel`) &&
+        resp.request().method() === 'POST',
     );
     await page.getByTestId('confirm-cancel').click();
     const cancelResp = await cancelRespPromise;
