@@ -137,15 +137,27 @@ class TestDryRunArgvShape:
             f"Dry-run output must start with 'docker' so operators can copy-paste; "
             f"first line was {argv_lines[0]!r}"
         )
-        # FR-8 mandates --user root + the network + the secret + 11 -v mounts.
+        # Post-bug_dockerfile_venv_root_owned_after_user_switch fix: the
+        # `--user root` workaround was reverted (the Dockerfile now chowns
+        # the venv to relyloop), and `PYTHONDONTWRITEBYTECODE=1` was dropped
+        # from the `-e` flag list (already set in Dockerfile:23's base ENV).
+        # Negative assertions guard against re-adding the workaround.
         assert "run" in argv_lines
         assert "--rm" in argv_lines
-        assert "--user" in argv_lines
-        assert "root" in argv_lines  # value paired with --user
+        assert "--user" not in argv_lines, (
+            "--user flag must NOT be set; the Dockerfile venv-chown fix removed "
+            "the need for the --user root workaround. If you're re-adding it, "
+            "first check whether bug_dockerfile_venv_root_owned_after_user_switch "
+            "regressed."
+        )
+        assert "PYTHONDONTWRITEBYTECODE=1" not in argv_lines, (
+            "PYTHONDONTWRITEBYTECODE=1 -e flag is redundant — already set in "
+            "Dockerfile:23's base stage ENV; only had a reason to exist while "
+            "--user root was in play."
+        )
         assert "--network" in argv_lines
         assert "DATABASE_URL_FILE=/run/secrets/database_url" in argv_lines
         assert "POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password" in argv_lines
-        assert "PYTHONDONTWRITEBYTECODE=1" in argv_lines
         # Count docker `-v` MOUNT flags only (each is paired with a `host:container[:ro]`
         # value containing a colon). Naive `line == "-v"` counts also catch the
         # pytest verbose flag at the end of the default command, so we look at

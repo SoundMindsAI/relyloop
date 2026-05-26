@@ -106,6 +106,14 @@ COPY --chown=relyloop:relyloop pyproject.toml uv.lock README.md LICENSE /app/
 # Install the project package itself (deps already installed in deps stage).
 RUN uv sync --frozen --no-dev
 
+# The `uv sync` above runs as root (USER directive doesn't fire until the
+# next line) and writes `relyloop-0.1.0.dist-info/*` as `root:root` inside
+# the venv that line 89 had previously fully chowned to relyloop. Re-assert
+# the invariant so any one-shot container running `uv run` / `uv sync` as
+# the relyloop user (e.g. `make test-worktree`) doesn't EACCES rewriting
+# those files. See bug_dockerfile_venv_root_owned_after_user_switch.
+RUN chown -R relyloop:relyloop /app/.venv
+
 USER relyloop
 
 EXPOSE 8000
