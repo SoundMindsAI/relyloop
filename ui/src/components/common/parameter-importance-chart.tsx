@@ -24,10 +24,7 @@ export function ParameterImportanceChart({ data, height = 240 }: ParameterImport
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis type="number" />
           <YAxis dataKey="param" type="category" width={120} />
-          <Tooltip
-            formatter={(value: number) => value.toFixed(3)}
-            labelFormatter={(label: string) => label}
-          />
+          <Tooltip formatter={(value) => Number(value).toFixed(3)} />
           <Bar dataKey="importance" fill="#3b82f6" />
         </BarChart>
       </ResponsiveContainer>

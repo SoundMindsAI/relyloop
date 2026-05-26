@@ -47,7 +47,7 @@ function parseDeclaredParams(raw: string | undefined): Record<string, string> {
     if (!trimmed) continue;
     const ok = DeclaredParamSchema.safeParse(trimmed);
     if (!ok.success) {
-      throw new Error(`Invalid declared param: "${trimmed}". ${ok.error.errors[0]?.message ?? ''}`);
+      throw new Error(`Invalid declared param: "${trimmed}". ${ok.error.issues[0]?.message ?? ''}`);
     }
     const [name, type] = trimmed.split(':').map((s) => s.trim());
     // `name` matches /^[a-zA-Z_][\w]*/ via DeclaredParamSchema above — safe object key.
