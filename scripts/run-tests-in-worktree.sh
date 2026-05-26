@@ -174,23 +174,17 @@ fi
 
 # ---------- Build docker argv ----------
 
-# --user root: workaround for bug_dockerfile_venv_root_owned_after_user_switch
-#   (the production image's /app/.venv has root-owned package metadata from
-#   line 107 of the Dockerfile running `uv sync` before the USER switch on
-#   line 109). Without --user root, `uv run`'s implicit sync fails to rewrite
-#   relyloop-0.1.0.dist-info/INSTALLER.
-# PYTHONDONTWRITEBYTECODE=1: prevent the root-user container from writing
-#   __pycache__/ directories to the bind-mounted host paths (backend/,
-#   migrations/, scripts/) — those would land as root-owned files on the
-#   host and require sudo to clean up.
+# Runs as the image's default `relyloop` user (UID 1000) — the Dockerfile
+# fix for bug_dockerfile_venv_root_owned_after_user_switch ensures the venv
+# is fully relyloop-owned, so `uv run`'s implicit sync against the lockfile
+# succeeds without needing `--user root`. PYTHONDONTWRITEBYTECODE is already
+# set in the image's base stage (Dockerfile:23), so no `-e` override needed.
 ARGV=(
   run
   --rm
-  --user root
   --network "$NETWORK_NAME"
   -e "DATABASE_URL_FILE=/run/secrets/database_url"
   -e "POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password"
-  -e "PYTHONDONTWRITEBYTECODE=1"
   -e "RELYLOOP_IN_WORKTREE_CONTAINER=1"
   -v "$SECRET_FILE:/run/secrets/database_url:ro"
   -v "$PG_PASSWORD_FILE:/run/secrets/postgres_password:ro"

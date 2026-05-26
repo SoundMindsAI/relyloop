@@ -57,16 +57,6 @@ When a contributor adds a new `*_FILE` env var to [`docker-compose.yml`](../../d
 
 Without all three updates, worktree-tested suites that depend on the new env var will silently skip — the exact failure mode that `infra_test_worktree_missing_integration_envs` (PR landing this contract) was created to prevent.
 
-### Residual root-file risk (until `bug_dockerfile_venv_root_owned_after_user_switch` ships its fix)
-
-The script passes `--user root` to `docker run` as a workaround for the Dockerfile bug captured at [`docs/02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch/`](../02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch/idea.md). The container therefore writes as root. `PYTHONDONTWRITEBYTECODE=1` prevents Python from writing `__pycache__/` directories into the bind-mounted source paths. But any command run inside the container that writes to a bind-mounted path (`/app/backend`, `/app/migrations`, `/app/scripts`) will land **root-owned files on the host**. In normal pytest usage this doesn't happen (pytest's `.pytest_cache` lands in `/app/` which is not bind-mounted), but if you pass `--cmd "pytest --cov ..."` or any command that writes to source, the coverage files / output files land root-owned in your sibling worktree's `backend/`, `migrations/`, or `scripts/`. Mitigations:
-
-- For pytest cache: `make test-worktree CMD="pytest backend/tests/unit/ -v -o cache_dir=/tmp/.pytest_cache"`.
-- For coverage: redirect coverage output to `/tmp/` (e.g., `--cov-report=html:/tmp/coverage-html`).
-- For any other write-side-effect command: target a non-bind-mounted path inside the container.
-
-If you accidentally leave root-owned files in the sibling worktree, `sudo chown -R $USER:$USER <path>` reclaims them. The Dockerfile fix (see the bug idea above) removes the need for this workaround entirely.
-
 Pass `--dry-run` to inspect the constructed `docker run` argv without executing it:
 
 ```bash

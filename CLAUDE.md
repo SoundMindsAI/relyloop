@@ -411,7 +411,7 @@ See the [`parallel-worktrees.md` runbook](docs/03_runbooks/parallel-worktrees.md
 
 The recipe `make test-worktree` wraps is below — useful for understanding what the script does internally, or for one-off invocations where you want to tweak a flag. Honors Absolute Rule #2: never bare `DATABASE_URL=...` env var, always the `*_FILE`-mounted pattern matching `docker-compose.yml` lines 68 / 95 / 153.
 
-The `--user root` + `PYTHONDONTWRITEBYTECODE=1` flags work around `bug_dockerfile_venv_root_owned_after_user_switch` (the production image's `/app/.venv` package metadata is root-owned because `Dockerfile:107` runs `uv sync` before `USER relyloop` at line 109; `uv run`'s implicit sync can't rewrite those files without root). Both flags become deletable when the Dockerfile bug ships its fix.
+The container runs as the image's default `relyloop` user (UID 1000). The earlier `--user root` + `-e PYTHONDONTWRITEBYTECODE=1` workaround was removed after `bug_dockerfile_venv_root_owned_after_user_switch` shipped — the Dockerfile now switches `USER relyloop` BEFORE the runtime-stage `RUN uv sync --frozen --no-dev`, so the project-package install runs as the unprivileged user from the start and writes `relyloop-0.1.0.dist-info/*` with the correct ownership. `PYTHONDONTWRITEBYTECODE=1` is already set in the image's base `ENV` (`Dockerfile:23`), so no `-e` override is needed.
 
 ```bash
 # Run from the sibling worktree's root (e.g., /private/tmp/relyloop-<slug>).
@@ -435,11 +435,10 @@ if [[ -r "$MAIN_REPO/secrets/cluster_credentials.yaml" && -s "$MAIN_REPO/secrets
   )
 fi
 
-docker run --rm --user root \
+docker run --rm \
   --network relyloop_default \
   -e DATABASE_URL_FILE=/run/secrets/database_url \
   -e POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password \
-  -e PYTHONDONTWRITEBYTECODE=1 \
   -e RELYLOOP_IN_WORKTREE_CONTAINER=1 \
   -v "$MAIN_REPO/secrets/database_url:/run/secrets/database_url:ro" \
   -v "$MAIN_REPO/secrets/postgres_password:/run/secrets/postgres_password:ro" \
