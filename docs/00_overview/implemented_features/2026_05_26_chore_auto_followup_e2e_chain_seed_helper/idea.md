@@ -1,6 +1,6 @@
 # chore_auto_followup_e2e_chain_seed_helper
 
-**Status:** Idea
+**Status:** Closed 2026-05-26 — shipped `POST /api/v1/_test/auto-followup/seed-chain` + `seedAutoFollowupChain()` E2E helper + 3 new tests in `ui/tests/e2e/auto-followup.spec.ts` (chain-panel-parent-link, cascade-radio-default-true, cascade-radio-false). Endpoint design adds an `in_flight_middle` flag (default True) so the immediate parent of the leaf is `status='queued'` and therefore cancellable — required for the cascade-radio test because `canCancel = running || queued`. Backend coverage: 1 new guard test + 4 new integration tests at `backend/tests/integration/test_test_seeding.py`.
 **Origin:** `feat_auto_followup_studies` final-review F1 follow-up (PR #223, 2026-05-23).
 **Priority:** P3 (test infrastructure; coverage gap not behavior gap).
 

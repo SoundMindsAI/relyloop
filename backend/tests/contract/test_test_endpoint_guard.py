@@ -77,6 +77,34 @@ async def test_seed_completed_returns_404_outside_development(environment: str) 
     assert body["detail"]["retryable"] is False
 
 
+@pytest.mark.parametrize("environment", _NON_DEV_ENVIRONMENTS)
+async def test_seed_chain_returns_404_outside_development(environment: str) -> None:
+    """`POST /api/v1/_test/auto-followup/seed-chain` MUST 404 outside dev.
+
+    chore_auto_followup_e2e_chain_seed_helper: the new test-only endpoint
+    that drives 3-node-chain E2E coverage. Inherits the guard via
+    `dependencies=[Depends(_require_development_env)]` like the other
+    test-only POSTs above. Covered here so the env-guard contract is
+    explicit per-endpoint rather than relying on the dependency wire-up.
+    """
+    app = _build_test_app(environment)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post(
+            "/api/v1/_test/auto-followup/seed-chain",
+            json={
+                "cluster_id": "x",
+                "query_set_id": "x",
+                "template_id": "x",
+                "judgment_list_id": "x",
+                "depth": 2,
+            },
+        )
+    assert response.status_code == httpx.codes.NOT_FOUND
+    body = response.json()
+    assert body["detail"]["error_code"] == "RESOURCE_NOT_FOUND"
+    assert body["detail"]["retryable"] is False
+
+
 def test_guard_passes_in_development() -> None:
     """The guard dependency must NOT raise when ``environment == "development"``.
 

@@ -212,3 +212,146 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         digest_id=digest_id,
         proposal_id=proposal_id,
     )
+
+
+@dataclass(frozen=True)
+class SeededChainTriple:
+    """IDs returned by :func:`seed_auto_followup_chain`.
+
+    The chain has ``depth + 1`` nodes total: one ``root_id`` + zero or more
+    ``middle_ids`` (between root and leaf, in parent→child order) + one
+    ``leaf_id``. For ``depth=1`` the ``middle_ids`` list is empty (chain is
+    just root → leaf). For ``depth=2`` it has one entry (root → middle → leaf).
+    """
+
+    root_id: str
+    middle_ids: list[str]
+    leaf_id: str
+
+
+async def seed_auto_followup_chain(  # pragma: no cover  - integration only
+    db: AsyncSession,
+    *,
+    cluster_id: str,
+    query_set_id: str,
+    template_id: str,
+    judgment_list_id: str,
+    depth: int,
+    in_flight_leaf: bool = True,
+    in_flight_middle: bool = True,
+) -> SeededChainTriple:
+    """Insert an auto-followup chain of ``depth + 1`` linked studies.
+
+    Each child carries ``parent_study_id = prior.id`` and
+    ``config.auto_followup_depth = depth - i`` so the chain panel renders
+    the correct remaining-depth and parent-link wiring.
+
+    Status assignment:
+
+    * ``root`` (i=0) → ``completed`` (terminal — chain is rooted here).
+    * intermediates (1 ≤ i < depth) → ``completed`` if ``in_flight_middle``
+      is False, else ``queued`` ONLY for the immediate parent of the leaf
+      (the "test middle" node E2E tests target). Other intermediates stay
+      ``completed`` regardless.
+    * ``leaf`` (i=depth) → ``queued`` if ``in_flight_leaf`` else ``completed``.
+
+    Defaults (``in_flight_leaf=True``, ``in_flight_middle=True``) match the
+    primary E2E use case: chain-panel + cancel-modal-cascade-radio coverage
+    on the immediate-parent-of-leaf node. The cancel button is
+    ``canCancel = running || queued`` per
+    ``ui/src/components/studies/study-action-bar.tsx:46`` — a completed
+    middle node would have the cancel button disabled, blocking the
+    cascade-radio test.
+
+    Caller is responsible for committing. The router commits once at the
+    end of its handler.
+
+    Closes ``chore_auto_followup_e2e_chain_seed_helper`` (idea #2) —
+    captures the parent-link + children-table + cascade-radio E2E coverage
+    that ``feat_auto_followup_studies`` Story 3.3 deferred.
+    """
+    if depth < 1:
+        raise ValueError(f"depth must be >= 1; got {depth}")
+
+    all_ids: list[str] = []
+    parent_id: str | None = None
+    for i in range(depth + 1):
+        node_id = str(uuid_utils.uuid7())
+        remaining_depth = depth - i  # root=depth, leaf=0
+        is_root = i == 0
+        is_leaf = i == depth
+        is_immediate_parent_of_leaf = i == depth - 1
+
+        # Status decision (see docstring).
+        if is_leaf:
+            should_be_queued = in_flight_leaf
+        elif is_immediate_parent_of_leaf:
+            should_be_queued = in_flight_middle
+        else:
+            should_be_queued = False  # earlier intermediates always completed
+
+        role = "root" if is_root else "leaf" if is_leaf else f"mid{i}"
+        await repo.create_study(
+            db,
+            id=node_id,
+            name=f"e2e-chain-{role}-{node_id[:8]}",
+            cluster_id=cluster_id,
+            target="products",
+            template_id=template_id,
+            query_set_id=query_set_id,
+            judgment_list_id=judgment_list_id,
+            search_space={
+                "params": {
+                    "title.boost": {"type": "float", "low": 0.5, "high": 5.0, "log": False},
+                },
+            },
+            objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            config={
+                "max_trials": 2,
+                "sampler": "tpe",
+                "pruner": "none",
+                "auto_followup_depth": remaining_depth,
+            },
+            status="queued",
+            optuna_study_name=node_id,
+            parent_study_id=parent_id,
+        )
+
+        # Transition to the target status via the legal state-machine path.
+        # All nodes start at ``queued`` (the create_study default above) and
+        # then advance only if they should be completed for this run.
+        if not should_be_queued:
+            study = await study_state.start_study(db, node_id)
+            # Seed a winner trial so complete_study has best_trial_id to point at.
+            winning_trial_id = str(uuid_utils.uuid7())
+            started = study.started_at or datetime.now(UTC)
+            await repo.create_trial(
+                db,
+                id=winning_trial_id,
+                study_id=node_id,
+                optuna_trial_number=0,
+                params={"title.boost": 2.5},
+                primary_metric=0.487,
+                metrics={"ndcg@10": 0.487, "map": 0.412, "precision@10": 0.5},
+                duration_ms=1200,
+                status="complete",
+                error=None,
+                started_at=started,
+                ended_at=started + timedelta(milliseconds=1200),
+            )
+            await study_state.complete_study(
+                db,
+                node_id,
+                best_metric=0.487,
+                best_trial_id=winning_trial_id,
+                stop_reason="max_trials_reached",
+            )
+
+        all_ids.append(node_id)
+        parent_id = node_id
+
+    return SeededChainTriple(
+        root_id=all_ids[0],
+        middle_ids=all_ids[1:-1],  # everything between root and leaf
+        leaf_id=all_ids[-1],
+    )

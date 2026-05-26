@@ -20,20 +20,20 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **83 / 84** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **84 / 85** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 12 important to file, not blocking |
+| → P2 (default) | 11 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 5 |
-| Legacy "Path to MVP1" | 13 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 12 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (106)
+### Done (107)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -82,6 +82,7 @@ Implementation in progress — resume to finish
 | [infra_study_preflight_real_engine_integration](implemented_features/2026_05_25_infra_study_preflight_real_engine_integration/feature_spec.md) | Infra | Replace AC-1 through AC-4b with real-engine variants that (a) seed `judgments.doc_id` rows for a representative query, (b) bulk-index a controlled subset of those `doc_id` values into the ES service-c | — | [PR #255](https://github.com/SoundMindsAI/relyloop/pull/255) merged 2026-05-22 |
 | [infra_test_worktree_missing_integration_envs](implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs/feature_spec.md) | Infra | `scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer | — | [PR #257](https://github.com/SoundMindsAI/relyloop/pull/257) merged 2026-05-26 |
 | [infra_uv_sync_drops_precommit](implemented_features/2026_05_21_infra_uv_sync_drops_precommit/idea.md) | Infra | Complete | — | Complete |
+| [chore_auto_followup_e2e_chain_seed_helper](implemented_features/2026_05_26_chore_auto_followup_e2e_chain_seed_helper/idea.md) | Chore | `feat_auto_followup_studies` Story 3.3 specified a Playwright E2E spec that seeds a 3-node chain (root R → middle M → leaf L) and asserts: | — | Complete |
 | [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page renders each conversation row as `title + relative timestamp (created_at) + count` via [`ui/src/components/chat/conversation-list.tsx:30-49`](../ui/src/components/chat/conversati | — | Complete |
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | `.github/workflows/pr.yml` has a `paths-ignore` filter that skips the entire workflow when *every* changed path matches: | — | Complete |
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Gitleaks runs only as a pre-commit hook locally. Pre-commit is opt-in (the contributor must run `pre-commit install`); on a fresh clone or a contributor who skips the install, nothing scans commit con | — | Complete |
@@ -158,22 +159,21 @@ _None._
 
 _None._
 
-### Idea (12)
+### Idea (11)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [chore_auto_followup_completed_parent_stop_chain_race](../02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race/idea.md) | Chore | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Idea — surfaced during the Epic 1+2 phase-gate GPT-5.5 review of `feat_auto_followup_studies` (cumulative-diff review finding F2, accepted in part as a future-work capture) |
-| 2 | P2 | [chore_auto_followup_e2e_chain_seed_helper](../02_product/planned_features/chore_auto_followup_e2e_chain_seed_helper/idea.md) | Chore | `feat_auto_followup_studies` Story 3.3 specified a Playwright E2E spec that seeds a 3-node chain (root R → middle M → leaf L) and asserts: | — | Idea |
-| 3 | P2 | [chore_dashboard_regen_priority4_dependency_cite_false_positive](../02_product/planned_features/chore_dashboard_regen_priority4_dependency_cite_false_positive/idea.md) | Chore | [`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py)'s priority-4 last-resort fallback (after pipeline_status / plan-Status / priority-3 fuzzy / priority-3.5 strict idea-body / priority-3.6 f | — | Idea — surfaced during `chore_dashboard_regen_quoted_pr_false_positive` final-review (PR #253, 2026-05-25) by GPT-5.5 cross-model review |
-| 4 | P2 | [chore_state_md_size_compression](../02_product/planned_features/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
-| 5 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 6 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 7 | P2 | [bug_clone_e2e_seed_template_params_mismatch](../02_product/planned_features/bug_clone_e2e_seed_template_params_mismatch/idea.md) | Bug | Two helpers produce inconsistent fixture state: | — | Idea — surfaced during `feat_study_clone_narrow_bounds` Story 1.4 (E2E spec authoring). |
-| 8 | P2 | [bug_dockerfile_venv_root_owned_after_user_switch](../02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch/idea.md) | Bug | The `Dockerfile` has this ordering at the bottom of the `runtime` stage: | — | Idea — surfaced during `/impl-execute` Phase 2 operator-path verification of `make test-worktree` (PR #249, `infra_agent_sibling_worktree_isolation`). |
-| 9 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
-| 10 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
-| 11 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 12 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
+| 2 | P2 | [chore_dashboard_regen_priority4_dependency_cite_false_positive](../02_product/planned_features/chore_dashboard_regen_priority4_dependency_cite_false_positive/idea.md) | Chore | [`_extract_pr_number`](../../scripts/build_mvp1_dashboard.py)'s priority-4 last-resort fallback (after pipeline_status / plan-Status / priority-3 fuzzy / priority-3.5 strict idea-body / priority-3.6 f | — | Idea — surfaced during `chore_dashboard_regen_quoted_pr_false_positive` final-review (PR #253, 2026-05-25) by GPT-5.5 cross-model review |
+| 3 | P2 | [chore_state_md_size_compression](../02_product/planned_features/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
+| 4 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| 5 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| 6 | P2 | [bug_clone_e2e_seed_template_params_mismatch](../02_product/planned_features/bug_clone_e2e_seed_template_params_mismatch/idea.md) | Bug | Two helpers produce inconsistent fixture state: | — | Idea — surfaced during `feat_study_clone_narrow_bounds` Story 1.4 (E2E spec authoring). |
+| 7 | P2 | [bug_dockerfile_venv_root_owned_after_user_switch](../02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch/idea.md) | Bug | The `Dockerfile` has this ordering at the bottom of the `runtime` stage: | — | Idea — surfaced during `/impl-execute` Phase 2 operator-path verification of `make test-worktree` (PR #249, `infra_agent_sibling_worktree_isolation`). |
+| 8 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
+| 9 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
+| 10 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 11 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
 
 ## Dependency graph
 
@@ -350,6 +350,8 @@ graph LR
   class feat_study_clone_narrow_bounds done;
   infra_study_preflight_real_engine_integration["study preflight real engine integration"]
   class infra_study_preflight_real_engine_integration done;
+  chore_auto_followup_e2e_chain_seed_helper["auto followup e2e chain seed helper"]
+  class chore_auto_followup_e2e_chain_seed_helper done;
   chore_db_session_skip_reason_disambiguation["db session skip reason disambiguation"]
   class chore_db_session_skip_reason_disambiguation done;
   infra_test_worktree_missing_integration_envs["test worktree missing integration envs"]
