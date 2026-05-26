@@ -1,8 +1,8 @@
 # Infra: Dockerfile invariant smoke check in CI's buildx job
 
 **Date:** 2026-05-26
-**Status:** Idea — surfaced during `/bug-fix --ship` for `bug_dockerfile_venv_root_owned_after_user_switch` (PR landing 2026-05-26).
-**Priority:** P3 — the recently-shipped static Dockerfile-parse unit test ([backend/tests/unit/test_dockerfile_runtime_stage.py](../../../../backend/tests/unit/test_dockerfile_runtime_stage.py)) catches the load-bearing structural case (someone moves `USER relyloop` back after the runtime-stage `uv sync`, OR adds a `RUN chown -R /app/.venv` "to be safe" that would silently bloat the image). This idea covers the orthogonal "Dockerfile builds but post-build runtime state is somehow wrong" case, which is a much smaller risk surface but trivial to add.
+**Status:** Idea — surfaced during `/bug-fix --ship` for `bug_dockerfile_venv_root_owned_after_user_switch` (PR #263 merged 2026-05-26 as squash `644b0b80`; finalized via PR #264 `74d85b08`).
+**Priority:** P2 — the recently-shipped static Dockerfile-parse unit test ([backend/tests/unit/test_dockerfile_runtime_stage.py](../../../../backend/tests/unit/test_dockerfile_runtime_stage.py), 3 tests) catches the load-bearing structural case (someone moves `USER relyloop` back after the runtime-stage `uv sync`, OR adds a `RUN chown -R /app/.venv` "to be safe" that would silently bloat the image). This idea covers the orthogonal "Dockerfile builds but post-build runtime state is somehow wrong" case, which is a much smaller risk surface but trivial to add.
 **Origin:** Bug fix for `bug_dockerfile_venv_root_owned_after_user_switch` (PR #263). The fix's `bug_fix.md` Decision #3 explicitly chose the static unit test over a CI smoke step because adding it would have extended the bug-fix PR into pr.yml — a different subsystem. Capturing the deferred option here.
 **Depends on:** None.
 
@@ -55,5 +55,6 @@ The list of invariants is extensible — future Dockerfile bugs surface as new a
 
 ## Relationship to other work
 
-- **Originating bug:** `bug_dockerfile_venv_root_owned_after_user_switch` (the USER-before-uv-sync fix that triggered this observation).
-- **Adjacent:** `infra_ci_smoke_makeup` (idea — broader systemic CI smoke covering `make up` and other operator-paths). Could bundle.
+- **Originating bug:** `bug_dockerfile_venv_root_owned_after_user_switch` (the USER-before-uv-sync fix that triggered this observation; merged PR #263 / `644b0b80`; lives under `docs/00_overview/implemented_features/2026_05_26_bug_dockerfile_venv_root_owned_after_user_switch/`).
+- **Live bundling opportunity:** the `smoke (operator-path tutorial flow)` job at [.github/workflows/pr.yml:307-470](../../../../.github/workflows/pr.yml#L307-L470) already runs `make up` end-to-end and exercises the image through the tutorial — but does NOT check image filesystem invariants like venv ownership or default user. This new step bolts onto the `docker buildx (relyloop/api)` job (which builds the image but never runs it), giving a fast image-invariant signal that fails BEFORE the heavier smoke job starts. The two are complementary: smoke catches operator-path behavior; this catches image-construction invariants.
+- **Predecessor (already shipped):** `infra_ci_smoke_makeup` shipped 2026-05-13 (lives under `docs/00_overview/implemented_features/2026_05_13_infra_ci_smoke_makeup/`) — that's the work that established the `make up`-driven smoke job in the first place. This idea extends the same "actually run the image in CI" philosophy down one layer (run the image directly inside the buildx job, before smoke).
