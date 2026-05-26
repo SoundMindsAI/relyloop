@@ -132,7 +132,15 @@ test('Clone study → narrow bounds → submit → persisted search_space is cla
   // GET. The narrowing algorithm itself is also covered by the unit
   // invariant at ui/src/__tests__/lib/narrow-bounds.test.ts; this spec
   // confirms the wire contract holds end-to-end.
-  const reloadResp = await request.get(`${API_BASE}/api/v1/studies/${created.id}`);
+  // Use URL constructor to defend against a future PLAYWRIGHT_API_BASE_URL
+  // override that ends with a trailing slash (which would produce
+  // `http://host//api/v1/...` via plain string concat). Per Gemini round 1
+  // review. Sibling sites in study-clone.spec.ts:40,91 + followup_run.
+  // spec.ts:92,176 still use the legacy concat — tracked for a focused
+  // sweep at chore_e2e_api_base_url_construction.
+  const reloadResp = await request.get(
+    new URL(`/api/v1/studies/${created.id}`, API_BASE).toString(),
+  );
   expect(reloadResp.ok()).toBe(true);
   const reloaded = (await reloadResp.json()) as {
     parent_study_id: string | null;
