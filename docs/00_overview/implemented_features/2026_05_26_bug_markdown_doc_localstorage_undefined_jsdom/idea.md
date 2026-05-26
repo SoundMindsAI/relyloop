@@ -1,7 +1,7 @@
 # Bug: `markdown-doc.test.tsx` fails on `localStorage.removeItem` (undefined `localStorage`)
 
 **Date:** 2026-05-24
-**Status:** Idea — captured during feat_digest_executable_followups implementation (Story 5.1 vitest sweep)
+**Status:** Closed 2026-05-26 — subset of [`bug_vitest_jsdom_localstorage_failures`](../2026_05_26_bug_vitest_jsdom_localstorage_failures/idea.md) (same root cause; this folder captured a 3-test slice when surfaced during `feat_digest_executable_followups` Story 5.1 vitest sweep). Failures stopped reproducing on main between filing and 2026-05-26 (verified by 3 consecutive `pnpm test` runs at 860/860 on commit `2d2328b1`); a defensive `window.localStorage` shim landed in `ui/src/__tests__/setup.ts` so the race can't return undetected.
 
 ## Origin
 

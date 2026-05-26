@@ -403,12 +403,12 @@ footer {
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">18</div>
+      <div class="value">15</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">9</div>
+      <div class="value">6</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">17</div>
+      <div class="value">14</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">18</div>
+      <div class="value">15</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">17</span></h3>
+  <h3>Idea <span class="count">14</span></h3>
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race">Auto Followup Completed Parent Stop Chain Race</a></div>
@@ -570,19 +570,6 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_datatable_col_vis_density_localstorage_undefined_jsdom">Datatable Col Vis Density Localstorage Undefined Jsdom</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The first integration test in the file (`toggling a column off via the menu removes its cells and persists to localStorage`, line 148) accesses `window.localStorage` successfully. By the time the 3rd–</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_dockerfile_missing_scripts_dir">Dockerfile Missing Scripts Dir</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -609,19 +596,6 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_markdown_doc_localstorage_undefined_jsdom">Markdown Doc Localstorage Undefined Jsdom</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The afterEach hook unconditionally calls `window.localStorage.removeItem(...)` after each test, but `window.localStorage` is `undefined` in the test environment by the time the hook runs — either the </div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing">Smoke Dashboard Demo State Locator Missing</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -642,19 +616,6 @@ footer {
 
   </div>
   <div class="one-liner">Every PR&#x27;s `smoke` job is currently red on these tests. Operators (and PR reviewers) have to:</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/bug_vitest_jsdom_localstorage_failures">Vitest Jsdom Localstorage Failures</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error:</div>
 
 
 </div>
@@ -715,7 +676,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">101</span></h3>
+  <h3>Done <span class="count">104</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1862,6 +1823,19 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_26_bug_datatable_col_vis_density_localstorage_undefined_jsdom">Datatable Col Vis Density Localstorage Undefined Jsdom</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-05-26</span>
+  </div>
+  <div class="one-liner">The first integration test in the file (`toggling a column off via the menu removes its cells and persists to localStorage`, line 148) accesses `window.localStorage` successfully. By the time the 3rd–</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_25_bug_demo_clusters_unreachable_in_healthz/feature_spec.md">Demo Clusters Unreachable In Healthz</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -1966,6 +1940,19 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_26_bug_markdown_doc_localstorage_undefined_jsdom">Markdown Doc Localstorage Undefined Jsdom</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-05-26</span>
+  </div>
+  <div class="one-liner">The afterEach hook unconditionally calls `window.localStorage.removeItem(...)` after each test, but `window.localStorage` is `undefined` in the test environment by the time the hook runs — either the </div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_24_bug_openai_capability_check_incapable_on_valid_key/feature_spec.md">Openai Capability Check Incapable On Valid Key</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -2012,6 +1999,19 @@ footer {
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">`backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_26_bug_vitest_jsdom_localstorage_failures">Vitest Jsdom Localstorage Failures</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-05-26</span>
+  </div>
+  <div class="one-liner">`pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error:</div>
 
 
 </div>

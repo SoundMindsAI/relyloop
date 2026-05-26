@@ -21,19 +21,19 @@ Implementation in progress — resume to finish
 | Metric | Value |
 |---|---|
 | Scoped items done | **82 / 83** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **18** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 17 important to file, not blocking |
+| → P2 (default) | 14 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 9 |
-| Legacy "Path to MVP1" | 18 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 6 |
+| Legacy "Path to MVP1" | 15 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (101)
+### Done (104)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -125,6 +125,7 @@ Implementation in progress — resume to finish
 | [bug_dashboard_banner_dismiss_persistence_flake](implemented_features/2026_05_23_bug_dashboard_banner_dismiss_persistence_flake/idea.md) | Bug | The test, introduced by [PR #188 (`feat_home_first_run_demo_nudge`)](implemented_features/2026_05_22_feat_home_first_run_demo_nudge), is: | — | Complete |
 | [bug_dashboard_classifier_half_step_releases](implemented_features/2026_05_23_bug_dashboard_classifier_half_step_releases/idea.md) | Bug | The MVP1.5 release tier was introduced 2026-05-23 via PR #200 (canonical release matrix + spec §27 + tech-stack.md). But the dashboard regen script's release classifier at… | — | Complete |
 | [bug_dashboard_depends_on_column_bloat](implemented_features/2026_05_23_bug_dashboard_depends_on_column_bloat/idea.md) | Bug | [`scripts/build_mvp1_dashboard.py`](../../scripts/build_mvp1_dashboard.py) (2,084 lines) generates the "Depends on" column for each row in [`MVP1_DASHBOARD.md`](MVP1_DASHBOARD.md) and `mvp1_dashboard. | — | Complete |
+| [bug_datatable_col_vis_density_localstorage_undefined_jsdom](implemented_features/2026_05_26_bug_datatable_col_vis_density_localstorage_undefined_jsdom/idea.md) | Bug | The first integration test in the file (`toggling a column off via the menu removes its cells and persists to localStorage`, line 148) accesses `window.localStorage` successfully. By the time the 3rd– | — | Complete |
 | [bug_demo_clusters_unreachable_in_healthz](implemented_features/2026_05_25_bug_demo_clusters_unreachable_in_healthz/feature_spec.md) | Bug | **After** the warmup task completes (typically within ~5 seconds of API startup, bounded by per-cluster `httpx` probe latency), `/healthz` reports the accurate `healthy` / `unreachable` aggregate for  | — | [PR #236](https://github.com/SoundMindsAI/relyloop/pull/236) merged 2026-05-25 |
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module- | — | Complete |
@@ -133,10 +134,12 @@ Implementation in progress — resume to finish
 | [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | Complete |
 | [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie | — | Complete |
+| [bug_markdown_doc_localstorage_undefined_jsdom](implemented_features/2026_05_26_bug_markdown_doc_localstorage_undefined_jsdom/idea.md) | Bug | The afterEach hook unconditionally calls `window.localStorage.removeItem(...)` after each test, but `window.localStorage` is `undefined` in the test environment by the time the hook runs — either the  | — | Complete |
 | [bug_openai_capability_check_incapable_on_valid_key](implemented_features/2026_05_24_bug_openai_capability_check_incapable_on_valid_key/feature_spec.md) | Bug | `/healthz` exposes which probe failed (specifically: surfaces `models_endpoint` status) and, when the failure was an HTTP error, the status code that triggered it (e.g., 401 → bad key; 429 → quota). | — | [PR #234](https://github.com/SoundMindsAI/relyloop/pull/234) merged 2026-05-24 |
 | [bug_pr_reconciler_blocked_by_closed_fallback](implemented_features/2026_05_23_bug_pr_reconciler_blocked_by_closed_fallback/idea.md) | Bug | The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-209`](../../backend/app/api/webhooks/github.py#L181-L209) handles the eventual-consistency case where GitHub delivers `pull_requ | — | Complete |
 | [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | The test ([`test_query_sets_router_queries.py:202-231`](../../backend/tests/integration/test_query_sets_router_queries.py#L202-L231)) seeds 5 queries via `_seed_set(5)`… | — | Complete |
 | [bug_test_smoke_requires_env_vars](implemented_features/2026_05_13_bug_test_smoke_requires_env_vars/idea.md) | Bug | `backend/tests/unit/test_smoke.py::test_app_import` fails when run without `DATABASE_URL_FILE` and `POSTGRES_PASSWORD_FILE` env vars in the test environment: | — | Complete |
+| [bug_vitest_jsdom_localstorage_failures](implemented_features/2026_05_26_bug_vitest_jsdom_localstorage_failures/idea.md) | Bug | `pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error: | — | Complete |
 | [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | Complete |
 
 ### Implementing (1)
@@ -153,7 +156,7 @@ _None._
 
 _None._
 
-### Idea (17)
+### Idea (14)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -165,15 +168,12 @@ _None._
 | 6 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 7 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | 8 | P2 | [bug_clone_e2e_seed_template_params_mismatch](../02_product/planned_features/bug_clone_e2e_seed_template_params_mismatch/idea.md) | Bug | Two helpers produce inconsistent fixture state: | — | Idea — surfaced during `feat_study_clone_narrow_bounds` Story 1.4 (E2E spec authoring). |
-| 9 | P2 | [bug_datatable_col_vis_density_localstorage_undefined_jsdom](../02_product/planned_features/bug_datatable_col_vis_density_localstorage_undefined_jsdom/idea.md) | Bug | The first integration test in the file (`toggling a column off via the menu removes its cells and persists to localStorage`, line 148) accesses `window.localStorage` successfully. By the time the 3rd– | — | Idea — captured during feat_study_clone_from_previous Story 2.1 vitest sweep |
-| 10 | P2 | [bug_dockerfile_missing_scripts_dir](../02_product/planned_features/bug_dockerfile_missing_scripts_dir/idea.md) | Bug | [`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`: | — | **Fixed** in PR #232 commit (this branch). Idea file captures the bug + the fix + the systemic lesson for future contributors. |
-| 11 | P2 | [bug_dockerfile_venv_root_owned_after_user_switch](../02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch/idea.md) | Bug | The `Dockerfile` has this ordering at the bottom of the `runtime` stage: | — | Idea — surfaced during `/impl-execute` Phase 2 operator-path verification of `make test-worktree` (PR #249, `infra_agent_sibling_worktree_isolation`). |
-| 12 | P2 | [bug_markdown_doc_localstorage_undefined_jsdom](../02_product/planned_features/bug_markdown_doc_localstorage_undefined_jsdom/idea.md) | Bug | The afterEach hook unconditionally calls `window.localStorage.removeItem(...)` after each test, but `window.localStorage` is `undefined` in the test environment by the time the hook runs — either the  | — | Idea — captured during feat_digest_executable_followups implementation (Story 5.1 vitest sweep) |
-| 13 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
-| 14 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
-| 15 | P2 | [bug_vitest_jsdom_localstorage_failures](../02_product/planned_features/bug_vitest_jsdom_localstorage_failures/idea.md) | Bug | `pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error: | — | open. |
-| 16 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 17 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
+| 9 | P2 | [bug_dockerfile_missing_scripts_dir](../02_product/planned_features/bug_dockerfile_missing_scripts_dir/idea.md) | Bug | [`backend/app/services/demo_seeding.py:39`](../../backend/app/services/demo_seeding.py#L39) imports four constants from `scripts/seed_meaningful_demos.py`: | — | **Fixed** in PR #232 commit (this branch). Idea file captures the bug + the fix + the systemic lesson for future contributors. |
+| 10 | P2 | [bug_dockerfile_venv_root_owned_after_user_switch](../02_product/planned_features/bug_dockerfile_venv_root_owned_after_user_switch/idea.md) | Bug | The `Dockerfile` has this ordering at the bottom of the `runtime` stage: | — | Idea — surfaced during `/impl-execute` Phase 2 operator-path verification of `make test-worktree` (PR #249, `infra_agent_sibling_worktree_isolation`). |
+| 11 | P2 | [bug_smoke_dashboard_demo_state_locator_missing](../02_product/planned_features/bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Idea — captured during feat_study_clone_from_previous PR #243 CI watch |
+| 12 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
+| 13 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 14 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
 
 ## Dependency graph
 
