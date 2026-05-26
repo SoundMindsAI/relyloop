@@ -24,7 +24,7 @@ import { expect, test } from '@playwright/test';
 
 import { seedFullChain, seedStudyCompletedWithDigest } from './helpers/seed';
 
-test('Clone study → narrow bounds → submit → persisted search_space is clamped', async ({
+test('Clone study → narrow bounds → textarea is clamped and restores on uncheck', async ({
   page,
   request,
 }) => {

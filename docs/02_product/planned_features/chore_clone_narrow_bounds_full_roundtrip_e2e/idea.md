@@ -8,7 +8,7 @@
 
 ## Problem
 
-[`ui/tests/e2e/study-clone-narrow-bounds.spec.ts`](../../../ui/tests/e2e/study-clone-narrow-bounds.spec.ts) currently stops after asserting the textarea's narrowed JSON (Step 5 of the spec's 6-step plan from its own docblock). The 6th step ("Submit; assert the new study's persisted `search_space` carries the same narrowed bounds — FR-12: server accepted the rewrite") was deferred because the now-fixed seed-helper bug blocked Step 4 Next.
+[`ui/tests/e2e/study-clone-narrow-bounds.spec.ts`](../../../../ui/tests/e2e/study-clone-narrow-bounds.spec.ts) currently stops after asserting the textarea's narrowed JSON (Step 5 of the spec's 6-step plan from its own docblock). The 6th step ("Submit; assert the new study's persisted `search_space` carries the same narrowed bounds — FR-12: server accepted the rewrite") was deferred because the now-fixed seed-helper bug blocked Step 4 Next.
 
 After the bug fix lands, the spec should extend to:
 

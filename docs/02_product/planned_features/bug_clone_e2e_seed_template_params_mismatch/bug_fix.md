@@ -62,5 +62,5 @@ Code-only change. No migration, no env var, no operator action. Forward-only —
 
 ## Tangential observations
 
-- [bug_smoke_followup_clone_e2e_flakes](../bug_smoke_followup_clone_e2e_flakes/idea.md) — 1 of its 3 listed failures (`followup_run.spec.ts:28`) resolves as a side effect of this fix. The other 2 (`followup_run.spec.ts:111` swap-template + `study-clone.spec.ts:24`) have separate root causes; `study-clone.spec.ts:24` ALSO resolves as a side effect (uses the renamed seed helper directly). The swap-template assertion failure remains open.
+- [bug_smoke_followup_clone_e2e_flakes](../bug_smoke_followup_clone_e2e_flakes/idea.md) — 2 of its 3 listed failures resolve as a side effect of this fix: `followup_run.spec.ts:28` (used `NARROW_SEARCH_SPACE['title.boost']` literal, renamed in lockstep) and `study-clone.spec.ts:24` (uses the renamed `seed_study_completed_with_digest` helper directly, so Step-4 Next now passes against the seeded source). The third failure — `followup_run.spec.ts:111` swap-template `template_id` assertion mismatch — has a different root cause and remains open in that bug folder.
 - [bug_smoke_dashboard_demo_state_locator_missing](../bug_smoke_dashboard_demo_state_locator_missing/idea.md) — unrelated; not addressed here.
