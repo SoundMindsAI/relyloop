@@ -21,19 +21,19 @@ Implementation in progress — resume to finish
 | Metric | Value |
 |---|---|
 | Scoped items done | **86 / 87** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **11** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 10 important to file, not blocking |
+| → P2 (default) | 9 important to file, not blocking |
 | → Backlog | 2 captured for record, not planned |
-| Open bugs | 4 |
-| Legacy "Path to MVP1" | 12 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 3 |
+| Legacy "Path to MVP1" | 11 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (114)
+### Done (115)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -123,6 +123,7 @@ Implementation in progress — resume to finish
 | [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | `backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test: | — | Complete |
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | [`backend/app/db/repo/trial.py:aggregate_trials_summary`](../../backend/app/db/repo/trial.py) currently issues two SQL statements: | — | Complete |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_foundation` `infra_optuna_eval` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
+| [bug_auto_followup_completed_parent_stop_chain_race](implemented_features/2026_05_26_bug_auto_followup_completed_parent_stop_chain_race/idea.md) | Bug | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Complete |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 | [bug_clone_e2e_seed_template_params_mismatch](implemented_features/2026_05_26_bug_clone_e2e_seed_template_params_mismatch/idea.md) | Bug | Two helpers produce inconsistent fixture state: | — | Complete |
 | [bug_contract_test_stub_missing_target_filter_kwarg](implemented_features/2026_05_23_bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | `backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th | — | Complete |
@@ -166,7 +167,7 @@ _None._
 
 _None._
 
-### Idea (11)
+### Idea (10)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -175,12 +176,11 @@ _None._
 | 3 | P2 | [chore_state_md_size_compression](../02_product/planned_features/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
 | 4 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 5 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 6 | P2 | [bug_auto_followup_completed_parent_stop_chain_race](../02_product/planned_features/bug_auto_followup_completed_parent_stop_chain_race/idea.md) | Bug | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Idea — surfaced during the Epic 1+2 phase-gate GPT-5.5 review of `feat_auto_followup_studies` (cumulative-diff review finding F2, accepted in part as a future-work capture) |
-| 7 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
-| 8 | P2 | [bug_smoke_studies_data_table_search_flake](../02_product/planned_features/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
-| 9 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 10 | Backlog | [chore_auto_followup_parent_advisory_lock](../02_product/planned_features/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 11 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
+| 6 | P2 | [bug_smoke_followup_clone_e2e_flakes](../02_product/planned_features/bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Idea — surfaced during `infra_test_worktree_missing_integration_envs` PR #257 CI watch (and confirmed pre-existing by checking main run `9928d763`). |
+| 7 | P2 | [bug_smoke_studies_data_table_search_flake](../02_product/planned_features/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
+| 8 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 9 | Backlog | [chore_auto_followup_parent_advisory_lock](../02_product/planned_features/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
+| 10 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
 
 ## Dependency graph
 
