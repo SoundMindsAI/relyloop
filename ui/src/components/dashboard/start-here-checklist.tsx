@@ -147,7 +147,18 @@ export function StartHereChecklist({
             );
           })}
         </ol>
-        {!hasClusters && !hasQuerySetsWithJudgments && !hasStudies && (
+        {/*
+          Disclosure renders whenever the operator has no LIVE clusters,
+          regardless of orphan studies/query_sets. Originally gated on
+          ALL THREE being false (truly-pristine first-run), but that
+          hides the rescue affordance from the realistic stuck state:
+          "data orphaned without any live clusters" (e.g. after an E2E
+          test soft-deletes its cluster fixtures but leaves child rows).
+          Without live clusters every cluster-scoped operation fails,
+          so showing the disclosure is correct. See
+          bug_dashboard_reset_disclosure_gating_too_strict.
+        */}
+        {!hasClusters && (
           <details className="mt-4 border-t pt-4 text-sm" data-testid="reset-demo-state-disclosure">
             <summary className="cursor-pointer text-muted-foreground">
               or skip ahead — reset to demo state
