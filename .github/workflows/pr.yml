@@ -507,19 +507,30 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Fast image-invariant smoke that fires BEFORE the heavier
-      # `smoke (operator-path tutorial flow)` job has to bring up the
-      # full Compose stack. Catches image-construction regressions
-      # (venv ownership, default user, etc.) at the build layer so
-      # they fail in <30s instead of after 5+ minutes of `make up`.
-      # Each invariant maps to a captured bug folder under
-      # docs/00_overview/implemented_features/ so a future contributor
-      # can trace why the check exists. See
+      # Fast-fail signal on image-construction regressions (venv ownership,
+      # default user, etc.). This step runs inside the `docker` job, which
+      # GHA dispatches in parallel with `smoke (operator-path tutorial flow)`
+      # — not strictly before it — but a failure here shows up on the PR's
+      # checks panel within ~30s of the build completing, while smoke needs
+      # a full `make up` (~5 min) to even reach the failure surface (and
+      # often won't catch venv-ownership at all, since production api/worker
+      # services consume the venv read-only). Each invariant maps to a
+      # captured bug folder under docs/00_overview/implemented_features/ so
+      # a future contributor can trace why the check exists. See
       # docs/02_product/planned_features/infra_dockerfile_invariant_smoke_in_ci/.
       - name: Verify runtime image invariants
         run: |
           docker run --rm relyloop/api:${{ github.sha }} sh -c '
             set -e
+            # /app/.venv must EXIST first. A broken-image regression where
+            # the COPY --from=deps step at Dockerfile:89 silently fails or
+            # the runtime-stage uv sync at line 119 deletes the venv would
+            # produce empty `find` output → wc -l = 0 → false-pass without
+            # this guard. Per GPT-5.5 round 1 review.
+            [ -d /app/.venv ] || {
+              echo "::error::FAIL: /app/.venv does not exist in the built image"
+              exit 1
+            }
             # /app/.venv must be fully relyloop-owned per
             # bug_dockerfile_venv_root_owned_after_user_switch — any
             # non-relyloop file blocks `uv run` from the relyloop user
