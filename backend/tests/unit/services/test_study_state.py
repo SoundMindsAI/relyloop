@@ -570,6 +570,33 @@ async def test_cascade_does_not_mutate_depth_on_in_flight_parent(
 
 
 @pytest.mark.asyncio
+async def test_cascade_handles_null_depth_without_crash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Null-tolerance: if a completed parent's `auto_followup_depth` is
+    JSONB `null` (the chain gate at auto_followup.py:157 treats this as
+    already-exhausted), the cascade must NOT crash with `None > 0`
+    TypeError. Mirrors the gate's null semantics so a parent the gate
+    would skip is one the cascade leaves alone.
+
+    Captured from PR #275 GPT-5.5 final-review finding (Medium)."""
+    parent = _build_study_with_id("p1", status="completed")
+    parent.config = {"max_trials": 10, "auto_followup_depth": None}
+    db = _MultiStudyFakeSession({"p1": parent})
+
+    async def fake_list_children(_db: Any, _parent_id: str) -> list[Study]:
+        return []
+
+    monkeypatch.setattr("backend.app.db.repo.list_children_of_study", fake_list_children)
+
+    # Pre-fix: would crash with TypeError on `None > 0`.
+    await study_state.cancel_study_with_chain_cascade(db, "p1")  # type: ignore[arg-type]
+
+    # Config left intact — null already maps to SKIP_DEPTH_EXHAUSTED at the gate.
+    assert parent.config["auto_followup_depth"] is None
+
+
+@pytest.mark.asyncio
 async def test_cascade_zeroes_depth_recursively_on_completed_chain_intermediates(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

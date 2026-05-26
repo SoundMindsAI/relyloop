@@ -302,8 +302,13 @@ async def cancel_study_with_chain_cascade(
         # parents only: 'cancelled' / 'failed' parents already short-circuit
         # at the gate's SKIP_PARENT_FAILED branch.
         if parent.status == "completed":
-            previous_depth = parent.config.get("auto_followup_depth", 0)
-            if previous_depth > 0:
+            previous_depth = parent.config.get("auto_followup_depth")
+            # `is not None` guard mirrors the chain gate's null-tolerance at
+            # backend/app/domain/study/auto_followup.py:157, where
+            # `depth is None or depth == 0` returns SKIP_DEPTH_EXHAUSTED.
+            # Without it, JSON `null` (distinct from "key absent") would
+            # crash with `None > 0` TypeError on a state the gate handles.
+            if previous_depth is not None and previous_depth > 0:
                 parent.config = {**parent.config, "auto_followup_depth": 0}
                 # Explicit flush mirrors cancel_study / complete_study /
                 # fail_study / start_study. The mutation would land at the
