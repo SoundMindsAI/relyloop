@@ -47,29 +47,78 @@ def _clear_settings_caches() -> None:
     get_session_factory.cache_clear()
 
 
-def postgres_reachable() -> bool:
-    """Return True only if Settings is constructible AND the DB host:port accepts TCP.
+def postgres_skip_reason() -> str | None:
+    """Return ``None`` if Postgres is reachable, else a precise skip-reason string.
 
-    Used by integration test fixtures to skip cleanly when Postgres isn't
-    available from the test process (e.g. host shell against a Compose
-    Postgres that's bound to internal-only networking).
+    Three failure modes (any one triggers a skip), each with a distinct,
+    operator-actionable reason:
+
+    1. ``DATABASE_URL_FILE`` or ``POSTGRES_PASSWORD_FILE`` env var is absent
+       — Postgres might be perfectly reachable, but the test process can't
+       construct a ``Settings`` instance against it. Hint: probably a
+       missing ``-e`` flag on the test invocation (e.g.
+       ``make test-worktree`` before PR #257 didn't propagate
+       ``POSTGRES_PASSWORD_FILE``).
+    2. ``Settings`` construction itself fails — secret file is mounted but
+       unreadable, or contents are malformed. Hint: regenerate via
+       ``bash scripts/install.sh``.
+    3. TCP connect to ``host:port`` times out — Postgres container isn't
+       running. Hint: ``make up`` from the main worktree.
+
+    Used by ``db_session`` (below) for its skip message AND by ``postgres_
+    reachable()`` (the existing boolean-returning helper that 100+ test files
+    consume via ``pytest.mark.skipif(not postgres_reachable(), ...)``).
+    Tests that just need the boolean keep using ``postgres_reachable()``;
+    fixtures that want a precise reason for operators use this one.
+
+    The disambiguation closes ``chore_db_session_skip_reason_disambiguation``
+    — the prior skip reason was hardcoded to ``"Postgres not reachable"``,
+    which is correct only for case 3 and misleads operators in cases 1 + 2.
     """
     if not os.environ.get("DATABASE_URL_FILE") or not os.environ.get("POSTGRES_PASSWORD_FILE"):
-        return False
+        return (
+            "Postgres skip: DATABASE_URL_FILE or POSTGRES_PASSWORD_FILE env var "
+            "not present — see docs/03_runbooks/local-dev.md §'Local-vs-CI test "
+            "layers' (likely a missing -e flag on the test invocation; cf. "
+            "infra_test_worktree_missing_integration_envs)."
+        )
     try:
         from backend.app.core.settings import get_settings
 
         url = get_settings().database_url
-    except Exception:  # noqa: BLE001 — best-effort skip-detector
-        return False
+    except Exception as exc:  # noqa: BLE001 — best-effort skip-detector
+        return (
+            f"Postgres skip: Settings construction failed ({type(exc).__name__}) — "
+            "secret file may be unreadable or malformed. Regenerate via "
+            "`bash scripts/install.sh`."
+        )
     parsed = urlparse(url)
     host = parsed.hostname or "localhost"
     port = parsed.port or 5432
     try:
         with socket.create_connection((host, port), timeout=1.0):
-            return True
+            return None
     except (TimeoutError, OSError):
-        return False
+        return (
+            f"Postgres skip: TCP connect to {host}:{port} timed out — Postgres "
+            "container may not be running (try `make up` from the main worktree). "
+            "See docs/03_runbooks/local-dev.md §'Local-vs-CI test layers'."
+        )
+
+
+def postgres_reachable() -> bool:
+    """Return True only if Settings is constructible AND the DB host:port accepts TCP.
+
+    Thin wrapper over ``postgres_skip_reason()``. Kept for backward compat
+    with the 100+ callsites that use ``pytest.mark.skipif(not postgres_
+    reachable(), reason="Postgres not reachable")`` — refactoring them all
+    to use the precise reason is out of scope.
+
+    Used by integration test fixtures to skip cleanly when Postgres isn't
+    available from the test process (e.g. host shell against a Compose
+    Postgres that's bound to internal-only networking).
+    """
+    return postgres_skip_reason() is None
 
 
 _MIGRATIONS_APPLIED = False
@@ -111,10 +160,9 @@ async def db_session() -> AsyncIterator[AsyncSession]:  # type: ignore[name-defi
     committed schema. On first use per session, applies Alembic migrations
     so the business tables exist (CI doesn't have a separate migration step).
     """
-    if not postgres_reachable():
-        pytest.skip(
-            "Postgres not reachable — see docs/03_runbooks/local-dev.md §'Local-vs-CI test layers'."
-        )
+    reason = postgres_skip_reason()
+    if reason is not None:
+        pytest.skip(reason)
     _apply_migrations_if_needed()
 
     from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine

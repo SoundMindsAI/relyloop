@@ -1,8 +1,8 @@
 # `db_session` fixture skip-reason is misleading when env vars are missing (vs Postgres genuinely unreachable)
 
 **Date:** 2026-05-25
-**Status:** Idea — surfaced during `infra_test_worktree_missing_integration_envs` implementation; explicitly captured per spec D-7.
-**Priority:** P2 — ergonomics; the underlying skip is correct, just the reason string lies. Workaround: read the script's stderr or the test environment's env-var state to disambiguate.
+**Status:** Closed 2026-05-26 — refactored `postgres_reachable()` in `backend/tests/conftest.py` into two helpers: `postgres_skip_reason() -> str | None` returns a precise per-failure-mode skip-reason string (env-var-missing / Settings-construction-failure / TCP-unreachable), while the original `postgres_reachable() -> bool` is kept as a thin wrapper for the 100+ existing `pytest.mark.skipif(not postgres_reachable(), ...)` callsites (no migration required). The `db_session` fixture now emits the precise reason instead of the misleading hardcoded `"Postgres not reachable"`. New unit test at `backend/tests/unit/test_postgres_skip_reason.py` (8/8 pass) locks the precise reason strings against future regression.
+**Priority:** P2 — ergonomics; the underlying skip is correct, just the reason string lied. Workaround was: read the script's stderr or the test environment's env-var state to disambiguate.
 **Depends on:** none — self-contained ~10-LOC edit to `backend/tests/conftest.py`.
 
 ## Origin
