@@ -60,6 +60,17 @@ make test                # all three in sequence
 - **Mocking rule:** mock external services (OpenAI, GitHub API) via
   `monkeypatch`. Never mock internal code — DB, repos, services, domain
   logic all run for real against the test database.
+- **Real-engine ES writes:** test fixtures that need to bulk-index controlled
+  documents into the ES service container (currently only AC-1..AC-4b of
+  `feat_study_preflight_overlap_probe` via the helpers in
+  [`backend/tests/integration/fixtures/es_overlap_probe.py`](../../backend/tests/integration/fixtures/es_overlap_probe.py))
+  use a dedicated test-only `httpx.AsyncClient` directly inside the fixture
+  module. Bulk-indexing is intentionally NOT on the `SearchAdapter` Protocol
+  per `infra_study_preflight_real_engine_integration` D-1 (the Protocol is
+  engine-agnostic *query-time* search; write-side helpers don't generalize
+  across `ElasticAdapter` + future `FusionAdapter`). The same pattern is used
+  by [`backend/app/scripts/seed_es.py`](../../backend/app/scripts/seed_es.py)
+  and [`backend/tests/integration/test_seed_es.py`](../../backend/tests/integration/test_seed_es.py).
 - CI provides Postgres + Redis + ES + OpenSearch via service containers in
   `.github/workflows/pr.yml`. Locally, run `make up` first.
 - Tests that depend on the API itself running should use the

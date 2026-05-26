@@ -30,31 +30,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.app.scripts import seed_es
+from backend.tests.integration.fixtures.es_reachability import _es_base_url, es_required
 
 INDEX_NAME = "products"
 
-
-def _es_base_url() -> str:
-    """Probe localhost:9200 first (host-shell), fall back to elasticsearch:9200 (in-container)."""
-    for candidate in ("http://localhost:9200", "http://elasticsearch:9200"):
-        try:
-            with httpx.Client(timeout=2.0) as c:
-                r = c.get(f"{candidate}/")
-                if r.status_code == 200 and "version" in r.json():
-                    return candidate
-        except Exception:
-            continue
-    return ""
-
-
 ES_URL = _es_base_url()
-es_required = pytest.mark.skipif(
-    not ES_URL,
-    reason=(
-        "Elasticsearch not reachable on localhost:9200 or elasticsearch:9200 — "
-        "see docs/03_runbooks/local-dev.md."
-    ),
-)
 
 
 @pytest.fixture

@@ -20,6 +20,12 @@ import pytest
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.tests.conftest import postgres_reachable
+from backend.tests.integration.fixtures.es_overlap_probe import (
+    bulk_index_overlap_probe_docs,
+    delete_overlap_probe_index,
+    es_required,
+    seed_minimum_for_overlap_probe_real_engine,
+)
 
 pytestmark = [
     pytest.mark.integration,
@@ -788,100 +794,180 @@ def _make_fake_probe_result(
     )
 
 
+# ---------------------------------------------------------------------------
+# AC-1 through AC-4b are exercised end-to-end against the real ES service
+# container by ``infra_study_preflight_real_engine_integration`` Story 1.3:
+# the rewrites below seed real judgments + bulk-index a controlled subset of
+# their doc IDs into a per-test uuid-suffixed ES index, then POST /api/v1/
+# studies against a cluster whose base_url points at the real ES. The
+# autouse ``_default_overlap_probe_passes`` fixture above is overridden in
+# each test by re-binding the probe symbol back to the real
+# ``study_preflight.probe_judgment_overlap`` (same pattern as the existing
+# AC-13 service-layer test at lines 1293-1296). The ``_make_fake_probe_result``
+# helper is preserved (lines 740+) for the adapter-layer tests that
+# legitimately need a fabricated OverlapProbeResult.
+# ---------------------------------------------------------------------------
+
+
+@es_required
 async def test_post_study_insufficient_overlap_returns_422(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """AC-1: overlap=0, judged_doc_count=50 → 422 INSUFFICIENT_JUDGMENT_OVERLAP.
+    """AC-1 (real-engine): overlap=0, judged_doc_count=50 → 422 INSUFFICIENT_JUDGMENT_OVERLAP.
 
-    Monkeypatches ``probe_judgment_overlap`` at the studies-router import site
-    to return a stub ``OverlapProbeResult``. Asserts envelope shape AND that
-    no studies row is inserted.
+    Seeds 50 judgments (doc IDs ``doc_000``..``doc_049``) and bulk-indexes
+    ZERO of them into the per-test ES index. The real probe runs against the
+    real cluster, finds 0 overlap, and the handler returns 422. Preserves the
+    pre-rewrite ``count_before``/``count_after`` invariant: no studies row
+    inserted on failure.
     """
-    ids = await _seed_minimum_for_post_studies()
+    from backend.app.services import study_preflight as _study_preflight
 
-    async def fake_probe(*args, **kwargs):  # noqa: ARG001
-        return _make_fake_probe_result(0, 50, 50)
+    ids = await seed_minimum_for_overlap_probe_real_engine()
+    try:
+        await _seed_judgments(
+            ids["judgment_list_id"],
+            ids["query_set_id"],
+            [f"doc_{i:03d}" for i in range(50)],
+        )
+        await bulk_index_overlap_probe_docs(ids["es_base_url"], ids["target_index"], [])
 
-    monkeypatch.setattr("backend.app.api.v1.studies.probe_judgment_overlap", fake_probe)
+        monkeypatch.setattr(
+            "backend.app.api.v1.studies.probe_judgment_overlap",
+            _study_preflight.probe_judgment_overlap,
+        )
 
-    factory = get_session_factory()
-    async with factory() as db:
-        count_before = await repo.count_studies(db)
+        factory = get_session_factory()
+        async with factory() as db:
+            count_before = await repo.count_studies(db)
 
-    resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
+        resp = await async_client.post(
+            "/api/v1/studies",
+            json=_study_body_for(ids, target=ids["target_index"]),
+        )
 
-    async with factory() as db:
-        count_after = await repo.count_studies(db)
+        async with factory() as db:
+            count_after = await repo.count_studies(db)
 
-    assert resp.status_code == 422, resp.text
-    detail = resp.json()["detail"]
-    assert detail["error_code"] == "INSUFFICIENT_JUDGMENT_OVERLAP"
-    assert detail["retryable"] is False
-    assert "0 of 50 probed" in detail["message"]
-    assert "judged_doc_count=50" in detail["message"]
-    assert count_after == count_before, "no studies row should have been inserted"
+        assert resp.status_code == 422, resp.text
+        detail = resp.json()["detail"]
+        assert detail["error_code"] == "INSUFFICIENT_JUDGMENT_OVERLAP"
+        assert detail["retryable"] is False
+        assert "0 of 50 probed" in detail["message"]
+        assert "judged_doc_count=50" in detail["message"]
+        assert count_after == count_before, "no studies row should have been inserted"
+    finally:
+        await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
 
+@es_required
 async def test_post_study_sufficient_overlap_returns_201(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """AC-2: overlap=50, judged_doc_count=50 → 201 (above cap-aware threshold)."""
-    ids = await _seed_minimum_for_post_studies()
+    """AC-2 (real-engine): overlap=50, judged_doc_count=50 → 201.
 
-    async def fake_probe(*args, **kwargs):  # noqa: ARG001
-        return _make_fake_probe_result(50, 50, 50)
+    Seeds 50 judgments AND bulk-indexes all 50 doc IDs. The probe finds full
+    overlap and the study creates successfully (response ``"queued"`` status
+    implicitly confirms the row was committed).
+    """
+    from backend.app.services import study_preflight as _study_preflight
 
-    monkeypatch.setattr("backend.app.api.v1.studies.probe_judgment_overlap", fake_probe)
+    ids = await seed_minimum_for_overlap_probe_real_engine()
+    try:
+        doc_ids = [f"doc_{i:03d}" for i in range(50)]
+        await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], doc_ids)
+        await bulk_index_overlap_probe_docs(ids["es_base_url"], ids["target_index"], doc_ids)
 
-    resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
-    assert resp.status_code == 201, resp.text
-    assert resp.json()["status"] == "queued"
+        monkeypatch.setattr(
+            "backend.app.api.v1.studies.probe_judgment_overlap",
+            _study_preflight.probe_judgment_overlap,
+        )
+
+        resp = await async_client.post(
+            "/api/v1/studies",
+            json=_study_body_for(ids, target=ids["target_index"]),
+        )
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["status"] == "queued"
+    finally:
+        await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
 
+@es_required
 async def test_post_study_overlap_at_threshold_returns_201(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """AC-3: overlap=3, judged_doc_count=5 → required=min(3,5)=3, 3>=3 → 201.
+    """AC-3 (real-engine): overlap=3, judged_doc_count=5 → required=min(3,5)=3, 3>=3 → 201.
 
     Boundary-inclusive lock: the ``<`` in ``overlap_size < required`` must
-    stay strict-less-than; flipping to ``<=`` would break this case.
+    stay strict-less-than; flipping to ``<=`` would break this case. Seeds 5
+    judgments and bulk-indexes the first 3 of them.
     """
-    ids = await _seed_minimum_for_post_studies()
+    from backend.app.services import study_preflight as _study_preflight
 
-    async def fake_probe(*args, **kwargs):  # noqa: ARG001
-        return _make_fake_probe_result(3, 5, 5)
+    ids = await seed_minimum_for_overlap_probe_real_engine()
+    try:
+        doc_ids = [f"doc_{i:03d}" for i in range(5)]
+        await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], doc_ids)
+        await bulk_index_overlap_probe_docs(ids["es_base_url"], ids["target_index"], doc_ids[:3])
 
-    monkeypatch.setattr("backend.app.api.v1.studies.probe_judgment_overlap", fake_probe)
+        monkeypatch.setattr(
+            "backend.app.api.v1.studies.probe_judgment_overlap",
+            _study_preflight.probe_judgment_overlap,
+        )
 
-    resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
-    assert resp.status_code == 201, resp.text
+        resp = await async_client.post(
+            "/api/v1/studies",
+            json=_study_body_for(ids, target=ids["target_index"]),
+        )
+        assert resp.status_code == 201, resp.text
+    finally:
+        await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
 
+@es_required
 async def test_post_study_overlap_one_below_threshold_returns_422(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """AC-4: overlap=2, judged_doc_count=5 → required=3, 2<3 → 422."""
-    ids = await _seed_minimum_for_post_studies()
+    """AC-4 (real-engine): overlap=2, judged_doc_count=5 → required=3, 2<3 → 422.
 
-    async def fake_probe(*args, **kwargs):  # noqa: ARG001
-        return _make_fake_probe_result(2, 5, 5)
+    Seeds 5 judgments and bulk-indexes only the first 2. No DB-side count
+    assertion exists on this AC today; not adding one to keep the rewrite
+    behavior-equivalent to the monkeypatch version.
+    """
+    from backend.app.services import study_preflight as _study_preflight
 
-    monkeypatch.setattr("backend.app.api.v1.studies.probe_judgment_overlap", fake_probe)
+    ids = await seed_minimum_for_overlap_probe_real_engine()
+    try:
+        doc_ids = [f"doc_{i:03d}" for i in range(5)]
+        await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], doc_ids)
+        await bulk_index_overlap_probe_docs(ids["es_base_url"], ids["target_index"], doc_ids[:2])
 
-    resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
-    assert resp.status_code == 422, resp.text
-    assert resp.json()["detail"]["error_code"] == "INSUFFICIENT_JUDGMENT_OVERLAP"
+        monkeypatch.setattr(
+            "backend.app.api.v1.studies.probe_judgment_overlap",
+            _study_preflight.probe_judgment_overlap,
+        )
+
+        resp = await async_client.post(
+            "/api/v1/studies",
+            json=_study_body_for(ids, target=ids["target_index"]),
+        )
+        assert resp.status_code == 422, resp.text
+        assert resp.json()["detail"]["error_code"] == "INSUFFICIENT_JUDGMENT_OVERLAP"
+    finally:
+        await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
 
+@es_required
 async def test_post_study_cap_aware_threshold_allows_small_judgment_lists(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """AC-4b: judged_doc_count=2, overlap=2 → required=min(3,2)=2, 2>=2 → 201.
+    """AC-4b (real-engine): judged_doc_count=2, overlap=2 → required=min(3,2)=2, 2>=2 → 201.
 
     Locks the ``min(MIN_OVERLAP, max(judged_doc_count, 1))`` formula. Without
     the ``min(...)`` clamp, a judgment list with only 2 judgments per qid
@@ -889,15 +975,26 @@ async def test_post_study_cap_aware_threshold_allows_small_judgment_lists(
     judgments and ALL of them are in the index, which is the strongest
     possible signal at that scale.
     """
-    ids = await _seed_minimum_for_post_studies()
+    from backend.app.services import study_preflight as _study_preflight
 
-    async def fake_probe(*args, **kwargs):  # noqa: ARG001
-        return _make_fake_probe_result(2, 2, 2)
+    ids = await seed_minimum_for_overlap_probe_real_engine()
+    try:
+        doc_ids = ["doc_000", "doc_001"]
+        await _seed_judgments(ids["judgment_list_id"], ids["query_set_id"], doc_ids)
+        await bulk_index_overlap_probe_docs(ids["es_base_url"], ids["target_index"], doc_ids)
 
-    monkeypatch.setattr("backend.app.api.v1.studies.probe_judgment_overlap", fake_probe)
+        monkeypatch.setattr(
+            "backend.app.api.v1.studies.probe_judgment_overlap",
+            _study_preflight.probe_judgment_overlap,
+        )
 
-    resp = await async_client.post("/api/v1/studies", json=_study_body_for(ids))
-    assert resp.status_code == 201, resp.text
+        resp = await async_client.post(
+            "/api/v1/studies",
+            json=_study_body_for(ids, target=ids["target_index"]),
+        )
+        assert resp.status_code == 201, resp.text
+    finally:
+        await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
 
 async def test_post_study_404_fk_path_does_not_invoke_probe(
