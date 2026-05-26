@@ -10,19 +10,18 @@
  *
  * Limitations (deliberate, documented in
  * `chore_auto_followup_e2e_chain_seed_helper/idea.md`):
- *  - Cannot seed a 3-node chain (parent → child → grandchild) via the
- *    public POST /studies API — `parent_study_id` is set by the worker,
- *    not accepted from clients. Test coverage of the chain panel's
- *    parent-link + children-table + cascade-radio paths requires a
- *    new `/api/v1/_test/auto-followup/seed-chain` endpoint, captured as
- *    a follow-up. Until then, those paths are exercised at the vitest
- *    component layer in
- *    `ui/src/__tests__/components/studies/auto-followup-chain-panel.test.tsx`
- *    + `study-action-bar-cascade.test.tsx` (real component, mocked data).
+ *  - 3-node chain (parent → child → grandchild): seeded via
+ *    `seedAutoFollowupChain` (backed by `POST /api/v1/_test/auto-followup/
+ *    seed-chain`). The public POST /studies API does NOT accept
+ *    `parent_study_id` (set only by the auto-followup worker), so the
+ *    test-only endpoint is the only way to drive deterministic E2E
+ *    coverage of chain-panel parent-link / children-table / cascade-radio
+ *    paths. Closes `chore_auto_followup_e2e_chain_seed_helper` (added the
+ *    three tests below the original 3).
  */
 import { expect, test, type Locator, type Page } from '@playwright/test';
 
-import { seedFullChain, seedStudy } from './helpers/seed';
+import { seedAutoFollowupChain, seedFullChain, seedStudy } from './helpers/seed';
 
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 const ENTITY_SELECT_TIMEOUT = 10_000;
@@ -163,5 +162,113 @@ test.describe('/studies — auto-followup chain', () => {
     expect(detailResp.ok()).toBe(true);
     const detail = (await detailResp.json()) as { config: { auto_followup_depth?: number } };
     expect(detail.config.auto_followup_depth).toBe(2);
+  });
+
+  // chore_auto_followup_e2e_chain_seed_helper — Story 3.3 follow-up coverage
+  // unblocked by the new `seedAutoFollowupChain` helper (POST /api/v1/_test/
+  // auto-followup/seed-chain). The three tests below all run against a
+  // depth=2, in_flight_leaf=true, in_flight_middle=true chain — R(completed)
+  // → M(queued) → L(queued) — so M has both a parent link (R) and an
+  // in-flight child (L), and M's cancel button is enabled.
+  test('chain panel on middle node renders parent link + children table', async ({ page }) => {
+    const chain = await seedFullChain(2);
+    const seed = await seedAutoFollowupChain({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      depth: 2,
+    });
+    // depth=2 → 3 nodes total → middleIds has exactly 1 entry.
+    expect(seed.middleIds).toHaveLength(1);
+    const middleId = seed.middleIds[0];
+
+    await page.goto(`/studies/${middleId}`);
+    await expect(page.getByTestId('auto-followup-chain-panel')).toBeVisible({ timeout: 10_000 });
+
+    // Parent link → root (R).
+    const parentLink = page.getByTestId('auto-followup-parent-link');
+    await expect(parentLink).toBeVisible();
+    const parentHref = await parentLink.locator('a').getAttribute('href');
+    expect(parentHref).toContain(`/studies/${seed.rootId}`);
+
+    // Remaining depth on M = 1 (root had 2, child has 1).
+    const depthLine = page.getByTestId('auto-followup-remaining-depth');
+    await expect(depthLine).toBeVisible();
+    await expect(depthLine).toContainText('1');
+
+    // Children table contains the leaf (L) as a row.
+    const childrenTable = page.getByTestId('auto-followup-children-table');
+    await expect(childrenTable).toBeVisible();
+    await expect(childrenTable).toContainText(seed.leafId.slice(0, 8));
+  });
+
+  test('cancel modal on middle node shows cascade radio defaulting to cascade=true', async ({
+    page,
+  }) => {
+    const chain = await seedFullChain(2);
+    const seed = await seedAutoFollowupChain({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      depth: 2,
+    });
+    const middleId = seed.middleIds[0]!;
+
+    await page.goto(`/studies/${middleId}`);
+    // Wait for the page to hydrate so the cancel button + chain children
+    // query have resolved (showCascadeRadio depends on chainChildren).
+    await expect(page.getByTestId('study-name')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('auto-followup-chain-panel')).toBeVisible({ timeout: 10_000 });
+
+    // Open the cancel modal — the button is enabled because M is queued.
+    await page.getByTestId('cancel-study').click();
+    const cascadeGroup = page.getByTestId('cancel-cascade-radio-group');
+    await expect(cascadeGroup).toBeVisible({ timeout: 5_000 });
+    // Defaults: cascade=true is checked.
+    await expect(page.getByTestId('cascade-true')).toBeChecked();
+    await expect(page.getByTestId('cascade-false')).not.toBeChecked();
+
+    // Submit with the default (cascade=true). Assert the DELETE fires with
+    // ?cascade=true by intercepting the response.
+    const cancelRespPromise = page.waitForResponse(
+      (resp) => resp.url().includes(`/api/v1/studies/${middleId}`) && resp.request().method() === 'DELETE',
+    );
+    await page.getByTestId('confirm-cancel').click();
+    const cancelResp = await cancelRespPromise;
+    expect(cancelResp.url()).toContain('cascade=true');
+    expect(cancelResp.ok()).toBe(true);
+  });
+
+  test('cancel modal on middle node honors cascade=false radio selection', async ({ page }) => {
+    const chain = await seedFullChain(2);
+    const seed = await seedAutoFollowupChain({
+      clusterId: chain.clusterId,
+      querySetId: chain.querySetId,
+      templateId: chain.templateId,
+      judgmentListId: chain.judgmentListId,
+      depth: 2,
+    });
+    const middleId = seed.middleIds[0]!;
+
+    await page.goto(`/studies/${middleId}`);
+    await expect(page.getByTestId('study-name')).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId('auto-followup-chain-panel')).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId('cancel-study').click();
+    await expect(page.getByTestId('cancel-cascade-radio-group')).toBeVisible({ timeout: 5_000 });
+
+    // Flip to cascade=false then submit.
+    await page.getByTestId('cascade-false').click();
+    await expect(page.getByTestId('cascade-false')).toBeChecked();
+    await expect(page.getByTestId('cascade-true')).not.toBeChecked();
+
+    const cancelRespPromise = page.waitForResponse(
+      (resp) => resp.url().includes(`/api/v1/studies/${middleId}`) && resp.request().method() === 'DELETE',
+    );
+    await page.getByTestId('confirm-cancel').click();
+    const cancelResp = await cancelRespPromise;
+    expect(cancelResp.url()).toContain('cascade=false');
+    expect(cancelResp.ok()).toBe(true);
   });
 });
