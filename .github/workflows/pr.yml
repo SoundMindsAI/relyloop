@@ -490,14 +490,60 @@ jobs:
 
       - uses: docker/setup-buildx-action@v4
 
-      - name: Build relyloop/api (no push)
+      - name: Build relyloop/api (no push, load into local daemon)
         uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
           push: false
+          # load: true puts the built image into the local Docker daemon
+          # so the "Verify runtime image invariants" step below can
+          # `docker run` it. Default false would only export to the GHA
+          # cache (`cache-to` below), which can't be `docker run`'d.
+          load: true
           tags: relyloop/api:${{ github.sha }}
           build-args: |
             RELYLOOP_GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Fast-fail signal on image-construction regressions (venv ownership,
+      # default user, etc.). This step runs inside the `docker` job, which
+      # GHA dispatches in parallel with `smoke (operator-path tutorial flow)`
+      # — not strictly before it — but a failure here shows up on the PR's
+      # checks panel within ~30s of the build completing, while smoke needs
+      # a full `make up` (~5 min) to even reach the failure surface (and
+      # often won't catch venv-ownership at all, since production api/worker
+      # services consume the venv read-only). Each invariant maps to a
+      # captured bug folder under docs/00_overview/implemented_features/ so
+      # a future contributor can trace why the check exists. See
+      # docs/02_product/planned_features/infra_dockerfile_invariant_smoke_in_ci/.
+      - name: Verify runtime image invariants
+        run: |
+          docker run --rm relyloop/api:${{ github.sha }} sh -c '
+            set -e
+            # /app/.venv must EXIST first. A broken-image regression where
+            # the COPY --from=deps step at Dockerfile:89 silently fails or
+            # the runtime-stage uv sync at line 119 deletes the venv would
+            # produce empty `find` output → wc -l = 0 → false-pass without
+            # this guard. Per GPT-5.5 round 1 review.
+            [ -d /app/.venv ] || {
+              echo "::error::FAIL: /app/.venv does not exist in the built image"
+              exit 1
+            }
+            # /app/.venv must be fully relyloop-owned per
+            # bug_dockerfile_venv_root_owned_after_user_switch — any
+            # non-relyloop file blocks `uv run` from the relyloop user
+            # (e.g. inside make test-worktree containers).
+            n=$(find /app/.venv -not -user relyloop | wc -l)
+            [ "$n" = "0" ] || {
+              echo "::error::FAIL: $n non-relyloop file(s) in /app/.venv (see bug_dockerfile_venv_root_owned_after_user_switch)"
+              exit 1
+            }
+            # Default user must be relyloop (UID 1000), not root.
+            id | grep -q "uid=1000(relyloop)" || {
+              echo "::error::FAIL: default user is not relyloop (uid 1000)"
+              echo "::error::id output: $(id)"
+              exit 1
+            }
+          '
