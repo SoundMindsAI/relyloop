@@ -91,8 +91,18 @@ test('Clone study → narrow bounds → submit → persisted search_space is cla
 
   // 5c. Re-check to put the textarea back to the clamped state for submit.
   //     (We want to verify the SERVER receives + persists the narrowed
-  //     bounds, not the source bounds.)
+  //     bounds, not the source bounds.) Poll-wait for the textarea to
+  //     reflect the re-applied clamp before advancing — without this,
+  //     a fast click could submit the still-restored source bounds and
+  //     hide a real bug behind a race. Per GPT-5.5 round 1 review.
   await checkbox.check();
+  await expect
+    .poll(async () => {
+      const v = await page.getByTestId('cs-search-space').inputValue();
+      const p = JSON.parse(v) as { params: { boost: { low: number } } };
+      return p.params.boost.low;
+    })
+    .toBeCloseTo(2.0, 6);
 
   // 6. Advance Step 4 → 5 (objective + config), submit, capture the POST
   //    response. Pattern mirrors ui/tests/e2e/study-clone.spec.ts:24.
@@ -104,7 +114,9 @@ test('Clone study → narrow bounds → submit → persisted search_space is cla
   );
   await page.getByRole('button', { name: /Create study/i }).click();
   const postResponse = await postResponsePromise;
-  expect(postResponse.ok()).toBe(true);
+  // Spec-correct create semantics: assert 201 explicitly so a future
+  // 200/202/204 regression doesn't silently pass. Per GPT-5.5 round 1.
+  expect(postResponse.status()).toBe(201);
   const created = (await postResponse.json()) as {
     id: string;
     parent_study_id: string | null;
