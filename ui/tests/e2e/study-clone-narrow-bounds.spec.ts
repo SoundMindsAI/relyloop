@@ -7,9 +7,9 @@
  *   1. Seed a completed study + digest via `seedStudyCompletedWithDigest`.
  *      Fixture provenance (do NOT silently let this drift): the test-only
  *      seed at backend/app/services/test_seeding.py:75-88 writes
- *      `search_space.params['title.boost'] = { type: 'float', low: 0.5,
+ *      `search_space.params.boost = { type: 'float', low: 0.5,
  *      high: 5.0, log: false }`, and line 188 writes
- *      `recommended_config = { 'title.boost': 2.5 }`. The narrow-bounds
+ *      `recommended_config = { boost: 2.5 }`. The narrow-bounds
  *      ±20% clamp around 2.5 is therefore [2.0, 3.0], which fits inside
  *      [0.5, 5.0]. If either seed value changes, this test will fail
  *      loudly with a numeric mismatch — which is the right signal.
@@ -63,39 +63,30 @@ test('Clone study → narrow bounds → submit → persisted search_space is cla
   const textareaValue = await page.getByTestId('cs-search-space').inputValue();
   const parsed = JSON.parse(textareaValue) as {
     params: {
-      'title.boost': { type: string; low: number; high: number; log?: boolean };
+      boost: { type: string; low: number; high: number; log?: boolean };
     };
   };
   // ±20% around winner=2.5 → [2.0, 3.0]; fits inside source [0.5, 5.0].
-  expect(parsed.params['title.boost'].type).toBe('float');
-  expect(parsed.params['title.boost'].low).toBeCloseTo(2.0, 6);
-  expect(parsed.params['title.boost'].high).toBeCloseTo(3.0, 6);
+  expect(parsed.params.boost.type).toBe('float');
+  expect(parsed.params.boost.low).toBeCloseTo(2.0, 6);
+  expect(parsed.params.boost.high).toBeCloseTo(3.0, 6);
 
   // 6. Uncheck → assert textarea restores to the verbatim source bounds.
   //    Validates FR-5 (uncheck → restore) at the browser layer.
   await checkbox.uncheck();
   const restoredValue = await page.getByTestId('cs-search-space').inputValue();
   const restored = JSON.parse(restoredValue) as {
-    params: { 'title.boost': { low: number; high: number } };
+    params: { boost: { low: number; high: number } };
   };
-  expect(restored.params['title.boost'].low).toBe(0.5);
-  expect(restored.params['title.boost'].high).toBe(5.0);
+  expect(restored.params.boost.low).toBe(0.5);
+  expect(restored.params.boost.high).toBe(5.0);
 
-  // Note on submit-round-trip coverage: a full clone → narrow → submit →
-  // GET-the-new-study assertion is not exercised here because the
-  // backend `seedTemplate` helper declares `boost` while
-  // `seed_study_completed_with_digest` writes `title.boost` into the
-  // seeded study's `search_space.params`. The Step-4 client-side
-  // `validateSearchSpaceAgainstTemplate` blocks `step-next` from
-  // advancing to Step 5 (the submit step) because `title.boost` is not
-  // declared on the seeded template — a pre-existing fixture
-  // inconsistency that also blocks the v1 `study-clone.spec.ts`
-  // round-trip path. Captured as a separate tangential bug.
-  //
-  // The server-side acceptance of the narrowed JSON is covered by the
-  // unit-level invariant (FR-10's algorithm produces output that passes
-  // every `SearchSpace.model_validate` constraint by construction,
-  // exercised in `ui/src/__tests__/lib/narrow-bounds.test.ts`).
-  // Suppress unused `request` warning until the fixture gap closes.
+  // Server-side acceptance of the narrowed JSON via full clone → narrow →
+  // submit → GET-the-new-study round-trip is intentionally not exercised
+  // here — that coverage belongs in a follow-up spec extension once the
+  // remaining smoke-stack flakes (bug_smoke_followup_clone_e2e_flakes,
+  // bug_smoke_dashboard_demo_state_locator_missing) stop polluting the
+  // CI signal. The narrowing algorithm itself is covered by the unit
+  // invariant at ui/src/__tests__/lib/narrow-bounds.test.ts.
   void request;
 });

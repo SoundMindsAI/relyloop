@@ -170,7 +170,10 @@ test.describe('/studies', () => {
     await expect(page.getByTestId('digest-narrative')).toBeVisible({ timeout: 10_000 });
 
     // AC-7 body content: the seeded narrative + recommended_config render.
-    await expect(page.getByTestId('digest-narrative')).toContainText('title.boost');
+    // Param renamed `title.boost` → `boost` in
+    // `bug_clone_e2e_seed_template_params_mismatch` to match template
+    // declared_params; the seeded narrative now references `boost`.
+    await expect(page.getByTestId('digest-narrative')).toContainText('boost');
 
     // Phase 1 FR digest-panel triggers — 5 InfoTooltip-default section labels
     // expose their own `tooltip-trigger-<key>` testid (they render the

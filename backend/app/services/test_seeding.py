@@ -83,7 +83,7 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         judgment_list_id=judgment_list_id,
         search_space={
             "params": {
-                "title.boost": {"type": "float", "low": 0.5, "high": 5.0, "log": False},
+                "boost": {"type": "float", "low": 0.5, "high": 5.0, "log": False},
             },
         },
         objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
@@ -123,7 +123,7 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         id=winning_trial_id,
         study_id=study_id,
         optuna_trial_number=0,
-        params={"title.boost": 2.5},
+        params={"boost": 2.5},
         primary_metric=0.487,
         metrics={"ndcg@10": 0.487, "map": 0.412, "precision@10": 0.5},
         duration_ms=1200,
@@ -138,7 +138,7 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         id=losing_trial_id,
         study_id=study_id,
         optuna_trial_number=1,
-        params={"title.boost": 0.8},
+        params={"boost": 0.8},
         primary_metric=0.412,
         metrics={"ndcg@10": 0.412, "map": 0.351, "precision@10": 0.4},
         duration_ms=1100,
@@ -180,12 +180,12 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         id=digest_id,
         study_id=study_id,
         narrative=(
-            "Seeded digest narrative for E2E coverage. Tuning `title.boost` from 1.0 to "
+            "Seeded digest narrative for E2E coverage. Tuning `boost` from 1.0 to "
             "2.5 lifted ndcg@10 from 0.412 (baseline) to 0.487 (+18.2%). The winning "
             "configuration is recommended for production rollout."
         ),
-        parameter_importance={"title.boost": 1.0},
-        recommended_config={"title.boost": 2.5},
+        parameter_importance={"boost": 1.0},
+        recommended_config={"boost": 2.5},
         suggested_followups=(
             suggested_followups if suggested_followups is not None else default_followups
         ),
@@ -202,7 +202,7 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
             study_trial_id=winning_trial_id,
             cluster_id=cluster_id,
             template_id=template_id,
-            config_diff={"title.boost": {"from": 1.0, "to": 2.5}},
+            config_diff={"boost": {"from": 1.0, "to": 2.5}},
             metric_delta={"ndcg@10": {"baseline": 0.412, "achieved": 0.487, "delta_pct": 18.2}},
             status="pending",
         )
@@ -302,7 +302,7 @@ async def seed_auto_followup_chain(  # pragma: no cover  - integration only
             judgment_list_id=judgment_list_id,
             search_space={
                 "params": {
-                    "title.boost": {"type": "float", "low": 0.5, "high": 5.0, "log": False},
+                    "boost": {"type": "float", "low": 0.5, "high": 5.0, "log": False},
                 },
             },
             objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
@@ -330,7 +330,7 @@ async def seed_auto_followup_chain(  # pragma: no cover  - integration only
                 id=winning_trial_id,
                 study_id=node_id,
                 optuna_trial_number=0,
-                params={"title.boost": 2.5},
+                params={"boost": 2.5},
                 primary_metric=0.487,
                 metrics={"ndcg@10": 0.487, "map": 0.412, "precision@10": 0.5},
                 duration_ms=1200,

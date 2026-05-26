@@ -21,7 +21,7 @@ const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
 const NARROW_SEARCH_SPACE = {
   params: {
-    'title.boost': { type: 'float', low: 1.5, high: 2.5, log: false },
+    boost: { type: 'float', low: 1.5, high: 2.5, log: false },
   },
 };
 
@@ -42,7 +42,7 @@ test('Run this followup → modal opens prefilled → submit creates lineage-lin
     suggestedFollowups: [
       {
         kind: 'narrow',
-        rationale: 'Narrow title.boost around the winner',
+        rationale: 'Narrow boost around the winner',
         search_space: NARROW_SEARCH_SPACE,
       },
     ],
