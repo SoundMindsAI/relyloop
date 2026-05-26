@@ -38,7 +38,10 @@ from backend.app.services.demo_seeding import (
     _resolve_engine_base_url,
     reseed_demo_state,
 )
-from backend.app.services.test_seeding import seed_study_completed_with_digest
+from backend.app.services.test_seeding import (
+    seed_auto_followup_chain,
+    seed_study_completed_with_digest,
+)
 from scripts.seed_meaningful_demos import (
     DEMO_ES_INDICES,
     DEMO_OS_INDICES,
@@ -213,6 +216,102 @@ async def seed_completed_study(  # pragma: no cover  - integration only
         study_id=triple.study_id,
         digest_id=triple.digest_id,
         proposal_id=triple.proposal_id,
+    )
+
+
+class SeedAutoFollowupChainRequest(BaseModel):
+    """Payload for ``POST /api/v1/_test/auto-followup/seed-chain``.
+
+    Seeds ``depth + 1`` linked studies (root → … → leaf) so E2E tests can
+    cover the chain-panel parent-link / children-table / cascade-radio paths
+    that the public ``POST /api/v1/studies`` endpoint can't drive
+    (``parent_study_id`` is set only by the auto-followup worker).
+
+    Closes ``chore_auto_followup_e2e_chain_seed_helper`` (idea #2).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    cluster_id: str = Field(min_length=1)
+    query_set_id: str = Field(min_length=1)
+    template_id: str = Field(min_length=1)
+    judgment_list_id: str = Field(min_length=1)
+    depth: int = Field(
+        ge=1,
+        le=5,
+        description=(
+            "Number of chain hops to seed. depth=1 → root + leaf (2 nodes). "
+            "depth=2 → root + 1 middle + leaf (3 nodes)."
+        ),
+    )
+    in_flight_leaf: bool = Field(
+        default=True,
+        description=(
+            "When True (default), the deepest node is left at status='queued'. "
+            "When False, it's driven to 'completed' too. Default True matches the "
+            "primary E2E use case: cascade-radio coverage where the middle node "
+            "needs an in-flight child."
+        ),
+    )
+    in_flight_middle: bool = Field(
+        default=True,
+        description=(
+            "When True (default), the immediate parent of the leaf is left at "
+            "status='queued' so the Cancel button is enabled (canCancel = "
+            "running || queued per study-action-bar.tsx:46). Required for the "
+            "cancel-modal cascade-radio test. When False, all intermediates "
+            "are completed (more realistic chain state but cancel modal "
+            "won't open on the middle)."
+        ),
+    )
+
+
+class SeedAutoFollowupChainResponse(BaseModel):
+    """IDs of every node in the seeded chain, in parent→child order."""
+
+    root_id: str
+    middle_ids: list[str]
+    leaf_id: str
+
+
+@router.post(
+    f"{_TEST_PREFIX}/auto-followup/seed-chain",
+    response_model=SeedAutoFollowupChainResponse,
+    status_code=status.HTTP_201_CREATED,
+    tags=["test-only"],
+    dependencies=[Depends(_require_development_env)],
+    summary="Seed an auto-followup chain of N+1 linked studies",
+    description=(
+        "Test-only endpoint. Returns 404 unless `ENVIRONMENT=development`. "
+        "Inserts a chain of `depth + 1` studies where each child carries the "
+        "prior node's id as `parent_study_id`. The public POST /studies "
+        "endpoint does NOT accept `parent_study_id` (it's set only by the "
+        "auto-followup worker via `repo.create_study(parent_study_id=...)`), "
+        "so this endpoint is the only way to drive deterministic E2E "
+        "coverage of chain-panel parent-link / children-table / cascade-"
+        "radio paths. Closes chore_auto_followup_e2e_chain_seed_helper."
+    ),
+)
+async def seed_auto_followup_chain_endpoint(  # pragma: no cover  - integration only
+    body: SeedAutoFollowupChainRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SeedAutoFollowupChainResponse:
+    """Thin wire-glue. See module docstring + service-layer docstring."""
+    triple = await seed_auto_followup_chain(
+        db,
+        cluster_id=body.cluster_id,
+        query_set_id=body.query_set_id,
+        template_id=body.template_id,
+        judgment_list_id=body.judgment_list_id,
+        depth=body.depth,
+        in_flight_leaf=body.in_flight_leaf,
+        in_flight_middle=body.in_flight_middle,
+    )
+    await db.commit()
+    return SeedAutoFollowupChainResponse(
+        root_id=triple.root_id,
+        middle_ids=triple.middle_ids,
+        leaf_id=triple.leaf_id,
     )
 
 

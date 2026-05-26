@@ -825,6 +825,84 @@ export async function seedStudyCompletedWithPerQueryMetrics(args: {
   };
 }
 
+export interface AutoFollowupChainSeed {
+  /** Root of the chain (no parent). Always `status='completed'`. */
+  rootId: string;
+  /**
+   * Studies between root and leaf, in parent→child order. Empty for `depth=1`.
+   * For `depth=2`, this has one entry — the "middle" node E2E tests target
+   * for parent-link / children-table / cascade-radio coverage. The immediate
+   * parent of the leaf (`middleIds[middleIds.length - 1]`) is `status='queued'`
+   * when `inFlightMiddle=true` (default).
+   */
+  middleIds: string[];
+  /** Deepest node. `status='queued'` when `inFlightLeaf=true` (default). */
+  leafId: string;
+}
+
+/**
+ * Seed an auto-followup chain of `depth + 1` linked studies (root → … → leaf)
+ * for E2E coverage of the chain panel's parent-link / children-table /
+ * cascade-radio paths. The public `POST /api/v1/studies` endpoint does NOT
+ * accept `parent_study_id` (it's set only by the auto-followup worker), so
+ * this helper is the only way to drive deterministic E2E coverage of those
+ * surfaces.
+ *
+ * Backed by `POST /api/v1/_test/auto-followup/seed-chain` (test-only, 404 in
+ * non-development environments). Closes
+ * `chore_auto_followup_e2e_chain_seed_helper` (idea #2 in pipeline status).
+ *
+ * Defaults match the primary E2E use case: leaf + immediate parent of leaf
+ * are both `status='queued'` so (a) the immediate parent has an in-flight
+ * child (cascade radio shows) AND (b) the immediate parent itself is
+ * cancellable (cancel button enabled per `canCancel = running || queued`).
+ */
+export async function seedAutoFollowupChain(args: {
+  clusterId: string;
+  querySetId: string;
+  templateId: string;
+  judgmentListId: string;
+  depth: number;
+  inFlightLeaf?: boolean;
+  inFlightMiddle?: boolean;
+}): Promise<AutoFollowupChainSeed> {
+  const {
+    clusterId,
+    querySetId,
+    templateId,
+    judgmentListId,
+    depth,
+    inFlightLeaf = true,
+    inFlightMiddle = true,
+  } = args;
+  const result = await post<{ root_id: string; middle_ids: string[]; leaf_id: string }>(
+    '/api/v1/_test/auto-followup/seed-chain',
+    {
+      cluster_id: clusterId,
+      query_set_id: querySetId,
+      template_id: templateId,
+      judgment_list_id: judgmentListId,
+      depth,
+      in_flight_leaf: inFlightLeaf,
+      in_flight_middle: inFlightMiddle,
+    },
+  );
+  // Register every chain node for cleanup. Per chore_e2e_test_rows_isolation
+  // Story 1.2 — root first, then middles in order, then leaf. The teardown
+  // uses FK-safe deletion ordering (children before parents), so registration
+  // order doesn't matter as long as every id is tracked.
+  appendForCleanup('study', result.root_id);
+  for (const mid of result.middle_ids) {
+    appendForCleanup('study', mid);
+  }
+  appendForCleanup('study', result.leaf_id);
+  return {
+    rootId: result.root_id,
+    middleIds: result.middle_ids,
+    leafId: result.leaf_id,
+  };
+}
+
 /**
  * Create a chat conversation. Title is optional; messages are NOT sent —
  * tests can navigate to `/chat/{id}` and exercise the page shell without
