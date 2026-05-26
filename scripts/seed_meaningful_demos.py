@@ -773,10 +773,20 @@ def confirm_wipe() -> bool:
     return resp in ("y", "yes")
 
 
+# SQL used by count_existing_clusters() to decide whether `--if-empty`
+# should auto-seed. MUST filter out soft-deleted rows (`deleted_at IS NULL`)
+# so a single E2E test that soft-deletes its cluster fixtures doesn't
+# permanently false-skip the auto-seed on every subsequent `make up`.
+# Aligned with the public API's view: `/api/v1/clusters` returns only live
+# rows, so the auto-seed gate must use the same definition of "exists".
+# See bug_seed_demo_if_empty_counts_soft_deleted.
+_COUNT_LIVE_CLUSTERS_SQL = "SELECT COUNT(*) FROM clusters WHERE deleted_at IS NULL;"
+
+
 def count_existing_clusters(*, max_attempts: int = 30, backoff_s: float = 1.0) -> int | None:
-    """Return the count of rows in the ``clusters`` table, or ``None`` if the
-    table can't be reached after ``max_attempts`` retries. Used by
-    ``--if-empty`` to decide whether to seed.
+    """Return the count of LIVE rows in the ``clusters`` table (i.e. with
+    ``deleted_at IS NULL``), or ``None`` if the table can't be reached after
+    ``max_attempts`` retries. Used by ``--if-empty`` to decide whether to seed.
 
     Bounded retry handles two transient races on a fresh ``make up``:
       * postgres container is healthy but psql connections briefly refuse
@@ -811,7 +821,7 @@ def count_existing_clusters(*, max_attempts: int = 30, backoff_s: float = 1.0) -
                     "relyloop",
                     "-tA",  # -t: tuples only, -A: unaligned
                     "-c",
-                    "SELECT COUNT(*) FROM clusters;",
+                    _COUNT_LIVE_CLUSTERS_SQL,
                 ],
                 check=True,
                 capture_output=True,

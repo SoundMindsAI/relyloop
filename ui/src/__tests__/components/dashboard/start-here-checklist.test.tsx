@@ -34,7 +34,7 @@ describe('<StartHereChecklist /> — reset-demo disclosure', () => {
     );
   });
 
-  it('AC-8: hides the disclosure when hasClusters is true', () => {
+  it('AC-8: hides the disclosure when hasClusters is true (the operator already has a working cluster)', () => {
     render(
       <StartHereChecklist
         hasClusters={true}
@@ -45,7 +45,15 @@ describe('<StartHereChecklist /> — reset-demo disclosure', () => {
     expect(screen.queryByTestId('reset-demo-state-disclosure')).toBeNull();
   });
 
-  it('AC-8: hides the disclosure when hasQuerySetsWithJudgments is true', () => {
+  // bug_dashboard_reset_disclosure_gating_too_strict — the disclosure
+  // previously hid whenever hasQuerySetsWithJudgments OR hasStudies was true,
+  // even with no live clusters. That trapped operators whose stacks had
+  // orphan data from earlier E2E runs but no usable clusters: the in-product
+  // self-rescue affordance was hidden, forcing CLI knowledge of `make
+  // seed-demo FORCE=1`. New behavior: disclosure renders whenever
+  // hasClusters=false, regardless of orphan data.
+
+  it('renders the disclosure when hasClusters=false even if hasQuerySetsWithJudgments is true (orphan data state)', () => {
     render(
       <StartHereChecklist
         hasClusters={false}
@@ -53,10 +61,10 @@ describe('<StartHereChecklist /> — reset-demo disclosure', () => {
         hasStudies={false}
       />,
     );
-    expect(screen.queryByTestId('reset-demo-state-disclosure')).toBeNull();
+    expect(screen.getByTestId('reset-demo-state-disclosure')).toBeInTheDocument();
   });
 
-  it('AC-8: hides the disclosure when hasStudies is true', () => {
+  it('renders the disclosure when hasClusters=false even if hasStudies is true (orphan data state)', () => {
     render(
       <StartHereChecklist
         hasClusters={false}
@@ -64,7 +72,16 @@ describe('<StartHereChecklist /> — reset-demo disclosure', () => {
         hasStudies={true}
       />,
     );
-    expect(screen.queryByTestId('reset-demo-state-disclosure')).toBeNull();
+    expect(screen.getByTestId('reset-demo-state-disclosure')).toBeInTheDocument();
+  });
+
+  it('renders the disclosure when hasClusters=false even with both orphan data signals true (operator session 2026-05-26)', () => {
+    // The exact stuck state that surfaced this bug: no live clusters but
+    // both orphan studies and orphan query_sets sitting in the DB.
+    render(
+      <StartHereChecklist hasClusters={false} hasQuerySetsWithJudgments={true} hasStudies={true} />,
+    );
+    expect(screen.getByTestId('reset-demo-state-disclosure')).toBeInTheDocument();
   });
 
   it('returns null entirely when all three signals are true (existing behavior)', () => {
