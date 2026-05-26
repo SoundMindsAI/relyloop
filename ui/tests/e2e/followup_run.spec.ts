@@ -172,16 +172,29 @@ test('swap_template followup → Run → modal opens with swap-target template +
   await page.getByRole('button', { name: /Create study/i }).click();
 
   // Verify the new study has template_id == swap target (AC-12).
+  //
+  // Two-step fetch: the LIST endpoint returns `StudySummary`
+  // (backend/app/api/v1/schemas.py:721-731), which intentionally OMITS
+  // `template_id` — only `{id, name, cluster_id, status, best_metric,
+  // created_at, completed_at}` is exposed for the list-view table. To
+  // assert AC-12 we must fetch the DETAIL endpoint (`GET /studies/{id}`,
+  // returns `StudyDetail` at schemas.py:687-712, which includes
+  // `template_id`). Find the new study by name in the list response,
+  // then fetch its detail.
   await page.waitForTimeout(2_000);
   const studiesResp = await request.get(`${API_BASE}/api/v1/studies?limit=20`);
   expect(studiesResp.ok()).toBe(true);
-  const body = (await studiesResp.json()) as {
-    data: Array<{ id: string; name: string; template_id: string }>;
+  const listBody = (await studiesResp.json()) as {
+    data: Array<{ id: string; name: string }>;
   };
-  const newStudy = body.data.find(
+  const newStudySummary = listBody.data.find(
     (s) => /followup #1 \(swap_template\)/.test(s.name) && s.id !== completed.studyId,
   );
-  expect(newStudy).toBeDefined();
+  expect(newStudySummary).toBeDefined();
+
+  const detailResp = await request.get(`${API_BASE}/api/v1/studies/${newStudySummary!.id}`);
+  expect(detailResp.ok()).toBe(true);
+  const detail = (await detailResp.json()) as { id: string; template_id: string };
   // AC-12: the new study's template_id MUST be the swap target.
-  expect(newStudy!.template_id).toBe(swapTarget.id);
+  expect(detail.template_id).toBe(swapTarget.id);
 });
