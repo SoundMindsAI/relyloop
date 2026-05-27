@@ -103,7 +103,7 @@ a hard job-level timeout. Five consecutive `pr.yml` runs on `main`
 `7a5bc42a` 16:48 UTC → `5a90f826` 19:15 UTC, all 2026-05-27) each
 cancelled at 15m17–21s wall clock — matching the
 `timeout-minutes: 15` setting at
-[`.github/workflows/pr.yml:309`](../../../../.github/workflows/pr.yml).
+[`.github/workflows/pr.yml:309`](../../../../.github/workflows/pr.yml#L309).
 The smoke job's wall-clock work has exceeded 15 minutes for at least
 ~17 hours of continuous merges, so the cancellation is the timeout
 hitting, not concurrency or Playwright. (Concurrency cancellation does
