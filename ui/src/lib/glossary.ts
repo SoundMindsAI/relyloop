@@ -256,6 +256,11 @@ export const glossary = {
       'The best metric value any trial achieved so far. Direction is set by the study’s objective.',
     ariaLabel: 'More information about best metric',
   },
+  'study.best_metric.saturated': {
+    short:
+      'Pinned at metric ceiling (≥0.99). Usually means judgments are too sparse to differentiate trials, not a real optimizer win.',
+    ariaLabel: 'More information about ceiling-saturated metric',
+  },
   'study.trials_summary': {
     short:
       'Counts of trials by terminal status. Complete = finished and scored; Failed = errored; Pruned = cut short by the pruner.',

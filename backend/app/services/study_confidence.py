@@ -87,15 +87,27 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
         (row[0], row[1]) for row in summary_rows if row[0] is not None
     ]
 
-    # Q4 (conditional): query_text for regressor candidates.
+    # Q4 (conditional): query_text for improver + regressor candidates.
     # The pure orchestrator runs compute_outcome_summary again internally —
     # the second call is cheap (dict-key iteration on ≤100 queries) and keeps
     # the pure-helper contract clean for unit tests. The per-query lookup key
     # must match what backend.app.eval.scoring.score persists (user-facing
     # @<k>-suffixed tokens), not the bare metric base name.
+    #
+    # The comparison trial MUST match what the orchestrator will pick (see
+    # compute_study_confidence): prefer baseline_trial.per_query_metrics
+    # over runner_up.per_query_metrics. Using the wrong comparison here
+    # produces qids that don't match the orchestrator's outcome candidates,
+    # so build_regressor_rows drops every row for lack of a name.
     query_text_by_id: dict[str, str] = {}
     study_objective = study.objective if isinstance(study.objective, dict) else {}
-    if runner_up is not None and winner.per_query_metrics and runner_up.per_query_metrics:
+    comparison_per_query: dict[str, dict[str, float]] | None = None
+    if baseline_trial is not None and baseline_trial.per_query_metrics:
+        comparison_per_query = baseline_trial.per_query_metrics
+    elif runner_up is not None and runner_up.per_query_metrics:
+        comparison_per_query = runner_up.per_query_metrics
+
+    if comparison_per_query is not None and winner.per_query_metrics:
         try:
             per_query_key = objective_metric_key(study_objective)
         except ValueError:
@@ -103,7 +115,7 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
         if per_query_key is not None:
             outcome = compute_outcome_summary(
                 winner_per_query=winner.per_query_metrics,
-                comparison_per_query=runner_up.per_query_metrics,
+                comparison_per_query=comparison_per_query,
                 metric=per_query_key,
             )
             if outcome is not None and (
