@@ -6,34 +6,34 @@ _Reflects feature-folder state as of **2026-05-27** (latest mtime of any planned
 
 ## Next up
 
-**[feat_index_document_browser](../02_product/planned_features/feat_index_document_browser/feature_spec.md)** — Feature, currently in **Implementing**
+**[infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md)** — Infra, currently in **Implementing**
 
-> A read-only document browser, reachable from two independent entry points (cluster detail + study detail), that lets operators see corpus shape, paginate documents, and inspect any single doc's `_source` without leaving the RelyLoop UI.
+> Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and therefore leak to the main worktree when writ
 
 Implementation in progress — resume to finish
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_index_document_browser/implementation_plan.md --all  # resume in-progress
+/pipeline docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md
 ```
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **87 / 89** (98%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **88 / 89** (99%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **11** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 9 important to file, not blocking |
 | → Backlog | 2 captured for record, not planned |
-| Open bugs | 3 |
+| Open bugs | 4 |
 | Legacy "Path to MVP1" | 11 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
-| In flight | 2 feature(s) actively shipping |
+| In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (117)
+### Done (118)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -53,6 +53,7 @@ Implementation in progress — resume to finish
 | [feat_github_webhook](implemented_features/2026_05_12_feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `infra_adapter_elastic` `feat_github_pr_worker` | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
 | [feat_home_demo_reseed_endpoint](implemented_features/2026_05_24_feat_home_demo_reseed_endpoint/feature_spec.md) | Feature | A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a "Reset to demo state" button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser. | — | [PR #228](https://github.com/SoundMindsAI/relyloop/pull/228) merged 2026-05-24 |
 | [feat_home_first_run_demo_nudge](implemented_features/2026_05_22_feat_home_first_run_demo_nudge/feature_spec.md) | Feature | An operator landing on a freshly-seeded stack sees an unambiguous banner above the dashboard's empty/populated content that names the present demo clusters, explains they ship with realistic queries + | — | [PR #188](https://github.com/SoundMindsAI/relyloop/pull/188) merged 2026-05-22 |
+| [feat_index_document_browser](../02_product/planned_features/feat_index_document_browser/feature_spec.md) | Feature | A read-only document browser, reachable from two independent entry points (cluster detail + study detail), that lets operators see corpus shape, paginate documents, and inspect any single doc's `_sour | — | [PR #282](https://github.com/SoundMindsAI/relyloop/pull/282) |
 | [feat_judgments_periodic_resume_sweep](implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/feature_spec.md) | Feature | A new Arq cron job `resume_stuck_judgment_lists` ticks every `RELYLOOP_JUDGMENTS_RESUME_SWEEP_MINUTES` minutes (default 15), re-enqueues every `judgment_lists.status='generating'` row via deterministi | — | [PR #104](https://github.com/SoundMindsAI/relyloop/pull/104) merged 2026-05-12 |
 | [feat_llm_judgments](implemented_features/2026_05_11_feat_llm_judgments/feature_spec.md) | Feature | A relevance engineer selects a query set + cluster + target + rubric and the system runs the current template to fetch top-K hits per query, asks OpenAI to rate each (query, doc) on a 0–3 scale with r | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` | [PR #35](https://github.com/SoundMindsAI/relyloop/pull/35) merged 2026-05-11 |
 | [feat_orchestrator_zero_streak_abort](implemented_features/2026_05_22_feat_orchestrator_zero_streak_abort/feature_spec.md) | Feature | Complete (PR #191, merged 2026-05-22 as squash `51ae4b3c`) | — | [PR #191](https://github.com/SoundMindsAI/relyloop/pull/191) merged 2026-05-22 |
@@ -155,12 +156,11 @@ Implementation in progress — resume to finish
 | [bug_vitest_jsdom_localstorage_failures](implemented_features/2026_05_26_bug_vitest_jsdom_localstorage_failures/idea.md) | Bug | `pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error: | — | Complete |
 | [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | Complete |
 
-### Implementing (2)
+### Implementing (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [feat_index_document_browser](../02_product/planned_features/feat_index_document_browser/feature_spec.md) | Feature | A read-only document browser, reachable from two independent entry points (cluster detail + study detail), that lets operators see corpus shape, paginate documents, and inspect any single doc's `_sour | — | [PR #282](https://github.com/SoundMindsAI/relyloop/pull/282) |
-| 2 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
+| 1 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
 
 ### Plan (0)
 
@@ -170,7 +170,7 @@ _None._
 
 _None._
 
-### Idea (9)
+### Idea (10)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -180,9 +180,10 @@ _None._
 | 4 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | 5 | P2 | [bug_ceiling_badge_assumes_maximize_direction](../02_product/planned_features/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](../ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold  | — | — |
 | 6 | P2 | [bug_smoke_studies_data_table_search_flake](../02_product/planned_features/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
-| 7 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 8 | Backlog | [chore_auto_followup_parent_advisory_lock](../02_product/planned_features/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 9 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
+| 7 | P2 | [bug_starlette_request_poisons_fastapi_depends_tests](../02_product/planned_features/bug_starlette_request_poisons_fastapi_depends_tests/idea.md) | Bug | There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={"type": "http", ...})` and breaks subsequent `Depends` resolution. Possible suspects: | — | Idea — bug captured during feat_index_document_browser Story 2.1 |
+| 8 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 9 | Backlog | [chore_auto_followup_parent_advisory_lock](../02_product/planned_features/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
+| 10 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
 
 ## Dependency graph
 
@@ -196,7 +197,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_index_document_browser["index document browser"]
-  class feat_index_document_browser implement;
+  class feat_index_document_browser done;
   infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
   class infra_agent_sibling_worktree_isolation implement;
   infra_foundation["foundation"]

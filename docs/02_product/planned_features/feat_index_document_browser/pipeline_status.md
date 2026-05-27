@@ -28,14 +28,14 @@
 - Phases covered: 1 (all FRs in this plan)
 
 ## Implementation
-- Status: **In Progress — Epic 1 complete; Epic 1 phase gate not yet run**
-- Branch: `feat/index-document-browser` (3 commits ahead of `main`)
-- Completed stories: 1.1, 1.2, 1.3 (Epic 1 — SearchAdapter Protocol additions + ElasticAdapter implementations)
-- Tests added so far: 24 backend unit tests (10 Protocol model tests + 10 `get_document` + 14 `list_documents`); total `test_protocol.py` count now 29 (was 19); cumulative unit-test run green
-- Last commit: `754c505b` (Stories 1.2 + 1.3)
-- Remaining stories: 10 (Epic 1 phase gate, Stories 2.1–2.4, Epic 2 phase gate, Stories 3.1–3.6, Epic 3 phase gate, post-impl + PR ceremony)
-- Resume command: `/impl-execute docs/02_product/planned_features/feat_index_document_browser/implementation_plan.md --all` (or specify next story explicitly: `... 1.3` to re-enter just past Epic 1)
-- Pause reason: operator-chosen checkpoint after Epic 1; remaining work is multi-hour and benefits from a fresh session to keep context manageable.
+- Status: **Complete — all 13 stories shipped; PR pending**
+- Branch: `feat/index-document-browser`
+- Completed stories: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
+- Tests added: backend unit 1537 ✓ (incl. 39 helper-module tests + 24 adapter tests + Story 2.1 helpers); 21 integration tests at `test_documents_endpoints.py` (16 stub-adapter + 5 live-ES); 6 integration at `test_studies_target_filter.py`; 12 contract tests at `test_documents_contract.py`; frontend 904 vitest ✓ (incl. 23 new across 5 component/page tests); 2 E2E specs (top-down + filter chip).
+- Adapter sort key flipped from `_id` → `_doc` per spec D-26 fallback after ES 9 returned HTTP 400 with `indices.id_field_data.enabled` disabled; documented in adapter docstring.
+- Validation order swapped (parse_fields_csv + decode_documents_cursor before get_cluster) so malformed query strings always return 422 regardless of cluster_id validity.
+- Glossary grew by 5 keys (`cluster.indices_card`, `cluster.target_doc_count`, `target.schema`, `target.schema_analyzer`, `document.truncation_sentinel`).
+- 4 new frontend routes registered: `/clusters/[id]/indices/[name]`, `.../documents`, `.../documents/[...doc_id]`, plus the existing `/studies` page extended.
 
 ## Done
 - Status: —

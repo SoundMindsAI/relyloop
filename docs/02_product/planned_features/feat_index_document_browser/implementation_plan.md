@@ -1,7 +1,7 @@
 # Implementation Plan — Index Document Browser
 
 **Date:** 2026-05-27
-**Status:** Draft
+**Status:** Implementation complete — Epics 1–3 shipped, PR pending
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Origin idea:** [idea.md](idea.md)
 
@@ -1267,19 +1267,19 @@ None.
 ## 9) Execution tracker
 
 ### Stories
-- [ ] Story 1.1 — SearchAdapter Protocol additions
-- [ ] Story 1.2 — ElasticAdapter.get_document
-- [ ] Story 1.3 — ElasticAdapter.list_documents
-- [ ] Story 2.1 — Documents helper module (cursor, truncation, target_filter, strict-query-params)
-- [ ] Story 2.2 — GET /documents list endpoint
-- [ ] Story 2.3 — GET /documents/{doc_id:path} detail endpoint
-- [ ] Story 2.4 — ?target= filter on /studies (backend)
-- [ ] Story 3.1 — Indices card on cluster detail
-- [ ] Story 3.2 — Index summary page
-- [ ] Story 3.3 — Documents list page
-- [ ] Story 3.4 — Document detail page
-- [ ] Story 3.5 — LinkedEntitiesRow + studies-list filter chip
-- [ ] Story 3.6 — Playwright E2E spec
+- [x] Story 1.1 — SearchAdapter Protocol additions
+- [x] Story 1.2 — ElasticAdapter.get_document
+- [x] Story 1.3 — ElasticAdapter.list_documents
+- [x] Story 2.1 — Documents helper module (cursor, truncation, target_filter, strict-query-params)
+- [x] Story 2.2 — GET /documents list endpoint
+- [x] Story 2.3 — GET /documents/{doc_id:path} detail endpoint
+- [x] Story 2.4 — ?target= filter on /studies (backend)
+- [x] Story 3.1 — Indices card on cluster detail
+- [x] Story 3.2 — Index summary page
+- [x] Story 3.3 — Documents list page
+- [x] Story 3.4 — Document detail page
+- [x] Story 3.5 — LinkedEntitiesRow + studies-list filter chip
+- [x] Story 3.6 — Playwright E2E spec
 
 ### Blocked items
 None.
