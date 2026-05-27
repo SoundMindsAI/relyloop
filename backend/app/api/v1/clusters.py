@@ -23,7 +23,7 @@ import json
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -37,6 +37,7 @@ from backend.app.adapters.errors import (
 from backend.app.adapters.protocol import HealthStatus
 from backend.app.adapters.protocol import Schema as AdapterSchema
 from backend.app.api.health import get_redis_client
+from backend.app.api.v1._errors import _err as _err  # noqa: F401 — re-export
 from backend.app.api.v1.schemas import (
     ClusterDetail,
     ClusterListResponse,
@@ -88,14 +89,6 @@ MAX_RUN_QUERY_TIMEOUT_S = 30.0
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _err(status_code: int, code: str, message: str, retryable: bool) -> HTTPException:
-    """Build the spec §7.5 error envelope as an HTTPException detail dict."""
-    return HTTPException(
-        status_code=status_code,
-        detail={"error_code": code, "message": message, "retryable": retryable},
-    )
 
 
 def _encode_cursor(created_at: datetime, cluster_id: str) -> str:
