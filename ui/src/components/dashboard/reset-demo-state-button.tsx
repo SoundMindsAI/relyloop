@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -15,88 +15,102 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
+import { useDemoReseedStatus, type ReseedStatusResponse } from '@/lib/api/demo-reseed';
 import { apiClient } from '@/lib/api-client';
 import { ApiError, isApiError } from '@/lib/api-errors';
 
 /**
  * "Reset to demo state" affordance for the first-run dashboard.
  *
- * Per feat_home_demo_reseed_endpoint spec FR-6 + plan Story 2.1. Self-
- * contained component:
- *   - Renders a secondary <Button> that opens an <AlertDialog> confirming
- *     the destructive wipe + reseed.
- *   - On confirm: POSTs ``/api/v1/_test/demo/reseed`` via the project's
- *     ``apiClient`` wrapper (which throws ``ApiError`` on non-2xx).
- *   - Client-side 180s abort signal — generous ceiling even when the
- *     backend's ``demo_reseed_per_call_http_timeout_s`` is set high.
- *   - On success: sonner toast + invalidates the four TanStack queries the
- *     dashboard uses for its first-run signals + ``recent`` cards.
- *   - On envelope failure (``ApiError``): toast carries the error code and
- *     the runbook hint about ``docker compose restart api``.
- *   - On non-envelope failure (network / abort): a softer "in progress or
- *     unreachable" toast so the operator refreshes rather than retrying
- *     against a still-busy backend.
+ * Per ``bug_demo_reseed_fake_metric_regression``. The button replaces the
+ * previous synchronous-180s POST with an async enqueue + poll pattern:
+ *
+ *   1. POST `/api/v1/_test/demo/reseed` → 202 + initial
+ *      ReseedStatusResponse. The backend's Arq worker picks up the job and
+ *      runs the real-study seeding path (real Optuna trials, real metrics
+ *      per scenario).
+ *   2. ``useDemoReseedStatus`` polls every 2s while ``status === 'running'``
+ *      and renders the worker's ``current_step`` string verbatim so the
+ *      operator sees forward motion ("seeding acme-products-prod: trial 7/12").
+ *   3. On ``complete``: success toast + invalidate the dashboard's queries.
+ *      On ``failed``: error toast with ``failed_reason``.
+ *
+ * The dialog stays open during the reseed so the user sees progress; the
+ * Cancel button is replaced with Close once the run terminates.
  */
-interface ReseedSummary {
-  clusters_created: number;
-  query_sets_created: number;
-  studies_completed: number;
-  proposals_created: number;
-  duration_ms: number;
-}
-
 export function ResetDemoStateButton(): React.ReactElement {
   const [open, setOpen] = useState(false);
-  const [isPending, setIsPending] = useState(false);
+  const [pollingEnabled, setPollingEnabled] = useState(false);
   const queryClient = useQueryClient();
+  const statusQuery = useDemoReseedStatus({ enabled: pollingEnabled });
+  const status: ReseedStatusResponse | undefined = statusQuery.data;
+  const isRunning = status?.status === 'running';
+  const isTerminal = status?.status === 'complete' || status?.status === 'failed';
 
-  async function handleConfirm(event: React.MouseEvent): Promise<void> {
-    // Keep the dialog open while the POST is in-flight so the user sees
-    // the "Resetting…" affordance.
+  async function startReseed(event: React.MouseEvent): Promise<void> {
+    // Keep the dialog open so the progress card replaces the "are you sure"
+    // copy.
     event.preventDefault();
-    setIsPending(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180_000);
+    setPollingEnabled(true);
     try {
-      const { data } = await apiClient.post<ReseedSummary>('/api/v1/_test/demo/reseed', undefined, {
-        signal: controller.signal,
-      });
-      toast.success(
-        `Demo state reset — ${data.clusters_created} clusters, ${data.query_sets_created} query sets, ${data.studies_completed} completed studies. The dashboard will refresh in a moment.`,
+      await apiClient.post<ReseedStatusResponse>('/api/v1/_test/demo/reseed', undefined);
+      // Worker writes status updates to Redis; the polling hook picks them
+      // up on its next 2s tick.
+    } catch (err) {
+      setPollingEnabled(false);
+      if (isApiError(err) && (err as ApiError).errorCode === 'SEED_IN_PROGRESS') {
+        toast.info(
+          'A reseed is already running. Watch progress in the dialog or wait for it to finish.',
+        );
+        // Resume polling so the operator sees the in-flight run's progress.
+        setPollingEnabled(true);
+        return;
+      }
+      toast.error(
+        `Reseed enqueue failed: ${
+          isApiError(err) ? (err as ApiError).errorCode : 'unknown'
+        }. Refresh and try again, or run \`make seed-demo FORCE=1\` from the host.`,
       );
-      await Promise.all([
+    }
+  }
+
+  // Drive the success / failure toast once per terminal transition. Per
+  // Gemini PR #286 finding #1 — side effects (toasts, invalidateQueries)
+  // MUST run inside useEffect, not during render. Use a useRef for the
+  // dedup gate so the effect's setState→re-render→setState loop is
+  // sidestepped (eslint `react-hooks/set-state-in-effect`).
+  const lastTerminalAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isTerminal || statusQuery.dataUpdatedAt === 0) return;
+    if (statusQuery.dataUpdatedAt === lastTerminalAtRef.current) return;
+    lastTerminalAtRef.current = statusQuery.dataUpdatedAt;
+    if (status?.status === 'complete') {
+      toast.success(
+        `Demo state reset — ${status.summary?.studies_completed ?? 0} studies completed with real metrics. The dashboard will refresh in a moment.`,
+      );
+      void Promise.all([
         queryClient.invalidateQueries({ queryKey: ['clusters'] }),
         queryClient.invalidateQueries({ queryKey: ['judgment-lists'] }),
         queryClient.invalidateQueries({ queryKey: ['studies'] }),
         queryClient.invalidateQueries({ queryKey: ['proposals'] }),
       ]);
-      setOpen(false);
-    } catch (err) {
-      // Distinguish three failure modes:
-      //   1. Envelope failure with a real status (4xx/5xx) → show error
-      //      code + runbook hint (SEED_FAILED, SEED_IN_PROGRESS, etc).
-      //   2. Caller-aborted (180s client ceiling) → REQUEST_ABORTED
-      //      envelope → unreachable toast.
-      //   3. Raw network failure (apiClient wraps as ApiError with
-      //      errorCode='SERVICE_UNAVAILABLE' and status=0) → unreachable
-      //      toast — backend may still be running; refresh, don't retry.
-      //      (Per GPT-5.5 final-review.)
-      const isEnvelopeFailure =
-        isApiError(err) &&
-        err instanceof ApiError &&
-        err.status > 0 &&
-        err.errorCode !== 'REQUEST_ABORTED';
-      if (isEnvelopeFailure) {
-        toast.error(
-          `Reseed failed: ${(err as ApiError).errorCode}. If this followed a hang or timeout, run \`docker compose restart api\` before retrying; otherwise see the demo-reseed runbook or run \`make seed-demo FORCE=1\` from the host.`,
-        );
-      } else {
-        toast.error('Reseed in progress or unreachable — refresh the page in a moment.');
-      }
-    } finally {
-      clearTimeout(timeoutId);
-      setIsPending(false);
+    } else if (status?.status === 'failed') {
+      toast.error(
+        `Reseed failed: ${status.failed_reason ?? 'unknown'}. See logs / demo-reseed runbook.`,
+      );
     }
+  }, [
+    isTerminal,
+    statusQuery.dataUpdatedAt,
+    status?.status,
+    status?.summary?.studies_completed,
+    status?.failed_reason,
+    queryClient,
+  ]);
+
+  function progressPercent(): number | null {
+    if (status == null || status.scenarios_total === 0) return null;
+    return Math.round((status.scenarios_completed / status.scenarios_total) * 100);
   }
 
   return (
@@ -104,7 +118,14 @@ export function ResetDemoStateButton(): React.ReactElement {
       <Button
         type="button"
         variant="secondary"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true);
+          // Polling only starts after the operator clicks Confirm
+          // (``startReseed``). Opening the dialog alone doesn't fire the
+          // status endpoint — that endpoint may not even exist if the
+          // backend hasn't been rebuilt, and polling a missing endpoint
+          // floods the console with 404s.
+        }}
         data-testid="reset-demo-state-trigger"
       >
         Reset to demo state
@@ -112,24 +133,73 @@ export function ResetDemoStateButton(): React.ReactElement {
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Wipe and reseed demo data?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will WIPE the dev Postgres demo state (clusters, studies, query sets, query
-              templates, judgment lists, judgments, trials, digests, proposals) AND the
-              corresponding ES/OS indices. Then it will seed 4 demo scenarios.
-            </AlertDialogDescription>
+            <AlertDialogTitle>
+              {isRunning
+                ? 'Reseeding demo data…'
+                : isTerminal && status?.status === 'complete'
+                  ? 'Demo state reset complete'
+                  : isTerminal && status?.status === 'failed'
+                    ? 'Reseed failed'
+                    : 'Wipe and reseed demo data?'}
+            </AlertDialogTitle>
+            {!isRunning && !isTerminal && (
+              <AlertDialogDescription>
+                This will WIPE the dev Postgres demo state (clusters, studies, query sets, query
+                templates, judgment lists, judgments, trials, digests, proposals) AND the
+                corresponding ES/OS indices. Then it will seed 5 demo scenarios by running real
+                Optuna trials (~5–9 minutes wall-clock; each scenario gets a real best metric). The
+                5th scenario (acme-products-rich-prod) bulk-indexes 1000 ESCI products and calls the
+                OpenAI API to generate judgments (~$0.05 in tokens); it is skipped gracefully if no
+                OpenAI key is configured.
+              </AlertDialogDescription>
+            )}
+            {isRunning && status && (
+              <AlertDialogDescription asChild>
+                <div className="space-y-2" data-testid="reset-demo-state-progress">
+                  <div className="text-sm">{status.current_step ?? 'Starting…'}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Scenario {status.scenarios_completed} of {status.scenarios_total}
+                    {progressPercent() != null && ` (${progressPercent()}%)`}
+                  </div>
+                </div>
+              </AlertDialogDescription>
+            )}
+            {isTerminal && status?.status === 'failed' && (
+              <AlertDialogDescription>
+                {status.failed_reason ?? 'Unknown failure — see logs.'}
+              </AlertDialogDescription>
+            )}
+            {isTerminal && status?.status === 'complete' && status.summary && (
+              <AlertDialogDescription>
+                Completed in {(status.summary.duration_ms / 1000).toFixed(1)}s.
+                {status.summary.studies_completed} studies seeded with distinct real metrics.
+              </AlertDialogDescription>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending} data-testid="reset-demo-state-cancel">
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              disabled={isPending}
-              onClick={handleConfirm}
-              data-testid="reset-demo-state-confirm"
-            >
-              {isPending ? 'Resetting…' : 'Reset to demo state'}
-            </AlertDialogAction>
+            {!isRunning && !isTerminal && (
+              <>
+                <AlertDialogCancel data-testid="reset-demo-state-cancel">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={startReseed} data-testid="reset-demo-state-confirm">
+                  Reset to demo state
+                </AlertDialogAction>
+              </>
+            )}
+            {isRunning && (
+              <AlertDialogCancel data-testid="reset-demo-state-running-close">
+                Run in background
+              </AlertDialogCancel>
+            )}
+            {isTerminal && (
+              <AlertDialogAction
+                onClick={() => {
+                  setOpen(false);
+                }}
+                data-testid="reset-demo-state-done"
+              >
+                Close
+              </AlertDialogAction>
+            )}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

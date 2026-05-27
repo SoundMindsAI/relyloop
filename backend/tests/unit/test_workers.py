@@ -62,6 +62,9 @@ def test_worker_settings_importable(_settings_env: None) -> None:
         "enqueue_followup_study",
         # feat_study_baseline_trial Story 1.4
         "run_baseline_trial",
+        # bug_demo_reseed_fake_metric_regression — home-button reseed
+        # converted from sync HTTP to Arq job with status polling.
+        "run_demo_reseed",
     }
 
 
