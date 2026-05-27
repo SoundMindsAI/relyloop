@@ -184,7 +184,7 @@ export function SuggestedFollowupsPanel({
                   </details>
                 )}
                 {SHOWS_RUN_BUTTON[f.kind] && (
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-end gap-1">
                     <Button
                       type="button"
                       variant="default"
@@ -194,10 +194,11 @@ export function SuggestedFollowupsPanel({
                       aria-label="Run this followup — opens the create study form pre-filled with these settings"
                     >
                       Run this followup
-                      <span className="ml-1 inline-block align-middle">
-                        <InfoTooltip glossaryKey="proposal.followup_run_button" />
-                      </span>
                     </Button>
+                    {/* InfoTooltip lives OUTSIDE the Button — its trigger
+                        renders a <button>, and a button-inside-button is
+                        invalid HTML (causes hydration error). */}
+                    <InfoTooltip glossaryKey="proposal.followup_run_button" />
                   </div>
                 )}
               </li>
@@ -309,7 +310,7 @@ function SwapTemplateCard({
         </pre>
       </details>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-1">
         <Button
           type="button"
           variant="default"
@@ -319,10 +320,11 @@ function SwapTemplateCard({
           aria-label="Run this followup — opens the create study form pre-filled with these settings"
         >
           Run this followup
-          <span className="ml-1 inline-block align-middle">
-            <InfoTooltip glossaryKey="proposal.followup_run_button" />
-          </span>
         </Button>
+        {/* InfoTooltip lives OUTSIDE the Button — see comment on the
+            sibling Run button in SuggestedFollowupsPanel for the
+            button-inside-button hydration-error rationale. */}
+        <InfoTooltip glossaryKey="proposal.followup_run_button" />
       </div>
     </li>
   );
