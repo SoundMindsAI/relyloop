@@ -35,6 +35,9 @@ from backend.app.adapters.errors import (
     TargetsForbiddenError,
 )
 from backend.app.adapters.protocol import (
+    AdapterDocumentHit,
+    Document,
+    DocumentPage,
     EngineType,
     ExplainTree,
     FieldSpec,
@@ -701,6 +704,165 @@ class ElasticAdapter:
             doc_id,
             bool(payload.get("matched", False)),
         )
+
+    async def get_document(
+        self,
+        target: str,
+        doc_id: str,
+        *,
+        request_id: str | None = None,
+    ) -> Document | None:
+        """Fetch one document by ``_id`` (feat_index_document_browser FR-2).
+
+        Maps engine responses:
+        * ``200`` with ``_source`` → ``Document(doc_id, source)``.
+        * ``200`` without ``_source`` (engine has ``_source: false``) →
+          ``Document(doc_id, source=None)``.
+        * ``404`` + ``found: false`` → ``None`` (doc absent on a live index).
+        * ``404`` + ``error.type == "index_not_found_exception"`` →
+          ``TargetNotFoundError`` (the target itself is missing).
+        * ``401`` / ``403`` → ``TargetsForbiddenError`` (matches ``list_targets``
+          pattern at lines 404-407, so the router can translate to 403
+          ``TARGETS_FORBIDDEN`` instead of 503 ``CLUSTER_UNREACHABLE``).
+        * Any other ``>= 400`` or connection failure → ``ClusterUnreachableError``.
+
+        Both ``target`` and ``doc_id`` path segments are URL-encoded so IDs
+        containing ``/``, ``%``, ``#``, ``?``, or spaces round-trip through
+        the engine (feat_index_document_browser spec D-25 + AC-16).
+        """
+        from urllib.parse import quote
+
+        encoded_target = quote(target, safe="")
+        encoded_doc_id = quote(doc_id, safe="")
+        try:
+            resp = await self._request(
+                "GET",
+                f"/{encoded_target}/_doc/{encoded_doc_id}",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code in (401, 403):
+            raise TargetsForbiddenError(
+                f"cluster denied document fetch (HTTP {resp.status_code} from /_doc/...)"
+            )
+        if resp.status_code == 404:
+            # 404 may come from an intermediate proxy as a non-JSON HTML page
+            # rather than an ES envelope — guard the .json() call so we
+            # surface a typed adapter error instead of bubbling a
+            # JSONDecodeError as a 500 (per Gemini cycle-1 finding #1).
+            try:
+                payload = resp.json()
+            except (ValueError, TypeError):
+                payload = None
+            if (
+                isinstance(payload, dict)
+                and payload.get("error", {}).get("type") == "index_not_found_exception"
+            ):
+                raise TargetNotFoundError(target)
+            # found: false → return None
+            return None
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(
+                f"HTTP {resp.status_code} from /{encoded_target}/_doc/{encoded_doc_id}"
+            )
+        payload = resp.json()
+        return Document(doc_id=payload["_id"], source=payload.get("_source"))
+
+    async def list_documents(
+        self,
+        target: str,
+        *,
+        search_after: list[Any] | None = None,
+        limit: int = 25,
+        fields: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> DocumentPage:
+        """Paginated browse via _search + match_all + search_after.
+
+        feat_index_document_browser FR-2 + spec D-26 / D-24.
+
+        Request body locks:
+        * ``"sort": [{"_doc": "asc"}]`` — pagination key. The spec's primary
+          choice was ``_id``, but ES 9 disallows ``_id`` fielddata by default
+          (``indices.id_field_data.enabled`` is off, surfaced as HTTP 400 on
+          first probe). ``_doc`` is the spec D-26 fallback — shard-internal
+          but always available, and ``search_after`` works against it
+          identically. Tradeoff acknowledged: shard rebalancing could shift
+          ``_doc`` IDs and corrupt cursor continuity. For the MVP1 browse use
+          case (read-only operator inspection) this is acceptable. The
+          PIT + ``_shard_doc`` fallback remains available if shard churn
+          becomes a real-world problem.
+        * ``"track_total_hits": true`` — preserves exact ``hits.total.value``
+          for the router's ``X-Total-Count`` header (D-24; without this ES
+          caps total at 10000).
+
+        Error envelope matches :meth:`get_document` (401/403 → TargetsForbidden,
+        404 index_not_found → TargetNotFoundError, etc.).
+
+        Returns a :class:`DocumentPage` with up to ``limit`` hits, each
+        carrying its engine-native ``sort`` value so the router can encode
+        the cursor from the in-body hit under its ``limit + 1`` overfetch
+        pattern (per FR-3).
+        """
+        from urllib.parse import quote
+
+        encoded_target = quote(target, safe="")
+        body: dict[str, Any] = {
+            "query": {"match_all": {}},
+            "sort": [{"_doc": "asc"}],
+            "size": limit,
+            "track_total_hits": True,
+        }
+        if search_after is not None:
+            body["search_after"] = search_after
+        if fields is not None:
+            body["_source"] = {"includes": fields}
+        try:
+            resp = await self._request(
+                "POST",
+                f"/{encoded_target}/_search",
+                json=body,
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code in (401, 403):
+            raise TargetsForbiddenError(
+                f"cluster denied _search (HTTP {resp.status_code} from /_search)"
+            )
+        if resp.status_code == 404:
+            # Guarded JSON parse — see get_document for the rationale
+            # (Gemini cycle-1 finding #2).
+            try:
+                payload = resp.json()
+            except (ValueError, TypeError):
+                payload = None
+            if (
+                isinstance(payload, dict)
+                and payload.get("error", {}).get("type") == "index_not_found_exception"
+            ):
+                raise TargetNotFoundError(target)
+            raise ClusterUnreachableError(
+                f"HTTP 404 from /{encoded_target}/_search "
+                "(unexpected — not index_not_found_exception)"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /{encoded_target}/_search")
+        payload = resp.json()
+        hits_raw = payload.get("hits", {}).get("hits", [])
+        total = int(payload.get("hits", {}).get("total", {}).get("value", 0))
+        hits = [
+            AdapterDocumentHit(
+                doc_id=h["_id"],
+                source=h.get("_source"),
+                sort=h["sort"],  # fail-loud KeyError if engine omits sort under sort: [...] query
+            )
+            for h in hits_raw
+        ]
+        return DocumentPage(hits=hits, total=total)
 
 
 def _build_explain_tree(node: dict[str, Any], doc_id: str, matched: bool) -> ExplainTree:

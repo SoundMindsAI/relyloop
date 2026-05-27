@@ -5,6 +5,7 @@ import { use } from 'react';
 import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClusterActionBar } from '@/components/clusters/cluster-action-bar';
+import { ClusterDetailIndicesCard } from '@/components/clusters/cluster-detail-indices-card';
 import { ClusterDetailSummary } from '@/components/clusters/cluster-detail-summary';
 import { StudiesByClusterTable } from '@/components/clusters/studies-by-cluster-table';
 import { useCluster } from '@/lib/api/clusters';
@@ -28,6 +29,7 @@ export function ClusterDetailView({ clusterId }: { clusterId: string }) {
           <>
             <ClusterDetailSummary cluster={cluster} />
             <ClusterActionBar cluster={cluster} />
+            <ClusterDetailIndicesCard clusterId={cluster.id} />
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Studies using this cluster</CardTitle>

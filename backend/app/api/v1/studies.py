@@ -456,6 +456,7 @@ async def list_studies(
     since: Annotated[datetime | None, Query()] = None,
     study_status: Annotated[StudyStatusWire | None, Query(alias="status")] = None,
     cluster_id: Annotated[str | None, Query(min_length=1, max_length=36)] = None,
+    target: Annotated[str | None, Query(min_length=1, max_length=256)] = None,
     q: Annotated[str | None, Query(min_length=2, max_length=200)] = None,
     sort: Annotated[StudySortKey | None, Query()] = None,
 ) -> StudyListResponse:
@@ -466,6 +467,10 @@ async def list_studies(
     FTS match against ``search_vector`` (name + target). ``?sort=`` is a
     :data:`StudySortKey` value (``<col>:<asc|desc>``); the cursor is
     sort-aware (feat_data_table_primitive Stories 1.2 + 1.3).
+
+    ``?target=`` (feat_index_document_browser FR-5) scopes the list to
+    studies targeting a single index/collection. Composes with all other
+    filters via AND.
     """
     from backend.app.db.repo._sort import (
         cursor_value_is_datetime,
@@ -496,11 +501,17 @@ async def list_studies(
         since=since,
         status=status_filter,
         cluster_id=cluster_id,
+        target=target,
         q=q,
         sort=sort,
     )
     total = await repo.count_studies(
-        db, since=since, status=status_filter, cluster_id=cluster_id, q=q
+        db,
+        since=since,
+        status=status_filter,
+        cluster_id=cluster_id,
+        target=target,
+        q=q,
     )
     response.headers["X-Total-Count"] = str(total)
 
