@@ -274,6 +274,13 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
                 <CurrentlyLiveBadge isCurrentlyLive={proposal.is_currently_live} />
               </h1>
             </div>
+            <p className="text-sm text-muted-foreground" data-testid="proposal-page-summary">
+              A proposal is a recommended search-config change from an optimization study. Review
+              the diff and metric delta below — <strong>Open PR</strong> sends the recommendation to
+              your config repo where your existing CI and reviewers decide whether to ship it;{' '}
+              <strong>Reject</strong> discards it. Click the floating <em>Guide</em> button
+              (bottom-right) for the step-by-step walkthrough.
+            </p>
             <ProposalHeader proposal={proposal} />
             <ConfigDiffPanel diff={proposal.config_diff} />
             <Card>
