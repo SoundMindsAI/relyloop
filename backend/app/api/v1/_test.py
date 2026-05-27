@@ -641,10 +641,16 @@ async def reseed_demo(
                 True,
             )
 
+        # 4 small SCENARIOS + 1 rich ESCI scenario — matches ``make seed-demo``.
+        # Worker will overwrite this status once it picks up the job, but
+        # use the same total here so the operator never sees a misleading
+        # "Scenario 0 of 4" while the worker is still queued.
+        from backend.app.services.demo_seeding import SCENARIOS as _DEMO_SCENARIOS
+
         initial = ReseedStatusResponse(
             status="running",
             started_at=_now_iso(),
-            scenarios_total=4,
+            scenarios_total=len(_DEMO_SCENARIOS) + 1,
             scenarios_completed=0,
             current_step="enqueued — waiting for worker",
         )
