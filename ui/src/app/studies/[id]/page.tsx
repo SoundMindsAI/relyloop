@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { Suspense, use, useMemo, useState } from 'react';
 
 import { DetailPageShell } from '@/components/common/detail-page-shell';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -144,7 +145,10 @@ function TrialsCard({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Trials</CardTitle>
+        <CardTitle className="flex items-center gap-1 text-base">
+          Trials
+          <InfoTooltip glossaryKey="trial" />
+        </CardTitle>
         {baselineRows.length > 0 && (
           <div className="flex items-center gap-2">
             <Button
