@@ -74,6 +74,14 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               <h1 className="text-2xl font-semibold tracking-tight">Study detail</h1>
               <StudyActionBar study={study} chainChildren={childrenQ.data?.data ?? []} />
             </div>
+            <p className="text-sm text-muted-foreground" data-testid="study-page-summary">
+              A study runs Optuna trials against your cluster and judgment list to search for a
+              better parameter configuration. Each row in the trials table is one tried-and-scored
+              config. <strong>Parameter importance</strong> shows which knobs the optimizer leaned
+              on; the <strong>digest</strong> (when complete) explains the result in prose and
+              recommends a config to ship via a proposal. Click the floating <em>Guide</em> button
+              (bottom-right) for the step-by-step walkthrough.
+            </p>
             <StudyHeader study={study} />
             <AutoFollowupChainPanel study={study} chainChildren={childrenQ.data?.data ?? []} />
             <ConfidencePanel confidence={study.confidence} />

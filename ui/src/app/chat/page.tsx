@@ -33,6 +33,13 @@ function ChatPageInner() {
         </Button>
       </div>
 
+      <p className="text-sm text-muted-foreground" data-testid="chat-page-summary">
+        The chat agent is a conversational driver for the optimization loop. Describe a relevance
+        problem in plain language — the agent introspects your clusters, picks the right tools
+        (judgment generation, study creation, proposal review), and reports results inline. Click
+        the floating <em>Guide</em> button (bottom-right) for the chat walkthrough.
+      </p>
+
       <Card>
         <CardHeader>
           <CardTitle>Conversations</CardTitle>
