@@ -9,9 +9,14 @@ Last updated: 2026-05-27.
 |---|---|---|---|---|---|
 | Eric Starr | [@SoundMindsAI](https://github.com/SoundMindsAI) | `eric.starr@soundminds.ai` | Project lead, maintainer | soundminds.ai | All subsystems |
 
-At v0.1, every maintainer is a soundminds.ai employee. This is stated
-openly so that contributors and downstream users can size the bus factor
-honestly. The plan to grow the maintainer set across organizations is in
+At v0.1, the project has a single active maintainer, employed by
+soundminds.ai. This is stated openly so that contributors and downstream
+users can size the bus factor honestly. Operationally this means the
+project lead self-merges their own PRs after CI is green; the governance
+rules that would normally require multi-maintainer `+1` quorum are
+suspended under the transitional rule documented in
+[GOVERNANCE.md](GOVERNANCE.md#how-decisions-are-made). The plan to grow
+the maintainer set across organizations is in
 [GOVERNANCE.md](GOVERNANCE.md) ("Transition plan").
 
 ## Responsibilities
@@ -34,6 +39,36 @@ Maintainers are expected to:
 
 See [GOVERNANCE.md](GOVERNANCE.md#how-to-become-a-maintainer) for the
 nomination flow and the realistic bar.
+
+## Branch protection (operator setup notes)
+
+These notes apply to whoever administers the GitHub repository. They are
+intentionally kept in the repo (not in a maintainer's head) so the setup
+survives a maintainer transition.
+
+**At v0.1 with N=1 maintainer**, the safe branch-protection configuration
+on `main` is:
+
+- ✅ Require a pull request before merging.
+- ✅ Require status checks to pass before merging — mark these as required:
+  `DCO sign-off check`, `secrets-defense`, and the `pr.yml` job names
+  (backend, frontend, docker-build).
+- ✅ Require conversation resolution before merging.
+- ✅ Require linear history (matches the squash-merge convention).
+- ❌ Do **not** "Require approvals" (≥1). GitHub forbids a user from
+  approving their own PR; with N=1 maintainer this toggle deadlocks the
+  project lead's ability to merge their own work.
+- ❌ Do **not** "Require review from Code Owners" while N=1, for the same
+  reason — CODEOWNERS routes everything to the lone maintainer.
+- ❌ Do **not** "Include administrators" while N=1 with the above
+  approval/CODEOWNERS toggles enabled, otherwise the lead cannot bypass
+  their own deadlock.
+
+**When N≥2**, flip the three ❌ toggles to ✅ in the same PR that adds the
+second maintainer, and update this section.
+
+The matching configuration in the operator's own checkout (DCO sign-off
+hook locally, etc.) is in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Emeritus
 

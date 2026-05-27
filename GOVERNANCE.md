@@ -52,6 +52,13 @@ non-goals, drop a supported engine or LLM provider, or change the
 licensing or governance posture require an explicit `+1` from at least two
 maintainers, including the project lead.
 
+**Single-maintainer transitional rule (v0.1):** while there is only one
+maintainer, the two-maintainer `+1` requirement is suspended — the project
+lead's decision stands, recorded in the PR or issue thread. The rule
+activates automatically the moment a second maintainer is added. This is
+called out openly in [MAINTAINERS.md](MAINTAINERS.md) so contributors can
+size the governance state honestly.
+
 ## How to become a maintainer
 
 There is no time-served quota. The realistic bar is:
@@ -64,8 +71,10 @@ There is no time-served quota. The realistic bar is:
 
 The nomination flow: an existing maintainer opens an issue proposing the
 addition; other maintainers `+1` or raise objections; the project lead
-makes the final call. We will document the first community maintainer
-addition publicly so that the path is visible.
+makes the final call. While there is only one maintainer, the project
+lead adds the first additional maintainer unilaterally based on the
+criteria above — the `+1` flow activates once N≥2. We will document the
+first community maintainer addition publicly so that the path is visible.
 
 ## Transition plan
 
