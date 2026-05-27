@@ -708,14 +708,21 @@ def seed_scenario(s: dict) -> dict:
     # = same numbers run after run.
     #
     # For acme specifically, ALSO create a second template (function_score
-    # recency-decay shape) so the digest worker has a candidate it CAN suggest
+    # price-decay shape) so the digest worker has a candidate it CAN suggest
     # as a swap_template followup. Whether the LLM actually picks it is up to
     # the digest prompt + the study's data — we don't fake it.
     if s["slug"] == "acme-products-prod":
+        # Per Gemini Code Assist review on PR #281: this template originally
+        # claimed to do "recency decay" but its body was just a bare
+        # function_score wrapper around multi_match — no actual scoring
+        # function, and the products index has no date field to decay on
+        # anyway. Renamed to "price-decay" + added a real gauss function
+        # over the existing `price` field so the swap_template followup
+        # would actually produce different ranking on a Run-followup click.
         swap_template = post(
             "/query-templates",
             {
-                "name": "function-score-recency-decay-v1",
+                "name": "function-score-price-decay-v1",
                 "engine_type": s["engine_type"],
                 "body": json.dumps(
                     {
@@ -731,7 +738,19 @@ def seed_scenario(s: dict) -> dict:
                                         ],
                                         "type": "best_fields",
                                     }
-                                }
+                                },
+                                "functions": [
+                                    {
+                                        "gauss": {
+                                            "price": {
+                                                "origin": 0,
+                                                "scale": 100,
+                                                "decay": 0.5,
+                                            }
+                                        }
+                                    }
+                                ],
+                                "score_mode": "multiply",
                             }
                         }
                     }
@@ -739,7 +758,7 @@ def seed_scenario(s: dict) -> dict:
                 "declared_params": s["template_declared_params"],
             },
         )
-        print(f"  swap template: {swap_template['id']} (function-score-recency-decay-v1)")
+        print(f"  swap template: {swap_template['id']} (function-score-price-decay-v1)")
 
     # Build search_space from the template's declared_params. Float params get
     # a [0.5, 5.0] log-uniform range — a sensible boost-shaped default that
