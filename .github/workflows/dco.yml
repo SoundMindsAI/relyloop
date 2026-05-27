@@ -1,0 +1,56 @@
+name: DCO
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dco-check:
+    name: DCO sign-off check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch full history so `git log <base>..HEAD` resolves.
+          fetch-depth: 0
+
+      - name: Verify Signed-off-by trailer on every PR commit
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          BASE="origin/${BASE_REF}"
+          git fetch --quiet origin "${BASE_REF}"
+
+          MISSING=()
+          while IFS= read -r sha; do
+            [[ -z "$sha" ]] && continue
+            # Skip merge commits — their parents already had the check.
+            if [[ $(git rev-list --parents -n 1 "$sha" | awk '{print NF-1}') -gt 1 ]]; then
+              continue
+            fi
+            body=$(git log -1 --format='%B' "$sha")
+            if ! grep -qE '^Signed-off-by: .+ <.+@.+>$' <<< "$body"; then
+              subject=$(git log -1 --format='%s' "$sha")
+              MISSING+=("${sha:0:12}  ${subject}")
+            fi
+          done < <(git rev-list "${BASE}..${HEAD_SHA}")
+
+          if [ "${#MISSING[@]}" -gt 0 ]; then
+            echo "::error::DCO violation. The following commits are missing a Signed-off-by trailer:"
+            printf '  %s\n' "${MISSING[@]}"
+            echo ""
+            echo "Fix locally with:"
+            echo "  git rebase --signoff origin/${BASE_REF}"
+            echo "  git push --force-with-lease"
+            echo ""
+            echo "See CONTRIBUTING.md → Developer Certificate of Origin (DCO)."
+            exit 1
+          fi
+
+          echo "DCO check passed: every commit in ${BASE}..HEAD has a Signed-off-by trailer."

@@ -1,7 +1,7 @@
 # API Conventions
 
 **Status:** Adopted for MVP1. New conventions activate at the release noted on each row.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §28](../00_overview/product/relevance-copilot-spec.md) ("API conventions" subsection).
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §28](../00_overview/relyloop-spec.md) ("API conventions" subsection).
 
 ---
 

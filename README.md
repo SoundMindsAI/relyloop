@@ -57,10 +57,30 @@ do not duplicate here, the matrix is the source of truth.
 
 See spec §4 (non-goals) for the full set.
 
+## How RelyLoop fits with other relevance tools
+
+RelyLoop is not the first tool in the search-relevance space and does not try
+to replace the tools already there. It sits alongside Quepid (interactive
+workbench), the OpenSearch Relevance Agent (in-cluster automated tuning for
+OpenSearch-only shops), Chorus (reference integration stack), SMUI + Querqy
+(query-rewriting rules), Elasticsearch / Solr LTR (reranker model training),
+OpenSearch UBI (real user signals), and the rest of the open-source relevance
+ecosystem.
+
+The slice RelyLoop owns is **autonomous, engine-agnostic, Git-PR-mediated
+query-time parameter tuning** — useful when you operate Elasticsearch or both
+ES + OpenSearch, want production config changes to flow through a Pull
+Request reviewed by named approvers, run multiple clusters / environments,
+or eventually want one tool that spans engines.
+
+The full breakdown — honest assessment of where each adjacent tool fits,
+where RelyLoop fits, and the pairing patterns we recommend — is in
+[`docs/00_overview/adjacent-tools.md`](docs/00_overview/adjacent-tools.md).
+
 ## Links
 
 - Tutorial: [`docs/08_guides/tutorial-first-study.md`](docs/08_guides/tutorial-first-study.md)
-- Umbrella spec: [`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md)
+- Umbrella spec: [`docs/00_overview/relyloop-spec.md`](docs/00_overview/relyloop-spec.md)
 - Architecture index: [`docs/01_architecture/`](docs/01_architecture/)
 - Local-dev runbook: [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md)
 - Release checklist (maintainers): [`docs/03_runbooks/release-checklist.md`](docs/03_runbooks/release-checklist.md)
@@ -68,12 +88,27 @@ See spec §4 (non-goals) for the full set.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions use the Developer Certificate of Origin (DCO) — sign your commits with `git commit -s`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, branching, and PR conventions. Contributions use the Developer Certificate of Origin (DCO) — sign your commits with `git commit -s`. Be kind ([CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)).
 
-## Maintainers
+## Security
 
-soundminds.ai is the initial maintainer. The project plans to transition toward community maintainership over 12–24 months. See spec §29 *OSS positioning & governance*.
+Vulnerabilities go through [SECURITY.md](SECURITY.md), not public issues.
+
+## Governance and maintainers
+
+- Current maintainers: [MAINTAINERS.md](MAINTAINERS.md). At v0.1, all maintainers are soundminds.ai employees — stated openly so the bus factor is visible.
+- How decisions are made + the plan to grow the maintainer set across organizations: [GOVERNANCE.md](GOVERNANCE.md). The transition target is 12–24 months from MVP1's first stable release.
+
+## Reaching out
+
+For casual outreach, design conversations, or "is RelyLoop right for my team?" questions, the project lead is reachable at:
+
+- Email: `eric.starr@soundminds.ai`
+- X: [@Starrman777](https://x.com/Starrman777)
+- LinkedIn: [linkedin.com/in/starrman](https://www.linkedin.com/in/starrman/)
+
+For bug reports use [GitHub Issues](https://github.com/SoundMindsAI/relyloop/issues); for security vulnerabilities use [SECURITY.md](SECURITY.md); for design discussions in the open use [GitHub Discussions](https://github.com/SoundMindsAI/relyloop/discussions).

@@ -1,7 +1,7 @@
 # Apply Path: Git PR Workflow
 
 **Status:** Adopted for MVP1 with GitHub-only. Multi-Git-provider abstraction (GitLab + Bitbucket) ships at MVP3 per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §16](../00_overview/product/relevance-copilot-spec.md) ("Apply path: Git PR workflow").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §16](../00_overview/relyloop-spec.md) ("Apply path: Git PR workflow").
 
 ---
 

@@ -1,7 +1,7 @@
 # Agent Tools
 
 **Status:** Adopted for MVP1 with OpenAI function-calling. The tool registry pattern persists into LangGraph (GA v1) without breaking changes.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §19](../00_overview/product/relevance-copilot-spec.md) ("Agent tools") + §21 ("Agent integration").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §19](../00_overview/relyloop-spec.md) ("Agent tools") + §21 ("Agent integration").
 
 ---
 

@@ -10,7 +10,7 @@
 - [docs/01_architecture/tech-stack.md](../../../01_architecture/tech-stack.md) — stack choices this feature wires up
 - [docs/01_architecture/deployment.md](../../../01_architecture/deployment.md) — Compose layout this feature implements
 - [docs/01_architecture/api-conventions.md](../../../01_architecture/api-conventions.md) — conventions the `/healthz` endpoint follows
-- [docs/00_overview/product/relevance-copilot-spec.md](../../../00_overview/product/relevance-copilot-spec.md) §27 — MVP1 scope (umbrella)
+- [docs/00_overview/relyloop-spec.md](../../../00_overview/relyloop-spec.md) §27 — MVP1 scope (umbrella)
 
 ---
 

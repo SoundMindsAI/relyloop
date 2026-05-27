@@ -9,7 +9,7 @@
 - [docs/01_architecture/data-model.md](../../../01_architecture/data-model.md) — `clusters` and `config_repos` tables (MVP1 shape)
 - [docs/01_architecture/api-conventions.md](../../../01_architecture/api-conventions.md) — endpoint conventions this feature follows
 - [docs/01_architecture/mvp1-overview.md](../../../01_architecture/mvp1-overview.md) — MVP1 architecture entry point
-- [docs/00_overview/product/relevance-copilot-spec.md](../../../00_overview/product/relevance-copilot-spec.md) §19 — agent tools (`get_schema`, `run_query` consumed in `feat_chat_agent`)
+- [docs/00_overview/relyloop-spec.md](../../../00_overview/relyloop-spec.md) §19 — agent tools (`get_schema`, `run_query` consumed in `feat_chat_agent`)
 - Depends on: [`infra_foundation/feature_spec.md`](../infra_foundation/feature_spec.md)
 
 ---
