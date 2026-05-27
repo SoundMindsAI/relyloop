@@ -3,11 +3,13 @@ import Link from 'next/link';
 import { Suspense, use, useMemo, useState } from 'react';
 
 import { DetailPageShell } from '@/components/common/detail-page-shell';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AutoFollowupChainPanel } from '@/components/studies/auto-followup-chain-panel';
 import { ConfidencePanel } from '@/components/studies/confidence-panel';
+import { LinkedEntitiesRow } from '@/components/studies/linked-entities-row';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
 import { StudyHeader } from '@/components/studies/study-header';
@@ -83,6 +85,20 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               (bottom-right) for the step-by-step walkthrough.
             </p>
             <StudyHeader study={study} />
+            <LinkedEntitiesRow study={study} />
+            {proposalQ.data && (
+              <p className="text-sm" data-testid="study-proposal-link">
+                <span className="text-muted-foreground">Proposal:</span>{' '}
+                <Link
+                  href={`/proposals/${proposalQ.data.id}`}
+                  className="text-blue-600 underline-offset-4 hover:underline"
+                  data-testid="study-proposal-link-anchor"
+                >
+                  view proposal (
+                  <span className="capitalize">{proposalQ.data.status.replace(/_/g, ' ')}</span>)
+                </Link>
+              </p>
+            )}
             <AutoFollowupChainPanel study={study} chainChildren={childrenQ.data?.data ?? []} />
             <ConfidencePanel confidence={study.confidence} />
             <TrialsCard trialsQ={trialsQ} urlState={urlState} tableId={`trials-${studyId}`} />
@@ -132,7 +148,10 @@ function TrialsCard({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">Trials</CardTitle>
+        <CardTitle className="flex items-center gap-1 text-base">
+          Trials
+          <InfoTooltip glossaryKey="trial" />
+        </CardTitle>
         {baselineRows.length > 0 && (
           <div className="flex items-center gap-2">
             <Button

@@ -291,6 +291,24 @@ class TestOutcomeSummary:
         deltas = [c[3] for c in result.regressor_candidates]
         assert deltas == sorted(deltas)  # ascending (most negative first)
 
+    def test_collects_improver_candidates_sorted_by_positive_delta(self) -> None:
+        """Mirror of the regressor test for the improver list — verifies
+        positive-delta queries are collected, sorted by signed delta
+        descending (biggest improvement first), and capped at
+        TOP_REGRESSORS_CAP. Regression guard for the new top_improvers
+        field on PerQueryOutcomesShape."""
+        winner = {f"q{i}": {"ndcg": 0.9 - 0.01 * i} for i in range(8)}
+        comparison = {f"q{i}": {"ndcg": 0.1 + 0.01 * i} for i in range(8)}  # all huge improvements
+        result = compute_outcome_summary(winner, comparison, "ndcg")
+        assert result is not None
+        assert result.improved == 8
+        assert result.regressed == 0
+        assert len(result.improver_candidates) == TOP_REGRESSORS_CAP
+        # Sorted by signed delta descending — biggest improvement first.
+        deltas = [c[3] for c in result.improver_candidates]
+        assert deltas == sorted(deltas, reverse=True)
+        assert all(d > 0 for d in deltas)  # all improver deltas are positive
+
 
 class TestBuildRegressorRows:
     def test_hydrates_query_text(self) -> None:

@@ -292,13 +292,36 @@ open http://localhost:3000/studies
 ```
 
 Click the study you just created. The detail page shows trials filling in
-real-time (10 total, ~30 seconds each). Once `status = completed`, the
-digest tab renders:
+real-time (10 total, ~30 seconds each).
+
+A few orientation surfaces above the panels:
+
+- **Linked entities row** — named, clickable links to the **cluster**,
+  **query set**, **judgment list**, and **template** this study ran
+  against. Click any to drill into the source of truth.
+- **View-proposal link** — once you promote a proposal (Step 10), a
+  `Proposal: view proposal (<status>)` link appears below the header
+  for the round-trip from study → proposal.
+- **Glossary tooltips** — `(i)` icons next to **Target**, **Trials**,
+  **Best metric**, and other column headings. Hover for the short
+  definition; the Guide button (bottom-right) opens the full glossary.
+
+Once `status = completed`, the digest tab renders:
 
 - **Narrative summary** — 2–3 sentences describing what won and why
 - **Recommended config** — `*.params.json` shape, ready to paste into your
   search-config repo
 - **Parameter importance** — bar chart from Optuna's importance evaluator
+
+The **Confidence panel** sits between the trials table and the digest.
+It tells you whether the winner is statistically reliable: the headline
+metric with a 95% CI band, per-query outcome chips
+(`X Improved · Y Unchanged · Z Regressed`), named **Queries that
+improved** and **Queries that regressed** tables, and three secondary
+callouts (runner-up gap, late-trial 1σ, convergence regime). Every
+`(i)` icon opens a glossary definition. For a 5-query smoke-test study
+the CI band will be wide and that's honest; the value is in seeing
+*which queries gained and lost*, not just the aggregate lift.
 
 If the digest narrative is empty or you see `OPENAI_NOT_CONFIGURED` in the
 worker logs, your LLM provider is misconfigured — re-do Step 0.

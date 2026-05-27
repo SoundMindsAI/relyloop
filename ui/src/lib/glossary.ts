@@ -300,6 +300,27 @@ export const glossary = {
   // Trials table (FR-8)
   // -------------------------------------------------------------------------
 
+  // Umbrella entry — defines what a trial IS. The other trial.* keys
+  // describe specific fields. New operators land on the trials table
+  // and need to know the concept before the field-level tooltips help.
+  trial: {
+    short:
+      'One Optuna evaluation: a parameter combination run against the cluster and scored against the judgment list to produce one metric.',
+    long: [
+      "A **trial** is one concrete evaluation of a parameter combination — Optuna's unit of work.",
+      '',
+      'For each trial, RelyLoop:',
+      '',
+      "1. Picks parameter values (e.g., `title_boost=1.98`) via Optuna's TPE sampler, which learns from prior trials' scores.",
+      '2. Renders them into the query template → a real ES / OpenSearch query.',
+      '3. Runs that query for every query in the query set → ranked results.',
+      '4. Scores each result list against the judgment list (e.g., ndcg@10), averaging across queries → one number.',
+      '',
+      "That number is the trial's **primary metric**. A study runs `max_trials` of these (typically 10-200); the best-scoring trial's parameters become the **proposal**.",
+    ].join('\n'),
+    ariaLabel: 'More information about Optuna trials',
+  },
+
   // Source-of-truth: backend/app/api/v1/schemas.py TrialStatusWire
   'trial.status': {
     short:

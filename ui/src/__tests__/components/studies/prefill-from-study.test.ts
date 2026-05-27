@@ -51,6 +51,7 @@ const FULLY_POPULATED_SOURCE: StudyDetail = {
   optuna_study_name: 'baseline-study-optuna',
   parent_study_id: null,
   baseline_metric: 0.42,
+  baseline_trial_id: null,
   best_metric: 0.51,
   best_trial_id: '01970000-0000-7000-8000-0000000000ab',
   created_at: '2026-05-20T00:00:00Z',

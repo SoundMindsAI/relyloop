@@ -652,9 +652,13 @@ export async function seedProposal(args: {
   const proposal = await post<{ id: string }>('/api/v1/proposals', {
     cluster_id: clusterId,
     template_id: templateId,
+    // Canonical shape matches backend/workers/digest.py — `{from, to}` per
+    // key, NOT `{before, after}`. The ConfigDiffPanel's extractFromTo()
+    // helper renders this directly; arbitrary `{before, after}` would
+    // render as raw JSON in the TO column (a captured-via-screenshots bug).
     config_diff: configDiff ?? {
-      'title.boost': { before: 1.0, after: 2.5 },
-      'description.boost': { before: 1.0, after: 0.8 },
+      'title.boost': { from: 1.0, to: 2.5 },
+      'description.boost': { from: 1.0, to: 0.8 },
     },
     metric_delta: metricDelta ?? {
       metric: 'ndcg@10',

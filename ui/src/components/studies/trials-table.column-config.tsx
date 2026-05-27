@@ -41,6 +41,10 @@ export const trialsColumns: DataTableColumnDef<TrialDetail>[] = [
     accessorKey: 'optuna_trial_number',
     sortable: true,
     firstClickDirection: 'asc',
+    // Surface the "what is a trial" explainer on the column that shows the
+    // Optuna trial number — the bare "#" header otherwise reads as "row
+    // index" to a first-time operator.
+    tooltipKey: 'trial',
     // optuna_trial_number_desc does not exist in the TrialSortKey Literal;
     // constrain the cycle so the second click clears to unsorted instead
     // of trying to advance to an unsupported direction.
