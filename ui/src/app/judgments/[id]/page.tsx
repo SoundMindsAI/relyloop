@@ -68,6 +68,14 @@ export function JudgmentListView({ listId }: { listId: string }) {
                 Calibrate
               </Button>
             </div>
+            <p className="text-sm text-muted-foreground" data-testid="judgment-page-summary">
+              A judgment list is the <strong>(query, doc, rating)</strong> ground truth your studies
+              score against. Ratings come from an LLM (graded against your rubric) or from an
+              operator-imported file. <strong>Calibrate</strong> compares LLM-graded ratings against
+              a human-imported reference list via Cohen's κ — high agreement means the LLM mirrors
+              your team's judgment. Click the floating <em>Guide</em> button (bottom-right) for the
+              step-by-step walkthrough.
+            </p>
             <JudgmentListHeader list={listData} />
             <Card>
               <CardContent className="pt-6">

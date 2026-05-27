@@ -25,6 +25,7 @@ const destDir = join(__dirname, '..', 'public', 'docs');
 
 const DOCS = [
   { src: 'tutorial-first-study.md', dest: 'tutorial-first-study.md' },
+  { src: 'quick-tour.md', dest: 'quick-tour.md' },
   { src: 'workflows-overview.md', dest: 'workflows-overview.md' },
 ];
 

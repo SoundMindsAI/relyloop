@@ -28,10 +28,10 @@ export default function GuideCatalogPage() {
 
       <section className="space-y-3" data-testid="doc-section">
         <header>
-          <h2 className="text-lg font-semibold tracking-tight">Long-form documentation</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Tours &amp; tutorials</h2>
           <p className="text-sm text-muted-foreground">
-            In-depth reading for setting up RelyLoop end-to-end + understanding the full capability
-            surface.
+            Big-picture journeys through RelyLoop — pick a 10-minute click-through tour, the full
+            30-minute hands-on tutorial, or a workflow inventory.
           </p>
         </header>
         <div className="grid gap-4 sm:grid-cols-2" data-testid="doc-catalog-grid">
@@ -60,10 +60,10 @@ export default function GuideCatalogPage() {
 
       <section className="space-y-3" data-testid="walkthrough-section">
         <header>
-          <h2 className="text-lg font-semibold tracking-tight">Visual walkthroughs</h2>
+          <h2 className="text-lg font-semibold tracking-tight">Per-workflow walkthroughs</h2>
           <p className="text-sm text-muted-foreground">
-            Step-by-step screenshot decks with captions. Each walkthrough opens in a modal with
-            fullscreen + larger-text accessibility controls.
+            Bite-sized screenshot decks with captions, one per UI workflow. Each opens in a modal
+            with fullscreen + larger-text accessibility controls.
           </p>
         </header>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="guide-catalog-grid">

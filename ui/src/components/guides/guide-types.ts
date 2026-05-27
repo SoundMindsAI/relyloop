@@ -69,6 +69,14 @@ export const DOC_REGISTRY: DocRegistryEntry[] = [
     estimatedTime: '30 minutes',
   },
   {
+    slug: 'quick-tour',
+    file: 'quick-tour.md',
+    title: 'Quick tour — what RelyLoop does, in 10 minutes',
+    description:
+      'Click-through tour for a search-relevance engineer seeing the product for the first time. Skips the operator setup ceremony and goes straight to the value prop: the overnight optimization loop, the metric lift it produces, and the PR-based ship discipline that wraps it. Pairs with `make seed-demo`.',
+    estimatedTime: '10 minutes',
+  },
+  {
     slug: 'workflows',
     file: 'workflows-overview.md',
     title: 'Workflows overview',

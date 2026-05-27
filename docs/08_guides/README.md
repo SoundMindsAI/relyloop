@@ -11,6 +11,14 @@ content for RelyLoop operators.
   10-trial Optuna study, read the digest, open a PR against the public
   config repo. Same operator path the CI smoke test exercises.
   (`chore_tutorial_polish`)
+- [`quick-tour.md`](quick-tour.md) — 10-minute click-through tour for a
+  search-relevance engineer who has never seen the product. Skips the
+  operator setup ceremony and goes straight to the value prop: the
+  overnight optimization loop, the metric lift it produces, and the
+  PR-based ship discipline. Pairs with `make seed-demo` (pre-bakes 4
+  realistic scenarios). Use this instead of `tutorial-first-study.md`
+  when you want a short narrative tour rather than a hands-on build.
+  Presenter notes embedded as HTML comments.
 - [`workflows-overview.md`](workflows-overview.md) — complete inventory of the
   30 distinct workflows a search engineer can execute in RelyLoop today,
   grouped by phase (setup → build relevance assets → run the loop → review
