@@ -75,7 +75,17 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
     """
     settings = get_settings()
     factory = get_session_factory()
-    redis = Redis.from_url(settings.redis_url, decode_responses=False)
+    # Reuse the Arq-managed Redis pool when available (per Gemini PR #286
+    # finding #7). Falls back to a job-scoped Redis.from_url when ctx
+    # doesn't carry one (e.g., older Arq versions, or unit tests that
+    # invoke the function directly).
+    arq_redis = ctx.get("redis") if isinstance(ctx, dict) else None
+    created_redis = arq_redis is None
+    redis: Redis = (
+        arq_redis
+        if arq_redis is not None
+        else Redis.from_url(settings.redis_url, decode_responses=False)
+    )
 
     try:
         engine = get_engine()
@@ -169,4 +179,8 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                 )
                 await lock_conn.commit()
     finally:
-        await redis.aclose()
+        # Only close the Redis client when we created it ourselves; closing
+        # Arq's worker-shared pool would kill every other in-flight job
+        # (per Gemini PR #286 finding #8).
+        if created_redis:
+            await redis.aclose()

@@ -627,36 +627,34 @@ async def reseed_demo(
             True,
         )
 
-    redis: Redis = Redis.from_url(settings.redis_url, decode_responses=False)
-    try:
-        current = await status_get(redis)
-        if current.status == "running":
-            raise _err(
-                409,
-                "SEED_IN_PROGRESS",
-                (
-                    "A demo reseed is already running. Poll "
-                    "GET /api/v1/_test/demo/reseed/status for progress."
-                ),
-                True,
-            )
-
-        # 4 small SCENARIOS + 1 rich ESCI scenario — matches ``make seed-demo``.
-        # Worker will overwrite this status once it picks up the job, but
-        # use the same total here so the operator never sees a misleading
-        # "Scenario 0 of 4" while the worker is still queued.
-        from backend.app.services.demo_seeding import SCENARIOS as _DEMO_SCENARIOS
-
-        initial = ReseedStatusResponse(
-            status="running",
-            started_at=_now_iso(),
-            scenarios_total=len(_DEMO_SCENARIOS) + 1,
-            scenarios_completed=0,
-            current_step="enqueued — waiting for worker",
+    # Reuse the shared ArqRedis pool (subclasses Redis) instead of opening
+    # a fresh connection pool per request — per Gemini PR #286 finding #2.
+    current = await status_get(arq_pool)
+    if current.status == "running":
+        raise _err(
+            409,
+            "SEED_IN_PROGRESS",
+            (
+                "A demo reseed is already running. Poll "
+                "GET /api/v1/_test/demo/reseed/status for progress."
+            ),
+            True,
         )
-        await status_set(redis, initial)
-    finally:
-        await redis.aclose()
+
+    # 4 small SCENARIOS + 1 rich ESCI scenario — matches ``make seed-demo``.
+    # Worker will overwrite this status once it picks up the job, but
+    # use the same total here so the operator never sees a misleading
+    # "Scenario 0 of 4" while the worker is still queued.
+    from backend.app.services.demo_seeding import SCENARIOS as _DEMO_SCENARIOS
+
+    initial = ReseedStatusResponse(
+        status="running",
+        started_at=_now_iso(),
+        scenarios_total=len(_DEMO_SCENARIOS) + 1,
+        scenarios_completed=0,
+        current_step="enqueued — waiting for worker",
+    )
+    await status_set(arq_pool, initial)
 
     # Deterministic job id — Arq drops duplicate enqueues with the same
     # _job_id within its dedup window (default 60s). A faster double-click
@@ -688,9 +686,21 @@ async def reseed_demo(
     ),
 )
 async def reseed_demo_status(
+    request: Request,
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> ReseedStatusResponse:
-    """Return the current :class:`ReseedStatusResponse` payload."""
+    """Return the current :class:`ReseedStatusResponse` payload.
+
+    Reuses the shared ArqRedis pool from ``request.app.state`` when
+    available (per Gemini PR #286 finding #3) to avoid opening a fresh
+    connection pool on every poll. Falls back to a request-scoped
+    ``Redis.from_url`` if the worker pool isn't initialized yet
+    (e.g., on first boot before lifespan startup completes).
+    """
+    arq_pool: ArqRedis | None = getattr(request.app.state, "arq_pool", None)
+    if arq_pool is not None:
+        return await status_get(arq_pool)
+
     redis: Redis = Redis.from_url(settings.redis_url, decode_responses=False)
     try:
         return await status_get(redis)

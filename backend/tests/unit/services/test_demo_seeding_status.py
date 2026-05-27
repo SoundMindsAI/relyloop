@@ -150,12 +150,12 @@ async def test_status_get_handles_malformed_json_as_idle() -> None:
 
 def test_build_search_space_emits_log_uniform_floats_for_each_param() -> None:
     """The CLI's exact shape — every declared param gets [0.5, 5.0] log-uniform."""
-    space = _build_search_space(["title_boost", "description_boost"])
+    space = _build_search_space({"title_boost": "float", "description_boost": "float"})
     assert set(space["params"].keys()) == {"title_boost", "description_boost"}
     title: dict[str, Any] = space["params"]["title_boost"]
     assert title == {"type": "float", "low": 0.5, "high": 5.0, "log": True}
 
 
 def test_build_search_space_empty_params_returns_empty_space() -> None:
-    space = _build_search_space([])
+    space = _build_search_space({})
     assert space == {"params": {}}

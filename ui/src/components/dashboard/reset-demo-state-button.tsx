@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -74,7 +74,16 @@ export function ResetDemoStateButton(): React.ReactElement {
     }
   }
 
-  function handleTerminalState() {
+  // Drive the success / failure toast once per terminal transition. Per
+  // Gemini PR #286 finding #1 — side effects (toasts, invalidateQueries)
+  // MUST run inside useEffect, not during render. Use a useRef for the
+  // dedup gate so the effect's setState→re-render→setState loop is
+  // sidestepped (eslint `react-hooks/set-state-in-effect`).
+  const lastTerminalAtRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isTerminal || statusQuery.dataUpdatedAt === 0) return;
+    if (statusQuery.dataUpdatedAt === lastTerminalAtRef.current) return;
+    lastTerminalAtRef.current = statusQuery.dataUpdatedAt;
     if (status?.status === 'complete') {
       toast.success(
         `Demo state reset — ${status.summary?.studies_completed ?? 0} studies completed with real metrics. The dashboard will refresh in a moment.`,
@@ -90,16 +99,14 @@ export function ResetDemoStateButton(): React.ReactElement {
         `Reseed failed: ${status.failed_reason ?? 'unknown'}. See logs / demo-reseed runbook.`,
       );
     }
-  }
-
-  // Drive the success / failure toast once per terminal transition. The
-  // statusQuery.dataUpdatedAt timestamp gates the effect so a stale-card
-  // mount doesn't re-fire the toast.
-  const [lastTerminalAt, setLastTerminalAt] = useState<number | null>(null);
-  if (isTerminal && statusQuery.dataUpdatedAt > 0 && statusQuery.dataUpdatedAt !== lastTerminalAt) {
-    setLastTerminalAt(statusQuery.dataUpdatedAt);
-    handleTerminalState();
-  }
+  }, [
+    isTerminal,
+    statusQuery.dataUpdatedAt,
+    status?.status,
+    status?.summary?.studies_completed,
+    status?.failed_reason,
+    queryClient,
+  ]);
 
   function progressPercent(): number | null {
     if (status == null || status.scenarios_total === 0) return null;

@@ -472,7 +472,9 @@ async def run_demo_reseed_cleanup(engine_client: httpx.AsyncClient) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _build_search_space(template_declared_params: list[str]) -> dict[str, Any]:
+def _build_search_space(
+    template_declared_params: dict[str, str],
+) -> dict[str, Any]:
     """Build the search_space body for a POST /studies request.
 
     Mirrors ``scripts/seed_meaningful_demos.py:766-771`` byte-for-byte —
@@ -480,6 +482,11 @@ def _build_search_space(template_declared_params: list[str]) -> dict[str, Any]:
     the demo studies' search-space matches the CLI's exactly. Keeping
     these in lockstep is what allows the regression test to assert the
     button's metrics match a reference run from ``make seed-demo``.
+
+    Per Gemini PR #286 finding #4: the SCENARIOS data structure ships
+    ``template_declared_params`` as ``dict[str, str]`` (``{param: type}``),
+    not a list. Iterating a dict yields its keys, so the function works at
+    runtime either way, but typing it as a dict is honest.
     """
     return {
         "params": {
@@ -493,7 +500,7 @@ async def _create_acme_swap_template(
     api_client: httpx.AsyncClient,
     *,
     engine_type: str,
-    declared_params: list[str],
+    declared_params: dict[str, str],
 ) -> None:
     """Create the function-score-price-decay-v1 template for acme-products.
 
@@ -575,7 +582,7 @@ async def _seed_real_study_for_scenario(
         The new study's id (UUIDv7 string).
     """
     slug = cast("str", scenario["slug"])
-    declared_params = cast("list[str]", scenario["template_declared_params"])
+    declared_params = cast("dict[str, str]", scenario["template_declared_params"])
     study_name = cast("str", scenario["study_name"])
     target = cast("str", scenario["target"])
     engine_type = cast("str", scenario["engine_type"])
