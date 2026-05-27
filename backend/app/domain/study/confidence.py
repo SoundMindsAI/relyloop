@@ -183,24 +183,35 @@ class ConvergenceShape(BaseModel):
 
 
 class RegressorRowShape(BaseModel):
-    """One row in the named-regressors table."""
+    """One row in the named-regressors or named-improvers table.
+
+    Used for BOTH the ``top_regressors`` and ``top_improvers`` lists.
+    The wire shape is identical — ``delta = winner_score - comparison_score``
+    is negative on the regressor list, positive on the improver list. The
+    class name is historical (regressors shipped first); reusing the same
+    type keeps the schema and the per-row renderer compact.
+    """
 
     query_id: str
     query_text: str
     winner_score: float
     comparison_score: float
     delta: float
-    """``winner_score - comparison_score``; always negative for regressors."""
+    """``winner_score - comparison_score``; negative for regressors, positive for improvers."""
 
 
 class PerQueryOutcomesShape(BaseModel):
-    """Per-query outcome counts + the top-5 named regressors."""
+    """Per-query outcome counts + the top-5 named regressors and improvers."""
 
     improved: int
     unchanged: int
     regressed: int
     comparison_against: ComparisonAgainst
     top_regressors: list[RegressorRowShape]
+    top_improvers: list[RegressorRowShape] = []
+    """Names of queries the winner improved (largest-delta first), capped at
+    TOP_REGRESSORS_CAP. Defaults to ``[]`` for backwards-compat with older
+    studies whose digest predated the improver list (cycle never wrote it)."""
 
 
 class ConfidenceShape(BaseModel):
@@ -222,7 +233,7 @@ class ConfidenceShape(BaseModel):
 
 @dataclass(frozen=True)
 class _OutcomeSummary:
-    """Outcome counts + regressor candidate qids (no query_text yet).
+    """Outcome counts + regressor / improver candidate qids (no query_text yet).
 
     Produced by :func:`compute_outcome_summary`; consumed by the
     orchestrator + :func:`build_regressor_rows`. Carries only ``query_id``
@@ -237,6 +248,10 @@ class _OutcomeSummary:
     regressor_candidates: list[tuple[str, float, float, float]] = field(default_factory=list)
     """Each tuple: ``(query_id, winner_score, comparison_score, delta)``.
     Sorted by ``abs(delta)`` descending; capped at TOP_REGRESSORS_CAP."""
+    improver_candidates: list[tuple[str, float, float, float]] = field(default_factory=list)
+    """Each tuple: ``(query_id, winner_score, comparison_score, delta)``.
+    Sorted by ``delta`` descending (largest improvement first); capped at
+    TOP_REGRESSORS_CAP."""
 
 
 # ---------------------------------------------------------------------------
@@ -427,7 +442,8 @@ def compute_outcome_summary(
     improved = 0
     unchanged = 0
     regressed = 0
-    candidates: list[tuple[str, float, float, float]] = []
+    regressor_candidates: list[tuple[str, float, float, float]] = []
+    improver_candidates: list[tuple[str, float, float, float]] = []
 
     # Compare only qids present in BOTH dicts. Queries missing from either
     # side (e.g., a query added after the trial ran) are ignored.
@@ -441,22 +457,23 @@ def compute_outcome_summary(
         delta = w_score - c_score
         if delta > threshold:
             improved += 1
+            improver_candidates.append((qid, w_score, c_score, delta))
         elif delta < -threshold:
             regressed += 1
-            candidates.append((qid, w_score, c_score, delta))
+            regressor_candidates.append((qid, w_score, c_score, delta))
         else:
             unchanged += 1
 
-    # Sort by absolute delta descending → most-negative delta first. For
-    # regressors all deltas are negative, so ascending sort of the signed
-    # delta puts the largest-magnitude regressor first.
-    candidates.sort(key=lambda row: row[3])
-    capped = candidates[:TOP_REGRESSORS_CAP]
+    # Regressors: sort by signed delta ascending → most-negative first.
+    regressor_candidates.sort(key=lambda row: row[3])
+    # Improvers: sort by signed delta descending → biggest positive first.
+    improver_candidates.sort(key=lambda row: -row[3])
     return _OutcomeSummary(
         improved=improved,
         unchanged=unchanged,
         regressed=regressed,
-        regressor_candidates=capped,
+        regressor_candidates=regressor_candidates[:TOP_REGRESSORS_CAP],
+        improver_candidates=improver_candidates[:TOP_REGRESSORS_CAP],
     )
 
 
@@ -631,12 +648,17 @@ def compute_study_confidence(
                 candidates=outcome.regressor_candidates,
                 query_text_by_id=query_text_by_id or {},
             )
+            improver_rows = build_regressor_rows(
+                candidates=outcome.improver_candidates,
+                query_text_by_id=query_text_by_id or {},
+            )
             per_query_outcomes = PerQueryOutcomesShape(
                 improved=outcome.improved,
                 unchanged=outcome.unchanged,
                 regressed=outcome.regressed,
                 comparison_against=comparison_against_value,
                 top_regressors=regressor_rows,
+                top_improvers=improver_rows,
             )
 
     return ConfidenceShape(

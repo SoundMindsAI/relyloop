@@ -29,25 +29,44 @@ study is running and pauses polling on terminal states. The trials table
 sorts by `primary_metric_desc` by default — so the best trial is always
 on top.
 
-Once the study reaches a terminal state, the **Confidence** panel
-appears between the study header and the trials table. It surfaces:
+## Study-page orientation surfaces
 
-- **Headline metric** — the winner's score, with a 95% bootstrap CI band
-  when at least 5 completed queries carry per-query metrics. With fewer
-  queries (or older studies whose trials predate
-  `feat_pr_metric_confidence`), the CI band is omitted and you'll see
-  the bare headline — a legitimate partial shape, not an error.
-- **Per-query outcomes** — counts of Improved / Unchanged / Regressed
-  queries versus the runner-up trial, with the named regressors
-  revealed on click. The thresholds are 0.01 for NDCG / Precision /
-  Recall and 0.02 for MAP / MRR; deltas within that band count as
-  Unchanged.
-- **Runner-up gap** — labels the result as `Robust plateau` (top trials
-  cluster within 0.005 of the winner — winner is reproducible) or
-  `Sharp peak` (winner is isolated and sensitive to small parameter
-  changes). Add a `Convergence regime` callout (`Early-and-held` /
-  `Late-rising` / `Noisy`) once the budget is large enough for one to
-  resolve.
+Above the panels, three surfaces help operators navigate without grepping UUIDs:
+
+- **Linked entities row** — named, clickable links to the **cluster**,
+  **query set**, **judgment list**, and **template** the study ran
+  against. Click any to drill into the source of truth.
+- **View-proposal link** — once a proposal has been promoted from this
+  study, a `Proposal: view proposal (<status>)` link appears below the
+  header for the round-trip from study → proposal.
+- **Glossary `(i)` tooltips** — hover for short definitions on Target,
+  Trials, Best metric, and every Confidence sub-heading. The Guide
+  button (bottom-right) opens the full glossary.
+
+## Reading the Confidence panel
+
+Once the study reaches a terminal state, the **Confidence** panel
+appears between the study header and the trials table. It answers
+*"is this winner statistically reliable, or did Optuna get lucky on
+one trial?"* The panel has four parts:
+
+- **Headline metric + 95% CI band** — bootstrap CI, displayed when at
+  least 5 completed queries carry per-query metrics. With fewer queries
+  the bare headline shows and the CI band is omitted (a legitimate
+  partial shape, not an error).
+- **Per-query outcome chips** — counts of **Improved · Unchanged ·
+  Regressed** queries vs. the runner-up trial (or baseline when one
+  exists). Thresholds: 0.01 for NDCG / Precision / Recall, 0.02 for
+  MAP / MRR; deltas within the band count as Unchanged.
+- **Queries that improved** and **Queries that regressed** tables —
+  named query text + winner score + comparison score + signed delta,
+  each capped at 5 rows. Improvers are green (+delta); regressors are
+  red (-delta). These tables are where an operator sees *which*
+  workloads gained and lost, not just the aggregate.
+- **Secondary callouts** — *runner-up gap* (`Robust plateau` when top
+  trials cluster within 0.005 of the winner; `Sharp peak` when the
+  winner is isolated), *late-trial 1σ*, and *convergence regime*
+  (`Early-and-held` / `Late-rising` / `Noisy`).
 
 See [glossary: confidence](/guide/glossary#confidence.ci_95) and
 [FAQ: My confidence interval is missing — why?](/guide/faq#confidence-ci-missing)

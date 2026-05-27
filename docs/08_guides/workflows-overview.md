@@ -138,6 +138,17 @@ This is what RelyLoop *is*: an off-line optimization loop driven by Optuna again
 - **Solves:** "Is it actually doing anything? Is it converging? Has it hit a stuck trial?"
 - **How (UI):** [`/studies/[id]`](../../ui/src/app/studies/[id]/page.tsx) — header summary (status, baseline, best metric) + trials table (auto-polls every 3 seconds while running). Sort by primary metric, trial number, or `ended_at`.
 - **How (API):** `GET /api/v1/studies/{id}` returns a `trials_summary` aggregation (total / complete / failed / pruned / best). `GET /api/v1/studies/{id}/trials` paginates the per-trial detail.
+- **Orientation surfaces on the page:** named clickable links to the **cluster**, **query set**, **judgment list**, and **template** (`LinkedEntitiesRow`), a `Proposal: view proposal (<status>)` link once a proposal has been promoted, and `(i)` glossary tooltips on every column heading. The Guide button (bottom-right) opens the full glossary.
+
+#### C3b. Read the Confidence panel
+- **Solves:** "Is this winner statistically reliable, or did Optuna get lucky on one trial?" — and *"which queries gained, which queries lost?"*.
+- **How (UI):** [`ConfidencePanel`](../../ui/src/components/studies/confidence-panel.tsx) renders on the study detail page once the study completes. Four sections:
+  1. **Headline metric + 95% CI band** (bootstrap, N≥10 queries; omitted on small studies).
+  2. **Per-query outcome chips** — `X Improved · Y Unchanged · Z Regressed` vs. runner-up (or baseline when present).
+  3. **Queries that improved** / **Queries that regressed** — named tables with query text + winner score + comparison score + signed delta. Each capped at 5 rows.
+  4. **Secondary callouts** — *runner-up gap* (robust plateau vs. sharp peak), *late-trial 1σ*, and *convergence regime* (early-and-held vs. late-rising vs. noisy).
+- **How (API):** `GET /api/v1/studies/{id}` returns the full `confidence` shape inline; see [`backend/app/domain/study/confidence.py`](../../backend/app/domain/study/confidence.py).
+- **Glossary:** every `(i)` icon resolves to a definition under the `confidence.*` namespace in [`ui/src/lib/glossary.ts`](../../ui/src/lib/glossary.ts).
 
 #### C4. Cancel a study mid-flight
 - **Solves:** "This isn't going anywhere — kill it and free the worker for something else."

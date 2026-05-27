@@ -920,6 +920,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/_test/auto-followup/seed-chain': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Seed an auto-followup chain of N+1 linked studies
+     * @description Test-only endpoint. Returns 404 unless `ENVIRONMENT=development`. Inserts a chain of `depth + 1` studies where each child carries the prior node's id as `parent_study_id`. The public POST /studies endpoint does NOT accept `parent_study_id` (it's set only by the auto-followup worker via `repo.create_study(parent_study_id=...)`), so this endpoint is the only way to drive deterministic E2E coverage of chain-panel parent-link / children-table / cascade-radio paths. Closes chore_auto_followup_e2e_chain_seed_helper.
+     */
+    post: operations['seed_auto_followup_chain_endpoint_api_v1__test_auto_followup_seed_chain_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/_test/proposals/{proposal_id}': {
     parameters: {
       query?: never;
@@ -2163,7 +2183,7 @@ export interface components {
     };
     /**
      * PerQueryOutcomesShape
-     * @description Per-query outcome counts + the top-5 named regressors.
+     * @description Per-query outcome counts + the top-5 named regressors and improvers.
      */
     PerQueryOutcomesShape: {
       /** Improved */
@@ -2179,6 +2199,11 @@ export interface components {
       comparison_against: 'runner_up' | 'baseline';
       /** Top Regressors */
       top_regressors: components['schemas']['RegressorRowShape'][];
+      /**
+       * Top Improvers
+       * @default []
+       */
+      top_improvers: components['schemas']['RegressorRowShape'][];
     };
     /**
      * ProposalDetail
@@ -2465,7 +2490,13 @@ export interface components {
     };
     /**
      * RegressorRowShape
-     * @description One row in the named-regressors table.
+     * @description One row in the named-regressors or named-improvers table.
+     *
+     *     Used for BOTH the ``top_regressors`` and ``top_improvers`` lists.
+     *     The wire shape is identical — ``delta = winner_score - comparison_score``
+     *     is negative on the regressor list, positive on the improver list. The
+     *     class name is historical (regressors shipped first); reusing the same
+     *     type keeps the schema and the per-row renderer compact.
      */
     RegressorRowShape: {
       /** Query Id */
@@ -2601,6 +2632,56 @@ export interface components {
       };
     };
     /**
+     * SeedAutoFollowupChainRequest
+     * @description Payload for ``POST /api/v1/_test/auto-followup/seed-chain``.
+     *
+     *     Seeds ``depth + 1`` linked studies (root → … → leaf) so E2E tests can
+     *     cover the chain-panel parent-link / children-table / cascade-radio paths
+     *     that the public ``POST /api/v1/studies`` endpoint can't drive
+     *     (``parent_study_id`` is set only by the auto-followup worker).
+     *
+     *     Closes ``chore_auto_followup_e2e_chain_seed_helper`` (idea #2).
+     */
+    SeedAutoFollowupChainRequest: {
+      /** Cluster Id */
+      cluster_id: string;
+      /** Query Set Id */
+      query_set_id: string;
+      /** Template Id */
+      template_id: string;
+      /** Judgment List Id */
+      judgment_list_id: string;
+      /**
+       * Depth
+       * @description Number of chain hops to seed. depth=1 → root + leaf (2 nodes). depth=2 → root + 1 middle + leaf (3 nodes).
+       */
+      depth: number;
+      /**
+       * In Flight Leaf
+       * @description When True (default), the deepest node is left at status='queued'. When False, it's driven to 'completed' too. Default True matches the primary E2E use case: cascade-radio coverage where the middle node needs an in-flight child.
+       * @default true
+       */
+      in_flight_leaf: boolean;
+      /**
+       * In Flight Middle
+       * @description When True (default), the immediate parent of the leaf is left at status='queued' so the Cancel button is enabled (canCancel = running || queued per study-action-bar.tsx:46). Required for the cancel-modal cascade-radio test. When False, all intermediates are completed (more realistic chain state but cancel modal won't open on the middle).
+       * @default true
+       */
+      in_flight_middle: boolean;
+    };
+    /**
+     * SeedAutoFollowupChainResponse
+     * @description IDs of every node in the seeded chain, in parent→child order.
+     */
+    SeedAutoFollowupChainResponse: {
+      /** Root Id */
+      root_id: string;
+      /** Middle Ids */
+      middle_ids: string[];
+      /** Leaf Id */
+      leaf_id: string;
+    };
+    /**
      * SeedCompletedStudyRequest
      * @description Payload for ``POST /api/v1/_test/studies/seed-completed``.
      *
@@ -2714,6 +2795,10 @@ export interface components {
       seed?: number | null;
       /** Secondary Metrics */
       secondary_metrics?: string[] | null;
+      /** Baseline Params */
+      baseline_params?: {
+        [key: string]: string | number | boolean | null;
+      } | null;
       /** Auto Followup Depth */
       auto_followup_depth?: number | null;
     };
@@ -2761,6 +2846,8 @@ export interface components {
       parent_study_id: string | null;
       /** Baseline Metric */
       baseline_metric: number | null;
+      /** Baseline Trial Id */
+      baseline_trial_id: string | null;
       /** Best Metric */
       best_metric: number | null;
       /** Best Trial Id */
@@ -2953,12 +3040,9 @@ export interface components {
       ended_at: string | null;
       /**
        * Is Baseline
-       * @description feat_study_baseline_trial FR-8 — TRUE only for the
-       *   off-band non-Optuna baseline trial. Generated manually pending
-       *   API-container rebuild + types:gen.
        * @default false
        */
-      is_baseline?: boolean;
+      is_baseline: boolean;
     };
     /**
      * TrialListResponse
@@ -4721,6 +4805,39 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['SeedCompletedStudyResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  seed_auto_followup_chain_endpoint_api_v1__test_auto_followup_seed_chain_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SeedAutoFollowupChainRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['SeedAutoFollowupChainResponse'];
         };
       };
       /** @description Validation Error */
