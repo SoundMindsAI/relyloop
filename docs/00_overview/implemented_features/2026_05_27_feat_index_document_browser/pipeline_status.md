@@ -28,8 +28,8 @@
 - Phases covered: 1 (all FRs in this plan)
 
 ## Implementation
-- Status: **Complete — all 13 stories shipped; PR pending**
-- Branch: `feat/index-document-browser`
+- Status: **Complete (PR #285, merged 2026-05-27 as squash `7a5bc42`)**
+- Branch: `feat/index-document-browser` (deleted post-merge)
 - Completed stories: 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6
 - Tests added: backend unit 1537 ✓ (incl. 39 helper-module tests + 24 adapter tests + Story 2.1 helpers); 21 integration tests at `test_documents_endpoints.py` (16 stub-adapter + 5 live-ES); 6 integration at `test_studies_target_filter.py`; 12 contract tests at `test_documents_contract.py`; frontend 904 vitest ✓ (incl. 23 new across 5 component/page tests); 2 E2E specs (top-down + filter chip).
 - Adapter sort key flipped from `_id` → `_doc` per spec D-26 fallback after ES 9 returned HTTP 400 with `indices.id_field_data.enabled` disabled; documented in adapter docstring.
@@ -38,4 +38,5 @@
 - 4 new frontend routes registered: `/clusters/[id]/indices/[name]`, `.../documents`, `.../documents/[...doc_id]`, plus the existing `/studies` page extended.
 
 ## Done
-- Status: —
+- Status: **Yes** — merged 2026-05-27 (PR #285, squash `7a5bc42`)
+- Cross-model review cycles: GPT-5.5 spec (3 cycles, 33 findings) + GPT-5.5 plan (3 cycles, 27 findings) + Gemini PR (1 cycle, 5 findings: 3 accepted + 2 rejected) + GPT-5.5 final (1 cycle, 6 findings: 1 accepted + 1 rejected + 4 deferred as non-regression follow-ups).
