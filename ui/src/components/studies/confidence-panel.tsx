@@ -58,6 +58,14 @@ export function ConfidencePanel({ confidence }: ConfidencePanelProps) {
         <CardTitle className="text-base">Confidence</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        <p className="text-sm text-muted-foreground" data-testid="confidence-panel-explainer">
+          Is this winner statistically reliable, or did the optimizer get lucky on one trial? The{' '}
+          <strong>95% CI</strong> shows the headline metric's uncertainty range.{' '}
+          <strong>Per-query outcomes</strong> tell you whether the lift is broad-based or driven by
+          one query. <strong>Runner-up gap</strong>, <strong>late-trial 1σ</strong>, and{' '}
+          <strong>convergence regime</strong> together indicate whether the optimizer settled on a
+          robust plateau or a sharp peak. Hover any <em>(i)</em> icon for the full definition.
+        </p>
         {/* Headline + CI band */}
         <section>
           <p className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
