@@ -1,0 +1,37 @@
+# CODEOWNERS — auto-request review when these paths change.
+#
+# See https://docs.github.com/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Order matters: later rules override earlier ones. The last matching pattern
+# wins. Patterns follow the same syntax as .gitignore.
+#
+# Source-of-truth note: when a maintainer joins or leaves, update both
+# MAINTAINERS.md and this file in the same PR. Prefer team handles
+# (e.g. @SoundMindsAI/relyloop-maintainers) over individuals once the team
+# exists in the org — teams survive departures, individuals don't.
+
+# Default — everything not matched below.
+*                                       @SoundMindsAI
+
+# Governance / contributor surface — changes here have project-wide impact;
+# the project lead is the only required reviewer at v0.1.
+/LICENSE                                @SoundMindsAI
+/NOTICE                                 @SoundMindsAI
+/GOVERNANCE.md                          @SoundMindsAI
+/MAINTAINERS.md                         @SoundMindsAI
+/SECURITY.md                            @SoundMindsAI
+/CODE_OF_CONDUCT.md                     @SoundMindsAI
+/CONTRIBUTING.md                        @SoundMindsAI
+/CLAUDE.md                              @SoundMindsAI
+/.github/                               @SoundMindsAI
+
+# CI / release infra
+/.github/workflows/                     @SoundMindsAI
+/Dockerfile                             @SoundMindsAI
+/docker-compose.yml                     @SoundMindsAI
+/Makefile                               @SoundMindsAI
+/scripts/                               @SoundMindsAI
+
+# Migrations — DB schema changes need explicit project-lead review.
+/migrations/                            @SoundMindsAI
+/alembic.ini                            @SoundMindsAI

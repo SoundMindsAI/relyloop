@@ -4,11 +4,15 @@ Thanks for your interest in contributing! RelyLoop is an open-source project und
 
 This document explains how to set up a development environment, propose changes, and sign your commits under the Developer Certificate of Origin (DCO).
 
-> **Status (alpha):** RelyLoop is pre-MVP1. We are not yet accepting external code contributions while the foundation is being built. Issues, design feedback, and discussions are welcome. Code-contribution guidelines below are forward-looking and will become active once MVP1 ships.
+> **Status (alpha):** RelyLoop shipped MVP1 (`v0.1.0`) as alpha. APIs, schemas, and adapter contracts are still evolving — expect breaking changes between minor releases until v1.0 GA. Issues, design feedback, and pull requests are all welcome.
 
 ## Code of Conduct
 
-This project adopts the [Contributor Covenant 2.1](CODE_OF_CONDUCT.md). All contributors are expected to follow it. Report any violations to the maintainers privately at the email listed in `CODE_OF_CONDUCT.md`.
+A short kindness ask, not a long list of rules. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Concerns go to the contact in [MAINTAINERS.md](MAINTAINERS.md).
+
+## Governance
+
+Decision-making, who has merge rights, and the path to becoming a maintainer are in [GOVERNANCE.md](GOVERNANCE.md). RelyLoop is currently single-vendor-stewarded (all maintainers are soundminds.ai employees); the transition plan toward multi-organization maintainership is in that document.
 
 ## Developer Certificate of Origin (DCO)
 
@@ -26,7 +30,7 @@ To sign off a commit, add `Signed-off-by: Your Name <your.email@example.com>` to
 git commit -s -m "feat(adapter): add OpenSearch sigv4 auth"
 ```
 
-CI rejects PRs whose commits are not signed off.
+The [DCO GitHub App](https://github.com/apps/dco) blocks merging until every commit on the PR is signed off. If you forget, the bot links you a one-click fix.
 
 ## Commit message format
 
@@ -68,11 +72,11 @@ git clone https://github.com/SoundMindsAI/relyloop.git
 cd relyloop
 uv sync                                  # install Python deps + create .venv
 pnpm --dir ui install                     # install frontend deps
-make pre-commit-install                   # install Git hooks (Story 1.4)
+make pre-commit-install                   # install pre-commit + commit-msg hooks
 make up                                   # boot the Docker stack
 ```
 
-The full local-development guide ships with MVP1 — see [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md) when `infra_foundation` lands.
+The full local-development guide is [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md).
 
 ## Pre-commit hooks
 
@@ -120,32 +124,33 @@ Trunk-based development:
 
 1. Fork the repo and create a feature branch from `main`
 2. Make your changes with sign-off (`git commit -s`)
-3. Run tests locally (`make test` once that target is in place)
-4. Push to your fork and open a PR against `main`
-5. CI runs lint, type-check, unit tests, contract tests, security scans
+3. Run tests locally (`make test`)
+4. Push to your fork and open a PR against `main`. The PR template will prompt you for the right information.
+5. CI runs lint, type-check, unit tests, contract tests, secret scanning, and frontend build
 6. At least one maintainer review approval is required
 7. Squash-merge by a maintainer once approved and CI is green
 
 ## Reporting issues
 
-- **Bugs**: use the bug-report template in `.github/ISSUE_TEMPLATE/`. Include reproduction steps, environment details, and logs.
-- **Feature requests**: use the feature-request template. Explain the use case and why existing functionality doesn't cover it.
-- **Security vulnerabilities**: do **not** open a public issue. Follow the process in `SECURITY.md`.
+- **Bugs**: use the bug-report template in [`.github/ISSUE_TEMPLATE/bug_report.yml`](.github/ISSUE_TEMPLATE/bug_report.yml). Include reproduction steps, environment details, and logs.
+- **Feature requests**: use the feature-request template at [`.github/ISSUE_TEMPLATE/feature_request.yml`](.github/ISSUE_TEMPLATE/feature_request.yml). Explain the use case and why existing functionality doesn't cover it.
+- **Security vulnerabilities**: do **not** open a public issue. Follow the process in [SECURITY.md](SECURITY.md).
 
 ## Adding a new adapter
 
 RelyLoop's engine, LLM provider, and Git provider adapters are designed for community extension. Each adapter:
 
-- Implements the relevant Protocol in `backend/adapters/`, `backend/llm/`, or `backend/git/`
-- Passes the conformance test suite in `tests/contracts/`
-- Includes unit tests with `pytest-recording` cassettes
-- Documents auth flow, version support, and any quirks in `docs/06_vendor_docs/adapters/<name>.md`
+- Implements the relevant Protocol in [`backend/app/adapters/`](backend/app/adapters/), [`backend/app/llm/`](backend/app/llm/), or [`backend/app/git/`](backend/app/git/)
+- Passes the contract test suite in [`backend/tests/contract/`](backend/tests/contract/)
+- Includes unit tests under [`backend/tests/unit/`](backend/tests/unit/) (use `pytest-recording` cassettes when exercising real HTTP)
+- Documents auth flow, version support, and any quirks under [`docs/06_vendor_docs/`](docs/06_vendor_docs/)
 
-See the spec (`docs/00_overview/product/relevance-copilot-spec.md` §8 for engine adapters, §15 for LLM providers, §16 for Git providers) for the full contracts.
+See the spec ([`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md) §8 for engine adapters, §15 for LLM providers, §16 for Git providers) and the architecture-level adapters doc ([`docs/01_architecture/adapters.md`](docs/01_architecture/adapters.md)) for the full contracts.
 
-## Maintainers
+## Maintainers and governance
 
-See `MAINTAINERS.md` for the current maintainer list and their areas of focus.
+- Current maintainer roster: [MAINTAINERS.md](MAINTAINERS.md)
+- How decisions are made and how to become a maintainer: [GOVERNANCE.md](GOVERNANCE.md)
 
 ## Questions
 
