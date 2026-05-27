@@ -107,7 +107,10 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("delete", "/api/v1/_test/query-sets/{query_set_id}", "204"),
     ("delete", "/api/v1/_test/query-templates/{template_id}", "204"),
     # feat_home_demo_reseed_endpoint Story 1.2 — demo-state reseed endpoint.
-    ("post", "/api/v1/_test/demo/reseed", "200"),
+    # bug_demo_reseed_fake_metric_regression — POST now enqueues an Arq job
+    # and returns 202; GET polls the Redis-backed status.
+    ("post", "/api/v1/_test/demo/reseed", "202"),
+    ("get", "/api/v1/_test/demo/reseed/status", "200"),
 ]
 
 

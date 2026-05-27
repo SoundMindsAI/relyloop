@@ -165,6 +165,12 @@ services:
       - cluster_credentials
     volumes:
       - ./data/repo-clones:/var/lib/relyloop/repos
+      # bug_demo_reseed_fake_metric_regression — the rich demo scenario
+      # reads samples/products.json + samples/queries.csv +
+      # samples/templates/product_search.j2 from inside the worker
+      # process. Mount the directory read-only (matches the API service's
+      # mount above).
+      - ./samples:/app/samples:ro
 
   ui:
     # NEXT_PUBLIC_API_BASE_URL is build-time (Next.js bakes NEXT_PUBLIC_*

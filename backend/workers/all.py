@@ -61,6 +61,7 @@ from backend.app.db.session import get_session_factory
 from backend.app.eval.optuna_runtime import build_storage
 from backend.workers.auto_followup import enqueue_followup_study
 from backend.workers.baseline import run_baseline_trial
+from backend.workers.demo_reseed import DEMO_RESEED_JOB_TIMEOUT_S, run_demo_reseed
 from backend.workers.digest import generate_digest
 from backend.workers.git_pr import open_pr
 from backend.workers.judgments import generate_judgments_llm
@@ -218,6 +219,9 @@ class WorkerSettings:
         func(open_pr, timeout=_OPEN_PR_JOB_TIMEOUT_S, max_tries=_OPEN_PR_MAX_TRIES),
         register_webhook,
         enqueue_followup_study,  # feat_auto_followup_studies Story 2.1
+        # bug_demo_reseed_fake_metric_regression — wraps the 2-6 min real-study
+        # reseed in an Arq job so the home-button POST returns 202 instantly.
+        func(run_demo_reseed, timeout=DEMO_RESEED_JOB_TIMEOUT_S, max_tries=1),
     ]
     # Registered cron jobs:
     # * `reconcile_pr_state` (feat_github_webhook Story 3.1) — polls GitHub
