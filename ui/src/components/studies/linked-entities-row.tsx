@@ -77,6 +77,13 @@ export function LinkedEntitiesRow({ study }: { study: StudyDetail }) {
         fallback={study.template_id}
         testid="linked-template"
       />
+      <Entry
+        label="Index"
+        href={`/clusters/${encodeURIComponent(study.cluster_id)}/indices/${encodeURIComponent(study.target)}`}
+        name={study.target}
+        fallback={study.target}
+        testid="linked-index"
+      />
     </div>
   );
 }

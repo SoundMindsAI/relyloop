@@ -79,8 +79,25 @@ function StudiesPageInner() {
   }, [hasCloneFrom, cloneFromValid, cloneFromId, cloneSource.data, cloneSource.isError, router]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // feat_index_document_browser FR-5 — ?target= filter chip.
+  // The URL is the single source of truth for filter state (matches the
+  // ?cluster_id= pattern from feat_cluster_target_filter). Clicking × on
+  // the chip drops the param from the URL; the query refetches on the
+  // next render.
+  const targetFromUrl = searchParams.get('target');
+  const clusterIdFromUrl = searchParams.get('cluster_id');
+
+  function clearTargetFilter() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('target');
+    const qs = params.toString();
+    router.replace(qs ? `/studies?${qs}` : '/studies');
+  }
+
   const query = useStudies({
     status: urlState.filters['status'],
+    cluster_id: clusterIdFromUrl ?? undefined,
+    target: targetFromUrl ?? undefined,
     sort: urlState.sort ?? undefined,
     q: urlState.q ?? undefined,
     cursor: urlState.cursor ?? undefined,
@@ -97,6 +114,26 @@ function StudiesPageInner() {
           Create study
         </Button>
       </div>
+      {targetFromUrl && (
+        <div className="flex items-center gap-2 text-sm" data-testid="studies-active-filters">
+          <span className="text-muted-foreground">Active filters:</span>
+          <span
+            className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-2 py-0.5 text-xs"
+            data-testid="studies-target-filter-chip"
+          >
+            Target: <span className="font-mono">{targetFromUrl}</span>
+            <button
+              type="button"
+              onClick={clearTargetFilter}
+              className="ml-1 text-muted-foreground hover:text-foreground"
+              aria-label="Clear target filter"
+              data-testid="studies-target-filter-clear"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      )}
       <Card>
         <CardContent className="pt-6">
           <StudiesTable
