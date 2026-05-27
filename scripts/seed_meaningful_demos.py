@@ -54,6 +54,11 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
+
+# Repo paths — used by the rich-data scenario (seed_rich_scenario below).
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SAMPLES_DIR = REPO_ROOT / "samples"
 
 API = "http://localhost:8000/api/v1"
 ES = "http://localhost:9200"
@@ -78,8 +83,13 @@ TRUNCATE_TABLES = (
 )
 
 # ES / OS user indices created by the seed (excludes engine system indices).
-DEMO_ES_INDICES = ("products", "docs-articles", "job-listings")
+# `acme-products-rich` is the 1000-doc ESCI index used by seed_rich_scenario.
+DEMO_ES_INDICES = ("products", "docs-articles", "job-listings", "acme-products-rich")
 DEMO_OS_INDICES = ("news-articles",)
+
+# Rich-scenario tunables. Five queries × top-K LLM judgments per query keeps
+# the LLM-judgment-generation step under ~60s and ~$0.05 with gpt-4o-mini.
+RICH_SCENARIO_QUERY_COUNT = 5
 
 
 # ---------------------------------------------------------------------------
@@ -815,6 +825,256 @@ def seed_scenario(s: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Rich-data scenario — 1000 ESCI products + LLM-generated judgments
+# ---------------------------------------------------------------------------
+
+
+def seed_rich_scenario() -> dict:
+    """Fifth scenario using the full 1000-product ESCI sample dataset.
+
+    The four small SCENARIOS above are deliberately tiny (5 docs each) so they
+    seed in seconds and demonstrate the system's mechanics, but they hit a
+    metric ceiling — the optimizer correctly reports "no headroom" because
+    the sparse judgments fix the ranking regardless of boost values. That's
+    honest, but it's not a headline-lift demo story.
+
+    This rich scenario uses:
+
+    - 1000 Amazon ESCI products bulk-indexed into a dedicated
+      `acme-products-rich` index (separate from `make seed-es`'s `products`
+      index so they coexist cleanly).
+    - 5 real product-search queries from `samples/queries.csv`.
+    - LLM-generated judgments via `POST /judgments/generate` (real OpenAI
+      call against the real cluster, ~30-60s, ~$0.05 with gpt-4o-mini).
+    - A 3-param multi_match template (`title_boost`,
+      `description_boost`, `bullet_points_boost`) from
+      `samples/templates/product_search.j2`.
+    - A real 15-trial Optuna study with `config.seed=42` for repeatability.
+
+    Total runtime: ~3-5 min added to `make seed-demo`. Cost: ~$0.05 in LLM
+    tokens. With this much data the optimizer has real headroom — the
+    digest will show real `metric_delta` (baseline → best, non-zero lift)
+    and populated `parameter_importance` across all three boosts.
+
+    Failures here are tolerated: the four small scenarios are still
+    valuable on their own, so the caller wraps this in a try/except
+    rather than aborting the whole seed.
+    """
+    slug = "acme-products-rich-prod"
+    index_name = "acme-products-rich"
+    print(f"\n=== {slug} (elasticsearch, rich ESCI data) ===")
+
+    # 1. Load 1000 ESCI products from samples/.
+    products = json.loads((SAMPLES_DIR / "products.json").read_text())
+    print(f"  loading {len(products)} products from samples/products.json")
+
+    # 2. DELETE + recreate the index with explicit mapping.
+    try:
+        http("DELETE", f"{ES}/{index_name}", auth=ES_AUTH)
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            raise
+    http(
+        "PUT",
+        f"{ES}/{index_name}",
+        body={
+            "mappings": {
+                "properties": {
+                    "title": {"type": "text"},
+                    "description": {"type": "text"},
+                    "brand": {"type": "keyword"},
+                    "color": {"type": "keyword"},
+                    "bullet_points": {"type": "text"},
+                }
+            }
+        },
+        auth=ES_AUTH,
+    )
+    print(f"  index: {index_name} (mapping created)")
+
+    # 3. Bulk-index in chunks of 500 (NDJSON over /_bulk). We bypass the http()
+    #    helper here because /_bulk requires application/x-ndjson, not JSON.
+    bulk_chunk = 500
+    for i in range(0, len(products), bulk_chunk):
+        chunk = products[i : i + bulk_chunk]
+        lines = []
+        for p in chunk:
+            lines.append(json.dumps({"index": {"_index": index_name, "_id": p["id"]}}))
+            lines.append(json.dumps({k: v for k, v in p.items() if k != "id"}))
+        body = ("\n".join(lines) + "\n").encode()
+        req = urllib.request.Request(
+            f"{ES}/_bulk",
+            data=body,
+            method="POST",
+            headers={
+                "Content-Type": "application/x-ndjson",
+                "Authorization": _basic(ES_AUTH),
+            },
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            resp.read()
+    http("POST", f"{ES}/{index_name}/_refresh", body=None, auth=ES_AUTH)
+    print(f"  docs: {len(products)} bulk-indexed")
+
+    # 4. Register cluster with the right target_filter so the UI dropdown
+    #    only surfaces the rich index for this cluster.
+    cluster = post(
+        "/clusters",
+        {
+            "name": slug,
+            "engine_type": "elasticsearch",
+            "base_url": "http://elasticsearch:9200",
+            "auth_kind": "es_basic",
+            "credentials_ref": "local-es",
+            "environment": "prod",
+            "target_filter": f"{index_name}*",
+        },
+    )
+    cluster_id = cluster["id"]
+    print(f"  cluster: {cluster_id}")
+
+    # 5. Template from samples/templates/product_search.j2 — the canonical
+    #    3-param multi_match used by the tutorial.
+    template_body = (SAMPLES_DIR / "templates" / "product_search.j2").read_text()
+    template = post(
+        "/query-templates",
+        {
+            "name": "product-search-multi-match-v1",
+            "engine_type": "elasticsearch",
+            "body": template_body,
+            "declared_params": {
+                "title_boost": "float",
+                "description_boost": "float",
+                "bullet_points_boost": "float",
+            },
+        },
+    )
+    template_id = template["id"]
+    print(f"  template: {template_id} (product-search-multi-match-v1)")
+
+    # 6. Query set + queries from samples/queries.csv (first N).
+    qset = post(
+        "/query-sets",
+        {"name": "acme-rich-queries-q4-2025", "cluster_id": cluster_id},
+    )
+    qset_id = qset["id"]
+    csv_lines = (SAMPLES_DIR / "queries.csv").read_text().strip().splitlines()
+    queries: list[dict] = []
+    for line in csv_lines[1 : RICH_SCENARIO_QUERY_COUNT + 1]:  # skip header
+        parts = line.split(",", 1)
+        if len(parts) == 2:
+            queries.append({"query_text": parts[1].strip()})
+    bulk_q = post(f"/query-sets/{qset_id}/queries", {"queries": queries})
+    print(f"  query-set: {qset_id} (queries added: {bulk_q['added']})")
+
+    # 7. Generate judgments via LLM. Returns 202; worker generates async.
+    jl_resp = post(
+        "/judgments/generate",
+        {
+            "name": "acme-rich-judgments-q4-2025",
+            "description": "ESCI demo judgments for the rich-data acme scenario",
+            "query_set_id": qset_id,
+            "cluster_id": cluster_id,
+            "target": index_name,
+            "current_template_id": template_id,
+            "rubric": (
+                "Rate 0-3 by relevance to the query: "
+                "0=irrelevant, 1=partial, 2=relevant, 3=highly relevant."
+            ),
+        },
+    )
+    jlist_id = jl_resp["judgment_list_id"]
+    print(f"  judgment-list: {jlist_id} (generating via LLM, ~30-60s)")
+
+    # Poll until judgments complete. 3-min ceiling; gpt-4o-mini against 5
+    # queries × top-K is typically 30-60s, the wide margin protects against
+    # rate-limit hiccups.
+    jl_deadline = time.time() + 180
+    jl_detail: dict = jl_resp
+    while time.time() < jl_deadline:
+        try:
+            jl_detail = http("GET", f"{API}/judgment-lists/{jlist_id}", quiet_404=True)
+            if jl_detail.get("status") in {"complete", "failed"}:
+                break
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+        time.sleep(5)
+    if jl_detail.get("status") != "complete":
+        print(f"  WARNING: judgment generation status={jl_detail.get('status')!r}; skipping study")
+        return {"slug": slug, "cluster_id": cluster_id, "judgment_list_id": jlist_id}
+    print(
+        f"  judgment-list: complete "
+        f"(count={jl_detail.get('judgment_count', '?')}, "
+        f"cost=${jl_detail.get('cost_usd', '?')})"
+    )
+
+    # 8. Real 15-trial study against the rich data. Three boost knobs gives
+    #    Optuna a 3-D search space that actually moves the metric.
+    search_space = {
+        "params": {
+            "title_boost": {"type": "float", "low": 0.5, "high": 5.0, "log": True},
+            "description_boost": {"type": "float", "low": 0.5, "high": 5.0, "log": True},
+            "bullet_points_boost": {"type": "float", "low": 0.5, "high": 5.0, "log": True},
+        }
+    }
+    study_name = "tune-acme-products-rich-boosts"
+    study_create = post(
+        "/studies",
+        {
+            "name": study_name,
+            "cluster_id": cluster_id,
+            "target": index_name,
+            "template_id": template_id,
+            "query_set_id": qset_id,
+            "judgment_list_id": jlist_id,
+            "search_space": search_space,
+            "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
+            "config": {
+                "max_trials": 15,
+                "parallelism": 3,
+                "sampler": "tpe",
+                "seed": 42,
+            },
+        },
+    )
+    study_id = study_create["id"]
+    print(f"  study created: {study_id}, polling for completion (~1-3 min)...")
+    study_deadline = time.time() + 300
+    detail: dict = study_create
+    while time.time() < study_deadline:
+        detail = http("GET", f"{API}/studies/{study_id}")
+        if detail["status"] in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(5)
+    print(f"  study: {study_id} ({detail['status']}, best_metric={detail.get('best_metric')})")
+
+    if detail["status"] == "completed":
+        digest_deadline = time.time() + 120
+        while time.time() < digest_deadline:
+            try:
+                digest = http("GET", f"{API}/studies/{study_id}/digest", quiet_404=True)
+                followups = digest.get("suggested_followups") or []
+                kinds = ", ".join(f.get("kind", "?") for f in followups) or "(none)"
+                print(f"  digest: {digest['id']} ({len(followups)} followups: {kinds})")
+                break
+            except urllib.error.HTTPError as e:
+                if e.code != 404:
+                    raise
+            time.sleep(3)
+
+    return {
+        "slug": slug,
+        "cluster_id": cluster_id,
+        "query_set_id": qset_id,
+        "template_id": template_id,
+        "judgment_list_id": jlist_id,
+        "study_id": study_id,
+        "study_name": study_name,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Idempotency: wipe existing demo state before reseeding
 # ---------------------------------------------------------------------------
 
@@ -1051,6 +1311,23 @@ def main() -> int:
             return 1
 
     apply_study_renames(results)
+
+    # Rich-data scenario — fifth, optional. Adds the 1000-product ESCI dataset
+    # + LLM-generated judgments + a real 15-trial study. Tolerated failure:
+    # the four small scenarios are useful on their own, so a rich-scenario
+    # crash (LLM rate limit, ES unreachable, judgment-gen timeout) leaves the
+    # rest of the seed valid. The operator gets a warning + retry instruction.
+    try:
+        rich_result = seed_rich_scenario()
+        if rich_result.get("study_id"):
+            results.append(rich_result)
+    except Exception as exc:  # noqa: BLE001 — deliberately broad; see comment
+        print(
+            f"\n!! rich scenario FAILED: {exc!r}\n"
+            "   The four small-data scenarios above are still valid.\n"
+            "   Re-run `make seed-demo FORCE=1` once the cause is resolved.",
+            file=sys.stderr,
+        )
 
     print("\n=== seed complete ===")
     for r in results:
