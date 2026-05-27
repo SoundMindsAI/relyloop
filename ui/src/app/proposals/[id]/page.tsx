@@ -208,6 +208,36 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
     const PARENT_NAME_MAX = 200;
     const truncatedParentName =
       s.name.length > PARENT_NAME_MAX ? s.name.slice(0, PARENT_NAME_MAX) + '...' : s.name;
+    // The LLM-generated followup typically narrows/widens ONLY the
+    // parameters it considers interesting (often 1-2 of the parent's
+    // 3+ declared params). Submitting just those would fail backend
+    // validation: `Template '…' declares param 'X' but it is missing
+    // from the search space.` Merge the followup's bounds onto the
+    // parent study's search_space so any params the LLM didn't mention
+    // keep their original bounds. Followup bounds take precedence on
+    // overlapping keys. For swap_template this still helps when the
+    // target template shares param names with the parent (the common
+    // case); the wizard's template-load validator will surface any
+    // remaining mismatch via its existing 404-recovery path.
+    const parentSearchSpaceParams = (
+      s.search_space &&
+      typeof s.search_space === 'object' &&
+      'params' in (s.search_space as object) &&
+      typeof (s.search_space as Record<string, unknown>).params === 'object'
+        ? ((s.search_space as Record<string, unknown>).params as Record<string, unknown>)
+        : {}
+    ) as Record<string, unknown>;
+    const followupSearchSpaceParams = (
+      f.search_space &&
+      typeof f.search_space === 'object' &&
+      'params' in (f.search_space as object) &&
+      typeof (f.search_space as Record<string, unknown>).params === 'object'
+        ? ((f.search_space as Record<string, unknown>).params as Record<string, unknown>)
+        : {}
+    ) as Record<string, unknown>;
+    const mergedSearchSpace = {
+      params: { ...parentSearchSpaceParams, ...followupSearchSpaceParams },
+    };
     return {
       cluster_id: s.cluster_id,
       target: s.target,
@@ -218,7 +248,7 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
       query_set_id: s.query_set_id,
       judgment_list_id: s.judgment_list_id,
       name: `${truncatedParentName} — followup #${runFollowupIndex + 1} (${f.kind})`,
-      search_space_text: JSON.stringify(f.search_space, null, 2),
+      search_space_text: JSON.stringify(mergedSearchSpace, null, 2),
       metric: objective.metric,
       k: objective.k,
       direction: objective.direction,
