@@ -203,6 +203,40 @@ class RunQueryResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# feat_index_document_browser — documents-browse list endpoint.
+# Per spec §7.1 / FR-3. Detail endpoint reuses the adapter ``Document`` model
+# directly (F3 resolution — single source of truth, no router-side schema
+# drift).
+# ---------------------------------------------------------------------------
+
+
+class DocumentSummary(BaseModel):
+    """One row in the documents list (per FR-3 / FR-8).
+
+    ``source`` is the *truncated* preview emitted by
+    ``backend.app.services.documents.truncate_source_for_list``. The detail
+    endpoint returns the untruncated ``Document.source``.
+    """
+
+    doc_id: str = Field(min_length=1)
+    source: dict[str, Any] | None
+
+
+class DocumentListResponse(BaseModel):
+    """``GET /api/v1/clusters/{cluster_id}/targets/{target}/documents`` response.
+
+    ``next_cursor`` opaque-encodes the ES ``hits[-1].sort`` array of the
+    last visible row when ``has_more`` is True (see
+    ``backend.app.api.v1._documents_cursor``). The ``X-Total-Count`` header
+    on the response carries the engine's ``hits.total.value``.
+    """
+
+    data: list[DocumentSummary]
+    next_cursor: str | None
+    has_more: bool
+
+
+# ---------------------------------------------------------------------------
 # feat_study_lifecycle Phase 2 — query-template / query-set / study / trial
 # schemas. Per CLAUDE.md "Enumerated Value Contract Discipline" every wire
 # Literal carries a source-of-truth comment.

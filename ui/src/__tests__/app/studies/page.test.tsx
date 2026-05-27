@@ -100,4 +100,65 @@ describe('StudiesPage', () => {
     fireEvent.click(screen.getByTestId('filter-chip-status-running'));
     expect(lastReplace).toContain('status=running');
   });
+
+  // ---------------------------------------------------------------------------
+  // feat_index_document_browser Story 3.5 / AC-19 — ?target= filter chip.
+  // ---------------------------------------------------------------------------
+
+  it('AC-19: renders the Target filter chip when ?target= is in the URL', async () => {
+    mockedSearch = 'target=acme-products';
+    let capturedTarget: string | null = null;
+    server.use(
+      http.get(`${API_BASE}/api/v1/studies`, ({ request }) => {
+        const url = new URL(request.url);
+        capturedTarget = url.searchParams.get('target');
+        return HttpResponse.json(
+          { data: studyRows(1), next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '1' } },
+        );
+      }),
+    );
+    await renderPage();
+    await waitFor(() => {
+      expect(screen.getByTestId('studies-target-filter-chip')).toBeInTheDocument();
+    });
+    const chip = screen.getByTestId('studies-target-filter-chip');
+    expect(chip.textContent).toContain('acme-products');
+    // Backend received the target param.
+    expect(capturedTarget).toBe('acme-products');
+  });
+
+  it('AC-19: clicking × on the Target chip drops ?target= from the URL', async () => {
+    mockedSearch = 'target=acme-products&cluster_id=cluster-1';
+    server.use(
+      http.get(`${API_BASE}/api/v1/studies`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() =>
+      expect(screen.getByTestId('studies-target-filter-clear')).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByTestId('studies-target-filter-clear'));
+    // cluster_id preserved; target dropped.
+    expect(lastReplace).toContain('cluster_id=cluster-1');
+    expect(lastReplace).not.toContain('target=');
+  });
+
+  it('AC-19: chip not rendered when ?target= is absent', async () => {
+    mockedSearch = 'cluster_id=cluster-1';
+    server.use(
+      http.get(`${API_BASE}/api/v1/studies`, () =>
+        HttpResponse.json(
+          { data: [], next_cursor: null, has_more: false },
+          { headers: { 'X-Total-Count': '0' } },
+        ),
+      ),
+    );
+    await renderPage();
+    await waitFor(() => expect(screen.queryByTestId('studies-target-filter-chip')).toBeNull());
+  });
 });

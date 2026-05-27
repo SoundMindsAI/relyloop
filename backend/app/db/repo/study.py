@@ -72,6 +72,7 @@ async def list_studies(
     since: datetime | None = None,
     status: StudyStatusFilter | None = None,
     cluster_id: str | None = None,
+    target: str | None = None,
     q: str | None = None,
     sort: str | None = None,
 ) -> Sequence[Study]:
@@ -85,7 +86,10 @@ async def list_studies(
     ``since`` filters to ``created_at >= since``. ``status`` filters to a
     single state. ``cluster_id`` scopes to studies belonging to a single
     cluster (used by the cluster detail page's "Studies using this cluster"
-    section). ``q`` is an optional Postgres FTS match against
+    section). ``target`` (feat_index_document_browser FR-5) scopes to studies
+    targeting a single index/collection on the cluster — composes with
+    ``cluster_id`` to drive the index summary page's "studies targeting this
+    index" link. ``q`` is an optional Postgres FTS match against
     ``search_vector`` (studies.name + target). Limit clamped at 200.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _STUDY_SORT_COLUMNS)
@@ -96,6 +100,8 @@ async def list_studies(
         stmt = stmt.where(Study.created_at >= since)
     if cluster_id is not None:
         stmt = stmt.where(Study.cluster_id == cluster_id)
+    if target is not None:
+        stmt = stmt.where(Study.target == target)
     fts = fts_predicate(q)
     if fts is not None:
         stmt = stmt.where(fts)
@@ -122,9 +128,14 @@ async def count_studies(
     since: datetime | None = None,
     status: StudyStatusFilter | None = None,
     cluster_id: str | None = None,
+    target: str | None = None,
     q: str | None = None,
 ) -> int:
-    """COUNT(*) studies matching the filter (for the X-Total-Count header)."""
+    """COUNT(*) studies matching the filter (for the X-Total-Count header).
+
+    ``target`` (feat_index_document_browser FR-5) composes with all other
+    filters via AND.
+    """
     stmt = select(func.count(Study.id))
     if status is not None:
         stmt = stmt.where(Study.status == status)
@@ -132,6 +143,8 @@ async def count_studies(
         stmt = stmt.where(Study.created_at >= since)
     if cluster_id is not None:
         stmt = stmt.where(Study.cluster_id == cluster_id)
+    if target is not None:
+        stmt = stmt.where(Study.target == target)
     fts = fts_predicate(q)
     if fts is not None:
         stmt = stmt.where(fts)

@@ -8,6 +8,9 @@ import pytest
 from pydantic import ValidationError
 
 from backend.app.adapters.protocol import (
+    AdapterDocumentHit,
+    Document,
+    DocumentPage,
     EngineType,
     ExplainTree,
     FieldSpec,
@@ -74,6 +77,26 @@ class _StubAdapter:
     ) -> ExplainTree:
         return ExplainTree(doc_id=doc_id, matched=False, value=0.0, description="")
 
+    async def get_document(
+        self,
+        target: str,
+        doc_id: str,
+        *,
+        request_id: str | None = None,
+    ) -> Document | None:
+        return None
+
+    async def list_documents(
+        self,
+        target: str,
+        *,
+        search_after: list[object] | None = None,
+        limit: int = 25,
+        fields: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> DocumentPage:
+        return DocumentPage(hits=[], total=0)
+
 
 # -----------------------------------------------------------------------------
 # Protocol shape
@@ -94,7 +117,15 @@ def test_async_methods_are_coroutines() -> None:
     can't accidentally make an I/O method synchronous.
     """
     stub = _StubAdapter()
-    for name in ("health_check", "list_targets", "get_schema", "search_batch", "explain"):
+    for name in (
+        "health_check",
+        "list_targets",
+        "get_schema",
+        "search_batch",
+        "explain",
+        "get_document",
+        "list_documents",
+    ):
         method = getattr(stub, name)
         assert inspect.iscoroutinefunction(method), f"{name} must be async"
 
@@ -205,6 +236,62 @@ class TestQueryTemplate:
                 body="{}",
                 declared_params={},
             )
+
+
+class TestDocument:
+    """feat_index_document_browser Story 1.1 — Document model shape + invariants."""
+
+    def test_valid(self) -> None:
+        d = Document(doc_id="prod-001", source={"title": "Apple Watch"})
+        assert d.doc_id == "prod-001"
+        assert d.source == {"title": "Apple Watch"}
+
+    def test_source_can_be_none(self) -> None:
+        """``_source: false`` indexes return source=None — not an error."""
+        d = Document(doc_id="prod-001", source=None)
+        assert d.source is None
+
+    def test_doc_id_empty_string_rejected(self) -> None:
+        """Field(min_length=1) on doc_id enforces non-empty (spec FR-1 + cycle-3 F6)."""
+        with pytest.raises(ValidationError):
+            Document(doc_id="", source={})
+
+
+class TestAdapterDocumentHit:
+    """feat_index_document_browser Story 1.1 — list page hit shape."""
+
+    def test_valid(self) -> None:
+        h = AdapterDocumentHit(doc_id="prod-001", source={"x": 1}, sort=["prod-001"])
+        assert h.sort == ["prod-001"]
+
+    def test_sort_required(self) -> None:
+        """``sort`` must be present — the router relies on it for cursor encoding."""
+        with pytest.raises(ValidationError):
+            AdapterDocumentHit(doc_id="prod-001", source={})  # type: ignore[call-arg]
+
+    def test_doc_id_empty_string_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            AdapterDocumentHit(doc_id="", source={}, sort=["x"])
+
+
+class TestDocumentPage:
+    """feat_index_document_browser Story 1.1 — paginated list page wrapper."""
+
+    def test_valid_empty(self) -> None:
+        p = DocumentPage(hits=[], total=0)
+        assert p.hits == []
+        assert p.total == 0
+
+    def test_valid_with_hits(self) -> None:
+        h1 = AdapterDocumentHit(doc_id="a", source=None, sort=["a"])
+        h2 = AdapterDocumentHit(doc_id="b", source=None, sort=["b"])
+        p = DocumentPage(hits=[h1, h2], total=2)
+        assert len(p.hits) == 2
+
+    def test_no_last_sort_field(self) -> None:
+        """The cycle-2 F1 fix removed `last_sort` — per-hit sort replaces it."""
+        p = DocumentPage(hits=[], total=0)
+        assert not hasattr(p, "last_sort")
 
 
 class TestAdapterErrors:

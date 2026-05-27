@@ -397,18 +397,18 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">87 / 88</div>
+      <div class="value">88 / 89</div>
       <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">11</div>
+      <div class="value">12</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">3</div>
+      <div class="value">4</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">0</div>
+      <div class="value">1</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">10</div>
+      <div class="value">11</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,16 +463,16 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">10</span></h3>
+  <h3>Idea <span class="count">11</span></h3>
 
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/02_product/planned_features/feat_index_document_browser">Index Document Browser</a></div>
+<div class="card infra" data-prefix="infra" data-priority="P1">
+  <div class="name"><a href="../../docs/02_product/planned_features/infra_smoke_job_chronic_flake">Smoke Job Chronic Flake</a></div>
   <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
-  <div class="one-liner">A study scores trials by issuing queries against a specific index (the `target` field on `studies`) and ranking the returned documents against the judgment list. Operators reviewing a study&#x27;s Confiden</div>
+  <div class="one-liner">Recent `pr.yml` runs on `main` (newest first):</div>
 
 
 </div>
@@ -557,6 +557,19 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/bug_starlette_request_poisons_fastapi_depends_tests">Starlette Request Poisons Fastapi Depends Tests</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={&quot;type&quot;: &quot;http&quot;, ...})` and breaks subsequent `Depends` resolution. Possible suspects:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive">Webhook Concurrent Merge Race Timing Sensitive</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -624,7 +637,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">117</span></h3>
+  <h3>Done <span class="count">118</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -829,6 +842,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/188">PR #188</a> <span>merged 2026-05-22</span>
   </div>
   <div class="one-liner">An operator landing on a freshly-seeded stack sees an unambiguous banner above the dashboard&#x27;s empty/populated content that names the present demo clusters, explains they ship with realistic queries +</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/02_product/planned_features/feat_index_document_browser/feature_spec.md">Index Document Browser</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/282">PR #282</a>
+  </div>
+  <div class="one-liner">A read-only document browser, reachable from two independent entry points (cluster detail + study detail), that lets operators see corpus shape, paginate documents, and inspect any single doc&#x27;s `_sour</div>
 
 
 </div>
@@ -2159,6 +2185,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_index_document_browser[&quot;index document browser&quot;]
+  class feat_index_document_browser done;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
   infra_foundation[&quot;foundation&quot;]
@@ -2388,6 +2416,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_index_document_browser[&quot;index document browser&quot;]
+  class feat_index_document_browser done;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
   infra_foundation[&quot;foundation&quot;]
