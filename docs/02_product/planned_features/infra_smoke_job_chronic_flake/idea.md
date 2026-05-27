@@ -96,6 +96,25 @@ Phase B — Playwright flake bisect:
 5. Either fix the underlying flake or quarantine the unstable specs
    behind a CI-skip marker until the fix lands.
 
+**Additional data point (added 2026-05-27 from PR #284 CI watch):** the
+cancellation mode on main-branch runs is **not** Playwright flake — it is
+a hard job-level timeout. Five consecutive `pr.yml` runs on `main`
+(`135f19ab` 02:03 UTC → `1a477168` 12:00 UTC → `6ff9c211` 12:59 UTC →
+`7a5bc42a` 16:48 UTC → `5a90f826` 19:15 UTC, all 2026-05-27) each
+cancelled at 15m17–21s wall clock — matching the
+`timeout-minutes: 15` setting at
+[`.github/workflows/pr.yml:309`](../../../../.github/workflows/pr.yml).
+The smoke job's wall-clock work has exceeded 15 minutes for at least
+~17 hours of continuous merges, so the cancellation is the timeout
+hitting, not concurrency or Playwright. (Concurrency cancellation does
+also occur on PR-branch runs that get superseded by a later push —
+that's a separate mode visible only in the PR-branch run history.)
+
+Diagnostic implication: Phase B should also profile *what's taking >15
+minutes* (the seed-demo step? the Playwright suite? Compose stack
+bring-up?) before deciding between (a) raise the timeout, (b) reduce
+wall clock by parallelizing or skipping steps, (c) split the job.
+
 Phase C — split smoke job:
 6. Move the seed-demo + Playwright steps into a separate, opt-in workflow
    that runs only on `pull_request` (not `push: main`), and gate it
