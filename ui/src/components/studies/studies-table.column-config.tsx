@@ -11,10 +11,21 @@
  */
 import Link from 'next/link';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
+import { Badge } from '@/components/ui/badge';
 import type { DataTableColumnDef } from '@/components/common/types';
 import type { StudySummary } from '@/lib/api/studies';
 import { STUDY_STATUS_VALUES } from '@/lib/enums';
+
+/**
+ * Threshold heuristic for the "ceiling" badge — when `best_metric` is at or
+ * very close to the metric's upper bound, the score is almost always pinned
+ * by judgment-density rather than earned by the optimizer. The detail page's
+ * Confidence panel gives the deeper signal (per-query outcomes, runner-up
+ * gap, CI band); this badge is the at-a-glance cue on the list view.
+ */
+const METRIC_CEILING_THRESHOLD = 0.99;
 
 export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
   {
@@ -59,12 +70,27 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
     accessorKey: 'best_metric',
     sortable: true,
     firstClickDirection: 'desc',
-    cell: ({ row }) =>
-      row.original.best_metric != null ? (
-        row.original.best_metric.toFixed(3)
-      ) : (
-        <span className="text-muted-foreground">—</span>
-      ),
+    cell: ({ row }) => {
+      const m = row.original.best_metric;
+      if (m == null) return <span className="text-muted-foreground">—</span>;
+      const saturated = m >= METRIC_CEILING_THRESHOLD;
+      return (
+        <span className="inline-flex items-center gap-1.5">
+          <span>{m.toFixed(3)}</span>
+          {saturated && (
+            <span
+              className="inline-flex items-center gap-0.5"
+              data-testid={`best-metric-ceiling-${row.original.id}`}
+            >
+              <Badge variant="warning" className="text-[10px] uppercase tracking-wide">
+                Ceiling
+              </Badge>
+              <InfoTooltip glossaryKey="study.best_metric.saturated" />
+            </span>
+          )}
+        </span>
+      );
+    },
   },
   {
     id: 'created_at',
