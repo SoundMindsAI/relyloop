@@ -49,6 +49,22 @@ function makeConfidence(overrides: Partial<ConfidenceShape> = {}): ConfidenceSha
           delta: -0.23,
         },
       ],
+      top_improvers: [
+        {
+          query_id: 'q3',
+          query_text: 'wireless headphones',
+          winner_score: 0.88,
+          comparison_score: 0.55,
+          delta: 0.33,
+        },
+        {
+          query_id: 'q4',
+          query_text: 'running shoes',
+          winner_score: 0.79,
+          comparison_score: 0.61,
+          delta: 0.18,
+        },
+      ],
     },
     ...overrides,
   };
@@ -116,6 +132,41 @@ describe('<ConfidencePanel>', () => {
     expect(within(table).getByText('-0.510')).toBeTruthy();
   });
 
+  it('renders the named improvers table with query_text + scores + positive delta', () => {
+    mount(makeConfidence());
+    const table = screen.getByTestId('confidence-improvers');
+    expect(within(table).getByText('wireless headphones')).toBeTruthy();
+    expect(within(table).getByText('running shoes')).toBeTruthy();
+    expect(within(table).getByText('0.880')).toBeTruthy();
+    expect(within(table).getByText('+0.330')).toBeTruthy();
+    expect(within(table).getByText('+0.180')).toBeTruthy();
+  });
+
+  it('omits the named-improvers table when improved === 0', () => {
+    mount(
+      makeConfidence({
+        per_query_outcomes: {
+          improved: 0,
+          unchanged: 18,
+          regressed: 2,
+          comparison_against: 'runner_up',
+          top_regressors: [
+            {
+              query_id: 'q1',
+              query_text: 'q1 text',
+              winner_score: 0.41,
+              comparison_score: 0.92,
+              delta: -0.51,
+            },
+          ],
+          top_improvers: [],
+        },
+      }),
+    );
+    expect(screen.queryByTestId('confidence-improvers')).toBeNull();
+    expect(screen.getByTestId('outcome-improved').textContent).toBe('0 Improved');
+  });
+
   it('omits the named-regressors table when regressed === 0 (AC-3 mirror)', () => {
     mount(
       makeConfidence({
@@ -125,6 +176,7 @@ describe('<ConfidencePanel>', () => {
           regressed: 0,
           comparison_against: 'runner_up',
           top_regressors: [],
+          top_improvers: [],
         },
       }),
     );
@@ -150,6 +202,7 @@ describe('<ConfidencePanel>', () => {
               delta: -0.51,
             },
           ],
+          top_improvers: [],
         },
       }),
     );

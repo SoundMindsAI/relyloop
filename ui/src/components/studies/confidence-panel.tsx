@@ -62,7 +62,8 @@ export function ConfidencePanel({ confidence }: ConfidencePanelProps) {
           Is this winner statistically reliable, or did the optimizer get lucky on one trial? The{' '}
           <strong>95% CI</strong> shows the headline metric's uncertainty range.{' '}
           <strong>Per-query outcomes</strong> tell you whether the lift is broad-based or driven by
-          one query. <strong>Runner-up gap</strong>, <strong>late-trial 1σ</strong>, and{' '}
+          one query — the per-query tables below name the biggest winners and losers so you can spot
+          patterns. <strong>Runner-up gap</strong>, <strong>late-trial 1σ</strong>, and{' '}
           <strong>convergence regime</strong> together indicate whether the optimizer settled on a
           robust plateau or a sharp peak. Hover any <em>(i)</em> icon for the full definition.
         </p>
@@ -107,6 +108,41 @@ export function ConfidencePanel({ confidence }: ConfidencePanelProps) {
                 <InfoTooltip glossaryKey="confidence.comparison_against" />
               </span>
             </div>
+            {per_query_outcomes.improved > 0 && per_query_outcomes.top_improvers.length > 0 && (
+              <div className="mt-3" data-testid="confidence-improvers">
+                <p className="mb-1 text-xs uppercase text-muted-foreground">
+                  Queries that improved
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Query</TableHead>
+                      <TableHead className="text-right">Winner</TableHead>
+                      <TableHead className="text-right">
+                        vs {formatComparison(per_query_outcomes.comparison_against)}
+                      </TableHead>
+                      <TableHead className="text-right">Δ</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {per_query_outcomes.top_improvers.map((row) => (
+                      <TableRow key={row.query_id} data-testid={`improver-row-${row.query_id}`}>
+                        <TableCell className="font-mono text-xs">{row.query_text}</TableCell>
+                        <TableCell className="text-right font-mono">
+                          {row.winner_score.toFixed(3)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono">
+                          {row.comparison_score.toFixed(3)}
+                        </TableCell>
+                        <TableCell className="text-right font-mono text-green-700">
+                          +{row.delta.toFixed(3)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
             {per_query_outcomes.regressed > 0 && per_query_outcomes.top_regressors.length > 0 && (
               <div className="mt-3" data-testid="confidence-regressors">
                 <p className="mb-1 text-xs uppercase text-muted-foreground">
