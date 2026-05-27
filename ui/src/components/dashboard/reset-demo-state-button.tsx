@@ -139,8 +139,11 @@ export function ResetDemoStateButton(): React.ReactElement {
               <AlertDialogDescription>
                 This will WIPE the dev Postgres demo state (clusters, studies, query sets, query
                 templates, judgment lists, judgments, trials, digests, proposals) AND the
-                corresponding ES/OS indices. Then it will seed 4 demo scenarios by running real
-                Optuna trials (~2–4 minutes wall-clock; each scenario gets a real best metric).
+                corresponding ES/OS indices. Then it will seed 5 demo scenarios by running real
+                Optuna trials (~5–9 minutes wall-clock; each scenario gets a real best metric). The
+                5th scenario (acme-products-rich-prod) bulk-indexes 1000 ESCI products and calls the
+                OpenAI API to generate judgments (~$0.05 in tokens); it is skipped gracefully if no
+                OpenAI key is configured.
               </AlertDialogDescription>
             )}
             {isRunning && status && (
