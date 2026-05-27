@@ -9,6 +9,12 @@ Endpoints (per spec §7.1, FR-5/FR-4/FR-6):
 * ``GET    /api/v1/clusters/{cluster_id}/schema``   — schema introspection
 * ``GET    /api/v1/clusters/{cluster_id}/targets``  — list indices/collections
 * ``POST   /api/v1/clusters/{cluster_id}/run_query``— ad-hoc DSL execution
+* ``GET    /api/v1/clusters/{cluster_id}/targets/{target}/documents``
+                                                      — paginated documents list
+                                                        (feat_index_document_browser FR-3)
+* ``GET    /api/v1/clusters/{cluster_id}/targets/{target}/documents/{doc_id:path}``
+                                                      — single document detail
+                                                        (feat_index_document_browser FR-4)
 
 Service exceptions are translated into the spec §7.5 error envelope here
 via ``HTTPException(detail={...})`` so the existing
@@ -23,6 +29,7 @@ import json
 from datetime import datetime
 from typing import Annotated
 
+import structlog
 from fastapi import APIRouter, Depends, Query, Response, status
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -34,16 +41,24 @@ from backend.app.adapters.errors import (
     TargetNotFoundError,
     TargetsForbiddenError,
 )
-from backend.app.adapters.protocol import HealthStatus
+from backend.app.adapters.protocol import Document, HealthStatus
 from backend.app.adapters.protocol import Schema as AdapterSchema
 from backend.app.api.health import get_redis_client
+from backend.app.api.v1._documents_cursor import (
+    decode_documents_cursor,
+    encode_documents_cursor,
+)
+from backend.app.api.v1._documents_fields import parse_fields_csv
 from backend.app.api.v1._errors import _err as _err  # noqa: F401 — re-export
+from backend.app.api.v1._strict_query_params import strict_unknown_query_params
 from backend.app.api.v1.schemas import (
     ClusterDetail,
     ClusterListResponse,
     ClusterSortKey,
     ClusterSummary,
     CreateClusterRequest,
+    DocumentListResponse,
+    DocumentSummary,
     EngineTypeWire,
     Environment,
     HealthCheckResult,
@@ -66,6 +81,7 @@ from backend.app.db.repo._sort import (
 )
 from backend.app.db.session import get_db
 from backend.app.services import cluster as cluster_svc
+from backend.app.services._target_filter import check_target_visible
 from backend.app.services.cluster import (
     AuthKindNotSupported,
     ClusterNameTaken,
@@ -73,8 +89,10 @@ from backend.app.services.cluster import (
     EngineTypeNotSupported,
     dispatch_run_query,
 )
+from backend.app.services.documents import truncate_source_for_list
 
 router = APIRouter()
+logger = structlog.get_logger(__name__)
 
 # Sort allowlist is owned by the repo layer (single source of truth across
 # every list endpoint in this PR). Import inside the handler to avoid a
@@ -398,3 +416,145 @@ async def run_query(
     return RunQueryResponse(
         hits=[RunQueryHit(doc_id=h.doc_id, score=h.score, source=h.source) for h in hits]
     )
+
+
+# ---------------------------------------------------------------------------
+# feat_index_document_browser — documents browse endpoints
+#
+# Spec FR-3 (list) / FR-4 (detail). Error envelope catalog for this surface:
+# CLUSTER_NOT_FOUND (404), TARGET_NOT_FOUND (404), DOCUMENT_NOT_FOUND (404 —
+# NEW, detail endpoint only), TARGETS_FORBIDDEN (403), CLUSTER_UNREACHABLE
+# (503), VALIDATION_ERROR (422 — incl. unknown-query-param + wildcard
+# fields). Per CLAUDE.md Absolute Rule #4 the engine-specific HTTP lives in
+# the adapter; this router composes adapter methods + service helpers.
+# ---------------------------------------------------------------------------
+
+
+_DOCUMENTS_LIST_ALLOWED_PARAMS = {"cursor", "limit", "fields"}
+
+
+@router.get(
+    "/clusters/{cluster_id}/targets/{target}/documents",
+    response_model=DocumentListResponse,
+    tags=["clusters"],
+)
+async def list_target_documents(
+    cluster_id: str,
+    target: str,
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    cursor: Annotated[str | None, Query(max_length=4096)] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 25,
+    fields: Annotated[str | None, Query(max_length=2048)] = None,
+    _strict: Annotated[
+        None,
+        Depends(strict_unknown_query_params(_DOCUMENTS_LIST_ALLOWED_PARAMS)),
+    ] = None,
+) -> DocumentListResponse:
+    """Paginated _id + truncated _source preview for a target (FR-3).
+
+    The endpoint asks the adapter for ``limit + 1`` rows so it can detect
+    end-of-data exactly (no extra round-trip). Only the first ``limit`` rows
+    are returned; ``next_cursor`` encodes the ES ``hits[i].sort`` of the
+    last visible row when ``has_more`` is True. ``X-Total-Count`` header
+    carries the engine's ``hits.total.value``.
+    """
+    # Validate query-string format before DB I/O so malformed input always
+    # surfaces as 422 VALIDATION_ERROR (matching the contract-level promise
+    # to the frontend) regardless of whether the cluster_id is valid.
+    parsed_fields = parse_fields_csv(fields)  # raises 422 on wildcard
+    search_after = decode_documents_cursor(cursor) if cursor else None
+
+    cluster = await repo.get_cluster(db, cluster_id)
+    if cluster is None:
+        raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id!r} not found", False)
+    if not check_target_visible(cluster, target):
+        raise _err(404, "TARGET_NOT_FOUND", f"target {target!r} not found", False)
+
+    try:
+        async with cluster_svc.acquire_adapter(cluster) as adapter:
+            page = await adapter.list_documents(
+                target,
+                search_after=search_after,
+                limit=limit + 1,  # overfetch one for has_more detection
+                fields=parsed_fields,
+            )
+    except TargetNotFoundError as exc:
+        raise _err(404, "TARGET_NOT_FOUND", f"target {exc.target!r} not found", False) from exc
+    except TargetsForbiddenError as exc:
+        raise _err(403, "TARGETS_FORBIDDEN", str(exc), False) from exc
+    except (ClusterUnreachable, ClusterUnreachableError) as exc:
+        raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
+
+    visible_hits = page.hits[:limit]
+    has_more = len(page.hits) > limit
+    next_cursor = (
+        encode_documents_cursor(visible_hits[-1].sort) if has_more and visible_hits else None
+    )
+
+    response.headers["X-Total-Count"] = str(page.total)
+    logger.info(
+        "documents.list_requested",
+        cluster_id=cluster_id,
+        target=target,
+        cursor_present=cursor is not None,
+        limit=limit,
+        status="ok",
+    )
+    return DocumentListResponse(
+        data=[
+            DocumentSummary(doc_id=h.doc_id, source=truncate_source_for_list(h.source))
+            for h in visible_hits
+        ],
+        next_cursor=next_cursor,
+        has_more=has_more,
+    )
+
+
+@router.get(
+    "/clusters/{cluster_id}/targets/{target}/documents/{doc_id:path}",
+    response_model=Document,
+    tags=["clusters"],
+)
+async def get_target_document(
+    cluster_id: str,
+    target: str,
+    doc_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> Document:
+    """Fetch one document by ``_id`` (FR-4).
+
+    FastAPI's ``{doc_id:path}`` converter round-trips slashes verbatim, so
+    operator IDs containing ``/`` are supported (D-17 / AC-16). Returns the
+    adapter ``Document`` shape directly; on ``found: false`` returns 404
+    ``DOCUMENT_NOT_FOUND`` (distinct from ``TARGET_NOT_FOUND``).
+    """
+    cluster = await repo.get_cluster(db, cluster_id)
+    if cluster is None:
+        raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id!r} not found", False)
+    if not check_target_visible(cluster, target):
+        raise _err(404, "TARGET_NOT_FOUND", f"target {target!r} not found", False)
+    try:
+        async with cluster_svc.acquire_adapter(cluster) as adapter:
+            doc = await adapter.get_document(target, doc_id)
+    except TargetNotFoundError as exc:
+        raise _err(404, "TARGET_NOT_FOUND", f"target {exc.target!r} not found", False) from exc
+    except TargetsForbiddenError as exc:
+        raise _err(403, "TARGETS_FORBIDDEN", str(exc), False) from exc
+    except (ClusterUnreachable, ClusterUnreachableError) as exc:
+        raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
+    if doc is None:
+        raise _err(
+            404,
+            "DOCUMENT_NOT_FOUND",
+            f"document {doc_id!r} not found in {target!r}",
+            False,
+        )
+    logger.info(
+        "documents.get_requested",
+        cluster_id=cluster_id,
+        target=target,
+        doc_id=doc_id,
+        status="ok",
+    )
+    return doc

@@ -120,7 +120,8 @@ class TestListDocuments:
         body = captured_bodies[0]
         assert body["track_total_hits"] is True
         assert body["query"] == {"match_all": {}}
-        assert body["sort"] == [{"_id": "asc"}]
+        # ES 9 disallows _id fielddata by default → use _doc per spec D-26 fallback.
+        assert body["sort"] == [{"_doc": "asc"}]
         assert body["size"] == 25
 
     @pytest.mark.asyncio

@@ -777,7 +777,16 @@ class ElasticAdapter:
         feat_index_document_browser FR-2 + spec D-26 / D-24.
 
         Request body locks:
-        * ``"sort": [{"_id": "asc"}]`` — primary pagination strategy per D-26.
+        * ``"sort": [{"_doc": "asc"}]`` — pagination key. The spec's primary
+          choice was ``_id``, but ES 9 disallows ``_id`` fielddata by default
+          (``indices.id_field_data.enabled`` is off, surfaced as HTTP 400 on
+          first probe). ``_doc`` is the spec D-26 fallback — shard-internal
+          but always available, and ``search_after`` works against it
+          identically. Tradeoff acknowledged: shard rebalancing could shift
+          ``_doc`` IDs and corrupt cursor continuity. For the MVP1 browse use
+          case (read-only operator inspection) this is acceptable. The
+          PIT + ``_shard_doc`` fallback remains available if shard churn
+          becomes a real-world problem.
         * ``"track_total_hits": true`` — preserves exact ``hits.total.value``
           for the router's ``X-Total-Count`` header (D-24; without this ES
           caps total at 10000).
@@ -795,7 +804,7 @@ class ElasticAdapter:
         encoded_target = quote(target, safe="")
         body: dict[str, Any] = {
             "query": {"match_all": {}},
-            "sort": [{"_id": "asc"}],
+            "sort": [{"_doc": "asc"}],
             "size": limit,
             "track_total_hits": True,
         }
