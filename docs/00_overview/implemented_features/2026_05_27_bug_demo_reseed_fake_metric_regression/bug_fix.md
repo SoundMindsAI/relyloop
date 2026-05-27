@@ -1,8 +1,8 @@
 # Bug fix — home-page reseed button writes hardcoded fake metric
 
 **Date:** 2026-05-27
-**Status:** In progress — bug folder + design captured, implementation underway
-**Branch:** `bug/demo-reseed-fake-metric-regression`
+**Status:** Complete (PR #286, merged 2026-05-27 as squash `5a90f82`)
+**Branch:** `bug/demo-reseed-fake-metric-regression` (deleted post-merge)
 
 ## Problem
 

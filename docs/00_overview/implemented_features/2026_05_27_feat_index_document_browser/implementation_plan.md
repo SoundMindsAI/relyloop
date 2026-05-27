@@ -1,7 +1,7 @@
 # Implementation Plan — Index Document Browser
 
 **Date:** 2026-05-27
-**Status:** Implementation complete — Epics 1–3 shipped, PR pending
+**Status:** Complete (PR #285, merged 2026-05-27 as squash `7a5bc42`)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Origin idea:** [idea.md](idea.md)
 
