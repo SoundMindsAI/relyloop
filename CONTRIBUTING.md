@@ -162,4 +162,6 @@ See the spec ([`docs/00_overview/relyloop-spec.md`](docs/00_overview/relyloop-sp
 
 For questions about the project direction, roadmap, or design choices, open a GitHub Discussion (once enabled). For specific implementation questions, open an issue.
 
+For casual outreach or design conversations the project lead is also reachable on [X](https://x.com/Starrman777) and [LinkedIn](https://www.linkedin.com/in/starrman/) — see [MAINTAINERS.md](MAINTAINERS.md) for the canonical contact list.
+
 Thank you for contributing.

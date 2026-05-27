@@ -102,3 +102,13 @@ Vulnerabilities go through [SECURITY.md](SECURITY.md), not public issues.
 
 - Current maintainers: [MAINTAINERS.md](MAINTAINERS.md). At v0.1, all maintainers are soundminds.ai employees — stated openly so the bus factor is visible.
 - How decisions are made + the plan to grow the maintainer set across organizations: [GOVERNANCE.md](GOVERNANCE.md). The transition target is 12–24 months from MVP1's first stable release.
+
+## Reaching out
+
+For casual outreach, design conversations, or "is RelyLoop right for my team?" questions, the project lead is reachable at:
+
+- Email: `eric.starr@soundminds.ai`
+- X: [@Starrman777](https://x.com/Starrman777)
+- LinkedIn: [linkedin.com/in/starrman](https://www.linkedin.com/in/starrman/)
+
+For bug reports use [GitHub Issues](https://github.com/SoundMindsAI/relyloop/issues); for security vulnerabilities use [SECURITY.md](SECURITY.md); for design discussions in the open use [GitHub Discussions](https://github.com/SoundMindsAI/relyloop/discussions).

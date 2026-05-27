@@ -7,7 +7,9 @@ Last updated: 2026-05-27.
 
 | Name | GitHub | Contact | Role | Affiliation | Areas |
 |---|---|---|---|---|---|
-| Eric Starr | [@SoundMindsAI](https://github.com/SoundMindsAI) | `eric.starr@soundminds.ai` | Project lead, maintainer | soundminds.ai | All subsystems |
+| Eric Starr | [@SoundMindsAI](https://github.com/SoundMindsAI) | `eric.starr@soundminds.ai` · [@Starrman777 on X](https://x.com/Starrman777) · [LinkedIn](https://www.linkedin.com/in/starrman/) | Project lead, maintainer | soundminds.ai | All subsystems |
+
+**Note on contact channels:** the email and socials above are for casual outreach, design conversations, and "is RelyLoop right for my team?" questions. They are **not** for security disclosures (use [SECURITY.md](SECURITY.md)) or bug reports (use [GitHub Issues](https://github.com/SoundMindsAI/relyloop/issues)).
 
 At v0.1, the project has a single active maintainer, employed by
 soundminds.ai. This is stated openly so that contributors and downstream
