@@ -26,13 +26,18 @@ Spec references:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
+import json
 import logging
 import time
-from typing import Any, Final, cast
+from collections.abc import Awaitable, Callable
+from datetime import UTC, datetime
+from typing import Any, Final, Literal, cast
 
 import httpx
 from pydantic import BaseModel, ConfigDict
+from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -93,6 +98,31 @@ _ES_DELETE_AUTH: Final[tuple[str, str]] = ("elastic", "changeme")
 _OS_DELETE_AUTH: Final[tuple[str, str]] = ("admin", "admin")
 
 
+# Redis key holding the JSON-serialized :class:`ReseedStatusResponse`. TTL
+# is 1 hour — long enough for any in-flight reseed to finish + the
+# operator to see the result, short enough that stale failures clear
+# themselves. Per ``bug_demo_reseed_fake_metric_regression`` D-2.
+DEMO_RESEED_STATUS_KEY: Final[str] = "demo_reseed:status"
+DEMO_RESEED_STATUS_TTL_S: Final[int] = 3600
+
+
+# Real-study Optuna config — identical to the CLI's
+# ``scripts/seed_meaningful_demos.py:seed_scenario`` so the reseed-button
+# output matches ``make seed-demo`` byte-for-byte (same seed=42, same
+# max_trials=12, same parallelism=2).
+_REAL_STUDY_MAX_TRIALS: Final[int] = 12
+_REAL_STUDY_PARALLELISM: Final[int] = 2
+_REAL_STUDY_SAMPLER: Final[str] = "tpe"
+_REAL_STUDY_SEED: Final[int] = 42
+
+# Polling ceilings — wide safety margins around expected wall-clock
+# (study: 30-60s typical; digest: 5-15s typical).
+_REAL_STUDY_POLL_CEILING_S: Final[float] = 180.0
+_REAL_STUDY_POLL_INTERVAL_S: Final[float] = 3.0
+_DIGEST_POLL_CEILING_S: Final[float] = 90.0
+_DIGEST_POLL_INTERVAL_S: Final[float] = 3.0
+
+
 # ---------------------------------------------------------------------------
 # Public exception type
 # ---------------------------------------------------------------------------
@@ -128,6 +158,44 @@ class ReseedSummary(BaseModel):
     studies_completed: int
     proposals_created: int
     duration_ms: int
+
+
+ReseedStatusLiteral = Literal["idle", "running", "complete", "failed"]
+
+
+class ReseedStatusResponse(BaseModel):
+    """Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
+
+    Per ``bug_demo_reseed_fake_metric_regression`` D-2. Lives in Redis as a
+    single JSON blob keyed by :data:`DEMO_RESEED_STATUS_KEY` so the
+    handler reads it in one round-trip.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    status: ReseedStatusLiteral
+    started_at: str | None = None
+    finished_at: str | None = None
+    scenarios_total: int = 0
+    scenarios_completed: int = 0
+    current_step: str | None = None
+    failed_reason: str | None = None
+    summary: ReseedSummary | None = None
+
+
+# Status callback receives an in-progress ReseedStatusResponse and persists
+# it. Sync callers (tests) pass a no-op; the Arq worker passes a closure
+# that writes the Redis key.
+StatusCallback = Callable[[ReseedStatusResponse], Awaitable[None]]
+
+
+async def _noop_status(_status: ReseedStatusResponse) -> None:
+    """Default :type:`StatusCallback` — discards progress updates.
+
+    Used by unit/integration callers that don't care about progress
+    streaming. The Arq worker passes a Redis-writing closure instead.
+    """
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -274,6 +342,328 @@ async def _get(
 
 
 # ---------------------------------------------------------------------------
+# Redis-backed status helpers (bug_demo_reseed_fake_metric_regression D-1/D-2)
+# ---------------------------------------------------------------------------
+
+
+async def status_set(redis: Redis, status: ReseedStatusResponse) -> None:
+    """Persist the current reseed status as JSON under :data:`DEMO_RESEED_STATUS_KEY`.
+
+    Refreshes the 1-hour TTL on every write so an in-flight reseed never
+    expires mid-run.
+    """
+    payload = json.dumps(status.model_dump(mode="json"))
+    await redis.set(DEMO_RESEED_STATUS_KEY, payload, ex=DEMO_RESEED_STATUS_TTL_S)
+
+
+async def status_get(redis: Redis) -> ReseedStatusResponse:
+    """Read the current reseed status; returns ``status="idle"`` when absent.
+
+    Per ``bug_demo_reseed_fake_metric_regression`` D-5: absent key means
+    no reseed has run (or the result aged out) — return idle rather than
+    404 so the frontend's polling loop is trivially safe.
+    """
+    raw = await redis.get(DEMO_RESEED_STATUS_KEY)
+    if raw is None:
+        return ReseedStatusResponse(status="idle")
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8")
+    try:
+        payload = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning("demo_reseed_status_payload_malformed", extra={"raw": raw[:200]})
+        return ReseedStatusResponse(status="idle")
+    return ReseedStatusResponse.model_validate(payload)
+
+
+def _now_iso() -> str:
+    """UTC timestamp in ISO-8601 (Z-suffix), matching the rest of the API."""
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+# AC-12 test hook (lifted from the prior synchronous route handler) — a
+# ``threading.Event`` injected by the integration test gates the cleanup
+# pass on a signal from the test, letting the test fire a concurrent
+# reseed during the window when cleanup is mid-flight but the advisory
+# lock is still held. Production code path never reads or writes it.
+_demo_reseed_cleanup_test_gate: Any = None
+
+
+async def run_demo_reseed_cleanup(engine_client: httpx.AsyncClient) -> None:
+    """Best-effort cleanup pass — TRUNCATE demo tables + delete demo indices.
+
+    Used by the worker on mid-reseed failure to leave the system in a
+    clean state. Opens a FRESH DB connection (NOT the orchestrator's
+    session, which may be in a broken/rolled-back state after the
+    mid-flight exception). Each cleanup step tolerates every error so
+    cleanup always completes. Caller is expected to be holding the
+    advisory lock so concurrent reseeds 409 until release.
+
+    Cycle-1 GPT-5.5 plan review B1 (lifted from the previous sync handler)
+    — cleanup MUST use a fresh DB unit, not the caller's session.
+    """
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    from backend.app.core.settings import get_settings
+
+    if _demo_reseed_cleanup_test_gate is not None:
+        await asyncio.to_thread(_demo_reseed_cleanup_test_gate.wait)
+
+    cleanup_engine = create_async_engine(get_settings().database_url, echo=False, future=True)
+    try:
+        async with cleanup_engine.begin() as cleanup_conn:
+            await cleanup_conn.execute(text(_TRUNCATE_DEMO_TABLES_SQL))
+        logger.info("demo_reseed_cleanup_truncated")
+    except Exception as exc:  # noqa: BLE001 - best-effort cleanup
+        logger.warning("demo_reseed_cleanup_truncate_failed", extra={"exc": str(exc)})
+    finally:
+        await cleanup_engine.dispose()
+
+    es_base = _resolve_engine_base_url(ES)
+    for idx in DEMO_ES_INDICES:
+        try:
+            resp = await engine_client.delete(
+                f"{es_base}/{idx}", auth=httpx.BasicAuth(*_ES_DELETE_AUTH)
+            )
+            if resp.status_code not in (200, 204, 404):
+                logger.info(
+                    "demo_reseed_cleanup_es_delete_unexpected_status",
+                    extra={"idx": idx, "status": resp.status_code},
+                )
+        except Exception as exc:  # noqa: BLE001 - best-effort cleanup
+            logger.info(
+                "demo_reseed_cleanup_es_delete_skipped",
+                extra={"idx": idx, "exc": str(exc)},
+            )
+
+    os_base = _resolve_engine_base_url(OS)
+    for idx in DEMO_OS_INDICES:
+        try:
+            resp = await engine_client.delete(
+                f"{os_base}/{idx}", auth=httpx.BasicAuth(*_OS_DELETE_AUTH)
+            )
+            if resp.status_code not in (200, 204, 404):
+                logger.info(
+                    "demo_reseed_cleanup_os_delete_unexpected_status",
+                    extra={"idx": idx, "status": resp.status_code},
+                )
+        except Exception as exc:  # noqa: BLE001 - best-effort cleanup
+            logger.info(
+                "demo_reseed_cleanup_os_delete_skipped",
+                extra={"idx": idx, "exc": str(exc)},
+            )
+
+
+# ---------------------------------------------------------------------------
+# Real-study seeding helper (bug_demo_reseed_fake_metric_regression D-6)
+# ---------------------------------------------------------------------------
+
+
+def _build_search_space(template_declared_params: list[str]) -> dict[str, Any]:
+    """Build the search_space body for a POST /studies request.
+
+    Mirrors ``scripts/seed_meaningful_demos.py:766-771`` byte-for-byte —
+    every declared float param gets a ``[0.5, 5.0]`` log-uniform range so
+    the demo studies' search-space matches the CLI's exactly. Keeping
+    these in lockstep is what allows the regression test to assert the
+    button's metrics match a reference run from ``make seed-demo``.
+    """
+    return {
+        "params": {
+            name: {"type": "float", "low": 0.5, "high": 5.0, "log": True}
+            for name in template_declared_params
+        }
+    }
+
+
+async def _create_acme_swap_template(
+    api_client: httpx.AsyncClient,
+    *,
+    engine_type: str,
+    declared_params: list[str],
+) -> None:
+    """Create the function-score-price-decay-v1 template for acme-products.
+
+    Mirrors the special-case at ``scripts/seed_meaningful_demos.py:714-761``
+    so the digest worker has a real swap_template candidate to suggest
+    after the acme study completes. The template body is the same gauss
+    over ``price`` the CLI uses.
+    """
+    body = json.dumps(
+        {
+            "query": {
+                "function_score": {
+                    "query": {
+                        "multi_match": {
+                            "query": "{{ query_text }}",
+                            "fields": [
+                                "title^{{ title_boost }}",
+                                "description^{{ description_boost }}",
+                                "brand^2",
+                            ],
+                            "type": "best_fields",
+                        }
+                    },
+                    "functions": [{"gauss": {"price": {"origin": 0, "scale": 100, "decay": 0.5}}}],
+                    "score_mode": "multiply",
+                }
+            }
+        }
+    )
+    await _post(
+        api_client,
+        "/api/v1/query-templates",
+        json={
+            "name": "function-score-price-decay-v1",
+            "engine_type": engine_type,
+            "body": body,
+            "declared_params": declared_params,
+        },
+        client_label="api",
+        step="acme/post_swap_template",
+    )
+
+
+async def _seed_real_study_for_scenario(
+    api_client: httpx.AsyncClient,
+    *,
+    scenario: dict[str, Any],
+    cluster_id: str,
+    template_id: str,
+    qset_id: str,
+    judgment_list_id: str,
+    status_callback: StatusCallback,
+    progress: ReseedStatusResponse,
+) -> str:
+    """Real study create + poll + digest wait for one scenario.
+
+    Replaces the previous ``POST /_test/studies/seed-completed`` shortcut
+    (which hardcoded ``best_metric=0.487`` for every scenario). Mirrors
+    the CLI's :func:`scripts.seed_meaningful_demos.seed_scenario` step 8
+    so the home-button reseed and ``make seed-demo`` produce
+    byte-identical demo state.
+
+    Per ``bug_demo_reseed_fake_metric_regression`` D-6.
+
+    Args:
+        api_client: in-container ``httpx.AsyncClient`` against the API.
+        scenario: one element of :data:`SCENARIOS`.
+        cluster_id: cluster row id created earlier in :func:`reseed_demo_state`.
+        template_id: template row id created earlier in :func:`reseed_demo_state`.
+        qset_id: query-set row id created earlier in :func:`reseed_demo_state`.
+        judgment_list_id: judgment-list row id created earlier in
+            :func:`reseed_demo_state`.
+        status_callback: invoked after each phase with the updated
+            :class:`ReseedStatusResponse`.
+        progress: mutable status payload the caller threads through every
+            scenario. This function updates ``current_step`` in-place.
+
+    Returns:
+        The new study's id (UUIDv7 string).
+    """
+    slug = cast("str", scenario["slug"])
+    declared_params = cast("list[str]", scenario["template_declared_params"])
+    study_name = cast("str", scenario["study_name"])
+    target = cast("str", scenario["target"])
+    engine_type = cast("str", scenario["engine_type"])
+
+    # Acme-specific swap template (per CLI line 714 / D-6 follow-through).
+    if slug == "acme-products-prod":
+        progress.current_step = f"{slug}: creating swap-template candidate"
+        await status_callback(progress)
+        await _create_acme_swap_template(
+            api_client, engine_type=engine_type, declared_params=declared_params
+        )
+
+    # POST /studies — real create, no test-endpoint shortcut.
+    progress.current_step = f"{slug}: creating study (max_trials={_REAL_STUDY_MAX_TRIALS})"
+    await status_callback(progress)
+    study = await _post(
+        api_client,
+        "/api/v1/studies",
+        json={
+            "name": study_name,
+            "cluster_id": cluster_id,
+            "target": target,
+            "template_id": template_id,
+            "query_set_id": qset_id,
+            "judgment_list_id": judgment_list_id,
+            "search_space": _build_search_space(declared_params),
+            "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
+            "config": {
+                "max_trials": _REAL_STUDY_MAX_TRIALS,
+                "parallelism": _REAL_STUDY_PARALLELISM,
+                "sampler": _REAL_STUDY_SAMPLER,
+                "seed": _REAL_STUDY_SEED,
+            },
+        },
+        client_label="api",
+        step=f"{slug}/post_study",
+    )
+    study_id = cast("str", study["id"])
+
+    # Poll for terminal state. The Arq worker runs trials async; we GET
+    # the study row every 3s until status flips out of {queued, running}.
+    progress.current_step = f"{slug}: polling study {study_id[:8]} for trial completion"
+    await status_callback(progress)
+    deadline = time.monotonic() + _REAL_STUDY_POLL_CEILING_S
+    detail: dict[str, Any] = study
+    while time.monotonic() < deadline:
+        detail = await _get(
+            api_client,
+            f"/api/v1/studies/{study_id}",
+            client_label="api",
+            step=f"{slug}/poll_study",
+        )
+        if detail.get("status") in {"completed", "failed", "cancelled"}:
+            break
+        # Update the current-step counter so the operator sees forward
+        # motion — trials_summary.total bumps as the worker writes rows.
+        trials_total = detail.get("trials_summary", {}).get("total", 0)
+        progress.current_step = (
+            f"{slug}: study {study_id[:8]} running (trials {trials_total}/{_REAL_STUDY_MAX_TRIALS})"
+        )
+        await status_callback(progress)
+        await asyncio.sleep(_REAL_STUDY_POLL_INTERVAL_S)
+    final_status = detail.get("status")
+    if final_status != "completed":
+        raise DemoSeedingError(
+            f"{slug}/poll_study: terminal status={final_status!r} "
+            f"(expected 'completed'); best_metric={detail.get('best_metric')}"
+        )
+
+    # Wait for the digest worker — it fires automatically on the
+    # completed-study transition. Without this, the post-reseed dashboard
+    # would render the studies but the "Latest digest" sections would
+    # all be empty until the next page load.
+    progress.current_step = f"{slug}: waiting for digest worker"
+    await status_callback(progress)
+    digest_deadline = time.monotonic() + _DIGEST_POLL_CEILING_S
+    while time.monotonic() < digest_deadline:
+        response = await api_client.get(f"/api/v1/studies/{study_id}/digest")
+        if response.status_code == 200:
+            break
+        if response.status_code == 404:
+            # 404 DIGEST_NOT_READY is expected while the worker runs;
+            # any other 4xx is an error worth surfacing.
+            await asyncio.sleep(_DIGEST_POLL_INTERVAL_S)
+            continue
+        raise DemoSeedingError(
+            f"{slug}/poll_digest: HTTP {response.status_code} {response.text[:200]}"
+        )
+    else:
+        # Soft failure — log + continue. The study is complete; the
+        # digest will land eventually and the next reseed cycle clears
+        # the slate. Don't fail the whole reseed for a slow LLM call.
+        logger.warning(
+            "demo_reseed_digest_poll_timeout",
+            extra={"slug": slug, "study_id": study_id, "deadline_s": _DIGEST_POLL_CEILING_S},
+        )
+
+    return study_id
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 
@@ -282,6 +672,8 @@ async def reseed_demo_state(
     db: AsyncSession,
     api_client: httpx.AsyncClient,
     engine_client: httpx.AsyncClient,
+    *,
+    status_callback: StatusCallback = _noop_status,
 ) -> ReseedSummary:
     """Orchestrate a complete wipe + reseed of the 4 demo scenarios.
 
@@ -311,6 +703,14 @@ async def reseed_demo_state(
     handler's job (FR-3).
     """
     started_at = time.monotonic()
+    progress = ReseedStatusResponse(
+        status="running",
+        started_at=_now_iso(),
+        scenarios_total=len(SCENARIOS),
+        scenarios_completed=0,
+        current_step="wiping demo state",
+    )
+    await status_callback(progress)
 
     # ---- Step 1a: TRUNCATE demo tables, COMMIT before any self-call. ----
     await db.execute(text(_TRUNCATE_DEMO_TABLES_SQL))
@@ -351,6 +751,9 @@ async def reseed_demo_state(
         scenario_queries = cast("list[dict[str, Any]]", scenario["queries"])
         scenario_judgments_map = cast("list[tuple[int, str, int]]", scenario["judgments_map"])
 
+        progress.current_step = f"{slug}: indexing {len(scenario_docs)} docs into {target}"
+        await status_callback(progress)
+
         # 2a. Engine: PUT index, PUT docs, POST _refresh.
         await _put(
             engine_client,
@@ -377,6 +780,9 @@ async def reseed_demo_state(
             client_label="engine",
             step=f"{slug}/refresh",
         )
+
+        progress.current_step = f"{slug}: registering cluster + template + query set"
+        await status_callback(progress)
 
         # 2b. API: cluster.
         cluster = await _post(
@@ -465,6 +871,9 @@ async def reseed_demo_state(
                 )
             qid_by_idx.append(qtext_to_id[q_text])
 
+        progress.current_step = f"{slug}: importing {len(scenario_judgments_map)} judgments"
+        await status_callback(progress)
+
         # 2g. API: judgments.
         judgments_payload = [
             {
@@ -490,25 +899,33 @@ async def reseed_demo_state(
         )
         jlist_id: str = jlist["id"]
 
-        # 2h. API: seed completed study.
-        seeded = await _post(
+        # 2h. API: REAL study create + poll + digest wait.
+        #
+        # Previously called /_test/studies/seed-completed which hardcoded
+        # best_metric=0.487 for every scenario. The CLI's
+        # scripts/seed_meaningful_demos.py:seed_scenario step 8 was rewritten
+        # to use real studies in an earlier PR; this path was the holdout
+        # that produced the bug surfaced as
+        # ``bug_demo_reseed_fake_metric_regression``. Now matches the CLI
+        # byte-for-byte so home-button reseed === ``make seed-demo`` output.
+        study_id = await _seed_real_study_for_scenario(
             api_client,
-            "/api/v1/_test/studies/seed-completed",
-            json={
-                "cluster_id": cluster_id,
-                "query_set_id": qset_id,
-                "template_id": template_id,
-                "judgment_list_id": jlist_id,
-                "with_pending_proposal": True,
-            },
-            client_label="api",
-            step=f"{slug}/seed_completed",
+            scenario=scenario,
+            cluster_id=cluster_id,
+            template_id=template_id,
+            qset_id=qset_id,
+            judgment_list_id=jlist_id,
+            status_callback=status_callback,
+            progress=progress,
         )
-        study_id: str = seeded["study_id"]
         study_name: str = cast("str", scenario["study_name"])
         results.append((slug, study_id, study_name))
+        progress.scenarios_completed += 1
+        await status_callback(progress)
 
     # ---- Step 3: rename the 4 studies. ----
+    progress.current_step = "renaming studies to tutorial names"
+    await status_callback(progress)
     for _slug, study_id, study_name in results:
         await db.execute(
             text("UPDATE studies SET name = :name WHERE id = :id"),
@@ -516,12 +933,18 @@ async def reseed_demo_state(
         )
     await db.commit()
 
-    # ---- Step 4: return summary. ----
+    # ---- Step 4: build summary + mark status complete. ----
     duration_ms = int((time.monotonic() - started_at) * 1000)
-    return ReseedSummary(
-        clusters_created=4,
-        query_sets_created=4,
-        studies_completed=4,
-        proposals_created=4,
+    summary = ReseedSummary(
+        clusters_created=len(SCENARIOS),
+        query_sets_created=len(SCENARIOS),
+        studies_completed=len(SCENARIOS),
+        proposals_created=len(SCENARIOS),
         duration_ms=duration_ms,
     )
+    progress.status = "complete"
+    progress.finished_at = _now_iso()
+    progress.current_step = None
+    progress.summary = summary
+    await status_callback(progress)
+    return summary

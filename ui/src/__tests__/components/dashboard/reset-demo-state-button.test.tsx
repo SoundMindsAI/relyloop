@@ -1,26 +1,41 @@
 /**
- * Vitest spec for ``<ResetDemoStateButton />`` — covers AC-9 (dialog
- * open/close + cancel-no-POST + confirm-POSTs), AC-11 (toast wording on
- * envelope failure), and the 180s client-side timeout path.
+ * Vitest spec for ``<ResetDemoStateButton />`` after
+ * ``bug_demo_reseed_fake_metric_regression`` — the button now POSTs once
+ * (returns 202 immediately) and the polling hook drives the progress UI.
  *
- * Module-boundary mocks (per plan §2.1 task 5):
+ * Module-boundary mocks:
  *   - ``@/lib/api-client``: replace the singleton's ``post`` so each test
- *     controls the resolved/rejected promise.
+ *     controls the POST result.
+ *   - ``@/lib/api/demo-reseed``: replace ``useDemoReseedStatus`` so tests
+ *     can drive every status state without spinning up real polling.
  *   - ``@tanstack/react-query``: expose ``useQueryClient`` returning a
  *     stub whose ``invalidateQueries`` is a spy.
- *   - ``sonner``: spy on ``toast.success`` / ``toast.error``.
+ *   - ``sonner``: spy on ``toast.success`` / ``toast.error`` / ``toast.info``.
  */
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ApiError } from '@/lib/api-errors';
+import type { ReseedStatusResponse } from '@/lib/api/demo-reseed';
 
 const mockPost = vi.fn();
 vi.mock('@/lib/api-client', () => ({
   apiClient: {
     post: (...args: unknown[]) => mockPost(...args),
   },
+}));
+
+let mockStatusData: ReseedStatusResponse | undefined;
+let mockStatusUpdatedAt = 0;
+vi.mock('@/lib/api/demo-reseed', () => ({
+  useDemoReseedStatus: () => ({
+    data: mockStatusData,
+    dataUpdatedAt: mockStatusUpdatedAt,
+    isLoading: mockStatusData === undefined,
+    isError: false,
+    refetch: vi.fn(),
+  }),
 }));
 
 const mockInvalidateQueries = vi.fn();
@@ -30,26 +45,66 @@ vi.mock('@tanstack/react-query', () => ({
 
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
+const mockToastInfo = vi.fn();
 vi.mock('sonner', () => ({
   toast: {
     success: (...args: unknown[]) => mockToastSuccess(...args),
     error: (...args: unknown[]) => mockToastError(...args),
+    info: (...args: unknown[]) => mockToastInfo(...args),
   },
 }));
 
 import { ResetDemoStateButton } from '@/components/dashboard/reset-demo-state-button';
 
-const SUMMARY_OK = {
-  clusters_created: 4,
-  query_sets_created: 4,
-  studies_completed: 4,
-  proposals_created: 4,
-  duration_ms: 7000,
+const STATUS_IDLE: ReseedStatusResponse = {
+  status: 'idle',
+  started_at: null,
+  finished_at: null,
+  scenarios_total: 0,
+  scenarios_completed: 0,
+  current_step: null,
+  failed_reason: null,
+  summary: null,
 };
 
-function expectMockCalledWith(spy: Mock, ...expected: unknown[]) {
-  expect(spy).toHaveBeenCalledWith(...expected);
-}
+const STATUS_RUNNING: ReseedStatusResponse = {
+  status: 'running',
+  started_at: '2026-05-27T16:50:00Z',
+  finished_at: null,
+  scenarios_total: 4,
+  scenarios_completed: 2,
+  current_step: 'seeding acme-products-prod (trial 7/12)',
+  failed_reason: null,
+  summary: null,
+};
+
+const STATUS_COMPLETE: ReseedStatusResponse = {
+  status: 'complete',
+  started_at: '2026-05-27T16:50:00Z',
+  finished_at: '2026-05-27T16:53:42Z',
+  scenarios_total: 4,
+  scenarios_completed: 4,
+  current_step: null,
+  failed_reason: null,
+  summary: {
+    clusters_created: 4,
+    query_sets_created: 4,
+    studies_completed: 4,
+    proposals_created: 4,
+    duration_ms: 217000,
+  },
+};
+
+const STATUS_FAILED: ReseedStatusResponse = {
+  status: 'failed',
+  started_at: '2026-05-27T16:50:00Z',
+  finished_at: '2026-05-27T16:51:00Z',
+  scenarios_total: 4,
+  scenarios_completed: 1,
+  current_step: null,
+  failed_reason: 'DemoSeedingError: acme/post_study: HTTP 503',
+  summary: null,
+};
 
 describe('<ResetDemoStateButton />', () => {
   beforeEach(() => {
@@ -58,14 +113,16 @@ describe('<ResetDemoStateButton />', () => {
     mockInvalidateQueries.mockResolvedValue(undefined);
     mockToastSuccess.mockReset();
     mockToastError.mockReset();
+    mockToastInfo.mockReset();
+    mockStatusData = STATUS_IDLE;
+    mockStatusUpdatedAt = 0;
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
-  it('AC-9: clicking the trigger opens the AlertDialog', async () => {
+  it('clicking the trigger opens the AlertDialog in idle state', async () => {
     const user = userEvent.setup();
     render(<ResetDemoStateButton />);
     expect(screen.queryByRole('alertdialog')).toBeNull();
@@ -74,7 +131,7 @@ describe('<ResetDemoStateButton />', () => {
     expect(screen.getByText('Wipe and reseed demo data?')).toBeInTheDocument();
   });
 
-  it('AC-9: Cancel closes the dialog without calling apiClient.post', async () => {
+  it('Cancel closes the dialog without calling apiClient.post', async () => {
     const user = userEvent.setup();
     render(<ResetDemoStateButton />);
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
@@ -82,59 +139,55 @@ describe('<ResetDemoStateButton />', () => {
     expect(mockPost).not.toHaveBeenCalled();
   });
 
-  it('AC-9: Confirm posts to the reseed endpoint with an AbortSignal', async () => {
-    mockPost.mockResolvedValueOnce({ data: SUMMARY_OK, headers: new Headers() });
+  it('Confirm POSTs to /api/v1/_test/demo/reseed exactly once', async () => {
+    mockPost.mockResolvedValueOnce({ data: STATUS_RUNNING, headers: new Headers() });
     const user = userEvent.setup();
     render(<ResetDemoStateButton />);
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     await user.click(screen.getByTestId('reset-demo-state-confirm'));
     expect(mockPost).toHaveBeenCalledTimes(1);
-    const [path, body, init] = mockPost.mock.calls[0] as [string, unknown, { signal: unknown }];
+    const [path] = mockPost.mock.calls[0] as [string, unknown];
     expect(path).toBe('/api/v1/_test/demo/reseed');
-    expect(body).toBeUndefined();
-    expect(init.signal).toBeInstanceOf(AbortSignal);
   });
 
-  it('AC-9: 200 success triggers toast.success and invalidates 4 query keys', async () => {
-    mockPost.mockResolvedValueOnce({ data: SUMMARY_OK, headers: new Headers() });
+  it('running status: renders the worker current_step verbatim', async () => {
+    // Mount in running state so the polling hook returns RUNNING on first render.
+    mockStatusData = STATUS_RUNNING;
     const user = userEvent.setup();
     render(<ResetDemoStateButton />);
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
-    await user.click(screen.getByTestId('reset-demo-state-confirm'));
-    // Toast wording — must include the counts from the response body.
+    const progress = await screen.findByTestId('reset-demo-state-progress');
+    expect(progress.textContent).toContain('seeding acme-products-prod (trial 7/12)');
+    expect(progress.textContent).toContain('Scenario 2 of 4');
+    expect(progress.textContent).toContain('50%');
+  });
+
+  it('complete status: fires the success toast + invalidates 4 query keys', async () => {
+    mockStatusData = STATUS_COMPLETE;
+    mockStatusUpdatedAt = 1234567890;
+    render(<ResetDemoStateButton />);
+    // Toast fires from the inline render-effect on terminal state.
     expect(mockToastSuccess).toHaveBeenCalledTimes(1);
     const successMessage = mockToastSuccess.mock.calls[0]?.[0] as string;
-    expect(successMessage).toContain('4 clusters');
-    expect(successMessage).toContain('4 query sets');
-    expect(successMessage).toContain('4 completed studies');
-    // All four TanStack keys invalidated.
-    expectMockCalledWith(mockInvalidateQueries, { queryKey: ['clusters'] });
-    expectMockCalledWith(mockInvalidateQueries, { queryKey: ['judgment-lists'] });
-    expectMockCalledWith(mockInvalidateQueries, { queryKey: ['studies'] });
-    expectMockCalledWith(mockInvalidateQueries, { queryKey: ['proposals'] });
+    expect(successMessage).toContain('4 studies');
+    expect(successMessage).toContain('real metrics');
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['clusters'] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['judgment-lists'] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['studies'] });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({ queryKey: ['proposals'] });
   });
 
-  it('AC-11: 503 SEED_FAILED toast carries error code + runbook hint', async () => {
-    mockPost.mockRejectedValueOnce(
-      new ApiError({
-        status: 503,
-        errorCode: 'SEED_FAILED',
-        message: 'Demo reseed failed mid-flight.',
-        retryable: true,
-      }),
-    );
-    const user = userEvent.setup();
+  it('failed status: fires the error toast with the failed_reason', async () => {
+    mockStatusData = STATUS_FAILED;
+    mockStatusUpdatedAt = 1234567890;
     render(<ResetDemoStateButton />);
-    await user.click(screen.getByTestId('reset-demo-state-trigger'));
-    await user.click(screen.getByTestId('reset-demo-state-confirm'));
     expect(mockToastError).toHaveBeenCalledTimes(1);
     const errorMessage = mockToastError.mock.calls[0]?.[0] as string;
-    expect(errorMessage).toContain('SEED_FAILED');
-    expect(errorMessage).toContain('docker compose restart api');
-    expect(mockToastSuccess).not.toHaveBeenCalled();
+    expect(errorMessage).toContain('DemoSeedingError');
+    expect(errorMessage).toContain('HTTP 503');
   });
 
-  it('409 SEED_IN_PROGRESS surfaces the error code in the toast', async () => {
+  it('409 SEED_IN_PROGRESS shows info toast + continues polling', async () => {
     mockPost.mockRejectedValueOnce(
       new ApiError({
         status: 409,
@@ -147,41 +200,17 @@ describe('<ResetDemoStateButton />', () => {
     render(<ResetDemoStateButton />);
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     await user.click(screen.getByTestId('reset-demo-state-confirm'));
-    expect(mockToastError).toHaveBeenCalledTimes(1);
-    expect(mockToastError.mock.calls[0]?.[0] as string).toContain('SEED_IN_PROGRESS');
+    expect(mockToastInfo).toHaveBeenCalledTimes(1);
+    expect(mockToastInfo.mock.calls[0]?.[0] as string).toContain('reseed is already running');
+    expect(mockToastError).not.toHaveBeenCalled();
   });
 
-  it('non-envelope failure (REQUEST_ABORTED) shows the unreachable toast', async () => {
+  it('POST failure (non-409) shows error toast', async () => {
     mockPost.mockRejectedValueOnce(
       new ApiError({
-        status: 0,
-        errorCode: 'REQUEST_ABORTED',
-        message: 'Request aborted by caller',
-        retryable: false,
-      }),
-    );
-    const user = userEvent.setup();
-    render(<ResetDemoStateButton />);
-    await user.click(screen.getByTestId('reset-demo-state-trigger'));
-    await user.click(screen.getByTestId('reset-demo-state-confirm'));
-    expect(mockToastError).toHaveBeenCalledTimes(1);
-    expect(mockToastError.mock.calls[0]?.[0] as string).toBe(
-      'Reseed in progress or unreachable — refresh the page in a moment.',
-    );
-  });
-
-  it('apiClient SERVICE_UNAVAILABLE (status=0 network wrapper) shows unreachable toast', async () => {
-    // apiClient wraps raw fetch/network failures as ApiError with
-    // errorCode='SERVICE_UNAVAILABLE' and status=0. That looks like an
-    // envelope failure to a naive isApiError check, but the backend
-    // never produced an envelope — the request didn't arrive. Should
-    // route to the unreachable toast, not the SEED_FAILED-style.
-    // Per GPT-5.5 PR #228 final-review Medium #2.
-    mockPost.mockRejectedValueOnce(
-      new ApiError({
-        status: 0,
-        errorCode: 'SERVICE_UNAVAILABLE',
-        message: 'Backend unreachable',
+        status: 503,
+        errorCode: 'ARQ_POOL_UNAVAILABLE',
+        message: 'Worker pool not initialized',
         retryable: true,
       }),
     );
@@ -190,20 +219,24 @@ describe('<ResetDemoStateButton />', () => {
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     await user.click(screen.getByTestId('reset-demo-state-confirm'));
     expect(mockToastError).toHaveBeenCalledTimes(1);
-    expect(mockToastError.mock.calls[0]?.[0] as string).toBe(
-      'Reseed in progress or unreachable — refresh the page in a moment.',
-    );
+    expect(mockToastError.mock.calls[0]?.[0] as string).toContain('ARQ_POOL_UNAVAILABLE');
   });
 
-  it('non-ApiError network failure shows the unreachable toast', async () => {
-    mockPost.mockRejectedValueOnce(new TypeError('Network Error'));
+  it('renders running-state title when polling reports running', async () => {
+    mockStatusData = STATUS_RUNNING;
     const user = userEvent.setup();
     render(<ResetDemoStateButton />);
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
-    await user.click(screen.getByTestId('reset-demo-state-confirm'));
-    expect(mockToastError).toHaveBeenCalledTimes(1);
-    expect(mockToastError.mock.calls[0]?.[0] as string).toBe(
-      'Reseed in progress or unreachable — refresh the page in a moment.',
-    );
+    expect(await screen.findByText('Reseeding demo data…')).toBeInTheDocument();
+  });
+
+  it('renders complete-state title when polling reports complete', async () => {
+    mockStatusData = STATUS_COMPLETE;
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    expect(await screen.findByText('Demo state reset complete')).toBeInTheDocument();
+    expect(screen.getByTestId('reset-demo-state-done')).toBeInTheDocument();
   });
 });

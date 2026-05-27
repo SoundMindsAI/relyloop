@@ -21,13 +21,13 @@ Implementation in progress — resume to finish
 | Metric | Value |
 |---|---|
 | Scoped items done | **88 / 89** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **12** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **13** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 9 important to file, not blocking |
+| → P2 (default) | 10 important to file, not blocking |
 | → Backlog | 2 captured for record, not planned |
-| Open bugs | 4 |
-| Legacy "Path to MVP1" | 11 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 5 |
+| Legacy "Path to MVP1" | 12 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
@@ -170,7 +170,7 @@ _None._
 
 _None._
 
-### Idea (11)
+### Idea (12)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -180,11 +180,12 @@ _None._
 | 4 | P2 | [chore_studies_post_arq_spy_fixture](../02_product/planned_features/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
 | 5 | P2 | [chore_template_library_expansion](../02_product/planned_features/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
 | 6 | P2 | [bug_ceiling_badge_assumes_maximize_direction](../02_product/planned_features/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](../ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold  | — | — |
-| 7 | P2 | [bug_smoke_studies_data_table_search_flake](../02_product/planned_features/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
-| 8 | P2 | [bug_starlette_request_poisons_fastapi_depends_tests](../02_product/planned_features/bug_starlette_request_poisons_fastapi_depends_tests/idea.md) | Bug | There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={"type": "http", ...})` and breaks subsequent `Depends` resolution. Possible suspects: | — | Idea — bug captured during feat_index_document_browser Story 2.1 |
-| 9 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 10 | Backlog | [chore_auto_followup_parent_advisory_lock](../02_product/planned_features/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 11 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
+| 7 | P2 | [bug_demo_reseed_fake_metric_regression](../02_product/planned_features/bug_demo_reseed_fake_metric_regression) | Bug |  | — | — |
+| 8 | P2 | [bug_smoke_studies_data_table_search_flake](../02_product/planned_features/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
+| 9 | P2 | [bug_starlette_request_poisons_fastapi_depends_tests](../02_product/planned_features/bug_starlette_request_poisons_fastapi_depends_tests/idea.md) | Bug | There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={"type": "http", ...})` and breaks subsequent `Depends` resolution. Possible suspects: | — | Idea — bug captured during feat_index_document_browser Story 2.1 |
+| 10 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](../02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 11 | Backlog | [chore_auto_followup_parent_advisory_lock](../02_product/planned_features/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
+| 12 | Backlog | [chore_e2e_seed_acme_helper_dead](../02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
 
 ## Dependency graph
 
