@@ -140,7 +140,23 @@ Click into the row to open the study detail.
 
 ## Stop 2 — Study detail — the lift, the trials, the parameter importance
 
-The study detail page has four panels worth narrating:
+A few orientation surfaces sit above the panels:
+
+- **Linked entities row** — named, clickable links to the **cluster**,
+  **query set**, **judgment list**, and **template** the study ran
+  against. Hover any to confirm names; click to drill into the source
+  of truth. This is how operators answer "what did this study actually
+  test against?" without grepping UUIDs.
+- **View-proposal link** — when a proposal has been promoted from this
+  study, a `Proposal: view proposal (<status>)` link appears below the
+  header. Click it for the round-trip back from study → proposal that
+  mirrors the proposal → study link on the proposal page.
+- **Glossary tooltips** — small `(i)` icons next to **Target**,
+  **Trials**, **Best metric**, and other column headings. Hover for
+  the short definition; the Guide button (bottom-right) opens the full
+  glossary.
+
+The study detail page itself has four panels worth narrating:
 
 ### Metric delta
 
@@ -174,15 +190,35 @@ barely move the needle. That's actionable insight for the search engineer.
 
 ### Confidence panel
 
-Bootstrap CI on the winner's metric. The narrative typically notes
-"confidence interval spans from ~0.56 to ~0.78" — wide because the data
-is bounded (5 queries), but the central estimate is honestly above the
-baseline.
+This is the panel that answers *"is this winner statistically reliable,
+or did Optuna get lucky on one trial?"* It has four parts:
+
+- **Headline metric + 95% CI band.** The rich scenario typically shows
+  the central estimate above the baseline with a CI that's wide because
+  the data is bounded (5 queries). Wide-but-honestly-above-baseline is
+  the right read, not a problem to hide.
+- **Per-query outcome chips** — `X Improved · Y Unchanged · Z Regressed`
+  vs. runner-up (or baseline). This is where the audience sees that the
+  +2.3% lift is broad-based, not driven by one query.
+- **Queries that improved** and **Queries that regressed** tables —
+  named query text + winner score + comparison score + signed delta.
+  The improver table is green; the regressor table is red. This is the
+  point in the demo where a relevance engineer reading the panel says
+  *"oh, so I can see exactly which workloads gained and lost — not just
+  the aggregate."*
+- **Secondary callouts** — *runner-up gap* (robust plateau vs. sharp
+  peak), *late-trial 1σ*, and *convergence regime* (early-and-held vs.
+  late-rising vs. noisy). Together these distinguish a winner the
+  optimizer is confident about from one it's still hunting.
+
+Every `(i)` icon opens a glossary definition for the term it's next to.
 
 <!-- presenter: this is the panel that lands for a relevance engineer who's
-     been burned by single-sample tuning. Bootstrap CI + per-query metric
-     breakdown is what separates "feels better" from "demonstrably better."
-     Spend 30 extra seconds here if the audience is technical. -->
+     been burned by single-sample tuning. The improver/regressor tables
+     plus the convergence regime are what separate "feels better" from
+     "demonstrably better." Spend 30 extra seconds here if the audience
+     is technical — point at the named queries in the regressor table
+     and say "this is what we'd put in a follow-up study to fix." -->
 
 ---
 
