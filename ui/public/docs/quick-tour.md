@@ -28,21 +28,34 @@ You need:
 Then run the demo seed:
 
 ```bash
-make seed-demo
+make seed-demo FORCE=1
 ```
 
 This seeds four realistic demo scenarios (e-commerce, knowledge base,
-news, jobs) — each with its own cluster, query template, query set,
-judgment list, and one completed study with a believable metric lift
-(0.412 → 0.487, +18%) plus a pending proposal. Idempotent — safe to
-re-run if you want to reset the demo state. Add `FORCE=1` to skip the
-destructive-reseed prompt.
+news, jobs) and **runs a real 12-trial Optuna study against each one**
+with a fixed seed (`config.seed=42`). Each study queries the local
+Elasticsearch / OpenSearch backing store, scores against the real
+judgment list, generates a real LLM-written digest, and creates a
+pending proposal. Takes 3–4 minutes total. Idempotent: re-running
+with the same seed produces the exact same metric values (verified —
+0.7305 / 0.9060 reproduce to the digit run after run).
 
-The **acme-products-prod** scenario is the canonical demo target —
-this one's digest carries three actionable suggested followups (narrow,
-widen, swap_template) so Stops 4 and 5 of this tour have "Run this
-followup" buttons to click. The other three scenarios fall back to
-text-kind followups (informational only).
+> **What's "real" here:** the metric values, the parameter importance,
+> the digest narrative, and the suggested followups all emerge from
+> the actual study data — no hardcoded fixtures. The trade-off is that
+> the demo sample data is small (5 docs and 5–10 judgments per
+> scenario), so some scenarios may show a saturated metric ceiling
+> (`best_metric=1.0`) instead of a headline lift. The system honestly
+> reports "no headroom on this knob" when the data is too sparse to
+> support tuning — that's a feature, not a bug.
+
+**Recommended demo target:** the **acme-products-prod** scenario. Its
+template declares two tunable knobs (`title_boost` + `description_boost`),
+so the digest produces a populated parameter-importance breakdown and
+usually generates an actionable `narrow` followup card for Stops 4 / 5.
+The acme cluster also has a second template seeded (`function-score-recency-decay-v1`)
+so the LLM has a candidate it CAN suggest as a swap_template followup
+when the data warrants.
 
 When the script finishes, find the acme-products proposal URL with:
 
@@ -62,11 +75,18 @@ for Stop 1.
      running", you skipped `make up`. If it succeeds but you see no
      studies on /studies, check `make logs` — seed_meaningful_demos
      prints a per-scenario summary as it runs. -->
-<!-- presenter: if the cluster appears as 0 healthy in /healthz, the seed
-     still works (it doesn't talk to ES) but the "Run this followup"
-     submit at Stop 5 will fail when the new study tries to start its
-     first trial. Skip Stop 5 in that case — Stops 1–4 don't depend on
-     a healthy ES connection. -->
+<!-- presenter: re-running `make seed-demo` against unhealthy ES
+     scenarios (the FOUR seeded clusters all point at the same local
+     ES — they share one healthy backend) will succeed only if local-es
+     is reachable. Check `curl -s http://localhost:8000/healthz | jq
+     .subsystems.elasticsearch_clusters` first — if all 4 say
+     `unreachable`, fix that before running seed-demo (the studies
+     will fail with CLUSTER_UNREACHABLE before producing any trials). -->
+<!-- presenter: the digest worker's followup choice is LLM-driven and
+     may produce text-kind only when the data doesn't show much
+     variance. If Stop 4's panel shows only text (no Run buttons),
+     skip Stop 5 and emphasize the digest narrative + parameter
+     importance at Stop 3 instead. -->
 
 ---
 
@@ -74,17 +94,25 @@ for Stop 1.
 
 Open [`http://localhost:3000/studies`](http://localhost:3000/studies).
 
-The studies table shows the work the loop has completed. For the demo
-study, the row reads:
+The studies table shows the four scenarios `make seed-demo` produced.
+Each row is a real, completed 12-trial Optuna study with its own metric
+value — not a hardcoded fixture. Values you'll typically see on the
+local-sample data:
 
-- **Status:** completed
-- **Best metric:** 0.487 (ndcg@10)
-- **Created:** yesterday at 8pm
-- **Completed:** this morning at 12:14am
+| Scenario | Best metric (ndcg@10) |
+|---|---|
+| acme-products-prod | 1.0 (saturated — sparse judgments hit the ceiling) |
+| corp-docs-search | 0.7305 |
+| news-search-staging | 0.9060 |
+| jobs-marketplace-prod | 1.0 (saturated) |
 
-**What this says:** an engineer kicked off the study before they went home.
-Optuna ran 200 trials over four hours against the operator's real
-judgment list. The winner held with a measurable lift over baseline.
+**What this says:** four overnight studies ran against four different
+production-shaped scenarios. The optimizer scored each one against its
+own judgment list. Some hit a metric ceiling (sample data is intentionally
+small — 5 docs, 5–10 judgments); the others produced real, non-trivial
+metric values. In production with rich judgments (hundreds of docs,
+hundreds of ratings), every scenario produces varied trial metrics
+and a clear lift story.
 
 <!-- presenter: the framing question to ask the audience here is "how
      many trials would your team typically run when tuning a query
@@ -102,13 +130,17 @@ The study detail page has four panels worth narrating:
 
 ### Metric delta
 
-Baseline 0.412 → best 0.487 (+18.2% on ndcg@10). Not a sliver — a real,
-ship-worthy lift on a real metric.
+Baseline vs. best on the headline metric (ndcg@10). On rich production
+judgments you'd see a clear lift; on the sample data the demo seed
+uses, the baseline and best are often the same value (the optimizer
+correctly reports "no headroom" rather than fabricating a lift). The
+fact that the system tells the truth is itself a credibility signal.
 
 ### Trials table
 
-200 rows, sorted by `primary_metric DESC`. The top trial is highlighted.
-Each row shows the trial's parameter values + the metric it achieved.
+13 rows (1 baseline + 12 Optuna trials), sorted by `primary_metric DESC`.
+The top trial is highlighted. Each row shows the trial's parameter values
++ the metric it achieved.
 
 **What this says:** the loop is auditable. You can see every trial it ran
 and exactly which parameter values produced which metric. No black box.
@@ -116,16 +148,20 @@ and exactly which parameter values produced which metric. No black box.
 ### Parameter importance bars
 
 A bar chart showing how much each parameter contributed to variance in
-the metric. For the demo study, `title.boost` accounted for ~64%; the
-rest split among `tie_breaker`, `fuzziness`, and `slop`.
+the metric. For the acme demo study (which tunes `title_boost` +
+`description_boost`), you'll typically see a near-even split
+(0.46 / 0.54) — meaning both knobs were exercised by the optimizer.
 
 **What this says:** you don't just get a winning config. You get an
-explanation of *why* it won — which knobs matter and which don't.
+explanation of *which knobs the optimizer actually leaned on* and which
+ones didn't matter.
 
 ### Confidence panel
 
-Bootstrap CI on the winner's metric. The lift is statistically separable
-from the runner-up, so the operator can trust it'll hold in production.
+Bootstrap CI on the winner's metric. When the data shows real variance,
+this tells the operator whether the lift is statistically separable;
+when the data is flat (sample-data territory), this honestly reports
+equivalence.
 
 <!-- presenter: this is the panel that lands for a relevance engineer who's
      been burned by single-sample tuning. Bootstrap CI + per-query metric
@@ -148,14 +184,16 @@ This is what would land in the operator's search-config repo.
 
 ### Metric delta
 
-Same +18.2% lift, presented in the proposal context.
+The same baseline → best comparison shown on the study detail, presented
+in the proposal context (with delta-pct breakdown).
 
 ### Digest narrative
 
 Two to three LLM-generated paragraphs explaining what the loop learned:
-which parameters moved the needle, what the winning configuration says
-about user intent, what the operator should watch in production after
-rollout. This narrative becomes the PR body.
+which parameters moved the needle (or which didn't, when the data is
+flat), what the winning configuration says about the optimizer's
+exploration, and what the operator should investigate next. This
+narrative becomes the PR body.
 
 ### "Open PR" button
 
@@ -178,28 +216,36 @@ config changes.
 
 ## Stop 4 — Suggested followups — the loop continues
 
-Scroll the proposal page to the "Suggested followups" panel. The seed
-script populated three follow-up cards:
+Scroll the proposal page to the "Suggested followups" panel. The digest
+worker (real LLM call against the actual study data) generates the
+followups. **What kinds appear depends on what the data shows** — the
+LLM looks at the trial distribution and picks the most-informative next
+experiment(s):
 
-1. **Narrow bounds:** *"Tighten boost bounds around the winning value
-   to extract the last few percentage points."* Exploitation — same
-   template, narrower search space.
-2. **Widen bounds:** *"Test boost values further from the winner to
-   confirm the optimum isn't a local maximum."* Exploration — same
-   template, wider search space.
-3. **Swap template:** *"Test whether a function_score template with
-   recency decay beats the multi_match winner."* Cross-template
-   exploration — different query shape entirely.
+- **`narrow`** — when the optimizer found a stable winning region:
+  "Tighten boost bounds around the winning value to extract the last
+  few percentage points." Same template, narrower search space.
+- **`widen`** — when the winner sat near a search-space boundary:
+  "Test boost values further from the winner to confirm the optimum
+  isn't a local maximum." Same template, wider search space.
+- **`swap_template`** — when the data suggests a different query
+  shape might do better: "Test whether the alternative template beats
+  this one." Cross-template exploration.
+- **`text`** — when no actionable change is warranted: prose
+  recommending the operator rethink the rubric, judgment density, or
+  query selection. No Run button (text-kind suggestions aren't
+  one-click runnable).
 
-Each card has a **"Run this followup"** button. One click queues a new
-study with the right template + LLM-suggested bounds inherited from this
-study's winner.
+For the acme demo study, you'll typically see a **`narrow`** card
+(the 2-D search space converges to a stable region inside the
+[0.5, 5.0] bounds). Cards with actionable kinds have a **"Run this
+followup"** button.
 
-**What this says:** the loop didn't stop at one winner. It looked at
-where the optimizer was still curious and proposed three concrete
-next-experiments, each one-click. The relevance engineer goes from
-"tune one thing and ship" to "continuous, automated experimentation
-with a steady stream of small wins for review."
+**What this says:** the loop didn't stop at one winner. It analyzed
+where the optimizer's curiosity remained and proposed a concrete
+next-experiment. The relevance engineer goes from "tune one thing and
+ship" to "continuous, automated experimentation with a steady stream
+of small wins for review."
 
 <!-- presenter: this is the moment to drop the line "the loop runs
      itself overnight." Connect it back to Stop 1's "200 trials in

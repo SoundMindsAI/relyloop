@@ -98,7 +98,11 @@ def http(
     url: str,
     body: dict | None = None,
     auth: tuple[str, str] | None = None,
+    quiet_404: bool = False,
 ) -> dict:
+    """HTTP wrapper. Set `quiet_404=True` for expected-404 polling loops
+    (e.g., waiting for a digest to land) so the loop doesn't spam the
+    operator with N×30 "DIGEST_NOT_READY" stack traces."""
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if body is not None else {}
     if auth:
@@ -109,6 +113,8 @@ def http(
             raw = resp.read()
             return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
+        if e.code == 404 and quiet_404:
+            raise
         body = e.read().decode()
         print(
             f"\n!! HTTP {e.code} on {method} {url}\n   body={body[:500]}\n   sent={json.dumps(data.decode() if data else None)[:500]}"
@@ -205,13 +211,22 @@ SCENARIOS = [
                 "query": {
                     "multi_match": {
                         "query": "{{ query_text }}",
-                        "fields": ["title^{{ title_boost }}", "description", "brand^2"],
+                        "fields": [
+                            "title^{{ title_boost }}",
+                            "description^{{ description_boost }}",
+                            "brand^2",
+                        ],
                         "type": "best_fields",
                     }
                 }
             }
         ),
-        "template_declared_params": {"title_boost": "float"},
+        # Two tunable params (title_boost + description_boost) give Optuna a
+        # 2-D search space — single-param sweeps were degenerate against the
+        # sparse demo judgments (ranking stayed fixed regardless of the one
+        # knob's value). With two boosts the optimizer can trade title-vs-
+        # description weight per query type, producing visible metric variance.
+        "template_declared_params": {"title_boost": "float", "description_boost": "float"},
         "query_set_name": "top-product-searches-q4-2025",
         "queries": [
             {"query_text": "wireless noise cancelling headphones"},
@@ -669,26 +684,24 @@ def seed_scenario(s: dict) -> dict:
     jlist_id = jlist["id"]
     print(f"  judgment-list: {jlist_id} ({len(judgments)} judgments)")
 
-    # 8. Seed completed study via test endpoint.
+    # 8. Create a REAL study (no test-endpoint shortcut) and poll to completion.
     #
-    # For the acme-products scenario specifically, also create a second
-    # template (the swap target) and inject the three actionable followup
-    # kinds (narrow / widen / swap_template) so the digest panel renders
-    # "Run this followup" buttons. The other three scenarios keep the
-    # default text-kind followups — they're informational backups in case
-    # a demo runs against a different scenario. See
-    # docs/08_guides/quick-tour.md for the demo flow this powers.
-    seed_payload: dict = {
-        "cluster_id": cluster_id,
-        "query_set_id": qset_id,
-        "template_id": template_id,
-        "judgment_list_id": jlist_id,
-        "with_pending_proposal": True,
-    }
+    # The previous version called /_test/studies/seed-completed which hardcoded
+    # best_metric=0.487 + identical digest narrative across all four scenarios.
+    # That broke demo credibility (a Fusion engineer immediately notices when
+    # four "different" scenarios produce the exact same metric to 3 decimals).
+    #
+    # Real-study path: POST /api/v1/studies with a fixed Optuna seed
+    # (config.seed=42) → Arq worker runs trials against the real ES backing
+    # store → real metric_delta + LLM-generated digest emerge from the data.
+    # Repeatable: same seed + same judgments + same docs + pinned ES version
+    # = same numbers run after run.
+    #
+    # For acme specifically, ALSO create a second template (function_score
+    # recency-decay shape) so the digest worker has a candidate it CAN suggest
+    # as a swap_template followup. Whether the LLM actually picks it is up to
+    # the digest prompt + the study's data — we don't fake it.
     if s["slug"] == "acme-products-prod":
-        # Second template — function_score with recency-decay shape, same
-        # declared_params as the parent (`title_boost: float`) so the
-        # LLM-suggested {params: {title_boost: ...}} bounds validate.
         swap_template = post(
             "/query-templates",
             {
@@ -703,7 +716,7 @@ def seed_scenario(s: dict) -> dict:
                                         "query": "{{ query_text }}",
                                         "fields": [
                                             "title^{{ title_boost }}",
-                                            "description",
+                                            "description^{{ description_boost }}",
                                             "brand^2",
                                         ],
                                         "type": "best_fields",
@@ -716,65 +729,79 @@ def seed_scenario(s: dict) -> dict:
                 "declared_params": s["template_declared_params"],
             },
         )
-        swap_template_id = swap_template["id"]
-        print(f"  swap template: {swap_template_id} (function-score-recency-decay-v1)")
-        seed_payload["suggested_followups"] = [
-            {
-                "kind": "narrow",
-                "rationale": (
-                    "Tighten title_boost bounds around the winning value (2.5) "
-                    "to extract the last few percentage points."
-                ),
-                "search_space": {
-                    "params": {
-                        "title_boost": {
-                            "type": "float",
-                            "low": 1.8,
-                            "high": 3.2,
-                            "log": False,
-                        }
-                    }
-                },
+        print(f"  swap template: {swap_template['id']} (function-score-recency-decay-v1)")
+
+    # Build search_space from the template's declared_params. Float params get
+    # a [0.5, 5.0] log-uniform range — a sensible boost-shaped default that
+    # spans both "weakened" and "amplified" extremes around the natural 1.0.
+    search_space = {
+        "params": {
+            name: {"type": "float", "low": 0.5, "high": 5.0, "log": True}
+            for name in s["template_declared_params"]
+        }
+    }
+    study_create = post(
+        "/studies",
+        {
+            "name": s["study_name"],
+            "cluster_id": cluster_id,
+            "target": s["target"],
+            "template_id": template_id,
+            "query_set_id": qset_id,
+            "judgment_list_id": jlist_id,
+            "search_space": search_space,
+            "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
+            "config": {
+                "max_trials": 12,
+                "parallelism": 2,
+                "sampler": "tpe",
+                "seed": 42,
             },
-            {
-                "kind": "widen",
-                "rationale": (
-                    "Test title_boost values further from the winner to "
-                    "confirm 2.5 isn't a local maximum."
-                ),
-                "search_space": {
-                    "params": {
-                        "title_boost": {
-                            "type": "float",
-                            "low": 0.1,
-                            "high": 5.0,
-                            "log": False,
-                        }
-                    }
-                },
-            },
-            {
-                "kind": "swap_template",
-                "rationale": (
-                    "Test whether a function_score template with recency "
-                    "decay beats the multi_match winner."
-                ),
-                "template_id": swap_template_id,
-                "search_space": {
-                    "params": {
-                        "title_boost": {
-                            "type": "float",
-                            "low": 0.5,
-                            "high": 2.5,
-                            "log": False,
-                        }
-                    }
-                },
-            },
-        ]
-    seeded = post("/_test/studies/seed-completed", seed_payload)
-    study_id = seeded["study_id"]
-    print(f"  study: {study_id} (completed)")
+        },
+    )
+    study_id = study_create["id"]
+    print(f"  study created: {study_id}, polling for completion...")
+    # Poll the study until it reaches a terminal state. 3-minute ceiling per
+    # study — 12 trials × 2 parallelism against a healthy local-ES should
+    # finish in 30-60s; 3 min is a wide safety margin.
+    deadline = time.time() + 180
+    detail: dict = study_create
+    while time.time() < deadline:
+        detail = http("GET", f"{API}/studies/{study_id}")
+        if detail["status"] in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(3)
+    final_status = detail["status"]
+    best_metric = detail.get("best_metric")
+    print(f"  study: {study_id} ({final_status}, best_metric={best_metric})")
+    if final_status != "completed":
+        print("  WARNING: study did not complete; skipping digest wait")
+    else:
+        # Wait for the digest worker to land the digest + proposal. The worker
+        # fires automatically on the completed-study transition; usually 5-15s
+        # depending on LLM latency. 90s ceiling is a wide safety margin.
+        #
+        # The GET /studies/{id}/digest endpoint returns 404 with
+        # `DIGEST_NOT_READY` (retryable) while the worker is still running;
+        # any successful (HTTP 200) response means the digest landed. The
+        # response shape is DigestResponse (proposals.py:293) which has no
+        # "status" field — a successful return IS the ready signal.
+        digest_deadline = time.time() + 90
+        digest_landed = False
+        while time.time() < digest_deadline:
+            try:
+                digest = http("GET", f"{API}/studies/{study_id}/digest", quiet_404=True)
+                followups = digest.get("suggested_followups") or []
+                kinds = ", ".join(f.get("kind", "?") for f in followups) or "(none)"
+                print(f"  digest: {digest['id']} ({len(followups)} followups: {kinds})")
+                digest_landed = True
+                break
+            except urllib.error.HTTPError as e:
+                if e.code != 404:
+                    raise
+            time.sleep(3)
+        if not digest_landed:
+            print("  WARNING: digest did not land within 90s")
 
     return {
         "slug": s["slug"],
