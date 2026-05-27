@@ -94,7 +94,8 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
                   className="text-blue-600 underline-offset-4 hover:underline"
                   data-testid="study-proposal-link-anchor"
                 >
-                  view proposal ({proposalQ.data.status})
+                  view proposal (
+                  <span className="capitalize">{proposalQ.data.status.replace(/_/g, ' ')}</span>)
                 </Link>
               </p>
             )}
