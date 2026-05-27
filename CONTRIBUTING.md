@@ -8,7 +8,7 @@ This document explains how to set up a development environment, propose changes,
 
 ## Code of Conduct
 
-A short kindness ask, not a long list of rules. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). Concerns go to the contact in [MAINTAINERS.md](MAINTAINERS.md).
+A short kindness ask, not a long list of rules. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
 ## Governance
 
@@ -30,7 +30,13 @@ To sign off a commit, add `Signed-off-by: Your Name <your.email@example.com>` to
 git commit -s -m "feat(adapter): add OpenSearch sigv4 auth"
 ```
 
-The [DCO GitHub App](https://github.com/apps/dco) blocks merging until every commit on the PR is signed off. If you forget, the bot links you a one-click fix.
+A DCO check workflow (`.github/workflows/dco.yml`) runs on every PR and fails if any commit lacks a `Signed-off-by:` trailer. The same check runs locally as a `commit-msg` pre-commit hook (`scripts/check-dco-signoff.sh`) once you've run `pre-commit install --hook-type commit-msg`. If a commit is missing the trailer, backfill with `git rebase --signoff origin/main && git push --force-with-lease`.
+
+You can also opt into auto-sign-off for this repo:
+
+```bash
+git config format.signoff true
+```
 
 ## Commit message format
 
