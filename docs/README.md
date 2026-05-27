@@ -9,7 +9,7 @@ Pick the path that matches your goal:
 | Goal | Read this first |
 |---|---|
 | **Boot the stack on my laptop** | [`03_runbooks/local-dev.md`](03_runbooks/local-dev.md) — `make up` → `/healthz` → debug |
-| **Understand what RelyLoop is + the release roadmap** | [`00_overview/product/relevance-copilot-spec.md`](00_overview/product/relevance-copilot-spec.md) (umbrella spec; ~2,800 lines) |
+| **Understand what RelyLoop is + the release roadmap** | [`00_overview/relyloop-spec.md`](00_overview/relyloop-spec.md) (umbrella spec; ~2,800 lines) |
 | **Onboard as a contributor** | [`../state.md`](../state.md) (active branch / focus / debt) → [`../architecture.md`](../architecture.md) (navigation) → [`../CLAUDE.md`](../CLAUDE.md) (conventions + absolute rules) |
 | **Look up an architectural decision** | [`01_architecture/`](01_architecture/) — topical docs (tech-stack, deployment, adapters, llm-orchestration, etc.) |
 | **Find the spec for a planned feature** | [`02_product/planned_features/<feature>/feature_spec.md`](02_product/planned_features/) |

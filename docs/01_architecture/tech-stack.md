@@ -1,7 +1,7 @@
 # Tech Stack
 
 **Status:** Adopted for MVP1. Revisited per release as new layers come online.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §28](../00_overview/product/relevance-copilot-spec.md) ("Tech stack & implementation decisions"). This document is the engineering-facing distillation of those decisions, scoped to what's relevant for MVP1 with explicit notes on what activates in later releases.
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §28](../00_overview/relyloop-spec.md) ("Tech stack & implementation decisions"). This document is the engineering-facing distillation of those decisions, scoped to what's relevant for MVP1 with explicit notes on what activates in later releases.
 
 ---
 

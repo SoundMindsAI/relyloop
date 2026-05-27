@@ -101,7 +101,7 @@ scripts/
   install.sh      # auto-generates required + optional secrets, then docker compose up -d
   check-conventional-commit.sh   # commit-msg pre-commit hook
 docs/
-  00_overview/    # umbrella spec (relevance-copilot-spec.md), implemented_features/<YYYY_MM_DD>_<slug>/
+  00_overview/    # umbrella spec (relyloop-spec.md), implemented_features/<YYYY_MM_DD>_<slug>/
   01_architecture/# topical arch docs: tech-stack, system-overview, data-model, deployment, api-conventions, adapters, llm-orchestration, optimization, ui-architecture, agent-tools, apply-path, mvp1-overview
   02_product/     # mvp1-user-stories.md + planned_features/<feature>/
   03_runbooks/    # local-dev.md (and per-feature runbooks as features ship)

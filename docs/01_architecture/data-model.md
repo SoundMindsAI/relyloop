@@ -1,7 +1,7 @@
 # Data Model
 
 **Status:** Adopted for MVP1. Tables shown with their MVP1 shape; deferred columns and tables are flagged.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §9](../00_overview/product/relevance-copilot-spec.md) ("Data model").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §9](../00_overview/relyloop-spec.md) ("Data model").
 
 ---
 

@@ -2,7 +2,7 @@
 
 ## Idea
 - Status: N/A — no `idea.md`; spec was authored directly. (Common for the bootstrap feature where the umbrella docs serve as the brief.)
-- Origin: [`docs/00_overview/product/relevance-copilot-spec.md` §27](../../../00_overview/product/relevance-copilot-spec.md) ("MVP1 / v0.1 — The Loop")
+- Origin: [`docs/00_overview/relyloop-spec.md` §27](../../../00_overview/relyloop-spec.md) ("MVP1 / v0.1 — The Loop")
 
 ## Spec
 - Status: Approved (merged to `main` via PR #2 on 2026-05-09)
