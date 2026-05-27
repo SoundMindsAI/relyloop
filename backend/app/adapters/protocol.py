@@ -98,6 +98,45 @@ class ExplainTree(BaseModel):
     details: list[ExplainTree] = Field(default_factory=list)
 
 
+class Document(BaseModel):
+    """A single document by ID — return shape of ``SearchAdapter.get_document``.
+
+    Mirrors :class:`ScoredHit` minus ``score`` (browsing doesn't need scoring).
+    ``source`` is ``None`` when the engine's index has ``_source: false`` mapping.
+    """
+
+    doc_id: str = Field(min_length=1)
+    source: dict[str, Any] | None = None
+
+
+class AdapterDocumentHit(BaseModel):
+    """One hit on the adapter's paginated list page.
+
+    Carries the engine's per-hit ``sort`` value so the router can compute the
+    next cursor from the correct in-body hit under the ``limit + 1`` overfetch
+    pattern (router slices ``hits[:user_limit]`` and encodes
+    ``hits[user_limit - 1].sort``).
+    """
+
+    doc_id: str = Field(min_length=1)
+    source: dict[str, Any] | None = None
+    sort: list[Any]
+
+
+class DocumentPage(BaseModel):
+    """Return shape of ``SearchAdapter.list_documents``.
+
+    ``total`` is the engine's ``hits.total.value`` (request body sets
+    ``track_total_hits: true`` so the count is exact, not capped at 10000).
+    ``hits`` may contain up to ``limit + 1`` entries — the router caller
+    slices to ``user_limit`` before serializing and uses the trailing entry
+    only as the has-more sentinel, not for cursor encoding.
+    """
+
+    hits: list[AdapterDocumentHit]
+    total: int
+
+
 class QueryTemplate(BaseModel):
     """A template definition handed to ``render``.
 
@@ -204,4 +243,42 @@ class SearchAdapter(Protocol):
         request_id: str | None = None,
     ) -> ExplainTree:
         """Return the engine's scoring breakdown for one (target, query, doc_id) triple."""
+        ...
+
+    async def get_document(
+        self,
+        target: str,
+        doc_id: str,
+        *,
+        request_id: str | None = None,
+    ) -> Document | None:
+        """Fetch one document by ``_id`` (feat_index_document_browser FR-1).
+
+        Returns ``None`` when the engine reports the document does not exist
+        (e.g., ES ``{"found": false}``). Raises ``TargetNotFoundError`` when the
+        target index itself does not exist (``index_not_found_exception``),
+        ``TargetsForbiddenError`` on engine 401/403, and
+        ``ClusterUnreachableError`` on connection failures / 5xx (after the
+        adapter's internal retry budget is exhausted).
+        """
+        ...
+
+    async def list_documents(
+        self,
+        target: str,
+        *,
+        search_after: list[Any] | None = None,
+        limit: int = 25,
+        fields: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> DocumentPage:
+        """Paginated browse over a target's documents (feat_index_document_browser FR-1).
+
+        Sorts by ``_id`` ascending with ``track_total_hits: true``. The caller
+        is expected to request ``user_limit + 1`` and slice in the router so
+        the engine never observes the user-facing page size — see ``FR-3``.
+
+        Same error envelope as :meth:`get_document`: ``TargetNotFoundError`` /
+        ``TargetsForbiddenError`` / ``ClusterUnreachableError``.
+        """
         ...
