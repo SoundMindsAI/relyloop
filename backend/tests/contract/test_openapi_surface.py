@@ -46,6 +46,9 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("delete", "/api/v1/clusters/{cluster_id}", "204"),
     ("get", "/api/v1/clusters/{cluster_id}/schema", "200"),
     ("get", "/api/v1/clusters/{cluster_id}/targets", "200"),
+    # feat_index_document_browser FR-3 / FR-4 — documents browse.
+    ("get", "/api/v1/clusters/{cluster_id}/targets/{target}/documents", "200"),
+    ("get", "/api/v1/clusters/{cluster_id}/targets/{target}/documents/{doc_id}", "200"),
     ("post", "/api/v1/clusters/{cluster_id}/run_query", "200"),
     # ----- /api/v1/config-repos -----
     ("post", "/api/v1/config-repos", "201"),
