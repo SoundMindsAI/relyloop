@@ -274,9 +274,14 @@ class SearchAdapter(Protocol):
     ) -> DocumentPage:
         """Paginated browse over a target's documents (feat_index_document_browser FR-1).
 
-        Sorts by ``_id`` ascending with ``track_total_hits: true``. The caller
-        is expected to request ``user_limit + 1`` and slice in the router so
-        the engine never observes the user-facing page size — see ``FR-3``.
+        Adapters paginate using ``search_after`` over a deterministic ``sort``
+        key with ``track_total_hits: true``. The ``ElasticAdapter`` sorts by
+        ``_doc`` (per spec D-26 fallback — ES 9 disables ``_id`` fielddata by
+        default); other engines may pick any stable internal key as long as
+        ``hits[i].sort`` is returned for ``search_after`` round-trips. The
+        caller is expected to request ``user_limit + 1`` and slice in the
+        router so the engine never observes the user-facing page size — see
+        ``FR-3``.
 
         Same error envelope as :meth:`get_document`: ``TargetNotFoundError`` /
         ``TargetsForbiddenError`` / ``ClusterUnreachableError``.
