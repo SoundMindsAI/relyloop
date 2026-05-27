@@ -1,7 +1,7 @@
 # Deployment
 
 **Status:** Adopted for MVP1. Local Docker Compose only; production-grade deployment activates as later releases add the missing pieces (TLS, SSO, observability).
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §25](../00_overview/product/relevance-copilot-spec.md) ("Deployment").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §25](../00_overview/relyloop-spec.md) ("Deployment").
 
 ---
 

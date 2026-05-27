@@ -2,7 +2,7 @@
 
 **Status:** This is the architecture as it exists in MVP1 ("The Loop"). Each topical doc covers all releases; this page is a fast entry point that filters them down to MVP1's active scope.
 
-**For product context:** [docs/00_overview/product/relevance-copilot-spec.md §27](../00_overview/product/relevance-copilot-spec.md) ("MVP1 / v0.1 — The Loop").
+**For product context:** [docs/00_overview/relyloop-spec.md §27](../00_overview/relyloop-spec.md) ("MVP1 / v0.1 — The Loop").
 
 ---
 
@@ -126,4 +126,4 @@ The "TBA" docs are authored alongside their corresponding feature spec.
 - All arch docs in this section: [`docs/01_architecture/`](./)
 - MVP1 feature folders: [`docs/02_product/planned_features/`](../02_product/planned_features/)
 - MVP1 user stories: [`docs/02_product/mvp1-user-stories.md`](../02_product/mvp1-user-stories.md)
-- Umbrella spec MVP1 section: [`docs/00_overview/product/relevance-copilot-spec.md` §27](../00_overview/product/relevance-copilot-spec.md)
+- Umbrella spec MVP1 section: [`docs/00_overview/relyloop-spec.md` §27](../00_overview/relyloop-spec.md)

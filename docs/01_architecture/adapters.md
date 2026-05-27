@@ -1,7 +1,7 @@
 # Adapters
 
 **Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; Lucidworks Fusion ships at MVP3; Apache Solr at v2+. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §8](../00_overview/product/relevance-copilot-spec.md) ("Engine adapter specification") and §11 ("Search space & parameters").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §8](../00_overview/relyloop-spec.md) ("Engine adapter specification") and §11 ("Search space & parameters").
 
 ---
 

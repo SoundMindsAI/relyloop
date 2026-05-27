@@ -75,12 +75,12 @@ or eventually want one tool that spans engines.
 
 The full breakdown — honest assessment of where each adjacent tool fits,
 where RelyLoop fits, and the pairing patterns we recommend — is in
-[`docs/00_overview/product/adjacent-tools.md`](docs/00_overview/product/adjacent-tools.md).
+[`docs/00_overview/adjacent-tools.md`](docs/00_overview/adjacent-tools.md).
 
 ## Links
 
 - Tutorial: [`docs/08_guides/tutorial-first-study.md`](docs/08_guides/tutorial-first-study.md)
-- Umbrella spec: [`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md)
+- Umbrella spec: [`docs/00_overview/relyloop-spec.md`](docs/00_overview/relyloop-spec.md)
 - Architecture index: [`docs/01_architecture/`](docs/01_architecture/)
 - Local-dev runbook: [`docs/03_runbooks/local-dev.md`](docs/03_runbooks/local-dev.md)
 - Release checklist (maintainers): [`docs/03_runbooks/release-checklist.md`](docs/03_runbooks/release-checklist.md)

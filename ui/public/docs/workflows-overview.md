@@ -292,7 +292,7 @@ Important framing for new engineers, because the negative space defines the tool
 - **Has no in-tool approval surface.** Approval is delegated to the config repo's branch protection (CODEOWNERS, required reviewers).
 - **Single-tenant in MVP1.** Multi-tenancy, SSO, and role enforcement land at MVP4.
 
-If your team needs any of the above, RelyLoop is complementary, not a replacement — the umbrella spec (`docs/00_overview/relevance-copilot-spec.md` §4) is the canonical non-goals list.
+If your team needs any of the above, RelyLoop is complementary, not a replacement — the umbrella spec (`docs/00_overview/relyloop-spec.md` §4) is the canonical non-goals list.
 
 ---
 

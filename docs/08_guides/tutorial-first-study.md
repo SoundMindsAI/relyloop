@@ -365,7 +365,7 @@ curl -X POST http://localhost:8000/api/v1/config-repos \
   [`docs/01_architecture/`](../01_architecture/) — start with
   [`system-overview.md`](../01_architecture/system-overview.md).
 - The umbrella product spec is at
-  [`docs/00_overview/product/relevance-copilot-spec.md`](../00_overview/product/relevance-copilot-spec.md).
+  [`docs/00_overview/relyloop-spec.md`](../00_overview/relyloop-spec.md).
 - File feedback or bug reports at
   [GitHub Discussions](https://github.com/SoundMindsAI/relyloop/discussions).
 

@@ -151,7 +151,7 @@ RelyLoop's engine, LLM provider, and Git provider adapters are designed for comm
 - Includes unit tests under [`backend/tests/unit/`](backend/tests/unit/) (use `pytest-recording` cassettes when exercising real HTTP)
 - Documents auth flow, version support, and any quirks under [`docs/06_vendor_docs/`](docs/06_vendor_docs/)
 
-See the spec ([`docs/00_overview/product/relevance-copilot-spec.md`](docs/00_overview/product/relevance-copilot-spec.md) §8 for engine adapters, §15 for LLM providers, §16 for Git providers) and the architecture-level adapters doc ([`docs/01_architecture/adapters.md`](docs/01_architecture/adapters.md)) for the full contracts.
+See the spec ([`docs/00_overview/relyloop-spec.md`](docs/00_overview/relyloop-spec.md) §8 for engine adapters, §15 for LLM providers, §16 for Git providers) and the architecture-level adapters doc ([`docs/01_architecture/adapters.md`](docs/01_architecture/adapters.md)) for the full contracts.
 
 ## Maintainers and governance
 

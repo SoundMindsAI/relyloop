@@ -1,7 +1,7 @@
 # Optimization (Optuna + ir_measures)
 
 **Status:** Adopted for MVP1. Single-objective TPE + median pruner; provider-abstracted IR evaluation via `ir_measures` (wraps multiple cut-aware-metric backends behind a typed metric-object DSL). Multi-objective optimization (CMA-ES + multi-metric) reserved for v2 per umbrella spec.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §13–§14](../00_overview/product/relevance-copilot-spec.md). Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §13–§14](../00_overview/relyloop-spec.md). Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
 
 ---
 

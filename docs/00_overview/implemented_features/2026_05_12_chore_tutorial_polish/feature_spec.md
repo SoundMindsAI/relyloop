@@ -5,7 +5,7 @@
 **Owners:** Maintainer (writes tutorial + records demo + cuts release); peer reviewer for the smoke-test gate.
 **Related docs:**
 - [docs/02_product/mvp1-user-stories.md](../../mvp1-user-stories.md) — covers US-30, US-31, US-32 (current count is 32; US-32 added after this spec was first authored)
-- [docs/00_overview/product/relevance-copilot-spec.md §27](../../../00_overview/product/relevance-copilot-spec.md) — MVP1 release definition
+- [docs/00_overview/relyloop-spec.md §27](../../../00_overview/relyloop-spec.md) — MVP1 release definition
 - [docs/01_architecture/deployment.md](../../../01_architecture/deployment.md)
 - [docs/01_architecture/mvp1-overview.md](../../../01_architecture/mvp1-overview.md)
 - Depends on: ALL prior MVP1 features (this is the release-readiness step)

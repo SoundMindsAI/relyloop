@@ -1,9 +1,9 @@
-# RelyLoop — Internal Tool Specification
+# RelyLoop — Project Specification
 
 **Status:** Draft v0.1
 **Date:** 2026-05-07
-**Owner:** Relevance team
-**Audience:** Engineers and stakeholders building or evaluating the tool
+**Owner:** RelyLoop maintainers (see [MAINTAINERS.md](../../MAINTAINERS.md))
+**Audience:** Engineers, operators, and stakeholders building, evaluating, or contributing to the tool
 
 ---
 
@@ -741,7 +741,7 @@ Because UBI is just two indices in the cluster RelyLoop is already adapting, the
 
 The pluggable `SignalsConverter` then maps these features to a 0–3 rating. Initial converters: position-bias-corrected CTR threshold, dwell-time threshold, and **hybrid UBI+LLM** (UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold). Counterfactual click models (CCM, DBN) are documented as v1.5+ post-GA extensions because they need enough impressions per (query, doc) to be statistically meaningful.
 
-The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP1.5 deliverable is the `UbiReader` + `SignalsConverter` + a new `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + a new `generate_judgments_from_ubi` agent tool. See [`feat_ubi_judgments/idea.md`](../../02_product/planned_features/feat_ubi_judgments/idea.md) for the planned-feature scope.
+The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP1.5 deliverable is the `UbiReader` + `SignalsConverter` + a new `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + a new `generate_judgments_from_ubi` agent tool. See [`feat_ubi_judgments/idea.md`](../02_product/planned_features/feat_ubi_judgments/idea.md) for the planned-feature scope.
 
 Predicated on the operator having installed the OpenSearch UBI plugin and logged enough events to be statistically useful. Deployments without UBI continue to run LLM-as-judge unchanged.
 

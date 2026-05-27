@@ -20,7 +20,7 @@ The model is intentionally temporary — see "Transition plan" below.
 
 RelyLoop is an open-source tool for tuning query-time search relevance on
 Elasticsearch, OpenSearch, and (in later releases) Lucidworks Fusion. The
-authoritative scope statement is the [umbrella spec](docs/00_overview/product/relevance-copilot-spec.md),
+authoritative scope statement is the [umbrella spec](docs/00_overview/relyloop-spec.md),
 particularly §4 (non-goals). Proposals that materially expand scope
 (new engine families, online A/B testing, LTR training, sitting on the live
 search-serving path) are decided by the maintainers and the project lead.

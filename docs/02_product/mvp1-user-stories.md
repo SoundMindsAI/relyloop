@@ -3,8 +3,8 @@
 **Status:** Source-of-truth user-story enumeration for MVP1 ("The Loop"). Each story is referenced by ID (`US-N`) from the matching feature_spec.md in `planned_features/<folder>/`.
 
 **Source material:**
-- Umbrella spec [§6 Personas & user stories](../00_overview/product/relevance-copilot-spec.md) (lines 85–100) — system-level stories
-- Umbrella spec [§27 MVP1 scope](../00_overview/product/relevance-copilot-spec.md) (lines 2286–2322) — in-scope capabilities
+- Umbrella spec [§6 Personas & user stories](../00_overview/relyloop-spec.md) (lines 85–100) — system-level stories
+- Umbrella spec [§27 MVP1 scope](../00_overview/relyloop-spec.md) (lines 2286–2322) — in-scope capabilities
 - Umbrella spec §8, §12, §14, §15, §16, §19, §22 — capability detail
 
 **Scope boundary:** MVP1 only. Stories that depend on later-release capabilities (Langfuse → MVP2; Lucidworks Fusion + GitLab/Bitbucket → MVP3; multi-tenant + multi-LLM provider abstraction + SSO + API keys → MVP4; LangGraph state graph + subagents + PostgresSaver → GA v1) are explicitly out of scope and live in their respective release plans. See [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md) for the source of truth.

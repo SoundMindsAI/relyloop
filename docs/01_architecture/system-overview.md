@@ -1,7 +1,7 @@
 # System Overview
 
 **Status:** Adopted for MVP1. Each release adds services; this doc shows the full topology with MVP1-active services highlighted.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §7](../00_overview/product/relevance-copilot-spec.md) ("System architecture").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §7](../00_overview/relyloop-spec.md) ("System architecture").
 
 ---
 
