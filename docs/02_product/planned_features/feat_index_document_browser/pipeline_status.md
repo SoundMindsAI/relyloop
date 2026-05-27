@@ -28,7 +28,14 @@
 - Phases covered: 1 (all FRs in this plan)
 
 ## Implementation
-- Status: Not started
+- Status: **In Progress — Epic 1 complete; Epic 1 phase gate not yet run**
+- Branch: `feat/index-document-browser` (3 commits ahead of `main`)
+- Completed stories: 1.1, 1.2, 1.3 (Epic 1 — SearchAdapter Protocol additions + ElasticAdapter implementations)
+- Tests added so far: 24 backend unit tests (10 Protocol model tests + 10 `get_document` + 14 `list_documents`); total `test_protocol.py` count now 29 (was 19); cumulative unit-test run green
+- Last commit: `754c505b` (Stories 1.2 + 1.3)
+- Remaining stories: 10 (Epic 1 phase gate, Stories 2.1–2.4, Epic 2 phase gate, Stories 3.1–3.6, Epic 3 phase gate, post-impl + PR ceremony)
+- Resume command: `/impl-execute docs/02_product/planned_features/feat_index_document_browser/implementation_plan.md --all` (or specify next story explicitly: `... 1.3` to re-enter just past Epic 1)
+- Pause reason: operator-chosen checkpoint after Epic 1; remaining work is multi-hour and benefits from a fresh session to keep context manageable.
 
 ## Done
 - Status: —

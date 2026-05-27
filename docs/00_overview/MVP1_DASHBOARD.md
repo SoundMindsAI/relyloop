@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-27** (latest mtime of any planned
 
 ## Next up
 
-**[feat_index_document_browser](../02_product/planned_features/feat_index_document_browser/feature_spec.md)** — Feature, currently in **Plan**
+**[feat_index_document_browser](../02_product/planned_features/feat_index_document_browser/feature_spec.md)** — Feature, currently in **Implementing**
 
 > A read-only document browser, reachable from two independent entry points (cluster detail + study detail), that lets operators see corpus shape, paginate documents, and inspect any single doc's `_source` without leaving the RelyLoop UI.
 
-Plan approved; run /impl-execute to ship
+Implementation in progress — resume to finish
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_index_document_browser/implementation_plan.md --all
+/impl-execute docs/02_product/planned_features/feat_index_document_browser/implementation_plan.md --all  # resume in-progress
 ```
 
 ## MVP1 Progress
@@ -29,7 +29,7 @@ Plan approved; run /impl-execute to ship
 | Open bugs | 3 |
 | Legacy "Path to MVP1" | 11 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
-| In flight | 1 feature(s) actively shipping |
+| In flight | 2 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -155,17 +155,16 @@ Plan approved; run /impl-execute to ship
 | [bug_vitest_jsdom_localstorage_failures](implemented_features/2026_05_26_bug_vitest_jsdom_localstorage_failures/idea.md) | Bug | `pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error: | — | Complete |
 | [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | Complete |
 
-### Implementing (1)
-
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
-
-### Plan (1)
+### Implementing (2)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_index_document_browser](../02_product/planned_features/feat_index_document_browser/feature_spec.md) | Feature | A read-only document browser, reachable from two independent entry points (cluster detail + study detail), that lets operators see corpus shape, paginate documents, and inspect any single doc's `_sour | — | [PR #282](https://github.com/SoundMindsAI/relyloop/pull/282) |
+| 2 | P2 | [infra_agent_sibling_worktree_isolation](../02_product/planned_features/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
+
+### Plan (0)
+
+_None._
 
 ### Spec (0)
 
@@ -197,7 +196,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_index_document_browser["index document browser"]
-  class feat_index_document_browser plan;
+  class feat_index_document_browser implement;
   infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
   class infra_agent_sibling_worktree_isolation implement;
   infra_foundation["foundation"]
