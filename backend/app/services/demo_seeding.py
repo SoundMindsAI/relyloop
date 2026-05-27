@@ -123,6 +123,19 @@ _DIGEST_POLL_CEILING_S: Final[float] = 90.0
 _DIGEST_POLL_INTERVAL_S: Final[float] = 3.0
 
 
+# Rich scenario constants — mirror
+# ``scripts/seed_meaningful_demos.py:851`` so the button's output matches
+# ``make seed-demo``'s 5th study (1000 ESCI products + LLM judgments).
+_RICH_SCENARIO_SLUG: Final[str] = "acme-products-rich-prod"
+_RICH_SCENARIO_INDEX: Final[str] = "acme-products-rich"
+_RICH_SCENARIO_QUERY_COUNT: Final[int] = 5
+_RICH_SCENARIO_MAX_TRIALS: Final[int] = 15
+_RICH_SCENARIO_PARALLELISM: Final[int] = 3
+_RICH_JUDGMENT_POLL_CEILING_S: Final[float] = 180.0
+_RICH_STUDY_POLL_CEILING_S: Final[float] = 300.0
+_SAMPLES_DIR: Final[str] = "/app/samples"
+
+
 # ---------------------------------------------------------------------------
 # Public exception type
 # ---------------------------------------------------------------------------
@@ -664,6 +677,326 @@ async def _seed_real_study_for_scenario(
 
 
 # ---------------------------------------------------------------------------
+# Rich-scenario seeder — mirrors scripts/seed_meaningful_demos.py:851
+# (the 5th demo study: 1000 ESCI products + LLM-generated judgments).
+# ---------------------------------------------------------------------------
+
+
+async def _seed_rich_scenario(
+    api_client: httpx.AsyncClient,
+    engine_client: httpx.AsyncClient,
+    *,
+    status_callback: StatusCallback,
+    progress: ReseedStatusResponse,
+) -> str | None:
+    """Seed the rich ESCI scenario (1000 products + LLM judgments).
+
+    Returns the new study id on success, or ``None`` on a tolerated
+    failure (matches the CLI's behavior at
+    ``scripts/seed_meaningful_demos.py:878`` — "Failures here are
+    tolerated: the four small scenarios are still valuable on their
+    own"). The orchestrator catches the None return + records the
+    skip without failing the whole reseed.
+
+    Differences from the CLI:
+
+    * Reads ``samples/`` from ``/app/samples`` (the read-only bind mount
+      shared by the api + worker containers).
+    * Uses the engine_client / api_client constructed by the worker so
+      basic-auth + Compose DNS resolution are consistent with the rest
+      of the reseed.
+    """
+    es_base = _resolve_engine_base_url(ES)
+
+    # 1. Load 1000 ESCI products from samples/. The file lives at
+    # ``/app/samples/products.json`` thanks to the Compose mount.
+    progress.current_step = f"{_RICH_SCENARIO_SLUG}: loading 1000 ESCI products from samples"
+    await status_callback(progress)
+    products_path = f"{_SAMPLES_DIR}/products.json"
+    try:
+        with open(products_path, encoding="utf-8") as f:
+            products = json.load(f)
+    except FileNotFoundError:
+        logger.warning(
+            "demo_reseed_rich_skip_missing_samples",
+            extra={"path": products_path},
+        )
+        return None
+
+    # 2. DELETE (tolerate 404) + recreate the rich index with an explicit
+    # mapping. The cleanup pass already DELETE'd ``acme-products-rich``
+    # at orchestration start (it's in DEMO_ES_INDICES), so the DELETE
+    # here is belt-and-suspenders against an operator who somehow
+    # re-created the index between the cleanup and this step.
+    delete_resp = await engine_client.delete(
+        f"{es_base}/{_RICH_SCENARIO_INDEX}",
+        auth=httpx.BasicAuth(*_ES_DELETE_AUTH),
+    )
+    if delete_resp.status_code not in (200, 204, 404):
+        raise DemoSeedingError(
+            f"rich/delete_index: HTTP {delete_resp.status_code} {delete_resp.text[:200]}"
+        )
+
+    progress.current_step = f"{_RICH_SCENARIO_SLUG}: creating index mapping"
+    await status_callback(progress)
+    await _put(
+        engine_client,
+        f"{es_base}/{_RICH_SCENARIO_INDEX}",
+        json={
+            "mappings": {
+                "properties": {
+                    "title": {"type": "text"},
+                    "description": {"type": "text"},
+                    "brand": {"type": "keyword"},
+                    "color": {"type": "keyword"},
+                    "bullet_points": {"type": "text"},
+                }
+            }
+        },
+        auth=("elastic", "changeme"),
+        client_label="engine",
+        step="rich/put_index",
+    )
+
+    # 3. Bulk-index 1000 docs in chunks of 500. /_bulk requires NDJSON
+    # with application/x-ndjson; the helper ``_post`` sends JSON, so
+    # bypass it here and use the raw httpx client directly.
+    progress.current_step = f"{_RICH_SCENARIO_SLUG}: bulk-indexing {len(products)} docs"
+    await status_callback(progress)
+    bulk_chunk = 500
+    for i in range(0, len(products), bulk_chunk):
+        chunk = products[i : i + bulk_chunk]
+        lines: list[str] = []
+        for p in chunk:
+            lines.append(json.dumps({"index": {"_index": _RICH_SCENARIO_INDEX, "_id": p["id"]}}))
+            lines.append(json.dumps({k: v for k, v in p.items() if k != "id"}))
+        body = ("\n".join(lines) + "\n").encode()
+        bulk_resp = await engine_client.post(
+            f"{es_base}/_bulk",
+            content=body,
+            headers={"Content-Type": "application/x-ndjson"},
+            auth=httpx.BasicAuth("elastic", "changeme"),
+        )
+        if bulk_resp.status_code >= 300:
+            raise DemoSeedingError(
+                f"rich/bulk_index chunk {i}: HTTP {bulk_resp.status_code} {bulk_resp.text[:200]}"
+            )
+    await _post(
+        engine_client,
+        f"{es_base}/{_RICH_SCENARIO_INDEX}/_refresh",
+        json=None,
+        auth=("elastic", "changeme"),
+        client_label="engine",
+        step="rich/refresh",
+    )
+
+    # 4. Register cluster with target_filter so this cluster's dropdowns
+    # only surface the rich index.
+    progress.current_step = f"{_RICH_SCENARIO_SLUG}: registering cluster"
+    await status_callback(progress)
+    cluster = await _post(
+        api_client,
+        "/api/v1/clusters",
+        json={
+            "name": _RICH_SCENARIO_SLUG,
+            "engine_type": "elasticsearch",
+            "base_url": "http://elasticsearch:9200",
+            "auth_kind": "es_basic",
+            "credentials_ref": "local-es",
+            "environment": "prod",
+            "target_filter": f"{_RICH_SCENARIO_INDEX}*",
+        },
+        client_label="api",
+        step="rich/post_cluster",
+    )
+    cluster_id = cast("str", cluster["id"])
+
+    # 5. Template from samples/templates/product_search.j2 — the
+    # canonical 3-param multi_match used by the tutorial.
+    template_path = f"{_SAMPLES_DIR}/templates/product_search.j2"
+    try:
+        with open(template_path, encoding="utf-8") as f:
+            template_body = f.read()
+    except FileNotFoundError:
+        logger.warning(
+            "demo_reseed_rich_skip_missing_template",
+            extra={"path": template_path},
+        )
+        return None
+
+    progress.current_step = f"{_RICH_SCENARIO_SLUG}: creating template + query set"
+    await status_callback(progress)
+    template = await _post(
+        api_client,
+        "/api/v1/query-templates",
+        json={
+            "name": "product-search-multi-match-v1",
+            "engine_type": "elasticsearch",
+            "body": template_body,
+            "declared_params": {
+                "title_boost": "float",
+                "description_boost": "float",
+                "bullet_points_boost": "float",
+            },
+        },
+        client_label="api",
+        step="rich/post_template",
+    )
+    template_id = cast("str", template["id"])
+
+    # 6. Query set + queries from samples/queries.csv (first N).
+    qset = await _post(
+        api_client,
+        "/api/v1/query-sets",
+        json={"name": "acme-rich-queries-q4-2025", "cluster_id": cluster_id},
+        client_label="api",
+        step="rich/post_query_set",
+    )
+    qset_id = cast("str", qset["id"])
+    queries_path = f"{_SAMPLES_DIR}/queries.csv"
+    try:
+        with open(queries_path, encoding="utf-8") as f:
+            csv_lines = f.read().strip().splitlines()
+    except FileNotFoundError:
+        logger.warning("demo_reseed_rich_skip_missing_queries", extra={"path": queries_path})
+        return None
+    queries_payload: list[dict[str, str]] = []
+    for line in csv_lines[1 : _RICH_SCENARIO_QUERY_COUNT + 1]:  # skip header
+        parts = line.split(",", 1)
+        if len(parts) == 2:
+            queries_payload.append({"query_text": parts[1].strip()})
+    await _post(
+        api_client,
+        f"/api/v1/query-sets/{qset_id}/queries",
+        json={"queries": queries_payload},
+        client_label="api",
+        step="rich/post_queries",
+    )
+
+    # 7. Generate judgments via LLM. Returns 202; worker generates async.
+    progress.current_step = f"{_RICH_SCENARIO_SLUG}: generating LLM judgments (~30-60s)"
+    await status_callback(progress)
+    jl_resp = await _post(
+        api_client,
+        "/api/v1/judgments/generate",
+        json={
+            "name": "acme-rich-judgments-q4-2025",
+            "description": "ESCI demo judgments for the rich-data acme scenario",
+            "query_set_id": qset_id,
+            "cluster_id": cluster_id,
+            "target": _RICH_SCENARIO_INDEX,
+            "current_template_id": template_id,
+            "rubric": (
+                "Rate 0-3 by relevance to the query: "
+                "0=irrelevant, 1=partial, 2=relevant, 3=highly relevant."
+            ),
+        },
+        client_label="api",
+        step="rich/post_judgments_generate",
+    )
+    jlist_id = cast("str", jl_resp["judgment_list_id"])
+
+    # Poll until judgments complete. 3-min ceiling; gpt-4o-mini against
+    # 5 queries × top-K is typically 30-60s.
+    deadline = time.monotonic() + _RICH_JUDGMENT_POLL_CEILING_S
+    jl_detail: dict[str, Any] = jl_resp
+    while time.monotonic() < deadline:
+        jl_detail = await _get(
+            api_client,
+            f"/api/v1/judgment-lists/{jlist_id}",
+            client_label="api",
+            step="rich/poll_judgments",
+        )
+        status_value = jl_detail.get("status")
+        if status_value in {"complete", "failed"}:
+            break
+        progress.current_step = f"{_RICH_SCENARIO_SLUG}: LLM judgments status={status_value!r}"
+        await status_callback(progress)
+        await asyncio.sleep(_REAL_STUDY_POLL_INTERVAL_S)
+    if jl_detail.get("status") != "complete":
+        logger.warning(
+            "demo_reseed_rich_judgment_did_not_complete",
+            extra={"jlist_id": jlist_id, "status": jl_detail.get("status")},
+        )
+        return None
+
+    # 8. Real 15-trial study against the rich data. Three boost knobs
+    # gives Optuna a 3-D search space that actually moves the metric.
+    progress.current_step = (
+        f"{_RICH_SCENARIO_SLUG}: creating study (max_trials={_RICH_SCENARIO_MAX_TRIALS})"
+    )
+    await status_callback(progress)
+    study = await _post(
+        api_client,
+        "/api/v1/studies",
+        json={
+            "name": "tune-acme-products-rich-boosts",
+            "cluster_id": cluster_id,
+            "target": _RICH_SCENARIO_INDEX,
+            "template_id": template_id,
+            "query_set_id": qset_id,
+            "judgment_list_id": jlist_id,
+            "search_space": {
+                "params": {
+                    "title_boost": {"type": "float", "low": 0.5, "high": 5.0, "log": True},
+                    "description_boost": {
+                        "type": "float",
+                        "low": 0.5,
+                        "high": 5.0,
+                        "log": True,
+                    },
+                    "bullet_points_boost": {
+                        "type": "float",
+                        "low": 0.5,
+                        "high": 5.0,
+                        "log": True,
+                    },
+                }
+            },
+            "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
+            "config": {
+                "max_trials": _RICH_SCENARIO_MAX_TRIALS,
+                "parallelism": _RICH_SCENARIO_PARALLELISM,
+                "sampler": _REAL_STUDY_SAMPLER,
+                "seed": _REAL_STUDY_SEED,
+            },
+        },
+        client_label="api",
+        step="rich/post_study",
+    )
+    study_id = cast("str", study["id"])
+
+    # Poll for terminal state. 5-min ceiling — 15 trials × parallelism=3
+    # over 1000 docs is typically 1-3 min; the margin protects against
+    # ES warmup.
+    deadline = time.monotonic() + _RICH_STUDY_POLL_CEILING_S
+    detail: dict[str, Any] = study
+    while time.monotonic() < deadline:
+        detail = await _get(
+            api_client,
+            f"/api/v1/studies/{study_id}",
+            client_label="api",
+            step="rich/poll_study",
+        )
+        if detail.get("status") in {"completed", "failed", "cancelled"}:
+            break
+        trials_total = detail.get("trials_summary", {}).get("total", 0)
+        progress.current_step = (
+            f"{_RICH_SCENARIO_SLUG}: study {study_id[:8]} running "
+            f"(trials {trials_total}/{_RICH_SCENARIO_MAX_TRIALS})"
+        )
+        await status_callback(progress)
+        await asyncio.sleep(_REAL_STUDY_POLL_INTERVAL_S)
+    if detail.get("status") != "completed":
+        logger.warning(
+            "demo_reseed_rich_study_did_not_complete",
+            extra={"study_id": study_id, "status": detail.get("status")},
+        )
+        return None
+    return study_id
+
+
+# ---------------------------------------------------------------------------
 # Orchestrator
 # ---------------------------------------------------------------------------
 
@@ -703,10 +1036,12 @@ async def reseed_demo_state(
     handler's job (FR-3).
     """
     started_at = time.monotonic()
+    # scenarios_total counts the 4 small SCENARIOS + the rich ESCI scenario
+    # (matches the CLI's 5-study output from ``make seed-demo``).
     progress = ReseedStatusResponse(
         status="running",
         started_at=_now_iso(),
-        scenarios_total=len(SCENARIOS),
+        scenarios_total=len(SCENARIOS) + 1,
         scenarios_completed=0,
         current_step="wiping demo state",
     )
@@ -923,7 +1258,30 @@ async def reseed_demo_state(
         progress.scenarios_completed += 1
         await status_callback(progress)
 
-    # ---- Step 3: rename the 4 studies. ----
+    # ---- Step 2b: rich ESCI scenario (5th study). ----
+    # Matches scripts/seed_meaningful_demos.py:851 — 1000 docs +
+    # LLM-generated judgments + 15-trial study. Failures here are
+    # tolerated (the 4 small scenarios are still valuable on their own,
+    # per the CLI's policy at line 878-880).
+    rich_study_id: str | None = None
+    try:
+        rich_study_id = await _seed_rich_scenario(
+            api_client,
+            engine_client,
+            status_callback=status_callback,
+            progress=progress,
+        )
+    except DemoSeedingError as exc:
+        logger.warning(
+            "demo_reseed_rich_scenario_failed_tolerated",
+            extra={"exc": str(exc)[:200]},
+        )
+        rich_study_id = None
+    if rich_study_id is not None:
+        progress.scenarios_completed += 1
+        await status_callback(progress)
+
+    # ---- Step 3: rename the 4 small studies. ----
     progress.current_step = "renaming studies to tutorial names"
     await status_callback(progress)
     for _slug, study_id, study_name in results:
@@ -935,11 +1293,12 @@ async def reseed_demo_state(
 
     # ---- Step 4: build summary + mark status complete. ----
     duration_ms = int((time.monotonic() - started_at) * 1000)
+    studies_seeded = len(SCENARIOS) + (1 if rich_study_id is not None else 0)
     summary = ReseedSummary(
-        clusters_created=len(SCENARIOS),
-        query_sets_created=len(SCENARIOS),
-        studies_completed=len(SCENARIOS),
-        proposals_created=len(SCENARIOS),
+        clusters_created=studies_seeded,
+        query_sets_created=studies_seeded,
+        studies_completed=studies_seeded,
+        proposals_created=studies_seeded,
         duration_ms=duration_ms,
     )
     progress.status = "complete"

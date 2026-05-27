@@ -46,10 +46,13 @@ from backend.app.services.demo_seeding import (
 logger = structlog.get_logger(__name__)
 
 
-# 10-minute hard ceiling on the entire reseed — 4 scenarios × ~90s each
-# real-study path + digest waits + slack. The advisory lock prevents
-# concurrent runs from piling up; this timeout bounds the worst case.
-DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = 600
+# 20-minute hard ceiling on the entire reseed — 4 small scenarios + the
+# rich ESCI scenario (1000 docs + LLM judgments + 15-trial study). Per
+# scripts/seed_meaningful_demos.py wall-clock notes: small scenarios run
+# ~1 min each, the rich scenario adds ~3-5 min, plus digest waits and
+# headroom. The advisory lock prevents concurrent runs from piling up;
+# this timeout bounds the worst case.
+DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = 1200
 
 
 async def run_demo_reseed(ctx: dict[str, Any]) -> None:
