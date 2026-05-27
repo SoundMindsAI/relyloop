@@ -83,6 +83,18 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               (bottom-right) for the step-by-step walkthrough.
             </p>
             <StudyHeader study={study} />
+            {proposalQ.data && (
+              <p className="text-sm" data-testid="study-proposal-link">
+                <span className="text-muted-foreground">Proposal:</span>{' '}
+                <Link
+                  href={`/proposals/${proposalQ.data.id}`}
+                  className="text-blue-600 underline-offset-4 hover:underline"
+                  data-testid="study-proposal-link-anchor"
+                >
+                  view proposal ({proposalQ.data.status})
+                </Link>
+              </p>
+            )}
             <AutoFollowupChainPanel study={study} chainChildren={childrenQ.data?.data ?? []} />
             <ConfidencePanel confidence={study.confidence} />
             <TrialsCard trialsQ={trialsQ} urlState={urlState} tableId={`trials-${studyId}`} />
