@@ -57,6 +57,26 @@ do not duplicate here, the matrix is the source of truth.
 
 See spec §4 (non-goals) for the full set.
 
+## How RelyLoop fits with other relevance tools
+
+RelyLoop is not the first tool in the search-relevance space and does not try
+to replace the tools already there. It sits alongside Quepid (interactive
+workbench), the OpenSearch Relevance Agent (in-cluster automated tuning for
+OpenSearch-only shops), Chorus (reference integration stack), SMUI + Querqy
+(query-rewriting rules), Elasticsearch / Solr LTR (reranker model training),
+OpenSearch UBI (real user signals), and the rest of the open-source relevance
+ecosystem.
+
+The slice RelyLoop owns is **autonomous, engine-agnostic, Git-PR-mediated
+query-time parameter tuning** — useful when you operate Elasticsearch or both
+ES + OpenSearch, want production config changes to flow through a Pull
+Request reviewed by named approvers, run multiple clusters / environments,
+or eventually want one tool that spans engines.
+
+The full breakdown — honest assessment of where each adjacent tool fits,
+where RelyLoop fits, and the pairing patterns we recommend — is in
+[`docs/00_overview/product/adjacent-tools.md`](docs/00_overview/product/adjacent-tools.md).
+
 ## Links
 
 - Tutorial: [`docs/08_guides/tutorial-first-study.md`](docs/08_guides/tutorial-first-study.md)
