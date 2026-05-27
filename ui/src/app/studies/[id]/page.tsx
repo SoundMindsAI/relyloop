@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AutoFollowupChainPanel } from '@/components/studies/auto-followup-chain-panel';
 import { ConfidencePanel } from '@/components/studies/confidence-panel';
+import { LinkedEntitiesRow } from '@/components/studies/linked-entities-row';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
 import { StudyHeader } from '@/components/studies/study-header';
@@ -84,6 +85,7 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               (bottom-right) for the step-by-step walkthrough.
             </p>
             <StudyHeader study={study} />
+            <LinkedEntitiesRow study={study} />
             {proposalQ.data && (
               <p className="text-sm" data-testid="study-proposal-link">
                 <span className="text-muted-foreground">Proposal:</span>{' '}
