@@ -105,9 +105,15 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
             try:
                 async with factory() as db:
                     timeout = httpx.Timeout(settings.demo_reseed_per_call_http_timeout_s)
+                    # The worker runs in its own container (relyloop-worker-1),
+                    # so ``localhost`` resolves to the worker itself, not the
+                    # API. Use the Compose service alias ``http://api:8000``
+                    # so the self-call lands on the API container. (The old
+                    # synchronous handler used ``http://localhost:8000``
+                    # because it ran INSIDE the API container — same loopback.)
                     async with (
                         httpx.AsyncClient(
-                            base_url="http://localhost:8000",
+                            base_url="http://api:8000",
                             timeout=timeout,
                         ) as api_client,
                         httpx.AsyncClient(timeout=timeout) as engine_client,
