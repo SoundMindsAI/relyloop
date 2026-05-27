@@ -7,8 +7,8 @@ body:
     attributes:
       value: |
         Thanks for thinking about how to make RelyLoop better. Before filing,
-        please skim the [umbrella spec §4 (non-goals)](../blob/main/docs/00_overview/product/relevance-copilot-spec.md)
-        and the [release matrix](../blob/main/docs/01_architecture/tech-stack.md)
+        please skim the [umbrella spec §4 (non-goals)](https://github.com/SoundMindsAI/relyloop/blob/main/docs/00_overview/product/relevance-copilot-spec.md)
+        and the [release matrix](https://github.com/SoundMindsAI/relyloop/blob/main/docs/01_architecture/tech-stack.md)
         to see whether the capability is already planned for a later release.
 
   - type: textarea

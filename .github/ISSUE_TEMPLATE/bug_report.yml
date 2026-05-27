@@ -10,7 +10,7 @@ body:
         repro, the faster we can act.
 
         **Security vulnerability?** Stop. Do not file a public issue. Follow
-        [SECURITY.md](../blob/main/SECURITY.md) for private reporting.
+        [SECURITY.md](https://github.com/SoundMindsAI/relyloop/blob/main/SECURITY.md) for private reporting.
 
   - type: textarea
     id: what-happened
