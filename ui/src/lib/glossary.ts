@@ -661,6 +661,37 @@ export const glossary = {
   },
 
   // -------------------------------------------------------------------------
+  // feat_index_document_browser Stories 3.1 — 3.4
+  // (cluster-detail Indices card, index summary page, documents list page).
+  // -------------------------------------------------------------------------
+
+  'cluster.indices_card': {
+    short:
+      'Indices (or collections) on this cluster. Click an index to view its schema, browse documents, or see studies targeting it.',
+    ariaLabel: 'More information about indices on this cluster',
+  },
+  'cluster.target_doc_count': {
+    short:
+      'Approximate document count reported by the engine. Not refreshed on every page load — recently indexed documents may not appear yet.',
+    ariaLabel: 'More information about the document count',
+  },
+  'target.schema': {
+    short:
+      'The fields and field types Elasticsearch / OpenSearch has mapped for this index. Drawn from the live cluster, not from configs.',
+    ariaLabel: 'More information about the index schema',
+  },
+  'target.schema_analyzer': {
+    short:
+      'The text analyzer applied to this field at index time. "—" means the default analyzer or a non-text field type.',
+    ariaLabel: 'More information about field analyzers',
+  },
+  'document.truncation_sentinel': {
+    short:
+      'This value was truncated for the list view because it exceeds 8 KiB. Open the document detail view to see the full value.',
+    ariaLabel: 'More information about truncated previews',
+  },
+
+  // -------------------------------------------------------------------------
   // DataTable primitive (feat_data_table_primitive Story 2.8)
   // -------------------------------------------------------------------------
 
