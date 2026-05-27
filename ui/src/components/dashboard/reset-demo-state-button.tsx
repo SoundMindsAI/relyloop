@@ -113,9 +113,11 @@ export function ResetDemoStateButton(): React.ReactElement {
         variant="secondary"
         onClick={() => {
           setOpen(true);
-          // Refresh status on each dialog open so the operator sees a
-          // running reseed they may have triggered from a different tab.
-          setPollingEnabled(true);
+          // Polling only starts after the operator clicks Confirm
+          // (``startReseed``). Opening the dialog alone doesn't fire the
+          // status endpoint — that endpoint may not even exist if the
+          // backend hasn't been rebuilt, and polling a missing endpoint
+          // floods the console with 404s.
         }}
         data-testid="reset-demo-state-trigger"
       >

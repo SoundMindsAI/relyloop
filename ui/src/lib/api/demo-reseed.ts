@@ -70,10 +70,19 @@ export function useDemoReseedStatus(
       return data;
     },
     refetchInterval: (query) => {
+      // Stop polling when the endpoint is unreachable (404 = endpoint not
+      // registered — the backend image probably wasn't rebuilt; 5xx /
+      // network errors = service unavailable). Continuing to hammer a
+      // broken endpoint floods the console and burns React-render cycles.
+      if (query.state.error != null) return false;
       const data = query.state.data;
       if (data == null) return POLL_INTERVAL_MS;
       return data.status === 'running' ? POLL_INTERVAL_MS : false;
     },
+    // Don't retry on errors — 404 means the endpoint doesn't exist on the
+    // running backend (operator hasn't rebuilt the container); retrying
+    // every couple seconds for the whole session is noisy and useless.
+    retry: false,
     // Status payload changes every ~2s during a real reseed; staleTime: 0
     // keeps every refetch propagating to subscribers (the progress copy
     // must visibly update).
