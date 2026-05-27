@@ -107,3 +107,19 @@ body {
     Arial,
     sans-serif;
 }
+
+/* @tailwindcss/typography color overrides — the plugin's default body color
+ * is a medium gray that reads as washed-out against the white background.
+ * Bind prose body / heading / bold colors to the theme's --foreground token
+ * so long-form content (quick-tour, tutorial, workflows-overview, digest
+ * narrative, FAQ answers, glossary entries) gets the same high-contrast
+ * black the rest of the UI uses. The `dark:prose-invert` modifier still
+ * works because it has higher specificity inside .dark — these defaults
+ * only apply to light mode + the un-inverted prose case. */
+.prose {
+  --tw-prose-body: hsl(var(--foreground));
+  --tw-prose-headings: hsl(var(--foreground));
+  --tw-prose-bold: hsl(var(--foreground));
+  --tw-prose-quotes: hsl(var(--foreground));
+  --tw-prose-code: hsl(var(--foreground));
+}
