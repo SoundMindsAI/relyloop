@@ -43,7 +43,10 @@ export function StudyHeader({ study }: StudyHeaderProps) {
             <dd className="font-mono text-xs">{study.cluster_id}</dd>
           </div>
           <div>
-            <dt className="text-xs uppercase text-muted-foreground">Target</dt>
+            <dt className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+              Target
+              <InfoTooltip glossaryKey="study.target" />
+            </dt>
             <dd>{study.target}</dd>
           </div>
           <div>
