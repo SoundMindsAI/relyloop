@@ -106,8 +106,16 @@ async def fetch_study_confidence(db: AsyncSession, study: Study) -> ConfidenceSh
                 comparison_per_query=runner_up.per_query_metrics,
                 metric=per_query_key,
             )
-            if outcome is not None and outcome.regressor_candidates:
-                qids = [qid for (qid, *_) in outcome.regressor_candidates]
+            if outcome is not None and (
+                outcome.regressor_candidates or outcome.improver_candidates
+            ):
+                qids = [
+                    qid
+                    for (qid, *_) in (
+                        *outcome.regressor_candidates,
+                        *outcome.improver_candidates,
+                    )
+                ]
                 q_stmt = select(Query.id, Query.query_text).where(Query.id.in_(qids))
                 for qid, qtext in (await db.execute(q_stmt)).all():
                     query_text_by_id[qid] = qtext
