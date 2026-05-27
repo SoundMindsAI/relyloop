@@ -748,7 +748,14 @@ class ElasticAdapter:
                 f"cluster denied document fetch (HTTP {resp.status_code} from /_doc/...)"
             )
         if resp.status_code == 404:
-            payload = resp.json()
+            # 404 may come from an intermediate proxy as a non-JSON HTML page
+            # rather than an ES envelope — guard the .json() call so we
+            # surface a typed adapter error instead of bubbling a
+            # JSONDecodeError as a 500 (per Gemini cycle-1 finding #1).
+            try:
+                payload = resp.json()
+            except (ValueError, TypeError):
+                payload = None
             if (
                 isinstance(payload, dict)
                 and payload.get("error", {}).get("type") == "index_not_found_exception"
@@ -827,7 +834,12 @@ class ElasticAdapter:
                 f"cluster denied _search (HTTP {resp.status_code} from /_search)"
             )
         if resp.status_code == 404:
-            payload = resp.json()
+            # Guarded JSON parse — see get_document for the rationale
+            # (Gemini cycle-1 finding #2).
+            try:
+                payload = resp.json()
+            except (ValueError, TypeError):
+                payload = None
             if (
                 isinstance(payload, dict)
                 and payload.get("error", {}).get("type") == "index_not_found_exception"

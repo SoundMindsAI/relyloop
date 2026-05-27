@@ -19,8 +19,15 @@ from backend.app.api.v1._errors import _err
 
 
 def encode_documents_cursor(sort: list[Any]) -> str:
-    """Encode an ES sort array into an opaque cursor string."""
-    return base64.urlsafe_b64encode(json.dumps(sort).encode("utf-8")).decode("ascii")
+    """Encode an ES sort array into an opaque cursor string.
+
+    Uses ``separators=(",", ":")`` so the base64-encoded blob in the query
+    string stays as short as possible — relevant when an operator's sort
+    contains long string IDs and the cursor would otherwise be bloated by
+    JSON's default whitespace (Gemini cycle-1 finding #5).
+    """
+    compact = json.dumps(sort, separators=(",", ":"))
+    return base64.urlsafe_b64encode(compact.encode("utf-8")).decode("ascii")
 
 
 def decode_documents_cursor(raw: str) -> list[Any]:
