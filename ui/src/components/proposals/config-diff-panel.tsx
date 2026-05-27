@@ -22,11 +22,35 @@ function renderValue(v: unknown): string {
 }
 
 /**
- * Backend writes `proposals.config_diff` from feat_digest_proposal as a flat
- * `{ "key": ["before_value", "after_value"] }` dict. Manual proposals can carry
- * any flat shape; this panel renders the canonical 2-tuple form and falls back
- * to a single "value" column for non-tuple entries.
+ * Backend writes `proposals.config_diff` from feat_digest_proposal as a
+ * flat `{ "<param>": {"from": <prev>, "to": <new>} }` dict — see
+ * backend/workers/digest.py:1152. Manual / agent-created proposals may
+ * also write a flat `{ "<param>": ["before", "after"] }` 2-tuple
+ * (legacy shape) or a non-per-key shape like
+ * `{"params": {...}, "source": "..."}` (agent tool); this panel renders
+ * the canonical `{from, to}` object form, falls back to the 2-tuple
+ * array form, and drops to a single "value" column for everything else.
  */
+function extractFromTo(raw: unknown): { from: unknown; to: unknown } {
+  // Canonical digest-worker form: { from, to } object per key.
+  if (
+    raw !== null &&
+    typeof raw === 'object' &&
+    !Array.isArray(raw) &&
+    'from' in (raw as object) &&
+    'to' in (raw as object)
+  ) {
+    const r = raw as { from: unknown; to: unknown };
+    return { from: r.from, to: r.to };
+  }
+  // Legacy 2-tuple form: [before, after].
+  if (Array.isArray(raw) && raw.length === 2) {
+    return { from: raw[0], to: raw[1] };
+  }
+  // Unknown shape — render as a single value in the "To" column.
+  return { from: null, to: raw };
+}
+
 export function ConfigDiffPanel({ diff }: ConfigDiffPanelProps) {
   const entries = Object.entries(diff ?? {}).sort(([a], [b]) => a.localeCompare(b));
   return (
@@ -68,11 +92,7 @@ export function ConfigDiffPanel({ diff }: ConfigDiffPanelProps) {
             </TableHeader>
             <TableBody>
               {entries.map(([key, raw]) => {
-                let from: unknown = null;
-                let to: unknown = raw;
-                if (Array.isArray(raw) && raw.length === 2) {
-                  [from, to] = raw;
-                }
+                const { from, to } = extractFromTo(raw);
                 return (
                   <TableRow key={key} data-testid={`config-diff-row-${key}`}>
                     <TableCell className="font-mono text-xs">{key}</TableCell>
