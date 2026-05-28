@@ -372,7 +372,7 @@ Each integration test below is a separate async function with `pytestmark = pyte
 
 ### 4.2 Product docs (`docs/02_product/`)
 
-- [ ] After merge: move `docs/02_product/planned_features/feat_orchestrator_zero_streak_abort/` → `docs/00_overview/implemented_features/2026_XX_XX_feat_orchestrator_zero_streak_abort/` per the finalization convention.
+- [ ] After merge: move `docs/00_overview/planned_features/feat_orchestrator_zero_streak_abort/` → `docs/00_overview/implemented_features/2026_XX_XX_feat_orchestrator_zero_streak_abort/` per the finalization convention.
 
 ### 4.3 Runbooks (`docs/03_runbooks/`)
 

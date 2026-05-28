@@ -84,7 +84,7 @@ def test_unsupported_value_falls_back_to_default() -> None:
     to a different stdout by ``configure_logging()`` earlier in the
     test session — see the same xpassed flake on
     ``test_capability_check`` and the tracking idea at
-    ``docs/02_product/planned_features/bug_capability_check_test_isolation/``.
+    ``docs/00_overview/planned_features/bug_capability_check_test_isolation/``.
     Functional contract (the fallback kwargs) is the real invariant.
     """
     _set_poll_minutes(7)  # 7 is not a divisor of 60

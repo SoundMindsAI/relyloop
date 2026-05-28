@@ -36,7 +36,7 @@ The skill never commits or opens a PR — that's the user's call. Patches land a
 
 - **`$ARGUMENTS`** — path to a single `idea.md`. If omitted, fall back to the file the user most recently opened in the IDE (`<ide_opened_file>` context tag), or ask.
 - **Project context (always read first):** `CLAUDE.md`, `architecture.md`, `state.md`.
-- **Convention reference:** `docs/02_product/planned_features/feature_templates/README.md` for folder-prefix taxonomy.
+- **Convention reference:** `docs/00_overview/planned_features/feature_templates/README.md` for folder-prefix taxonomy.
 
 ## Workflow
 
@@ -87,7 +87,7 @@ If a rename is recommended, propose the new name with one-line rationale and 2�
 
 ### Step 6 — Cross-check siblings + recently implemented features
 
-1. `ls docs/02_product/planned_features/` — for any sibling whose name overlaps the idea's domain, check whether the two coordinate or conflict. The idea's "Relationship to other work" section should mention each sibling that touches the same table/service/UI surface.
+1. `ls docs/00_overview/planned_features/` — for any sibling whose name overlaps the idea's domain, check whether the two coordinate or conflict. The idea's "Relationship to other work" section should mention each sibling that touches the same table/service/UI surface.
 2. `git log --since="<idea date>" --oneline -- docs/00_overview/implemented_features/` — list features that shipped after the idea was written. For each, ask: does its ship retire any deferral rationale in this idea? Does it create any new precedent the idea should reference (e.g. scheduler 5-touch-point checklist after the worker-runtime work shipped)?
 3. Note any sibling that the idea should explicitly coordinate with for ordering (not blocking — coordinate-only is the common case).
 
@@ -95,7 +95,7 @@ If a rename is recommended, propose the new name with one-line rationale and 2�
 
 For each claim in the idea, mentally walk the project's "Absolute Rules — Never Violate" section. RelyLoop's CLAUDE.md (when it exists per `infra_foundation`) will codify these; until then, derive from the umbrella spec + `docs/01_architecture/`. Common rules to check:
 
-- Adding a migration? → reversible downgrade + idempotency guards mentioned (per [`infra_foundation/feature_spec.md`](../../docs/02_product/planned_features/infra_foundation/feature_spec.md) FR-5).
+- Adding a migration? → reversible downgrade + idempotency guards mentioned (per [`infra_foundation/feature_spec.md`](../../docs/00_overview/planned_features/infra_foundation/feature_spec.md) FR-5).
 - Adding a webhook handler (e.g., `/webhooks/github`)? → signature verification on raw body + idempotency.
 - Adding a state-machine transition (e.g., `studies.status`)? → routed through the centralized service-layer guard (`backend/services/study_state.py`); direct ORM writes raise.
 - Adding a `<select>` / dropdown / status badge? → option list grounded in a backend source-of-truth file (Pydantic `Literal[...]`, `frozenset`, or DB CHECK) with a `// Values must match <path>` comment.
@@ -110,7 +110,7 @@ If the idea quietly violates any of these, that's a hard blocker, not a "fix-up.
 
 Scan the idea for "Option A vs Option B" forks. For each:
 
-- If the fork has a clear default and the idea doesn't pick one, propose locking it. Use the same "(locked)" header pattern this codebase uses; structure the locked decisions as a Decision-log entry similar to the §19 sections in the existing MVP1 feature specs under `docs/02_product/planned_features/`.
+- If the fork has a clear default and the idea doesn't pick one, propose locking it. Use the same "(locked)" header pattern this codebase uses; structure the locked decisions as a Decision-log entry similar to the §19 sections in the existing MVP1 feature specs under `docs/00_overview/planned_features/`.
 - If the fork genuinely needs user input (UX call, product call, business call), keep it but reframe in the "Open questions for /spec-gen" section with a recommended default so /spec-gen doesn't start from zero.
 
 A "locked decision" is a decision someone reading the idea cold can act on without re-litigating.

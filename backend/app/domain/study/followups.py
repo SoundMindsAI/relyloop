@@ -27,7 +27,7 @@ JSONB driver does not know how to serialize Pydantic ``BaseModel``
 instances directly, so the worker calls this helper before assigning to
 :attr:`backend.app.db.models.digest.Digest.suggested_followups`.
 
-Spec: ``docs/02_product/planned_features/feat_digest_executable_followups/feature_spec.md``
+Spec: ``docs/00_overview/planned_features/feat_digest_executable_followups/feature_spec.md``
 (FR-2 / FR-3 / FR-4).
 """
 

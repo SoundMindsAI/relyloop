@@ -263,7 +263,7 @@ Per CLAUDE.md "test completeness rule": the script change touches the Python dev
 ## 15) Documentation update requirements
 
 - `docs/01_architecture/`: no updates required.
-- `docs/02_product/`: this chore's folder ships under `docs/02_product/planned_features/` for PR A, then moves to `docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive/` (or whatever date the finalization PR lands on) for PR B.
+- `docs/02_product/`: this chore's folder ships under `docs/00_overview/planned_features/` for PR A, then moves to `docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive/` (or whatever date the finalization PR lands on) for PR B.
 - `docs/03_runbooks/`: no updates required.
 - `docs/04_security/`: no updates required.
 - `docs/05_quality/`: no updates required — the existing test layer convention is followed (unit tests in `backend/tests/unit/scripts/`).

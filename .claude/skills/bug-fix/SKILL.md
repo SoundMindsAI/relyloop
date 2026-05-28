@@ -12,7 +12,7 @@ user-invocable: true
 # Bug Fix — drive a medium-sized bug from repro to committed fix
 
 You take a bug that's been captured as a `bug_*` folder under
-`docs/02_product/planned_features/` and drive it through CLAUDE.md's
+`docs/00_overview/planned_features/` and drive it through CLAUDE.md's
 **Bug Fix Protocol**. The skill produces two artifacts: a focused
 `bug_fix.md` design doc that lives next to the original `idea.md`, AND
 the actual code change committed on a feature branch. The next step
@@ -44,7 +44,7 @@ running `/pipeline`.
 
 ## Inputs
 
-- **Path to the bug folder** (preferred — `docs/02_product/planned_features/bug_<slug>/`) or the `idea.md` inside it.
+- **Path to the bug folder** (preferred — `docs/00_overview/planned_features/bug_<slug>/`) or the `idea.md` inside it.
 - **Project context (always read first):** `CLAUDE.md`, `architecture.md`, `state.md`.
 - **Bug Fix Protocol section** of `CLAUDE.md` — the 6-step protocol is the spine of this skill's workflow.
 - **The /idea-preflight output** if it was run on this bug recently — the patches it landed are the starting point for the `bug_fix.md`.
@@ -187,7 +187,7 @@ Now you write the artifact and the code. The artifact and the
 implementation reference each other; write them in parallel, not the
 artifact first then the code.
 
-1. **Write `bug_fix.md`** at `docs/02_product/planned_features/<bug_folder>/bug_fix.md`
+1. **Write `bug_fix.md`** at `docs/00_overview/planned_features/<bug_folder>/bug_fix.md`
    using the template below. Keep it tight — the target is ~80 lines.
    Anything that would push past 150 lines is a signal the bug should
    have been a feature; escalate to /pipeline. **The 150-line cap

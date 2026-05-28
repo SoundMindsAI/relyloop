@@ -1143,7 +1143,7 @@ None. No `localStorage` or `sessionStorage` usage. All UI state is in-memory Rea
 - Location: `ui/tests/e2e/`
 - Scope: **NONE for MVP1.** Per spec §14, real-backend E2E coverage for `/query-sets/[id]` does not exist today and adding the first E2E test against a real backend on this feature is out of scope. Captured as `chore_query_inline_crud_e2e` idea file deferred from this implementation (created during Story 5.1's docs sweep).
 - Tasks:
-  - [ ] Create `docs/02_product/planned_features/chore_query_inline_crud_e2e/idea.md` capturing the deferred E2E suite (4-5 tests: list+paginate, inline edit, delete-without-judgments, delete-with-judgments-409-toast, metadata clear-to-null).
+  - [ ] Create `docs/00_overview/planned_features/chore_query_inline_crud_e2e/idea.md` capturing the deferred E2E suite (4-5 tests: list+paginate, inline edit, delete-without-judgments, delete-with-judgments-409-toast, metadata clear-to-null).
 - DoD:
   - [ ] Idea file exists with origin pointer to this plan's §3.4.
 

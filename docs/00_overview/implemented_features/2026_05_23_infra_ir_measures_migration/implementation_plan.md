@@ -657,8 +657,8 @@ None.
 | [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md) | Lines 52 + 231 reworded. |
 | [`docs/01_architecture/cluster-lifecycle.md`](../../../01_architecture/cluster-lifecycle.md) | Line 159 reworded. |
 | [`docs/02_product/mvp1-user-stories.md`](../../../02_product/mvp1-user-stories.md) | Line 40 — US-7 narrative. |
-| [`docs/02_product/planned_features/feat_study_baseline_trial/idea.md`](../feat_study_baseline_trial/idea.md) | Line 56 — sibling planned-feature coordination per spec §15. `scores via pytrec_eval` → `scores via ir_measures`. |
-| [`docs/02_product/planned_features/feat_auto_followup_studies/idea.md`](../feat_auto_followup_studies/idea.md) | Line 47 — `Optuna + pytrec_eval are deterministic` → `Optuna + ir_measures are deterministic`. |
+| [`docs/00_overview/planned_features/feat_study_baseline_trial/idea.md`](../feat_study_baseline_trial/idea.md) | Line 56 — sibling planned-feature coordination per spec §15. `scores via pytrec_eval` → `scores via ir_measures`. |
+| [`docs/00_overview/planned_features/feat_auto_followup_studies/idea.md`](../feat_auto_followup_studies/idea.md) | Line 47 — `Optuna + pytrec_eval are deterministic` → `Optuna + ir_measures are deterministic`. |
 | [`docs/08_guides/workflows-overview.md`](../../../08_guides/workflows-overview.md) | Lines 123 + 277 reworded. |
 | [`ui/public/docs/workflows-overview.md`](../../../../ui/public/docs/workflows-overview.md) | Lines 123 + 277 — runtime-served mirror; lock-step with `docs/08_guides/workflows-overview.md`. |
 | [`ui/public/guides/05_import_judgments_and_calibrate/script.md`](../../../../ui/public/guides/05_import_judgments_and_calibrate/script.md) | Line 6 reworded. |
@@ -861,8 +861,8 @@ The migration adds 2 new test files and extends 3 existing assertions; existing 
 ### 4.2 Product docs
 
 - [x] `docs/02_product/mvp1-user-stories.md` — line 40.
-- [x] `docs/02_product/planned_features/feat_study_baseline_trial/idea.md` — sibling coordination, line 56.
-- [x] `docs/02_product/planned_features/feat_auto_followup_studies/idea.md` — sibling coordination, line 47.
+- [x] `docs/00_overview/planned_features/feat_study_baseline_trial/idea.md` — sibling coordination, line 56.
+- [x] `docs/00_overview/planned_features/feat_auto_followup_studies/idea.md` — sibling coordination, line 47.
 - [x] `docs/00_overview/relyloop-spec.md` — umbrella spec, 11 mentions including subsection rewrite.
 
 ### 4.3 Runbooks

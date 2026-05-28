@@ -197,8 +197,8 @@ redundant.
 Two follow-on capabilities are tracked as deferred-phase ideas in the
 feature's planned-features folder, picked up when the friction recurs:
 
-- [`phase2_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md) — a `scripts/run-tests-in-worktree.sh` (or `make test-worktree` target) that wraps the recipe above.
-- [`phase3_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec).
+- [`phase2_idea.md`](docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md) — a `scripts/run-tests-in-worktree.sh` (or `make test-worktree` target) that wraps the recipe above.
+- [`phase3_idea.md`](docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec).
 ```
 
 **Tasks**
@@ -339,10 +339,10 @@ def section_body(claude_md_text: str) -> str:
 1. **Read both files.**
    ```bash
    # Inputs to verify
-   docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md
-   docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md
+   docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md
+   docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md
    ```
-2. **Compare against template.** Read [`docs/02_product/planned_features/feature_templates/idea-template.md`](../feature_templates/idea-template.md) (verified to exist; was read during plan-gen Step 1). For each phase file, confirm the following template-mandated sections are present (the template's exact wording may have stable variants; section header presence is what's checked):
+2. **Compare against template.** Read [`docs/00_overview/planned_features/feature_templates/idea-template.md`](../feature_templates/idea-template.md) (verified to exist; was read during plan-gen Step 1). For each phase file, confirm the following template-mandated sections are present (the template's exact wording may have stable variants; section header presence is what's checked):
    - Front-matter: `**Date:**`, `**Status:**`, `**Priority:**`, `**Origin:**`, `**Depends on:**`
    - Body sections: `## Problem`, `## Proposed capabilities`, `## Scope signals`, `## Why <deferred / not yet prioritized>`, `## Relationship to other work`
 3. **Verify the Origin pointer** in each file references `feature_spec.md` at this feature's directory (e.g., `[feature_spec.md](feature_spec.md)` or `feature_spec.md §3` — any link or text reference that points a future reader back to the source spec satisfies AC-8's "Origin pointer to the spec file" requirement).
@@ -428,7 +428,7 @@ def section_body(claude_md_text: str) -> str:
 
 | File | Reason |
 |---|---|
-| `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md` | Capability B is no longer deferred — it shipped in Story 2.1. Phase 2's design intent is fully captured in the Phase 2 expansion section of `feature_spec.md` (§3) and in the new code itself. Keeping the idea file would create a stale "this is deferred" claim. |
+| `docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md` | Capability B is no longer deferred — it shipped in Story 2.1. Phase 2's design intent is fully captured in the Phase 2 expansion section of `feature_spec.md` (§3) and in the new code itself. Keeping the idea file would create a stale "this is deferred" claim. |
 
 **Tasks**
 
@@ -436,7 +436,7 @@ def section_body(claude_md_text: str) -> str:
 2. **Insert the CLAUDE.md shortcut subsection.** One paragraph: explains that `make test-worktree` wraps the recipe below, supports `CMD="<override>"`, and points at `scripts/run-tests-in-worktree.sh` for the implementation. NO new fenced code blocks (preserves FR-7 test #5 invariant).
 3. **Update the CLAUDE.md `### Deferred capabilities` subsection.** Delete the `phase2_idea.md` bullet. Keep the `phase3_idea.md` bullet. Optionally tighten the surrounding prose to reflect that one capability has shipped.
 4. **Update the CLAUDE.md `## Key Runbooks` table.** Add a new row: `| Parallel-worktree workflow (sibling checkouts, make test-worktree, leak prevention) | [`docs/03_runbooks/parallel-worktrees.md`] (PR #249) |` matching the surrounding table style.
-5. **Delete `phase2_idea.md`.** `git rm docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md`.
+5. **Delete `phase2_idea.md`.** `git rm docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md`.
 6. **Verify the FR-7 regression suite still passes.** `.venv/bin/pytest backend/tests/unit/docs/ -v` — all 5 tests green.
 7. **Pre-commit gate.** `make lint && make typecheck` (Python untouched, but verify nothing regresses).
 8. **Commit.** `docs(worktree-isolation): runbook + CLAUDE.md shortcut + remove shipped phase2_idea`.
@@ -446,7 +446,7 @@ def section_body(claude_md_text: str) -> str:
 - [ ] `docs/03_runbooks/parallel-worktrees.md` exists, ≤80 lines, follows the project runbook style.
 - [ ] CLAUDE.md `## Working in sibling worktrees` section gained a `### Shortcut: \`make test-worktree\`` subsection in the correct position; the `### Deferred capabilities` subsection lost the phase2 bullet; the section still passes all 5 regression tests in `backend/tests/unit/docs/`.
 - [ ] CLAUDE.md `## Key Runbooks` table has a new row for the parallel-worktrees runbook.
-- [ ] `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md` is deleted.
+- [ ] `docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md` is deleted.
 - [ ] No bypass of pre-commit hooks.
 
 ---
@@ -573,7 +573,7 @@ No updates. The bind-mount facts are implicit in `docker-compose.yml`; the new s
 - [x] `phase2_idea.md` exists in the feature directory (created during spec-gen Step 10).
 - [x] `phase3_idea.md` exists in the feature directory (created during spec-gen Step 10).
 - [x] `pipeline_status.md` exists in the feature directory (created during spec-gen Step 12; impl-execute finalization will update the Plan + Implementation sections).
-- [ ] On finalization (impl-execute Step 8.6), move the feature folder from `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/` to `docs/00_overview/implemented_features/<YYYY_MM_DD>_infra_agent_sibling_worktree_isolation/` — BUT only when ALL phases ship. Per the [`/pipeline` orchestrator's PARTIAL-state rule](../../../../.claude/skills/pipeline/SKILL.md), a folder with surviving `phase*_idea.md` files stays in `planned_features/` until every deferred phase completes. Since Phase 2 and Phase 3 are deferred (and `phase*_idea.md` files exist), the folder stays in `planned_features/` after this PR; only the Plan + Implementation sections of `pipeline_status.md` get updated. The folder graduates to `implemented_features/` only after Phase 3 ships (likely never if the friction never recurs).
+- [ ] On finalization (impl-execute Step 8.6), move the feature folder from `docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/` to `docs/00_overview/implemented_features/<YYYY_MM_DD>_infra_agent_sibling_worktree_isolation/` — BUT only when ALL phases ship. Per the [`/pipeline` orchestrator's PARTIAL-state rule](../../../../.claude/skills/pipeline/SKILL.md), a folder with surviving `phase*_idea.md` files stays in `planned_features/` until every deferred phase completes. Since Phase 2 and Phase 3 are deferred (and `phase*_idea.md` files exist), the folder stays in `planned_features/` after this PR; only the Plan + Implementation sections of `pipeline_status.md` get updated. The folder graduates to `implemented_features/` only after Phase 3 ships (likely never if the friction never recurs).
 
 ### 4.3 Runbooks (`docs/03_runbooks`)
 
@@ -769,7 +769,7 @@ Before marking each story complete, attach evidence for:
 | `backend/tests/unit/scripts/__init__.py` is empty (0 bytes) — pattern for the new `docs/__init__.py` | `ls backend/tests/unit/scripts/` showed `__init__.py  0B` during plan-gen Step 2 | Verified |
 | Coverage gate is 80%, configured at `pyproject.toml:225` | `grep -n "fail_under" pyproject.toml` during plan-gen Step 2 | Verified |
 | Conventional Commits hook accepts `docs(worktree-isolation):` and `test(worktree-isolation):` | `worktree-isolation` is lowercase + hyphens; matches the regex `^(feat|fix|chore|docs|infra|refactor|test|style|perf|build|ci)(\([a-z0-9-]+\))?(!)?:` | Verified (also empirically confirmed by the spec-stage commit that landed earlier in this session) |
-| `phase2_idea.md` and `phase3_idea.md` exist at `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/` | Created during spec-gen Step 10 (this session) | Verified |
+| `phase2_idea.md` and `phase3_idea.md` exist at `docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/` | Created during spec-gen Step 10 (this session) | Verified |
 | `pipeline_status.md` exists at the same path | Created during spec-gen Step 12 (this session) | Verified |
 | Pre-commit hook `Regenerate MVP1 dashboard` triggers on `planned_features/` folder changes | Observed during spec-gen commit | Verified |
 

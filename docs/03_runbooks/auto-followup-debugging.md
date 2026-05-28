@@ -1,7 +1,7 @@
 # Auto-followup chain debugging runbook
 
 **Feature:** [`feat_auto_followup_studies`](../00_overview/implemented_features/) ·
-**Spec:** [feature_spec.md](../02_product/planned_features/feat_auto_followup_studies/feature_spec.md) ·
+**Spec:** [feature_spec.md](../00_overview/planned_features/feat_auto_followup_studies/feature_spec.md) ·
 **Worker:** [`backend/workers/auto_followup.py`](../../backend/workers/auto_followup.py) ·
 **Service:** [`backend/app/services/study_state.py:cancel_study_with_chain_cascade`](../../backend/app/services/study_state.py)
 
@@ -90,7 +90,7 @@ Every direct child + every grandchild walked by the cascade emits one of these t
 
 ### "I want to stop a chain whose root is already `completed`"
 
-**Known limitation** (captured as [`chore_auto_followup_completed_parent_stop_chain_race`](../02_product/planned_features/chore_auto_followup_completed_parent_stop_chain_race/idea.md)): when a `completed` parent has only one in-flight descendant, navigating to the **completed root** and clicking Cancel won't stop the chain — the cascade traverses only direct children (per D-13), and a completed parent's direct child may itself be completed. **Workaround:** navigate down the chain (via the "Direct children" links on each study's detail page) until you find the study with `status='running'`, then click Cancel there. The cascade from the in-flight node stops the chain at that point.
+**Known limitation** (captured as [`chore_auto_followup_completed_parent_stop_chain_race`](../00_overview/planned_features/chore_auto_followup_completed_parent_stop_chain_race/idea.md)): when a `completed` parent has only one in-flight descendant, navigating to the **completed root** and clicking Cancel won't stop the chain — the cascade traverses only direct children (per D-13), and a completed parent's direct child may itself be completed. **Workaround:** navigate down the chain (via the "Direct children" links on each study's detail page) until you find the study with `status='running'`, then click Cancel there. The cascade from the in-flight node stops the chain at that point.
 
 ### "A study completed but no digest fired"
 

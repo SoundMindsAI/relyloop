@@ -989,7 +989,7 @@ export async function listStudyChildren(studyId: string): Promise<StudyListRespo
 
 | Element | Tooltip text | Trigger | Placement | Glossary key | Source-of-truth comment |
 |---|---|---|---|---|---|
-| Wizard depth selector label | "Run up to N follow-up studies after this one completes. Each follow-up narrows the search space around the winner. Halts on no lift, exhausted budget, or failed parent." | hover on info icon next to label | right | `auto_followup_depth` | `// Source-of-truth: docs/02_product/planned_features/feat_auto_followup_studies/feature_spec.md FR-1` |
+| Wizard depth selector label | "Run up to N follow-up studies after this one completes. Each follow-up narrows the search space around the winner. Halts on no lift, exhausted budget, or failed parent." | hover on info icon next to label | right | `auto_followup_depth` | `// Source-of-truth: docs/00_overview/planned_features/feat_auto_followup_studies/feature_spec.md FR-1` |
 | Chain panel title | "RelyLoop ran follow-up studies automatically based on this study's winner. Each follow-up narrowed the search bounds; the chain ends when there's no further lift." | hover on info icon next to title | right | `auto_followup_chain` | (same path, FR-10) |
 | Lift-gate explainer (inline in `auto_followup_chain` long form) | "A follow-up only enqueues when the parent's winner beat the first-decile baseline by at least 0.5%. Smaller lifts are likely noise." | hover on info icon | inline | `lift_gate` | (same path, FR-2) |
 | Wizard depth-gate (when daily budget low) | "Daily LLM budget is at {N}% — chains may be skipped." | inline below selector | inline | `auto_followup_budget_skip` | (same path, FR-6) |

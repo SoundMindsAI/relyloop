@@ -886,7 +886,7 @@ N/A — DataTable is read-only UI. All affected endpoints are `GET`.
 - `docs/01_architecture/api-conventions.md`: add `?q=` paragraph under §"Pagination" describing the FTS contract and the 6 searchable resources. Add `?since=` to the MVP1-status row for judgment-lists + conversations (the pre-existing drift this PR closes).
 - `docs/01_architecture/ui-architecture.md`: new §"DataTable primitive" documenting the primitive's shape, the column-config interface, and the source-of-truth discipline.
 - `docs/01_architecture/data-model.md`: per-table column tables get a row for `search_vector` (generated) + the GIN index name.
-- `docs/02_product/planned_features/feat_data_table_primitive/feature_spec.md`: this file.
+- `docs/00_overview/planned_features/feat_data_table_primitive/feature_spec.md`: this file.
 - `docs/03_runbooks/local-dev.md`: optional — add a "FTS performance" subsection if the integration tests surface any operability gotchas. Likely not needed.
 - `docs/04_security/`: no update — no new threat surfaces.
 - `docs/05_quality/testing.md`: optional — note the new component-test discipline file `data-table-column-discipline.test.tsx`.

@@ -54,7 +54,7 @@ Single-phase feature (per spec §3 "Phase boundaries"). LLM-as-judge pipeline + 
 Run `/impl-execute` against the approved plan to ship the feature:
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_llm_judgments/implementation_plan.md --all
+/impl-execute docs/00_overview/planned_features/feat_llm_judgments/implementation_plan.md --all
 ```
 
 16 stories across 4 epics. Execution surfaces 4 spec-drift idea files (listed above) that the operator captures during the standard `/impl-execute` post-implementation workflow.

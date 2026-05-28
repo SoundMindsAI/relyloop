@@ -2,22 +2,22 @@
 
 **Label:** `backlog` — folder is prefixed `backlog_` per operator convention (2026-05-24): captured, not in the active prioritized backlog; not surfaced by `/pipeline status` or the MVP1 dashboard tables. Promote out of `backlog_` (rename to `feat_digest_template_edit_followups/`) when the listed prerequisites are met.
 
-**Date:** 2026-05-23 (originated as `phase3_idea.md` inside [`feat_digest_executable_followups/`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md); split into this standalone backlog folder 2026-05-24 because Phase 3 is genuinely beyond MVP1 scope and was blocking Phase 1's finalization).
+**Date:** 2026-05-23 (originated as `phase3_idea.md` inside [`feat_digest_executable_followups/`](../../implemented_features/2026_05_24_feat_digest_executable_followups/idea.md); split into this standalone backlog folder 2026-05-24 because Phase 3 is genuinely beyond MVP1 scope and was blocking Phase 1's finalization).
 
 **Status:** Backlog — captured for record.
 
 **Priority:** Backlog — likely out of MVP1 scope entirely. Promote to P2 once the template-editor UI surface exists AND `feat_digest_executable_followups` Phase 2 (`swap_template`) has shipped + produced evidence that operators trust LLM-suggested cross-template moves.
 
-**Origin:** [`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/feature_spec.md) §3 ("Out of scope" → Tier C) + sibling [`idea.md`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) §"Tier C — template-edit suggestions". Originally captured as `phase3_idea.md` inside that folder; split into a standalone backlog folder per the 2026-05-24 finalization decision so that Phase 1's `implemented_features/` move isn't blocked by future-work tracking.
+**Origin:** [`feat_digest_executable_followups`](../../implemented_features/2026_05_24_feat_digest_executable_followups/feature_spec.md) §3 ("Out of scope" → Tier C) + sibling [`idea.md`](../../implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) §"Tier C — template-edit suggestions". Originally captured as `phase3_idea.md` inside that folder; split into a standalone backlog folder per the 2026-05-24 finalization decision so that Phase 1's `implemented_features/` move isn't blocked by future-work tracking.
 
 **Depends on (hard blockers; promote out of `backlog_` only when all are met):**
-- [`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 (substrate) — **shipped 2026-05-24 as PR #225 squash `83c526f2`.** ✅
+- [`feat_digest_executable_followups`](../../implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 (substrate) — **shipped 2026-05-24 as PR #225 squash `83c526f2`.** ✅
 - [`feat_digest_executable_followups_swap_template`](../feat_digest_executable_followups_swap_template/idea.md) (Phase 2 (`swap_template` — proves out cross-template UX before edit-template stretches further). ⏳ deferred.
 - A template-editing UI surface that does NOT yet exist — likely a separate feature (`feat_template_editor` or similar) before this can land. ⏳ not yet captured as its own idea.
 
 ## Problem
 
-[`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 ships `narrow`/`widen`/`text` and Phase 2 adds `swap_template` — all of which preserve template authoring as a strictly operator-driven activity. But the LLM can sometimes spot template-body improvements that no parameter tuning can reach: e.g., "add a `category^2` field-boost to the template body — your winning trials all came from categories with multiple matching terms."
+[`feat_digest_executable_followups`](../../implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 ships `narrow`/`widen`/`text` and Phase 2 adds `swap_template` — all of which preserve template authoring as a strictly operator-driven activity. But the LLM can sometimes spot template-body improvements that no parameter tuning can reach: e.g., "add a `category^2` field-boost to the template body — your winning trials all came from categories with multiple matching terms."
 
 Today templates are operator-authored only. Letting LLM suggestions flow into template-body edits requires a much larger trust-and-validation surface: changes to template body alter query rendering semantics, which is materially riskier than search-space narrowing.
 
@@ -54,6 +54,6 @@ Rename to `feat_digest_template_edit_followups/` (drop the `backlog_` prefix) wh
 
 ## Relationship to other work
 
-- **Depends on [`feat_digest_executable_followups`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 + Phase 2 substrate** (Phase 1 shipped 2026-05-24; Phase 2 still deferred via `phase2_idea.md` in that folder).
+- **Depends on [`feat_digest_executable_followups`](../../implemented_features/2026_05_24_feat_digest_executable_followups/idea.md) Phase 1 + Phase 2 substrate** (Phase 1 shipped 2026-05-24; Phase 2 still deferred via `phase2_idea.md` in that folder).
 - **Depends on a template-editing UI surface** that does NOT yet exist — likely a separate feature (`feat_template_editor` or similar) before this can land. That feature isn't even captured as its own idea yet; before promoting this folder out of `backlog_`, the operator should first scope and ship the editor.
-- **Adjacent to [`feat_agent_propose_search_space`](../../../00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/idea.md)** — same agent flow, different target (template body vs search space).
+- **Adjacent to [`feat_agent_propose_search_space`](../../implemented_features/2026_05_21_feat_agent_propose_search_space/idea.md)** — same agent flow, different target (template body vs search space).

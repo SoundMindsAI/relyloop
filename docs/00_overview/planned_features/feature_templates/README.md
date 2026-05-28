@@ -8,7 +8,7 @@ Templates for the spec → plan → implement pipeline:
 
 ## How to use
 
-1. Copy the template into your target feature folder under [`docs/02_product/planned_features/`](../).
+1. Copy the template into your target feature folder under [`docs/00_overview/planned_features/`](../).
 2. Replace every `<placeholder>`.
 3. Reference the canonical architecture docs in [`docs/01_architecture/`](../../../01_architecture/) for technical decisions (stack, conventions, data model, etc.) — feature specs should cite arch docs by section, not duplicate them.
 4. Keep section order unless there is a strong reason to deviate.

@@ -1874,7 +1874,7 @@ class TrialListResponse(BaseModel):
    - Purge a study (cascade delete via `DELETE FROM studies WHERE id = ...`).
    - Common errors: `5 consecutive trial failures`, `INVALID_STATE_TRANSITION`, `StudyStateProtectionError`.
 2. Update the three core context files per the table above.
-3. Move the feature folder per `impl-execute` Step 8.6: `docs/02_product/planned_features/feat_study_lifecycle/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_study_lifecycle/` AFTER Phase 2's PR merges. Per Step 8.6, the move requires that no `phase*_idea.md` files remain — Phase 2 IS the last phase, so removing `phase2_idea.md` (or moving it into the implemented folder as historical context) unblocks the move.
+3. Move the feature folder per `impl-execute` Step 8.6: `docs/00_overview/planned_features/feat_study_lifecycle/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_study_lifecycle/` AFTER Phase 2's PR merges. Per Step 8.6, the move requires that no `phase*_idea.md` files remain — Phase 2 IS the last phase, so removing `phase2_idea.md` (or moving it into the implemented folder as historical context) unblocks the move.
 
 **DoD**
 - Runbook merged + dry-run validated against a real running study locally.

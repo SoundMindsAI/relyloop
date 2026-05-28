@@ -27,7 +27,7 @@
 - Stories: 11 across 4 epics. Epic 1 (foundations — migration + Settings + signature/dispatch/repo-function helpers + shared GitHub client extraction): 5 stories. Epic 2 (webhook receiver): 1 story. Epic 3 (polling reconciler): 1 story. Epic 4 (auto-registration + docs): 3 stories. (Story 4.3 is the docs/state-flip finalization.)
 - Phases covered: single-phase per spec §3 — no deferred phases.
 - Coordinated spec patches applied alongside the plan: FR-4 whitelist + Decision log entry tightening `relyloop_pr_poll_minutes`.
-- Next action: `/impl-execute docs/02_product/planned_features/feat_github_webhook/implementation_plan.md --all` (when MVP1 sequencing reaches this feature — `feat_studies_ui` PR #50 is the current blocker per `state.md`).
+- Next action: `/impl-execute docs/00_overview/planned_features/feat_github_webhook/implementation_plan.md --all` (when MVP1 sequencing reaches this feature — `feat_studies_ui` PR #50 is the current blocker per `state.md`).
 
 ## Implementation
 - Status: Complete

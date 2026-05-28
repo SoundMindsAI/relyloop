@@ -67,7 +67,7 @@ Computed at trial time and stored in `trials.metrics` (JSONB):
 | `mrr` | Mean Reciprocal Rank (k ignored — always full-recall) |
 
 ERR@k is deferred to MVP2 (the cut-aware-metric backend wrapped by ir_measures doesn't ship it; reserved for the
-metric-expansion alongside CMA-ES per [`infra_optuna_eval` spec §3](../02_product/planned_features/infra_optuna_eval/feature_spec.md)).
+metric-expansion alongside CMA-ES per [`infra_optuna_eval` spec §3](../00_overview/planned_features/infra_optuna_eval/feature_spec.md)).
 
 Studies declare a single primary `objective.metric` (the value Optuna optimizes against) and the others are recorded for analysis. The primary metric is denormalized into `trials.primary_metric` (REAL) for fast sort.
 
@@ -173,7 +173,7 @@ Locked thresholds (bootstrap N=1000, seed=42, plateau band 0.005,
 late-trial window 20% / min 5, etc.) and regressor-classification deltas
 live as module constants in
 `backend/app/domain/study/confidence.py`. The full ConfidenceShape
-contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../02_product/planned_features/feat_pr_metric_confidence/feature_spec.md)
+contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../00_overview/planned_features/feat_pr_metric_confidence/feature_spec.md)
 §7 (FR-4 / FR-4a) and §12 (AC-3 through AC-17).
 
 ## Cross-references
@@ -183,7 +183,7 @@ contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../02_prod
 - Search engine execution path: [`adapters.md`](adapters.md)
 - Service topology (worker pool consuming the `trials` queue): [`system-overview.md`](system-overview.md)
 - MVP1 navigation summary: [`mvp1-overview.md`](mvp1-overview.md)
-- Owning feature: [`infra_optuna_eval/feature_spec.md`](../02_product/planned_features/infra_optuna_eval/feature_spec.md)
+- Owning feature: [`infra_optuna_eval/feature_spec.md`](../00_overview/planned_features/infra_optuna_eval/feature_spec.md)
 
 ## Reserved for later releases
 
@@ -192,6 +192,6 @@ contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../02_prod
 | CMA-ES sampler (selectable per study) | MVP2 | TPE is sufficient for MVP1's low-dim search spaces; CMA-ES becomes valuable when adopters tune ≥7 continuous parameters. |
 | Intermediate-step pruning (truly active `MedianPruner`) | MVP2 | Requires multi-step trials (e.g., evaluate after each query batch); MVP1 trials evaluate once per (params, full query set). |
 | Multi-objective optimization (Pareto fronts via NSGA-II) | v2 | Single scalar objective is sufficient through GA v1; multi-objective adds product complexity (which Pareto trade-off do you ship?). |
-| UBI-derived judgments + hybrid UBI+LLM converter | MVP2 | Bundled with the Solr adapter in MVP2 (see [`feat_ubi_judgments/idea.md`](../02_product/planned_features/feat_ubi_judgments/idea.md)). The judgment `source = 'click'` enum value is reserved from MVP1 forward; the `UbiReader` + `SignalsConverter` land at MVP2. |
+| UBI-derived judgments + hybrid UBI+LLM converter | MVP2 | Bundled with the Solr adapter in MVP2 (see [`feat_ubi_judgments/idea.md`](../00_overview/planned_features/feat_ubi_judgments/idea.md)). The judgment `source = 'click'` enum value is reserved from MVP1 forward; the `UbiReader` + `SignalsConverter` land at MVP2. |
 | Counterfactual click models (CCM, DBN) as additional `SignalsConverter` impls | Backlog | Require enough impressions per (query, doc) to be statistically valid; promoted out when post-MVP2 adopter traffic supports it. |
 | Engine-native click readers (Elastic Behavioral Analytics) | Backlog | UBI covers the engine-neutral path for ES + OpenSearch + Solr. Elastic BA is a residual ES-shop bridge despite Elastic's 9.0 deprecation; landed when an adopter requires it. |

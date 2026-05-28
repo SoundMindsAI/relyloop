@@ -47,7 +47,7 @@ jobs:
   # The `secrets-files-guard` job moved to its own workflow file
   # (.github/workflows/secrets-defense.yml) so it runs on EVERY PR
   # regardless of pr.yml's paths-ignore filter — see
-  # docs/02_product/planned_features/chore_ci_gitignore_paths_ignore_gap/idea.md
+  # docs/00_overview/planned_features/chore_ci_gitignore_paths_ignore_gap/idea.md
   # for the rationale. The new workflow also bundles a content-scanning
   # gitleaks job; both are parallel + ≤30s each.
 
@@ -602,7 +602,7 @@ jobs:
       # services consume the venv read-only). Each invariant maps to a
       # captured bug folder under docs/00_overview/implemented_features/ so
       # a future contributor can trace why the check exists. See
-      # docs/02_product/planned_features/infra_dockerfile_invariant_smoke_in_ci/.
+      # docs/00_overview/planned_features/infra_dockerfile_invariant_smoke_in_ci/.
       - name: Verify runtime image invariants
         run: |
           docker run --rm relyloop/api:${{ github.sha }} sh -c '

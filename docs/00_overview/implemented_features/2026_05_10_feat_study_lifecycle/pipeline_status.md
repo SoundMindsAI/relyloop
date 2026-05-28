@@ -71,7 +71,7 @@ main locally; create `docs/finalize-feat-study-lifecycle` from
 ```bash
 git fetch origin main
 git checkout -b docs/finalize-feat-study-lifecycle origin/main
-mv docs/02_product/planned_features/feat_study_lifecycle \
+mv docs/00_overview/planned_features/feat_study_lifecycle \
    docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle
 git add -A && git commit -m "docs: archive feat_study_lifecycle Phase 2 (PR #25)"
 git push -u origin docs/finalize-feat-study-lifecycle

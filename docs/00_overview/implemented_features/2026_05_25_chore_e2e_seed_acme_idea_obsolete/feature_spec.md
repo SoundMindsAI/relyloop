@@ -23,7 +23,7 @@
 
 ### Existing implementations
 
-- [`docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md): 62-line idea file. Status line reads `Idea — surfaced during chore_e2e_test_rows_isolation Story 1.2 coverage audit`; Priority `Backlog`. Body proposes Path A (delete the helper, "probably correct") and Path B (wire a spec). Lines 11–16 describe the helper as a 140-line helper with no spec callers; line 6 cites `ui/tests/e2e/helpers/seed.ts:378` (stale — the helper actually lives at `seed.ts:441` with the interface `AcmeProductsChainSeed` at `seed.ts:407`, function body ~133 LOC). The stale line number is **not in scope to fix** — it lives in historical content of a file we're marking closed.
+- [`docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md): 62-line idea file. Status line reads `Idea — surfaced during chore_e2e_test_rows_isolation Story 1.2 coverage audit`; Priority `Backlog`. Body proposes Path A (delete the helper, "probably correct") and Path B (wire a spec). Lines 11–16 describe the helper as a 140-line helper with no spec callers; line 6 cites `ui/tests/e2e/helpers/seed.ts:378` (stale — the helper actually lives at `seed.ts:441` with the interface `AcmeProductsChainSeed` at `seed.ts:407`, function body ~133 LOC). The stale line number is **not in scope to fix** — it lives in historical content of a file we're marking closed.
 - [`ui/tests/e2e/helpers/coverage-audit.md`](../../../../ui/tests/e2e/helpers/coverage-audit.md): 9-row coverage matrix. Row for `seedAcmeProductsChain` at line 18 lists spec callers as `**0 specs** — currently uncalled (see "Gaps" below)`. `## Gaps` subsection (lines 22–32) describes the helper as having no caller. `## Verdict` (lines 34–39) reports "8 of 9 helpers in the spec §2 inventory are covered" and labels the 9th as "dead code, captured as a separate idea file." The `seedAcmeProductsChain` definition still lives at [`ui/tests/e2e/helpers/seed.ts:441`](../../../../ui/tests/e2e/helpers/seed.ts#L441).
 - [`ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`](../../../../ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts): real caller at line 28 (`import { seedAcmeProductsChain } from '../helpers/seed';`) and line 34 (`const chain = await seedAcmeProductsChain();`). Not modified by this chore — verified-only.
 
@@ -71,7 +71,7 @@ N/A — doc-only chore; no API endpoints added or modified.
 Single phase, two PRs (matching the repo's standard finalization pattern observed in recent main: e.g., `8cded4ae docs: finalize feat_study_clone_narrow_bounds after PR #247 (#248)`):
 
 - **PR A — Content PR.** Ships capabilities A and B (FR-1 through FR-4). Edits two files: `chore_e2e_seed_acme_helper_dead/idea.md` (FR-1) and `ui/tests/e2e/helpers/coverage-audit.md` (FRs 2–4). Plus the chore's own scaffolding (`feature_spec.md`, `implementation_plan.md`, `pipeline_status.md`).
-- **PR B — Finalization PR.** Ships capability C (FR-5). One commit: `git mv docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/ docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/` plus the standard `state.md` recent-changes update per [`impl-execute` SKILL.md](../../../../.claude/skills/impl-execute/SKILL.md) Step 7. Opens against `main` only after PR A merges.
+- **PR B — Finalization PR.** Ships capability C (FR-5). One commit: `git mv docs/00_overview/planned_features/chore_e2e_seed_acme_idea_obsolete/ docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/` plus the standard `state.md` recent-changes update per [`impl-execute` SKILL.md](../../../../.claude/skills/impl-execute/SKILL.md) Step 7. Opens against `main` only after PR A merges.
 
 The two-PR split is the canonical RelyLoop finalization shape — not a phase boundary in the "deferred capability" sense (so no `phase2_idea.md` is needed).
 
@@ -95,7 +95,7 @@ The two-PR split is the canonical RelyLoop finalization shape — not a phase bo
 
 - **Idea file at [`chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) still exists at planning time.** Status: verified (Read on 2026-05-25). Risk if missing: chore work item A becomes void — would need to escalate as "target already moved." Mitigation: pre-execution Read in the implementation plan re-verifies presence.
 - **`coverage-audit.md` still contains the three regions named in §3 capability B** (matrix row, `## Gaps` subsection, `## Verdict` subsection). Status: verified (Read on 2026-05-25 — lines 18, 22–32, 34–39). Risk if missing: chore work item B becomes void or partially void — would need to escalate. Mitigation: pre-execution Read in the implementation plan re-verifies the exact line ranges.
-- **No other in-flight PR is editing either target file.** Status: confirmed by `git log --since="2026-05-23" -- docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md ui/tests/e2e/helpers/coverage-audit.md` (no commits since the OBE). Risk: rebase conflicts if a parallel PR edits the same regions — low for both files at this time.
+- **No other in-flight PR is editing either target file.** Status: confirmed by `git log --since="2026-05-23" -- docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md ui/tests/e2e/helpers/coverage-audit.md` (no commits since the OBE). Risk: rebase conflicts if a parallel PR edits the same regions — low for both files at this time.
 
 ## 6) Actors and roles
 
@@ -118,7 +118,7 @@ N/A — `audit_log` lands at MVP2; this chore is MVP1-era and touches no state-m
 ### FR-1: Update the obsolete idea's Status line to Closed
 
 - Requirement:
-  - The system (i.e., the PR) **MUST** edit the existing `**Status:**` line at file line 4 of [`docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) — currently `**Status:** Idea — surfaced during \`chore_e2e_test_rows_isolation\` Story 1.2 coverage audit` — to a closure marker containing three signals: (a) the literal substring `Closed`, (b) the literal substring `2026-05-25` (the closure date), and (c) the literal substring `2cbcb93b` (the OBE commit short SHA). A representative target form is: `**Status:** Closed (2026-05-25) — superseded by guide-06 spec wiring (commit \`2cbcb93b\`, 2026-05-22). Real caller: \`ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts\`. No further action beyond the coverage-audit refresh that ships in the same PR.`
+  - The system (i.e., the PR) **MUST** edit the existing `**Status:**` line at file line 4 of [`docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) — currently `**Status:** Idea — surfaced during \`chore_e2e_test_rows_isolation\` Story 1.2 coverage audit` — to a closure marker containing three signals: (a) the literal substring `Closed`, (b) the literal substring `2026-05-25` (the closure date), and (c) the literal substring `2cbcb93b` (the OBE commit short SHA). A representative target form is: `**Status:** Closed (2026-05-25) — superseded by guide-06 spec wiring (commit \`2cbcb93b\`, 2026-05-22). Real caller: \`ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts\`. No further action beyond the coverage-audit refresh that ships in the same PR.`
   - The system **MUST NOT** modify any line of the file *other than* line 4. The existing `## Problem`, Path A, Path B, `## Scope signals`, `## Why deferred`, and `## Relationship to other work` body remains intact as historical content of the original deliberation.
   - The system **MUST** preserve the file's existing trailing newline (POSIX text-file convention).
 - Notes: The dashboard regen at [`scripts/build_mvp1_dashboard.py`](../../../../scripts/build_mvp1_dashboard.py) parses the FIRST line matching the regex `^\*\*Status:\*\*\s*(.+)$` via [`_extract_status_line`](../../../../scripts/build_mvp1_dashboard.py#L211) (line 213). Updating line 4 in place is the canonical way to mark closure — a parenthesized variant like `**Status (updated ...):**` is NOT picked up by the regex (literal `**Status:**` is required). Prepending a new block above line 4 with a different header form would leave the original `Idea` status as the dashboard's parsed value.
@@ -148,7 +148,7 @@ N/A — `audit_log` lands at MVP2; this chore is MVP1-era and touches no state-m
 ### FR-5: Move chore folder to implemented_features after PR merge
 
 - Requirement:
-  - After the PR for this chore lands on `main`, the post-merge finalization step **MUST** `git mv` the folder `docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/` to `docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/` per the standard planned→implemented lifecycle (per [`impl-execute` SKILL.md](../../../../.claude/skills/impl-execute/SKILL.md) Step 7).
+  - After the PR for this chore lands on `main`, the post-merge finalization step **MUST** `git mv` the folder `docs/00_overview/planned_features/chore_e2e_seed_acme_idea_obsolete/` to `docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/` per the standard planned→implemented lifecycle (per [`impl-execute` SKILL.md](../../../../.claude/skills/impl-execute/SKILL.md) Step 7).
   - The system **MUST** then push the rename as a finalization commit (separate from the chore's content commits).
 - Notes: This is the only FR that fires post-merge; FRs 1–4 fire pre-merge inside the PR.
 
@@ -182,14 +182,14 @@ N/A — no UI changes. Two files are edited; one folder is renamed post-merge; n
 
 - Given the worktree at `feature/chore-e2e-seed-acme-idea-obsolete` immediately before the FR-1 edit.
 - When the PR's FR-1 commit is applied.
-- Then file line 4 of [`docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) **MUST** start with the literal prefix `**Status:**` AND contain all three required signal substrings:
+- Then file line 4 of [`docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) **MUST** start with the literal prefix `**Status:**` AND contain all three required signal substrings:
   - Example values:
     - Required signal 1 (literal substring on line 4): `Closed`
     - Required signal 2 (literal substring on line 4): `2026-05-25`
     - Required signal 3 (literal substring on line 4): `2cbcb93b`
     - (A representative form: `**Status:** Closed (2026-05-25) — superseded by guide-06 spec wiring (commit \`2cbcb93b\`, 2026-05-22). Real caller: \`ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts\`. No further action beyond the coverage-audit refresh that ships in the same PR.`)
   - And the file's `## Problem` section header **MUST** remain present at its original location (no body content shifted).
-  - And running `git diff --stat HEAD~1 -- docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` **MUST** show exactly 1 file changed with 1 insertion and 1 deletion (the single line-4 swap).
+  - And running `git diff --stat HEAD~1 -- docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` **MUST** show exactly 1 file changed with 1 insertion and 1 deletion (the single line-4 swap).
   - And [`scripts/build_mvp1_dashboard.py`](../../../../scripts/build_mvp1_dashboard.py)'s `_extract_status_line` (line 213) **MUST** parse the new line as the canonical Status when run against the edited file (verified by `python3 -c 'from scripts.build_mvp1_dashboard import _extract_status_line; print(_extract_status_line(open(...).read()))'` returning a string starting with `Closed`).
 
 ### AC-2: Coverage-audit matrix row refreshed
@@ -223,7 +223,7 @@ N/A — no UI changes. Two files are edited; one folder is renamed post-merge; n
 - Given the chore PR is merged to `main` and CI is green.
 - When the post-merge finalization commit (per `impl-execute` Step 7) is pushed.
 - Then `docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/` **MUST** exist on `main`.
-  - And `docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/` **MUST NOT** exist on `main`.
+  - And `docs/00_overview/planned_features/chore_e2e_seed_acme_idea_obsolete/` **MUST NOT** exist on `main`.
   - And the moved folder **MUST** contain at minimum `idea.md`, `feature_spec.md`, `implementation_plan.md`, and `pipeline_status.md`.
 
 ## 13) Non-functional requirements
@@ -247,7 +247,7 @@ Rationale: per CLAUDE.md "test completeness rule" — a feature must have tests 
 
 - `docs/01_architecture/`: no updates required.
 - `docs/02_product/`: this chore *is* the doc update. Specifically:
-  - Update `docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` (FR-1).
+  - Update `docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` (FR-1).
   - This chore's folder moves to `docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/` post-merge (FR-5).
 - `docs/03_runbooks/`: no updates required.
 - `docs/04_security/`: no updates required.

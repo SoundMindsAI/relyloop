@@ -591,7 +591,7 @@ No new gate. The existing 80% coverage gate covers the new helper file via the u
 
 - **`docs/01_architecture/ui-architecture.md`**: add a paragraph under (or create) a "Step-4 derived-value toggles" subsection documenting `narrowBoundsAroundWinner` as the canonical pattern for opt-in transformations of prefilled form fields with restore-on-uncheck via a `useRef`. Cross-link to this spec.
 - **`docs/00_overview/implemented_features/2026_05_25_feat_study_clone_from_previous/feature_spec.md`**: add a single line under "Out of scope" pointing forward to this feature as the now-implemented follow-up (`feat_study_clone_narrow_bounds`).
-- **`docs/02_product/planned_features/feature_templates/`**: no changes.
+- **`docs/00_overview/planned_features/feature_templates/`**: no changes.
 - **`docs/03_runbooks/`**: no changes (no new operator-facing surface).
 - **`docs/04_security/`**: no changes (no new secrets, no new data flow).
 - **`docs/05_quality/`**: no changes.

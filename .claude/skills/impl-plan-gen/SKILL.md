@@ -34,7 +34,7 @@ Before starting, determine which mode applies based on the user's request and th
   - **Generate**: single path to the approved feature spec (e.g., `docs/.../feature_spec.md`)
   - **Review / Review & Patch**: single path to the existing plan (e.g., `docs/.../implementation_plan.md`)
   - **Reconcile**: two paths separated by a space — spec first, then plan (e.g., `docs/.../feature_spec.md docs/.../implementation_plan.md`)
-- **Plan template**: `docs/02_product/planned_features/feature_templates/implementation-plan-template.md`
+- **Plan template**: `docs/00_overview/planned_features/feature_templates/implementation-plan-template.md`
 - **Project context**: `CLAUDE.md`, `architecture.md`, `state.md`
 
 ---
@@ -48,7 +48,7 @@ Read these files in order:
 1. `CLAUDE.md` — project conventions, absolute rules, data model, stack
 2. `architecture.md` — system design, boundaries, critical flows, frontend page structure
 3. `state.md` — current priorities, recent changes, known debt, Alembic head
-4. `docs/02_product/planned_features/feature_templates/implementation-plan-template.md` — the output template
+4. `docs/00_overview/planned_features/feature_templates/implementation-plan-template.md` — the output template
 5. The approved feature spec at $ARGUMENTS — every FR, AC, data model change, API contract, and test requirement
 
 ### Step 2: Codebase exploration
@@ -255,7 +255,7 @@ Write the final plan to the appropriate location:
 
 1. Read the spec's "Phase boundaries" section. Identify any phases NOT covered by this implementation plan.
 2. For each deferred phase, check whether a tracking file already exists (`glob` for `*idea*.md` or `*phase*_idea.md` in the feature directory).
-3. If no tracking file exists, create one at `docs/02_product/planned_features/<feature_dir>/phase<N>_idea.md` following the `idea.md` template pattern (see `docs/02_product/planned_features/feature_templates/idea-template.md`). Include:
+3. If no tracking file exists, create one at `docs/00_overview/planned_features/<feature_dir>/phase<N>_idea.md` following the `idea.md` template pattern (see `docs/00_overview/planned_features/feature_templates/idea-template.md`). Include:
    - Origin pointer to the spec file and line numbers
    - The deferred FRs with enough context to generate a future spec/plan
    - Why the work was deferred (from the spec's phase boundary rationale)
@@ -277,7 +277,7 @@ Present proposed doc updates to the user for approval before writing.
 
 **This step is MANDATORY in Generate mode.** Update the `pipeline_status.md` file in the feature directory to record the plan stage completion. This file enables the `/pipeline` orchestrator to detect what stage a feature is at and resume automatically.
 
-Update the `## Plan` section in `docs/02_product/planned_features/<feature_dir>/pipeline_status.md`:
+Update the `## Plan` section in `docs/00_overview/planned_features/<feature_dir>/pipeline_status.md`:
 
 ```markdown
 ## Plan

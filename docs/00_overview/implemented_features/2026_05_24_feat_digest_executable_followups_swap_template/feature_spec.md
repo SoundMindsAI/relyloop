@@ -8,7 +8,7 @@
 - [`docs/00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/feature_spec.md`](../../../00_overview/implemented_features/2026_05_24_feat_digest_executable_followups/feature_spec.md) — Tier-A substrate this spec extends
 - [`docs/01_architecture/llm-orchestration.md`](../../../01_architecture/llm-orchestration.md)
 - [`docs/01_architecture/data-model.md`](../../../01_architecture/data-model.md)
-- Sibling (in-flight backlog): [`backlog_feat_digest_template_edit_followups`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md) — Tier C `edit_template`
+- Sibling (in-flight backlog): [`backlog_feat_digest_template_edit_followups`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md) — Tier C `edit_template`
 
 ---
 
@@ -16,7 +16,7 @@
 
 - **Problem:** Tier A (shipped 2026-05-24 as PR #225) lets the LLM suggest `narrow` / `widen` / `text` followups within the **same query template**. But the LLM sometimes recognizes that a **different template entirely** is the better fit — e.g., parameter-importance is highly skewed (some declared params are dead weight), or winning trials cluster around a sub-set of params that map cleanly onto a different template's `declared_params`. Today the operator has to notice this themselves; the LLM has no structured way to say "try template X instead." The "Run this followup" substrate (`backend/app/domain/study/followups.py`, `ui/src/components/proposals/suggested-followups-panel.tsx`, the `?action=run_followup` modal prefill at `ui/src/app/proposals/[id]/page.tsx:120-184`) is in place — only the `swap_template` variant + its UI surface is missing.
 - **Outcome:** The LLM emits a fourth `kind: "swap_template"` variant carrying `{rationale, template_id, search_space}` where `template_id` references a different `query_templates.id` than the parent study used. The proposal-detail UI renders the variant as an actionable card with a side-by-side `declared_params` comparison (parent template vs proposed swap target) before the operator commits. The "Run this followup" button pre-fills `template_id = <swap_target>` (not the parent's template) plus the LLM-proposed `search_space`, with disjoint params filled from the existing heuristic at `backend/app/domain/study/search_space_defaults.py`. Lineage (`studies.parent_proposal_id` + `parent_proposal_followup_index`) is reused unchanged — the cross-template hop is explicit in the data because the child study's `template_id` differs from the parent's.
-- **Non-goal:** Auto-running swap-template followups without operator click (already covered for the deterministic narrow-around-winner case by `feat_auto_followup_studies`; cross-template swaps are a much larger trust surface and explicitly stay operator-mediated). LLM-driven template **edits** (Tier C — different surface, tracked at sibling [`backlog_feat_digest_template_edit_followups`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md)). Side-by-side rendering of the **query body** itself (Jinja2 source) — out, only `declared_params` are compared. Auto-discovery of the swap-target template by the worker (the LLM picks; we don't fall back to a similarity search).
+- **Non-goal:** Auto-running swap-template followups without operator click (already covered for the deterministic narrow-around-winner case by `feat_auto_followup_studies`; cross-template swaps are a much larger trust surface and explicitly stay operator-mediated). LLM-driven template **edits** (Tier C — different surface, tracked at sibling [`backlog_feat_digest_template_edit_followups`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md)). Side-by-side rendering of the **query body** itself (Jinja2 source) — out, only `declared_params` are compared. Auto-discovery of the swap-target template by the worker (the LLM picks; we don't fall back to a similarity search).
 
 ## 2) Current state audit
 
@@ -93,7 +93,7 @@
 
 ### Out of scope
 
-- **Tier C — `kind: "edit_template"` followups.** Operator-only today; LLM-suggested template edits are a much larger trust/validation surface and unrelated to this spec's lane. Tracked at sibling backlog folder [`backlog_feat_digest_template_edit_followups`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md).
+- **Tier C — `kind: "edit_template"` followups.** Operator-only today; LLM-suggested template edits are a much larger trust/validation surface and unrelated to this spec's lane. Tracked at sibling backlog folder [`backlog_feat_digest_template_edit_followups`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md).
 - **Auto-running swap-template followups without operator click.** Out — operator review is the entire trust mechanism for cross-template hops.
 - **Side-by-side rendering of the template's Jinja2 body.** Out — only `declared_params` are compared. The Jinja source is large, hard to diff usefully without a syntax-aware viewer, and most operators making the call don't need it; if they do, the existing template detail page at `/templates/[id]` is one click away.
 - **Auto-discovery of the swap-target template.** The LLM picks; we don't fall back to a similarity search or compute the swap target server-side. (Reason: the LLM has the full study-outcome context including parameter-importance distribution + winning-trial cluster; a deterministic similarity search would have to re-derive a much weaker proxy for "which template fits these winning params better.")
@@ -668,7 +668,7 @@ Tooltip placement uses the existing `<InfoTooltip glossaryKey="...">` primitive 
 
 - `docs/01_architecture/data-model.md` — extend the `digests.suggested_followups` JSONB-shape note to include the `swap_template` variant. Add an example payload.
 - `docs/01_architecture/llm-orchestration.md` — describe the new `swap_template` kind in the digest LLM output catalogue + the `<available_templates>` + `<parent_template_declared_params>` prompt blocks + the worker's remap step.
-- `docs/02_product/planned_features/feat_digest_executable_followups_swap_template/` — this spec lives here; this folder is single-phase (no `phase2_idea.md`).
+- `docs/00_overview/planned_features/feat_digest_executable_followups_swap_template/` — this spec lives here; this folder is single-phase (no `phase2_idea.md`).
 - `docs/03_runbooks/` — extend any digest-debugging runbook to mention the new structlog event `digest_followup_swap_template_remapped` (INFO, success path) + the four downgrade `reason` codes for `swap_template`.
 - `docs/04_security/` — N/A (no new secret or data-flow surface beyond the catalogue SELECT, which is internal-only).
 - `docs/05_quality/testing.md` — no change required; new test files follow the existing layer convention.
@@ -713,7 +713,7 @@ Tooltip placement uses the existing `<InfoTooltip glossaryKey="...">` primitive 
 - [ ] Documentation updates across docs/01–05 are merged (§15).
 - [ ] Rollout gates from §16 are satisfied.
 - [ ] Cross-model review (GPT-5.5) on this spec and the forthcoming implementation plan completed and adjudicated.
-- [x] Deferred-phase tracking: N/A (single-phase delivery). Tier C `edit_template` is tracked at sibling [`backlog_feat_digest_template_edit_followups`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md).
+- [x] Deferred-phase tracking: N/A (single-phase delivery). Tier C `edit_template` is tracked at sibling [`backlog_feat_digest_template_edit_followups`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md).
 - [ ] No open questions remain in §19.
 
 ## 19) Open questions and decision log

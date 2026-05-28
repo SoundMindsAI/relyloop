@@ -527,7 +527,7 @@ No tooltip changes. No UI-visible elements added.
 
 - `docs/01_architecture/api-conventions.md` — append a new "Test-only endpoints" subsection (or extend the existing studies-endpoint code list with `(test-only)` annotations) covering the **11 strictly new error codes** (3 NOT_FOUND for proposal/digest/study + 8 HAS_DEPENDENT codes per §7.5) plus cross-references to the 3 reused NOT_FOUND codes (`JUDGMENT_LIST_NOT_FOUND`, `QUERY_SET_NOT_FOUND`, `TEMPLATE_NOT_FOUND`) and `RESOURCE_NOT_FOUND` (already documented).
 - `docs/03_runbooks/` — no new runbook needed. The cleanup is automatic; failures are visible in stdout.
-- `docs/02_product/planned_features/chore_e2e_test_rows_isolation/` — this spec.
+- `docs/00_overview/planned_features/chore_e2e_test_rows_isolation/` — this spec.
 - `state.md` — updated post-merge in Step 8 finalization.
 - `architecture.md` — no change (no new layer; `_test.py` already exists).
 - `CLAUDE.md` — no change (no new convention; the `/_test/` prefix is already a precedent).

@@ -852,7 +852,7 @@ N/A — no schema changes.
 
 ### 4.2 Product docs (`docs/02_product`)
 
-- [ ] After merge, move `docs/02_product/planned_features/feat_create_study_target_autocomplete/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_create_study_target_autocomplete/` (per `/impl-execute` finalization step).
+- [ ] After merge, move `docs/00_overview/planned_features/feat_create_study_target_autocomplete/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_create_study_target_autocomplete/` (per `/impl-execute` finalization step).
 
 ### 4.3 Runbooks — N/A
 ### 4.4 Security docs — N/A

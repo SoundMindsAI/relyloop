@@ -10,7 +10,7 @@ The pre-commit pipeline does:
 
 1. Stash unstaged + untracked working-tree changes (via pre-commit's `--keep-index` mechanism).
 2. Run hooks against the staged content + remaining working tree.
-3. `mvp1-dashboard-regen` reads `ls docs/02_product/planned_features/` and rewrites `MVP1_DASHBOARD.md` + `mvp1_dashboard.html`.
+3. `mvp1-dashboard-regen` reads `ls docs/00_overview/planned_features/` and rewrites `MVP1_DASHBOARD.md` + `mvp1_dashboard.html`.
 4. Hook modifies files → pre-commit aborts the commit "files were modified by this hook."
 5. Pre-commit unstashes — but if the dashboard regen's modifications conflict with the unstashed working-tree edits, the pop fails ("Rolling back fixes...") and the working tree ends up in a partially-applied state.
 
@@ -42,7 +42,7 @@ The hook config actually already has a correct `files:` regex (verified 2026-05-
 
 ```yaml
 - id: mvp1-dashboard-regen
-  files: ^(docs/02_product/planned_features/|docs/00_overview/implemented_features/|scripts/build_mvp1_dashboard\.py$)
+  files: ^(docs/00_overview/planned_features/|docs/00_overview/implemented_features/|scripts/build_mvp1_dashboard\.py$)
 ```
 
 The hook only fires for commits that touch planned/implemented feature folders or the script itself. The friction I attributed to this issue in the initial capture was actually caused by §2 (no idempotency — hook fires correctly on idea.md edits but the regenerated dashboard output looks like an unrelated diff that pre-commit's "files modified by this hook" check then aborts the commit on, requiring a re-stage). My initial diagnosis was wrong; subsection kept for historical accuracy with a "already addressed" note.
@@ -65,7 +65,7 @@ Add this to `docs/03_runbooks/local-dev.md` or the pre-commit config comments.
 
 ### 4. Rewrite relative paths during one-liner extraction (added 2026-05-14)
 
-Gemini Code Assist flagged this on PR #106: `scripts/build_mvp1_dashboard.py` extracts the first few hundred chars of each idea.md's "Problem" section and embeds them verbatim into `docs/00_overview/MVP1_DASHBOARD.md` and `mvp1_dashboard.html`. The idea.md lives at depth 4 (`docs/02_product/planned_features/<folder>/idea.md`) and uses `../../../../backend/...` to reach the repo root. The dashboard files live at depth 2 (`docs/00_overview/MVP1_DASHBOARD.md`), so the same string resolves to **outside** the repo. Result: every dashboard one-liner that references a `backend/...` path via relative link is broken.
+Gemini Code Assist flagged this on PR #106: `scripts/build_mvp1_dashboard.py` extracts the first few hundred chars of each idea.md's "Problem" section and embeds them verbatim into `docs/00_overview/MVP1_DASHBOARD.md` and `mvp1_dashboard.html`. The idea.md lives at depth 4 (`docs/00_overview/planned_features/<folder>/idea.md`) and uses `../../../../backend/...` to reach the repo root. The dashboard files live at depth 2 (`docs/00_overview/MVP1_DASHBOARD.md`), so the same string resolves to **outside** the repo. Result: every dashboard one-liner that references a `backend/...` path via relative link is broken.
 
 Three fix options:
 

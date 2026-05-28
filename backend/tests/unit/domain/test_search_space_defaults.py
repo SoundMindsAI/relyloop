@@ -2,7 +2,7 @@
 
 Covers FR-1 (heuristic + overflow guard), FR-3 (narrowing math + skip rules),
 FR-4 (cardinality non-increasing invariant) per
-``docs/02_product/planned_features/feat_agent_propose_search_space/feature_spec.md``.
+``docs/00_overview/planned_features/feat_agent_propose_search_space/feature_spec.md``.
 
 The TS↔Python parity assertions live in
 ``test_search_space_defaults_parity.py`` (Story 1.3). These tests cover the

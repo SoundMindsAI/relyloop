@@ -175,6 +175,6 @@ local Docker build of `relyloop/api` and `relyloop/ui` on first run.
 
 ## Cross-references
 
-- Spec source: [`docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md`](../02_product/planned_features/chore_tutorial_polish/feature_spec.md)
+- Spec source: [`docs/00_overview/planned_features/chore_tutorial_polish/feature_spec.md`](../00_overview/planned_features/chore_tutorial_polish/feature_spec.md)
 - Tutorial: [`docs/08_guides/tutorial-first-study.md`](../08_guides/tutorial-first-study.md)
 - Canonical release matrix: [`docs/01_architecture/tech-stack.md`](../01_architecture/tech-stack.md)

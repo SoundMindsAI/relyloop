@@ -35,7 +35,7 @@ GitHub PR creation worker — turns a `pending` proposal into a real GitHub PR w
 
 ## Done
 - Status: **Deployed to local Compose** (MVP1 has no remote staging). PR #45 merged 2026-05-12.
-- Folder moved: `docs/02_product/planned_features/feat_github_pr_worker/` → `docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker/`.
+- Folder moved: `docs/00_overview/planned_features/feat_github_pr_worker/` → `docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker/`.
 
 ## Dependencies (all satisfied)
 

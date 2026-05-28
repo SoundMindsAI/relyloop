@@ -690,7 +690,7 @@ None new for this feature. The existing `studies-create-target-dropdown.spec.ts`
 
 ### 4.2 Product docs
 
-- [ ] Move `docs/02_product/planned_features/feat_cluster_target_filter/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_cluster_target_filter/` (per `/impl-execute` finalization).
+- [ ] Move `docs/00_overview/planned_features/feat_cluster_target_filter/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_cluster_target_filter/` (per `/impl-execute` finalization).
 
 ### 4.3–4.5
 

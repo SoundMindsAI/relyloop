@@ -322,7 +322,7 @@ Migrations `0008`–`0013` add a `search_vector tsvector GENERATED ALWAYS AS …
 
 **Hard rule:** `search_vector` is **not declared** in the SQLAlchemy ORM models. The columns are read-only from the application's perspective — Postgres maintains them via the `GENERATED ALWAYS AS … STORED` clause. Any attempt to INSERT or UPDATE these columns will fail with a Postgres error. The Story 2.13 lint guard is not the enforcement point here; the database itself is.
 
-**Rank ordering deferred to MVP2** — the `?q=` predicate filters but does not re-order results, so the existing `(created_at, id)` cursor stays valid. See [`docs/02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md`](../02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md) for the rank-ordering follow-up; cursor encoding will need to change to include the `ts_rank` score when that lands.
+**Rank ordering deferred to MVP2** — the `?q=` predicate filters but does not re-order results, so the existing `(created_at, id)` cursor stays valid. See [`docs/00_overview/planned_features/feat_fts_rank_ordering_mvp2/idea.md`](../00_overview/planned_features/feat_fts_rank_ordering_mvp2/idea.md) for the rank-ordering follow-up; cursor encoding will need to change to include the `ts_rank` score when that lands.
 
 ## Forthcoming: `audit_log` (MVP2 + MVP4 evolution)
 

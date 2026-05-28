@@ -25,7 +25,7 @@ uniform) when:
   fails Pydantic cardinality-cap validation.
 
 Spec:
-``docs/02_product/planned_features/feat_digest_executable_followups_swap_template/feature_spec.md``
+``docs/00_overview/planned_features/feat_digest_executable_followups_swap_template/feature_spec.md``
 (FR-3).
 """
 

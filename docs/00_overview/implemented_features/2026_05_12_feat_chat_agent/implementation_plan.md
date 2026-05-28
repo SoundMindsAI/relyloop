@@ -1720,8 +1720,8 @@ export type SseEventType = (typeof SSE_EVENT_TYPE_VALUES)[number];
 | File | Purpose |
 |---|---|
 | `docs/03_runbooks/agent-debugging.md` | Operator runbook: replay a conversation by ID, force a specific tool dispatch via the chat UI, inspect SSE events via `curl`, structlog log line interpretation. |
-| `docs/02_product/planned_features/bug_chat_long_conversation_truncation/idea.md` | Defer (MVP2): smarter context-window management — summarize old turns instead of brute-force truncate at 100 messages. Origin: GPT-5.5 cycle-2 finding F14. |
-| `docs/02_product/planned_features/chore_chat_last_message_preview/idea.md` | Defer (MVP2 polish): add `last_message_preview` + `last_message_at` to `ConversationSummary` so the sidebar can show a snippet. Origin: GPT-5.5 cycle-2 finding F15. |
+| `docs/00_overview/planned_features/bug_chat_long_conversation_truncation/idea.md` | Defer (MVP2): smarter context-window management — summarize old turns instead of brute-force truncate at 100 messages. Origin: GPT-5.5 cycle-2 finding F14. |
+| `docs/00_overview/planned_features/chore_chat_last_message_preview/idea.md` | Defer (MVP2 polish): add `last_message_preview` + `last_message_at` to `ConversationSummary` so the sidebar can show a snippet. Origin: GPT-5.5 cycle-2 finding F15. |
 
 **Modified files**
 

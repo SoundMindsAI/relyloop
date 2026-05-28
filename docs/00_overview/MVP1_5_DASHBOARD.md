@@ -47,7 +47,7 @@ _None._
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [feat_ubi_judgments](../02_product/planned_features/feat_ubi_judgments/idea.md) | Feature | MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`… | — | Idea — anchor feature for MVP1.5 / v0.1.5 "Real Signals" |
+| 1 | P1 | [feat_ubi_judgments](../00_overview/planned_features/feat_ubi_judgments/idea.md) | Feature | MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`… | — | Idea — anchor feature for MVP1.5 / v0.1.5 "Real Signals" |
 
 ## Dependency graph
 
@@ -64,4 +64,4 @@ graph LR
 
 ---
 
-Source of truth: feature folders under [`docs/02_product/planned_features/`](../02_product/planned_features/) and [`docs/00_overview/implemented_features/`](implemented_features/). See [`state.md`](../../state.md) for active-branch context and [`CLAUDE.md`](../../CLAUDE.md) for conventions.
+Source of truth: feature folders under [`docs/00_overview/planned_features/`](../00_overview/planned_features/) and [`docs/00_overview/implemented_features/`](implemented_features/). See [`state.md`](../../state.md) for active-branch context and [`CLAUDE.md`](../../CLAUDE.md) for conventions.

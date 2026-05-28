@@ -103,7 +103,7 @@ repos:
         name: Regenerate MVP1 dashboard if feature folders changed
         entry: python3 scripts/build_mvp1_dashboard.py
         language: system
-        files: ^(docs/02_product/planned_features/|docs/00_overview/implemented_features/|scripts/build_mvp1_dashboard\.py$)
+        files: ^(docs/00_overview/planned_features/|docs/00_overview/implemented_features/|scripts/build_mvp1_dashboard\.py$)
         pass_filenames: false
 
   # ---------------------------------------------------------------------------

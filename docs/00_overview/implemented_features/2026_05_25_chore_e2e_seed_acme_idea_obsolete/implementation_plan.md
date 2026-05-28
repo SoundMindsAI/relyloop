@@ -57,7 +57,7 @@ Story completion is invalid if any step is skipped.
 ## Epic 1 — Content PR (FRs 1–4)
 
 ### Story 1.1 — Update obsolete idea's Status line in place
-**Outcome:** [`docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) line 4 is rewritten from `**Status:** Idea — surfaced during \`chore_e2e_test_rows_isolation\` Story 1.2 coverage audit` to a closure marker satisfying [`feature_spec.md` AC-1](feature_spec.md) (three signal substrings: `Closed`, `2026-05-25`, `2cbcb93b`). [`feature_spec.md` FR-1](feature_spec.md).
+**Outcome:** [`docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`](../chore_e2e_seed_acme_helper_dead/idea.md) line 4 is rewritten from `**Status:** Idea — surfaced during \`chore_e2e_test_rows_isolation\` Story 1.2 coverage audit` to a closure marker satisfying [`feature_spec.md` AC-1](feature_spec.md) (three signal substrings: `Closed`, `2026-05-25`, `2cbcb93b`). [`feature_spec.md` FR-1](feature_spec.md).
 
 **New files:** None.
 
@@ -65,7 +65,7 @@ Story completion is invalid if any step is skipped.
 
 | File | Change |
 |---|---|
-| `docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` | Replace exactly line 4. No other lines change. |
+| `docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` | Replace exactly line 4. No other lines change. |
 
 **Endpoints / Pydantic schemas / Key interfaces:** N/A (doc-only).
 
@@ -73,9 +73,9 @@ Story completion is invalid if any step is skipped.
 
 1. Re-Read the file to confirm line 4 still has the original `**Status:** Idea — surfaced during \`chore_e2e_test_rows_isolation\` Story 1.2 coverage audit` content. If drifted, escalate.
 2. `Edit` the file with `old_string = "**Status:** Idea — surfaced during \`chore_e2e_test_rows_isolation\` Story 1.2 coverage audit"` and `new_string = "**Status:** Closed (2026-05-25) — superseded by guide-06 spec wiring (commit \`2cbcb93b\`, 2026-05-22). Real caller: \`ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts\`. No further action beyond the coverage-audit refresh that ships in the same PR."`.
-3. Verify line 4 now contains all three required signal substrings via `grep -E '^\*\*Status:\*\*.*Closed.*2026-05-25.*2cbcb93b' docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`.
-4. Verify `## Problem` (originally at line 9) has not shifted: `grep -n '^## Problem' docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` should return `9:## Problem`.
-5. Verify dashboard parser picks up the new line: `python3 -c "import sys; sys.path.insert(0, 'scripts'); from build_mvp1_dashboard import _extract_status_line; print(_extract_status_line(open('docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md').read()))"` must return a string starting with `Closed`.
+3. Verify line 4 now contains all three required signal substrings via `grep -E '^\*\*Status:\*\*.*Closed.*2026-05-25.*2cbcb93b' docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`.
+4. Verify `## Problem` (originally at line 9) has not shifted: `grep -n '^## Problem' docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` should return `9:## Problem`.
+5. Verify dashboard parser picks up the new line: `python3 -c "import sys; sys.path.insert(0, 'scripts'); from build_mvp1_dashboard import _extract_status_line; print(_extract_status_line(open('docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md').read()))"` must return a string starting with `Closed`.
 6. Commit: `docs(seed-acme-obsolete): close chore_e2e_seed_acme_helper_dead per Option A (FR-1)`.
 
 **Definition of Done**
@@ -83,8 +83,8 @@ Story completion is invalid if any step is skipped.
 - File line 4 satisfies the grep in task 3 (literal `^**Status:** … Closed … 2026-05-25 … 2cbcb93b …`).
 - File line 9 still reads `## Problem` (no body shift).
 - `_extract_status_line` returns a value starting with `Closed` (task 5 verification).
-- `git diff --stat HEAD~1 -- docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` shows exactly 1 file, 1 insertion, 1 deletion.
-- File still ends with a single trailing newline (POSIX convention; required by FR-1): `tail -c1 docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md | od -c | head -1` returns `\n`.
+- `git diff --stat HEAD~1 -- docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` shows exactly 1 file, 1 insertion, 1 deletion.
+- File still ends with a single trailing newline (POSIX convention; required by FR-1): `tail -c1 docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md | od -c | head -1` returns `\n`.
 - Pre-commit hooks pass (no `--no-verify`).
 
 ---
@@ -203,14 +203,14 @@ Before opening PR A:
 
 | File | Change |
 |---|---|
-| `docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/*` | Move (via `git mv`) the entire folder to `docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/`. |
+| `docs/00_overview/planned_features/chore_e2e_seed_acme_idea_obsolete/*` | Move (via `git mv`) the entire folder to `docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/`. |
 | `state.md` | Append a recent-changes entry: `<PR-A-number> chore(seed-acme-obsolete): close OBE'd chore_e2e_seed_acme_helper_dead per Option A — coverage-audit refreshed to 9-of-9 (PR A merged; this finalize PR moves the folder under implemented_features/).` Note: PR B's own number is NOT included in the entry because PR B is not yet open at commit time. |
 
 **Tasks**
 
 1. From the main worktree (`/Users/ericstarr/relyloop`), sync main: `git fetch origin main && git checkout main && git pull --ff-only origin main`.
 2. Create the finalization branch: `git checkout -b feature/finalize-chore-e2e-seed-acme-idea-obsolete`.
-3. `git mv docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete`.
+3. `git mv docs/00_overview/planned_features/chore_e2e_seed_acme_idea_obsolete docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete`.
 4. Update `state.md` per the row in "Modified files" above. Insert at the top of the most recent recent-changes block.
 5. `git add -A && git status -s` — expected: at least 4 files renamed (`idea.md`, `feature_spec.md`, `implementation_plan.md`, `pipeline_status.md` per spec AC-5's minimum) plus any other peer files the directory has accumulated by then (e.g., if subsequent stories added supplementary docs); plus 1 file modified (`state.md`). Verify the count matches `git status -s | wc -l`.
 6. Commit: `docs: finalize chore_e2e_seed_acme_idea_obsolete after PR #<PR-A-number>` (matching the canonical finalization-commit subject pattern at recent main e.g. `8cded4ae docs: finalize feat_study_clone_narrow_bounds after PR #247 (#248)`).
@@ -219,7 +219,7 @@ Before opening PR A:
 **Definition of Done**
 
 - `docs/00_overview/implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/` exists on the finalize branch.
-- `docs/02_product/planned_features/chore_e2e_seed_acme_idea_obsolete/` does NOT exist on the finalize branch.
+- `docs/00_overview/planned_features/chore_e2e_seed_acme_idea_obsolete/` does NOT exist on the finalize branch.
 - `state.md` recent-changes entry references PR A's number.
 - PR B is open, CI is green, and merge to main completes the chore.
 - Both worktrees can be cleaned up after PR B merge per [`impl-execute` SKILL.md](../../../../.claude/skills/impl-execute/SKILL.md) Step 9.3 worktree cleanup.
@@ -246,7 +246,7 @@ No new test files. No orphaned test files. Coverage gate (80% Python per CLAUDE.
 
 | Doc | Scope | Story |
 |---|---|---|
-| `docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` | Status line update (FR-1) | 1.1 |
+| `docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` | Status line update (FR-1) | 1.1 |
 | `ui/tests/e2e/helpers/coverage-audit.md` | Matrix row + Gaps + Verdict (FRs 2–4) | 1.2, 1.3, 1.4 |
 | `state.md` | Recent-changes entry (post-merge) | 2.1 |
 | Folder move | `planned_features/` → `implemented_features/` | 2.1 |
@@ -261,7 +261,7 @@ No new test files. No orphaned test files. Coverage gate (80% Python per CLAUDE.
 | Every spec FR has a story | Spec §17 lists FR-1..FR-5; this plan §1 lists Stories 1.1, 1.2, 1.3, 1.4, 2.1 mapping to the same FRs | ✓ Match |
 | Every spec endpoint has a story | Spec §8: 0 endpoints | ✓ N/A |
 | Every spec error code is tested | Spec §8.5: 0 error codes | ✓ N/A |
-| Every modified file actually exists | `docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` ✓; `ui/tests/e2e/helpers/coverage-audit.md` ✓; `state.md` ✓ | ✓ |
+| Every modified file actually exists | `docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md` ✓; `ui/tests/e2e/helpers/coverage-audit.md` ✓; `state.md` ✓ | ✓ |
 | Every story's DoD has a verification gate | All 5 stories have explicit grep / functional / state assertions in their DoD | ✓ |
 | Phase gate arithmetic | Epic 1 gate references "6 commits" (1 spec + 1 plan + 4 stories); Epic 2 gate references "5 files renamed + 1 modified" | Recounted: ✓ |
 | Open questions resolved | Spec §19 lists 0 open questions; all 6 decisions logged | ✓ |

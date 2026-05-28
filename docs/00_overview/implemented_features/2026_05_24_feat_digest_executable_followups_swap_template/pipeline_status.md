@@ -14,7 +14,7 @@
   - Cycle 2: 5 findings (5 accepted, 0 rejected) — 3 re-raises (stale §2/§3 prose on optional schema + deterministic worker pre-clean rule; §13/§4 diagnostic field-name drift; §6 intro sentence still narrow) and 2 net-new (4th reason code `remap_invalid_search_space` for FR-7 step 3 emission; `validation_error` truncation matches the canonical `_truncate` helper)
   - Cycle 3: 1 finding (1 accepted, 0 rejected) — net-new internal-consistency catch: empty trusted intersection is unreachable on the worker path (Pydantic min_length=1 rejects empty `SearchSpace`), so helper rejects no-trusted-intersection inputs and prompt instructs LLM to skip in that case; disjoint-only swaps explicitly out of contract
   - Total: 18 accepted, 0 rejected across 18 findings (Decision Log D-17 through D-34 enumerate the resolutions)
-- Phases: 1 total (single-phase delivery — no `phase2_idea.md`; Tier C `edit_template` tracked at sibling [`../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md))
+- Phases: 1 total (single-phase delivery — no `phase2_idea.md`; Tier C `edit_template` tracked at sibling [`../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md))
 
 ## Plan
 - Status: Approved

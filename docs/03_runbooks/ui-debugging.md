@@ -169,7 +169,7 @@ This is the wire `feat_studies_ui`'s study-detail DigestPanel "Open PR" button u
 Status filter is URL-backed via `?status=`. Cluster and source filters live in React state only.
 
 - `?status=` is validated against `PROPOSAL_STATUS_VALUES` before being passed to `useProposals` — invalid values (e.g. `?status=invented`) are silently dropped client-side and the chip group falls back to "all" active. The chip won't 422 the backend.
-- The **source filter** (study / manual / all) is a **client-side post-filter** over the fetched page. Backend has no `?source=` param. This means filtering to `manual` while paginating through many study-sourced proposals will show partial pages. Acceptable for MVP1 (<50 proposals/page realistically) — the [`chore_proposals_source_filter_server_side`](../02_product/planned_features/chore_proposals_source_filter_server_side/idea.md) idea file tracks the server-side follow-up.
+- The **source filter** (study / manual / all) is a **client-side post-filter** over the fetched page. Backend has no `?source=` param. This means filtering to `manual` while paginating through many study-sourced proposals will show partial pages. Acceptable for MVP1 (<50 proposals/page realistically) — the [`chore_proposals_source_filter_server_side`](../00_overview/planned_features/chore_proposals_source_filter_server_side/idea.md) idea file tracks the server-side follow-up.
 
 ### Common error codes surfaced as toasts
 
