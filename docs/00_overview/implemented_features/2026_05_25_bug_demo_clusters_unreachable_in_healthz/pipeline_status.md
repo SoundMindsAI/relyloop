@@ -48,7 +48,7 @@
 - Final cross-model review: GPT-5.5 — 4 findings (3 Medium + 1 Low) all accepted; biggest was refactor to per-page session lifecycle (commit `7716a04e`) for bounded memory + cleaner asyncpg pool behavior
 - Gemini Code Assist: clean review, zero line-level findings
 - CI rounds: 3 fix iterations after PR open — (1) per-page refactor, (2) env-var gate `RELYLOOP_DISABLE_STARTUP_WARMUP` to avoid asyncio interleaving with the latent webhook merge-handler row-lock race, (3) explicit `monkeypatch.delenv` for unit test isolation
-- Tangential bug captured: [`bug_webhook_concurrent_merge_race_timing_sensitive`](../../planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) — real production-correctness bug in webhook merge-handler row-lock; deterministically reproducible by adding any second lifespan task; P2 next-ticket candidate
+- Tangential bug captured: [`bug_webhook_concurrent_merge_race_timing_sensitive`](../../planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) — real production-correctness bug in webhook merge-handler row-lock; deterministically reproducible by adding any second lifespan task; P2 next-ticket candidate
 
 ## Branch
 - `bug/demo-clusters-unreachable-in-healthz` (deleted post-merge by `gh pr merge --delete-branch`)

@@ -255,7 +255,7 @@ Write the final plan to the appropriate location:
 
 1. Read the spec's "Phase boundaries" section. Identify any phases NOT covered by this implementation plan.
 2. For each deferred phase, check whether a tracking file already exists (`glob` for `*idea*.md` or `*phase*_idea.md` in the feature directory).
-3. If no tracking file exists, create one at `docs/00_overview/planned_features/<feature_dir>/phase<N>_idea.md` following the `idea.md` template pattern (see `docs/00_overview/planned_features/feature_templates/idea-template.md`). Include:
+3. If no tracking file exists, create one at `docs/00_overview/planned_features/<bucket>/<feature_dir>/phase<N>_idea.md` (in the same MVP bucket as the parent feature: `00_unsure/`, `01_mvp1/`, `02_mvp2/`, `03_mvp3/`, `04_ga/`, or `99_backlog/`) following the `idea.md` template pattern (see `docs/00_overview/planned_features/feature_templates/idea-template.md`). Include:
    - Origin pointer to the spec file and line numbers
    - The deferred FRs with enough context to generate a future spec/plan
    - Why the work was deferred (from the spec's phase boundary rationale)
@@ -277,7 +277,7 @@ Present proposed doc updates to the user for approval before writing.
 
 **This step is MANDATORY in Generate mode.** Update the `pipeline_status.md` file in the feature directory to record the plan stage completion. This file enables the `/pipeline` orchestrator to detect what stage a feature is at and resume automatically.
 
-Update the `## Plan` section in `docs/00_overview/planned_features/<feature_dir>/pipeline_status.md`:
+Update the `## Plan` section in `docs/00_overview/planned_features/<bucket>/<feature_dir>/pipeline_status.md`:
 
 ```markdown
 ## Plan
