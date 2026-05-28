@@ -465,7 +465,7 @@ const handleNarrowBoundsToggle = (next: boolean) => {
 
 3. Add the forward-pointer line to the v1 clone spec at `docs/00_overview/implemented_features/2026_05_25_feat_study_clone_from_previous/feature_spec.md`. Find the bullet `"Narrow bounds" smart action — deferred to feat_study_clone_narrow_bounds (per D-3).` Append a second line below:
 
-   > **Update (2026-05-25):** the narrow-bounds smart action shipped via [`feat_study_clone_narrow_bounds`](../../../00_overview/planned_features/feat_study_clone_narrow_bounds/feature_spec.md). See its FR-1 through FR-14 for the implemented surface.
+   > **Update (2026-05-25):** the narrow-bounds smart action shipped via [`feat_study_clone_narrow_bounds`](feature_spec.md). See its FR-1 through FR-14 for the implemented surface.
 
 4. Run the Playwright spec locally against the dev stack: `cd ui && pnpm test:e2e -- study-clone-narrow-bounds`. Confirm one passing case.
 
