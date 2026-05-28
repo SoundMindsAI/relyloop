@@ -397,18 +397,18 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">88 / 89</div>
+      <div class="value">91 / 92</div>
       <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">22</div>
+      <div class="value">8</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">6</div>
+      <div class="value">4</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -420,29 +420,29 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">8</div>
+      <div class="value">3</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">10</div>
+      <div class="value">5</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
       <div class="label">Backlog</div>
-      <div class="value">4</div>
+      <div class="value">0</div>
       <div class="sub">captured for record, not planned</div>
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">18</div>
+      <div class="value">7</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      4 idea-only feat/infra folders (not yet scoped into MVP1)
+      1 idea-only feat/infra folders (not yet scoped into MVP1)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,23 +463,10 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">21</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments">Ubi Judgments</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`…</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">7</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_job_chronic_flake">Smoke Job Chronic Flake</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/infra_smoke_job_chronic_flake">Smoke Job Chronic Flake</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span class="badge priority" data-priority="P1">P1</span>
@@ -491,60 +478,8 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ci_perf_buildx_artifact_image_cache_xdist">Ci Perf Buildx Artifact Image Cache Xdist</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">PR #290&#x27;s smoke job ran for 15m 22s and was killed by `timeout-minutes: 15`. Per-step breakdown:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_drop_demo_seed_from_ci">Drop Demo Seed From Ci</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">The smoke job in `.github/workflows/pr.yml` ran three seed steps before the smoke test + Playwright E2E suite:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_drop_fusion_scope">Drop Fusion Scope</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">The prior umbrella spec ([`docs/00_overview/relyloop-spec.md`](relyloop-spec.md)) planned Lucidworks Fusion as the MVP3 engine target and Apache Solr as a v2+ &quot;architectural reference, not v1 scope&quot; a</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/04_ga/chore_oss_public_launch_punchlist">Oss Public Launch Punchlist</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">The `chore_oss_launch_prep` PR adds the foundational governance / security / contributor files that prospective contributors and enterprise reviewers look for first. Three remaining items are gates on</div>
-
-
-</div>
-
-
 <div class="card bug" data-prefix="bug" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_demo_reseed_button_silent_enqueue_failure">Demo Reseed Button Silent Enqueue Failure</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure">Demo Reseed Button Silent Enqueue Failure</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
     <span class="badge priority" data-priority="P1">P1</span>
@@ -557,26 +492,13 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_smoke_seed_es_unavailable_shards_race">Smoke Seed Es Unavailable Shards Race</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/bug_smoke_seed_es_unavailable_shards_race">Smoke Seed Es Unavailable Shards Race</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
     <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
   <div class="one-liner">`backend/app/scripts/seed_es.py` creates the `products` index then immediately bulk-indexes 1000 docs against it. On cold GHA runners with ES 9.4.1 (bumped from 9.4.0 in PR #290), the bulk call someti</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite">Demo Seeding Integration Tests Rewrite</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The async flow&#x27;s contract:</div>
 
 
 </div>
@@ -608,32 +530,6 @@ footer {
 </div>
 
 
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_studies_post_arq_spy_fixture">Studies Post Arq Spy Fixture</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper </div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_template_library_expansion">Template Library Expansion</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Three connected gaps:</div>
-
-
-</div>
-
-
 <div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction">Ceiling Badge Assumes Maximize Direction</a></div>
   <div class="meta">
@@ -655,84 +551,6 @@ footer {
 
   </div>
   <div class="one-liner">[`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40):</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/00_unsure/bug_starlette_request_poisons_fastapi_depends_tests">Starlette Request Poisons Fastapi Depends Tests</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={&quot;type&quot;: &quot;http&quot;, ...})` and breaks subsequent `Depends` resolution. Possible suspects:</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive">Webhook Concurrent Merge Race Timing Sensitive</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI.</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering">Fts Rank Ordering</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">`feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery(&#x27;english&#x27;, &#x27;foo&#x27;)` is true but orders results by `created_at DESC, id DESC` (the def</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; </div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock">Auto Followup Parent Advisory Lock</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/chore_e2e_seed_acme_helper_dead">E2E Seed Acme Helper Dead</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">`seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain &quot;Acme Products&quot; demo scenario. The function is co</div>
 
 
 </div>
@@ -767,7 +585,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">119</span></h3>
+  <h3>Done <span class="count">122</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1433,6 +1251,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_28_chore_ci_perf_buildx_artifact_image_cache_xdist">Ci Perf Buildx Artifact Image Cache Xdist</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-05-28</span>
+  </div>
+  <div class="one-liner">PR #290&#x27;s smoke job ran for 15m 22s and was killed by `timeout-minutes: 15`. Per-step breakdown:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_ci_prettier_check">Ci Prettier Check</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1583,6 +1414,32 @@ footer {
     <span>merged 2026-05-14</span>
   </div>
   <div class="one-liner">…</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_28_chore_drop_demo_seed_from_ci">Drop Demo Seed From Ci</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-05-28</span>
+  </div>
+  <div class="one-liner">The smoke job in `.github/workflows/pr.yml` ran three seed steps before the smoke test + Playwright E2E suite:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_28_chore_drop_fusion_scope">Drop Fusion Scope</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-05-28</span>
+  </div>
+  <div class="one-liner">The prior umbrella spec ([`docs/00_overview/relyloop-spec.md`](../relyloop-spec.md)) planned Lucidworks Fusion as the MVP3 engine target and Apache Solr as a v2+ &quot;architectural reference, not v1 scope</div>
 
 
 </div>
@@ -2506,6 +2363,12 @@ footer {
   class infra_test_worktree_missing_integration_envs done;
   feat_index_document_browser[&quot;index document browser&quot;]
   class feat_index_document_browser done;
+  chore_ci_perf_buildx_artifact_image_cache_xdist[&quot;ci perf buildx artifact image cache xdist&quot;]
+  class chore_ci_perf_buildx_artifact_image_cache_xdist done;
+  chore_drop_demo_seed_from_ci[&quot;drop demo seed from ci&quot;]
+  class chore_drop_demo_seed_from_ci done;
+  chore_drop_fusion_scope[&quot;drop fusion scope&quot;]
+  class chore_drop_fusion_scope done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2737,6 +2600,12 @@ footer {
   class infra_test_worktree_missing_integration_envs done;
   feat_index_document_browser[&quot;index document browser&quot;]
   class feat_index_document_browser done;
+  chore_ci_perf_buildx_artifact_image_cache_xdist[&quot;ci perf buildx artifact image cache xdist&quot;]
+  class chore_ci_perf_buildx_artifact_image_cache_xdist done;
+  chore_drop_demo_seed_from_ci[&quot;drop demo seed from ci&quot;]
+  class chore_drop_demo_seed_from_ci done;
+  chore_drop_fusion_scope[&quot;drop fusion scope&quot;]
+  class chore_drop_fusion_scope done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments

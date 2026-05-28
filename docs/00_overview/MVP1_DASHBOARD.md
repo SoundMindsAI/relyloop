@@ -20,20 +20,20 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **88 / 89** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **22** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **91 / 92** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **8** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **8** high-value, ready when P0 clears |
-| → P2 (default) | 10 important to file, not blocking |
-| → Backlog | 4 captured for record, not planned |
-| Open bugs | 6 |
-| Legacy "Path to MVP1" | 18 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP1) |
+| → P1 | **3** high-value, ready when P0 clears |
+| → P2 (default) | 5 important to file, not blocking |
+| → Backlog | 0 captured for record, not planned |
+| Open bugs | 4 |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (119)
+### Done (122)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -88,6 +88,7 @@ Implementation in progress — resume to finish
 | [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page renders each conversation row as `title + relative timestamp (created_at) + count` via [`ui/src/components/chat/conversation-list.tsx:30-49`](../ui/src/components/chat/conversati | — | Complete |
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | `.github/workflows/pr.yml` has a `paths-ignore` filter that skips the entire workflow when *every* changed path matches: | — | Complete |
 | [chore_ci_gitleaks_workflow_step](implemented_features/2026_05_13_chore_ci_gitleaks_workflow_step/idea.md) | Chore | Gitleaks runs only as a pre-commit hook locally. Pre-commit is opt-in (the contributor must run `pre-commit install`); on a fresh clone or a contributor who skips the install, nothing scans commit con | — | Complete |
+| [chore_ci_perf_buildx_artifact_image_cache_xdist](implemented_features/2026_05_28_chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md) | Chore | PR #290's smoke job ran for 15m 22s and was killed by `timeout-minutes: 15`. Per-step breakdown: | — | Complete |
 | [chore_ci_prettier_check](implemented_features/2026_05_19_chore_ci_prettier_check/idea.md) | Chore | `.github/workflows/pr.yml`'s `frontend` job runs: | — | Complete |
 | [chore_clone_narrow_bounds_full_roundtrip_e2e](implemented_features/2026_05_26_chore_clone_narrow_bounds_full_roundtrip_e2e/idea.md) | Chore | [`ui/tests/e2e/study-clone-narrow-bounds.spec.ts`](../../ui/tests/e2e/study-clone-narrow-bounds.spec.ts) currently stops after asserting the textarea's narrowed JSON (Step 5 of the spec's 6-step plan  | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | The `/clusters` list page (Story 2.1) and `/clusters/{id}` detail page render registered clusters fine, but there is no Delete button. When an operator registers a cluster with stale credentials or a  | — | Complete |
@@ -100,6 +101,8 @@ Implementation in progress — resume to finish
 | [chore_db_session_skip_reason_disambiguation](implemented_features/2026_05_26_chore_db_session_skip_reason_disambiguation/idea.md) | Chore | When an integration test skips, the reason string should tell the operator which precondition failed: | — | Complete |
 | [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Six of the seven `/{entity}/[id]` detail routes hand-roll the same three-state scaffold around their data query. The structure is **identical** down to the className strings, with two minor copy varia | — | Complete |
 | [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Complete |
+| [chore_drop_demo_seed_from_ci](implemented_features/2026_05_28_chore_drop_demo_seed_from_ci/idea.md) | Chore | The smoke job in `.github/workflows/pr.yml` ran three seed steps before the smoke test + Playwright E2E suite: | — | Complete |
+| [chore_drop_fusion_scope](implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md) | Chore | The prior umbrella spec ([`docs/00_overview/relyloop-spec.md`](../relyloop-spec.md)) planned Lucidworks Fusion as the MVP3 engine target and Apache Solr as a v2+ "architectural reference, not v1 scope | — | Complete |
 | [chore_e2e_seed_acme_idea_obsolete](implemented_features/2026_05_25_chore_e2e_seed_acme_idea_obsolete/feature_spec.md) | Chore | Both stale artifacts updated to reflect reality. | — | [PR #250](https://github.com/SoundMindsAI/relyloop/pull/250) merged 2026-05-25 |
 | [chore_e2e_test_rows_isolation](implemented_features/2026_05_21_chore_e2e_test_rows_isolation/feature_spec.md) | Chore | Every Playwright spec that creates rows registers them against a file-based cleanup registry (per-worker JSONL files); a `globalTeardown` hook in `playwright.config.ts` reads + merges + drains the reg | — | [PR #186](https://github.com/SoundMindsAI/relyloop/pull/186) merged 2026-05-21 |
 | [chore_env_guard_extend_deny_pattern](implemented_features/2026_05_13_chore_env_guard_extend_deny_pattern/idea.md) | Chore | The shipped guard regex matches `(\.env(\.[^/]+)?\|\.envrc)$` — i.e. bare `.env`, dotted `.env.<x>`, and `.envrc`. It does **not** match plausible backup/rotation spellings that an editor or user-side  | — | Complete |
@@ -171,31 +174,17 @@ _None._
 
 _None._
 
-### Idea (21)
+### Idea (7)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/idea.md) | Feature | MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`… | — | Idea — bundled with [`infra_adapter_solr`](../infra_adapter_solr/idea.md) into MVP2 / v0.2 "Three-Engine + Real Signals" |
-| 2 | P1 | [infra_smoke_job_chronic_flake](planned_features/02_mvp2/infra_smoke_job_chronic_flake/idea.md) | Infra | Recent `pr.yml` runs on `main` (newest first): | — | Idea — captured during feat_index_document_browser CI watch (PR #285) |
-| 3 | P1 | [chore_ci_perf_buildx_artifact_image_cache_xdist](planned_features/02_mvp2/chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md) | Chore | PR #290's smoke job ran for 15m 22s and was killed by `timeout-minutes: 15`. Per-step breakdown: | — | Idea — landed as the next PR after PR #290 (docker-image-bumps) |
-| 4 | P1 | [chore_drop_demo_seed_from_ci](planned_features/02_mvp2/chore_drop_demo_seed_from_ci/idea.md) | Chore | The smoke job in `.github/workflows/pr.yml` ran three seed steps before the smoke test + Playwright E2E suite: | — | Idea — landed bundled with PR #290 (docker-image-bumps) |
-| 5 | P1 | [chore_drop_fusion_scope](planned_features/02_mvp2/chore_drop_fusion_scope/idea.md) | Chore | The prior umbrella spec ([`docs/00_overview/relyloop-spec.md`](relyloop-spec.md)) planned Lucidworks Fusion as the MVP3 engine target and Apache Solr as a v2+ "architectural reference, not v1 scope" a | — | Idea — scope decision, paired with [`infra_adapter_solr`](../infra_adapter_solr/idea.md) |
-| 6 | P1 | [chore_oss_public_launch_punchlist](planned_features/04_ga/chore_oss_public_launch_punchlist/idea.md) | Chore | The `chore_oss_launch_prep` PR adds the foundational governance / security / contributor files that prospective contributors and enterprise reviewers look for first. Three remaining items are gates on | — | Idea — captured during `chore_oss_launch_prep` (the PR that added SECURITY.md / GOVERNANCE.md / MAINTAINERS.md / CODEOWNERS / issue + PR templates and replaced the Code of Conduct) |
-| 7 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/02_mvp2/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed`'s pre-main-body initialization that: | — | Idea — bug captured during PR #286 first-run testing |
-| 8 | P1 | [bug_smoke_seed_es_unavailable_shards_race](planned_features/02_mvp2/bug_smoke_seed_es_unavailable_shards_race/idea.md) | Bug | `backend/app/scripts/seed_es.py` creates the `products` index then immediately bulk-indexes 1000 docs against it. On cold GHA runners with ES 9.4.1 (bumped from 9.4.0 in PR #290), the bulk call someti | — | Idea — captured as part of PR #291 admin-merge |
-| 9 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/idea.md) | Chore | The async flow's contract: | — | Idea — chore captured during PR #286 |
-| 10 | P2 | [chore_e2e_api_base_url_construction](planned_features/01_mvp1/chore_e2e_api_base_url_construction/idea.md) | Chore | Five sites in three e2e specs concatenate `API_BASE` with a path string: | — | Idea — surfaced during Gemini Code Assist review on PR #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`). |
-| 11 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
-| 12 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 13 | P2 | [chore_template_library_expansion](planned_features/02_mvp2/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 14 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
-| 15 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
-| 16 | P2 | [bug_starlette_request_poisons_fastapi_depends_tests](planned_features/00_unsure/bug_starlette_request_poisons_fastapi_depends_tests/idea.md) | Bug | There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={"type": "http", ...})` and breaks subsequent `Depends` resolution. Possible suspects: | — | Idea — bug captured during feat_index_document_browser Story 2.1 |
-| 17 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 18 | Backlog | [feat_fts_rank_ordering](planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
-| 19 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| 20 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 21 | Backlog | [chore_e2e_seed_acme_helper_dead](planned_features/01_mvp1/chore_e2e_seed_acme_helper_dead/idea.md) | Chore | `seedAcmeProductsChain` is a 140-line helper that constructs a cluster + query_set + template + judgment_list + study + optional proposal/digest chain "Acme Products" demo scenario. The function is co | — | Closed (2026-05-25) — superseded by guide-06 spec wiring (commit `2cbcb93b`, 2026-05-22). Real caller: `ui/tests/e2e/guides/06_create_and_monitor_study.spec.ts`. No further action beyond the coverage-audit refresh that ships in the same PR. |
+| 1 | P1 | [infra_smoke_job_chronic_flake](planned_features/01_mvp1/infra_smoke_job_chronic_flake/idea.md) | Infra | Recent `pr.yml` runs on `main` (newest first): | — | Idea — captured during feat_index_document_browser CI watch (PR #285) |
+| 2 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed`'s pre-main-body initialization that: | — | Idea — bug captured during PR #286 first-run testing |
+| 3 | P1 | [bug_smoke_seed_es_unavailable_shards_race](planned_features/01_mvp1/bug_smoke_seed_es_unavailable_shards_race/idea.md) | Bug | `backend/app/scripts/seed_es.py` creates the `products` index then immediately bulk-indexes 1000 docs against it. On cold GHA runners with ES 9.4.1 (bumped from 9.4.0 in PR #290), the bulk call someti | — | Idea — captured as part of PR #291 admin-merge |
+| 4 | P2 | [chore_e2e_api_base_url_construction](planned_features/01_mvp1/chore_e2e_api_base_url_construction/idea.md) | Chore | Five sites in three e2e specs concatenate `API_BASE` with a path string: | — | Idea — surfaced during Gemini Code Assist review on PR #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`). |
+| 5 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
+| 6 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
+| 7 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
 
 ## Dependency graph
 
@@ -386,6 +375,12 @@ graph LR
   class infra_test_worktree_missing_integration_envs done;
   feat_index_document_browser["index document browser"]
   class feat_index_document_browser done;
+  chore_ci_perf_buildx_artifact_image_cache_xdist["ci perf buildx artifact image cache xdist"]
+  class chore_ci_perf_buildx_artifact_image_cache_xdist done;
+  chore_drop_demo_seed_from_ci["drop demo seed from ci"]
+  class chore_drop_demo_seed_from_ci done;
+  chore_drop_fusion_scope["drop fusion scope"]
+  class chore_drop_fusion_scope done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
