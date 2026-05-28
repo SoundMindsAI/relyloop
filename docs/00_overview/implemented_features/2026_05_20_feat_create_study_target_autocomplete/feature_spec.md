@@ -541,7 +541,7 @@ Cluster change still triggers the full cascade per FR-4.
 - `docs/01_architecture/api-conventions.md` — § "Standard error codes" gains a row for `TARGETS_FORBIDDEN` (403, `retryable: false`).
 - `docs/01_architecture/adapters.md` — § "The Protocol" `list_targets()` line updated to mention that ACL/auth failures raise `TargetsForbiddenError` (sibling to `get_schema`'s `TargetNotFoundError` mention).
 - `docs/01_architecture/ui-architecture.md` — § "Form dropdown primitive" gets a one-line note that the target picker in the create-study modal uses `<EntitySelect>` with a manual-mode fallback (new pattern; no other surface uses this combo today).
-- `docs/02_product/planned_features/` → move to `implemented_features/<YYYY_MM_DD>_feat_create_study_target_autocomplete/` after merge (per `/impl-execute` finalization).
+- `docs/00_overview/planned_features/` → move to `implemented_features/<YYYY_MM_DD>_feat_create_study_target_autocomplete/` after merge (per `/impl-execute` finalization).
 - `docs/03_runbooks/` — N/A (no new operational procedure).
 - `docs/04_security/` — N/A (no new threat surface; existing trust model preserved).
 - `docs/05_quality/testing.md` — N/A (test layers and ratios unchanged).

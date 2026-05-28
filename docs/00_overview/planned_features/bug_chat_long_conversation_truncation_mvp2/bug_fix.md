@@ -145,6 +145,6 @@ idea files (already captured or out of scope):
 **Investigation-mode termination:** `bug_fix.md` has Problem /
 Reproduction / Root cause filled in; **Fix design / Regression test /
 Rollout marked TBD pending user decisions on the 3 open forks**. Re-run
-`/bug-fix docs/02_product/planned_features/bug_chat_long_conversation_truncation_mvp2/`
+`/bug-fix docs/00_overview/planned_features/bug_chat_long_conversation_truncation_mvp2/`
 in Default mode once the forks are locked (or accept the recommended
 defaults inline and run `/bug-fix … --proceed`).

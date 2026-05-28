@@ -461,11 +461,11 @@ const handleNarrowBoundsToggle = (next: boolean) => {
 
 2. Add the `docs/01_architecture/ui-architecture.md` paragraph. Verify the doc exists; identify the closest section (likely under "Wizards" or "Create-study wizard"); add a new subsection "Step-4 derived-value toggles" with this content:
 
-   > Step-4 of the create-study modal supports opt-in transformations of the prefilled `search_space_text` field. The canonical example is `feat_study_clone_narrow_bounds`'s narrow-bounds checkbox: when checked, the textarea is rewritten via a pure helper (`ui/src/lib/narrow-bounds.ts`); when unchecked, the captured baseline is restored from a `useRef`. The pattern uses **capture-on-true** for the baseline (always overwrite the ref on `false → true`) and **clear-on-false** (always nullify on `true → false` and on modal close). Post-rewrite manual edits are discarded on uncheck — intentional per [feat_study_clone_narrow_bounds spec FR-6](../02_product/planned_features/feat_study_clone_narrow_bounds/feature_spec.md).
+   > Step-4 of the create-study modal supports opt-in transformations of the prefilled `search_space_text` field. The canonical example is `feat_study_clone_narrow_bounds`'s narrow-bounds checkbox: when checked, the textarea is rewritten via a pure helper (`ui/src/lib/narrow-bounds.ts`); when unchecked, the captured baseline is restored from a `useRef`. The pattern uses **capture-on-true** for the baseline (always overwrite the ref on `false → true`) and **clear-on-false** (always nullify on `true → false` and on modal close). Post-rewrite manual edits are discarded on uncheck — intentional per [feat_study_clone_narrow_bounds spec FR-6](../00_overview/planned_features/feat_study_clone_narrow_bounds/feature_spec.md).
 
 3. Add the forward-pointer line to the v1 clone spec at `docs/00_overview/implemented_features/2026_05_25_feat_study_clone_from_previous/feature_spec.md`. Find the bullet `"Narrow bounds" smart action — deferred to feat_study_clone_narrow_bounds (per D-3).` Append a second line below:
 
-   > **Update (2026-05-25):** the narrow-bounds smart action shipped via [`feat_study_clone_narrow_bounds`](../../../02_product/planned_features/feat_study_clone_narrow_bounds/feature_spec.md). See its FR-1 through FR-14 for the implemented surface.
+   > **Update (2026-05-25):** the narrow-bounds smart action shipped via [`feat_study_clone_narrow_bounds`](feature_spec.md). See its FR-1 through FR-14 for the implemented surface.
 
 4. Run the Playwright spec locally against the dev stack: `cd ui && pnpm test:e2e -- study-clone-narrow-bounds`. Confirm one passing case.
 

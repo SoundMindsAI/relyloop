@@ -87,7 +87,7 @@ docker run --rm --network relyloop_default \
 (Bumped to `python3.13-bookworm` 2026-05-12 to match
 `pyproject.toml [project] requires-python = ">=3.13"`. The `-v /app/.venv`
 anonymous volume was added 2026-05-21 per
-[`infra_uv_sync_drops_precommit`](../../../02_product/planned_features/infra_uv_sync_drops_precommit/idea.md):
+[`infra_uv_sync_drops_precommit`](../../../00_overview/planned_features/infra_uv_sync_drops_precommit/idea.md):
 without it, the container's `uv sync` rewrites paths inside the host's
 bind-mounted `.venv` and the next host-side `git commit` dies with
 `No module named pre_commit`.)

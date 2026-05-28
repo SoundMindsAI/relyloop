@@ -53,7 +53,7 @@ tests, and never modifies cluster schema/mapping/analyzer settings.
   [`llm-orchestration.md` §"Capability check at startup"](docs/01_architecture/llm-orchestration.md)
 - **Subsystem health probes (DB / Redis / ES / OpenSearch):**
   [`backend/app/api/probes.py`](backend/app/api/probes.py) — implementation;
-  contract in [`infra_foundation/feature_spec.md`](docs/02_product/planned_features/infra_foundation/feature_spec.md) §7.3
+  contract in [`infra_foundation/feature_spec.md`](docs/00_overview/planned_features/infra_foundation/feature_spec.md) §7.3
 - **Settings + secrets pattern:**
   [`backend/app/core/settings.py`](backend/app/core/settings.py) +
   [`deployment.md` §"Secrets"](docs/01_architecture/deployment.md)
@@ -238,4 +238,4 @@ their respective surfaces. Update this file only when:
 - A new critical flow worth quick-linking lands
 
 For per-feature design, read the feature's
-`docs/02_product/planned_features/<feature>/feature_spec.md`.
+`docs/00_overview/planned_features/<feature>/feature_spec.md`.

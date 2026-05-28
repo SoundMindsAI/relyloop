@@ -705,7 +705,7 @@ None — inline in `data-table-toolbar.tsx`.
 
 ### Story 2.6 — `useDataTableUrlState` hook with push/replace history (FR-8) — **lifted to the consumer**
 
-> **Shipped contract addendum (2026-05-19).** The "Key interfaces" block below sketched `DataTableProps` gaining a `urlState: DataTableUrlState` + setter-bag (`setSort` / `setFilter` / `setQ` / `setCursor` / `setPageSize`) shape. The build-out across stories 2.2–2.5 produced **10 flat optional props** on `DataTableProps` instead: `sort? / onSortChange? / sortCodec? / filters? / onFilterChange? / q? / onQChange? / cursor? / onCursorChange? / onPageSizeChange?`. The flat-prop API is canonical; the aggregate-prop shape below is an early sketch retained for historical context. Rationale and decision log: [`chore_data_table_primitive_followups/idea.md` item 3 (closed)](../../../02_product/planned_features/chore_data_table_primitive_followups/idea.md). Verified in `ui/src/components/common/types.ts:181-216`.
+> **Shipped contract addendum (2026-05-19).** The "Key interfaces" block below sketched `DataTableProps` gaining a `urlState: DataTableUrlState` + setter-bag (`setSort` / `setFilter` / `setQ` / `setCursor` / `setPageSize`) shape. The build-out across stories 2.2–2.5 produced **10 flat optional props** on `DataTableProps` instead: `sort? / onSortChange? / sortCodec? / filters? / onFilterChange? / q? / onQChange? / cursor? / onCursorChange? / onPageSizeChange?`. The flat-prop API is canonical; the aggregate-prop shape below is an early sketch retained for historical context. Rationale and decision log: [`chore_data_table_primitive_followups/idea.md` item 3 (closed)](../../../00_overview/planned_features/chore_data_table_primitive_followups/idea.md). Verified in `ui/src/components/common/types.ts:181-216`.
 
 **Outcome:** A reusable hook that owns the URL-state contract: cursor uses `router.push()`, filter/sort/q use `router.replace()`. Cursor resets on filter/sort/q change. Hydrates from URL on mount. **The hook lives at the page-level consumer**, not inside DataTable, so the consumer's TanStack Query hook receives the URL state and refetches accordingly. DataTable becomes a **controlled component** receiving the flat URL-state value/onChange pairs as props (per spec §4 "Consumer-supplied data" principle).
 
@@ -1429,7 +1429,7 @@ Read [`studies-table.tsx`](../../../../ui/src/components/studies/studies-table.t
 
 | File | Purpose |
 |---|---|
-| `docs/02_product/planned_features/feat_fts_rank_ordering_mvp2/idea.md` | Origin pointer to spec §16, deferred FRs (only rank ordering on `?q=`), why deferred (cursor encoding constraint), dependencies on this feature (the 6 search_vector columns exist + the `plainto_tsquery` predicate is in place; only the ORDER BY needs to change + cursor encoding update) |
+| `docs/00_overview/planned_features/feat_fts_rank_ordering_mvp2/idea.md` | Origin pointer to spec §16, deferred FRs (only rank ordering on `?q=`), why deferred (cursor encoding constraint), dependencies on this feature (the 6 search_vector columns exist + the `plainto_tsquery` predicate is in place; only the ORDER BY needs to change + cursor encoding update) |
 
 **Tasks**
 

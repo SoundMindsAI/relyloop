@@ -508,7 +508,7 @@ No update. Worker cron jobs are not a separate topical doc surface in MVP1.
 
 ### 4.2 Product docs (`docs/02_product`)
 
-- [ ] (Story 1.4 / impl-execute Step 8.6) Move `docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/` → `docs/00_overview/implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/`. Pre-commit dashboard hook regenerates MVP1_DASHBOARD.md automatically.
+- [ ] (Story 1.4 / impl-execute Step 8.6) Move `docs/00_overview/planned_features/feat_judgments_periodic_resume_sweep/` → `docs/00_overview/implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/`. Pre-commit dashboard hook regenerates MVP1_DASHBOARD.md automatically.
 
 ### 4.3 Runbooks (`docs/03_runbooks`)
 

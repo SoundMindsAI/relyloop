@@ -1646,7 +1646,7 @@ Spec §7.4 enumerates wire values for `subsystems.{db,redis,openai,elasticsearch
 Source-of-truth comment in `backend/app/api/health.py`:
 
 ```python
-# Wire values must match docs/02_product/planned_features/infra_foundation/feature_spec.md §7.4
+# Wire values must match docs/00_overview/planned_features/infra_foundation/feature_spec.md §7.4
 # (with `incapable` added per FR-2 — see implementation_plan.md §13 Review log)
 ```
 

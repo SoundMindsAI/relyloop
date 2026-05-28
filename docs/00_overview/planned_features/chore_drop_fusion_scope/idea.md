@@ -8,7 +8,7 @@
 
 ## Problem
 
-The prior umbrella spec ([`docs/00_overview/relyloop-spec.md`](../../../00_overview/relyloop-spec.md)) planned Lucidworks Fusion as the MVP3 engine target and Apache Solr as a v2+ "architectural reference, not v1 scope" addition. After the 2026-05-27 reframe, this ordering is reversed and compressed:
+The prior umbrella spec ([`docs/00_overview/relyloop-spec.md`](../../relyloop-spec.md)) planned Lucidworks Fusion as the MVP3 engine target and Apache Solr as a v2+ "architectural reference, not v1 scope" addition. After the 2026-05-27 reframe, this ordering is reversed and compressed:
 
 - **Solr is promoted to MVP2**, bundled with UBI judgments (see [`infra_adapter_solr`](../infra_adapter_solr/idea.md) + [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md)).
 - **Fusion is dropped entirely** — this idea documents why.

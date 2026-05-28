@@ -3,7 +3,7 @@
 **Date:** 2026-05-26
 **Status:** Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now.
 **Priority:** Backlog — MVP2 hardening; no current operator-visible failure (layer 1 + layer 2 already close the only realistic duplicate-delivery vector in MVP1; this is preemptive coverage for MVP2 when autonomous re-trigger paths land).
-**Origin:** [`feat_auto_followup_studies/feature_spec.md` §D-11](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/feature_spec.md), [`implementation_plan.md` §9 finding F2](../../../00_overview/implemented_features/2026_05_24_feat_auto_followup_studies/implementation_plan.md). Captured as standalone idea during `/bug-fix --ship` tangential-observations sweep on `bug_auto_followup_completed_parent_stop_chain_race`.
+**Origin:** [`feat_auto_followup_studies/feature_spec.md` §D-11](../../implemented_features/2026_05_24_feat_auto_followup_studies/feature_spec.md), [`implementation_plan.md` §9 finding F2](../../implemented_features/2026_05_24_feat_auto_followup_studies/implementation_plan.md). Captured as standalone idea during `/bug-fix --ship` tangential-observations sweep on `bug_auto_followup_completed_parent_stop_chain_race`.
 
 ## Problem
 

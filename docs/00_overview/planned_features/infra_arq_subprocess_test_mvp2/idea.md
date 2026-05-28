@@ -71,7 +71,7 @@ The resume contract is functionally tested. The subprocess test catches a narrow
 
 ## Relationship to other work
 
-* [`feat_study_lifecycle` Phase 2 (PR #25)](../../../00_overview/implemented_features/2026_05_10_feat_study_lifecycle/) — the origin. The three in-process tests at `test_study_resume.py` are the deferred-from work.
-* [`infra_optuna_eval` Story 3.1 (PR #20)](../../../00_overview/implemented_features/2026_05_10_infra_optuna_eval/) — established the `_subprocess_helpers/` pattern with `run_trial_with_test_stubs.py`. This idea adds a sibling entrypoint to the same directory.
-* [`feat_github_webhook`](../../../00_overview/implemented_features/2026_05_12_feat_github_webhook/) + [`feat_judgments_periodic_resume_sweep`](../../../00_overview/implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/) — both shipped after this idea was written; both register cron jobs in `WorkerSettings.cron_jobs`. The subprocess test would now incidentally smoke-test cron-jobs-registry correctness too (any cron-registration regression would surface as worker-boot failure in the spawned subprocess).
+* [`feat_study_lifecycle` Phase 2 (PR #25)](../../implemented_features/2026_05_10_feat_study_lifecycle/) — the origin. The three in-process tests at `test_study_resume.py` are the deferred-from work.
+* [`infra_optuna_eval` Story 3.1 (PR #20)](../../implemented_features/2026_05_10_infra_optuna_eval/) — established the `_subprocess_helpers/` pattern with `run_trial_with_test_stubs.py`. This idea adds a sibling entrypoint to the same directory.
+* [`feat_github_webhook`](../../implemented_features/2026_05_12_feat_github_webhook/) + [`feat_judgments_periodic_resume_sweep`](../../implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/) — both shipped after this idea was written; both register cron jobs in `WorkerSettings.cron_jobs`. The subprocess test would now incidentally smoke-test cron-jobs-registry correctness too (any cron-registration regression would surface as worker-boot failure in the spawned subprocess).
 * Not blocking and not blocked by anything currently in the backlog.

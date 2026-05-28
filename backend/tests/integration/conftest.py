@@ -45,7 +45,7 @@ from backend.tests.conftest import postgres_reachable
 # integration tests. The warmup interleaves on the event loop with the
 # test body and perturbs the timing of the latent webhook merge-handler
 # row-lock race captured at
-# docs/02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
+# docs/00_overview/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
 # Production deployments leave this UNSET so the warmup runs. Tests that
 # need to exercise the warmup explicitly (e.g.
 # backend/tests/integration/test_cluster_health_warmup.py) call

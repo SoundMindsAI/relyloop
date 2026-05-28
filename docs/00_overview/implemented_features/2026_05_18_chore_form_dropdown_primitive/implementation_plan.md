@@ -1018,7 +1018,7 @@ N/A — no Alembic migration.
 
 ### 4.2 Product docs
 
-- [ ] Post-merge: move `docs/02_product/planned_features/chore_form_dropdown_primitive/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_chore_form_dropdown_primitive/` via the `/impl-execute` finalization step.
+- [ ] Post-merge: move `docs/00_overview/planned_features/chore_form_dropdown_primitive/` → `docs/00_overview/implemented_features/<YYYY_MM_DD>_chore_form_dropdown_primitive/` via the `/impl-execute` finalization step.
 
 ### 4.3 Runbooks
 
@@ -1061,7 +1061,7 @@ The primary refactor is the migration itself (replacing 4 hand-rolled FK Selects
 - [ ] Behavioral parity proven by tests (legacy-behavior parity tables in §UI Guidance enumerate every preserved behavior).
 - [ ] Lint/typecheck remain green at every story commit.
 - [ ] No expansion of product scope (the spec explicitly excludes multi-select, async filtering, virtualized scrolling, and DataTableFkSelect unification).
-- [ ] Track discovered debt: if a story surfaces a tangential bug or a needed cleanup, capture it as an idea file in `docs/02_product/planned_features/<bug-or-chore-slug>/idea.md` per the CLAUDE.md "Tangential discoveries" rule.
+- [ ] Track discovered debt: if a story surfaces a tangential bug or a needed cleanup, capture it as an idea file in `docs/00_overview/planned_features/<bug-or-chore-slug>/idea.md` per the CLAUDE.md "Tangential discoveries" rule.
 
 ---
 

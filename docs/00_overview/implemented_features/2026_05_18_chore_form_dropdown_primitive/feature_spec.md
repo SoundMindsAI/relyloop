@@ -5,7 +5,7 @@
 **Owners:** RelyLoop maintainer (Engineering Owner). No external product stakeholder.
 **Related docs:**
 
-- Idea: [`docs/02_product/planned_features/chore_form_dropdown_primitive/idea.md`](idea.md)
+- Idea: [`docs/00_overview/planned_features/chore_form_dropdown_primitive/idea.md`](idea.md)
 - Parent pattern: [`docs/00_overview/implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md`](../../../00_overview/implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md) (PR #126, merged 2026-05-16)
 - UI architecture: [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md) §"DataTable primitive" — the canonical sibling pattern this spec extends to forms
 - CLAUDE.md §"Enumerated Value Contract Discipline" — codifies the source-of-truth rule that the new lint guard enforces for form-level dropdowns

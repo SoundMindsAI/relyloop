@@ -17,7 +17,7 @@ Path B effectively shipped between 2026-05-21 and 2026-05-23 (commit `2cbcb93b c
 
 Two stale artifacts result:
 
-1. **`docs/02_product/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`** — still describes the helper as "0 Playwright spec callers" (line 6 + 14–16) and recommends Path A (delete) without acknowledging Path B has shipped.
+1. **`docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`** — still describes the helper as "0 Playwright spec callers" (line 6 + 14–16) and recommends Path A (delete) without acknowledging Path B has shipped.
 2. **[`ui/tests/e2e/helpers/coverage-audit.md`](../../../../ui/tests/e2e/helpers/coverage-audit.md)** — the §"Coverage matrix" table still reports `seedAcmeProductsChain` as `0 specs — currently uncalled` and the §"Gaps" section + §"Verdict" both claim the helper is dead code.
 
 Neither is load-bearing, but both surface in `/pipeline status` / `MVP1_DASHBOARD.md` and confuse the next infra-sweep agent.
@@ -44,7 +44,7 @@ Refresh `ui/tests/e2e/helpers/coverage-audit.md`:
 
 ### Option B — Move the folder to `implemented_features/` with a `pipeline_status.md` shim
 
-Per [`docs/02_product/planned_features/feature_templates/README.md`](../feature_templates/README.md) folder lifecycle, ideas that genuinely ship via another feature can be moved to `docs/00_overview/implemented_features/2026_05_22_chore_e2e_seed_acme_helper_dead/` with a tiny `pipeline_status.md` saying "shipped via `feat_pr_metric_confidence`-aware guide-06 spec, PR #X." This is more ceremony than Option A for very little extra discoverability win.
+Per [`docs/00_overview/planned_features/feature_templates/README.md`](../feature_templates/README.md) folder lifecycle, ideas that genuinely ship via another feature can be moved to `docs/00_overview/implemented_features/2026_05_22_chore_e2e_seed_acme_helper_dead/` with a tiny `pipeline_status.md` saying "shipped via `feat_pr_metric_confidence`-aware guide-06 spec, PR #X." This is more ceremony than Option A for very little extra discoverability win.
 
 **Recommendation:** Option A. The original idea was correctly captured as a small chore; it just got OBE'd by adjacent work. A one-paragraph status update + a coverage-audit refresh is the right ceremony for that shape.
 

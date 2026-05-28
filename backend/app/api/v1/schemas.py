@@ -414,7 +414,7 @@ class CreateQuerySetRequest(BaseModel):
     ``cluster_id`` is required because Phase 1's shipped schema has
     ``query_sets.cluster_id NOT NULL``. Spec FR-3 wording (``cluster_id?``)
     is documented drift tracked at
-    ``docs/02_product/planned_features/chore_spec_query_set_cluster_id_drift/idea.md``.
+    ``docs/00_overview/planned_features/chore_spec_query_set_cluster_id_drift/idea.md``.
     """
 
     name: str = Field(min_length=1, max_length=256)

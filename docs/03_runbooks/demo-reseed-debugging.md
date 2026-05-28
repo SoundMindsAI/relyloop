@@ -176,7 +176,7 @@ race the CLI. Pick one OR the other for any given reseed window.
 
 ## Related references
 
-* [`docs/02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md`](../02_product/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md)
+* [`docs/00_overview/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md`](../00_overview/planned_features/feat_home_demo_reseed_endpoint/feature_spec.md)
 * [`docs/01_architecture/api-conventions.md`](../01_architecture/api-conventions.md) — `SEED_IN_PROGRESS` + `SEED_FAILED` envelope rows.
 * [`backend/app/services/demo_seeding.py`](../../backend/app/services/demo_seeding.py) — orchestrator + `DEMO_RESEED_LOCK_KEY` derivation.
 * [`backend/app/api/v1/_test.py`](../../backend/app/api/v1/_test.py) — route handler `reseed_demo` + cleanup helper.

@@ -1,13 +1,13 @@
 # MVP1 User Stories
 
-**Status:** Source-of-truth user-story enumeration for MVP1 ("The Loop"). Each story is referenced by ID (`US-N`) from the matching feature_spec.md in `planned_features/<folder>/`.
+**Status:** Source-of-truth user-story enumeration for MVP1 ("The Loop"). Each story is referenced by ID (`US-N`) from the matching feature_spec.md in `../00_overview/planned_features/<folder>/`.
 
 **Source material:**
 - Umbrella spec [§6 Personas & user stories](../00_overview/relyloop-spec.md) (lines 85–100) — system-level stories
 - Umbrella spec [§27 MVP1 scope](../00_overview/relyloop-spec.md) (lines 2286–2322) — in-scope capabilities
 - Umbrella spec §8, §12, §14, §15, §16, §19, §22 — capability detail
 
-**Scope boundary:** MVP1 only. Stories that depend on later-release capabilities (Apache Solr adapter + UBI judgments → MVP2; Langfuse + SigNoz + audit-log immutability → MVP3; LangGraph state graph + subagents + PostgresSaver + production-style install → GA v1; multi-Git providers, multi-tenant, multi-LLM, LTR training → Backlog) are explicitly out of scope and live in their respective release plans. Lucidworks Fusion was previously in MVP3 scope but is now explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](planned_features/chore_drop_fusion_scope/idea.md). See [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md) for the source of truth.
+**Scope boundary:** MVP1 only. Stories that depend on later-release capabilities (Apache Solr adapter + UBI judgments → MVP2; Langfuse + SigNoz + audit-log immutability → MVP3; LangGraph state graph + subagents + PostgresSaver + production-style install → GA v1; multi-Git providers, multi-tenant, multi-LLM, LTR training → Backlog) are explicitly out of scope and live in their respective release plans. Lucidworks Fusion was previously in MVP3 scope but is now explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../00_overview/planned_features/chore_drop_fusion_scope/idea.md). See [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md) for the source of truth.
 
 ---
 
@@ -127,7 +127,7 @@ For visibility — these capabilities appear in the umbrella spec but are explic
 - **Langfuse / SigNoz observability dashboards** → MVP3 (per umbrella §27 — "Observable").
 - **Multi-LLM provider abstraction** (native non-OpenAI SDKs: Anthropic, Bedrock, Vertex, Azure OpenAI) → Backlog. OpenAI-compatible endpoints (Ollama, LM Studio, vLLM, TGI) already work in MVP1 via `OPENAI_BASE_URL`.
 - **GitLab / Bitbucket** as Git providers → Backlog (was MVP3 in the prior plan; promoted out when an adopter on a non-GitHub provider commits to evaluating).
-- **Lucidworks Fusion** as an engine adapter → **Dropped** — see [`chore_drop_fusion_scope/idea.md`](planned_features/chore_drop_fusion_scope/idea.md).
+- **Lucidworks Fusion** as an engine adapter → **Dropped** — see [`chore_drop_fusion_scope/idea.md`](../00_overview/planned_features/chore_drop_fusion_scope/idea.md).
 - **Multi-tenant** (`tenants` table, `tenant_id` scoping) → Backlog (was MVP4 in the prior plan).
 - **LangGraph state graph + subagents + `PostgresSaver`** → GA v1 per [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md). MVP1 uses plain `openai` SDK + function calling.
 - **Auth / RBAC** (`viewer` / `runner` / `tenant_admin` / `platform_admin` role enforcement; SSO via reverse proxy; bearer API keys) → Backlog per umbrella §18 (was MVP4).

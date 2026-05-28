@@ -413,7 +413,7 @@ A new stub-hits builder `build_zero_scoring_hits_response(query_ids)` (returns h
 ## 15) Documentation update requirements
 
 - `docs/01_architecture/`: **no change required**. No new endpoint, no new error code, no new column.
-- `docs/02_product/planned_features/feat_orchestrator_zero_streak_abort/`: this spec + `pipeline_status.md` (created by spec-gen).
+- `docs/00_overview/planned_features/feat_orchestrator_zero_streak_abort/`: this spec + `pipeline_status.md` (created by spec-gen).
 - `docs/03_runbooks/`: **no change required** for MVP1. (A future addition to a not-yet-existing `study-debugging.md` runbook could mention the new `failed_reason` string — but that runbook doesn't exist yet, and adding a section for one string is not warranted.)
 - `docs/04_security/`: **no change required**. No new threat surface.
 - `docs/05_quality/`: **no change required**. Integration tests follow the existing pattern.

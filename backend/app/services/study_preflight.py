@@ -11,7 +11,7 @@ adapter exceptions, the probe emits a WARN log and returns ``None``; the
 handler then falls through silently (per FR-4 / Q2 → A — consistent with
 RelyLoop's "tolerate transient adapter failures at write time" pattern).
 
-See ``docs/02_product/planned_features/feat_study_preflight_overlap_probe/``
+See ``docs/00_overview/planned_features/feat_study_preflight_overlap_probe/``
 for the full spec.
 """
 

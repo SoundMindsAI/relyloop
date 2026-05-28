@@ -1131,7 +1131,7 @@ The checklist passes NO props to the button — the button reads `useQueryClient
 - [ ] Story 3.4: add `SEED_FAILED` (503) + `SEED_IN_PROGRESS` (409) to `api-conventions.md` error-code registry.
 
 ### 4.2 Product docs (`docs/02_product`)
-- [ ] On finalization: move `docs/02_product/planned_features/feat_home_demo_reseed_endpoint/` to `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_home_demo_reseed_endpoint/`.
+- [ ] On finalization: move `docs/00_overview/planned_features/feat_home_demo_reseed_endpoint/` to `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_home_demo_reseed_endpoint/`.
 
 ### 4.3 Runbooks (`docs/03_runbooks`)
 - [ ] Story 3.4: create `docs/03_runbooks/demo-reseed-debugging.md`.

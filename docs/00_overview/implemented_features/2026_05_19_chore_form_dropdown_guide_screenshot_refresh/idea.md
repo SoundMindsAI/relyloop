@@ -60,4 +60,4 @@ This is the same deferral the `feat_data_table_primitive` (PR #126) implementati
 ## Relationship to other work
 
 - **Parent:** [`chore_form_dropdown_primitive`](../chore_form_dropdown_primitive/feature_spec.md) — the migration that made the screenshots stale.
-- **Sibling precedent:** PR #126 (feat_data_table_primitive) likely needed similar guide regeneration — confirm whether that PR's follow-up was completed or if there's an open guide-regeneration backlog (`ls docs/02_product/planned_features/ | grep guide`).
+- **Sibling precedent:** PR #126 (feat_data_table_primitive) likely needed similar guide regeneration — confirm whether that PR's follow-up was completed or if there's an open guide-regeneration backlog (`ls docs/00_overview/planned_features/ | grep guide`).

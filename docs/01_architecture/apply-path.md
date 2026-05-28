@@ -86,7 +86,7 @@ PAT is the only path in MVP1. The PAT is resolved per-`config_repo` at job time:
 
 ## Webhook receiver
 
-Per [`feat_github_webhook`](../02_product/planned_features/feat_github_webhook/feature_spec.md):
+Per [`feat_github_webhook`](../00_overview/planned_features/feat_github_webhook/feature_spec.md):
 
 - Endpoint: `POST /webhooks/github` (no auth, signature-verified)
 - Verifies the `X-Hub-Signature-256` HMAC against the `webhook_secret_ref` mounted secret (per repo)
@@ -121,6 +121,6 @@ Per [`feat_github_webhook`](../02_product/planned_features/feat_github_webhook/f
 - API conventions for the `/webhooks/github` endpoint: [`api-conventions.md`](api-conventions.md)
 - Service topology (Git PR worker as one of three queue consumers): [`system-overview.md`](system-overview.md)
 - Owning feature specs:
-  - [`feat_github_pr_worker/feature_spec.md`](../02_product/planned_features/feat_github_pr_worker/feature_spec.md) — PR creation worker
-  - [`feat_github_webhook/feature_spec.md`](../02_product/planned_features/feat_github_webhook/feature_spec.md) — webhook receiver + polling reconciler
+  - [`feat_github_pr_worker/feature_spec.md`](../00_overview/planned_features/feat_github_pr_worker/feature_spec.md) — PR creation worker
+  - [`feat_github_webhook/feature_spec.md`](../00_overview/planned_features/feat_github_webhook/feature_spec.md) — webhook receiver + polling reconciler
 - MVP1 navigation summary: [`mvp1-overview.md`](mvp1-overview.md)

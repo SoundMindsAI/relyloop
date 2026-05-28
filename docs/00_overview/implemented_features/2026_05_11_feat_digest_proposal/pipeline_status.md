@@ -53,5 +53,5 @@ None — all spec drifts and plan-review findings resolved across 3 GPT-5.5 cycl
 ## Next action
 
 ```bash
-/impl-execute docs/02_product/planned_features/feat_digest_proposal/implementation_plan.md --all
+/impl-execute docs/00_overview/planned_features/feat_digest_proposal/implementation_plan.md --all
 ```

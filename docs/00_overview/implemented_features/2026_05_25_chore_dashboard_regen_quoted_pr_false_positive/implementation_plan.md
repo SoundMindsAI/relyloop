@@ -234,15 +234,15 @@ Before opening PR A:
 
 | File | Change |
 |---|---|
-| `docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/*` | Move (via `git mv`) the entire folder to `docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive/`. |
+| `docs/00_overview/planned_features/chore_dashboard_regen_quoted_pr_false_positive/*` | Move (via `git mv`) the entire folder to `docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive/`. |
 | `state.md` | Append a recent-changes entry naming PR A's number. PR B's number is NOT included (it doesn't exist at commit time). |
-| `docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/implementation_plan.md` | Update Status: `Ready for Execution` → `Complete (PR #<A>, merged 2026-05-25)`. Mark execution tracker rows `[x]` with commit SHAs. (Edit happens at OLD path then `git mv` per the CLAUDE.md "edit first, then git mv" anti-pattern — per the PR #252 finalization commit pattern, edit AFTER `git mv` at the NEW path is what works.) |
-| `docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/pipeline_status.md` | Update Implementation section: `Not started` → `Complete`. Add `## Done` section. (Same `git mv` ordering caveat.) |
+| `docs/00_overview/planned_features/chore_dashboard_regen_quoted_pr_false_positive/implementation_plan.md` | Update Status: `Ready for Execution` → `Complete (PR #<A>, merged 2026-05-25)`. Mark execution tracker rows `[x]` with commit SHAs. (Edit happens at OLD path then `git mv` per the CLAUDE.md "edit first, then git mv" anti-pattern — per the PR #252 finalization commit pattern, edit AFTER `git mv` at the NEW path is what works.) |
+| `docs/00_overview/planned_features/chore_dashboard_regen_quoted_pr_false_positive/pipeline_status.md` | Update Implementation section: `Not started` → `Complete`. Add `## Done` section. (Same `git mv` ordering caveat.) |
 
 **Tasks**
 
 1. From a fresh worktree off origin/main (`git worktree add /private/tmp/relyloop-finalize-dashboard-regen-regex -b docs/finalize-chore-dashboard-regen-quoted-pr-false-positive origin/main`), `cd` in.
-2. `git mv docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive`.
+2. `git mv docs/00_overview/planned_features/chore_dashboard_regen_quoted_pr_false_positive docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive`.
 3. Update `implementation_plan.md` AT THE NEW PATH (per CLAUDE.md "Do not edit a file and then git mv it" — order: `git mv` first, then edit at new path):
    - Header `**Status:**` → `Complete (PR #<A> merged 2026-05-25; PR B finalization in flight)`.
    - Execution tracker (§7): all 4 content stories + Epic 1 phase gate + PR A marked `[x]` with commit SHAs.
@@ -257,7 +257,7 @@ Before opening PR A:
 **Definition of Done**
 
 - `docs/00_overview/implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive/` exists on the finalize branch with all 4 files moved.
-- `docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/` does NOT exist on the finalize branch.
+- `docs/00_overview/planned_features/chore_dashboard_regen_quoted_pr_false_positive/` does NOT exist on the finalize branch.
 - `state.md` recent-changes entry references PR A's number.
 - PR B is open, CI green (it will be `secrets-defense` only since PR B is docs-only — `pr` workflow is paths-ignored for `docs/**`), and merge to main completes the chore.
 
@@ -279,8 +279,8 @@ No new test files (additive to the existing `test_dashboard_pr_extraction.py`). 
 | Doc | Scope | Story |
 |---|---|---|
 | `scripts/build_mvp1_dashboard.py` docstring (lines 582–608) | One sentence about backtick strip | 1.4 |
-| `docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/implementation_plan.md` | Status flip + execution tracker | 2.1 (at NEW path post-mv) |
-| `docs/02_product/planned_features/chore_dashboard_regen_quoted_pr_false_positive/pipeline_status.md` | Implementation section + Done section | 2.1 (at NEW path post-mv) |
+| `docs/00_overview/planned_features/chore_dashboard_regen_quoted_pr_false_positive/implementation_plan.md` | Status flip + execution tracker | 2.1 (at NEW path post-mv) |
+| `docs/00_overview/planned_features/chore_dashboard_regen_quoted_pr_false_positive/pipeline_status.md` | Implementation section + Done section | 2.1 (at NEW path post-mv) |
 | `state.md` | Recent-changes entry | 2.1 |
 | Folder move | `planned_features/` → `implemented_features/` | 2.1 |
 

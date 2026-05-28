@@ -1,7 +1,7 @@
 """Tests for the markdown-aware truncation in scripts/build_mvp1_dashboard.py.
 
 Covers `_safe_truncate_markdown` + `_strip_unclosed_markdown` — the fix for
-[chore_mvp1_dashboard_truncation](../../../../docs/02_product/planned_features/chore_mvp1_dashboard_truncation/idea.md)
+[chore_mvp1_dashboard_truncation](../../../../docs/00_overview/planned_features/chore_mvp1_dashboard_truncation/idea.md)
 (folded into PR #73 rather than deferred as an idea file, per the calibration
 rubric being added to CLAUDE.md "Tangential discoveries").
 """

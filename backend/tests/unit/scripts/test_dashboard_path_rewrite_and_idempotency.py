@@ -1,7 +1,7 @@
 """Tests for `_rewrite_markdown_links` + `_maybe_write` in scripts/build_mvp1_dashboard.py.
 
 Covers the two fixes shipped via the
-[`infra_dashboard_regen_pre_commit_conflict`](../../../../docs/02_product/planned_features/infra_dashboard_regen_pre_commit_conflict/idea.md)
+[`infra_dashboard_regen_pre_commit_conflict`](../../../../docs/00_overview/planned_features/infra_dashboard_regen_pre_commit_conflict/idea.md)
 ad-hoc PR (§2 idempotency + §4 relative-link rewriting). Both surfaced
 during the feat_judgments_periodic_resume_sweep + bug_query_inline_crud_...
 shipping arc on 2026-05-14 — see the idea file for the full failure
@@ -27,7 +27,7 @@ from scripts.build_mvp1_dashboard import (  # noqa: E402
 class TestRewriteMarkdownLinks:
     """Path-rewriting from idea.md depth (4) → dashboard depth (2).
 
-    Idea files live at ``docs/02_product/planned_features/<folder>/idea.md``;
+    Idea files live at ``docs/00_overview/planned_features/<folder>/idea.md``;
     rendered dashboards live at ``docs/00_overview/MVP1_DASHBOARD.md`` and
     ``docs/00_overview/mvp1_dashboard.html``. A relative path
     ``../../../../backend/foo`` correctly resolves to ``<repo>/backend/foo``
@@ -35,7 +35,7 @@ class TestRewriteMarkdownLinks:
     dashboard. The rewriter recomputes paths to ``../../backend/foo``.
     """
 
-    FROM_DIR = _REPO_ROOT / "docs/02_product/planned_features/some_folder"
+    FROM_DIR = _REPO_ROOT / "docs/00_overview/planned_features/some_folder"
     TO_DIR = _REPO_ROOT / "docs/00_overview"
 
     def test_idea_depth_to_dashboard_depth(self) -> None:
@@ -81,8 +81,9 @@ class TestRewriteMarkdownLinks:
         text = "See [sibling](../sibling-folder/idea.md)."
         rewritten = _rewrite_markdown_links(text, self.FROM_DIR, self.TO_DIR)
         # From dashboard at docs/00_overview/, sibling-folder is at
-        # ../02_product/planned_features/sibling-folder/idea.md.
-        assert "[sibling](../02_product/planned_features/sibling-folder/idea.md)" in rewritten
+        # planned_features/sibling-folder/idea.md (planned_features is a
+        # direct child of 00_overview after the 2026-05-28 restructure).
+        assert "[sibling](planned_features/sibling-folder/idea.md)" in rewritten
 
     def test_multiple_links_in_one_text(self) -> None:
         """Multiple links in the same paragraph all get rewritten."""

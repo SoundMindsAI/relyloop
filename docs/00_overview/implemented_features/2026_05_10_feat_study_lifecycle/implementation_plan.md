@@ -7,7 +7,7 @@
 **Policy source(s):**
 - [CLAUDE.md](../../../../CLAUDE.md) — Absolute Rules #1 (no commit to main), #5 (Alembic round-trip), #7 (Conventional Commits)
 - [docs/01_architecture/data-model.md](../../../01_architecture/data-model.md) — column-level shapes for all 7 tables
-- [docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md](feature_spec.md) §3 (In-scope), §9 (Data model), §11 (Edge flows)
+- [docs/00_overview/planned_features/feat_study_lifecycle/feature_spec.md](feature_spec.md) §3 (In-scope), §9 (Data model), §11 (Edge flows)
 
 ---
 
@@ -599,8 +599,8 @@ Cycle 3 raised one mechanical typo finding (no architectural drift). The plan-co
 | `migrations/env.py` side-effect imports `backend.app.db.models` | Read `migrations/env.py:24` | ✓ Verified — `from backend.app.db import models  # noqa: F401` |
 | Existing `__init__.py` exports `Cluster`, `ConfigRepo` via `__all__` | Read `backend/app/db/models/__init__.py` | ✓ Verified |
 | `clusters.id` FK target exists | Read `migrations/versions/0002_clusters_config_repos.py:53` | ✓ Verified |
-| Spec §3 In-scope lists 7 tables + Phase 2 work | Read `docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md:39-65` | ✓ Verified |
-| Spec §3 Phase boundaries declares Phase 1 = Schema, Phase 2 = Orchestrator + API | Read `docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md:85-104` (post-2026-05-10 patch) | ✓ Verified |
+| Spec §3 In-scope lists 7 tables + Phase 2 work | Read `docs/00_overview/planned_features/feat_study_lifecycle/feature_spec.md:39-65` | ✓ Verified |
+| Spec §3 Phase boundaries declares Phase 1 = Schema, Phase 2 = Orchestrator + API | Read `docs/00_overview/planned_features/feat_study_lifecycle/feature_spec.md:85-104` (post-2026-05-10 patch) | ✓ Verified |
 
 ### Cross-reference checks
 

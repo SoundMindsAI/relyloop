@@ -100,7 +100,7 @@ Picking it up is a one-PR job once a contributor has the bandwidth — no upstre
 
 The single `create-query-set-modal.tsx` fix could technically ship inline via `/impl-execute --ad-hoc` and would close the operator-facing footgun in one PR. The idea recommends against this **because** doing so without the primitive forces the next contributor to either re-implement the FK-select pattern from scratch or refactor the one-off when the primitive lands later. Bundling avoids that churn.
 
-**Invocation:** `/pipeline docs/02_product/planned_features/chore_form_dropdown_primitive/` — runs in default approval-gated mode (spec / plan / execution each pause for review). Use `/pipeline ... --auto` only if you want the stages to chain without per-stage approval; given the spec has UX calls that benefit from a human checkpoint, default-mode is the safer pick here.
+**Invocation:** `/pipeline docs/00_overview/planned_features/chore_form_dropdown_primitive/` — runs in default approval-gated mode (spec / plan / execution each pause for review). Use `/pipeline ... --auto` only if you want the stages to chain without per-stage approval; given the spec has UX calls that benefit from a human checkpoint, default-mode is the safer pick here.
 
 ## Relationship to other work
 

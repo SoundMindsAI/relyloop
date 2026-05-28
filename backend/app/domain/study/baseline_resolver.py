@@ -29,7 +29,7 @@ orchestrator._resolve_and_enqueue_baseline`).
 The function is async because tiers (d) and (c) hit the DB to load
 parent rows. It performs NO writes — pure read + compute.
 
-Spec: ``docs/02_product/planned_features/feat_study_baseline_trial/feature_spec.md`` §FR-3.
+Spec: ``docs/00_overview/planned_features/feat_study_baseline_trial/feature_spec.md`` §FR-3.
 Decision log entries D-2 (4-tier fallback ordering) and D-7
 (``baseline_params`` lives in ``studies.config`` JSONB).
 """

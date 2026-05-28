@@ -534,7 +534,7 @@ N/A — no event-driven path. The builder is a synchronous controlled component.
 ## 15) Documentation update requirements
 
 - `docs/01_architecture/ui-architecture.md` — add a one-paragraph entry under "Form dropdown primitive" or a new sibling section "Search-space builder" pointing at the new component module and noting that it consumes the existing `EntitySelect` family, the existing form-state contract (`search_space_text: string`), and the existing glossary subkeys. Cross-link the parity test.
-- `docs/02_product/planned_features/feat_create_study_search_space_builder/` — finalization moves this directory under `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_create_study_search_space_builder/` when the PR merges.
+- `docs/00_overview/planned_features/feat_create_study_search_space_builder/` — finalization moves this directory under `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_create_study_search_space_builder/` when the PR merges.
 - `docs/03_runbooks/` — N/A (no new operational surface).
 - `docs/04_security/` — N/A (no new auth/data path).
 - `docs/05_quality/testing.md` — add a one-line note under "Test layer convention" pointing at the new parity test as the source-of-truth pattern for non-`enums.ts` wire-value contracts (the type discriminator is in a Pydantic discriminated union, not a `Literal` import from `enums.ts`).

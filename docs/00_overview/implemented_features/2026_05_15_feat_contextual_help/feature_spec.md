@@ -549,7 +549,7 @@ E2E mocking policy reminder (CLAUDE.md): Playwright tests **must use the real ba
 ## 15) Documentation update requirements
 
 - `docs/01_architecture/ui-architecture.md` — append a paragraph under the existing UI primitives section noting the new `Tooltip` primitive and the `InfoTooltip` + `HelpPopover` wrapper convention.
-- `docs/02_product/planned_features/feat_contextual_help/` — this `feature_spec.md`, plus `phase2_idea.md` and `phase3_idea.md` deferred-phase trackers.
+- `docs/00_overview/planned_features/feat_contextual_help/` — this `feature_spec.md`, plus `phase2_idea.md` and `phase3_idea.md` deferred-phase trackers.
 - `docs/05_quality/testing.md` — no change (the existing test layer convention already covers vitest unit/component + Playwright E2E).
 - `state.md` — add a "Recent meaningful changes" entry when the feature ships; update the "Most recent meaningful changes" and any backlog-summary line.
 - `CLAUDE.md` — no change. The existing "Enumerated Value Contract Discipline" rule already governs how the glossary entries are sourced.

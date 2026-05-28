@@ -2,7 +2,7 @@
 ``scripts/build_mvp1_dashboard.py``.
 
 Covers the fix for
-[bug_dashboard_depends_on_column_bloat](../../../../docs/02_product/planned_features/bug_dashboard_depends_on_column_bloat/idea.md):
+[bug_dashboard_depends_on_column_bloat](../../../../docs/00_overview/planned_features/bug_dashboard_depends_on_column_bloat/idea.md):
 shipped features that use the "ALL prior backend features" prose marker
 must inherit only backend peers that merged on or before them — not the
 full current-snapshot roster (which historically included features

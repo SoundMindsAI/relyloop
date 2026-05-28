@@ -6,7 +6,7 @@ Distilled from <https://docs.github.com> on 2026-05-09 (Rulesets path is GitHub'
 
 `infra_foundation` adds a CI workflow ([`.github/workflows/pr.yml`](../../.github/workflows/pr.yml)) with three jobs that gate every PR. Until those jobs are marked **required** in the GitHub repo settings, a PR with red CI can still be force-merged through the UI — which would defeat the purpose of the workflow.
 
-The plan ([`infra_foundation/implementation_plan.md` §7.5 manual handoff #3](../02_product/planned_features/infra_foundation/implementation_plan.md)) defers this to a repo-admin manual step because GitHub's branch-protection API requires admin permissions the agent never holds.
+The plan ([`infra_foundation/implementation_plan.md` §7.5 manual handoff #3](../00_overview/planned_features/infra_foundation/implementation_plan.md)) defers this to a repo-admin manual step because GitHub's branch-protection API requires admin permissions the agent never holds.
 
 ## Plan-tier asymmetry — read this before upgrading
 

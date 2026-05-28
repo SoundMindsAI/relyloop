@@ -20,7 +20,7 @@ of `feat_study_lifecycle`'s orchestrator pre-allocates the trial number
 and populates `trial.params` before enqueueing. The worker loads the
 in-flight trial via `study.trials[optuna_trial_number]` and proceeds
 through render → search → score → tell → INSERT. See the
-[`infra_optuna_eval` spec §11](../02_product/planned_features/infra_optuna_eval/feature_spec.md)
+[`infra_optuna_eval` spec §11](../00_overview/planned_features/infra_optuna_eval/feature_spec.md)
 (or the implemented-features copy) for the full retry contract.
 
 ## Connect to Postgres + inspect Optuna's schema
@@ -176,6 +176,6 @@ study's optimization history.
 ## Follow-ups
 
 A periodic reaper for orphan RUNNING trials is tracked separately as
-`infra_optuna_orphan_reaper` (filed under `docs/02_product/planned_features/`
+`infra_optuna_orphan_reaper` (filed under `docs/00_overview/planned_features/`
 when needed) — operationally tolerated for MVP1 per spec §11 "Operational
 tolerance".

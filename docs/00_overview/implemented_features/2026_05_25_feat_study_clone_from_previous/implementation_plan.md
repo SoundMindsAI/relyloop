@@ -528,7 +528,7 @@ useEffect(() => {
    UI-only `PrefillValues.cloneSource` field, NOT from the editable `name`
    form value (D-12 in `feat_study_clone_from_previous/feature_spec.md`).
    ```
-4. **Verify follow-up tracking:** `ls docs/02_product/planned_features/feat_study_clone_narrow_bounds/idea.md` exists (created during spec-gen Step 10). No edit; this story just confirms it's still in place.
+4. **Verify follow-up tracking:** `ls docs/00_overview/planned_features/feat_study_clone_narrow_bounds/idea.md` exists (created during spec-gen Step 10). No edit; this story just confirms it's still in place.
 
 **DoD:**
 - [ ] `ui/tests/e2e/study-clone.spec.ts` exists.

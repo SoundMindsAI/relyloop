@@ -401,7 +401,7 @@ elif state == "closed":
 
 ### 4.2 Product docs
 
-- [ ] Move `docs/02_product/planned_features/chore_reconciler_terminal_closed_no_poll/` → `docs/00_overview/implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll/` in the finalization PR after the implementation PR squash-merges.
+- [ ] Move `docs/00_overview/planned_features/chore_reconciler_terminal_closed_no_poll/` → `docs/00_overview/implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll/` in the finalization PR after the implementation PR squash-merges.
 
 ### 4.3 Runbooks
 

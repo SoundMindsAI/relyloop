@@ -493,7 +493,7 @@ Minimum required coverage by layer:
 ## 15) Documentation update requirements
 
 - `docs/01_architecture/llm-orchestration.md`: §"Capability check at startup" — update JSON example to include `models_endpoint` + `models_endpoint_status_code`; add the cascade explanation + repo-secret-vs-`.env` divergence note (FR-4).
-- `docs/02_product/planned_features/bug_openai_capability_check_incapable_on_valid_key/feature_spec.md`: this file.
+- `docs/00_overview/planned_features/bug_openai_capability_check_incapable_on_valid_key/feature_spec.md`: this file.
 - `docs/03_runbooks/`: no new runbook needed — the WARN log path is unchanged; existing operator workflow ("tail api logs") still works. New `/healthz` fields are self-documenting (an integer status code is a known operator concept).
 - `CLAUDE.md`: no new conventions or absolute rules introduced.
 - `state.md`: add to "recent changes" section after merge (the impl-execute skill handles this).

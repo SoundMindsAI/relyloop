@@ -128,4 +128,4 @@ These need a spec-time decision with a recommended default:
 - **Extends:** `feat_data_table_primitive` (PR #126) and `chore_form_dropdown_primitive` (PR #136) — third primitive in the same extraction pattern.
 - **Does not supersede:** [`ui/src/components/common/empty-state.tsx`](../../../../ui/src/components/common/empty-state.tsx) — the existing `<EmptyState>` primitive is consumed by `<DetailPageShell>`, not replaced.
 - **Does not affect:** chat surface, list pages (those use `<DataTable>`), modal flows (those use `<EntitySelect>`).
-- **Sibling check (clean):** no overlapping planned features under `docs/02_product/planned_features/`. No coordination required.
+- **Sibling check (clean):** no overlapping planned features under `docs/00_overview/planned_features/`. No coordination required.

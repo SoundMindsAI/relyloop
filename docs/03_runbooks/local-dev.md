@@ -43,7 +43,7 @@ rm -rf .venv
 uv sync                # uv reads .python-version, fetches 3.13, rebuilds
 ```
 
-Captured in [`infra_uv_sync_drops_precommit`](../02_product/planned_features/infra_uv_sync_drops_precommit/idea.md).
+Captured in [`infra_uv_sync_drops_precommit`](../00_overview/planned_features/infra_uv_sync_drops_precommit/idea.md).
 
 ### Local Node version
 
@@ -175,7 +175,7 @@ docker run --rm --network relyloop_default \
 ```
 
 **The `-v /app/.venv` flag is load-bearing** (per
-[`infra_uv_sync_drops_precommit`](../02_product/planned_features/infra_uv_sync_drops_precommit/idea.md)).
+[`infra_uv_sync_drops_precommit`](../00_overview/planned_features/infra_uv_sync_drops_precommit/idea.md)).
 It mounts an anonymous Docker volume at `/app/.venv` *inside the container*,
 masking the host's bind-mounted `.venv` for the duration of the run. Without
 it, the container's `uv sync` rewrites the venv's `pyvenv.cfg` + script
@@ -218,7 +218,7 @@ cache (~10-20s vs the bind-mount-and-reuse pattern's ~0s). Mount
 make seed-demo FORCE=1   # TRUNCATE demo tables + reseed (skip confirmation)
 ```
 
-After the reseed, the dashboard shows a "You're set up with demo data." banner above the StartHereChecklist. The banner is dismissable; once dismissed, the dismissal persists per-browser via the localStorage key `relyloop.home-first-run-demo-nudge.dismissed`. **`make seed-demo FORCE=1` does NOT clear that localStorage key** — to show the banner again after dismissal, clear the key via browser dev tools (`localStorage.removeItem('relyloop.home-first-run-demo-nudge.dismissed')` in the JS console). A future Phase 2 "Reset to demo state" UI affordance (tracked in [`phase2_idea.md`](../02_product/planned_features/feat_home_first_run_demo_nudge/phase2_idea.md)) will optionally clear the key as a side effect of reseeding.
+After the reseed, the dashboard shows a "You're set up with demo data." banner above the StartHereChecklist. The banner is dismissable; once dismissed, the dismissal persists per-browser via the localStorage key `relyloop.home-first-run-demo-nudge.dismissed`. **`make seed-demo FORCE=1` does NOT clear that localStorage key** — to show the banner again after dismissal, clear the key via browser dev tools (`localStorage.removeItem('relyloop.home-first-run-demo-nudge.dismissed')` in the JS console). A future Phase 2 "Reset to demo state" UI affordance (tracked in [`phase2_idea.md`](../00_overview/planned_features/feat_home_first_run_demo_nudge/phase2_idea.md)) will optionally clear the key as a side effect of reseeding.
 
 ## Debugging
 
@@ -302,4 +302,4 @@ managed cloud (CLAUDE.md "Common Pitfalls").
 - [`docs/05_quality/testing.md`](../05_quality/testing.md) — test layer conventions + 80% coverage gate
 - [`docs/01_architecture/deployment.md`](../01_architecture/deployment.md) — the full Compose layout reference
 - [`docs/01_architecture/llm-orchestration.md`](../01_architecture/llm-orchestration.md) — capability check + function-calling pattern
-- [`docs/02_product/planned_features/infra_foundation/`](../02_product/planned_features/infra_foundation/) — the spec + plan that produced this stack
+- [`docs/00_overview/planned_features/infra_foundation/`](../00_overview/planned_features/infra_foundation/) — the spec + plan that produced this stack
