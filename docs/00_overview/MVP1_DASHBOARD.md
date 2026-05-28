@@ -23,8 +23,8 @@ Implementation in progress — resume to finish
 | Scoped items done | **91 / 92** (99%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **8** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **3** high-value, ready when P0 clears |
-| → P2 (default) | 5 important to file, not blocking |
+| → P1 | **2** high-value, ready when P0 clears |
+| → P2 (default) | 6 important to file, not blocking |
 | → Backlog | 0 captured for record, not planned |
 | Open bugs | 4 |
 | Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
@@ -178,9 +178,9 @@ _None._
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [infra_smoke_job_chronic_flake](planned_features/01_mvp1/infra_smoke_job_chronic_flake/idea.md) | Infra | Recent `pr.yml` runs on `main` (newest first): | — | Idea — captured during feat_index_document_browser CI watch (PR #285) |
-| 2 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed`'s pre-main-body initialization that: | — | Idea — bug captured during PR #286 first-run testing |
-| 3 | P1 | [bug_smoke_seed_es_unavailable_shards_race](planned_features/01_mvp1/bug_smoke_seed_es_unavailable_shards_race/idea.md) | Bug | `backend/app/scripts/seed_es.py` creates the `products` index then immediately bulk-indexes 1000 docs against it. On cold GHA runners with ES 9.4.1 (bumped from 9.4.0 in PR #290), the bulk call someti | — | Idea — captured as part of PR #291 admin-merge |
+| 1 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed`'s pre-main-body initialization that: | — | Idea — bug captured during PR #286 first-run testing |
+| 2 | P1 | [bug_smoke_seed_es_unavailable_shards_race](planned_features/01_mvp1/bug_smoke_seed_es_unavailable_shards_race/idea.md) | Bug | `backend/app/scripts/seed_es.py` creates the `products` index then immediately bulk-indexes 1000 docs against it. On cold GHA runners with ES 9.4.1 (bumped from 9.4.0 in PR #290), the bulk call someti | — | Idea — captured as part of PR #291 admin-merge |
+| 3 | P2 | [infra_pr_yml_drop_push_main_trigger](planned_features/01_mvp1/infra_pr_yml_drop_push_main_trigger/idea.md) | Infra | Idea — partially superseded. The original 2026-05-27 capture treated this as a single multi-axis problem; three of the four cost contributors have shipped or were never true. The residual scope is one | — | Idea — partially superseded. The original 2026-05-27 capture treated this as a single multi-axis problem; three of the four cost contributors have shipped or were never true. The residual scope is one workflow-trigger change. See "What already shipped" below before reading the original problem narrative. |
 | 4 | P2 | [chore_e2e_api_base_url_construction](planned_features/01_mvp1/chore_e2e_api_base_url_construction/idea.md) | Chore | Five sites in three e2e specs concatenate `API_BASE` with a path string: | — | Idea — surfaced during Gemini Code Assist review on PR #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`). |
 | 5 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
 | 6 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |

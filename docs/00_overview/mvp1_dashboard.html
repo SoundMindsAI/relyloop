@@ -420,12 +420,12 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">3</div>
+      <div class="value">2</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">5</div>
+      <div class="value">6</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -465,19 +465,6 @@ footer {
 <div class="col idea">
   <h3>Idea <span class="count">7</span></h3>
 
-<div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/infra_smoke_job_chronic_flake">Smoke Job Chronic Flake</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">Recent `pr.yml` runs on `main` (newest first):</div>
-
-
-</div>
-
-
 <div class="card bug" data-prefix="bug" data-priority="P1">
   <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure">Demo Reseed Button Silent Enqueue Failure</a></div>
   <div class="meta">
@@ -499,6 +486,19 @@ footer {
 
   </div>
   <div class="one-liner">`backend/app/scripts/seed_es.py` creates the `products` index then immediately bulk-indexes 1000 docs against it. On cold GHA runners with ES 9.4.1 (bumped from 9.4.0 in PR #290), the bulk call someti</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/infra_pr_yml_drop_push_main_trigger">Pr Yml Drop Push Main Trigger</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Idea — partially superseded. The original 2026-05-27 capture treated this as a single multi-axis problem; three of the four cost contributors have shipped or were never true. The residual scope is one</div>
 
 
 </div>
