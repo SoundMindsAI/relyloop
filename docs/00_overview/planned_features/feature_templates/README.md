@@ -8,15 +8,15 @@ Templates for the spec → plan → implement pipeline:
 
 ## How to use
 
-1. Copy the template into your target feature folder under [`docs/00_overview/planned_features/`](../).
+1. Copy the template into your target feature folder under the appropriate MVP bucket inside [`docs/00_overview/planned_features/`](../) — pick `00_unsure/` when the release target isn't yet clear, or one of `01_mvp1/`, `02_mvp2/`, `03_mvp3/`, `04_ga/`, `99_backlog/` when it is.
 2. Replace every `<placeholder>`.
-3. Reference the canonical architecture docs in [`docs/01_architecture/`](../../../01_architecture/) for technical decisions (stack, conventions, data model, etc.) — feature specs should cite arch docs by section, not duplicate them.
+3. Reference the canonical architecture docs in [`docs/01_architecture/`](../../../../01_architecture/) for technical decisions (stack, conventions, data model, etc.) — feature specs should cite arch docs by section, not duplicate them.
 4. Keep section order unless there is a strong reason to deviate.
 5. Do not delete traceability, test strategy, or documentation-update sections.
 
 ## Folder naming convention
 
-New folders under `planned_features/` use a single-axis **work-type prefix**, mirroring Conventional Commits prefixes:
+New folders under `planned_features/<bucket>/` use a single-axis **work-type prefix**, mirroring Conventional Commits prefixes (`<bucket>` is the MVP grouping):
 
 | Prefix | Use for | Example |
 |---|---|---|

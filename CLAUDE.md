@@ -36,7 +36,7 @@ The tool is a single, engine-neutral, provider-neutral system: one UI, one workf
 | MVP2 / v0.2 | "Three-Engine + Real Signals" | Apache Solr adapter (Solr 9.x + 10.x via `edismax` + `{!ltr}` rescore) + UBI judgments (`UbiReader` reads `ubi_queries` + `ubi_events` via any `SearchAdapter`) + pluggable `SignalsConverter` (position-bias-corrected CTR, dwell-time, **hybrid UBI+LLM**) + `POST /api/v1/judgment-lists/generate-from-ubi` + `generate_judgments_from_ubi` agent tool. Solr's first-party `solr.UBIComponent` writes the same UBI schema, so UBI works on all three engines from day one. |
 | MVP3 / v0.3 | "Observable" | Langfuse + ClickHouse + SigNoz; canonical event catalog; `audit_log` table + immutability trigger (no users/tenants yet); lineage columns; PII redaction; trace propagation across all three engines + both judgment sources |
 | GA v1 / v1.0 | "Production-ready" | LangGraph orchestrator + `PostgresSaver`; full RFC 7807 errors; `Idempotency-Key`; full four-layer test pyramid at 90% coverage; complete CI/CD with security gates; container scanning; image signing; design-partner references; public Optuna-vs-SRW-grid benchmark. **No new product surface** — all six differentiators are GA by MVP3; GA v1 is polish + governance + hardening. |
-| Backlog | — | Multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy + multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, Azure OpenAI); LTR training; Path B (production monitoring, bandits, shadow validation); Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](docs/00_overview/planned_features/chore_drop_fusion_scope/idea.md)) |
+| Backlog | — | Multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy + multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, Azure OpenAI); LTR training; Path B (production monitoring, bandits, shadow validation); Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](docs/00_overview/planned_features/02_mvp2/chore_drop_fusion_scope/idea.md)) |
 
 If a CLAUDE.md statement conflicts with the canonical release matrix, the matrix wins — flag the drift in your PR.
 
@@ -463,7 +463,7 @@ This section covers the **runtime data path** (what's safe to write to from insi
 
 One follow-on capability remains tracked as a deferred-phase idea in the feature's planned-features folder, picked up when the friction recurs:
 
-- [`phase3_idea.md`](docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec). Picked up on a migration-collision incident between concurrent worktrees sharing the same Postgres.
+- [`phase3_idea.md`](docs/00_overview/planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec). Picked up on a migration-collision incident between concurrent worktrees sharing the same Postgres.
 
 Phase 2 (capability B, the `make test-worktree` automation) shipped on PR #249 alongside Phase 1 — see the Shortcut subsection above and [`docs/03_runbooks/parallel-worktrees.md`](docs/03_runbooks/parallel-worktrees.md).
 

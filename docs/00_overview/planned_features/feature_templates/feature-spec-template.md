@@ -68,7 +68,7 @@ decision.
 - <non-goal B>
 
 ### API convention check
-Verify the project's conventions before writing endpoint tables or response examples. For RelyLoop, the canonical conventions are documented in [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md); cite that doc rather than re-deriving. Confirm by inspecting the actual codebase before grounding a claim:
+Verify the project's conventions before writing endpoint tables or response examples. For RelyLoop, the canonical conventions are documented in [`docs/01_architecture/api-conventions.md`](../../../../01_architecture/api-conventions.md); cite that doc rather than re-deriving. Confirm by inspecting the actual codebase before grounding a claim:
 
 - **Endpoint prefix convention:** `/api/v1/<resource>` for business endpoints; unprefixed for operator/webhook endpoints. Verify in `backend/app/api/`.
 - **Router namespace for this feature's endpoints:** name the file (e.g., `backend/app/api/studies.py`).
@@ -122,13 +122,13 @@ Call out every external or cross-team dependency explicitly.
 
 ### Authorization
 
-For MVP1–MVP3 (single-tenant, no auth per [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../../../01_architecture/tech-stack.md)): write `N/A — single-tenant install, no auth surface`.
+For MVP1–MVP3 (single-tenant, no auth per [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../../../../01_architecture/tech-stack.md)): write `N/A — single-tenant install, no auth surface`.
 
 For MVP4+ (auth lands): author an RBAC matrix mapping each endpoint to allow/deny across roles `viewer / runner / tenant_admin / platform_admin` (per umbrella §18) with the enforcement mechanism (guard function / dependency) named per row.
 
 ### Audit events
 
-For MVP1 (no `audit_log` table yet per [`docs/01_architecture/data-model.md` §"Reserved for later releases"](../../../01_architecture/data-model.md)): write `N/A — audit_log lands at MVP2`.
+For MVP1 (no `audit_log` table yet per [`docs/01_architecture/data-model.md` §"Reserved for later releases"](../../../../01_architecture/data-model.md)): write `N/A — audit_log lands at MVP2`.
 
 For MVP2+: list every state-mutating endpoint or service function this spec adds, with the event_type it emits, the metadata fields, and the visibility (tenant-visible / admin-only / system). Emission must be atomic — `audit_log` INSERT inside the same transaction as the primary mutation, before `db.commit()`. Metadata must contain no credentials, tokens, or PII beyond display-name strings.
 
@@ -251,7 +251,7 @@ column that fits or explicitly call for a migration to add it.
 - `created_at` (timestamptz, default now)
 - `deleted_at` (timestamptz, nullable) — for soft-delete on user-facing tables; omit for append-only tables
 
-> **RELYLOOP MVP1–MVP3:** do NOT include `tenant_id` or `created_by` columns. RelyLoop is single-tenant + no auth through MVP3 per [`docs/01_architecture/data-model.md` §"Reserved for later releases"](../../../01_architecture/data-model.md). MVP4 adds `tenants`, `users`, and the per-table `tenant_id` migration with a `default`-tenant backfill.
+> **RELYLOOP MVP1–MVP3:** do NOT include `tenant_id` or `created_by` columns. RelyLoop is single-tenant + no auth through MVP3 per [`docs/01_architecture/data-model.md` §"Reserved for later releases"](../../../../01_architecture/data-model.md). MVP4 adds `tenants`, `users`, and the per-table `tenant_id` migration with a `default`-tenant backfill.
 
 **Modified table: `<existing_table>`**
 - Add `<column>` (`<type>`, <constraints>) — <purpose>

@@ -214,7 +214,7 @@ Before writing any files, classify all staged findings and corrections (from bot
 ### Step 9: Write the spec
 
 Write the final spec to the appropriate location:
-- Default: `docs/00_overview/planned_features/` with a descriptive filename
+- Default: `docs/00_overview/planned_features/<bucket>/` with a descriptive filename — `<bucket>` is the MVP grouping the feature belongs to (`00_unsure/`, `01_mvp1/`, `02_mvp2/`, `03_mvp3/`, `04_ga/`, `99_backlog/`). When unsure, default to `00_unsure/` and promote later.
 - Ask the user if they have a preferred location/filename
 
 ### Step 10: Track deferred phases
@@ -223,7 +223,7 @@ Write the final spec to the appropriate location:
 
 1. Read the spec's "Phase boundaries" section. List every phase beyond Phase 1 with its FRs.
 2. For each deferred phase, check whether a tracking file already exists (`glob` for `*idea*.md` or `*phase*_idea.md` in the feature directory).
-3. If no tracking file exists, create one at `docs/00_overview/planned_features/<feature_dir>/phase<N>_idea.md` following the idea template (`docs/00_overview/planned_features/feature_templates/idea-template.md`). Include:
+3. If no tracking file exists, create one at `docs/00_overview/planned_features/<bucket>/<feature_dir>/phase<N>_idea.md` (in the same bucket as the parent feature) following the idea template (`docs/00_overview/planned_features/feature_templates/idea-template.md`). Include:
    - Origin pointer to the spec file and line numbers where the deferred FRs are defined
    - The deferred FRs with enough context to generate a future implementation plan
    - Why the work was deferred (from the spec's phase boundary rationale)
@@ -246,7 +246,7 @@ Present proposed doc updates to the user for approval before writing.
 
 **This step is MANDATORY in Generate mode.** Write or update a `pipeline_status.md` file in the feature directory to record the spec stage completion. This file enables the `/pipeline` orchestrator to detect what stage a feature is at and resume automatically.
 
-Write to `docs/00_overview/planned_features/<feature_dir>/pipeline_status.md`:
+Write to `docs/00_overview/planned_features/<bucket>/<feature_dir>/pipeline_status.md`:
 
 ```markdown
 # Pipeline Status — <Feature Name>
