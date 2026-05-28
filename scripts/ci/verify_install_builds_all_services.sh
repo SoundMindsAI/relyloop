@@ -46,7 +46,12 @@ fi
 # Extract the `docker compose build [args...]` line from install.sh.
 # Match the bare command line (no pipes, no &&) — we want the operative build
 # step, not commentary or shell-substitution variants.
-build_line=$(grep -E '^docker compose build( .*)?$' "${INSTALL_FILE}" || true)
+# Allow leading whitespace so the line can sit inside an `if [[ ... ]]; then`
+# block (the RELYLOOP_SKIP_BUILD escape hatch added in PR #291 wraps the
+# build call in a conditional). Indentation is irrelevant to the drift this
+# gate exists to catch — what matters is that the buildable-service list
+# matches whatever args the line carries.
+build_line=$(grep -E '^[[:space:]]*docker compose build( .*)?$' "${INSTALL_FILE}" || true)
 
 if [[ -z "${build_line}" ]]; then
   echo "verify_install_builds_all_services: no 'docker compose build' line found in ${INSTALL_FILE}" >&2
@@ -54,8 +59,9 @@ if [[ -z "${build_line}" ]]; then
   exit 1
 fi
 
-# Strip the prefix to get the args (if any).
-args=$(echo "${build_line}" | sed -E 's/^docker compose build *//')
+# Strip the prefix to get the args (if any). Also strip any leading whitespace
+# carried in by the matched line so the args parse cleanly.
+args=$(echo "${build_line}" | sed -E 's/^[[:space:]]*docker compose build *//')
 
 if [[ -z "${args}" ]]; then
   echo "verify_install_builds_all_services: OK (no-args = builds all)"

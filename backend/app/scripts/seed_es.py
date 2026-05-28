@@ -58,9 +58,19 @@ async def main() -> int:
             return 1
 
         # Create with mapping derived from the products schema.
+        #
+        # number_of_replicas=0 is required for single-node ES (local dev +
+        # CI). The default (1) tries to allocate a replica that can never
+        # bind on a one-node cluster, leaving the primary itself in an
+        # INITIALIZING → STARTED race that surfaces as an
+        # `unavailable_shards_exception` on the immediately-following
+        # bulk-index. Visible in PR #291 CI run after the faster stack-up
+        # (~3min vs ~10min) stopped masking the race with implicit warmup
+        # time. See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
         create_resp = await client.put(
             f"/{INDEX_NAME}",
             json={
+                "settings": {"number_of_replicas": 0},
                 "mappings": {
                     "properties": {
                         "title": {"type": "text"},
@@ -69,10 +79,19 @@ async def main() -> int:
                         "color": {"type": "keyword"},
                         "bullet_points": {"type": "text"},
                     }
-                }
+                },
             },
         )
         create_resp.raise_for_status()
+
+        # Wait for the primary shard to be active before bulk-indexing. With
+        # number_of_replicas=0 above this should be instant, but the explicit
+        # wait gives a clean error if shard allocation does stall (vs the
+        # 1-min ES bulk-side timeout that ate PR #291's first CI run).
+        await client.get(
+            f"/_cluster/health/{INDEX_NAME}",
+            params={"wait_for_active_shards": "1", "timeout": "30s"},
+        )
 
         # _bulk-index in chunks (ES rejects >100MB single requests; 500 docs stays well under).
         for i in range(0, len(products), BULK_CHUNK):
