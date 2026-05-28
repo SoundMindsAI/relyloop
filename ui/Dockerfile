@@ -8,18 +8,18 @@
 # docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md §3
 # (decision log entry 2026-05-12 M3) for the rationale.
 #
-# Node base: node:24-bookworm-slim. Node 24 is the current Active LTS
+# Node base: node:26-bookworm-slim. Node 24 is the current Active LTS
 # (released 2025-10, supported until 2027-04). The repo's `.nvmrc` pins
 # Node 22 for host development, but Node 24 in the runtime image avoids
 # bit-rot vs. picking a soon-to-be-EOL'd LTS like Node 20.
 
-FROM node:24-bookworm-slim AS deps
+FROM node:26-bookworm-slim AS deps
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9 --activate
 COPY pnpm-lock.yaml package.json ./
 RUN pnpm install --frozen-lockfile
 
-FROM node:24-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@9 --activate
 COPY --from=deps /app/node_modules ./node_modules
@@ -28,7 +28,7 @@ ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
-FROM node:24-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000

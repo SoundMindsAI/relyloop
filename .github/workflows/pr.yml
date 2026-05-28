@@ -88,7 +88,7 @@ jobs:
     timeout-minutes: 15
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: relyloop
           POSTGRES_PASSWORD: testpassword
@@ -101,7 +101,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       redis:
-        image: redis:7
+        image: redis:8
         ports:
           - 6379:6379
         options: >-
@@ -110,7 +110,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       elasticsearch:
-        image: elasticsearch:9.4.0
+        image: elasticsearch:9.4.1
         env:
           discovery.type: single-node
           xpack.security.enabled: "false"
@@ -126,7 +126,7 @@ jobs:
           --health-timeout 5s
           --health-retries 12
       opensearch:
-        image: opensearchproject/opensearch:2.18.0
+        image: opensearchproject/opensearch:3.6.0
         env:
           discovery.type: single-node
           DISABLE_SECURITY_PLUGIN: "true"

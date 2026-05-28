@@ -12,7 +12,7 @@
 # Per docs/01_architecture/deployment.md §"MVP1 deployment shape" + the
 # implementation_plan.md Story 4.1 "Decision rationale".
 
-ARG PYTHON_VERSION=3.13
+ARG PYTHON_VERSION=3.14
 
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
