@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/SoundMindsAI/relyloop/security/advisories/new
+    about: Report a security vulnerability privately. Do not file a public issue.
+  - name: Question or design discussion
+    url: https://github.com/SoundMindsAI/relyloop/discussions
+    about: Ask a usage question, propose a design, or start an open-ended thread.
+  - name: Documentation issue
+    url: https://github.com/SoundMindsAI/relyloop/issues/new?template=bug_report.yml&labels=bug,docs,needs-triage&title=docs%3A+%3Cshort+summary%3E
+    about: Found a typo or a docs claim that doesn't match the code? File a bug with the "docs" label.

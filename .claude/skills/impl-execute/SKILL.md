@@ -354,7 +354,7 @@ Agent({
 3. Commit with a descriptive message referencing the story:
 
 ```bash
-git commit -m "$(cat <<'EOF'
+git commit -s -m "$(cat <<'EOF'
 feat(<scope>): <summary> (Story X.Y)
 
 <bullet points of key changes>
@@ -363,6 +363,12 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
+
+The `-s` flag adds a `Signed-off-by:` trailer required by the DCO check
+(`.github/workflows/dco.yml` + `scripts/check-dco-signoff.sh`). See
+CONTRIBUTING.md → Developer Certificate of Origin (DCO). The local pre-commit
+hook will reject the commit if the trailer is missing; the CI gate will fail
+the PR if any commit is missing it.
 
 ### Step 8: Update progress
 
@@ -628,7 +634,7 @@ make typecheck
 ./.venv/bin/ruff format --check backend/  # exactly what CI runs; must pass here too
 ```
 
-If `make fmt` produced any diff, commit it first (`git add -A && git commit -m "style: apply ruff format (pre-push)"`) before pushing — that keeps the gate honest on the pushed SHA.
+If `make fmt` produced any diff, commit it first (`git add -A && git commit -s -m "style: apply ruff format (pre-push)"`) before pushing — that keeps the gate honest on the pushed SHA. The `-s` is required by the DCO gate (see Step 7).
 
 ```bash
 git push -u origin <branch_name>
@@ -881,7 +887,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 
 8. **Commit and push** the finalization changes:
    ```bash
-   git add <all changed files> && git commit -m "docs: move <feature> to implemented, update state.md"
+   git add <all changed files> && git commit -s -m "docs: move <feature> to implemented, update state.md"
    git push
    ```
 

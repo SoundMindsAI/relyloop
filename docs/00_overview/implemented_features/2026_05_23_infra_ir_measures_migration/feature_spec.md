@@ -46,7 +46,7 @@ Verified via `grep -rn 'pytrec_eval\|pytrec-eval'` on `main` HEAD (2026-05-22). 
 | [`CLAUDE.md`](../../../../CLAUDE.md) | 15, 29 | Update both mentions. |
 | [`architecture.md`](../../../../architecture.md) | 131 | Update — "eval/ pytrec_eval scoring + Optuna runtime helpers". |
 | [`release-notes-v0.1.0-draft.md`](../../../../release-notes-v0.1.0-draft.md) | 12 | Update — release notes for the not-yet-tagged v0.1.0 / v0.2.0 cycle. |
-| [`docs/00_overview/product/relevance-copilot-spec.md`](../../../00_overview/product/relevance-copilot-spec.md) | 12, 155, 688, 690, 692–693, 711, 2192, 2302, 2513, 2658, 2722 (~11 mentions) | Update — durable umbrella spec, NOT a historical artifact. Includes the "Engine: pytrec_eval everywhere" subsection (lines 688–693) that needs reframing as the provider-abstracted engine choice. |
+| [`docs/00_overview/relyloop-spec.md`](../../../00_overview/relyloop-spec.md) | 12, 155, 688, 690, 692–693, 711, 2192, 2302, 2513, 2658, 2722 (~11 mentions) | Update — durable umbrella spec, NOT a historical artifact. Includes the "Engine: pytrec_eval everywhere" subsection (lines 688–693) that needs reframing as the provider-abstracted engine choice. |
 | [`docs/01_architecture/optimization.md`](../../../01_architecture/optimization.md) | 1 (title), 3, 15, 48, 50, 52–53, 69, 76, 87, 90, 176 (~10 mentions) | Update — **the canonical IR-evaluation architecture page**, including the code example block at lines 87–90. Title `# Optimization (Optuna + pytrec_eval)` becomes `# Optimization (Optuna + ir_measures)`. |
 | [`docs/01_architecture/tech-stack.md`](../../../01_architecture/tech-stack.md) | 41 | Update — IR evaluation row in the stack table. |
 | [`docs/01_architecture/system-overview.md`](../../../01_architecture/system-overview.md) | 76 | Update — component table row. |
@@ -597,7 +597,7 @@ N/A — no event-driven surfaces.
 - `docs/01_architecture/README.md` — line 21 cross-reference updated.
 - `docs/01_architecture/data-model.md` — lines 52, 231 reworded.
 - `docs/01_architecture/cluster-lifecycle.md` — line 159 reworded.
-- `docs/00_overview/product/relevance-copilot-spec.md` — umbrella spec; ~11 mentions reworded. The "Engine: pytrec_eval everywhere" subsection (lines 688–693) reframed as a provider-abstraction discussion. Stack table at line 155 + line 2513 + decision log at 2658 + appendix at 2722 all updated.
+- `docs/00_overview/relyloop-spec.md` — umbrella spec; ~11 mentions reworded. The "Engine: pytrec_eval everywhere" subsection (lines 688–693) reframed as a provider-abstraction discussion. Stack table at line 155 + line 2513 + decision log at 2658 + appendix at 2722 all updated.
 - `docs/02_product/mvp1-user-stories.md` — US-7 narrative reworded.
 - `docs/02_product/planned_features/feat_study_baseline_trial/idea.md` — sibling-coordination: line 56 ("scores via `pytrec_eval`") reworded to `ir_measures`. Same-PR update.
 - `docs/02_product/planned_features/feat_auto_followup_studies/idea.md` — sibling-coordination: line 47 ("Optuna + pytrec_eval are deterministic") reworded to `Optuna + ir_measures`. Same-PR update.
@@ -653,7 +653,7 @@ This feature is complete when:
 - [ ] The parity test (AC-2) passes for all 30 parametrized `(metric, k)` cases.
 - [ ] Per-query shape parity passes for the 4 edge-case queries (no-relevant, qrel-only, run-only, empty-overlap).
 - [ ] The existing-row read regression (AC-12) passes — pre-migration JSONB shapes hydrate confidence + trial-list + digest without raising.
-- [ ] `docs/01_architecture/optimization.md` + `tech-stack.md` + `system-overview.md` + all docs in §15 are updated and merged in the same PR. The umbrella spec (`docs/00_overview/product/relevance-copilot-spec.md`)'s "Engine: pytrec_eval everywhere" subsection is reframed as a provider-abstraction discussion.
+- [ ] `docs/01_architecture/optimization.md` + `tech-stack.md` + `system-overview.md` + all docs in §15 are updated and merged in the same PR. The umbrella spec (`docs/00_overview/relyloop-spec.md`)'s "Engine: pytrec_eval everywhere" subsection is reframed as a provider-abstraction discussion.
 - [ ] `state.md` has a new dated entry describing the migration (per AC-11).
 - [ ] `docs/00_overview/MVP1_DASHBOARD.md` regenerated via `scripts/build_mvp1_dashboard.py`.
 - [ ] Q1/Q2/Q3/Q4/Q5 resolutions are recorded in the decision log with cited verification output (per §19).

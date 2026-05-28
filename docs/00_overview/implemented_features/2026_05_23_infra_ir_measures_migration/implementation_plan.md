@@ -649,7 +649,7 @@ None.
 | [`CLAUDE.md`](../../../../CLAUDE.md) | Lines 15 + 29 — both `pytrec_eval` mentions → `ir_measures`. |
 | [`architecture.md`](../../../../architecture.md) | Line 131 — `eval/ pytrec_eval scoring` → `eval/ ir_measures scoring`. |
 | [`release-notes-v0.1.0-draft.md`](../../../../release-notes-v0.1.0-draft.md) | Line 12 — stack table entry. |
-| [`docs/00_overview/product/relevance-copilot-spec.md`](../../../00_overview/product/relevance-copilot-spec.md) | All 11 mentions (lines 12, 155, 688, 690, 692–693, 711, 2192, 2302, 2513, 2658, 2722). The "Engine: pytrec_eval everywhere" subsection (lines 688–693) is reframed as "Engine: provider-abstracted via `ir_measures`" with the reasons restated as: standard IR metric semantics across engines, per-query inspectability, cross-engine comparability (the old "de facto standard wrapper for trec_eval" framing becomes "provider abstraction means swapping backends is config, not rewrite"). |
+| [`docs/00_overview/relyloop-spec.md`](../../../00_overview/relyloop-spec.md) | All 11 mentions (lines 12, 155, 688, 690, 692–693, 711, 2192, 2302, 2513, 2658, 2722). The "Engine: pytrec_eval everywhere" subsection (lines 688–693) is reframed as "Engine: provider-abstracted via `ir_measures`" with the reasons restated as: standard IR metric semantics across engines, per-query inspectability, cross-engine comparability (the old "de facto standard wrapper for trec_eval" framing becomes "provider abstraction means swapping backends is config, not rewrite"). |
 | [`docs/01_architecture/optimization.md`](../../../01_architecture/optimization.md) | All 10 mentions. Title `# Optimization (Optuna + pytrec_eval)` → `# Optimization (Optuna + ir_measures)`. Code-example block at lines 87–90 (`pytrec_eval.RelevanceEvaluator(qrels, {"ndcg_cut_10", "map", "P_10"}).evaluate(run)`) rewritten to: `import ir_measures` + `metrics = list(ir_measures.iter_calc([nDCG@10, AP, P@10], qrels, run))` plus a note that RelyLoop's `score()` re-keys back to user-facing tokens (`ndcg@10`, `map`, `precision@10`). |
 | [`docs/01_architecture/tech-stack.md`](../../../01_architecture/tech-stack.md) | Line 41 IR-evaluation row updated. |
 | [`docs/01_architecture/system-overview.md`](../../../01_architecture/system-overview.md) | Line 76 component table row updated. |
@@ -678,7 +678,7 @@ None.
 
 1. **Doc rewordings (bulk).** Open each file in the modified files table; apply the rewording. Use `sed -i` where the replacement is a literal token swap (`pytrec_eval` → `ir_measures`) but verify each file before bulk substitution — the umbrella spec and optimization.md have prose context that may need a sentence-level rewrite, not a token swap.
 
-2. **Umbrella spec rewrite (subsection).** The "Engine: pytrec_eval everywhere" subsection at `docs/00_overview/product/relevance-copilot-spec.md:688–693` needs more than a token swap. Rewrite to **never name `pytrec_eval` in the live umbrella spec** (per cycle-1 F5 — FR-7's allowlist does not include the umbrella spec, and the provider-abstraction framing doesn't require naming the underlying backend):
+2. **Umbrella spec rewrite (subsection).** The "Engine: pytrec_eval everywhere" subsection at `docs/00_overview/relyloop-spec.md:688–693` needs more than a token swap. Rewrite to **never name `pytrec_eval` in the live umbrella spec** (per cycle-1 F5 — FR-7's allowlist does not include the umbrella spec, and the provider-abstraction framing doesn't require naming the underlying backend):
    ```markdown
    ### Engine: provider-abstracted IR evaluation via `ir_measures`
 
@@ -863,7 +863,7 @@ The migration adds 2 new test files and extends 3 existing assertions; existing 
 - [x] `docs/02_product/mvp1-user-stories.md` — line 40.
 - [x] `docs/02_product/planned_features/feat_study_baseline_trial/idea.md` — sibling coordination, line 56.
 - [x] `docs/02_product/planned_features/feat_auto_followup_studies/idea.md` — sibling coordination, line 47.
-- [x] `docs/00_overview/product/relevance-copilot-spec.md` — umbrella spec, 11 mentions including subsection rewrite.
+- [x] `docs/00_overview/relyloop-spec.md` — umbrella spec, 11 mentions including subsection rewrite.
 
 ### 4.3 Runbooks
 

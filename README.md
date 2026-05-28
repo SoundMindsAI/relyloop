@@ -59,12 +59,32 @@ do not duplicate here, the matrix is the source of truth.
 - **Engine-neutral across the three OSS engines** — Elasticsearch + OpenSearch in MVP1 via one adapter; Apache Solr in MVP2. Lucidworks Fusion explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](docs/02_product/planned_features/chore_drop_fusion_scope/idea.md)).
 - **Full-search-space Bayesian/TPE optimization** — Optuna across field boosts, function scores, fuzziness, `mm`, tie-breakers, hybrid weights, LTR rescoring. Not a 66-cell grid over hybrid weights alone (the only thing OpenSearch SRW's optimizer covers today).
 - **Git-as-source-of-truth** — winning configs land as PRs against a central config repo; deployment is the operator's CI's job, not RelyLoop's. OpenSearch SRW has no apply path by explicit RFC choice; this is a stable differentiator.
-- **Provider-neutral LLM** — OpenAI-compatible endpoint in MVP1 (works against api.openai.com, Ollama, LM Studio, vLLM, HuggingFace TGI via `OPENAI_BASE_URL`). Native non-OpenAI provider SDKs are in the backlog.
+- **Single-endpoint LLM flexibility** — one env var (`OPENAI_BASE_URL`) is the entire LLM integration surface. Works against any OpenAI-compatible endpoint: OpenAI cloud, Ollama (local), LM Studio (local), vLLM (local or remote), HuggingFace TGI, Azure OpenAI's OpenAI-compatible mode, OpenRouter (multi-model routing), or LiteLLM proxy in front of Bedrock / Vertex / Anthropic native. Truly air-gapped deployments run RelyLoop against Ollama on the same VM with zero data leaving the network. See [`docs/08_guides/llm-endpoint-setup.md`](docs/08_guides/llm-endpoint-setup.md). Native non-OpenAI provider SDKs are in the backlog as an ergonomics upgrade — the unblocking pattern (LiteLLM proxy or OpenRouter) covers most adopters today.
 - **Local-first observability** — Langfuse + SigNoz both self-hosted (MVP3); no LLM trace data leaves the deployment VM.
 - **Single-tenant through GA v1** — multi-tenancy is in the backlog; SSO via reverse proxy is the recommended path for now.
 - **Deliberate, not real-time** — RelyLoop is for offline experimentation and change management; it does not sit on the live search-serving path. Online learning / bandits / production-quality monitoring are a v2 Path B direction.
 
 See spec §4 (non-goals) for the full set.
+
+## How RelyLoop fits with other relevance tools
+
+RelyLoop is not the first tool in the search-relevance space and does not try
+to replace the tools already there. It sits alongside Quepid (interactive
+workbench), the OpenSearch Relevance Agent (in-cluster automated tuning for
+OpenSearch-only shops), Chorus (reference integration stack), SMUI + Querqy
+(query-rewriting rules), Elasticsearch / Solr LTR (reranker model training),
+OpenSearch UBI (real user signals), and the rest of the open-source relevance
+ecosystem.
+
+The slice RelyLoop owns is **autonomous, engine-agnostic, Git-PR-mediated
+query-time parameter tuning** — useful when you operate Elasticsearch or both
+ES + OpenSearch, want production config changes to flow through a Pull
+Request reviewed by named approvers, run multiple clusters / environments,
+or eventually want one tool that spans engines.
+
+The full breakdown — honest assessment of where each adjacent tool fits,
+where RelyLoop fits, and the pairing patterns we recommend — is in
+[`docs/00_overview/adjacent-tools.md`](docs/00_overview/adjacent-tools.md).
 
 ## Links
 
@@ -77,12 +97,27 @@ See spec §4 (non-goals) for the full set.
 
 ## License
 
-Apache License 2.0 — see [LICENSE](LICENSE).
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions use the Developer Certificate of Origin (DCO) — sign your commits with `git commit -s`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, branching, and PR conventions. Contributions use the Developer Certificate of Origin (DCO) — sign your commits with `git commit -s`. Be kind ([CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)).
 
-## Maintainers
+## Security
 
-soundminds.ai is the initial maintainer. The project plans to transition toward community maintainership over 12–24 months. See spec §29 *OSS positioning & governance*.
+Vulnerabilities go through [SECURITY.md](SECURITY.md), not public issues.
+
+## Governance and maintainers
+
+- Current maintainers: [MAINTAINERS.md](MAINTAINERS.md). At v0.1, all maintainers are soundminds.ai employees — stated openly so the bus factor is visible.
+- How decisions are made + the plan to grow the maintainer set across organizations: [GOVERNANCE.md](GOVERNANCE.md). The transition target is 12–24 months from MVP1's first stable release.
+
+## Reaching out
+
+For casual outreach, design conversations, or "is RelyLoop right for my team?" questions, the project lead is reachable at:
+
+- Email: `eric.starr@soundminds.ai`
+- X: [@Starrman777](https://x.com/Starrman777)
+- LinkedIn: [linkedin.com/in/starrman](https://www.linkedin.com/in/starrman/)
+
+For bug reports use [GitHub Issues](https://github.com/SoundMindsAI/relyloop/issues); for security vulnerabilities use [SECURITY.md](SECURITY.md); for design discussions in the open use [GitHub Discussions](https://github.com/SoundMindsAI/relyloop/discussions).

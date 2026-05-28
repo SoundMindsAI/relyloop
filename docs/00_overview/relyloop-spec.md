@@ -1,9 +1,9 @@
-# RelyLoop — Internal Tool Specification
+# RelyLoop — Project Specification
 
 **Status:** Draft v0.1
 **Date:** 2026-05-07
-**Owner:** Relevance team
-**Audience:** Engineers and stakeholders building or evaluating the tool
+**Owner:** RelyLoop maintainers (see [MAINTAINERS.md](../../MAINTAINERS.md))
+**Audience:** Engineers, operators, and stakeholders building, evaluating, or contributing to the tool
 
 ---
 
@@ -19,7 +19,7 @@ This combination — *Bayesian/TPE optimization across the full query-time searc
 
 See [`docs/07_research/comparison.md`](../../07_research/comparison.md) for the full citation-backed comparison matrix.
 
-The system is **engine-neutral, provider-neutral, and Git-provider-neutral by design**: differences between Elasticsearch, OpenSearch, and Solr are isolated behind a thin `SearchAdapter` Protocol; LLM providers (OpenAI today, others post-GA) are isolated behind a `ChatModel` adapter; Git providers (GitHub today, others in the backlog) are isolated behind a `GitProvider` adapter. One UI, one workflow, one schema, regardless of what the operator already runs.
+The system is **engine-neutral, provider-neutral, and Git-provider-neutral by design**: differences between Elasticsearch, OpenSearch, and Solr are isolated behind a thin `SearchAdapter` Protocol; LLM flexibility is a **single env var** (`OPENAI_BASE_URL`) that points the `openai` SDK at any OpenAI-compatible endpoint — OpenAI cloud, Ollama (air-gapped local), LM Studio, vLLM, HuggingFace TGI, Azure OpenAI's OpenAI-compatible mode, OpenRouter for multi-model routing, or LiteLLM proxy in front of Bedrock / Vertex / Anthropic native (see [`docs/08_guides/llm-endpoint-setup.md`](../08_guides/llm-endpoint-setup.md) for side-by-side configurations); Git providers (GitHub today, others in the backlog) are isolated behind a `GitProvider` adapter. One UI, one workflow, one schema, regardless of what the operator already runs.
 
 **Delivery is incremental across three pre-GA releases plus a polish-and-governance GA:**
 
@@ -50,11 +50,11 @@ Search relevance tuning at most organizations is manual, ad-hoc, and engineer-ti
 The current OSS landscape (May 2026):
 
 - **OpenSearch Search Relevance Workbench** covers a substantial slice of the workflow GA today — query sets, judgment lists (LLM-as-judge and UBI-derived via COEC), search-config A/B comparison, multi-cluster, scheduled experiments. But its only optimizer is a 66-cell grid search restricted to hybrid-search weights; the full-search-space Bayesian optimization that would close the "systematic exploration" gap is in RFC #934 with no shipped code. SRW also has no apply path by explicit RFC design, and is architecturally OpenSearch-only.
-- **OpenSearch Relevance Agent** (experimental in 3.6) is a conversational DSL recommender. It suggests edits; it does not run multi-thousand-trial sweeps and does not write to Git.
+- **OpenSearch Relevance Agent** (experimental in 3.6) is a conversational DSL recommender. It suggests edits; it does not run multi-thousand-trial sweeps and does not write to Git. For OpenSearch-only single-cluster shops that don't need a PR workflow, this may be the simpler choice — see [`adjacent-tools.md`](../00_overview/adjacent-tools.md) for the honest breakdown.
 - **Elasticsearch** deprecated Behavioral Analytics + Search Applications in 9.0 and offers only the `_rank_eval` API primitive. The implicit Elastic message is "DIY through query DSL + retrievers."
 - **The Solr ecosystem** (Quepid + Chorus + RRE) is mature for manual evaluation but has no auto-optimizer.
 
-RelyLoop is the tool that **fills the gap none of the above closes**: automated Bayesian/TPE optimization across the full search space, on every major OSS engine, with a Git-PR apply path. The conversational agent is the front door that makes the loop accessible; the Bayesian loop and the Git-PR posture are the actual engineering moat. See [`docs/07_research/comparison.md`](../../07_research/comparison.md) for the full citation-backed comparison.
+RelyLoop is the tool that **fills the gap none of the above closes**: automated Bayesian/TPE optimization across the full search space, on every major OSS engine (Elasticsearch + OpenSearch today; Apache Solr at MVP2), with a Git-PR apply path. The conversational agent is the front door that makes the loop accessible; the Bayesian loop and the Git-PR posture are the actual engineering moat. See [`docs/07_research/comparison.md`](../07_research/comparison.md) for the citation-backed comparison matrix and [`adjacent-tools.md`](../00_overview/adjacent-tools.md) for the narrative tool-by-tool breakdown with pairing patterns.
 
 ## 3. Goals
 
@@ -721,7 +721,7 @@ Because UBI is just two indices in the cluster RelyLoop is already adapting, the
 
 The pluggable `SignalsConverter` then maps these features to a 0–3 rating. Initial converters: position-bias-corrected CTR threshold, dwell-time threshold, and **hybrid UBI+LLM** (UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold). Counterfactual click models (CCM, DBN) are documented as post-MVP2 extensions because they need enough impressions per (query, doc) to be statistically meaningful.
 
-The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. See [`feat_ubi_judgments/idea.md`](../../02_product/planned_features/feat_ubi_judgments/idea.md) and [`infra_adapter_solr/idea.md`](../../02_product/planned_features/infra_adapter_solr/idea.md) for the planned-feature scope.
+The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. See [`feat_ubi_judgments/idea.md`](../02_product/planned_features/feat_ubi_judgments/idea.md) and [`infra_adapter_solr/idea.md`](../02_product/planned_features/infra_adapter_solr/idea.md) for the planned-feature scope.
 
 Predicated on the operator having installed the UBI plugin on their engine (OpenSearch UBI plugin, the o19s Elasticsearch UBI fork, or Solr's first-party `solr.UBIComponent`) and logged enough events to be statistically useful. Deployments without UBI continue to run LLM-as-judge unchanged.
 
