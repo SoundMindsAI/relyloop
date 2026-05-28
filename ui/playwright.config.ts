@@ -26,20 +26,37 @@ export default defineConfig({
   //     (slow-mo, video, 1440×960 viewport) — exclude from regression runs so
   //     they don't overwrite canonical guide PNGs at unexpected viewport sizes.
   //
-  //   - dashboard.spec.ts + dashboard-reseed.spec.ts (CI-only) — these specs
-  //     assert on the demo cluster slugs (acme-products-prod / corp-docs-search
-  //     / news-search-staging / jobs-marketplace-prod) seeded by
-  //     `make seed-demo FORCE=1`. The seed adds ~60s to CI per run AND has been
-  //     the persistent failure source (`bug_smoke_dashboard_demo_state_locator_missing`,
-  //     `bug_smoke_followup_clone_e2e_flakes`). The underlying components have
-  //     vitest coverage (`start-here-checklist.test.tsx` and the demo-banner
-  //     component tests). Locally the operator can still run them after
-  //     `make seed-demo` — `CI=` (unset) gates these in. See
-  //     `chore_drop_demo_seed_from_ci/idea.md` for the rationale.
+  //   - Demo-data-dependent specs (CI-only) — these specs assert on data
+  //     populated by `scripts/seed_meaningful_demos.py` (4 demo cluster
+  //     scenarios with full study + judgment + proposal artifacts). The seed
+  //     was removed from CI on 2026-05-28:
+  //       1. The original 2 specs (`dashboard.spec.ts` + `dashboard-reseed.spec.ts`)
+  //          were dropped because they had been the persistent flake source
+  //          (`bug_smoke_dashboard_demo_state_locator_missing`,
+  //          `bug_smoke_followup_clone_e2e_flakes`). See
+  //          `chore_drop_demo_seed_from_ci/idea.md`.
+  //       2. PR #291's CI-perf work added `RELYLOOP_SKIP_AUTO_SEED=1` to the
+  //          smoke job, which removed install.sh's auto-seed-on-`make up`
+  //          (~5min). The 4th CI run surfaced 6 more specs that depend on
+  //          the demo data — added below. See
+  //          `chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md`.
+  //     Locally the operator runs `make up` (no RELYLOOP_SKIP_AUTO_SEED) which
+  //     re-enables the auto-seed; `CI=` (unset) gates these specs IN locally.
   testIgnore: [
     '**/guides/**',
     ...(process.env.CI
-      ? ['**/dashboard.spec.ts', '**/dashboard-reseed.spec.ts']
+      ? [
+          // Original 2 from chore_drop_demo_seed_from_ci:
+          '**/dashboard.spec.ts',
+          '**/dashboard-reseed.spec.ts',
+          // PR #291 4th-run surface: 6 specs that depend on demo data
+          // (clusters/studies/targets from scripts/seed_meaningful_demos.py).
+          // Each was failing the same way — empty data → assertion timeout.
+          '**/auto-followup.spec.ts',
+          '**/index-document-browser.spec.ts',
+          '**/studies-create-builder.spec.ts',
+          '**/studies-create-target-dropdown.spec.ts',
+        ]
       : []),
   ],
   fullyParallel: false, // single backend stack — keep specs serial to avoid data races
