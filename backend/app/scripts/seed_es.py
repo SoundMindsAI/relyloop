@@ -84,15 +84,6 @@ async def main() -> int:
         )
         create_resp.raise_for_status()
 
-        # Wait for the primary shard to be active before bulk-indexing. With
-        # number_of_replicas=0 above this should be instant, but the explicit
-        # wait gives a clean error if shard allocation does stall (vs the
-        # 1-min ES bulk-side timeout that ate PR #291's first CI run).
-        await client.get(
-            f"/_cluster/health/{INDEX_NAME}",
-            params={"wait_for_active_shards": "1", "timeout": "30s"},
-        )
-
         # _bulk-index in chunks (ES rejects >100MB single requests; 500 docs stays well under).
         for i in range(0, len(products), BULK_CHUNK):
             chunk = products[i : i + BULK_CHUNK]
