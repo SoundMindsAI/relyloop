@@ -204,9 +204,16 @@ services:
     ports:
       - "127.0.0.1:9200:9200"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:9200/_cluster/health || exit 1"]
+      # `wait_for_status=yellow` blocks until shard allocation completes,
+      # not just until ES is responding. Without it, `docker compose up
+      # --wait` returns when ES says "alive" but before it's ready for
+      # write ops, leading to httpx.ReadTimeout on the first index create
+      # (PR #291's 5th/6th CI runs surfaced this on the fast smoke path
+      # where stack-up went from 10min → 1m 22s; the slow path masked
+      # ES warmup by ambient delay). timeout=20s ≤ healthcheck timeout.
+      test: ["CMD-SHELL", "curl -fs 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=20s' || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 25s
       retries: 6
 
   opensearch:
@@ -218,9 +225,11 @@ services:
     ports:
       - "127.0.0.1:9201:9200"
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:9200 || exit 1"]
+      # Same write-readiness gating as the elasticsearch service above —
+      # `wait_for_status=yellow` blocks until shard allocation completes.
+      test: ["CMD-SHELL", "curl -fs 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=20s' || exit 1"]
       interval: 10s
-      timeout: 5s
+      timeout: 25s
       retries: 6
 
 secrets:
