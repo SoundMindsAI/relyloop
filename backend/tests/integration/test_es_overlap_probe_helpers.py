@@ -222,7 +222,7 @@ def test_overlap_probe_real_engine_sentinel() -> None:
     assert url, (
         "CI ES sentinel: Elasticsearch is not reachable on http://localhost:9200 "
         "or http://elasticsearch:9200. The .github/workflows/pr.yml workflow's "
-        "'elasticsearch:9.4.0' service container is missing or unhealthy — the 5 "
+        "'elasticsearch:9.4.1' service container is missing or unhealthy — the 5 "
         "rewritten overlap-probe tests in test_studies_api.py will silently skip "
         "via @es_required, stripping the regression coverage this feature delivers. "
         "Check the workflow's `services.elasticsearch` block."
