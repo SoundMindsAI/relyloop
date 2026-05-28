@@ -448,6 +448,11 @@ jobs:
         env:
           RELYLOOP_GIT_SHA: ${{ github.sha }}
           RELYLOOP_SKIP_BUILD: "1"
+          # Same rationale as RELYLOOP_SKIP_BUILD — the 2 demo-dependent
+          # E2E specs were skipped in CI on 2026-05-28
+          # (chore_drop_demo_seed_from_ci). Without this skip install.sh
+          # would still auto-seed ~5min of demo data on every CI run.
+          RELYLOOP_SKIP_AUTO_SEED: "1"
         run: make up
 
       - name: Wait for /healthz

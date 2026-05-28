@@ -101,7 +101,18 @@ docker compose up -d --wait
 #    The auto-seed is non-fatal: a failure here doesn't roll back the
 #    stack startup. The operator can re-run `make seed-demo FORCE=1`
 #    manually once the failure is understood.
-echo "Checking demo state…"
-if ! python3 scripts/seed_meaningful_demos.py --if-empty; then
-  echo "Warning: auto-seed failed (non-fatal). Run 'make seed-demo FORCE=1' manually."
+#
+#    CI escape hatch: set `RELYLOOP_SKIP_AUTO_SEED=1` to skip this step.
+#    The smoke job sets this because the dashboard E2E specs that needed
+#    the demo data were skipped in CI on 2026-05-28 (see
+#    chore_drop_demo_seed_from_ci/idea.md). Without the skip, install.sh
+#    would do ~5min of demo-seeding inside `make up` that no CI step
+#    consumes. See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
+if [[ "${RELYLOOP_SKIP_AUTO_SEED:-0}" != "1" ]]; then
+  echo "Checking demo state…"
+  if ! python3 scripts/seed_meaningful_demos.py --if-empty; then
+    echo "Warning: auto-seed failed (non-fatal). Run 'make seed-demo FORCE=1' manually."
+  fi
+else
+  echo "RELYLOOP_SKIP_AUTO_SEED=1 set — skipping demo auto-seed (CI fast path)"
 fi
