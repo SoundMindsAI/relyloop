@@ -1,6 +1,6 @@
 # Adapters
 
-**Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; Lucidworks Fusion ships at MVP3; Apache Solr at v2+. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
+**Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; SolrAdapter ships at MVP2 alongside UBI judgments. Lucidworks Fusion is explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md)) — a community-contributed Fusion adapter remains possible against this Protocol, but the project does not own that direction. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
 **Source of truth for product context:** [docs/00_overview/relyloop-spec.md §8](../00_overview/relyloop-spec.md) ("Engine adapter specification") and §11 ("Search space & parameters").
 
 ---
@@ -20,7 +20,7 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class SearchAdapter(Protocol):
-    engine_type: str  # "elasticsearch" | "opensearch" | "lucidworks_fusion" | "solr"
+    engine_type: str  # "elasticsearch" | "opensearch" | "solr"
 
     def health_check(self) -> HealthStatus: ...
     def list_targets(self, *, target_filter: str | None = None) -> list[TargetInfo]: ...
@@ -64,7 +64,7 @@ The asymmetry on 401/403 (`list_targets` distinguishes; `get_schema` conflates w
 
 **`list_targets` filter semantics** (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/<date>_feat_cluster_target_filter/)). When the caller passes `target_filter="<glob>"`, the adapter restricts the result to names where `fnmatch.fnmatchcase(name, glob)` returns True. Glob syntax: `*`, `?`, `[seq]`, `[!seq]` — no brace expansion. Case-sensitive via `fnmatchcase` (avoids platform-dependent `os.path.normcase` in `fnmatch.fnmatch`). **Order of operations:** the engine's system-index `.` exclusion runs FIRST; the glob filter runs SECOND. Operators cannot re-expose `.kibana_1` or similar via a permissive filter. The router resolves `cluster.target_filter` from the DB row before calling the adapter — `target_filter` is per-cluster metadata, not a per-request query parameter.
 
-The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py`, future `backend/app/adapters/fusion.py`, etc.).
+The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py` today; `backend/app/adapters/solr.py` arrives with MVP2).
 
 ## ElasticAdapter (MVP1)
 
@@ -95,21 +95,20 @@ The adapter selects engine-specific behavior via the `engine_type` flag passed a
 
 Templates use **unified parameter names**. The adapter pivots them to native names. This table is the contract; adding a new parameter means extending the unified vocabulary and updating every adapter that supports it.
 
-| Concept | Unified name | ES (`multi_match`) | Lucidworks Fusion (MVP3) | Solr (`edismax`) (v2+) |
-|---|---|---|---|---|
-| Per-field weights | `field_boosts: {f: w}` | `fields: ["f^w"]` | stage param `searchFields.fields` or `params.solr.qf` override | `qf=f^w` |
-| Phrase fields | `phrase_field_boosts` | nested `phrase` clause | `params.solr.pf` override | `pf` |
-| Tie breaker | `tie_breaker` | `tie_breaker` | `params.solr.tie` override | `tie` |
-| Min should match | `min_should_match` | `minimum_should_match` | `params.solr.mm` override | `mm` |
-| Fuzziness | `fuzziness` | `fuzziness` | (manual via `~` in query parser) | (manual via `~`) |
-| Slop | `slop` | `slop` | `params.solr.ps` override | `ps` |
-| Boost function | `boost_fn: {field, type, params}` | `function_score` | boosting stage `bq` override | `boost`, `bf` |
-| Reranker model | `rerank_model: {id, top_k}` | `rescore.window_size` + LTR | rerank stage `modelId`, `topK` | LTR plugin model |
-| Pipeline stage toggle | `stage_enabled: {stage_id: bool}` | (n/a) | per-stage `enabled` param | (n/a) |
+| Concept | Unified name | ES / OpenSearch (`multi_match`) | Solr (`edismax`) (MVP2) |
+|---|---|---|---|
+| Per-field weights | `field_boosts: {f: w}` | `fields: ["f^w"]` | `qf=f^w` |
+| Phrase fields | `phrase_field_boosts` | nested `phrase` clause | `pf` |
+| Tie breaker | `tie_breaker` | `tie_breaker` | `tie` |
+| Min should match | `min_should_match` | `minimum_should_match` | `mm` (richer arithmetic syntax — `2<-25% 9<-3`) |
+| Fuzziness | `fuzziness` | `fuzziness` | (manual via `~` in query parser) |
+| Slop | `slop` | `slop` | `ps` |
+| Boost function | `boost_fn: {field, type, params, combine: "add"\|"multiply"}` | `function_score` (multiplicative default; additive when `combine=add`) | `bf` (additive) or `boost` (multiplicative) chosen by `combine` |
+| Reranker model | `rerank_model: {id, top_k}` | `rescore.window_size` + LTR | `rq={!ltr model=... reRankDocs=...}` |
 
-**When a concept doesn't exist natively** (e.g., ES `function_score` rendered as Fusion `bq`), the adapter either provides a best-effort translation OR raises `UnsupportedParameter` at render time. The search-space validator catches this before a study runs (rejects the study definition rather than failing trials individually).
+**When a concept doesn't exist natively**, the adapter either provides a best-effort translation OR raises `UnsupportedParameter` at render time. The search-space validator catches this before a study runs (rejects the study definition rather than failing trials individually).
 
-**Fusion's `stage_enabled` parameter** is unique to Fusion — it lets a study toggle individual pipeline stages on/off as a categorical parameter, which is a powerful and engine-specific tuning lever.
+The earlier `stage_enabled` unified-vocabulary parameter (Fusion-specific pipeline stage toggle) was removed when Fusion was dropped — see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md).
 
 ## Authentication and credentials
 
@@ -120,36 +119,23 @@ Credentials never live in the database. The `clusters.credentials_ref` column is
 | `es_apikey` | base64-encoded `id:api_key` string | Active |
 | `es_basic` | YAML: `{username, password}` | Active |
 | `opensearch_basic` | YAML: `{username, password}` | Active |
-| `opensearch_sigv4` | YAML: `{access_key_id, secret_access_key, region, role_arn?}` | Reserved; raises `NotImplementedError` until **MVP3** (AWS managed OpenSearch) |
-| `fusion_session` | YAML: `{username, password, session_url}` | Reserved for **MVP3** (Lucidworks Fusion adapter) |
-| `fusion_jwt` | YAML: `{jwt_token, refresh_url?}` | Reserved for **MVP3** (Lucidworks Fusion adapter) |
-| `solr_basic` | YAML: `{username, password}` | Reserved for **v2+** (Apache Solr adapter) |
+| `opensearch_sigv4` | YAML: `{access_key_id, secret_access_key, region, role_arn?}` | Reserved; raises `NotImplementedError` until AWS managed OpenSearch is wired up (GA v1 hardening) |
+| `solr_basic` | YAML: `{username, password}` | Activates at **MVP2** (Apache Solr adapter) |
+| `solr_apikey` | YAML: `{jwt_token, refresh_url?}` for Solr 9+ `JWTAuthPlugin` | Activates at **MVP2** (Apache Solr adapter) |
 
 ## Reserved for later releases
 
-Adapter implementations described here for architectural orientation. Each will get its own implementation file when it ships.
+### SolrAdapter (MVP2)
 
-### LucidworksFusionAdapter (MVP3)
+Apache Solr ships in MVP2 alongside UBI judgments. Full scope in [`infra_adapter_solr/idea.md`](../02_product/planned_features/infra_adapter_solr/idea.md). Summary:
 
-Lucidworks Fusion is built on Solr but exposes a different API surface centered on Query Pipelines. Pure-Solr deployments will be supported architecturally (see SolrAdapter notes below) but are deferred to v2+.
-
-- `search_batch` posts to Fusion's query API: `POST /api/apps/{app}/query/{collection}` with the request body holding query text and per-stage parameter overrides (`params.{stageId}.{paramName}`).
-- `render` produces a Fusion request body, NOT a raw Solr query. A "template" in Fusion is a query pipeline definition exported as JSON, plus a parameter-binding map.
-- `get_schema` queries Fusion's catalog API.
-- `explain` uses `params.solr.debugQuery=true` and parses the `debug.explain` block returned through the Fusion gateway.
-- **Authentication:** session-based (`POST /api/session`) or JWT.
-- **Pipeline export/import:** apply path uses Fusion's `objects-export` and `objects-import` APIs.
-- **Signals (v1.5+):** Fusion's signals collections capture user click/view/refinement events. The adapter exposes a `pull_signals` operation for click-derived judgment generation.
-- Supports Fusion 5.x.
-
-### SolrAdapter (v2+; architectural reference only)
-
-Pure Apache Solr is supported by the same adapter pattern but is not built before v2 because the early-release user's deployment is Lucidworks Fusion (which arrives at MVP3).
-
-- `search_batch` uses parallel `/select` requests (Solr has no `_msearch` equivalent).
-- `render` produces Solr query parameters as a dict; supports `lucene`, `edismax`, `dismax` parsers.
+- `search_batch` uses parallel `/select` requests with a connection pool (Solr has no `_msearch` equivalent).
+- `render` produces a Solr request parameter dict; templates under `templates/solr/` mirror the `templates/elasticsearch/` shape. Supports `edismax` (primary), `dismax`, `lucene` parsers.
+- `get_schema` uses Solr's Schema API; `list_targets` selects CoresAdmin (standalone) or CollectionsAdmin (SolrCloud) based on a startup capability probe.
 - `explain` uses `debugQuery=true&debug=results`.
-- Supports Solr 8.11+ and 9.x; SolrCloud and standalone.
+- LTR rescoring: applies a pre-existing `MultipleAdditiveTreesModel` (XGBoost-compatible) loaded via Solr's `/schema/model-store` as a rescore stage in a trial. Training is out of scope (LTR training is in the backlog).
+- UBI on Solr: Solr ships `solr.UBIComponent` in core writing the same `ubi_queries` + `ubi_events` schema as the OpenSearch UBI plugin. The MVP2 `UbiReader` works on Solr unchanged.
+- Supports Solr 9.x and 10.x; SolrCloud and standalone.
 
 ## Cross-references
 

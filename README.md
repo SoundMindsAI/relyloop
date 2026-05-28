@@ -1,14 +1,21 @@
 # RelyLoop
 
-> **Status: alpha (MVP1, v0.1.0).** Open-source automated relevance tuning for enterprise search platforms.
+> **Status: alpha (MVP1, v0.1.0).** The only open-source tool that runs automated Bayesian search-space optimization across thousands of trials, on every major open-source search engine (Elasticsearch, OpenSearch, Apache Solr at MVP2), and ships winning configs as Pull Requests for your existing approval workflow.
 
-RelyLoop combines an LLM-driven chat agent with an Optuna-driven optimization
-loop ("Karpathy loop") to systematically tune query-time relevance on
-Elasticsearch and OpenSearch. Engineers describe the problem in chat; the
-agent introspects the cluster, proposes a search-space, and runs thousands
-of trials against `ir_measures`-computed metrics. Winning configurations
-land as Pull Requests against a central search-config Git repo, where named
-approvers review and merge.
+A conversational LLM agent describes the problem and proposes the search
+space, but the engineering moat is the loop itself, the Git-PR posture, and
+the three-engine reach. RelyLoop runs **thousands of Optuna/TPE trials**
+across the full query-time search space (field boosts, function scores,
+fuzziness, `mm`, tie-breakers, hybrid weights — not just one slice),
+evaluates each trial against `ir_measures`-computed metrics, and opens a
+**Pull Request** with the winning configuration against your central
+search-config Git repo. Your existing approvers and CI handle deployment;
+RelyLoop never sits on the live search-serving path.
+
+See [`docs/07_research/comparison.md`](docs/07_research/comparison.md) for
+the citation-backed comparison vs OpenSearch Search Relevance Workbench,
+Quepid, RRE, Chorus, and Elastic's native tooling — and why the bundle is
+genuinely unique in May 2026.
 
 ## 5-minute quickstart
 
@@ -37,9 +44,11 @@ see Step 0 of the tutorial.
 ## What's in MVP1 / What's coming
 
 MVP1 ships the full Karpathy loop end-to-end on Elasticsearch + OpenSearch:
-chat agent, Optuna optimizer, LLM-as-judge, digest, GitHub PR worker, single-
-tenant install. Observable / Production Stacks / Multi-tenant land in MVP2 →
-MVP3 → MVP4.
+chat agent, Optuna/TPE optimizer, LLM-as-judge, digest, GitHub PR worker,
+single-tenant install. **MVP2** adds Apache Solr + UBI judgments + hybrid
+UBI+LLM (bundled). **MVP3** adds local-first observability (Langfuse +
+SigNoz). **GA v1** is polish + governance + hardening — no new product
+surface; all six differentiators are in by MVP3.
 
 Canonical release matrix:
 [`docs/01_architecture/tech-stack.md`](docs/01_architecture/tech-stack.md) —
@@ -47,13 +56,13 @@ do not duplicate here, the matrix is the source of truth.
 
 ## Key design choices
 
-- **Engine-agnostic** — Elasticsearch + OpenSearch in MVP1 via one adapter; Lucidworks Fusion in MVP3; pure Solr in v2.
-- **Provider-agnostic** — OpenAI in MVP1; Anthropic, AWS Bedrock, Azure OpenAI, Vertex, Ollama / vLLM in MVP4.
-- **Git-as-source-of-truth** — winning configs land as PRs against a central config repo; deployment is the operator's CI's job, not RelyLoop's.
-- **Local-first observability** — Langfuse + SigNoz both self-hosted (MVP2+); no LLM trace data leaves the deployment VM.
-- **Multi-tenant from MVP4** — single deployment serves many downstream customers in isolation.
-- **Agent-first API** — every operation the in-tool orchestrator can perform is also callable by external agents; OpenAPI 3.1, idempotency keys, RFC 7807 errors, outgoing webhooks.
-- **Deliberate, not real-time** — RelyLoop is for offline experimentation and change management; it does not sit on the live search-serving path.
+- **Engine-neutral across the three OSS engines** — Elasticsearch + OpenSearch in MVP1 via one adapter; Apache Solr in MVP2. Lucidworks Fusion explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](docs/02_product/planned_features/chore_drop_fusion_scope/idea.md)).
+- **Full-search-space Bayesian/TPE optimization** — Optuna across field boosts, function scores, fuzziness, `mm`, tie-breakers, hybrid weights, LTR rescoring. Not a 66-cell grid over hybrid weights alone (the only thing OpenSearch SRW's optimizer covers today).
+- **Git-as-source-of-truth** — winning configs land as PRs against a central config repo; deployment is the operator's CI's job, not RelyLoop's. OpenSearch SRW has no apply path by explicit RFC choice; this is a stable differentiator.
+- **Single-endpoint LLM flexibility** — one env var (`OPENAI_BASE_URL`) is the entire LLM integration surface. Works against any OpenAI-compatible endpoint: OpenAI cloud, Ollama (local), LM Studio (local), vLLM (local or remote), HuggingFace TGI, Azure OpenAI's OpenAI-compatible mode, OpenRouter (multi-model routing), or LiteLLM proxy in front of Bedrock / Vertex / Anthropic native. Truly air-gapped deployments run RelyLoop against Ollama on the same VM with zero data leaving the network. See [`docs/08_guides/llm-endpoint-setup.md`](docs/08_guides/llm-endpoint-setup.md). Native non-OpenAI provider SDKs are in the backlog as an ergonomics upgrade — the unblocking pattern (LiteLLM proxy or OpenRouter) covers most adopters today.
+- **Local-first observability** — Langfuse + SigNoz both self-hosted (MVP3); no LLM trace data leaves the deployment VM.
+- **Single-tenant through GA v1** — multi-tenancy is in the backlog; SSO via reverse proxy is the recommended path for now.
+- **Deliberate, not real-time** — RelyLoop is for offline experimentation and change management; it does not sit on the live search-serving path. Online learning / bandits / production-quality monitoring are a v2 Path B direction.
 
 See spec §4 (non-goals) for the full set.
 

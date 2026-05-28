@@ -25,44 +25,44 @@ A single `make up` (which auto-generates required secrets on first run, then inv
 
 These appear in the topical arch docs because the docs cover all releases — but they're **not MVP1 work**. Skip them while building MVP1. Per-release timing is the canonical [`tech-stack.md` §"Canonical release matrix"](tech-stack.md); the lists below are derived from it.
 
-### Reserved for MVP2 ("Observable")
+### Reserved for MVP2 ("Three-Engine + Real Signals")
+- **`SolrAdapter`** + `solr` Compose service (Apache Solr 9.x / 10.x; `edismax` + `{!ltr}` rescoring)
+- **UBI judgments**: `UbiReader` (engine-agnostic) + `SignalsConverter` Protocol with three impls (CTR threshold, dwell-time, hybrid UBI+LLM)
+- `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool
+- Templates under `templates/solr/` mirroring the `templates/elasticsearch/` shape
+- Tutorial extensions (Step 0 Path C "Run against Solr"; Step 7 "Swap LLM judgments for UBI-derived")
+- One migration extending `clusters.engine_type` + `auth_kind` CHECK constraints
+
+### Reserved for MVP3 ("Observable")
 - `langfuse-web`, `langfuse-worker`, `clickhouse` — LLM observability stack
 - `signoz`, `signoz-otel-collector` — distributed tracing
-- **`audit_log` table + Postgres immutability trigger** (no users/tenants yet — `actor_id`/`tenant_id` nullable, no FKs; `actor_type` ENUM (`system`, `agent`, `anonymous`); FKs added at MVP4)
+- **`audit_log` table + Postgres immutability trigger** (no users/tenants yet — `actor_id`/`tenant_id` nullable, no FKs; `actor_type` ENUM (`system`, `agent`, `anonymous`))
 - Lineage columns on `judgments`, `digests`, `proposals` (`langfuse_trace_id`, `prompt_version`, `input_hash`)
 - PII redaction processor in structlog
 - Canonical event catalog (`backend/app/events.py`)
-- Trace context propagation through API → Redis → worker → adapter → engine (custom Arq enqueue→pickup serialization)
-- Forking studies with narrowed search-space ranges
-- Slack notifications on PR open
-- Validation re-run on prod after staging win
-
-### Reserved for MVP3 ("Production Stacks")
-- **`LucidworksFusionAdapter`** (and the `fusion-mock` Compose service)
-- GitLab and Bitbucket as Git providers; multi-Git-provider abstraction (`GitProvider` Protocol)
-- Adapter contract test suite (every `SearchAdapter` and `GitProvider` runs the same conformance suite)
-- AWS managed OpenSearch (`opensearch_sigv4` auth kind activates)
-- Production-style install: Caddy + Let's Encrypt TLS, managed Postgres/Redis. **No SSO yet** — production-stack hardening only.
-- Container image scanning (Trivy)
-- Image signing (cosign) — *may slip earlier into chore_tutorial_polish if cheap*
-
-### Reserved for MVP4 ("Multi-tenant, Multi-LLM")
-- `tenants`, `tenant_memberships`, `users`, `api_keys` tables
-- `tenant_id` column on every user-facing table (with backfill auto-creating a `default` tenant)
-- FK constraints added to `audit_log.actor_id` and `audit_log.tenant_id`; `actor_type` ENUM extended to include `user`
-- **SSO for humans** via reverse proxy (oauth2-proxy or Authelia injecting `X-Auth-Email`); proxy verified by mTLS or shared secret
-- **Argon2id-hashed bearer API keys** for service accounts (`Authorization: Bearer <key>`)
-- Roles: `viewer` / `runner` / `tenant_admin` (per-tenant) + `platform_admin` (cross-tenant)
-- Multi-LLM provider abstraction (Anthropic, AWS Bedrock, Google Vertex, Ollama, vLLM) via LangChain provider packages
-- LangChain `RedisCache` for LLM responses
+- Trace context propagation through API → Redis → worker → adapter → engine (custom Arq enqueue→pickup serialization) for all three engines
 
 ### Reserved for GA v1 ("Production-ready")
 - LangGraph orchestrator + `PostgresSaver` (replaces the plain `openai` SDK + function calling)
 - Full RFC 7807 Problem Details for errors
 - `Idempotency-Key` header on POST/PATCH/DELETE
-- Helm 3 chart for Kubernetes deployments
-- Container scanning, deps audit, image signing all operational
-- 90% backend coverage gate (up from 80% in MVP1)
+- Full four-layer test pyramid at 90% coverage
+- Container scanning (Trivy), deps audit (pip-audit, npm audit), image signing (cosign keyless OIDC)
+- Production-style install: Caddy + Let's Encrypt TLS, managed Postgres/Redis (trusted-network deployments; SSO is in the backlog)
+- AWS managed OpenSearch (`opensearch_sigv4` auth kind activates)
+- Adapter contract test suite (every `SearchAdapter` runs the same conformance suite)
+- Public Optuna-vs-SRW-grid benchmark
+- Design-partner references (target: one each on ES, OpenSearch, Solr)
+
+### Backlog (out of pre-GA scope)
+- Multi-Git provider abstraction (`GitProvider` Protocol with GitLab + Bitbucket implementations)
+- Multi-tenancy primitives (`tenants`, `tenant_memberships`, `users`, `api_keys` tables; `tenant_id` columns)
+- SSO via reverse proxy (oauth2-proxy or Authelia); Argon2id-hashed bearer API keys for service accounts
+- Native non-OpenAI provider SDKs (Anthropic, AWS Bedrock, Google Vertex AI, Azure OpenAI) via LangChain `BaseChatModel`; per-tenant LLM provider selection
+- LTR training (cross-engine model training; MVP2's LTR support is consume-only)
+- Path B (production monitoring, bandits, shadow validation)
+- Helm chart maturity; Kubernetes-native operator
+- Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md))
 
 ### Reserved for v2+
 - `SolrAdapter` (pure Apache Solr support)
