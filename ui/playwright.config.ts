@@ -20,10 +20,28 @@ export default defineConfig({
   // tests/e2e/ (chore_e2e_test_rows_isolation Story 1.2) are vitest tests
   // for the cleanup machinery — vitest owns them via vitest.config.ts.
   testMatch: ['**/*.spec.ts'],
-  // Walkthrough guides run under playwright.demo.config.ts (slow-mo, video,
-  // 1440×960 viewport) — exclude them from regression runs so they don't
-  // overwrite canonical guide PNGs at unexpected viewport sizes.
-  testIgnore: ['**/guides/**'],
+  // testIgnore patterns:
+  //
+  //   - **/guides/** — walkthrough guides run under playwright.demo.config.ts
+  //     (slow-mo, video, 1440×960 viewport) — exclude from regression runs so
+  //     they don't overwrite canonical guide PNGs at unexpected viewport sizes.
+  //
+  //   - dashboard.spec.ts + dashboard-reseed.spec.ts (CI-only) — these specs
+  //     assert on the demo cluster slugs (acme-products-prod / corp-docs-search
+  //     / news-search-staging / jobs-marketplace-prod) seeded by
+  //     `make seed-demo FORCE=1`. The seed adds ~60s to CI per run AND has been
+  //     the persistent failure source (`bug_smoke_dashboard_demo_state_locator_missing`,
+  //     `bug_smoke_followup_clone_e2e_flakes`). The underlying components have
+  //     vitest coverage (`start-here-checklist.test.tsx` and the demo-banner
+  //     component tests). Locally the operator can still run them after
+  //     `make seed-demo` — `CI=` (unset) gates these in. See
+  //     `chore_drop_demo_seed_from_ci/idea.md` for the rationale.
+  testIgnore: [
+    '**/guides/**',
+    ...(process.env.CI
+      ? ['**/dashboard.spec.ts', '**/dashboard-reseed.spec.ts']
+      : []),
+  ],
   fullyParallel: false, // single backend stack — keep specs serial to avoid data races
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,

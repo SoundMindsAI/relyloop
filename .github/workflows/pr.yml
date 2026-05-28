@@ -397,17 +397,15 @@ jobs:
       - name: Seed sample ES index
         run: make seed-es
 
-      # The dashboard E2E tests (ui/tests/e2e/dashboard.spec.ts banner +
-      # dashboard-reseed.spec.ts) added by PR #188 + PR #228 assert on the
-      # 4 demo cluster slugs (acme-products-prod / corp-docs-search /
-      # news-search-staging / jobs-marketplace-prod) populated by
-      # scripts/seed_meaningful_demos.py. seed-clusters above only seeds
-      # local-es + local-opensearch, so without this step the dashboard
-      # banner test never sees its expected clusters and fails with
-      # `getByTestId('demo-data-banner') element(s) not found`.
-      # Hardcoded judgments inside SCENARIOS so no LLM round-trip required.
-      - name: Seed meaningful demos (acme-products-prod + 3 others — dashboard E2E prereq)
-        run: make seed-demo FORCE=1
+      # NOTE: `make seed-demo FORCE=1` was REMOVED on 2026-05-28 (see
+      # chore_drop_demo_seed_from_ci/idea.md). The two specs that depended on
+      # it (dashboard.spec.ts, dashboard-reseed.spec.ts) were the persistent
+      # smoke-job failure source — they are now gated out via Playwright's
+      # `testIgnore` when `process.env.CI` is set (see ui/playwright.config.ts).
+      # The underlying banner + reset-to-demo components remain covered by
+      # vitest (`start-here-checklist.test.tsx` + demo-banner component tests).
+      # Operators running locally invoke `make seed-demo` and then `pnpm test:e2e`
+      # picks them up because CI is unset.
 
       - name: Run smoke test (LLM judgment generation + study + alignment guard + digest)
         run: uv run pytest backend/tests/smoke/test_tutorial_path.py -v --tb=short
