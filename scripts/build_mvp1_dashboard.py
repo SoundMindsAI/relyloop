@@ -174,16 +174,21 @@ def _target_release(short_name: str, status_line: str, bucket: str | None = None
 
     Three signals, in precedence order:
 
-    1. **Bucket folder** (``01_mvp1`` / ``02_mvp2`` / ``03_mvp3`` / ``04_ga``).
-       The authoritative operator-curated signal — features filed under
-       a bucket folder belong to that release. ``00_unsure`` and
-       ``99_backlog`` fall through to signals 2 + 3 because those
-       buckets carry no release commitment of their own.
+    1. **Bucket folder** (``01_mvp1`` / ``02_mvp2`` / ``03_mvp3`` / ``04_ga``
+       / ``99_backlog`` / ``00_unsure``). The authoritative operator-curated
+       signal — every bucket in :data:`_BUCKET_TO_RELEASE` short-circuits the
+       cascade. ``99_backlog`` → ``"backlog"`` and ``00_unsure`` → ``"unsure"``
+       are sentinel tags absent from :data:`ROADMAP_RELEASES`; a backlog
+       item with a stale ``Held for MVP2`` status line stays on the backlog
+       dashboard rather than polluting MVP2, because the operator's act of
+       filing it under ``99_backlog/`` is the more recent, authoritative
+       deferral signal. Promotion is done by moving the folder, not by
+       editing the status line.
     2. Folder ``_mvpN`` or ``_mvpN_M`` suffix on ``short_name`` (e.g.,
        ``arq_subprocess_test_mvp2`` → ``mvp2``; ``foo_mvp1_5`` →
        ``mvp1.5``). Legacy per-folder hold marker — preserved so older
        folders that predate the bucket migration still classify
-       correctly.
+       correctly when handed in via a synthetic ``bucket=None`` path.
     3. ``**Status:** Held for MVPN`` / ``anchor feature for MVPN.M`` line
        in the idea/spec body. Recognizes both integer and decimal
        release tags.
