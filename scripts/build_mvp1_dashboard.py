@@ -115,6 +115,9 @@ class Feature:
     deferred_phase: str | None = None  # human note if a phase*_idea.md is present
     release: str = DEFAULT_RELEASE  # "mvp1" | "mvp2" | "mvp3" | ...
     priority: str = DEFAULT_PRIORITY  # one of PRIORITY_VALUES
+    # MVP-grouping bucket (e.g. "01_mvp1") for planned features; None for
+    # implemented features which stay flat + date-prefixed under implemented_features/.
+    bucket: str | None = None
 
     @property
     def display_name(self) -> str:
@@ -769,9 +772,19 @@ def _detect_implement_status(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 
+_BUCKET_DIRS = frozenset(("00_unsure", "01_mvp1", "02_mvp2", "03_mvp3", "04_ga", "99_backlog"))
+"""MVP-grouping bucket folder names under ``docs/00_overview/planned_features/``.
+
+Iteration in :func:`load_all` walks ``PLANNED_DIR`` two levels deep — each
+direct child must be either a bucket dir (whose grandchildren are the
+feature folders) or ``feature_templates`` (a top-level templates folder
+that is not a feature). ``_load_planned`` defends against accidentally
+being handed a bucket dir directly by returning ``None`` for these names."""
+
+
 def _load_planned(folder_path: Path) -> Feature | None:
     folder = folder_path.name
-    if folder == "feature_templates":
+    if folder == "feature_templates" or folder in _BUCKET_DIRS:
         return None
     prefix, short = _split_prefix(folder)
     if not prefix:
@@ -846,6 +859,11 @@ def _load_planned(folder_path: Path) -> Feature | None:
         # status_line is operator-curated and intentional; body prose isn't.
         release=_target_release(short, status_line),
         priority=priority,
+        # Bucket = the immediate parent dir name (e.g., "01_mvp1"). Only set
+        # for features iterated from inside a bucket; legacy flat-iteration
+        # callers would leave bucket=None (used by tests that pass a synthetic
+        # path). load_all() always supplies bucketed paths.
+        bucket=folder_path.parent.name if folder_path.parent.name in _BUCKET_DIRS else None,
     )
     return feature
 
@@ -969,12 +987,20 @@ def _expand_transitive_deps(features: list[Feature]) -> None:
 def load_all() -> list[Feature]:
     features: list[Feature] = []
     if PLANNED_DIR.exists():
-        for child in sorted(PLANNED_DIR.iterdir()):
-            if not child.is_dir():
+        # Two-level walk: planned_features/<bucket>/<feature>/. Top-level
+        # contents are MVP-grouping buckets (00_unsure, 01_mvp1, ..., 99_backlog)
+        # plus feature_templates/. Iterate buckets, then features within each.
+        for bucket in sorted(PLANNED_DIR.iterdir()):
+            if not bucket.is_dir():
                 continue
-            f = _load_planned(child)
-            if f:
-                features.append(f)
+            if bucket.name == "feature_templates" or bucket.name not in _BUCKET_DIRS:
+                continue
+            for child in sorted(bucket.iterdir()):
+                if not child.is_dir():
+                    continue
+                f = _load_planned(child)
+                if f:
+                    features.append(f)
     if IMPLEMENTED_DIR.exists():
         for child in sorted(IMPLEMENTED_DIR.iterdir()):
             if not child.is_dir():
@@ -1421,27 +1447,36 @@ def _next_action(features: list[Feature]) -> tuple[Feature | None, str | None]:
             continue
         # Spot a deferred phase too: if the feature is "implement" with a
         # phase*_idea.md, the operator's next move is to start that phase.
+        # Planned features always have a bucket; implemented features
+        # (location="implemented") never reach this branch because they're
+        # filtered out above via f.stage == "done". Fall back to a flat path
+        # if bucket happens to be None (defensive — shouldn't happen in
+        # practice after the MVP-bucket migration).
+        bucket_prefix = f"{f.bucket}/" if f.bucket else ""
         if f.deferred_phase and f.stage in ("implement", "done"):
             phase_idea = sorted(f.path.glob("phase*_idea.md"))
             if phase_idea:
-                cmd = f"/pipeline docs/00_overview/planned_features/{f.folder}/{phase_idea[0].name}"
+                cmd = (
+                    f"/pipeline docs/00_overview/planned_features/"
+                    f"{bucket_prefix}{f.folder}/{phase_idea[0].name}"
+                )
                 return (f, cmd)
         if f.stage == "idea":
-            cmd = f"/pipeline docs/00_overview/planned_features/{f.folder} --auto"
+            cmd = f"/pipeline docs/00_overview/planned_features/{bucket_prefix}{f.folder} --auto"
         elif f.stage == "spec":
-            cmd = f"/pipeline docs/00_overview/planned_features/{f.folder} --auto"
+            cmd = f"/pipeline docs/00_overview/planned_features/{bucket_prefix}{f.folder} --auto"
         elif f.stage == "plan":
             cmd = (
                 f"/impl-execute docs/00_overview/planned_features/"
-                f"{f.folder}/implementation_plan.md --all"
+                f"{bucket_prefix}{f.folder}/implementation_plan.md --all"
             )
         elif f.stage == "implement":
             cmd = (
-                f"/impl-execute docs/00_overview/planned_features/{f.folder}/"
+                f"/impl-execute docs/00_overview/planned_features/{bucket_prefix}{f.folder}/"
                 "implementation_plan.md --all  # resume in-progress"
             )
         else:
-            cmd = f"/pipeline docs/00_overview/planned_features/{f.folder}"
+            cmd = f"/pipeline docs/00_overview/planned_features/{bucket_prefix}{f.folder}"
         return (f, cmd)
     return (None, None)
 

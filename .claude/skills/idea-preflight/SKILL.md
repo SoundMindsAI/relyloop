@@ -87,7 +87,7 @@ If a rename is recommended, propose the new name with one-line rationale and 2�
 
 ### Step 6 — Cross-check siblings + recently implemented features
 
-1. `ls docs/00_overview/planned_features/` — for any sibling whose name overlaps the idea's domain, check whether the two coordinate or conflict. The idea's "Relationship to other work" section should mention each sibling that touches the same table/service/UI surface.
+1. `ls docs/00_overview/planned_features/*/` (two-level — top level holds MVP buckets `00_unsure/`, `01_mvp1/`, `02_mvp2/`, `03_mvp3/`, `04_ga/`, `99_backlog/` plus `feature_templates/`; siblings live one level deeper) — for any sibling whose name overlaps the idea's domain, check whether the two coordinate or conflict. The idea's "Relationship to other work" section should mention each sibling that touches the same table/service/UI surface.
 2. `git log --since="<idea date>" --oneline -- docs/00_overview/implemented_features/` — list features that shipped after the idea was written. For each, ask: does its ship retire any deferral rationale in this idea? Does it create any new precedent the idea should reference (e.g. scheduler 5-touch-point checklist after the worker-runtime work shipped)?
 3. Note any sibling that the idea should explicitly coordinate with for ordering (not blocking — coordinate-only is the common case).
 

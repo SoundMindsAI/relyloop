@@ -25,24 +25,26 @@ from scripts.build_mvp1_dashboard import (  # noqa: E402
 
 
 class TestRewriteMarkdownLinks:
-    """Path-rewriting from idea.md depth (4) → dashboard depth (2).
+    """Path-rewriting from idea.md depth (5) → dashboard depth (2).
 
-    Idea files live at ``docs/00_overview/planned_features/<folder>/idea.md``;
-    rendered dashboards live at ``docs/00_overview/MVP1_DASHBOARD.md`` and
-    ``docs/00_overview/mvp1_dashboard.html``. A relative path
-    ``../../../../backend/foo`` correctly resolves to ``<repo>/backend/foo``
-    from the idea but resolves *outside* the repo when embedded in the
-    dashboard. The rewriter recomputes paths to ``../../backend/foo``.
+    Idea files live at ``docs/00_overview/planned_features/<bucket>/<folder>/idea.md``
+    (the bucket is the MVP grouping: ``00_unsure/``, ``01_mvp1/``, ``02_mvp2/``,
+    ``03_mvp3/``, ``04_ga/``, ``99_backlog/``); rendered dashboards live at
+    ``docs/00_overview/MVP1_DASHBOARD.md`` and ``docs/00_overview/mvp1_dashboard.html``.
+    A relative path ``../../../../../backend/foo`` correctly resolves to
+    ``<repo>/backend/foo`` from the idea but resolves *outside* the repo when
+    embedded in the dashboard. The rewriter recomputes paths to ``../../backend/foo``.
     """
 
-    FROM_DIR = _REPO_ROOT / "docs/00_overview/planned_features/some_folder"
+    FROM_DIR = _REPO_ROOT / "docs/00_overview/planned_features/01_mvp1/some_folder"
     TO_DIR = _REPO_ROOT / "docs/00_overview"
 
     def test_idea_depth_to_dashboard_depth(self) -> None:
-        """The canonical fix: 4 dot-dots in idea.md → 2 dot-dots in dashboard."""
+        """The canonical fix: 5 dot-dots in idea.md → 2 dot-dots in dashboard."""
         text = (
             "See [test_query_sets_router_queries.py:202]"
-            "(../../../../backend/tests/integration/test_query_sets_router_queries.py#L202-L231) "
+            "(../../../../../backend/tests/integration/"
+            "test_query_sets_router_queries.py#L202-L231) "
             "for details."
         )
         rewritten = _rewrite_markdown_links(text, self.FROM_DIR, self.TO_DIR)
@@ -72,7 +74,7 @@ class TestRewriteMarkdownLinks:
 
     def test_fragment_preserved_after_rewrite(self) -> None:
         """`#L42` fragment on a rewritten path survives the rewriting."""
-        text = "See [line](../../../../backend/foo.py#L42)."
+        text = "See [line](../../../../../backend/foo.py#L42)."
         rewritten = _rewrite_markdown_links(text, self.FROM_DIR, self.TO_DIR)
         assert "[line](../../backend/foo.py#L42)" in rewritten
 
@@ -80,21 +82,22 @@ class TestRewriteMarkdownLinks:
         """`../sibling-folder/idea.md` rewrites correctly across the depth shift."""
         text = "See [sibling](../sibling-folder/idea.md)."
         rewritten = _rewrite_markdown_links(text, self.FROM_DIR, self.TO_DIR)
-        # From dashboard at docs/00_overview/, sibling-folder is at
-        # planned_features/sibling-folder/idea.md (planned_features is a
-        # direct child of 00_overview after the 2026-05-28 restructure).
-        assert "[sibling](planned_features/sibling-folder/idea.md)" in rewritten
+        # From dashboard at docs/00_overview/, the same-bucket sibling-folder
+        # lives at planned_features/01_mvp1/sibling-folder/idea.md (the MVP
+        # bucket is part of the path after the 2026-05-28 MVP-grouping
+        # restructure).
+        assert "[sibling](planned_features/01_mvp1/sibling-folder/idea.md)" in rewritten
 
     def test_multiple_links_in_one_text(self) -> None:
         """Multiple links in the same paragraph all get rewritten."""
-        text = "See [a](../../../../backend/a.py) and [b](../../../../backend/b.py)."
+        text = "See [a](../../../../../backend/a.py) and [b](../../../../../backend/b.py)."
         rewritten = _rewrite_markdown_links(text, self.FROM_DIR, self.TO_DIR)
         assert "[a](../../backend/a.py)" in rewritten
         assert "[b](../../backend/b.py)" in rewritten
 
     def test_extract_idea_problem_rewrites_paths(self) -> None:
         """End-to-end: `_extract_idea_problem` calls the rewriter when `idea_dir` is given."""
-        path = "../../../../backend/tests/integration/test_query_sets_router_queries.py"
+        path = "../../../../../backend/tests/integration/test_query_sets_router_queries.py"
         text = (
             "# Test idea\n\n"
             "## Problem\n\n"
@@ -103,7 +106,7 @@ class TestRewriteMarkdownLinks:
         )
         extracted = _extract_idea_problem(text, idea_dir=self.FROM_DIR)
         assert "../../backend/" in extracted
-        assert "../../../../" not in extracted
+        assert "../../../../../" not in extracted
 
     def test_extract_idea_problem_without_idea_dir_unchanged(self) -> None:
         """Backward-compat: omitting `idea_dir` leaves paths alone (legacy callers)."""
@@ -111,10 +114,10 @@ class TestRewriteMarkdownLinks:
 
 ## Problem
 
-See [backend/foo](../../../../backend/foo.py).
+See [backend/foo](../../../../../backend/foo.py).
 """
         extracted = _extract_idea_problem(text)  # no idea_dir
-        assert "../../../../" in extracted
+        assert "../../../../../" in extracted
 
 
 class TestMaybeWrite:

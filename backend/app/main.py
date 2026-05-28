@@ -105,7 +105,8 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     # interleaved event-loop scheduling, the warmup task perturbs the
     # timing of `test_ac7_concurrent_merges_serialize_via_row_lock` and
     # exposes a latent webhook merge-handler row-lock race captured at
-    # docs/00_overview/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
+    # docs/00_overview/planned_features/02_mvp2/
+    # bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
     # Production deployments should leave this UNSET so the warmup runs.
     warmup_task: asyncio.Task[None] | None = None
     if not os.environ.get("RELYLOOP_DISABLE_STARTUP_WARMUP"):

@@ -17,7 +17,7 @@ Path B effectively shipped between 2026-05-21 and 2026-05-23 (commit `2cbcb93b c
 
 Two stale artifacts result:
 
-1. **`docs/00_overview/planned_features/chore_e2e_seed_acme_helper_dead/idea.md`** — still describes the helper as "0 Playwright spec callers" (line 6 + 14–16) and recommends Path A (delete) without acknowledging Path B has shipped.
+1. **`docs/00_overview/planned_features/01_mvp1/chore_e2e_seed_acme_helper_dead/idea.md`** — still describes the helper as "0 Playwright spec callers" (line 6 + 14–16) and recommends Path A (delete) without acknowledging Path B has shipped.
 2. **[`ui/tests/e2e/helpers/coverage-audit.md`](../../../../ui/tests/e2e/helpers/coverage-audit.md)** — the §"Coverage matrix" table still reports `seedAcmeProductsChain` as `0 specs — currently uncalled` and the §"Gaps" section + §"Verdict" both claim the helper is dead code.
 
 Neither is load-bearing, but both surface in `/pipeline status` / `MVP1_DASHBOARD.md` and confuse the next infra-sweep agent.

@@ -12,7 +12,7 @@
 > - **P2** — important enough to file, not blocking. Default when unsure. Speculative product surface or longer-lived debt.
 > - **Backlog** — captured for record but not actively planned. May graduate to P2+ when context changes.
 >
-> Folders ending `_mvp2` / `_mvp3` are auto-classified to that release; their `Priority` value applies within that release's dashboard. Defaults to **P2** when omitted.
+> The MVP bucket the folder lives in (`00_unsure/`, `01_mvp1/`, `02_mvp2/`, `03_mvp3/`, `04_ga/`, `99_backlog/`) IS the release classification — the `_mvpN` folder-suffix convention is retired. `Priority` applies within that release's dashboard. Defaults to **P2** when omitted.
 
 ## Problem
 

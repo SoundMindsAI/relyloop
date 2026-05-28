@@ -552,7 +552,7 @@ For every new `event_type` literal introduced by the diff (grep `git diff` for `
 1. Read the feature spec's "Phase boundaries" and "Scope" sections. Identify any phases that were NOT included in the implementation plan (e.g., the plan covers Phase 1 but the spec defines Phase 2 work).
 2. For each deferred phase, check whether a tracking file already exists:
    - `glob` for `*idea*.md` or `*phase*_idea.md` in the feature's `planned_features` directory
-3. If no tracking file exists for a deferred phase, create one at `docs/00_overview/planned_features/<feature_dir>/phase<N>_idea.md` with:
+3. If no tracking file exists for a deferred phase, create one at `docs/00_overview/planned_features/<bucket>/<feature_dir>/phase<N>_idea.md` (where `<bucket>` is the MVP grouping the feature lives in: `00_unsure/`, `01_mvp1/`, `02_mvp2/`, `03_mvp3/`, `04_ga/`, or `99_backlog/`) with:
    - **Date** and **Status** (`Idea — deferred from Phase <N-1> implementation`)
    - **Origin** — pointer to the spec file and line numbers where the deferred work is defined
    - **Depends on** — which phase must be merged first
@@ -589,7 +589,7 @@ Walk back through this implementation session and ask:
 5. **Did I think "I should fix that someday" about anything**, even briefly? File the someday now.
 6. **Did I notice during implementation any operator-judgment-shaped question that has no canonical answer in the current docs?** Examples: *"What happens if I X?"* / *"Should I trust Y in case Z?"* / *"My pipeline shows N — is that a bug or expected?"* If yes, either (a) draft the entry directly under `ui/src/lib/faq.ts` in this PR (preferred — adds the answer where operators will look for it), OR (b) file a focused `chore_faq_<slug>/idea.md` capturing the question + draft answer + the spec/AC citation that backs the answer. Tooltips and the glossary are NOT the right surface — they're definitional, not judgment-shaped.
 
-For each, create `docs/00_overview/planned_features/<bug_|chore_|infra_>_<slug>/idea.md` per [feature_templates/idea-template.md](../../../docs/00_overview/planned_features/feature_templates/idea-template.md). Origin field MUST point at the PR or story that surfaced the observation, so the trace stays intact.
+For each, create `docs/00_overview/planned_features/00_unsure/<bug_|chore_|infra_>_<slug>/idea.md` per [feature_templates/idea-template.md](../../../docs/00_overview/planned_features/feature_templates/idea-template.md) — default to the `00_unsure/` bucket when the release target isn't obvious; the operator (or a later `/pipeline status` pass) can promote it into the right MVP bucket. Origin field MUST point at the PR or story that surfaced the observation, so the trace stays intact.
 
 **If you have nothing to file, state explicitly: "Tangential observations sweep: none found." in your end-of-step summary.** Silence is suspicious — the sweep is supposed to find things.
 
@@ -869,7 +869,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 6. **Check for unimplemented phase idea files:**
    Before moving the folder, check for any `phase*_idea.md` files in the feature directory:
    ```bash
-   ls docs/00_overview/planned_features/<feature_dir>/phase*_idea.md 2>/dev/null
+   ls docs/00_overview/planned_features/<bucket>/<feature_dir>/phase*_idea.md 2>/dev/null
    ```
    - If any `phase*_idea.md` files exist, **STOP** — do not move the folder.
    - Report the found files to the user and ask for instructions. The folder contains future work that has not been implemented yet, so moving it to `implemented_features/` would be incorrect.
@@ -878,9 +878,11 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 
 7. **Move feature folder to implemented_features:**
    ```bash
-   mv docs/00_overview/planned_features/<feature_dir> \
+   mv docs/00_overview/planned_features/<bucket>/<feature_dir> \
       docs/00_overview/implemented_features/<YYYY_MM_DD>_<short_name>/
    ```
+   - Source path carries the MVP bucket (`00_unsure/`, `01_mvp1/`, `02_mvp2/`, `03_mvp3/`, `04_ga/`, `99_backlog/`).
+   - Destination stays FLAT and date-prefixed — `implemented_features/` does NOT use MVP buckets; the shipped archive's organizing principle is time, not release-target.
    - Date prefix uses the completion date (today).
    - Short name is a snake_case slug derived from the feature directory name.
    - The entire folder moves — spec, plan, pipeline_status, phase idea files all travel together.
@@ -1028,7 +1030,7 @@ Some stories involve manual configuration outside the codebase (GitHub App regis
 
 1. **Never commit to main.** Always use a feature branch.
 2. **Never skip a verification gate.** If lint fails, fix it. If tests fail, fix them. No `--no-verify`.
-3. **Never implement beyond the story scope. Capture, don't carry.** If you see a bug or improvement opportunity that's orthogonal to the current story, do NOT fix it in this story's commit AND do NOT just "note it for later" in conversation memory. **Create an idea file immediately** at `docs/00_overview/planned_features/<bug_|chore_|infra_>_<slug>/idea.md` per the [tangential-discoveries protocol in CLAUDE.md](../../../CLAUDE.md#tangential-discoveries--capture-as-idea-files-immediately). Idea files surface in `/pipeline --status` and persist across sessions; chat-noticings evaporate. Step 1.5 below ("Tangential observations sweep") flushes any uncaptured noticings before push as a safety net, but the discipline is to capture inline as you notice.
+3. **Never implement beyond the story scope. Capture, don't carry.** If you see a bug or improvement opportunity that's orthogonal to the current story, do NOT fix it in this story's commit AND do NOT just "note it for later" in conversation memory. **Create an idea file immediately** at `docs/00_overview/planned_features/00_unsure/<bug_|chore_|infra_>_<slug>/idea.md` (default to the `00_unsure/` bucket; the operator can promote it into the right MVP target later) per the [tangential-discoveries protocol in CLAUDE.md](../../../CLAUDE.md#tangential-discoveries--capture-as-idea-files-immediately). Idea files surface in `/pipeline --status` and persist across sessions; chat-noticings evaporate. Step 1.5 below ("Tangential observations sweep") flushes any uncaptured noticings before push as a safety net, but the discipline is to capture inline as you notice.
 4. **Always read before editing.** Never modify a file you haven't read in this session.
 5. **Always use GPT-5.5 for cross-model review.** Model ID: `gpt-5.5`. Never substitute gpt-4o.
 6. **Always update the plan tracker** after completing a story.

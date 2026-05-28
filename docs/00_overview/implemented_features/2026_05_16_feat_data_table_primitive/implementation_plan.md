@@ -1429,7 +1429,7 @@ Read [`studies-table.tsx`](../../../../ui/src/components/studies/studies-table.t
 
 | File | Purpose |
 |---|---|
-| `docs/00_overview/planned_features/feat_fts_rank_ordering_mvp2/idea.md` | Origin pointer to spec §16, deferred FRs (only rank ordering on `?q=`), why deferred (cursor encoding constraint), dependencies on this feature (the 6 search_vector columns exist + the `plainto_tsquery` predicate is in place; only the ORDER BY needs to change + cursor encoding update) |
+| `docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering/idea.md` | Origin pointer to spec §16, deferred FRs (only rank ordering on `?q=`), why deferred (cursor encoding constraint), dependencies on this feature (the 6 search_vector columns exist + the `plainto_tsquery` predicate is in place; only the ORDER BY needs to change + cursor encoding update) |
 
 **Tasks**
 
