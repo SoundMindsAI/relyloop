@@ -107,7 +107,7 @@ cat <<'EOF'
 Only `.env.example` may be committed. The bare `.env` and any rotated
 sibling (`.env.old`, `.env.bak`, `.env.local`, `.envrc`, etc.) carry
 production-shaped values and are gitignored for a reason. See
-`docs/02_product/planned_features/bug_env_file_corrupted_during_session/bug_fix.md`
+`docs/00_overview/planned_features/bug_env_file_corrupted_during_session/bug_fix.md`
 for the incident this guard is defending against.
 
 If you genuinely need to add a new template file, name it `.env.example`

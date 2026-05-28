@@ -31,11 +31,11 @@
 - PR: [#4](https://github.com/SoundMindsAI/relyloop/pull/4) — squash-merged 2026-05-09 as `93eeb64`
 - Final coverage: **90.17% backend** (gate 80%); `health.py`, `probes.py`, `errors.py`, `capability_models.py` all 100%
 - CI: all three jobs (backend / frontend / docker buildx) green on the merged commit
-- First-run findings: 5 integration-boundary bugs surfaced during operator first-run testing — all fixed inline + captured systemic follow-up at [`infra_ci_smoke_makeup/idea.md`](../../../02_product/planned_features/infra_ci_smoke_makeup/idea.md). Two process patches landed in the same PR: `impl-execute` operator-path verification gate + CLAUDE.md local-stub hygiene rule.
+- First-run findings: 5 integration-boundary bugs surfaced during operator first-run testing — all fixed inline + captured systemic follow-up at [`infra_ci_smoke_makeup/idea.md`](../../../00_overview/planned_features/infra_ci_smoke_makeup/idea.md). Two process patches landed in the same PR: `impl-execute` operator-path verification gate + CLAUDE.md local-stub hygiene rule.
 - Tangential idea files captured during the sprint:
-  - [`bug_env_file_corrupted_during_session/`](../../../02_product/planned_features/bug_env_file_corrupted_during_session/)
-  - [`chore_starlette_422_deprecation/`](../../../02_product/planned_features/chore_starlette_422_deprecation/)
-  - [`infra_ci_smoke_makeup/`](../../../02_product/planned_features/infra_ci_smoke_makeup/)
+  - [`bug_env_file_corrupted_during_session/`](../../../00_overview/planned_features/bug_env_file_corrupted_during_session/)
+  - [`chore_starlette_422_deprecation/`](../../../00_overview/planned_features/chore_starlette_422_deprecation/)
+  - [`infra_ci_smoke_makeup/`](../../../00_overview/planned_features/infra_ci_smoke_makeup/)
 
 ## Done
 - Status: **Deployed to local-dev (no remote staging in MVP1)**

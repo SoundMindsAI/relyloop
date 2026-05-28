@@ -6,7 +6,7 @@
 ## Spec
 - Status: Approved
 - File: [feature_spec.md](feature_spec.md)
-- Source brief: `docs/02_product/planned_features/feat_proposals_ui/feature_spec.md` (Draft, 2026-05-09)
+- Source brief: `docs/00_overview/planned_features/feat_proposals_ui/feature_spec.md` (Draft, 2026-05-09)
 - Last patched: 2026-05-12 via `/idea-preflight` ground-truth pass (43 insertions / 18 deletions across §2, §5, §7.4, FR-2, FR-3, FR-6, §11 — see commit `5461855` on `feature/feat-proposals-ui`)
 
 ## Plan

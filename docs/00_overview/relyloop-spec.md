@@ -30,7 +30,7 @@ The system is **engine-neutral, provider-neutral, and Git-provider-neutral by de
 
 All six of RelyLoop's differentiators (Bayesian/TPE optimization, Git-PR apply path, conversational agent that runs the loop, all three OSS engines, hybrid UBI+LLM judgments, local-first observability) are live by MVP3. GA v1 adds no new product surface.
 
-**Backlog** (captured, not in flight): multi-Git-provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction (Anthropic, Bedrock, Azure OpenAI, Vertex, Ollama/vLLM); Path B production-monitoring + bandit-style online learning; Lucidworks Fusion adapter (explicitly dropped, see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md)).
+**Backlog** (captured, not in flight): multi-Git-provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction (Anthropic, Bedrock, Azure OpenAI, Vertex, Ollama/vLLM); Path B production-monitoring + bandit-style online learning; Lucidworks Fusion adapter (explicitly dropped, see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md)).
 
 The HTTP API is designed as a first-class product, not just the back end of the UI. Every operation a human or the in-tool orchestrator can perform is also callable by an external agent over plain REST, with bearer-token auth, OpenAPI 3.1 publication, idempotency keys, outgoing webhooks, SSE event streams, and machine-readable capability discovery. See §21 *Agent integration*.
 
@@ -80,7 +80,7 @@ The tool will not:
 - Function as a search-engine UI. It does not show end-user search results; it shows experiment results.
 - Modify production cluster configuration directly. All changes flow through Git.
 - Provide an MCP server. The tool's HTTP API uses OpenAPI 3.1 + idiomatic REST + outgoing webhooks instead, which is testable with any HTTP client and consumable by any agent framework. The same operations the in-tool orchestrator uses are exposed externally — there is no second-class agent interface.
-- **Support Lucidworks Fusion.** Fusion was scoped as MVP3 in an earlier plan and is dropped in the 2026-05-27 reframe; see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md) for the rationale (vendor entanglement, narrower audience overlap with the OSC/Haystack community, materially higher build cost than Solr, no roadmap commitment to commercial engines). A community-contributed Fusion adapter remains possible because the `SearchAdapter` Protocol is unchanged; the project does not own that direction.
+- **Support Lucidworks Fusion.** Fusion was scoped as MVP3 in an earlier plan and is dropped in the 2026-05-27 reframe; see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md) for the rationale (vendor entanglement, narrower audience overlap with the OSC/Haystack community, materially higher build cost than Solr, no roadmap commitment to commercial engines). A community-contributed Fusion adapter remains possible because the `SearchAdapter` Protocol is unchanged; the project does not own that direction.
 - **Sit on the live search-serving path.** The tool is for offline experimentation and change management. It does not score, rank, or rerank production search results in real time, and it is never an inline dependency of the search-serving infrastructure. Production search behavior is determined by the configs that have been merged into the config repo and deployed by the operator's CI — the tool's role ends at the PR.
 - **Provide real-time production search-quality monitoring.** Streaming user signals into rolling-window quality metrics, alerting on degradation, and incident dashboards belong to operational observability tooling (APM, SRW's own metrics surface, custom Grafana boards). The tool is deliberately scoped to the experimentation-and-change-management problem; expanding into production monitoring is a coherent v2 Path B direction (see §27) but is **not** in scope through GA v1.
 - **Provide shadow validation against a live production traffic stream.** Pre-deploy validation is offline against query sets and judgment lists, plus the optional read-only "validate on prod" pass already in §17. Streaming a sample of live queries through a candidate config in real time is more confidence-building but requires stream-processing infrastructure that the project deliberately avoids through GA v1.
@@ -240,7 +240,7 @@ Why this matters for licensing and OSS positioning: Elasticsearch's Basic licens
 
 ### SolrAdapter (MVP2, bundled with UBI judgments)
 
-Apache Solr ships in MVP2 alongside the UBI judgments feature; together they complete RelyLoop's three-engine sweep with UBI on every engine. See [`infra_adapter_solr/idea.md`](../../02_product/planned_features/infra_adapter_solr/idea.md) for the full scope.
+Apache Solr ships in MVP2 alongside the UBI judgments feature; together they complete RelyLoop's three-engine sweep with UBI on every engine. See [`infra_adapter_solr/idea.md`](../../00_overview/planned_features/infra_adapter_solr/idea.md) for the full scope.
 
 - `search_batch` uses parallel `/select` requests with a small connection pool. Solr has no `_msearch` equivalent; the JSON Request API allows multi-query but is awkward and undertested across versions.
 - `render` produces a Solr request parameter dict (later URL-encoded). Supports `edismax` (primary), `dismax`, and `lucene` parsers. Templates live under `templates/solr/` as Jinja templates that emit parameter maps, mirroring `templates/elasticsearch/` shape.
@@ -721,7 +721,7 @@ Because UBI is just two indices in the cluster RelyLoop is already adapting, the
 
 The pluggable `SignalsConverter` then maps these features to a 0–3 rating. Initial converters: position-bias-corrected CTR threshold, dwell-time threshold, and **hybrid UBI+LLM** (UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold). Counterfactual click models (CCM, DBN) are documented as post-MVP2 extensions because they need enough impressions per (query, doc) to be statistically meaningful.
 
-The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. See [`feat_ubi_judgments/idea.md`](../02_product/planned_features/feat_ubi_judgments/idea.md) and [`infra_adapter_solr/idea.md`](../02_product/planned_features/infra_adapter_solr/idea.md) for the planned-feature scope.
+The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. See [`feat_ubi_judgments/idea.md`](../00_overview/planned_features/feat_ubi_judgments/idea.md) and [`infra_adapter_solr/idea.md`](../00_overview/planned_features/infra_adapter_solr/idea.md) for the planned-feature scope.
 
 Predicated on the operator having installed the UBI plugin on their engine (OpenSearch UBI plugin, the o19s Elasticsearch UBI fork, or Solr's first-party `solr.UBIComponent`) and logged enough events to be statistically useful. Deployments without UBI continue to run LLM-as-judge unchanged.
 
@@ -2210,7 +2210,7 @@ There is no third-party vendor license, no shared dev cluster, no replay-cassett
 
 ## 27. Phased delivery
 
-Delivery is incremental across three pre-GA releases plus a polish-and-governance GA. The 2026-05-27 reframe (see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md)) compressed the prior six-release plan: Fusion was dropped outright; Solr was promoted to MVP2 and bundled with UBI judgments; observability moved to MVP3; multi-Git, multi-tenancy, and multi-LLM moved to the backlog. The result is a tighter narrative that lands all six of RelyLoop's differentiators by MVP3 and reserves GA for polish + governance + hardening.
+Delivery is incremental across three pre-GA releases plus a polish-and-governance GA. The 2026-05-27 reframe (see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md)) compressed the prior six-release plan: Fusion was dropped outright; Solr was promoted to MVP2 and bundled with UBI judgments; observability moved to MVP3; multi-Git, multi-tenancy, and multi-LLM moved to the backlog. The result is a tighter narrative that lands all six of RelyLoop's differentiators by MVP3 and reserves GA for polish + governance + hardening.
 
 | Release | Theme | Adds | Audience |
 |---|---|---|---|
@@ -2280,7 +2280,7 @@ MVP2 bundles two capabilities into one release: the Apache Solr adapter and UBI-
 
 **MVP2 adds on top of MVP1:**
 
-*Apache Solr adapter* (see [`infra_adapter_solr/idea.md`](../../02_product/planned_features/infra_adapter_solr/idea.md)):
+*Apache Solr adapter* (see [`infra_adapter_solr/idea.md`](../../00_overview/planned_features/infra_adapter_solr/idea.md)):
 
 - Full `SearchAdapter` Protocol implementation: `search_batch` via parallel `/select`; `render` for `edismax` (primary), `dismax`, `lucene`; `get_schema` via Solr Schema API; `list_targets` via CoresAdmin (standalone) / CollectionsAdmin (SolrCloud); `explain` via `debugQuery=true`.
 - Engine support: Solr 9.x + Solr 10.x; SolrCloud + standalone.
@@ -2291,7 +2291,7 @@ MVP2 bundles two capabilities into one release: the Apache Solr adapter and UBI-
 - Capability probe at adapter construction: detects Solr version, SolrCloud-vs-standalone, presence of `solr.UBIComponent`, presence of `ltr` module — written to `clusters.engine_config` JSONB.
 - One migration extending `clusters.auth_kind` and `engine_type` CHECK constraints to accept the Solr values. No new tables.
 
-*UBI judgments* (see [`feat_ubi_judgments/idea.md`](../../02_product/planned_features/feat_ubi_judgments/idea.md)):
+*UBI judgments* (see [`feat_ubi_judgments/idea.md`](../../00_overview/planned_features/feat_ubi_judgments/idea.md)):
 
 - **`UbiReader`** (engine-agnostic) reads the standardized `ubi_queries` + `ubi_events` indices via any `SearchAdapter`'s `search_batch`. Works on Elasticsearch, OpenSearch (via the OpenSearch UBI plugin), and Solr (via `solr.UBIComponent`) without engine-specific code.
 - Aggregates raw events over an operator-specified window into per-(query, doc) interaction features: click count, impression count, position-bias-corrected CTR (Wang-Bendersky correction), post-click dwell-time mean, conversion rate (where conversions are emitted), refinement rate.
@@ -2318,7 +2318,7 @@ MVP2 bundles two capabilities into one release: the Apache Solr adapter and UBI-
 - Multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, etc.) — in the backlog. OpenAI-compatible endpoints (Ollama, vLLM, LM Studio, TGI) continue to work via `OPENAI_BASE_URL` redirection, exactly as in MVP1.
 - LTR training (cross-engine model training is a v2 candidate; MVP2's Solr LTR support is consume-only).
 - Real-time signal streaming. UBI ratings are computed batch-wise at judgment-list creation time, not on the live serving path — strictly offline Path A.
-- Fusion. Explicitly dropped; see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md).
+- Fusion. Explicitly dropped; see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md).
 
 **Audience expansion:** Apache Solr operators (the OSC + Sease + Querqy + Quepid/Chorus community, predominantly Solr-native); operators with production search traffic and UBI logging enabled on any of the three engines; operators who distrust LLM-as-judge as the only trust anchor.
 
@@ -2399,7 +2399,7 @@ Items previously in the release timeline that the 2026-05-27 reframe moved out o
 
 **LTR training.** Cross-engine model training (XGBoost rerankers for ES + OpenSearch via the LTR plugin / native LTR; same XGBoost path for Solr via `MultipleAdditiveTreesModel`). MVP2's Solr LTR support is consume-only. Promoted to release status when adopter feedback prioritizes it over Path B.
 
-**Lucidworks Fusion adapter.** Dropped outright; see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md). The `SearchAdapter` Protocol shape means a community-contributed Fusion adapter remains possible, but the project does not own that direction.
+**Lucidworks Fusion adapter.** Dropped outright; see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md). The `SearchAdapter` Protocol shape means a community-contributed Fusion adapter remains possible, but the project does not own that direction.
 
 **Path B — Search Quality Platform expansion.** A coherent v2 direction is to expand from "experimentation and change management" into "experimentation and change management *plus* real-time production observability and online learning." This shifts the tool from Quepid-territory toward commercial-platform-territory (Coveo, Algolia, Bloomreach). Captured as a backlog/v2 set rather than a GA path because it requires stream-processing infrastructure (Kafka or Redis Streams + ClickHouse rolling-window aggregation) and changes the audience (Path A serves search engineers; Path B also serves search ops / SREs).
 

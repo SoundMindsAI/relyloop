@@ -1151,7 +1151,7 @@ None. The builder uses only React Hook Form state (existing) and component-local
 
 ### 4.2 Product docs (`docs/02_product`)
 
-- [ ] **Finalization** (after PR merge): move `docs/02_product/planned_features/feat_create_study_search_space_builder/` under `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_create_study_search_space_builder/` per the impl-execute skill's standard finalization step.
+- [ ] **Finalization** (after PR merge): move `docs/00_overview/planned_features/feat_create_study_search_space_builder/` under `docs/00_overview/implemented_features/<YYYY_MM_DD>_feat_create_study_search_space_builder/` per the impl-execute skill's standard finalization step.
 
 ### 4.3 Runbooks (`docs/03_runbooks`)
 

@@ -25,7 +25,8 @@ Literal at the create-study endpoint (``schemas.py:214``), so the wire
 contract is preserved.
 
 References:
-- Spec FR-2 through FR-7: docs/02_product/planned_features/feat_pr_metric_confidence/feature_spec.md
+- Spec FR-2 through FR-7:
+  docs/00_overview/planned_features/feat_pr_metric_confidence/feature_spec.md
 - AC-3 / AC-3a / AC-4 / AC-5 / AC-6 / AC-7 / AC-8 / AC-9 / AC-10 / AC-15 / AC-16
 """
 

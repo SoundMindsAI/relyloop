@@ -62,7 +62,7 @@ These appear in the topical arch docs because the docs cover all releases — bu
 - LTR training (cross-engine model training; MVP2's LTR support is consume-only)
 - Path B (production monitoring, bandits, shadow validation)
 - Helm chart maturity; Kubernetes-native operator
-- Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md))
+- Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../00_overview/planned_features/chore_drop_fusion_scope/idea.md))
 
 ### Reserved for v2+
 - `SolrAdapter` (pure Apache Solr support)
@@ -96,7 +96,7 @@ feat_proposals_ui   (parallel after feat_studies_ui + feat_github_pr_worker)
 chore_tutorial_polish (last; depends on all)
 ```
 
-**Note on feat_study_lifecycle split:** the spec ships as one feature folder but should be planned as two epics — (1) "schema" (just the migration + Pydantic models) which unblocks `infra_optuna_eval`, then (2) "API + orchestrator" which depends on `infra_optuna_eval`'s `run_trial` worker existing. See [`feat_study_lifecycle/feature_spec.md` §"Implementation sequencing within this feature"](../02_product/planned_features/feat_study_lifecycle/feature_spec.md).
+**Note on feat_study_lifecycle split:** the spec ships as one feature folder but should be planned as two epics — (1) "schema" (just the migration + Pydantic models) which unblocks `infra_optuna_eval`, then (2) "API + orchestrator" which depends on `infra_optuna_eval`'s `run_trial` worker existing. See [`feat_study_lifecycle/feature_spec.md` §"Implementation sequencing within this feature"](../00_overview/planned_features/feat_study_lifecycle/feature_spec.md).
 
 Two-engineer compression: A drives the backend chain (study_lifecycle → optuna_eval → llm_judgments → digest_proposal → github_pr_worker → github_webhook); B drives the UI chain (studies_ui → chat_agent → proposals_ui) starting once the consumed APIs are stable. They re-converge on chore_tutorial_polish.
 
@@ -124,6 +124,6 @@ The "TBA" docs are authored alongside their corresponding feature spec.
 ## Cross-references
 
 - All arch docs in this section: [`docs/01_architecture/`](./)
-- MVP1 feature folders: [`docs/02_product/planned_features/`](../02_product/planned_features/)
+- MVP1 feature folders: [`docs/00_overview/planned_features/`](../00_overview/planned_features/)
 - MVP1 user stories: [`docs/02_product/mvp1-user-stories.md`](../02_product/mvp1-user-stories.md)
 - Umbrella spec MVP1 section: [`docs/00_overview/relyloop-spec.md` §27](../00_overview/relyloop-spec.md)

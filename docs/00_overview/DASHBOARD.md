@@ -16,4 +16,4 @@ _Top-level index across MVP1 → GA v1+ as of **2026-05-28**. Click a release na
 
 ---
 
-Source of truth: feature folders under [`docs/02_product/planned_features/`](../02_product/planned_features/) and [`docs/00_overview/implemented_features/`](implemented_features/), plus the release matrix in [`docs/01_architecture/tech-stack.md`](../01_architecture/tech-stack.md). See [`state.md`](../../state.md) for active-branch context and [`CLAUDE.md`](../../CLAUDE.md) for conventions.
+Source of truth: feature folders under [`docs/00_overview/planned_features/`](planned_features/) and [`docs/00_overview/implemented_features/`](implemented_features/), plus the release matrix in [`docs/01_architecture/tech-stack.md`](../01_architecture/tech-stack.md). See [`state.md`](../../state.md) for active-branch context and [`CLAUDE.md`](../../CLAUDE.md) for conventions.

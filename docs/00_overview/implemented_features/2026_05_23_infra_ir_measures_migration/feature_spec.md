@@ -599,8 +599,8 @@ N/A — no event-driven surfaces.
 - `docs/01_architecture/cluster-lifecycle.md` — line 159 reworded.
 - `docs/00_overview/relyloop-spec.md` — umbrella spec; ~11 mentions reworded. The "Engine: pytrec_eval everywhere" subsection (lines 688–693) reframed as a provider-abstraction discussion. Stack table at line 155 + line 2513 + decision log at 2658 + appendix at 2722 all updated.
 - `docs/02_product/mvp1-user-stories.md` — US-7 narrative reworded.
-- `docs/02_product/planned_features/feat_study_baseline_trial/idea.md` — sibling-coordination: line 56 ("scores via `pytrec_eval`") reworded to `ir_measures`. Same-PR update.
-- `docs/02_product/planned_features/feat_auto_followup_studies/idea.md` — sibling-coordination: line 47 ("Optuna + pytrec_eval are deterministic") reworded to `Optuna + ir_measures`. Same-PR update.
+- `docs/00_overview/planned_features/feat_study_baseline_trial/idea.md` — sibling-coordination: line 56 ("scores via `pytrec_eval`") reworded to `ir_measures`. Same-PR update.
+- `docs/00_overview/planned_features/feat_auto_followup_studies/idea.md` — sibling-coordination: line 47 ("Optuna + pytrec_eval are deterministic") reworded to `Optuna + ir_measures`. Same-PR update.
 - `docs/08_guides/workflows-overview.md` — lines 123, 277 reworded.
 - `ui/public/docs/workflows-overview.md` — same content as above; lock-step.
 - `ui/public/guides/05_import_judgments_and_calibrate/script.md` — line 6 reworded.

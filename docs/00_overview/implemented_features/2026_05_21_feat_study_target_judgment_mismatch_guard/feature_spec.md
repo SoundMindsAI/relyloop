@@ -484,7 +484,7 @@ No new tooltip placements. The empty-state message itself is the contextual help
 ## 15) Documentation update requirements
 
 - `docs/01_architecture/api-conventions.md` — add BOTH `JUDGMENT_CLUSTER_MISMATCH` AND `JUDGMENT_TARGET_MISMATCH` rows to the studies-endpoint error-code table (after `SEARCH_SPACE_MISSING_DECLARED_PARAM`), in firing order.
-- `docs/02_product/planned_features/feat_study_target_judgment_mismatch_guard/` — this spec file.
+- `docs/00_overview/planned_features/feat_study_target_judgment_mismatch_guard/` — this spec file.
 - `docs/03_runbooks/` — no new runbook (the 422 is self-explanatory; existing study-lifecycle-debugging runbook already covers POST /studies failure modes).
 - `docs/04_security/` — no change (no new attack surface).
 - `docs/05_quality/` — no change (existing test layers cover the new code).

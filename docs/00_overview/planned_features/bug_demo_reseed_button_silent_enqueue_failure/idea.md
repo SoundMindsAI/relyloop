@@ -84,5 +84,5 @@ Both are >30 min of focused work and were out of scope for the merge cycle the o
 
 ## Related ideas
 
-- The parent fix [`bug_demo_reseed_fake_metric_regression`](../../00_overview/implemented_features/2026_05_27_bug_demo_reseed_fake_metric_regression/bug_fix.md) (PR #286) — closed at the data layer, this is the UX-layer follow-up.
+- The parent fix [`bug_demo_reseed_fake_metric_regression`](../../implemented_features/2026_05_27_bug_demo_reseed_fake_metric_regression/bug_fix.md) (PR #286) — closed at the data layer, this is the UX-layer follow-up.
 - [[chore_demo_seeding_integration_tests_rewrite]] — the integration suite at `backend/tests/integration/test_demo_seeding.py` is currently skipped; rewriting it would have caught this regression in CI.

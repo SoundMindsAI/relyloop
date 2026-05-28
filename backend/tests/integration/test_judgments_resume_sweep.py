@@ -1,6 +1,6 @@
 """Integration tests for ``backend.workers.judgments_resume.resume_stuck_judgment_lists``.
 
-Spec: docs/02_product/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md
+Spec: docs/00_overview/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md
 
 Covers AC-3 (no-op tick), AC-4 (one row, counter < cap + full FR-6 log
 contract), AC-5 (cap breach), AC-6 (per-id failure isolation), AC-7

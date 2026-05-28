@@ -87,13 +87,13 @@ Tiered. Tier A reshapes the LLM output and adds the "Run this followup" button f
 - **Cross-template search-space remapping.** The hard part: when swapping templates, the prior winner's params don't all map onto the new template's `declared_params`. A new domain helper at `backend/app/domain/study/template_swap.py` computes the intersection (common param names) and the disjoint set (new params get default heuristic bounds per [`backend/app/domain/study/search_space_defaults.py`](../../../../backend/app/domain/study/search_space_defaults.py); removed params are dropped).
 - **LLM prompt extension** to teach the model when to suggest a swap (typically: parameter-importance distribution is highly skewed, suggesting some params are dead weight; OR several winning trials cluster around a sub-set of params that map cleanly onto a different template's declared params).
 - **UI surface:** swap-template followups render with a side-by-side comparison of the two templates' `declared_params` before the operator commits.
-- **Now tracked in [`../../../02_product/planned_features/feat_digest_executable_followups_swap_template/idea.md`](../../../02_product/planned_features/feat_digest_executable_followups_swap_template/idea.md)** with full standalone idea. Run `/pipeline docs/02_product/planned_features/feat_digest_executable_followups_swap_template --auto` to ship it.
+- **Now tracked in [`../../../00_overview/planned_features/feat_digest_executable_followups_swap_template/idea.md`](../../../00_overview/planned_features/feat_digest_executable_followups_swap_template/idea.md)** with full standalone idea. Run `/pipeline docs/00_overview/planned_features/feat_digest_executable_followups_swap_template --auto` to ship it.
 
 ### Tier C (split out 2026-05-24 to standalone backlog folder) — template-edit suggestions
 
 - **`kind: "edit_template"`** carrying a proposed JSON-patch on the parent template's `body_jsonata` (or equivalent). The LLM could suggest "add a `category^2` field-boost to the template body." Today templates are operator-authored only; this would let LLM suggestions flow into template edits with an explicit review step.
 - **Likely out of scope for MVP1.** Template edits change query rendering semantics — a much larger trust-and-validation surface than search-space narrowing.
-- **Now tracked in [`../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md)** with explicit promotion criteria (drops the `backlog_` prefix once Phase 2 has shipped + the template-editor UI prerequisite is met).
+- **Now tracked in [`../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md)** with explicit promotion criteria (drops the `backlog_` prefix once Phase 2 has shipped + the template-editor UI prerequisite is met).
 
 ### Out of scope for Tier A/B
 

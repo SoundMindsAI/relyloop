@@ -109,7 +109,7 @@ Per cycle 1 GPT-5.5 F4 — explicit trace so Phase 2 plan-generation knows what 
 The canonical invocation for Phase 2 is:
 
 ```bash
-/impl-plan-gen docs/02_product/planned_features/feat_study_lifecycle/feature_spec.md
+/impl-plan-gen docs/00_overview/planned_features/feat_study_lifecycle/feature_spec.md
 ```
 
 The spec covers both phases — its §3 "Phase boundaries" enumerates which FRs land in Phase 1 vs Phase 2. The plan generator reads the existing approved `feature_spec.md` (which Phase 1's plan already shipped against), detects that Phase 1 is complete (via the marker in `implementation_plan.md`'s status header), and emits a Phase 2-only implementation plan. No new spec generation is required — the existing spec is authoritative.

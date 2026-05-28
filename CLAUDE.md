@@ -1,6 +1,6 @@
 # CLAUDE.md — RelyLoop
 
-Continue execution without constantly asking for permission to execute tests or code changes or commands. I approve all test executions, all commands, and all code changes scoped to the current feature branch. Stop and ask only for: (a) destructive ops on `main` or shared infra, (b) actions that publish to third parties (PR comments, Slack messages, GitHub Releases), (c) operator-environment changes the agent cannot make on the operator's behalf (`.env` content, mounted secret values, GitHub branch protection — see [implementation_plan.md §7.5](docs/02_product/planned_features/infra_foundation/implementation_plan.md) for the canonical handoff list).
+Continue execution without constantly asking for permission to execute tests or code changes or commands. I approve all test executions, all commands, and all code changes scoped to the current feature branch. Stop and ask only for: (a) destructive ops on `main` or shared infra, (b) actions that publish to third parties (PR comments, Slack messages, GitHub Releases), (c) operator-environment changes the agent cannot make on the operator's behalf (`.env` content, mounted secret values, GitHub branch protection — see [implementation_plan.md §7.5](docs/00_overview/planned_features/infra_foundation/implementation_plan.md) for the canonical handoff list).
 
 **Never commit directly to main.** Always create a feature branch, push it, and open a PR. CI runs on PRs to main — merging to main triggers staging deploy (when staging exists; MVP1 has no remote staging — local-only).
 
@@ -36,7 +36,7 @@ The tool is a single, engine-neutral, provider-neutral system: one UI, one workf
 | MVP2 / v0.2 | "Three-Engine + Real Signals" | Apache Solr adapter (Solr 9.x + 10.x via `edismax` + `{!ltr}` rescore) + UBI judgments (`UbiReader` reads `ubi_queries` + `ubi_events` via any `SearchAdapter`) + pluggable `SignalsConverter` (position-bias-corrected CTR, dwell-time, **hybrid UBI+LLM**) + `POST /api/v1/judgment-lists/generate-from-ubi` + `generate_judgments_from_ubi` agent tool. Solr's first-party `solr.UBIComponent` writes the same UBI schema, so UBI works on all three engines from day one. |
 | MVP3 / v0.3 | "Observable" | Langfuse + ClickHouse + SigNoz; canonical event catalog; `audit_log` table + immutability trigger (no users/tenants yet); lineage columns; PII redaction; trace propagation across all three engines + both judgment sources |
 | GA v1 / v1.0 | "Production-ready" | LangGraph orchestrator + `PostgresSaver`; full RFC 7807 errors; `Idempotency-Key`; full four-layer test pyramid at 90% coverage; complete CI/CD with security gates; container scanning; image signing; design-partner references; public Optuna-vs-SRW-grid benchmark. **No new product surface** — all six differentiators are GA by MVP3; GA v1 is polish + governance + hardening. |
-| Backlog | — | Multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy + multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, Azure OpenAI); LTR training; Path B (production monitoring, bandits, shadow validation); Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](docs/02_product/planned_features/chore_drop_fusion_scope/idea.md)) |
+| Backlog | — | Multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy + multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, Azure OpenAI); LTR training; Path B (production monitoring, bandits, shadow validation); Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](docs/00_overview/planned_features/chore_drop_fusion_scope/idea.md)) |
 
 If a CLAUDE.md statement conflicts with the canonical release matrix, the matrix wins — flag the drift in your PR.
 
@@ -51,7 +51,7 @@ Before starting any task, read these two files first:
 - [`architecture.md`](architecture.md) — high-level system design, boundaries, critical flows, and pointers into the topical docs under `docs/01_architecture/`
 - [`state.md`](state.md) — current branch reality, recent changes, active priorities, Alembic head, known fragility
 
-Use them as the default fast-path context. Fall back to deeper exploration (`docs/01_architecture/<topic>.md`, individual feature specs in `docs/02_product/planned_features/`) only when the task requires file-level implementation detail or verification.
+Use them as the default fast-path context. Fall back to deeper exploration (`docs/01_architecture/<topic>.md`, individual feature specs in `docs/00_overview/planned_features/`) only when the task requires file-level implementation detail or verification.
 
 After completing a task, evaluate whether documentation needs updating:
 
@@ -107,7 +107,7 @@ docs/
   08_guides/      # tenant-facing walkthrough guides (lands later)
 ```
 
-**Planned-features folder naming:** new folders under `docs/02_product/planned_features/` use a single-axis work-type prefix: `feat_`, `infra_`, `chore_`, `bug_`, or `epic_`. See [feature_templates/README.md](docs/02_product/planned_features/feature_templates/README.md). Existing MVP1 folders already follow this convention.
+**Planned-features folder naming:** new folders under `docs/00_overview/planned_features/` use a single-axis work-type prefix: `feat_`, `infra_`, `chore_`, `bug_`, or `epic_`. See [feature_templates/README.md](docs/00_overview/planned_features/feature_templates/README.md). Existing MVP1 folders already follow this convention.
 
 ## Absolute Rules — Never Violate
 
@@ -121,7 +121,7 @@ docs/
 
 5. **All Alembic migrations must include `downgrade()` and round-trip cleanly.** Verify with `alembic upgrade head && alembic downgrade -1 && alembic upgrade head` before merging. The MVP1 baseline is `0001_baseline` — the empty migration that registers `alembic_version`; subsequent feature migrations build on it.
 
-6. **`/healthz` is unauthenticated by design.** It's an operator-facing probe, unprefixed (not under `/api/v1/`), and reports subsystem status. Never gate it behind auth. The shape is documented in [`infra_foundation/feature_spec.md`](docs/02_product/planned_features/infra_foundation/feature_spec.md) §7.3 — any change requires a spec patch first. When TLS + auth land (TLS via Caddy is a GA-v1 hardening item; multi-tenant auth is in the backlog), `/healthz` stays open via the reverse proxy's localhost or internal-network ACL.
+6. **`/healthz` is unauthenticated by design.** It's an operator-facing probe, unprefixed (not under `/api/v1/`), and reports subsystem status. Never gate it behind auth. The shape is documented in [`infra_foundation/feature_spec.md`](docs/00_overview/planned_features/infra_foundation/feature_spec.md) §7.3 — any change requires a spec patch first. When TLS + auth land (TLS via Caddy is a GA-v1 hardening item; multi-tenant auth is in the backlog), `/healthz` stays open via the reverse proxy's localhost or internal-network ACL.
 
 7. **Conventional Commits format is enforced** (per `infra_foundation` FR-6). Pre-commit `commit-msg` hook validates the message against `^(feat|fix|chore|docs|infra|refactor|test|style|perf|build|ci)(\([a-z0-9-]+\))?(!)?:`. Never bypass with `--no-verify` or `-n`. If a hook fails, fix the message; don't skip.
 
@@ -463,7 +463,7 @@ This section covers the **runtime data path** (what's safe to write to from insi
 
 One follow-on capability remains tracked as a deferred-phase idea in the feature's planned-features folder, picked up when the friction recurs:
 
-- [`phase3_idea.md`](docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec). Picked up on a migration-collision incident between concurrent worktrees sharing the same Postgres.
+- [`phase3_idea.md`](docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec). Picked up on a migration-collision incident between concurrent worktrees sharing the same Postgres.
 
 Phase 2 (capability B, the `make test-worktree` automation) shipped on PR #249 alongside Phase 1 — see the Shortcut subsection above and [`docs/03_runbooks/parallel-worktrees.md`](docs/03_runbooks/parallel-worktrees.md).
 
@@ -488,11 +488,11 @@ When working on any task (feature, bug fix, refactor, doc update), you will rout
 
 **Do** create an idea file the moment you notice the issue:
 
-1. Pick a folder name with the right prefix per [`docs/02_product/planned_features/feature_templates/README.md`](docs/02_product/planned_features/feature_templates/README.md):
+1. Pick a folder name with the right prefix per [`docs/00_overview/planned_features/feature_templates/README.md`](docs/00_overview/planned_features/feature_templates/README.md):
    - `bug_<short-slug>` — pre-existing failure, regression, broken behavior
    - `chore_<short-slug>` — non-feature cleanup (debt, doc rot, naming)
    - `infra_<short-slug>` — tooling, CI, test framework, deploy infra
-2. Write `docs/02_product/planned_features/<folder>/idea.md` following [`feature_templates/idea-template.md`](docs/02_product/planned_features/feature_templates/idea-template.md). Include:
+2. Write `docs/00_overview/planned_features/<folder>/idea.md` following [`feature_templates/idea-template.md`](docs/00_overview/planned_features/feature_templates/idea-template.md). Include:
    - **Origin**: how you noticed it (which PR / phase gate / story / conversation)
    - **Problem**: what's wrong, with `file:line` citations where you can
    - **Why deferred**: why you didn't fix it inline (almost always: "out of scope for current task")
@@ -576,7 +576,7 @@ If you slip and a stub leaks into a committed file, capture it as a `bug_<slug>`
 | 9 | [`feat_studies_ui`](docs/00_overview/implemented_features/2026_05_12_feat_studies_ui/) | **Complete (PR #50, merged 2026-05-11)** |
 | 10 | [`feat_chat_agent`](docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/) | **Complete (PR #60, merged 2026-05-12)** |
 | 11 | [`feat_proposals_ui`](docs/00_overview/implemented_features/2026_05_12_feat_proposals_ui/) | **Complete (PR #58, merged 2026-05-12)** |
-| 12 | [`chore_tutorial_polish`](docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/) | **Complete (PR #64, merged 2026-05-12). Story 4.6 (demo) deferred to MVP3 per [chore_demo_recording_mvp3](docs/02_product/planned_features/chore_demo_recording_mvp3/idea.md) (PR #65). Story 4.7 shipped 2026-05-13 — `v0.1.0` tag on `d099536`, [GitHub Release published](https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0).** |
+| 12 | [`chore_tutorial_polish`](docs/00_overview/implemented_features/2026_05_12_chore_tutorial_polish/) | **Complete (PR #64, merged 2026-05-12). Story 4.6 (demo) deferred to MVP3 per [chore_demo_recording_mvp3](docs/00_overview/planned_features/chore_demo_recording_mvp3/idea.md) (PR #65). Story 4.7 shipped 2026-05-13 — `v0.1.0` tag on `d099536`, [GitHub Release published](https://github.com/SoundMindsAI/relyloop/releases/tag/v0.1.0).** |
 
 Run `/pipeline status` for the live view from spec dependencies.
 

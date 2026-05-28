@@ -677,13 +677,13 @@ export function RejectDialog({ proposal }: RejectDialogProps): JSX.Element;
 | `state.md` | Add an entry to "Most recent meaningful changes" with the feature summary, stories count, tests count, GPT-5.5 cycle count (filled by `/impl-execute` finalization). |
 | `architecture.md` | Add `/proposals` + `/proposals/[id]` to the "Where the code lives" `ui/` section. |
 | `CLAUDE.md` | Flip the feature-status table row for `feat_proposals_ui` from "Spec approved, plan pending" to "Complete (PR #N, merged YYYY-MM-DD)". |
-| `docs/02_product/planned_features/feat_proposals_ui/feature_spec.md` | §18 "Definition of feature done" — check the AC-1 through AC-7 box. |
+| `docs/00_overview/planned_features/feat_proposals_ui/feature_spec.md` | §18 "Definition of feature done" — check the AC-1 through AC-7 box. |
 
 **Tasks**
 
 1. Edit `docs/02_product/mvp1-user-stories.md` — locate the US-28 + US-29 rows and add the Implemented status + feature link. Match the format used for US-13/14/15 (verified via `grep "Implemented" docs/02_product/mvp1-user-stories.md`).
 2. Edit `docs/03_runbooks/ui-debugging.md` — append the proposals routes sub-section.
-3. Capture follow-up idea file: `docs/02_product/planned_features/chore_proposals_source_filter_server_side/idea.md` documenting the client-side source filter's pagination caveat surfaced in §6 risks (per CLAUDE.md "Tangential discoveries — capture as idea files immediately" + GPT-5.5 review A5).
+3. Capture follow-up idea file: `docs/00_overview/planned_features/chore_proposals_source_filter_server_side/idea.md` documenting the client-side source filter's pagination caveat surfaced in §6 risks (per CLAUDE.md "Tangential discoveries — capture as idea files immediately" + GPT-5.5 review A5).
 4. The state.md / architecture.md / CLAUDE.md updates are typically applied by `/impl-execute`'s finalization step (Step 7), not as a story task. This story documents the requirement; the finalization commit lands them.
 
 **Definition of Done (DoD)**
@@ -1148,7 +1148,7 @@ All dependencies satisfied as of 2026-05-12.
 
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
-| Pagination unaware of client-side source filter — operator filters to `manual` but page-2 also contains study-sourced rows | M | L | Capture an idea file at `docs/02_product/planned_features/chore_proposals_source_filter_server_side/idea.md` during Story 4.1 (per CLAUDE.md "Tangential discoveries — capture as idea files immediately"). Acceptable for MVP1 (<50 proposals/page realistically). |
+| Pagination unaware of client-side source filter — operator filters to `manual` but page-2 also contains study-sourced rows | M | L | Capture an idea file at `docs/00_overview/planned_features/chore_proposals_source_filter_server_side/idea.md` during Story 4.1 (per CLAUDE.md "Tangential discoveries — capture as idea files immediately"). Acceptable for MVP1 (<50 proposals/page realistically). |
 | `?action=open_pr` auto-trigger fires twice during React 19 Strict Mode dev rerender | L | L | Guarded by `useRef<boolean>` one-shot flag; the unit test asserts the guard. |
 | `useClusters({ limit: 200 })` misses clusters when an operator registers >200 | L | L | Captured as idea: `chore_cluster_filter_full_list`. MVP1 expects <10 clusters per installer. |
 | 30s steady-state poll on `/proposals` list page is wasteful when no row is `pr_opened+open` | L | L | The `refetchInterval` function form returns `false` in that case → query goes idle. |

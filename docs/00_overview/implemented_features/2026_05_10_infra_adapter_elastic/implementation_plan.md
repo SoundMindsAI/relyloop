@@ -2214,7 +2214,7 @@ if __name__ == "__main__":
 | File | Change |
 |---|---|
 | `docs/01_architecture/adapters.md` | s/`backend/adapters/`/`backend/app/adapters/`/g (lines 56, 70). Confirm spec text is updated to match. |
-| `docs/02_product/planned_features/infra_adapter_elastic/feature_spec.md` | Section 3, 7, 8: replace `backend/adapters/` with `backend/app/adapters/`; replace `backend.scripts.seed_clusters` with `backend.app.scripts.seed_clusters`. Section 8 numbering — header is "8) API and data contract baseline" but subsections are 7.1–7.5. Renumber 7.x → 8.x. |
+| `docs/00_overview/planned_features/infra_adapter_elastic/feature_spec.md` | Section 3, 7, 8: replace `backend/adapters/` with `backend/app/adapters/`; replace `backend.scripts.seed_clusters` with `backend.app.scripts.seed_clusters`. Section 8 numbering — header is "8) API and data contract baseline" but subsections are 7.1–7.5. Renumber 7.x → 8.x. |
 | `README.md` | Add `make seed-clusters` to the Quickstart block after `make migrate`. |
 | `docs/02_product/mvp1-user-stories.md` | Mark US-4 / US-5 / US-6 as covered by `infra_adapter_elastic` (do NOT mark "implemented" until merge). |
 
@@ -2287,7 +2287,7 @@ if __name__ == "__main__":
 | `state.md` | Move `infra_adapter_elastic` from "Queued" to "Most recent meaningful changes." Update Alembic head from `0001_baseline` to `0002_clusters_config_repos`. Update "Queued" priority list (next: `infra_optuna_eval`). |
 | `architecture.md` | Add a row for `backend/app/adapters/` to the "Where the code lives" tree. |
 | `CLAUDE.md` | Mark `infra_adapter_elastic` complete in the Feature Status table. |
-| `docs/02_product/planned_features/infra_adapter_elastic/pipeline_status.md` | Update Implement section to "Complete (PR #<N>)". |
+| `docs/00_overview/planned_features/infra_adapter_elastic/pipeline_status.md` | Update Implement section to "Complete (PR #<N>)". |
 
 **Tasks**
 1. Update state.md with the new Alembic head, recent change entry, and queue shift.
@@ -2413,7 +2413,7 @@ If Story 3.5 is dropped (post-review-log resolution), the four health/probe rows
 ### 4.2 Product docs
 
 - [x] `docs/02_product/mvp1-user-stories.md` — mark US-4/5/6 as covered (Story 4.2).
-- [x] `docs/02_product/planned_features/infra_adapter_elastic/feature_spec.md` — path + section-numbering patch (Story 4.2).
+- [x] `docs/00_overview/planned_features/infra_adapter_elastic/feature_spec.md` — path + section-numbering patch (Story 4.2).
 
 ### 4.3 Runbooks
 

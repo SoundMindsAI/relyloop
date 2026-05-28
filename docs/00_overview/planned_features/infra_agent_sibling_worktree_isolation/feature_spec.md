@@ -420,7 +420,7 @@ N/A — no UI surface.
 
 ### AC-8: `phase3_idea.md` exists in this feature's directory after PR merges (Phase 2 expansion: `phase2_idea.md` is deleted because capability B shipped)
 
-- Given the post-merge state of `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/`
+- Given the post-merge state of `docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/`
 - When a reader lists the directory
 - Then `phase3_idea.md` (capability C) exists
 - And `phase2_idea.md` does NOT exist (it was deleted when capability B shipped in Phase 2)
@@ -501,9 +501,9 @@ Coverage gate impact: the new test adds a small amount of coverage but the featu
 | FR-3 | AC-3 | Story 1.1 | (PR review — semantic correctness of the safe-paths rule is content-shaped, not regex-shaped) | `CLAUDE.md` |
 | FR-4 | AC-4 | Story 1.1 | `backend/tests/unit/docs/test_claude_md_sections.py::test_section_has_no_bare_database_url_assignment` + `::test_section_has_exactly_one_fenced_bash_block` | `CLAUDE.md` |
 | FR-5 | AC-5 | Story 1.1 | (PR review) | `CLAUDE.md` |
-| FR-6 | AC-6 | Story 1.1 (write the forward-pointer paragraph inside the new `CLAUDE.md` section) + Story 1.2 (write `phase2_idea.md` + `phase3_idea.md`) | (PR review — verifies the section contains the forward-pointer prose AND the two tracking files exist) | `CLAUDE.md` (forward-pointer text), `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md`, `phase3_idea.md` |
+| FR-6 | AC-6 | Story 1.1 (write the forward-pointer paragraph inside the new `CLAUDE.md` section) + Story 1.2 (write `phase2_idea.md` + `phase3_idea.md`) | (PR review — verifies the section contains the forward-pointer prose AND the two tracking files exist) | `CLAUDE.md` (forward-pointer text), `docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md`, `phase3_idea.md` |
 | FR-7 | AC-7 | Story 1.3 (regression tests) | `backend/tests/unit/docs/test_claude_md_sections.py` (all 5 tests) | (none — test file is the artifact) |
-| (out of FR — Step 10 deferred-phase tracking) | AC-8 | Story 1.2 | (PR review + `/pipeline status` smoke) | `docs/02_product/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md`, `phase3_idea.md` |
+| (out of FR — Step 10 deferred-phase tracking) | AC-8 | Story 1.2 | (PR review + `/pipeline status` smoke) | `docs/00_overview/planned_features/infra_agent_sibling_worktree_isolation/phase2_idea.md`, `phase3_idea.md` |
 
 ## 18) Definition of feature done
 

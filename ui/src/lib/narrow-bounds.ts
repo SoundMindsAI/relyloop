@@ -3,7 +3,7 @@
  * cloned study's ``search_space`` JSON so each numeric ``low``/``high`` clamps
  * to ±``percent``% around the source study's winning param value.
  *
- * Spec reference: [feature_spec.md](../../../docs/02_product/planned_features/feat_study_clone_narrow_bounds/feature_spec.md)
+ * Spec reference: [feature_spec.md](../../../docs/00_overview/planned_features/feat_study_clone_narrow_bounds/feature_spec.md)
  * FR-9 (helper contract), FR-10 (clamp algorithm), FR-11 (winner outside bounds),
  * D-10 (negative-winner unordered min/max), D-11 (no-op leaves bytes exact —
  * detected by ``result.narrowed.length === 0`` in the caller).

@@ -63,7 +63,7 @@ Two reasons this idea defers rather than ships inline with the sibling-worktree 
 2. **Requires operator judgment.** What counts as "active state" vs. "historical archive" is a judgment call only the operator can make. Examples that aren't obvious without input:
    - Should the "Last updated" stay at the top of `state.md` or move to the history file? (Probably top.)
    - Keep last 5 merges or last 10? (Threshold choice.)
-   - Should `state_history.md` be in `docs/00_overview/` (sibling to `implemented_features/`) or stay at repo root next to `state.md`? (Architectural choice — see [`docs/00_overview/`](../../../00_overview/) for the existing implemented-features convention.)
+   - Should `state_history.md` be in `docs/00_overview/` (sibling to `implemented_features/`) or stay at repo root next to `state.md`? (Architectural choice — see [`docs/00_overview/`](../../) for the existing implemented-features convention.)
    - Pre-commit hook: warn-only or block? (Workflow tax trade-off.)
 
 The rubric's "implement-over-defer" calls for this work if it's ≤60 min AND no operator-judgment fork. This idea hits the operator-judgment hard-stop — defer is correct.

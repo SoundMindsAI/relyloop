@@ -137,7 +137,7 @@ class TestLifespanSpawnsBothTasks:
 
         Used by integration-test conftest to avoid event-loop interleaving
         with the latent webhook merge-handler row-lock race captured at
-        docs/02_product/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
+        docs/00_overview/planned_features/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md.
         Capability-check task is unaffected.
         """
         monkeypatch.setenv("RELYLOOP_DISABLE_STARTUP_WARMUP", "1")

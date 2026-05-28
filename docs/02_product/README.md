@@ -4,8 +4,9 @@ Use this section for roadmap, release planning, scope definitions, execution pla
 
 ## Current contents
 
-- `planned_features/` — per-feature planning artifacts (idea, spec, plan, pipeline_status) for work that is queued, in flight, or recently shipped. The pipeline of `.claude/skills/` (idea-preflight → spec-gen → impl-plan-gen → impl-execute → guide-gen) produces and consumes these folders.
-  - `planned_features/feature_templates/` — copy-and-fill templates plus reference examples. Templates are ported from a sibling project; each carries an HTML porting banner at the top with the conditional-section guidance.
+- `mvp1-user-stories.md` — source-of-truth user-story enumeration for MVP1 ("The Loop").
+
+Per-feature planning artifacts (idea, spec, plan, pipeline_status) live at [`../00_overview/planned_features/`](../00_overview/planned_features/), alongside the [`implemented_features/`](../00_overview/implemented_features/) archive — moved on 2026-05-28 so the two lifecycle states are siblings (`planned_features/` is in-flight work; `implemented_features/` is the dated archive of shipped work). The pipeline of `.claude/skills/` (idea-preflight → spec-gen → impl-plan-gen → impl-execute → guide-gen) produces and consumes those folders. Feature templates: [`../00_overview/planned_features/feature_templates/`](../00_overview/planned_features/feature_templates/).
 
 ## Related
 

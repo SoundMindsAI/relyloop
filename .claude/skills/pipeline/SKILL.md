@@ -37,9 +37,9 @@ Guide generation is handled automatically by `/impl-execute` post-implementation
 
 `$ARGUMENTS` is one of:
 
-- **`status`** (or empty) — **Project-wide status mode.** Enumerate every feature under `docs/02_product/planned_features/`, sort by dependency-derived priority order, and render a status table with a single explicit "Next action" line. No skills are invoked. See [Project-wide status mode](#project-wide-status-mode-no-feature-path) below.
-- **`<path to feature directory>`** — Single-feature mode. Detect the current stage and advance it. Path must be under `docs/02_product/planned_features/`.
-  - Example: `docs/02_product/planned_features/EPIC_RBAC-GAPS_01-team_management_ui`
+- **`status`** (or empty) — **Project-wide status mode.** Enumerate every feature under `docs/00_overview/planned_features/`, sort by dependency-derived priority order, and render a status table with a single explicit "Next action" line. No skills are invoked. See [Project-wide status mode](#project-wide-status-mode-no-feature-path) below.
+- **`<path to feature directory>`** — Single-feature mode. Detect the current stage and advance it. Path must be under `docs/00_overview/planned_features/`.
+  - Example: `docs/00_overview/planned_features/EPIC_RBAC-GAPS_01-team_management_ui`
 - **Optional flags** (appended after the path; ignored in `status` mode):
   - `--auto` — **Autonomous mode.** Run the entire pipeline (idea → spec → plan → implement → PR) without pausing for inter-stage approval. Cross-model review, verification gates, and test suites still run within each skill — those are hard gates, not skippable. In epic mode, `--auto` pauses only between features (not between stages within a feature). See "Autonomous mode" section below.
   - `--from <stage>` — Force start from a specific stage (`idea`, `spec`, `plan`, `implement`). Overrides auto-detection.
@@ -82,7 +82,7 @@ Command: /impl-plan-gen <path>/feature_spec.md
 
 ## Project-wide status mode (no feature path)
 
-When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wide pipeline status across **all** features in `docs/02_product/planned_features/`. **Do not invoke any skills in this mode.** The user is asking "where are we and what's next" — give them an unambiguous answer.
+When `$ARGUMENTS` is the literal string `status` (or empty), render a project-wide pipeline status across **all** features in `docs/00_overview/planned_features/`. **Do not invoke any skills in this mode.** The user is asking "where are we and what's next" — give them an unambiguous answer.
 
 **Scope:** `/pipeline status` mirrors the **Idea table** from [`MVP1_DASHBOARD.md`](../../../docs/00_overview/MVP1_DASHBOARD.md) — i.e., the prioritized backlog. The `#` column in the output IS the per-table ordinal from the dashboard's Idea table for the same working tree (not a global cross-stage ordinal). Spec/Plan/Implementing stages are typically empty or hold one in-flight item that the operator already knows about — surface those as a brief one-line "in flight" note above the Idea table rather than re-rendering them.
 
@@ -95,7 +95,7 @@ These two answers can legitimately diverge and that's the design — each is cor
 
 ### Algorithm
 
-1. **Enumerate feature directories.** `ls docs/02_product/planned_features/`. Exclude `feature_templates/` and any non-feature folders (no `feature_spec.md` and no `idea.md`).
+1. **Enumerate feature directories.** `ls docs/00_overview/planned_features/`. Exclude `feature_templates/` and any non-feature folders (no `feature_spec.md` and no `idea.md`).
 
 2. **Parse dependencies for each feature.** For each `<feature>/feature_spec.md`:
    - Read the first ~20 lines.
@@ -150,7 +150,7 @@ Pipeline Status — MVP1 Priority Order
 **Next action: advance #<n> `<feature>` from <STAGE> → <NEXT STAGE>.**
 
 ```
-/pipeline docs/02_product/planned_features/<feature>
+/pipeline docs/00_overview/planned_features/<feature>
 ```
 
 Implemented: <count> · Planned: <count> · Cross-checked against `MVP1_DASHBOARD.md` Idea-table `#` column: <match | mismatch flagged inline above>
@@ -334,8 +334,8 @@ When the feature directory contains multiple sub-features (e.g., an EPIC with nu
 
 1. The user invokes the pipeline on the parent epic concept, not individual features.
 2. The orchestrator identifies each feature directory. Two layouts are supported:
-   - **Flat siblings** with an epic prefix (e.g. `docs/02_product/planned_features/EPIC_RBAC-GAPS_01-*`).
-   - **Nested layout** where the epic is a parent folder containing numbered child phase folders (e.g. `docs/02_product/planned_features/epic_account_security/phase_01_*`). Glob one level deeper into the parent folder and enumerate only child directories whose basename matches `phase_[0-9][0-9]_*`; sort lexicographically. Ignore `README.md`, `deferred_*` folders, and any other non-`phase_XX_*` planning material at the epic root.
+   - **Flat siblings** with an epic prefix (e.g. `docs/00_overview/planned_features/EPIC_RBAC-GAPS_01-*`).
+   - **Nested layout** where the epic is a parent folder containing numbered child phase folders (e.g. `docs/00_overview/planned_features/epic_account_security/phase_01_*`). Glob one level deeper into the parent folder and enumerate only child directories whose basename matches `phase_[0-9][0-9]_*`; sort lexicographically. Ignore `README.md`, `deferred_*` folders, and any other non-`phase_XX_*` planning material at the epic root.
 3. Process features **sequentially** in numbered order — each feature goes through the full pipeline before the next starts.
 4. Respect dependencies: if feature 02 depends on feature 01 (stated in its idea.md), ensure 01's PR is merged before starting 02.
 5. Report aggregate status across the epic.
@@ -397,7 +397,7 @@ On escalation, the pipeline reports what happened, what needs to be resolved, an
 ### Example: autonomous epic run
 
 ```bash
-/pipeline docs/02_product/planned_features/EPIC_RBAC-GAPS_01-team_management_ui --auto
+/pipeline docs/00_overview/planned_features/EPIC_RBAC-GAPS_01-team_management_ui --auto
 ```
 
 This will:

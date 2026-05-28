@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the RelyLoop MVP1 dashboard HTML.
 
-Walks `docs/02_product/planned_features/` and `docs/00_overview/implemented_features/`,
+Walks `docs/00_overview/planned_features/` and `docs/00_overview/implemented_features/`,
 parses each feature folder's pipeline artifacts (idea.md / feature_spec.md /
 implementation_plan.md / pipeline_status.md), and writes a single self-contained
 HTML dashboard at `docs/00_overview/mvp1_dashboard.html`.
@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-PLANNED_DIR = REPO_ROOT / "docs/02_product/planned_features"
+PLANNED_DIR = REPO_ROOT / "docs/00_overview/planned_features"
 IMPLEMENTED_DIR = REPO_ROOT / "docs/00_overview/implemented_features"
 DASHBOARD_DIR = REPO_ROOT / "docs/00_overview"
 
@@ -375,7 +375,7 @@ def _rewrite_markdown_links(text: str, from_dir: Path, to_dir: Path) -> str:
 
     When a feature's idea.md / feature_spec.md one-liner is extracted and
     embedded into the dashboard files, any relative path inside a markdown
-    link breaks: the source file lives at depth 4 (``docs/02_product/
+    link breaks: the source file lives at depth 4 (``docs/00_overview/
     planned_features/<folder>/idea.md``), but the dashboard files live at
     depth 2 (``docs/00_overview/MVP1_DASHBOARD.md``). A path like
     ``../../../../backend/foo`` correctly resolves to ``<repo>/backend/foo``
@@ -1424,24 +1424,24 @@ def _next_action(features: list[Feature]) -> tuple[Feature | None, str | None]:
         if f.deferred_phase and f.stage in ("implement", "done"):
             phase_idea = sorted(f.path.glob("phase*_idea.md"))
             if phase_idea:
-                cmd = f"/pipeline docs/02_product/planned_features/{f.folder}/{phase_idea[0].name}"
+                cmd = f"/pipeline docs/00_overview/planned_features/{f.folder}/{phase_idea[0].name}"
                 return (f, cmd)
         if f.stage == "idea":
-            cmd = f"/pipeline docs/02_product/planned_features/{f.folder} --auto"
+            cmd = f"/pipeline docs/00_overview/planned_features/{f.folder} --auto"
         elif f.stage == "spec":
-            cmd = f"/pipeline docs/02_product/planned_features/{f.folder} --auto"
+            cmd = f"/pipeline docs/00_overview/planned_features/{f.folder} --auto"
         elif f.stage == "plan":
             cmd = (
-                f"/impl-execute docs/02_product/planned_features/"
+                f"/impl-execute docs/00_overview/planned_features/"
                 f"{f.folder}/implementation_plan.md --all"
             )
         elif f.stage == "implement":
             cmd = (
-                f"/impl-execute docs/02_product/planned_features/{f.folder}/"
+                f"/impl-execute docs/00_overview/planned_features/{f.folder}/"
                 "implementation_plan.md --all  # resume in-progress"
             )
         else:
-            cmd = f"/pipeline docs/02_product/planned_features/{f.folder}"
+            cmd = f"/pipeline docs/00_overview/planned_features/{f.folder}"
         return (f, cmd)
     return (None, None)
 
@@ -1784,7 +1784,7 @@ def render_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
   <h1>RelyLoop {release_label} Dashboard</h1>
   <div class="meta">
     Reflects feature-folder state as of {now} (latest mtime of any
-    <code>docs/02_product/planned_features/</code> or
+    <code>docs/00_overview/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
     <a href="../../CLAUDE.md">CLAUDE.md</a> for conventions, and
@@ -2135,7 +2135,7 @@ def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> 
     lines.append("")
     lines.append(
         "Source of truth: feature folders under "
-        "[`docs/02_product/planned_features/`](../02_product/planned_features/) and "
+        "[`docs/00_overview/planned_features/`](planned_features/) and "
         "[`docs/00_overview/implemented_features/`](implemented_features/). "
         "See [`state.md`](../../state.md) for active-branch context and "
         "[`CLAUDE.md`](../../CLAUDE.md) for conventions."
@@ -2337,7 +2337,7 @@ def render_roadmap_markdown(features: list[Feature]) -> str:
     lines.append("")
     lines.append(
         "Source of truth: feature folders under "
-        "[`docs/02_product/planned_features/`](../02_product/planned_features/) and "
+        "[`docs/00_overview/planned_features/`](planned_features/) and "
         "[`docs/00_overview/implemented_features/`](implemented_features/), plus "
         "the release matrix in "
         "[`docs/01_architecture/tech-stack.md`](../01_architecture/tech-stack.md). "

@@ -206,7 +206,7 @@ on the MVP3 backlog as part of the production-stack epic.
 
 - [`docs/01_architecture/adapters.md`](../01_architecture/adapters.md) — the
   `SearchAdapter` Protocol shape.
-- [`docs/02_product/planned_features/infra_adapter_elastic/feature_spec.md`](../02_product/planned_features/infra_adapter_elastic/feature_spec.md)
+- [`docs/00_overview/planned_features/infra_adapter_elastic/feature_spec.md`](../00_overview/planned_features/infra_adapter_elastic/feature_spec.md)
   — the feature spec, FRs, ACs.
 - CLAUDE.md Absolute Rule #4 — engine adapter Protocol enforcement.
 - `docs/03_runbooks/local-dev.md` — first-run setup, including the

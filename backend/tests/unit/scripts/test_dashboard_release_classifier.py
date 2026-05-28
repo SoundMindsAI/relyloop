@@ -1,7 +1,7 @@
 """Lock the release classifier in scripts/build_mvp1_dashboard.py.
 
 Covers the fix for
-[bug_dashboard_classifier_half_step_releases](../../../../docs/02_product/planned_features/bug_dashboard_classifier_half_step_releases/idea.md):
+[bug_dashboard_classifier_half_step_releases](../../../../docs/00_overview/planned_features/bug_dashboard_classifier_half_step_releases/idea.md):
 the classifier must recognize half-step release tags (MVP1.5, MVP2.5, …)
 from both the folder-suffix form (`_mvp1_5`) and the status-line form
 (`anchor feature for MVP1.5`, `Held for MVP1.5`). The dashboard rendered

@@ -238,7 +238,7 @@ Classify all findings from both passes (including completeness and route relevan
 **For UI Bugs (code is right, UI is wrong):**
 Create a bug tracking file:
 ```
-docs/02_product/planned_features/bug_<description>/idea.md
+docs/00_overview/planned_features/bug_<description>/idea.md
 ```
 Following the idea template with:
 - **Status:** `Bug — identified by guide-gen visual audit`
@@ -250,7 +250,7 @@ Following the idea template with:
 **For Missing Features (intentional gap, not a bug):**
 Create a feature tracking file:
 ```
-docs/02_product/planned_features/<feature_name>/idea.md
+docs/00_overview/planned_features/<feature_name>/idea.md
 ```
 
 **For Spec Issues:**

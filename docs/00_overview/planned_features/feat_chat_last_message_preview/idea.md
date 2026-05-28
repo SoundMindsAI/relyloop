@@ -3,7 +3,7 @@
 **Type:** feat (chat UX polish — deferred)
 **Status:** Held for MVP2 (decided 2026-05-13). No technical dependency on MVP2 infra; bundling with [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation_mvp2/idea.md) as chat polish. `feat_chat_agent` has been live since 2026-05-12 (PR #60) and no operator has asked for the preview yet. Folder renamed from `chore_chat_last_message_preview` 2026-05-14 per `/idea-preflight` audit — `chore_` is reserved for changes with no user-visible behavior per [feature_templates/README.md](../feature_templates/README.md).
 **Date:** 2026-05-12
-**Origin:** GPT-5.5 cycle-2 finding F15 against `feat_chat_agent` implementation plan ([deferred-work entries](../../../00_overview/implemented_features/2026_05_12_feat_chat_agent/implementation_plan.md), F15 row in the rating table); Story 5.1 capture.
+**Origin:** GPT-5.5 cycle-2 finding F15 against `feat_chat_agent` implementation plan ([deferred-work entries](../../implemented_features/2026_05_12_feat_chat_agent/implementation_plan.md), F15 row in the rating table); Story 5.1 capture.
 
 ## Problem
 
@@ -129,9 +129,9 @@ F15 row, deferred-work table) left untouched as frozen-at-ship-time.
 ## Related work
 
 - Implemented chat surface this idea extends:
-  [`docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/`](../../../00_overview/implemented_features/2026_05_12_feat_chat_agent/).
+  [`docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/`](../../implemented_features/2026_05_12_feat_chat_agent/).
   The deferral rationale lives in
-  [`implementation_plan.md`](../../../00_overview/implemented_features/2026_05_12_feat_chat_agent/implementation_plan.md)
+  [`implementation_plan.md`](../../implemented_features/2026_05_12_feat_chat_agent/implementation_plan.md)
   (cycle-2 F15 row + Story 5.1 deferred-work table).
 - Companion deferred work:
   [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation_mvp2/idea.md)

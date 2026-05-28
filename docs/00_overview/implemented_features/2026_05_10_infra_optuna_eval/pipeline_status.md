@@ -20,7 +20,7 @@
   - Epic 2 (Optuna runtime + run_trial): Stories 2.1, 2.2, 2.3
   - Epic 3 (tests, contract, benchmark, docs): Stories 3.1, 3.2, 3.3
 - Phases covered: single-phase feature per spec §3 "Phase boundaries"
-- Tangential discovery filed: [`chore_infra_optuna_eval_spec_text_drift`](../../../02_product/planned_features/chore_infra_optuna_eval_spec_text_drift/idea.md)
+- Tangential discovery filed: [`chore_infra_optuna_eval_spec_text_drift`](../../../00_overview/planned_features/chore_infra_optuna_eval_spec_text_drift/idea.md)
 
 ## Implementation
 - Status: Complete

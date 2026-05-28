@@ -245,7 +245,7 @@ prompts/
 - `conversations` and `messages` schemas: [`data-model.md`](data-model.md)
 - API conventions for chat SSE endpoints: [`api-conventions.md`](api-conventions.md)
 - Owning feature specs:
-  - Judgments: [`feat_llm_judgments/feature_spec.md`](../02_product/planned_features/feat_llm_judgments/feature_spec.md)
-  - Digest: [`feat_digest_proposal/feature_spec.md`](../02_product/planned_features/feat_digest_proposal/feature_spec.md)
-  - Chat agent: [`feat_chat_agent/feature_spec.md`](../02_product/planned_features/feat_chat_agent/feature_spec.md)
+  - Judgments: [`feat_llm_judgments/feature_spec.md`](../00_overview/planned_features/feat_llm_judgments/feature_spec.md)
+  - Digest: [`feat_digest_proposal/feature_spec.md`](../00_overview/planned_features/feat_digest_proposal/feature_spec.md)
+  - Chat agent: [`feat_chat_agent/feature_spec.md`](../00_overview/planned_features/feat_chat_agent/feature_spec.md)
 - MVP1 navigation summary: [`mvp1-overview.md`](mvp1-overview.md)

@@ -19,7 +19,7 @@
 - Tier-A patterns are the structural template — story shapes (Domain → Worker/Prompts → API → Frontend → E2E), test-layer choice, and DoD style mirror the shipped Tier-A plan one-to-one.
 - Fail-loud tests: assert explicit status, shape, error codes, and structlog reason codes.
 - Keep increments narrow enough to verify independently — domain helper → discriminated-union widening → LLM schema/prompts → worker remap → API response widening → frontend card + prefill → E2E.
-- **Single-phase delivery.** No deferred phases — Tier C (`edit_template`) lives at sibling [`backlog_feat_digest_template_edit_followups`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md) and is not gated by this work.
+- **Single-phase delivery.** No deferred phases — Tier C (`edit_template`) lives at sibling [`backlog_feat_digest_template_edit_followups`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md) and is not gated by this work.
 - **No new migration.** Tier-A's JSONB column + lineage columns + CHECK constraint + BEFORE DELETE trigger apply unchanged (spec §3, FR-13).
 
 ## 1) Scope traceability (FR → epics/stories)
@@ -51,7 +51,7 @@
 
 **Spec error-code coverage vs plan:** Spec §8.5 introduces **zero** new error codes. Worker-side validation failures downgrade in-band (no API error); `POST /api/v1/studies` flow uses existing Tier-A codes (`PROPOSAL_NOT_FOUND`, `DIGEST_NOT_FOUND`, `FOLLOWUP_INDEX_OUT_OF_RANGE`, `TEMPLATE_NOT_FOUND`, `INVALID_SEARCH_SPACE`, etc.) verbatim. Match.
 
-**Deferred phases verified:** N/A — single-phase delivery per spec §3 "Phase boundaries". Tier C (`edit_template`) lives at sibling [`backlog_feat_digest_template_edit_followups`](../../../02_product/planned_features/backlog_feat_digest_template_edit_followups/idea.md) folder and is explicitly NOT gated by this work.
+**Deferred phases verified:** N/A — single-phase delivery per spec §3 "Phase boundaries". Tier C (`edit_template`) lives at sibling [`backlog_feat_digest_template_edit_followups`](../../../00_overview/planned_features/backlog_feat_digest_template_edit_followups/idea.md) folder and is explicitly NOT gated by this work.
 
 ## 2) Delivery structure
 

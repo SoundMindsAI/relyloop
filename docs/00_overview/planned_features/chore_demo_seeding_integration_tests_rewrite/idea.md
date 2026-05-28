@@ -68,4 +68,4 @@ Each is ~50-100 LOC of test plumbing. The merge cycle the operator was driving n
 ## Related ideas
 
 - [[bug_demo_reseed_button_silent_enqueue_failure]] — a real bug shipping in PR #286's wake that this test suite would have caught.
-- The original [`bug_demo_reseed_fake_metric_regression`](../../00_overview/implemented_features/2026_05_27_bug_demo_reseed_fake_metric_regression/bug_fix.md) lists this rewrite as a follow-up commitment in its "Until the rewrite lands" docstring.
+- The original [`bug_demo_reseed_fake_metric_regression`](../../implemented_features/2026_05_27_bug_demo_reseed_fake_metric_regression/bug_fix.md) lists this rewrite as a follow-up commitment in its "Until the rewrite lands" docstring.
