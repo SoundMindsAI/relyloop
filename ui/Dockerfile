@@ -8,10 +8,13 @@
 # docs/02_product/planned_features/chore_tutorial_polish/feature_spec.md §3
 # (decision log entry 2026-05-12 M3) for the rationale.
 #
-# Node base: node:26-bookworm-slim. Node 24 is the current Active LTS
-# (released 2025-10, supported until 2027-04). The repo's `.nvmrc` pins
-# Node 22 for host development, but Node 24 in the runtime image avoids
-# bit-rot vs. picking a soon-to-be-EOL'd LTS like Node 20.
+# Node base: node:26-bookworm-slim. Node 26 is the current major (released
+# 2026-04, on the LTS track — even-numbered Node releases enter LTS in
+# October of the year they were released as current). Bumped from Node 24
+# in PR #290 (chore_docker_image_bumps) to track latest. The repo's
+# `.nvmrc` pins Node 22 for host development; the runtime image runs
+# Node 26 to use the latest engine features without waiting for the
+# October LTS transition.
 
 FROM node:26-bookworm-slim AS deps
 WORKDIR /app
