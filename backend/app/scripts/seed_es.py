@@ -45,7 +45,16 @@ async def main() -> int:
     products = json.loads(SAMPLES_PRODUCTS.read_text())
     logger.info("seed_es: loaded %d products from %s", len(products), SAMPLES_PRODUCTS)
 
-    async with httpx.AsyncClient(base_url=cluster.base_url, timeout=30.0) as client:
+    # timeout=90 (was 30): ES 9.4.1 single-node on a cold GHA runner can take
+    # >30s to respond to the first index-create PUT after `docker compose up
+    # --wait` returns. Observed in PR #291's 6th + 7th smoke runs after the
+    # fast stack-up (compose-up went from 10min → 21s, eliminating the
+    # ambient ES warmup time that previously masked this). The compose
+    # healthcheck waits for `_cluster/health?wait_for_status=yellow` which
+    # passes early on single-node ES (no shards to wait on), so ES is
+    # "healthy" but its write path needs more warmup. 90s gives headroom
+    # without making real failure modes invisible.
+    async with httpx.AsyncClient(base_url=cluster.base_url, timeout=90.0) as client:
         # DELETE existing index (idempotent — 404 is fine, that just means it didn't exist).
         delete_resp = await client.delete(f"/{INDEX_NAME}")
         if delete_resp.status_code not in (200, 404):
