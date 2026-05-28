@@ -80,7 +80,7 @@ jobs:
         run: uv sync --frozen
 
       - name: pytest backend/tests/unit/
-        run: uv run pytest backend/tests/unit/ -n auto --no-cov -q
+        run: uv run pytest backend/tests/unit/ --no-cov -q
 
   backend:
     name: backend (lint + typecheck + tests + coverage)
@@ -221,15 +221,19 @@ jobs:
           # behavior is acceptable until the deploy workflow exists.
           RELYLOOP_API_URL: http://localhost:8000
         run: |
-          # CI-perf #3: -n auto enables parallel test execution via pytest-xdist
-          # (1 worker per CPU core). Cuts the pytest step from ~6min serial to
-          # ~3min on the standard GitHub-hosted ubuntu-latest runner (2-core).
-          # --dist worksteal is the modern default for mixed-duration test mix;
-          # short tests fill in around long ones (better than the older
-          # round-robin `loadfile` distribution). See
-          # chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
+          # CI-perf #3 (pytest-xdist `-n auto`) was attempted on the first
+          # PR #291 CI run and reverted: the integration test layer hit FK
+          # collisions (query_sets_cluster_id_fkey violation when parallel
+          # tests held a FK reference to a cluster being deleted in another
+          # worker's teardown). pytest-xdist remains in dev deps for local
+          # opt-in (`pytest -n auto` works fine on the unit-test layer);
+          # CI-perf #1 + #2 (buildx artifact handoff + base-image cache)
+          # are the actual smoke-pace wins. A follow-up may split the
+          # backend job into a parallel-safe "unit + contract" lane + a
+          # serial "integration" lane to recover #3's savings. See
+          # chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md
+          # §"What is NOT changed in this PR".
           uv run pytest backend/tests/ \
-            -n auto --dist worksteal \
             --cov=backend \
             --cov-report=xml \
             --cov-report=term-missing
