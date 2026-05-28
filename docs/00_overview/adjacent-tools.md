@@ -15,15 +15,15 @@ tool for your job than pick ours by default.
 |---|---|---|---|---|---|
 | [**OpenSearch Relevance Agent**](https://opensearch.org/blog/introducing-opensearch-relevance-agent-ai-powered-search-tuning/) (OpenSearch 3.6+, experimental) | Conversational tuning agent w/ hypothesis-driven experiments inside OpenSearch | OpenSearch only | Yes (query-DSL adjustments) | Proposals reviewed in OpenSearch Dashboards | **Direct overlap.** Choose this for single-cluster OpenSearch shops that don't need Git-PR workflow; choose RelyLoop if you need engine-agnosticism, PR-based change management, or multi-cluster/multi-tenant scope |
 | [**Quepid**](https://quepid-docs.dev.o19s.com/2/quepid) (OpenSource Connections) | Interactive workbench for per-query exploration; human + AI judging | ES, OpenSearch, Solr, any HTTP-accessible engine | No (manual iteration) | Manual config edits, "Cases" + snapshots | **Strongly complementary.** Quepid is the microscope for individual queries; RelyLoop is the optimization sweep for the whole query set |
-| [**OpenSearch Search Relevance Workbench**](https://docs.opensearch.org/latest/search-plugins/search-relevance/) | Built-in query-sets / judgments / experiments framework on OpenSearch | OpenSearch only | No (single-experiment runs) | Cluster-side artifacts | RelyLoop's MVP1.5 can read OpenSearch judgments and query sets directly; OpenSearch SRW is the source-side building block, RelyLoop is the optimization layer above it |
+| [**OpenSearch Search Relevance Workbench**](https://docs.opensearch.org/latest/search-plugins/search-relevance/) | Built-in query-sets / judgments / experiments framework on OpenSearch | OpenSearch only | Partial — 66-cell grid search over hybrid weights only (Bayesian in [RFC #934](https://github.com/opensearch-project/neural-search/issues/934), no shipped code) | Cluster-side artifacts (no Git-PR apply path — explicitly out of scope per [RFC #17735](https://github.com/opensearch-project/OpenSearch/issues/17735)) | RelyLoop's MVP2 can read OpenSearch judgments and query sets directly; OpenSearch SRW is the source-side building block, RelyLoop is the optimization layer (full-search-space Bayesian + Git PR) above it |
 | [**Chorus**](https://github.com/querqy/chorus) (querqy / o19s) | Reference integration stack bundling Solr/ES + Quepid + SMUI + Querqy + monitoring | Solr + ES | No | n/a (it's a stack composition) | RelyLoop can be a member of a Chorus-like stack — Chorus provides the integrated workbench, RelyLoop provides the optimization loop |
 | [**SMUI + Querqy**](https://querqy.org/docs/smui/) | Query-rewriting rules management (synonyms, boosts, filters) | Solr (native), ES (via Querqy port) | No | Rule files deployed to engine | **Different layer of the stack.** SMUI/Querqy rewrites queries *before* the engine sees them; RelyLoop tunes the parameters the engine itself uses. Both can run simultaneously |
 | [**RRE (Rated Ranking Evaluator)**](https://github.com/SeaseLtd/rated-ranking-evaluator) (Sease) | Java/Maven offline evaluation library + Maven plugins | Solr, Elasticsearch | No | CI metrics, multi-version comparisons | RRE plays the role of the evaluation primitive in CI; RelyLoop uses `ir_measures` (Python) to play the same role inside its own loop. If your team already runs RRE for regression guards, keep it — RelyLoop owns the upstream "find good parameters" step |
 | [**Elasticsearch Ranking Evaluation API**](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/search-rank-eval) | ES-native endpoint that computes IR metrics from judgments | Elasticsearch only | No (single-metric request) | API response | A low-level primitive. RelyLoop's adapter could call it for in-engine metric computation; today RelyLoop computes metrics off-engine via `ir_measures` for engine-agnosticism |
 | [**Elasticsearch LTR plugin / Solr LTR**](https://github.com/o19s/elasticsearch-learning-to-rank) | Learning-to-Rank reranker model training + serving | ES, Solr | n/a (LTR-specific) | Trained reranker model on cluster | **Downstream of RelyLoop.** RelyLoop tunes query-time params (BM25 stage); LTR layers a reranker on top. Tune the base first, train the reranker second. LTR is explicitly out of RelyLoop's v1 scope (spec §4 non-goal) |
 | [**Splainer**](https://splainer.io/) (o19s) | Single-query `_explain` visualizer | Solr + ES | No | Diagnostic UI | RelyLoop is the telescope; Splainer is the microscope. Use Splainer when one query is broken; use RelyLoop when the whole template needs systematic improvement |
-| [**OpenSearch UBI plugin**](https://github.com/opensearch-project/user-behavior-insights) | Server-side click / event capture | OpenSearch (via plugin); the same UBI schema is portable to other engines | n/a (signals only, no tuning) | UBI tables (`ubi_queries`, `ubi_events`) | **Strongest pairing.** RelyLoop MVP1.5 ships a `UbiReader` and pluggable `SignalsConverter` that turn UBI events into judgments — UBI provides the trust anchor that pure LLM-as-judge can't |
-| [**Algolia, Coveo, Vespa Cloud, Elastic Cloud, etc.**](https://www.algolia.com/) (proprietary SaaS) | Hosted search engines with built-in relevance tooling | Their own engine | Varies; some include automated tuning | Vendor dashboard | **Different market.** These replace the engine itself. If you're on Algolia or Coveo, your relevance tuning is in their console — RelyLoop is not for you. RelyLoop is for shops that operate their own ES / OpenSearch / Solr / Fusion |
+| [**OpenSearch UBI plugin**](https://github.com/opensearch-project/user-behavior-insights) | Server-side click / event capture | OpenSearch (via plugin); the o19s ES fork + Solr's first-party `solr.UBIComponent` use the same schema | n/a (signals only, no tuning) | UBI tables (`ubi_queries`, `ubi_events`) | **Strongest pairing.** RelyLoop MVP2 ships a `UbiReader` + `SignalsConverter` that turn UBI events into judgments via position-bias-corrected CTR, dwell-time, or **hybrid UBI+LLM** mode (UBI rates the dense head; LLM fills the long tail). Works across all three OSS engines via the standardized schema. SRW also has UBI judgments GA via COEC, but no hybrid mode and no full-search-space optimizer to feed |
+| [**Algolia, Coveo, Vespa Cloud, Elastic Cloud, etc.**](https://www.algolia.com/) (proprietary SaaS) | Hosted search engines with built-in relevance tooling | Their own engine | Varies; some include automated tuning | Vendor dashboard | **Different market.** These replace the engine itself. If you're on Algolia or Coveo, your relevance tuning is in their console — RelyLoop is not for you. RelyLoop is for shops that operate their own Elasticsearch / OpenSearch / Apache Solr |
 
 ## Where the overlap is, and why RelyLoop exists
 
@@ -51,10 +51,7 @@ is fundamentally better than theirs on OpenSearch's own turf.
 **RelyLoop is the better choice for your shop when one or more of these is
 true:**
 
-1. **You operate Elasticsearch** (or both Elasticsearch and OpenSearch, or
-   Lucidworks Fusion). The Relevance Agent only helps on OpenSearch. RelyLoop's
-   single adapter spans ES 8.11+/9.x and OpenSearch 2.x/3.x today, with
-   Lucidworks Fusion landing at MVP3 and pure Solr deferred to v2.
+1. **You operate Elasticsearch** (or Apache Solr, or any mix of ES + OpenSearch + Solr). The Relevance Agent only helps on OpenSearch. RelyLoop's single adapter spans ES 8.11+/9.x and OpenSearch 2.x/3.x today, with Apache Solr 9.x/10.x arriving at MVP2 (bundled with UBI judgments via Solr's first-party `solr.UBIComponent`). Lucidworks Fusion is explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md).
 
 2. **You require Git-as-source-of-truth for production search-config changes.**
    RelyLoop opens Pull Requests against a central config repo where named
@@ -69,19 +66,9 @@ true:**
    `proposals` workflow is tied to a `config_repo` that can map onto your
    real branch / environment topology.
 
-4. **You need multi-tenant isolation from the schema level** (MVP4 onward).
-   RelyLoop is built to serve many downstream customers from one deployment in
-   a shared-cluster, isolated-data posture.
+4. **You want maximum LLM flexibility with zero per-provider engineering.** RelyLoop talks to any OpenAI-compatible endpoint via `OPENAI_BASE_URL` — that one env var is the entire integration surface. Anything that speaks the OpenAI Chat Completions wire protocol works unchanged: OpenAI cloud, Ollama (local), LM Studio (local), vLLM (local or remote), HuggingFace TGI (local or remote), Azure OpenAI's OpenAI-compatible mode, OpenRouter, LiteLLM proxy in front of Bedrock / Vertex / Anthropic. Truly air-gapped deployments run RelyLoop against Ollama on the same VM with zero data leaving the network. See [`docs/08_guides/llm-endpoint-setup.md`](../08_guides/llm-endpoint-setup.md) for the side-by-side configuration walk-through. The OpenSearch Relevance Agent runs on OpenSearch ML Commons connectors with its own provider list.
 
-5. **You want provider-agnostic LLM choice.** RelyLoop targets OpenAI in MVP1
-   via an OpenAI-compatible endpoint that already works against Ollama, vLLM,
-   LM Studio, and HuggingFace TGI; at MVP4 it adds native Anthropic, AWS
-   Bedrock, Azure OpenAI, and Vertex providers. The Relevance Agent runs on
-   OpenSearch ML Commons connectors with its own provider list.
-
-6. **You want a longer-term path off OpenSearch-only architecture** — for
-   example, you're evaluating a future Lucidworks Fusion adoption, or you
-   want one relevance-tuning approach that survives an engine migration.
+5. **You want a longer-term path that spans the open-source engine landscape** — running studies across Elasticsearch + OpenSearch + Apache Solr from one tool, one workflow, one config repo.
 
 These differences are deliberate. RelyLoop is not trying to be a better
 OpenSearch Relevance Agent on OpenSearch's home turf. It targets a different
@@ -109,8 +96,10 @@ multiple tools.
 ### RelyLoop + OpenSearch UBI — the strongest single pairing
 
 - **UBI** captures real user search behavior (queries, clicks, dwell,
-  refinements) server-side via the OpenSearch UBI plugin.
-- **RelyLoop MVP1.5** ships a `UbiReader` (engine-agnostic; reads `ubi_queries`
+  refinements) server-side. The schema is standardized across all three OSS
+  engines: OpenSearch UBI plugin, o19s Elasticsearch UBI fork, Solr's
+  first-party `solr.UBIComponent`.
+- **RelyLoop MVP2** ships a `UbiReader` (engine-agnostic; reads `ubi_queries`
   + `ubi_events`) and a pluggable `SignalsConverter` Protocol with built-in
   position-bias-corrected CTR, dwell-time, and hybrid UBI+LLM converters.
 - **Why it matters:** LLM-as-judge is fast and cheap but operators with real
@@ -167,8 +156,9 @@ RelyLoop explicitly is not, and will not become, a competitor to:
   judgment lists. Online A/B is a different operating model with different
   guardrails.
 - **Production search-quality monitoring.** Streaming rolling-window metrics
-  and alerting on degradation belong to APM (DataDog, Grafana, Fusion's own
-  analytics) — not RelyLoop (spec §4 non-goal).
+  and alerting on degradation belong to APM (DataDog, Grafana, SRW's own
+  metrics surface) — not RelyLoop (spec §4 non-goal). Path B in §27 captures
+  this as a v2 candidate direction.
 - **Learning-to-Rank model training.** Out of scope for v1. LTR plugins
   (Elastic LTR, Solr LTR) remain the right tool. RelyLoop tunes the
   retrieval layer that LTR reranks.

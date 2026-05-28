@@ -125,7 +125,7 @@ The dispatcher **MUST** validate `tool_call.arguments` against the tool's Pydant
 | `fork_study(study_id, narrowed_search_space?, name?)` → `Study` | MVP2 (study forking with narrowed ranges) |
 | `run_pairwise(cluster_id, target, query_a, query_b, query_text)` → `PairwiseResult` | MVP2 (interactive comparison) |
 | `run_rank_eval(cluster_id, target, template_rendered, query_set_id, judgment_list_id, metric)` → `EvalResult` | MVP2 (one-off eval without a study) |
-| Fusion-specific tools (`list_pipelines`, `get_pipeline`, `list_query_profiles`, `pull_signals`) | MVP3 (with Fusion adapter) |
+| `generate_judgments_from_ubi(query_set_id, cluster_id, target, since, until?, converter, llm_fill_threshold?)` → `JudgmentList` | MVP2 (with UBI judgments + Solr adapter) |
 | LangGraph state-graph orchestrator (replaces plain `openai` + function calling) | GA v1 |
 | Hypothesis-gen + evaluation subagents (per umbrella §15 architecture diagram) | GA v1 |
 | Human-in-the-loop interrupts before `open_pr`, prod-cluster studies, judgment regen | GA v1 |

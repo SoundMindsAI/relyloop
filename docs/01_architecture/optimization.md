@@ -52,7 +52,7 @@ Per umbrella spec §14, RelyLoop **always** evaluates via `ir_measures` — neve
 - `ir_measures` (from the PyTerrier team) wraps multiple IR-evaluation backends behind a typed metric-object DSL (`nDCG@10`, `AP@5`, `RR`, `P@k`, `R@k`). The provider abstraction means swapping the underlying backend is a config change rather than a rewrite — protecting against future single-maintainer abandonment risk.
 - ES `_rank_eval` and `ir_measures` don't always agree to many decimal places (different normalization conventions across engines).
 - Per-query scores are inspectable, enabling deep debugging.
-- Cross-engine comparability: the same metric semantics apply whether the underlying engine is ES, OpenSearch, Fusion, or Solr.
+- Cross-engine comparability: the same metric semantics apply whether the underlying engine is Elasticsearch, OpenSearch, or Apache Solr.
 
 ### Supported metrics (MVP1)
 
@@ -192,5 +192,6 @@ contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../02_prod
 | CMA-ES sampler (selectable per study) | MVP2 | TPE is sufficient for MVP1's low-dim search spaces; CMA-ES becomes valuable when adopters tune ≥7 continuous parameters. |
 | Intermediate-step pruning (truly active `MedianPruner`) | MVP2 | Requires multi-step trials (e.g., evaluate after each query batch); MVP1 trials evaluate once per (params, full query set). |
 | Multi-objective optimization (Pareto fronts via NSGA-II) | v2 | Single scalar objective is sufficient through GA v1; multi-objective adds product complexity (which Pareto trade-off do you ship?). |
-| Click-derived judgments from Fusion Signals | v1.5+ | Requires Fusion adapter (MVP3) + Signals enabled in the user's deployment. The judgment `source = 'click'` enum value is reserved from MVP1 forward; the converter plug-ins land at v1.5+. |
-| LLM+signals hybrid judgments | v1.5+ | Same — depends on Fusion Signals integration. |
+| UBI-derived judgments + hybrid UBI+LLM converter | MVP2 | Bundled with the Solr adapter in MVP2 (see [`feat_ubi_judgments/idea.md`](../02_product/planned_features/feat_ubi_judgments/idea.md)). The judgment `source = 'click'` enum value is reserved from MVP1 forward; the `UbiReader` + `SignalsConverter` land at MVP2. |
+| Counterfactual click models (CCM, DBN) as additional `SignalsConverter` impls | Backlog | Require enough impressions per (query, doc) to be statistically valid; promoted out when post-MVP2 adopter traffic supports it. |
+| Engine-native click readers (Elastic Behavioral Analytics) | Backlog | UBI covers the engine-neutral path for ES + OpenSearch + Solr. Elastic BA is a residual ES-shop bridge despite Elastic's 9.0 deprecation; landed when an adopter requires it. |

@@ -12,9 +12,9 @@ Continue execution without constantly asking for permission to execute tests or 
 
 ## Project Overview
 
-RelyLoop is an open-source tool for enterprise search platform teams. It combines a conversational LLM agent with an automated overnight optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion (with pure-Solr support deferred to v2). Engineers describe relevance problems in chat; the agent introspects the cluster, proposes search-space parameters, and queues thousands of trials against `ir_measures`-computed metrics. Winning configurations are surfaced as Pull Requests / Merge Requests against a central search-config Git repo, where named approvers review and merge them into production.
+RelyLoop is the only open-source tool that runs **automated Bayesian search-space optimization** (Optuna/TPE, thousands of trials) across the **full query-time search space** on every major OSS search engine — Elasticsearch, OpenSearch, and Apache Solr (Solr ships at MVP2) — and ships winning configurations as **Pull Requests** to a central search-config Git repo for the operator's existing approvers to review and merge. A conversational LLM agent describes the loop and proposes the search space, but the engineering moat is the loop itself, the Git-PR posture, and the three-engine reach. See [`docs/07_research/comparison.md`](docs/07_research/comparison.md) for the citation-backed competitive matrix vs OpenSearch SRW, Quepid, RRE, Chorus, and Elastic's native tooling.
 
-The tool is a single, engine-agnostic, provider-agnostic system: one UI, one workflow, one schema. Differences between Elasticsearch / OpenSearch, Lucidworks Fusion, and any future engine (pure Solr, Vespa, etc.) are isolated behind a thin adapter interface — and the same adapter pattern applies to LLM providers (OpenAI, Anthropic, Bedrock, Azure OpenAI, Vertex, self-hosted Ollama / vLLM) and Git providers (GitHub, GitLab, Bitbucket). Multi-tenancy is supported from the schema level so a single deployment can serve many downstream customers in isolation (activates at MVP4).
+The tool is a single, engine-neutral, provider-neutral system: one UI, one workflow, one schema. Differences between Elasticsearch, OpenSearch, and Apache Solr are isolated behind a thin `SearchAdapter` Protocol. **LLM flexibility is one env var: `OPENAI_BASE_URL` points the `openai` SDK at any OpenAI-compatible endpoint — OpenAI cloud, Ollama (air-gapped), LM Studio, vLLM, HuggingFace TGI, Azure OpenAI's OpenAI-compatible mode, OpenRouter for multi-model routing, or LiteLLM proxy in front of Bedrock / Vertex / Anthropic native. See [`docs/08_guides/llm-endpoint-setup.md`](docs/08_guides/llm-endpoint-setup.md). Native non-OpenAI provider SDKs are in the backlog as an ergonomics upgrade.** Git providers behind a `GitProvider` adapter (GitHub today; GitLab + Bitbucket in the backlog). Multi-tenancy is in the backlog — RelyLoop is single-tenant through GA v1, with SSO via reverse proxy as the recommended path.
 
 **Personas** (per umbrella spec §6):
 
@@ -32,13 +32,11 @@ The tool is a single, engine-agnostic, provider-agnostic system: one UI, one wor
 
 | Release | Theme | Adds |
 |---|---|---|
-| MVP1 / v0.1 | "The Loop" | ES + OpenSearch adapter, OpenAI-compatible LLM, GitHub provider, single-tenant, no auth, Docker Compose, 80% coverage gate |
-| MVP1.5 / v0.1.5 | "Real Signals" | OpenSearch UBI judgments as a first-class source — `UbiReader` (engine-agnostic; reads `ubi_queries` + `ubi_events`) + pluggable `SignalsConverter` (position-bias-corrected CTR, dwell-time, hybrid UBI+LLM); judgment lists can mix sources via existing `source` enum; new `POST /api/v1/judgment-lists/generate-from-ubi` + `generate_judgments_from_ubi` agent tool. No schema migration, no new Compose service. Predicated on operator running the OpenSearch UBI plugin. |
-| MVP2 / v0.2 | "Observable" | Langfuse + ClickHouse + SigNoz; canonical event catalog; `audit_log` table + immutability trigger (no users/tenants yet); lineage columns; PII redaction; trace propagation |
-| MVP3 / v0.3 | "Production Stacks" | Lucidworks Fusion adapter; multi-Git-provider abstraction (GitLab, Bitbucket); production install (TLS via Caddy + Let's Encrypt, managed Postgres/Redis); AWS managed OpenSearch |
-| MVP4 / v0.4 | "Multi-tenant, Multi-LLM" | `tenants` + `tenant_memberships` + `users` + `api_keys`; `tenant_id` columns + backfill; SSO via reverse proxy; Argon2id-hashed bearer API keys; native non-OpenAI provider SDKs (Anthropic, Bedrock, Vertex) |
-| GA v1 | "Production-ready" | LangGraph orchestrator + `PostgresSaver`; full RFC 7807 errors; `Idempotency-Key`; Helm chart; container scanning; image signing; 90% coverage gate |
-| v2+ | post-GA | Apache Solr adapter |
+| MVP1 / v0.1 (shipped) | "The Loop" | ES + OpenSearch adapter, OpenAI-compatible LLM, GitHub provider, single-tenant, no auth, Docker Compose, 80% coverage gate, Optuna/TPE Bayesian loop, Git-PR apply path, conversational agent |
+| MVP2 / v0.2 | "Three-Engine + Real Signals" | Apache Solr adapter (Solr 9.x + 10.x via `edismax` + `{!ltr}` rescore) + UBI judgments (`UbiReader` reads `ubi_queries` + `ubi_events` via any `SearchAdapter`) + pluggable `SignalsConverter` (position-bias-corrected CTR, dwell-time, **hybrid UBI+LLM**) + `POST /api/v1/judgment-lists/generate-from-ubi` + `generate_judgments_from_ubi` agent tool. Solr's first-party `solr.UBIComponent` writes the same UBI schema, so UBI works on all three engines from day one. |
+| MVP3 / v0.3 | "Observable" | Langfuse + ClickHouse + SigNoz; canonical event catalog; `audit_log` table + immutability trigger (no users/tenants yet); lineage columns; PII redaction; trace propagation across all three engines + both judgment sources |
+| GA v1 / v1.0 | "Production-ready" | LangGraph orchestrator + `PostgresSaver`; full RFC 7807 errors; `Idempotency-Key`; full four-layer test pyramid at 90% coverage; complete CI/CD with security gates; container scanning; image signing; design-partner references; public Optuna-vs-SRW-grid benchmark. **No new product surface** — all six differentiators are GA by MVP3; GA v1 is polish + governance + hardening. |
+| Backlog | — | Multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy + multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, Azure OpenAI); LTR training; Path B (production monitoring, bandits, shadow validation); Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](docs/02_product/planned_features/chore_drop_fusion_scope/idea.md)) |
 
 If a CLAUDE.md statement conflicts with the canonical release matrix, the matrix wins — flag the drift in your PR.
 
@@ -59,7 +57,7 @@ After completing a task, evaluate whether documentation needs updating:
 
 - `state.md` — update if: the active branch changed, new features were completed, priorities shifted, new debt was introduced, or the Alembic head moved
 - `architecture.md` — update if: new services/layers were added, new data flows were introduced, design decisions were made, invariants changed, or the topical docs in `docs/01_architecture/` got a new entry
-- `CLAUDE.md` — update if: new conventions, rules, environment variables, or build commands were added; or if a release crossed a maturity boundary that activates new rules (e.g., MVP4 turning on the multi-tenant rules below)
+- `CLAUDE.md` — update if: new conventions, rules, environment variables, or build commands were added; or if a release crossed a maturity boundary that activates new rules (e.g., multi-tenancy rules below being activated)
 - `docs/03_runbooks/` — add or update if new ops procedures, deployment steps, or troubleshooting needed
 
 ## Repository Structure
@@ -77,7 +75,7 @@ backend/
     services/     # use-case orchestrators (study lifecycle, judgment generation, digest, PR worker)
     domain/       # pure business logic — search-space rules, study state machine, query rendering
     adapters/     # engine adapters (MVP1: ElasticAdapter for ES + OpenSearch)
-    llm/          # OpenAI-compatible client + capability check + provider abstraction (MVP4 multi-provider)
+    llm/          # OpenAI-compatible client + capability check + provider abstraction (backlog: native non-OpenAI provider SDKs)
     git/          # Git provider clients (MVP1: GitHub; MVP3: + GitLab + Bitbucket)
   workers/        # Arq WorkerSettings + job functions (run_trial, generate_digest, open_pr — arrive with their owning features)
   tests/
@@ -117,13 +115,13 @@ docs/
 
 2. **Secrets via mounted files, never bare env vars.** RelyLoop's Pydantic Settings reads `*_FILE`-suffixed env vars (e.g., `OPENAI_API_KEY_FILE=/run/secrets/openai_key`) and resolves the file content. **Bare env vars (`OPENAI_API_KEY=sk-...`) are NOT supported** — they appear in container `inspect`, logs, and `ps` output, defeating the secrets-management purpose. The `.env` file at repo root is for non-secret Compose overrides only (e.g., `OPENAI_BASE_URL`, `ES_HEAP_SIZE`). Real secrets live in `./secrets/<name>` files mounted as Docker secrets. See [`docs/01_architecture/deployment.md` §"Secrets"](docs/01_architecture/deployment.md) and `infra_foundation` FR-3.
 
-3. **Never call OpenAI directly when the LLM abstraction exists.** MVP1 ships a thin `openai` SDK client pointed at `OPENAI_BASE_URL`; once the multi-provider `BaseChatModel` abstraction lands at MVP4, every LLM call MUST go through it (no `openai.AsyncClient(...)` in services). MVP1 services may use the SDK directly while the abstraction is still scoped — but always read `OPENAI_BASE_URL` and `OPENAI_MODEL` from `Settings`, never hardcode model names. See [`docs/01_architecture/llm-orchestration.md`](docs/01_architecture/llm-orchestration.md).
+3. **Never call OpenAI directly when the LLM abstraction exists.** MVP1 ships a thin `openai` SDK client pointed at `OPENAI_BASE_URL`; once the multi-provider `BaseChatModel` abstraction lands (backlog), every LLM call MUST go through it (no `openai.AsyncClient(...)` in services). MVP1 services may use the SDK directly while the abstraction is still scoped — but always read `OPENAI_BASE_URL` and `OPENAI_MODEL` from `Settings`, never hardcode model names. See [`docs/01_architecture/llm-orchestration.md`](docs/01_architecture/llm-orchestration.md).
 
 4. **Never bypass the engine adapter Protocol.** Engine-specific code lives ONLY in `backend/app/adapters/<engine>.py`. The orchestrator, study runner, evaluator, and UI consume the unified `SearchAdapter` Protocol per [`docs/01_architecture/adapters.md`](docs/01_architecture/adapters.md). No `elasticsearch.AsyncElasticsearch(...)` instances outside the adapter module. This rule activates the moment `infra_adapter_elastic` lands; until then, the adapter Protocol is the spec, not the code.
 
 5. **All Alembic migrations must include `downgrade()` and round-trip cleanly.** Verify with `alembic upgrade head && alembic downgrade -1 && alembic upgrade head` before merging. The MVP1 baseline is `0001_baseline` — the empty migration that registers `alembic_version`; subsequent feature migrations build on it.
 
-6. **`/healthz` is unauthenticated by design.** It's an operator-facing probe, unprefixed (not under `/api/v1/`), and reports subsystem status. Never gate it behind auth. The shape is documented in [`infra_foundation/feature_spec.md`](docs/02_product/planned_features/infra_foundation/feature_spec.md) §7.3 — any change requires a spec patch first. When TLS + auth land at MVP4, `/healthz` stays open via the reverse proxy's localhost or internal-network ACL.
+6. **`/healthz` is unauthenticated by design.** It's an operator-facing probe, unprefixed (not under `/api/v1/`), and reports subsystem status. Never gate it behind auth. The shape is documented in [`infra_foundation/feature_spec.md`](docs/02_product/planned_features/infra_foundation/feature_spec.md) §7.3 — any change requires a spec patch first. When TLS + auth land (TLS via Caddy is a GA-v1 hardening item; multi-tenant auth is in the backlog), `/healthz` stays open via the reverse proxy's localhost or internal-network ACL.
 
 7. **Conventional Commits format is enforced** (per `infra_foundation` FR-6). Pre-commit `commit-msg` hook validates the message against `^(feat|fix|chore|docs|infra|refactor|test|style|perf|build|ci)(\([a-z0-9-]+\))?(!)?:`. Never bypass with `--no-verify` or `-n`. If a hook fails, fix the message; don't skip.
 
@@ -135,9 +133,9 @@ docs/
 
 11. **Per-route LLM/network calls inside `/healthz` must respect the 200ms timeout.** The health endpoint orchestrates 5 parallel subsystem probes via `asyncio.wait_for(probe(), timeout=0.2)` so total response stays under 500ms p99. Never add a probe that synchronously waits on a slow upstream — wrap it in the timeout, return `down`/`unreachable` on TimeoutError. The OpenAI capability check (FR-7) does NOT run inside `/healthz` — it runs once at startup as a fire-and-forget task and `/healthz` reads the cached result from Redis.
 
-**Activates at MVP2:** `audit_log` table + Postgres immutability trigger + canonical event catalog. When MVP2 lands, add an Absolute Rule: every state-mutating endpoint or service function must call `create_audit_event()` in the same transaction as the primary mutation (before `db.commit()`); see [`docs/01_architecture/data-model.md`](docs/01_architecture/data-model.md) §"Forthcoming: audit_log".
+**Activates at MVP3 (Observable):** `audit_log` table + Postgres immutability trigger + canonical event catalog. When MVP3 lands, add an Absolute Rule: every state-mutating endpoint or service function must call `create_audit_event()` in the same transaction as the primary mutation (before `db.commit()`); see [`docs/01_architecture/data-model.md`](docs/01_architecture/data-model.md) §"Forthcoming: audit_log".
 
-**Activates at MVP4:** Multi-tenancy. When MVP4 lands, add an Absolute Rule: every DB write on a tenant-scoped table must include `tenant_id`; admin endpoints bypass tenant scoping but require explicit role check via `require_role({"platform_admin"})`. Until then, RelyLoop is single-tenant — no `tenants` table, no `tenant_id` column, no membership check.
+**Activates when multi-tenancy is promoted from backlog:** Multi-tenancy. When multi-tenancy ships, add an Absolute Rule: every DB write on a tenant-scoped table must include `tenant_id`; admin endpoints bypass tenant scoping but require explicit role check via `require_role({"platform_admin"})`. Until then, RelyLoop is single-tenant — no `tenants` table, no `tenant_id` column, no membership check.
 
 ## Build, Test, and Lint Commands
 
@@ -187,14 +185,14 @@ make migrate-create name=<slug>   # alembic revision --autogenerate -m "<slug>"
 
 ## Environments
 
-MVP1 has one environment: local development on a developer's laptop or in CI. Production-style install lands at MVP3 (TLS via Caddy + Let's Encrypt, no SSO yet); SSO + multi-tenant arrive at MVP4.
+MVP1 has one environment: local development on a developer's laptop or in CI. Production-style install (TLS via Caddy + Let's Encrypt, managed Postgres/Redis, AWS managed OpenSearch) lands with GA v1 hardening; SSO + multi-tenant remain in the backlog.
 
 | Context | `ENVIRONMENT` value | Where it runs | Notes |
 |---|---|---|---|
 | Local development | `development` (default) | Developer machine via `make up` | All defaults; no auth; no TLS |
 | CI (GitHub Actions) | `development` | GitHub Actions runners with service containers | Same toolchain as local; backend tests use a service-container Postgres + ES + OpenSearch |
 | Staging (MVP3+) | `staging` | TBD operator deployment | TLS on; trusted-network deployment |
-| Production (MVP4+) | `production` | TBD operator deployment | TLS + SSO + multi-tenant; arrives with the auth surface |
+| Production (post-GA) | `production` | TBD operator deployment | TLS + SSO + multi-tenant; arrives with the auth surface |
 
 There is no remote staging in MVP1 — every contributor runs the stack locally. The umbrella spec describes this as "evaluation-only" and the README labels it "alpha."
 
@@ -306,7 +304,7 @@ See [`docs/01_architecture/data-model.md`](docs/01_architecture/data-model.md) f
 - JSONB for flexible structured fields (settings, params, metrics, payloads).
 - Soft delete via `deleted_at` on user-facing tables; hard delete on internal append-only tables (e.g., `trials`).
 - All foreign keys explicit; no implicit relationships.
-- Indexes on `(tenant_id, created_at)` for tenant-scoped tables — **MVP4+ only**; MVP1–3 has no `tenant_id` column.
+- Indexes on `(tenant_id, created_at)` for tenant-scoped tables — **backlog only**; RelyLoop is single-tenant through GA v1 — no `tenant_id` column.
 
 ## Frontend Conventions
 
@@ -328,7 +326,7 @@ See [`docs/01_architecture/data-model.md`](docs/01_architecture/data-model.md) f
 - `/proposals` and `/proposals/[id]` — landing in `feat_proposals_ui`
 - `/chat` — landing in `feat_chat_agent`
 - `/judgments/[id]` — landing in `feat_llm_judgments`
-- No admin routes in MVP1 (admin model arrives at MVP4)
+- No admin routes through GA v1 (admin model is in the backlog)
 
 ### Common UI Patterns (when UI features land)
 
@@ -356,9 +354,9 @@ When you add a `<select>`, filter dropdown, status badge, sort control, or any f
 - **Do not** require an OpenAI key or any per-repo GitHub PAT to boot the stack. The OpenAI key is an optional pre-feature secret — empty mount file is allowed; the API logs a WARN and `/healthz` reports `subsystems.openai: missing_key`. GitHub PATs are configured per `config_repo` (lazy — only when an operator registers a repo), not at boot. Only Postgres password + database URL are boot-blocking.
 - **Do not** support raw env vars (`OPENAI_API_KEY=sk-...`) as a fallback for the secrets-via-files pattern. Bare env vars are visible in `docker inspect`, container logs, and `ps` — they defeat the purpose. The `_FILE` mounted-secret pattern is the ONLY supported path. (See Absolute Rule #2.)
 - **Do not** install ES + OpenSearch with security plugins enabled in the local Compose. Per deployment.md, local dev disables security; production-mode security configuration is a separate (MVP3+) concern.
-- **Do not** add weekly or per-request rate limiting in MVP1. Single-tenant on a laptop = no production load; rate limiting is unwarranted infrastructure. The `RATE_LIMITED` (429) error code is reserved per api-conventions.md but not emitted until MVP4.
+- **Do not** add weekly or per-request rate limiting in MVP1. Single-tenant on a laptop = no production load; rate limiting is unwarranted infrastructure. The `RATE_LIMITED` (429) error code is reserved per api-conventions.md but not emitted until multi-tenancy ships (backlog).
 - **Do not** add a migration without `downgrade()`. (See Absolute Rule #5.)
-- **Do not** call OpenAI from a service when the LLM abstraction exists. (See Absolute Rule #3 — applies to MVP4+; in MVP1 services may use the SDK directly but always read model + base URL from `Settings`.)
+- **Do not** call OpenAI from a service when the LLM abstraction exists. (See Absolute Rule #3 — applies once the multi-provider abstraction ships (backlog); in MVP1 services may use the SDK directly but always read model + base URL from `Settings`.)
 - **Do not** call engine clients directly from a service. Always go through the adapter Protocol. (See Absolute Rule #4 — activates when `infra_adapter_elastic` lands.)
 - **Do not** write frontend option/enum/dropdown values from memory or by guessing. Every `<select>` option list, filter dropdown, status badge variant, and sort-key literal the frontend sends to the backend must be grounded in a concrete backend source file. (See "Enumerated Value Contract Discipline" above.)
 - **Do not** edit a file and then `git mv` it in the same commit. `git mv old new` writes the *last-committed blob* of `old` into the index entry for `new` — any prior working-tree edits to `old` end up unstaged at the new path (visible only as the lowercase "M" in `git status`'s `RM` indicator) and `git add <specific-file> && git commit` will silently drop them. **Order:** `git mv` first, then edit at the new path, then `git add <new-path>`. Verify with `git diff --cached --stat` before commit — every file you intended to edit must show non-zero `+`/`-` counts.
