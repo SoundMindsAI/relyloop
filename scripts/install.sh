@@ -73,7 +73,17 @@ docker compose config --quiet
 #    No-args = build every service that declares a `build:` block. The earlier
 #    hardcoded `api worker` list silently skipped the `ui` service after it
 #    joined Compose, leaving frontend changes invisible until manual rebuild.
-docker compose build
+#
+#    CI escape hatch: set `RELYLOOP_SKIP_BUILD=1` to skip this step. CI pre-
+#    builds the API + UI images in parallel `docker` + `docker-ui` jobs and
+#    `docker load`s them before calling `make up`, so a second `docker compose
+#    build` here would be ~3-5min of pure duplication. See
+#    chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
+if [[ "${RELYLOOP_SKIP_BUILD:-0}" != "1" ]]; then
+  docker compose build
+else
+  echo "RELYLOOP_SKIP_BUILD=1 set — skipping 'docker compose build' (CI artifact-handoff path)"
+fi
 
 # 7. Bring the stack up. `docker compose up -d` is itself idempotent.
 #    `--wait` blocks until every container's healthcheck passes (or fails) —
@@ -91,7 +101,18 @@ docker compose up -d --wait
 #    The auto-seed is non-fatal: a failure here doesn't roll back the
 #    stack startup. The operator can re-run `make seed-demo FORCE=1`
 #    manually once the failure is understood.
-echo "Checking demo state…"
-if ! python3 scripts/seed_meaningful_demos.py --if-empty; then
-  echo "Warning: auto-seed failed (non-fatal). Run 'make seed-demo FORCE=1' manually."
+#
+#    CI escape hatch: set `RELYLOOP_SKIP_AUTO_SEED=1` to skip this step.
+#    The smoke job sets this because the dashboard E2E specs that needed
+#    the demo data were skipped in CI on 2026-05-28 (see
+#    chore_drop_demo_seed_from_ci/idea.md). Without the skip, install.sh
+#    would do ~5min of demo-seeding inside `make up` that no CI step
+#    consumes. See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
+if [[ "${RELYLOOP_SKIP_AUTO_SEED:-0}" != "1" ]]; then
+  echo "Checking demo state…"
+  if ! python3 scripts/seed_meaningful_demos.py --if-empty; then
+    echo "Warning: auto-seed failed (non-fatal). Run 'make seed-demo FORCE=1' manually."
+  fi
+else
+  echo "RELYLOOP_SKIP_AUTO_SEED=1 set — skipping demo auto-seed (CI fast path)"
 fi

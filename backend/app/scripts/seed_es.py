@@ -45,7 +45,16 @@ async def main() -> int:
     products = json.loads(SAMPLES_PRODUCTS.read_text())
     logger.info("seed_es: loaded %d products from %s", len(products), SAMPLES_PRODUCTS)
 
-    async with httpx.AsyncClient(base_url=cluster.base_url, timeout=30.0) as client:
+    # timeout=90 (was 30): ES 9.4.1 single-node on a cold GHA runner can take
+    # >30s to respond to the first index-create PUT after `docker compose up
+    # --wait` returns. Observed in PR #291's 6th + 7th smoke runs after the
+    # fast stack-up (compose-up went from 10min → 21s, eliminating the
+    # ambient ES warmup time that previously masked this). The compose
+    # healthcheck waits for `_cluster/health?wait_for_status=yellow` which
+    # passes early on single-node ES (no shards to wait on), so ES is
+    # "healthy" but its write path needs more warmup. 90s gives headroom
+    # without making real failure modes invisible.
+    async with httpx.AsyncClient(base_url=cluster.base_url, timeout=90.0) as client:
         # DELETE existing index (idempotent — 404 is fine, that just means it didn't exist).
         delete_resp = await client.delete(f"/{INDEX_NAME}")
         if delete_resp.status_code not in (200, 404):
@@ -58,9 +67,19 @@ async def main() -> int:
             return 1
 
         # Create with mapping derived from the products schema.
+        #
+        # number_of_replicas=0 is required for single-node ES (local dev +
+        # CI). The default (1) tries to allocate a replica that can never
+        # bind on a one-node cluster, leaving the primary itself in an
+        # INITIALIZING → STARTED race that surfaces as an
+        # `unavailable_shards_exception` on the immediately-following
+        # bulk-index. Visible in PR #291 CI run after the faster stack-up
+        # (~3min vs ~10min) stopped masking the race with implicit warmup
+        # time. See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
         create_resp = await client.put(
             f"/{INDEX_NAME}",
             json={
+                "settings": {"number_of_replicas": 0},
                 "mappings": {
                     "properties": {
                         "title": {"type": "text"},
@@ -69,7 +88,7 @@ async def main() -> int:
                         "color": {"type": "keyword"},
                         "bullet_points": {"type": "text"},
                     }
-                }
+                },
             },
         )
         create_resp.raise_for_status()
