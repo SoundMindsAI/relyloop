@@ -81,8 +81,9 @@ class TestRewriteMarkdownLinks:
         text = "See [sibling](../sibling-folder/idea.md)."
         rewritten = _rewrite_markdown_links(text, self.FROM_DIR, self.TO_DIR)
         # From dashboard at docs/00_overview/, sibling-folder is at
-        # ../00_overview/planned_features/sibling-folder/idea.md.
-        assert "[sibling](../00_overview/planned_features/sibling-folder/idea.md)" in rewritten
+        # planned_features/sibling-folder/idea.md (planned_features is a
+        # direct child of 00_overview after the 2026-05-28 restructure).
+        assert "[sibling](planned_features/sibling-folder/idea.md)" in rewritten
 
     def test_multiple_links_in_one_text(self) -> None:
         """Multiple links in the same paragraph all get rewritten."""
