@@ -9,71 +9,88 @@
 
 ## 1. Summary
 
-RelyLoop is an open-source tool for enterprise search platform teams. It combines a conversational LLM agent with an automated overnight optimization loop ("Karpathy loop") to systematically tune query-time search relevance on Elasticsearch, OpenSearch, and Lucidworks Fusion (with pure-Solr support deferred to v2). Engineers describe relevance problems in chat; the agent introspects the cluster, proposes search-space parameters, and queues thousands of trials against `ir_measures`-computed metrics. Winning configurations are surfaced as Pull Requests / Merge Requests against a central search-config Git repo, where named approvers review and merge them into production.
+RelyLoop is the only open-source tool that runs **automated Bayesian search-space optimization across thousands of trials** on every major open-source search engine (Elasticsearch, OpenSearch, Apache Solr) and ships winning configurations as **Pull Requests** to a central search-config Git repo, where named approvers review and merge them into production. A conversational LLM agent describes the loop, proposes the search space, and dispatches the trials — but the engineering moat is the loop itself, not the agent.
 
-The tool is a single, engine-agnostic, provider-agnostic system: one UI, one workflow, one schema. Differences between Elasticsearch / OpenSearch, Lucidworks Fusion, and any future engine (pure Solr, Vespa, etc.) are isolated behind a thin adapter interface — and the same adapter pattern applies to LLM providers (OpenAI, Anthropic, Bedrock, Azure OpenAI, Vertex, self-hosted Ollama/vLLM) and Git providers (GitHub, GitLab, Bitbucket). Multi-tenancy is supported from the schema level so a single deployment can serve many downstream customers in isolation.
+This combination — *Bayesian/TPE optimization across the full query-time search space, on every major OSS engine, with a Git-PR apply path* — is genuinely unique in May 2026:
 
-**Delivery is incremental across six releases**, each meaningful as a discrete capability bundle:
+- **OpenSearch's Search Relevance Workbench** ships GA query sets, judgment lists (LLM-as-judge + UBI-via-COEC), and search-config A/B comparison, but its only optimizer is a **66-cell grid search** restricted to hybrid-search weights ([SRW docs](https://docs.opensearch.org/latest/search-plugins/search-relevance/optimize-hybrid-search/)). Bayesian optimization is in RFC #934 with no shipped code. SRW also has **no apply path by explicit RFC design** ([RFC #17735](https://github.com/opensearch-project/OpenSearch/issues/17735)): "focuses on evaluation and analysis, not production deployment mechanisms." SRW is OpenSearch-only by architecture.
+- **Elasticsearch** deprecated its higher-level tuning tools (Behavioral Analytics + Search Applications) in 9.0 and ships only the raw `_rank_eval` API primitive. There is no native ES equivalent to SRW or RelyLoop.
+- **The Solr ecosystem** (Quepid + Chorus + RRE) is mature for manual evaluation and judgment-list management, but has no auto-optimizer and no Git-PR apply path.
 
-- **MVP1 / v0.1 (5 weeks) — "The Loop":** Karpathy loop end-to-end on a laptop. ES + OpenSearch, OpenAI, GitHub, single-tenant, basic logging. Demonstrates the value prop.
-- **MVP1.5 / v0.1.5 (+2 weeks) — "Real Signals":** OpenSearch UBI as a first-class judgment source. `UbiReader` (engine-agnostic) + pluggable `SignalsConverter` Protocol + hybrid UBI+LLM mode. Earns the evaluation of operators with real traffic who distrust LLM-as-judge as the primary trust anchor.
-- **MVP2 / v0.2 (+3 weeks) — "Observable":** Langfuse + SigNoz + event catalog + audit immutability + lineage columns + PII redaction. Trustworthy enough for serious evaluation.
-- **MVP3 / v0.3 (+3 weeks) — "Production Stacks":** Lucidworks Fusion adapter (and its native signals reader feeding the MVP1.5 Protocol) + multi-Git provider abstraction (GitLab, Bitbucket) + adapter contract tests. Works against real enterprise stacks.
-- **MVP4 / v0.4 (+3 weeks) — "Multi-tenant, Multi-LLM":** Tenants + tenant-scoped API keys + multi-LLM provider abstraction (Anthropic, Bedrock, Azure OpenAI, Vertex, Ollama/vLLM). Platform-team scale.
-- **GA v1 / v1.0 (+3 weeks) — "Production-ready":** LangGraph orchestrator + full agent-first API surface + four-layer test pyramid + full GitHub Actions CI/CD with security gates + complete OSS governance.
+See [`docs/07_research/comparison.md`](../../07_research/comparison.md) for the full citation-backed comparison matrix.
 
-Total: ~19 weeks single-engineer, 12–14 weeks with two. Each release ships a coherent step-up in adopter value and audience reach.
+The system is **engine-neutral, provider-neutral, and Git-provider-neutral by design**: differences between Elasticsearch, OpenSearch, and Solr are isolated behind a thin `SearchAdapter` Protocol; LLM providers (OpenAI today, others post-GA) are isolated behind a `ChatModel` adapter; Git providers (GitHub today, others in the backlog) are isolated behind a `GitProvider` adapter. One UI, one workflow, one schema, regardless of what the operator already runs.
+
+**Delivery is incremental across three pre-GA releases plus a polish-and-governance GA:**
+
+- **MVP1 / v0.1 (shipped) — "The Loop":** Karpathy loop end-to-end on a laptop. Elasticsearch + OpenSearch, OpenAI-compatible LLM, GitHub, single-tenant, basic logging. Demonstrates the moat: Bayesian/TPE optimization + Git-PR apply + conversational agent that runs the loop.
+- **MVP2 / v0.2 — "Three-Engine + Real Signals":** Apache Solr adapter + UBI judgments + hybrid UBI+LLM converter, bundled. After MVP2, RelyLoop runs on all three OSS engines with UBI on every one of them. The engine-neutral claim becomes verifiable, not rhetorical.
+- **MVP3 / v0.3 — "Observable":** Langfuse + SigNoz + event catalog + audit immutability + lineage columns + PII redaction + trace context propagation. Trustworthy enough for unattended overnight runs by a serious platform team.
+- **GA v1 / v1.0 — "Production-ready":** Polish, governance, hardening — LangGraph orchestrator, full four-layer test pyramid at 90% coverage, full CI/CD with security gates, complete OSS launch infrastructure (docs, ADRs, signed container images, contributor onboarding, design-partner references). No new product surface beyond MVP3; the lift is from "working" to "production-ready, contributor-ready, fully governed."
+
+All six of RelyLoop's differentiators (Bayesian/TPE optimization, Git-PR apply path, conversational agent that runs the loop, all three OSS engines, hybrid UBI+LLM judgments, local-first observability) are live by MVP3. GA v1 adds no new product surface.
+
+**Backlog** (captured, not in flight): multi-Git-provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction (Anthropic, Bedrock, Azure OpenAI, Vertex, Ollama/vLLM); Path B production-monitoring + bandit-style online learning; Lucidworks Fusion adapter (explicitly dropped, see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md)).
 
 The HTTP API is designed as a first-class product, not just the back end of the UI. Every operation a human or the in-tool orchestrator can perform is also callable by an external agent over plain REST, with bearer-token auth, OpenAPI 3.1 publication, idempotency keys, outgoing webhooks, SSE event streams, and machine-readable capability discovery. See §21 *Agent integration*.
 
-The orchestrator itself is built on **LangGraph** with Postgres-backed state persistence; LLM observability uses **self-hosted Langfuse**, distributed observability uses **self-hosted SigNoz**. Nothing about LLM behavior or system telemetry leaves the deployment VM. See §15 *LLM orchestration & observability*.
+The orchestrator is built on **LangGraph** with Postgres-backed state persistence; LLM observability uses **self-hosted Langfuse**, distributed observability uses **self-hosted SigNoz**. Nothing about LLM behavior or system telemetry leaves the deployment VM. See §15 *LLM orchestration & observability*.
 
-Engineering quality is gated by a four-layer test pyramid (unit ≥90% coverage, contract, integration, end-to-end) and GitHub Actions CI/CD. See §23 *Non-functional requirements*.
+Engineering quality is gated by a four-layer test pyramid (unit ≥90% coverage at GA, contract, integration, end-to-end) and GitHub Actions CI/CD. See §23 *Non-functional requirements*.
 
 Released under **Apache License 2.0**. Initial maintainer: soundminds.ai, with an explicit transition path to community maintainership over 12–24 months. See §28 *OSS positioning & governance*.
 
 ## 2. Context & motivation
 
-Search relevance tuning at our organization is currently manual, ad-hoc, and engineer-time-bound. A relevance engineer hypothesizes a change, edits a query template, eyeballs a few queries, and either ships it or doesn't. Two things are missing:
+Search relevance tuning at most organizations is manual, ad-hoc, and engineer-time-bound. A relevance engineer hypothesizes a change, edits a query template, eyeballs a few queries, and either ships it or doesn't. Two things are missing:
 
-1. **Systematic exploration.** The space of tunable parameters (field weights, boosts, tie-breakers, fuzziness, slop, function-score parameters, hybrid-search alphas) is too large to explore manually. We routinely ship the first plausible win rather than the best win.
-2. **Quantified evaluation.** Without a standing query set and judgment list, we can't tell whether a change generalizes or just happens to fix the three queries the engineer noticed.
+1. **Systematic exploration.** The space of tunable parameters (field weights, boosts, tie-breakers, fuzziness, slop, function-score parameters, hybrid-search alphas) is too large to explore manually. Teams routinely ship the first plausible win rather than the best win. Off-the-shelf workbenches (Quepid, RRE, Chorus) make manual A/B comparison easier but don't drive automated overnight sweeps.
+2. **Quantified evaluation.** Without a standing query set and judgment list, teams can't tell whether a change generalizes or just happens to fix the three queries the engineer noticed.
 
-Off-the-shelf tools (Quepid, RRE, Chorus) cover the manual workbench problem well but don't drive automated overnight studies, and don't have an LLM in the loop to design the search space. The OpenSearch Relevance Agent does the LLM-and-conversation part but is OpenSearch-only and lacks the autonomous-optimization loop. This tool combines both.
+The current OSS landscape (May 2026):
+
+- **OpenSearch Search Relevance Workbench** covers a substantial slice of the workflow GA today — query sets, judgment lists (LLM-as-judge and UBI-derived via COEC), search-config A/B comparison, multi-cluster, scheduled experiments. But its only optimizer is a 66-cell grid search restricted to hybrid-search weights; the full-search-space Bayesian optimization that would close the "systematic exploration" gap is in RFC #934 with no shipped code. SRW also has no apply path by explicit RFC design, and is architecturally OpenSearch-only.
+- **OpenSearch Relevance Agent** (experimental in 3.6) is a conversational DSL recommender. It suggests edits; it does not run multi-thousand-trial sweeps and does not write to Git.
+- **Elasticsearch** deprecated Behavioral Analytics + Search Applications in 9.0 and offers only the `_rank_eval` API primitive. The implicit Elastic message is "DIY through query DSL + retrievers."
+- **The Solr ecosystem** (Quepid + Chorus + RRE) is mature for manual evaluation but has no auto-optimizer.
+
+RelyLoop is the tool that **fills the gap none of the above closes**: automated Bayesian/TPE optimization across the full search space, on every major OSS engine, with a Git-PR apply path. The conversational agent is the front door that makes the loop accessible; the Bayesian loop and the Git-PR posture are the actual engineering moat. See [`docs/07_research/comparison.md`](../../07_research/comparison.md) for the full citation-backed comparison.
 
 ## 3. Goals
 
-The tool must enable the relevance team to:
+The tool must enable a relevance engineering team to:
 
 - Define a query set and a calibrated judgment list once, reuse them across studies
 - Conversationally describe a relevance problem and have an agent propose what to tune
-- Run automated, parallelized, overnight studies of thousands of trials per query set
+- Run automated, parallelized, overnight studies of thousands of trials per query set against the full query-time search space (field weights, function scores, fuzziness, slop, `mm`, tie-breakers, hybrid weights — not just one slice)
 - Produce a parameter-importance analysis and an LLM-written digest by morning
-- Open a Git PR against a central search-config repo with the winning configuration
+- Open a Git PR against a central search-config repo with the winning configuration, where the operator's existing approvers and CI handle deployment
 - Track which proposals are pending, merged, deployed, or rejected — across multiple clusters and environments
-- Operate identically against Elasticsearch and Lucidworks Fusion clusters, with a path to add pure Solr, Vespa, or others later
+- Operate identically against Elasticsearch, OpenSearch, and Apache Solr — the three open-source engines the relevance community treats as canonical
 
 ## 4. Non-goals
 
 The tool will not:
 
+- **Compete with OpenSearch SRW on manual A/B comparison.** SRW already does that GA, in-cluster, for OpenSearch. RelyLoop's value is what SRW deliberately doesn't do (full-search-space Bayesian optimization + Git-PR apply path) and what it can't do (engine-neutral across ES, OpenSearch, and Solr). Operators who only need manual A/B on OpenSearch should use SRW; RelyLoop is for the next-class problem.
 - Run online A/B tests on production traffic. It evaluates offline against judgment lists.
-- Train Learning-to-Rank (LTR) models in v1. The output is query-time DSL/edismax parameter changes, not learned reranker weights.
-- Manage the search-config repo's CI/CD. The tool opens PRs; the user's existing CI handles deployment.
+- Train Learning-to-Rank (LTR) models in v1. The output is query-time DSL/edismax parameter changes, not learned reranker weights. LTR training is a v2 candidate.
+- Manage the search-config repo's CI/CD. The tool opens PRs; the operator's existing CI handles deployment.
 - Make schema/mapping/analyzer changes. Tuning is restricted to query-time parameters.
 - Function as a search-engine UI. It does not show end-user search results; it shows experiment results.
 - Modify production cluster configuration directly. All changes flow through Git.
 - Provide an MCP server. The tool's HTTP API uses OpenAPI 3.1 + idiomatic REST + outgoing webhooks instead, which is testable with any HTTP client and consumable by any agent framework. The same operations the in-tool orchestrator uses are exposed externally — there is no second-class agent interface.
+- **Support Lucidworks Fusion.** Fusion was scoped as MVP3 in an earlier plan and is dropped in the 2026-05-27 reframe; see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md) for the rationale (vendor entanglement, narrower audience overlap with the OSC/Haystack community, materially higher build cost than Solr, no roadmap commitment to commercial engines). A community-contributed Fusion adapter remains possible because the `SearchAdapter` Protocol is unchanged; the project does not own that direction.
 - **Sit on the live search-serving path.** The tool is for offline experimentation and change management. It does not score, rank, or rerank production search results in real time, and it is never an inline dependency of the search-serving infrastructure. Production search behavior is determined by the configs that have been merged into the config repo and deployed by the operator's CI — the tool's role ends at the PR.
-- **Provide real-time production search-quality monitoring.** Streaming user signals into rolling-window quality metrics, alerting on degradation, and incident dashboards belong to operational observability tooling (APM, Fusion's own analytics, custom Grafana boards). The tool is deliberately scoped to the experimentation-and-change-management problem; expanding into production monitoring is a coherent v2 direction (see §27) but is **not** in v1.
-- **Provide shadow validation against a live production traffic stream.** Pre-deploy validation in v1 is offline against query sets and judgment lists, plus the optional read-only "validate on prod" pass already in §17. Streaming a sample of live queries through a candidate config in real time is more confidence-building but requires stream-processing infrastructure that v1 deliberately avoids.
+- **Provide real-time production search-quality monitoring.** Streaming user signals into rolling-window quality metrics, alerting on degradation, and incident dashboards belong to operational observability tooling (APM, SRW's own metrics surface, custom Grafana boards). The tool is deliberately scoped to the experimentation-and-change-management problem; expanding into production monitoring is a coherent v2 Path B direction (see §27) but is **not** in scope through GA v1.
+- **Provide shadow validation against a live production traffic stream.** Pre-deploy validation is offline against query sets and judgment lists, plus the optional read-only "validate on prod" pass already in §17. Streaming a sample of live queries through a candidate config in real time is more confidence-building but requires stream-processing infrastructure that the project deliberately avoids through GA v1.
 - **Auto-rollback merged proposals based on real-time metrics.** Even if v2 adds production monitoring, auto-rollback is explicitly rejected. False positives are common, and auto-reverting deliberate human-approved changes breaks the change-management posture the tool is built around. v2 will surface alerts and a one-click manual rollback path; the human stays in the loop.
-- **Bandit-style online learning / continuous deployment of mixture configs.** This is the most attractive v2 candidate (multi-armed bandits routing real production traffic across promising configs and progressively shifting toward winners) but is explicitly rejected for v1. It requires real-time integration into the search-serving path, which v1's architecture deliberately stays out of. Documented as a v2 direction in §27.
+- **Bandit-style online learning / continuous deployment of mixture configs.** This is the most attractive v2 candidate (multi-armed bandits routing real production traffic across promising configs and progressively shifting toward winners) but is explicitly rejected for v1. It requires real-time integration into the search-serving path, which the project's architecture deliberately stays out of. Documented as a v2 Path B direction in §27.
 
 ## 5. Glossary
 
-- **Cluster** — a single Elasticsearch, Lucidworks Fusion, or Solr deployment (e.g., `products-prod-es`, `inventory-staging-fusion`).
-- **Target** — a specific index (ES) or collection (Fusion / Solr) on a cluster, plus a query template. For Fusion, the target also implies a Fusion app and (default) query pipeline.
+- **Cluster** — a single Elasticsearch, OpenSearch, or Apache Solr deployment (e.g., `products-prod-es`, `products-staging-opensearch`, `catalog-prod-solr`).
+- **Target** — a specific index (ES / OpenSearch) or collection (Solr) on a cluster, plus a query template.
 - **Query set** — a named, versioned collection of queries used as the input population for evaluation.
 - **Judgment list** — for each (query, document) pair in scope, a relevance rating (0–3 or binary). Sourced from LLM-as-judge initially; human-overridable.
 - **Query template** — a parametrized query definition (Jinja-rendered) for a specific engine. Has named parameters that match the search space.
@@ -131,15 +148,16 @@ The tool will not:
                      │           │          │
             ┌────────▼──┐  ┌─────▼────┐ ┌───▼────────┐
             │ Adapters  │  │ ir_      │ │ Git provider│
-            │ - ES      │  │ measures │ │ - GitHub    │
-            │ - Fusion  │  │          │ │ - PR API    │
-            │ - (Solr)  │  │          │ │             │
+            │ - ES/OS   │  │ measures │ │ - GitHub    │
+            │ - Solr    │  │          │ │ - PR API    │
+            │   (MVP2)  │  │          │ │             │
             └─┬─────────┘  └──────────┘ └────────────┘
               │
    ┌──────────▼──────────────────────────┐
    │  Tuned clusters                     │
    │  - ES: products-prod, products-staging, products-dev
-   │  - Fusion: inventory-prod, inventory-staging, ...
+   │  - OpenSearch: catalog-prod, catalog-staging
+   │  - Solr: archive-prod (MVP2)
    └─────────────────────────────────────┘
 ```
 
@@ -168,7 +186,7 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class SearchAdapter(Protocol):
-    engine_type: str  # "elasticsearch" | "opensearch" | "solr" | "lucidworks_fusion"
+    engine_type: str  # "elasticsearch" | "opensearch" | "solr"
 
     def health_check(self) -> HealthStatus: ...
     def list_targets(self) -> list[TargetInfo]: ...
@@ -201,9 +219,9 @@ class SearchAdapter(Protocol):
 
 `search_batch` is the only hot-path method during a study. Everything else is define-time or debug-time.
 
-### ElasticAdapter / OpenSearchAdapter
+### ElasticAdapter / OpenSearchAdapter (MVP1, shipped)
 
-A single adapter handles both **Elasticsearch** and **OpenSearch**. The engine_type column distinguishes them at the database level (`elasticsearch` vs `opensearch`), and the adapter branches on that flag for the small set of behaviors that differ between the two engines. Reasons for one-adapter-two-engines:
+A single adapter handles both **Elasticsearch** and **OpenSearch**. The `engine_type` column distinguishes them at the database level (`elasticsearch` vs `opensearch`), and the adapter branches on that flag for the small set of behaviors that differ between the two engines. Reasons for one-adapter-two-engines:
 
 - ES and OpenSearch share the same Query DSL — `multi_match`, `function_score`, `bool`, etc. work identically across both
 - The `_msearch` and `_explain` endpoints exist on both with the same shape
@@ -213,53 +231,43 @@ A single adapter handles both **Elasticsearch** and **OpenSearch**. The engine_t
 Implementation notes:
 
 - `search_batch` is implemented via the `_msearch` API for efficiency.
-- `render` produces ES/OpenSearch Query DSL JSON; Jinja templates live under `templates/elasticsearch/` and work against both engines unmodified for the v1 query patterns.
+- `render` produces ES/OpenSearch Query DSL JSON; Jinja templates live under `templates/elasticsearch/` and work against both engines unmodified for the MVP1 query patterns.
 - `explain` calls the `_explain` endpoint.
 - Engine support: Elasticsearch 8.11+ and 9.x; OpenSearch 2.x (matches ES 7.10 baseline) and 3.x. Older versions explicitly out of scope.
 - Authentication: ES uses API keys (or basic auth for older deployments); OpenSearch supports basic auth, API keys, and AWS SigV4 (when running in AWS managed OpenSearch). The adapter selects auth flow via `cluster.auth_kind`.
 
 Why this matters for licensing and OSS positioning: Elasticsearch's Basic license is free for self-hosting but is not OSI-approved OSS. OpenSearch is Apache 2.0. Supporting both means RelyLoop adopters who care about the licensing distinction can choose OpenSearch without losing functionality, and adopters already on ES don't need to migrate.
 
-### LucidworksFusionAdapter notes
+### SolrAdapter (MVP2, bundled with UBI judgments)
 
-The primary "Solr-side" adapter for v1. Lucidworks Fusion is built on Solr but exposes a different API surface centered on Query Pipelines. Pure-Solr deployments are supported architecturally (see SolrAdapter notes below) but are not in v1 scope.
+Apache Solr ships in MVP2 alongside the UBI judgments feature; together they complete RelyLoop's three-engine sweep with UBI on every engine. See [`infra_adapter_solr/idea.md`](../../02_product/planned_features/infra_adapter_solr/idea.md) for the full scope.
 
-- `search_batch` posts to Fusion's query API: `POST /api/apps/{app}/query/{collection}` with the request body holding query text and per-stage parameter overrides (`params.{stageId}.{paramName}`). Parallelism is handled with a small connection pool, similar to the Solr adapter.
-- `render` produces a Fusion request body, **not** a raw Solr query. A "template" in Fusion is a query pipeline definition exported as JSON, plus a parameter-binding map that says which template parameters override which pipeline-stage parameters at request time. Rendering takes the pipeline definition + binding + parameter values and produces an override-laden Fusion request.
-- `get_schema` queries Fusion's catalog API for the schema of the configured collection.
-- `explain` uses Fusion's debug-enabled query (`params.solr.debugQuery=true`) and parses the `debug.explain` block returned through the Fusion gateway.
-- **Authentication.** Fusion uses session-based auth (`POST /api/session` returning a session cookie) or JWT. The adapter manages a session pool; the `auth_kind` field on the cluster row distinguishes `fusion_session` vs `fusion_jwt`. Credentials referenced via the same `credentials_ref` pattern.
-- **Pipeline export/import.** Apply path uses Fusion's `objects-export` and `objects-import` APIs (see §16). Pipeline JSON is the canonical Git artifact.
-- **Signals** (v1.5+). Fusion's signals collections (`{app}_signals`) capture user click, view, and refinement events. The adapter exposes a `pull_signals` operation that returns aggregated signals over a window, suitable for click-derived judgment generation. Not on the v1 hot path because the user's deployment hasn't enabled signals yet.
-- Supports Fusion 5.x (current). Fusion 4.x deferred until needed.
-
-### SolrAdapter notes (architectural reference; not v1 scope)
-
-Pure Apache Solr is supported by the same adapter pattern but is not built in v1 because the user's deployment is Lucidworks Fusion. The notes below describe what a SolrAdapter implementation would do, both as a future engine and as evidence that the architecture isn't Fusion-locked.
-
-- `search_batch` is implemented via parallel `/select` requests, one per query, with a small connection pool. (Solr has no `_msearch` equivalent; the JSON Request API allows multi-query but is awkward.)
-- `render` produces Solr query parameters as a dict (later URL-encoded); supports `lucene`, `edismax`, and `dismax` parsers.
+- `search_batch` uses parallel `/select` requests with a small connection pool. Solr has no `_msearch` equivalent; the JSON Request API allows multi-query but is awkward and undertested across versions.
+- `render` produces a Solr request parameter dict (later URL-encoded). Supports `edismax` (primary), `dismax`, and `lucene` parsers. Templates live under `templates/solr/` as Jinja templates that emit parameter maps, mirroring `templates/elasticsearch/` shape.
+- `get_schema` uses Solr's Schema API (`/schema/fields`, `/schema/dynamicfields`, `/schema/fieldtypes`).
+- `list_targets` uses CoresAdmin API (`/admin/cores?action=STATUS`) for standalone; CollectionsAdmin (`/admin/collections?action=LIST`) for SolrCloud. Selects automatically based on a startup capability probe.
 - `explain` uses `debugQuery=true&debug=results` and parses the `debug.explain` block.
-- Supports Solr 8.11+ and 9.x. SolrCloud and standalone both supported.
-- Authentication via basic auth or API tokens.
+- Engine support: Solr 9.x (current widely-deployed) and Solr 10.x (released 2026-03 with `modules/ltr` stable + new LTR cache). SolrCloud and standalone modes both supported. Solr 8.x and earlier explicitly out of scope.
+- Authentication: `auth_kind` extended to include `solr_basic` (HTTP Basic) and `solr_apikey` (Solr 9+ JWT via the security.json `JWTAuthPlugin`).
+- LTR rescoring: applies a pre-existing `MultipleAdditiveTreesModel` (XGBoost-compatible) loaded via Solr's `/schema/model-store` as a rescore stage in a trial. Training is out of scope; the adapter consumes models the operator uploads separately.
+- UBI on Solr: Solr ships `<searchComponent class="solr.UBIComponent">` in core ([reference guide](https://solr.apache.org/guide/solr/latest/query-guide/learning-to-rank.html); [UBI tools index](https://www.ubisearch.dev/tools/)) writing the same `ubi_queries` + `ubi_events` schema as the OpenSearch UBI plugin. The MVP2 `UbiReader` works on Solr unchanged.
 
 ### Cross-engine parameter naming
 
 Each adapter maps a unified parameter vocabulary to native names. Templates use the unified names; rendering pivots them.
 
-| Concept | Unified name | ES (`multi_match`) | Lucidworks Fusion | Solr (`edismax`) |
-|---|---|---|---|---|
-| Per-field weights | `field_boosts: {f: w}` | `fields: ["f^w"]` | stage param `searchFields.fields` or `params.solr.qf` override | `qf=f^w` |
-| Phrase fields | `phrase_field_boosts` | nested `phrase` clause | `params.solr.pf` override | `pf` |
-| Tie breaker | `tie_breaker` | `tie_breaker` | `params.solr.tie` override | `tie` |
-| Min should match | `min_should_match` | `minimum_should_match` | `params.solr.mm` override | `mm` |
-| Fuzziness | `fuzziness` | `fuzziness` | (manual via `~` in query parser) | (manual via `~`) |
-| Slop | `slop` | `slop` | `params.solr.ps` override | `ps` |
-| Boost function | `boost_fn: {field, type, params}` | `function_score` | boosting stage `bq` override | `boost`, `bf` |
-| Reranker model | `rerank_model: {id, top_k}` | `rescore.window_size` + LTR | rerank stage `modelId`, `topK` | LTR plugin model |
-| Pipeline stage toggle | `stage_enabled: {stage_id: bool}` | (n/a) | per-stage `enabled` param | (n/a) |
+| Concept | Unified name | ES / OpenSearch (`multi_match`) | Solr (`edismax`) |
+|---|---|---|---|
+| Per-field weights | `field_boosts: {f: w}` | `fields: ["f^w"]` | `qf=f^w` |
+| Phrase fields | `phrase_field_boosts` | nested `phrase` clause | `pf` |
+| Tie breaker | `tie_breaker` | `tie_breaker` | `tie` |
+| Min should match | `min_should_match` | `minimum_should_match` | `mm` (accepts richer arithmetic syntax — `2<-25% 9<-3`) |
+| Fuzziness | `fuzziness` | `fuzziness` | (manual via `~` in query parser) |
+| Slop | `slop` | `slop` | `ps` |
+| Boost function | `boost_fn: {field, type, params, combine: "add"|"multiply"}` | `function_score` (multiplicative by default; additive when `combine=add`) | `bf` (additive) or `boost` (multiplicative) chosen by `combine` |
+| Reranker model | `rerank_model: {id, top_k}` | `rescore.window_size` + LTR | `rq={!ltr model=... reRankDocs=...}` |
 
-Where a concept doesn't exist natively (e.g., ES `function_score` rendered as Fusion `bq`), the adapter either provides a best-effort translation or raises `UnsupportedParameter` at render time and the search-space validator rejects the study before it runs. Fusion's `stage_enabled` parameter is unique to Fusion — it lets a study toggle individual pipeline stages on/off as a categorical parameter, which is a powerful and engine-specific tuning lever.
+Where a concept doesn't exist natively, the adapter either provides a best-effort translation or raises `UnsupportedParameter` at render time and the search-space validator rejects the study before it runs. Engine-version differences (Solr 9 vs 10 LTR module path, OpenSearch 2 vs 3 hybrid retriever shape) are handled inside the adapter's capability probe — the unified vocabulary is engine-version-stable.
 
 ## 9. Data model (Postgres)
 
@@ -285,10 +293,10 @@ clusters (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id),
     name            TEXT NOT NULL,                   -- "products-prod-es"
-    engine_type     TEXT NOT NULL,                   -- "elasticsearch" | "opensearch" | "solr" | "lucidworks_fusion"
+    engine_type     TEXT NOT NULL,                   -- "elasticsearch" | "opensearch" | "solr"
     environment     TEXT NOT NULL,                   -- "prod" | "staging" | "dev"
     base_url        TEXT NOT NULL,
-    auth_kind       TEXT NOT NULL,                   -- "es_apikey" | "es_basic" | "opensearch_basic" | "opensearch_sigv4" | "solr_basic" | "fusion_session" | "fusion_jwt"
+    auth_kind       TEXT NOT NULL,                   -- "es_apikey" | "es_basic" | "opensearch_basic" | "opensearch_sigv4" | "solr_basic" | "solr_apikey"
     credentials_ref TEXT NOT NULL,                   -- key into mounted secrets
     config_repo_id  UUID REFERENCES config_repos(id),
     config_path     TEXT NOT NULL,                   -- where in repo this cluster's templates live
@@ -301,8 +309,7 @@ clusters (
 -- engine_config shape per engine_type:
 --   elasticsearch:    null or {api_version: "8" | "9"}
 --   opensearch:       null or {os_version: "2" | "3"}
---   solr:             {solr_cloud: bool, default_collection: text}
---   lucidworks_fusion: {app: text, default_pipeline: text, signals_collection: text?, fusion_version: "5"}
+--   solr:             {solr_cloud: bool, default_collection: text, solr_version: "9" | "10"}
 
 -- Config repository registry
 config_repos (
@@ -563,33 +570,7 @@ Templates are Jinja2 source files. Storage: rows in `query_templates`, body is t
 }
 ```
 
-### Example: Lucidworks Fusion template (Query Pipeline override)
-
-A Fusion template stores the pipeline definition as a versioned blob in the config repo (canonical source of truth) and a Jinja-rendered request body that supplies parameter overrides at request time. The pipeline itself is unchanged by tuning — only its parameters at request time vary.
-
-```jinja
-{
-  "params": [
-    {"name": "q",                          "value": "{{ query_text }}"},
-    {"name": "rows",                       "value": {{ top_k | default(10) }}},
-    {"name": "params.solr.qf",             "value": "title^{{ field_boosts.title }} body^{{ field_boosts.body }}{% if field_boosts.tags %} tags^{{ field_boosts.tags }}{% endif %}"},
-    {"name": "params.solr.tie",            "value": "{{ tie_breaker }}"},
-    {"name": "params.solr.mm",             "value": "{{ min_should_match | default('2<-25%') }}"},
-    {"name": "params.solr.ps",             "value": "{{ slop | default(0) }}"}
-    {% if rerank_model and rerank_model.id %},
-    {"name": "params.rerank.modelId",      "value": "{{ rerank_model.id }}"},
-    {"name": "params.rerank.topK",         "value": "{{ rerank_model.top_k | default(50) }}"}
-    {% endif %}
-    {% for stage_id, enabled in stage_enabled.items() %},
-    {"name": "params.{{ stage_id }}.enabled", "value": "{{ enabled }}"}
-    {% endfor %}
-  ]
-}
-```
-
-This is dispatched via `POST /api/apps/{app}/query/{collection}` with the rendered body. The pipeline definition itself (the stages, their default parameters) lives in `pipeline.json` alongside the template — versioned together so a study is reproducible against a known pipeline shape.
-
-### Example: Solr template (edismax) — reference for future engine support
+### Example: Solr template (edismax) — MVP2
 
 ```jinja
 {
@@ -600,10 +581,13 @@ This is dispatched via `POST /api/apps/{app}/query/{collection}` with the render
   "ps": "{{ slop | default(0) }}",
   "q": "{{ query_text }}",
   "rows": {{ top_k | default(10) }}
+  {% if rerank_model and rerank_model.id %},
+  "rq": "{!ltr model={{ rerank_model.id }} reRankDocs={{ rerank_model.top_k | default(50) }}}"
+  {% endif %}
 }
 ```
 
-All three templates declare parameters using the unified vocabulary (`field_boosts.*`, `tie_breaker`, `min_should_match`, `slop`, etc.). Engine-unique parameters like `fuzziness` (ES) and `stage_enabled` (Fusion) are declared per template. The search space references these names.
+Both templates declare parameters using the unified vocabulary (`field_boosts.*`, `tie_breaker`, `min_should_match`, `slop`, etc.). Engine-unique parameters like `fuzziness` (ES) are declared per template. The search space references these names.
 
 ### Authoring & versioning
 
@@ -688,7 +672,7 @@ queued → running → completed
 
 ### Engine: provider-abstracted IR evaluation via `ir_measures`
 
-Workers always evaluate via `ir_measures`, never `_rank_eval`. This guarantees identical metric semantics across ES, Fusion, and Solr, and simplifies cross-engine comparisons. Reasoning:
+Workers always evaluate via `ir_measures`, never `_rank_eval`. This guarantees identical metric semantics across Elasticsearch, OpenSearch, and Apache Solr, and simplifies cross-engine comparisons. Reasoning:
 
 - `ir_measures` (from the PyTerrier team) wraps multiple IR-evaluation backends behind a typed metric-object DSL (`nDCG@10`, `AP@5`, `RR`, `P@k`, `R@k`). The provider abstraction means swapping the underlying backend is a config change rather than a rewrite — protecting against future single-maintainer abandonment risk.
 - ES `_rank_eval` and `ir_measures` don't always agree to many decimal places (different normalization conventions across engines).
@@ -735,13 +719,13 @@ Because UBI is just two indices in the cluster RelyLoop is already adapting, the
 - conversion rate (where the operator emits conversion events)
 - query-refinement rate
 
-The pluggable `SignalsConverter` then maps these features to a 0–3 rating. Initial converters: position-bias-corrected CTR threshold, dwell-time threshold, and **hybrid UBI+LLM** (UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold). Counterfactual click models (CCM, DBN) are documented as v1.5+ post-GA extensions because they need enough impressions per (query, doc) to be statistically meaningful.
+The pluggable `SignalsConverter` then maps these features to a 0–3 rating. Initial converters: position-bias-corrected CTR threshold, dwell-time threshold, and **hybrid UBI+LLM** (UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold). Counterfactual click models (CCM, DBN) are documented as post-MVP2 extensions because they need enough impressions per (query, doc) to be statistically meaningful.
 
-The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP1.5 deliverable is the `UbiReader` + `SignalsConverter` + a new `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + a new `generate_judgments_from_ubi` agent tool. See [`feat_ubi_judgments/idea.md`](../../02_product/planned_features/feat_ubi_judgments/idea.md) for the planned-feature scope.
+The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. See [`feat_ubi_judgments/idea.md`](../../02_product/planned_features/feat_ubi_judgments/idea.md) and [`infra_adapter_solr/idea.md`](../../02_product/planned_features/infra_adapter_solr/idea.md) for the planned-feature scope.
 
-Predicated on the operator having installed the OpenSearch UBI plugin and logged enough events to be statistically useful. Deployments without UBI continue to run LLM-as-judge unchanged.
+Predicated on the operator having installed the UBI plugin on their engine (OpenSearch UBI plugin, the o19s Elasticsearch UBI fork, or Solr's first-party `solr.UBIComponent`) and logged enough events to be statistically useful. Deployments without UBI continue to run LLM-as-judge unchanged.
 
-**Engine-native readers as a drop-in extension.** Operators on engines that haven't adopted UBI but have their own behavioral-data stream — Elastic Behavioral Analytics for ES clusters, the Fusion `{app}_signals` collection for Fusion clusters — get a thin engine-specific reader feeding the same `SignalsConverter` Protocol. Reader work is local to the adapter that ships it (the Fusion reader rides MVP3 alongside the Fusion adapter; the ES Behavioral Analytics reader rides v2). The converter library, the API surface, and the storage shape are unchanged across all readers.
+**Engine-native readers as a drop-in extension.** Operators on ES who haven't adopted UBI but use Elastic Behavioral Analytics (despite Elastic's 9.0 deprecation, residual deployments remain through ~2028) can be supported by a thin engine-specific reader feeding the same `SignalsConverter` Protocol. This is a backlog item, not pre-GA scope — the engine-neutral UBI path covers the vast majority of clickstream sources today.
 
 ### LLM-as-judge
 
@@ -985,7 +969,7 @@ OTLP exporter pointed at `http://signoz-otel-collector:4317`. One configuration 
 - `relyloop_openai_tokens_total{kind}`
 - `relyloop_optuna_ask_duration_seconds`
 
-W3C Trace Context (`traceparent`) is propagated through to ES / Fusion, so distributed traces span the full agent → API → engine boundary.
+W3C Trace Context (`traceparent`) is propagated through to ES / OpenSearch / Solr, so distributed traces span the full agent → API → engine boundary.
 
 ### How they fit together
 
@@ -998,7 +982,7 @@ Workers
   ├── Trial executions ──→ OTLP ──→ SigNoz
   └── Digest LLM calls ──→ Langfuse handler (also OTLP for surrounding spans)
 
-Adapters → ES / Fusion
+Adapters → ES / OpenSearch / Solr
   └── HTTP spans ──→ OTLP ──→ SigNoz (with traceparent propagated)
 ```
 
@@ -1027,12 +1011,10 @@ search-configs/
     templates/
       product_search.yaml
       product_search.yaml.params.json
-  inventory-prod-fusion/
-    pipelines/
-      product_search_pipeline.json
-      product_search_pipeline.params.json
-    profiles/
-      product_search.profile.json
+  catalog-prod-solr/
+    templates/
+      catalog_search.yaml
+      catalog_search.yaml.params.json
 ```
 
 The `*.params.json` file holds the production parameter values that the deployment pipeline injects into the template at deploy time. **The tool only edits `*.params.json`; it does not edit templates themselves.**
@@ -1045,26 +1027,11 @@ This matters because:
 
 ### Engine-specific apply path details
 
-**Elasticsearch.** The `*.params.json` file is read by the user's deployment pipeline and injected into the index template / search application configuration at deploy time. The tool does not interact with the cluster directly during apply.
+The apply path is uniform across all three supported engines — the tool edits `*.params.json`, the operator's CI does the rest. Engine-specific notes:
 
-**Lucidworks Fusion.** Fusion's pipelines are versioned objects in Fusion's own catalog, so the apply path is two-step:
+**Elasticsearch / OpenSearch.** The `*.params.json` file is read by the operator's deployment pipeline and injected into the index template / search application configuration at deploy time. The tool does not interact with the cluster directly during apply.
 
-1. Tool edits `*.params.json` and (where the change is large enough to warrant a new pipeline version) commits an updated `pipeline.json` to the same path. PR is opened.
-2. After PR merge, the user's CI runs Fusion's `objects-import` API (or `fusion-cli`) to push the updated pipeline into Fusion. The tool does **not** push to Fusion directly — same principle as the ES case, the tool stops at the PR and CI handles deployment.
-
-The conventions we recommend for the config repo when targeting Fusion:
-
-```
-search-configs/
-  products-prod-fusion/
-    pipelines/
-      product_search_pipeline.json     ← canonical pipeline definition
-      product_search_pipeline.params.json ← what the tool edits
-    profiles/
-      product_search.profile.json      ← optional: query profile binding
-```
-
-CI should verify that `pipeline.json` plus `params.json` together produce a valid Fusion pipeline before importing. A small validator script using Fusion's pipeline-validate API is recommended.
+**Apache Solr (MVP2).** The `*.params.json` file is consumed by the operator's CI which writes the updated parameters into Solr via the Request Parameters API (`POST /api/config/params`) or by editing `solrconfig.xml` `<requestHandler>` defaults and reposting. The tool does not push to Solr directly — same principle as the ES/OpenSearch case, the tool stops at the PR and CI handles deployment.
 
 ### PR creation flow
 
@@ -1194,9 +1161,9 @@ The `clusters` table holds every cluster the tool can talk to, scoped by tenant.
 |---|---|---|---|
 | acme-corp | products-prod-es | elasticsearch | prod |
 | acme-corp | products-staging-es | elasticsearch | staging |
-| acme-corp | inventory-prod-fusion | lucidworks_fusion | prod |
-| beta-co | search-prod-fusion | lucidworks_fusion | prod |
-| beta-co | search-staging-fusion | lucidworks_fusion | staging |
+| acme-corp | catalog-prod-solr | solr | prod |
+| beta-co | search-prod-opensearch | opensearch | prod |
+| beta-co | search-staging-opensearch | opensearch | staging |
 | internal-platform | docs-prod-es | elasticsearch | prod |
 
 In single-tenant deployments the `tenant` column is implicit (always `default`), and the cluster name is the unique identifier on its own.
@@ -1280,13 +1247,6 @@ The orchestrator agent in the API backend uses OpenAI function calling. Tool inv
 - `get_schema(cluster_id, target)` → `Schema`
 - `list_query_parsers(cluster_id)` → `[str]`
 
-### Fusion-specific (Fusion clusters only)
-
-- `list_pipelines(cluster_id)` → `[PipelineSummary]` — list query pipelines available in the Fusion app
-- `get_pipeline(cluster_id, pipeline_id)` → `PipelineDefinition` — full pipeline JSON with stages
-- `list_query_profiles(cluster_id)` → `[QueryProfileSummary]`
-- `pull_signals(cluster_id, since, until?, query_filter?)` → `SignalsAggregate` — *(MVP3, requires Fusion Signals enabled)* aggregate raw Fusion `{app}_signals` events into per-(query, doc) interaction features. Engine-specific reader feeding the shared `SignalsConverter` Protocol introduced at MVP1.5; see §14 "Click-derived judgments from user behavior data".
-
 ### Templates
 
 - `list_templates(engine_type?)` → `[TemplateSummary]`
@@ -1299,7 +1259,7 @@ The orchestrator agent in the API backend uses OpenAI function calling. Tool inv
 - `create_query_set(name, queries[])` → `QuerySet`
 - `import_queries_from_csv(query_set_id, csv_data)` → `int`
 - `generate_judgments_llm(query_set_id, cluster_id, target, current_template_id, rubric)` → `JudgmentList`
-- `generate_judgments_from_ubi(query_set_id, cluster_id, target, since, until?, converter, llm_fill_threshold?)` → `JudgmentList` — *(MVP1.5, requires OpenSearch UBI plugin)* read `ubi_queries` + `ubi_events`, aggregate per-(query, doc) features via `UbiReader`, run the named `SignalsConverter`, and (optionally) fill the long tail with LLM-as-judge when impression count < `llm_fill_threshold`. Emits a judgment list with mixed `source` rows (`click` + optional `llm`). See §14.
+- `generate_judgments_from_ubi(query_set_id, cluster_id, target, since, until?, converter, llm_fill_threshold?)` → `JudgmentList` — *(MVP2, requires the UBI plugin installed on the engine — OpenSearch UBI plugin, Elasticsearch o19s fork, or Solr's first-party `solr.UBIComponent`)* read `ubi_queries` + `ubi_events`, aggregate per-(query, doc) features via `UbiReader`, run the named `SignalsConverter`, and (optionally) fill the long tail with LLM-as-judge when impression count < `llm_fill_threshold`. Emits a judgment list with mixed `source` rows (`click` + optional `llm`). See §14.
 - `get_calibration(judgment_list_id)` → `CalibrationStats`
 
 ### Search space proposal
@@ -1426,7 +1386,7 @@ Three endpoints let an agent learn what the API can do without out-of-band docum
   ```json
   {
     "version": "1.0.0",
-    "engines_supported": ["elasticsearch", "lucidworks_fusion"],
+    "engines_supported": ["elasticsearch", "opensearch", "solr"],
     "clusters": [
       {"id": "...", "name": "products-prod-es", "engine_type": "elasticsearch", "environment": "prod"},
       ...
@@ -1565,7 +1525,7 @@ Agents can pass through W3C Trace Context:
 traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
 ```
 
-The API and workers honor and propagate it, so distributed traces span the agent → API → ES/Fusion boundary. `X-Request-ID` is also accepted and echoed in responses.
+The API and workers honor and propagate it, so distributed traces span the agent → API → search clusters boundary. `X-Request-ID` is also accepted and echoed in responses.
 
 Rate-limit headers are present on every response:
 
@@ -1678,7 +1638,7 @@ This is an internal tool used during business hours; targets reflect that.
   - Langfuse down → LLM calls still succeed; observability traces queue locally and replay.
   - SigNoz down → spans buffer in OTel collector; metrics best-effort.
   - GitHub API down → proposal stays in `pending`; PR worker retries with backoff.
-  - Single ES/Fusion target down → studies on that target fail; others unaffected.
+  - Single search clusters target down → studies on that target fail; others unaffected.
 
 Recovery objectives:
 
@@ -1756,7 +1716,7 @@ A four-layer test pyramid. Each layer has a distinct purpose, runtime profile, a
   - **Adapter contract tests** — every `SearchAdapter` implementation runs the same conformance suite. Lives in `tests/contracts/test_search_adapter_contract.py`, parameterized by adapter. Verifies `render`, `search_batch`, `explain`, `health_check` behavior.
   - **Tool definition contract tests** — every `@tool`-decorated function has its OpenAPI schema, OpenAI function-calling schema, and Python signature checked for mutual consistency.
   - **OpenAPI contract tests** — every endpoint listed in §20 is reachable, returns the documented schema, and accepts the documented parameters.
-  - **External provider contract tests** — a small suite that hits OpenAI's API, GitHub's API, and (via cassette refresh) Fusion's gateway to confirm our assumptions about request/response shapes still hold. Run on the nightly schedule, not per-PR.
+  - **External provider contract tests** — a small suite that hits OpenAI's API and GitHub's API to confirm our assumptions about request/response shapes still hold. Run on the nightly schedule, not per-PR. Search-engine contracts are exercised by integration tests against the Compose ES/OpenSearch/Solr stack, not by external probes.
 - **Mocking**: minimal — only mocks the layer below the contract boundary. Adapter contract tests use `pytest-recording` cassettes.
 - **Coverage gate**: structural — every adapter implementation, every `@tool`, and every endpoint must have at least one contract test. Enforced by a custom CI check.
 - **Runtime**: < 60 s in CI.
@@ -1764,7 +1724,7 @@ A four-layer test pyramid. Each layer has a distinct purpose, runtime profile, a
 #### Integration tests
 
 - **Scope**: multiple components composed together, with **only external systems mocked**. Internal services (Postgres, Redis, the agent backend, workers) run for real in CI via Docker Compose.
-- **Mocking**: external HTTP only — OpenAI calls (cassetted via `vcrpy`), Fusion query gateway (cassetted), GitHub API (cassetted), ES (real, free, runs in CI Compose).
+- **Mocking**: external HTTP only — OpenAI calls (cassetted via `vcrpy`), GitHub API (cassetted). Search engines (ES, OpenSearch, Solr) run for real in the CI Compose stack — all three are Apache 2.0 or free-Basic and run in service containers.
 - **Examples**:
   - Full Optuna loop with a real Postgres but cassetted OpenAI / search-engine calls
   - LangGraph orchestrator processing a chat message end-to-end with cassetted LLM responses
@@ -1777,13 +1737,13 @@ A four-layer test pyramid. Each layer has a distinct purpose, runtime profile, a
 
 - **Scope**: full system, **no mocking, real external services**. Run against a dedicated test environment.
 - **Live services used**:
-  - Real OpenAI API (separate budget-capped API key for E2E)
-  - The shared dev Fusion cluster (with namespaced test pipelines per CI run; see §25 *Deployment*)
-  - A live Elasticsearch instance (free, deployed alongside)
-  - A test config repo on GitHub (separate from the production config repo)
+  - Real OpenAI-compatible API endpoint (separate budget-capped key for E2E)
+  - Compose ES + OpenSearch + Solr (MVP2+) service containers
+  - A test config repo on GitHub (separate from any production config repo)
 - **Examples**:
-  - Run a 10-trial study against the staging Fusion cluster, verify metrics improve
-  - Generate judgments via real OpenAI calls for a small fixed query set
+  - Run a 10-trial study against each of the three engines, verify metrics improve
+  - Generate judgments via real LLM calls for a small fixed query set
+  - Generate UBI-derived judgments (MVP2+) against seeded `ubi_queries` / `ubi_events`
   - Create a proposal that opens a real PR in the test config repo, then auto-close it
   - Drive a complete chat conversation with the orchestrator, verify expected tool calls
 - **Mocking**: forbidden — if a test needs to mock something, it belongs in integration tests instead.
@@ -1800,7 +1760,6 @@ tests/
   integration/            # Compose-based, external HTTP cassetted
   e2e/                    # full-stack, no mocks
   fixtures/
-    fusion-cassettes/
     openai-cassettes/
     github-cassettes/
 ```
@@ -1841,7 +1800,7 @@ Five workflows in `.github/workflows/`:
    - Dependency vulnerability scan against the latest images
 
 5. **`cassette-refresh.yml`** — manual `workflow_dispatch`:
-   - Re-records cassettes for the named external service (Fusion, OpenAI, GitHub)
+   - Re-records cassettes for the named external service (OpenAI, GitHub)
    - Opens a PR with the updated cassette files
 
 Caching:
@@ -1863,7 +1822,7 @@ Branch protection rules on `main`:
 
 - **README** with a 5-minute quickstart for new engineers (clone, `docker compose up`, point at the local UI).
 - **OpenAPI spec** auto-published at `/openapi.json` and rendered by Stoplight or Redoc at `/docs`.
-- **ADRs** (Architecture Decision Records) for big choices: LangGraph, Langfuse, SigNoz, Fusion-as-primary-Solr-side-adapter, no-MCP, etc. One file per decision in `docs/09_decisions/`.
+- **ADRs** (Architecture Decision Records) for big choices: LangGraph, Langfuse, SigNoz, Solr-as-MVP2-third-engine, Fusion-explicitly-dropped, no-MCP, etc. One file per decision in `docs/09_decisions/`.
 - **Runbooks** in `docs/03_runbooks/` for: cassette refresh, eval-suite failure investigation, Langfuse storage cleanup, Postgres restore, study cancellation cleanup.
 - **Inline**: every Pydantic model has field descriptions; every public function has a docstring (enforced by `ruff D`).
 
@@ -1951,7 +1910,7 @@ Event domains and a representative subset:
 | `digest.*` | `digest.requested`, `digest.generated`, `digest.failed` |
 | `proposal.*` | `proposal.created`, `proposal.pr_open_requested`, `proposal.pr_opened`, `proposal.pr_merged`, `proposal.pr_closed`, `proposal.rejected`, `proposal.cancelled` |
 | `agent.*` | `agent.conversation_started`, `agent.message_received`, `agent.tool_called`, `agent.tool_call_failed`, `agent.interrupt_requested`, `agent.interrupt_resolved` |
-| `adapter.*` | `adapter.search_batch_started`, `adapter.search_batch_completed`, `adapter.session_renewed` (Fusion), `adapter.pipeline_drift_detected` (Fusion) |
+| `adapter.*` | `adapter.search_batch_started`, `adapter.search_batch_completed`, `adapter.auth_renewed`, `adapter.capability_probe_completed` |
 | `worker.*` | `worker.started`, `worker.job_picked`, `worker.job_completed`, `worker.job_failed`, `worker.shutdown` |
 | `git.*` | `git.clone_started`, `git.branch_created`, `git.commit_pushed`, `git.pr_created`, `git.webhook_received` |
 | `system.*` | `system.startup`, `system.shutdown`, `system.config_loaded`, `system.config_invalid`, `system.slow_operation` |
@@ -1995,7 +1954,7 @@ W3C `traceparent` propagates through every service boundary:
 | API → Redis (queue enqueue) | Custom: serialize `traceparent` into Arq job headers |
 | Redis → worker (job pickup) | Custom: deserialize `traceparent`, attach to worker span |
 | Worker → adapter HTTP | OTel httpx instrumentation injects header |
-| Adapter → ES / Fusion | Outbound `traceparent` header on every search call |
+| Adapter → ES / OpenSearch / Solr | Outbound `traceparent` header on every search call |
 | API → Git provider | OTel httpx instrumentation injects header |
 | API → OpenAI | Langfuse handler reads ambient OTel context, records as Langfuse trace metadata |
 
@@ -2197,11 +2156,9 @@ Sizing rule of thumb: one VM with 8 vCPU + 32 GB RAM handles 10 concurrent studi
 
 ### Local development environment
 
-Lucidworks Fusion has no free tier or community edition; the only supported paths are commercial licenses, evaluation licenses (30–90 days), and Fusion Cloud. To keep day-one onboarding friction low and avoid blocking on license requests, the development model **does not require a local Fusion instance**.
+All three supported engines (Elasticsearch, OpenSearch, Apache Solr) are free and open source, so the development model runs entirely on a laptop with no external dependencies, eval licenses, or vendor accounts.
 
-Three tiers of test/dev environment:
-
-**Tier 1 — Local docker-compose (no Fusion).** The default `docker-compose.yml` adds three free-and-open engine containers: Elasticsearch (free Basic license), OpenSearch (Apache 2.0), and Apache Solr. ~80% of the system — data model, agent orchestrator, Optuna loop, ir_measures, UI, proposals, PR flow, agent integration layer — can be developed and tested entirely on this stack. New engineers clone, `docker compose up`, and are productive without any Lucidworks involvement. **For the MVP / v0.1 release, ES + OpenSearch are the only engines supported**; Fusion ships in GA v1 and Solr in v2.
+**Local docker-compose.** The default `docker-compose.yml` adds three engine containers and the supporting services. New engineers clone, `make up`, and are productive against the full three-engine stack from day one. MVP1 ships with the ES + OpenSearch containers live; the Solr container activates with MVP2 alongside the `SolrAdapter`.
 
 ```yaml
 # docker-compose.yml additions for local dev
@@ -2220,54 +2177,22 @@ services:
       - DISABLE_SECURITY_PLUGIN=true       # local dev only; production requires security plugin
     ports: ["9201:9200"]                   # different host port to coexist with ES
 
-  solr:
-    image: solr:9.5
+  solr:                                    # activates at MVP2
+    image: solr:10.0
     ports: ["8983:8983"]
-    command: ["solr-precreate", "default-collection"]
+    command: ["solr-precreate", "products"]
 ```
 
-**Tier 2 — Fusion adapter unit tests with replay fixtures.** When developing the `LucidworksFusionAdapter`, use [`pytest-recording`](https://pytest-recording.readthedocs.io/) (built on `vcrpy`). Tests run once against a real Fusion to record HTTP interactions into YAML cassettes (`tests/fixtures/fusion-cassettes/`), then replay deterministically without network access. Cassettes are checked into the repo and refreshed only when the upstream Fusion API contract changes. Engineers running just unit tests never need Fusion access.
+**Tests.** Unit tests are hermetic and don't need any engine running. Integration tests against ES + OpenSearch + Solr run against the Compose containers (CI provisions service containers in GitHub Actions). E2E tests run the full Karpathy loop against the live Compose stack with a test config repo.
 
-```python
-@pytest.mark.vcr  # replays from tests/fixtures/fusion-cassettes/test_query_pipeline.yaml
-def test_fusion_query_pipeline_render(fusion_adapter, sample_template):
-    result = fusion_adapter.search_batch(target="products", queries=[...], top_k=10)
-    assert "products" in result
-```
-
-**Tier 3 — Integration tests against the shared dev Fusion cluster.** CI runs Fusion-touching integration tests against the org's existing Fusion dev environment. The integration test runner creates dedicated, namespaced pipelines (`relyloop-test-{branch}-{run_id}`) at setup and tears them down at teardown, so concurrent CI runs and engineer-driven manual tweaks never conflict. This is a hard requirement, not optional — without namespace isolation, the dev cluster's pipeline state will drift and tests will fail for unrelated reasons.
-
-**Tier 4 (optional) — Mock Fusion service for UI/demo work.** A small companion overlay file `docker-compose.dev.yml` adds a `fusion-mock` service: ~200 lines of FastAPI emulating the Fusion query gateway with canned responses. Useful for UI development, screenshots, and demos when even the shared dev cluster isn't reachable (e.g., off-network, intermittent connectivity). Not used in unit or integration tests — those use cassettes or real Fusion.
-
-```yaml
-# docker-compose.dev.yml — opt-in via `docker compose -f docker-compose.yml -f docker-compose.dev.yml up`
-services:
-  fusion-mock:
-    build: ./fusion-mock
-    ports: ["8764:8764"]
-    environment:
-      MOCK_FIXTURES_DIR: /fixtures
-    volumes: [./fusion-mock/fixtures:/fixtures]
-```
-
-### When a real local Fusion is required
-
-A handful of cases still need real Fusion locally; for these, request a 30-day Lucidworks evaluation license per engineer (renewable as needed):
-
-- Initial Fusion adapter development — recording the first round of cassettes
-- Adding new Fusion-specific search-space parameters (e.g., `stage_enabled` extensions)
-- Reproducing Fusion-specific bugs that only manifest under specific cluster state
-- Validating session-auth or JWT flows in a controlled environment
-
-In each case, the org's existing Fusion dev cluster is usually a viable substitute for an eval license, depending on access policy.
+There is no third-party vendor license, no shared dev cluster, no replay-cassette infrastructure to maintain. The forward-only documentation stance applies here too — earlier drafts of this spec included a four-tier model with Fusion eval licenses and replay cassettes; that complexity went away with the Fusion drop.
 
 ## 26. Failure modes & edge cases
 
 | Failure | Detection | Handling |
 |---|---|---|
-| ES/Fusion cluster down | Adapter `health_check()` fails or batch search returns 5xx | Trial marked failed; if 5+ consecutive trial failures, study auto-cancels |
-| Fusion session expired mid-study | 401 from Fusion gateway | Adapter re-authenticates transparently and retries the trial; counts as one ordinary retry, not a failure |
-| Fusion pipeline edited out of band during study | Same template, different upstream pipeline shape | Detected by hashing pipeline JSON at study start vs. trial time; mismatch fails the trial with `error_code = pipeline_drift` |
+| Search cluster down (ES / OpenSearch / Solr) | Adapter `health_check()` fails or batch search returns 5xx | Trial marked failed; if 5+ consecutive trial failures, study auto-cancels |
+| Auth token expired mid-study (ES API key, OpenSearch SigV4, Solr JWT) | 401 from cluster | Adapter re-authenticates transparently and retries the trial; counts as one ordinary retry, not a failure |
 | Worker crashes mid-trial | Arq job failure; Optuna ask-without-tell | Trial lost; Optuna will re-suggest similar params; idempotent |
 | Optuna RDB lock contention | Slow `study.ask()` calls | Backoff; if persistent, reduce study parallelism |
 | OpenAI API rate-limit | Tool call fails | Exponential backoff; surface to user if all retries fail |
@@ -2285,18 +2210,29 @@ In each case, the org's existing Fusion dev cluster is usually a viable substitu
 
 ## 27. Phased delivery
 
-Delivery is incremental: six releases (MVP1 → MVP1.5 → MVP2 → MVP3 → MVP4 → GA v1), each meaningful as a discrete capability bundle. Each release ships a coherent step-up in adopter value and audience reach, never a partial build. Total wall-clock estimate: **~19 weeks single-engineer**, or roughly **12–14 weeks with two engineers** working in parallel after MVP1.
+Delivery is incremental across three pre-GA releases plus a polish-and-governance GA. The 2026-05-27 reframe (see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md)) compressed the prior six-release plan: Fusion was dropped outright; Solr was promoted to MVP2 and bundled with UBI judgments; observability moved to MVP3; multi-Git, multi-tenancy, and multi-LLM moved to the backlog. The result is a tighter narrative that lands all six of RelyLoop's differentiators by MVP3 and reserves GA for polish + governance + hardening.
 
-| Release | Theme | Timeline | Audience |
+| Release | Theme | Adds | Audience |
 |---|---|---|---|
-| MVP1 / v0.1 | The Loop | 5 weeks | Technical evaluators willing to test on a laptop |
-| MVP1.5 / v0.1.5 | Real Signals | +2 weeks | Operators running OpenSearch UBI; teams that want trust anchored in real user behavior, not LLM ratings |
-| MVP2 / v0.2 | Observable | +3 weeks | Platform teams considering serious evaluation |
-| MVP3 / v0.3 | Production Stacks | +3 weeks | Lucidworks shops, GitLab/Bitbucket enterprises |
-| MVP4 / v0.4 | Multi-tenant, Multi-LLM | +3 weeks | Platform teams operating for many customers |
-| GA v1 / v1.0 | Production-ready | +3 weeks | Production deployments, contributors, the community |
+| MVP1 / v0.1 (shipped) | The Loop | ES + OpenSearch + LLM-as-judge + Optuna/TPE + Git PR + conversational agent | Technical evaluators willing to test on a laptop |
+| MVP2 / v0.2 | Three-Engine + Real Signals | Apache Solr adapter + UBI judgments + hybrid UBI+LLM converter (bundled) | Operators on any of the three OSS engines who want the engine-neutral claim verifiable + trust anchored in real user behavior |
+| MVP3 / v0.3 | Observable | Langfuse + SigNoz + audit-log immutability + lineage columns + PII redaction + trace propagation | Platform teams considering unattended overnight runs in earnest |
+| GA v1 / v1.0 | Production-ready | LangGraph orchestrator + 90% coverage + full CI/CD with security gates + docs + design-partner references + signed container images + complete OSS governance | Production adopters, contributors, the broader community |
 
-### MVP1 / v0.1 — "The Loop" (target: 5 weeks, 1 engineer — or ~3 weeks with two)
+**All six differentiators are GA by MVP3.** GA v1 adds no new product surface — the lift is from "working" to "production-ready, contributor-ready, fully governed."
+
+| Differentiator | Lands in |
+|---|---|
+| Bayesian/TPE optimization over the full query-time search space | MVP1 (shipped) |
+| Git-PR apply path with named-approver merge gate | MVP1 (shipped) |
+| Conversational agent that runs the loop (not just suggests DSL edits) | MVP1 (shipped) |
+| All three OSS engines (ES + OpenSearch + Apache Solr) | MVP2 |
+| Hybrid UBI+LLM judgments + position-bias correction | MVP2 |
+| Local-first LLM observability (self-hosted Langfuse + SigNoz) | MVP3 |
+
+**Backlog** (captured but not in flight): multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction; Path B (production-quality monitoring, bandit-style online learning, shadow validation, manual one-click rollback); LTR training; Lucidworks Fusion adapter (explicitly dropped, would require a community contribution to revive).
+
+### MVP1 / v0.1 — "The Loop" (shipped)
 
 **Headline: The Karpathy loop, working.**
 
@@ -2336,115 +2272,82 @@ What MVP1 delivers: a relevance engineer can `docker compose up`, point at a loc
 
 ---
 
-### MVP1.5 / v0.1.5 — "Real Signals" (target: +2 weeks)
+### MVP2 / v0.2 — "Three-Engine + Real Signals" (target: ~4–5 engineer-weeks combined, ~3–4 with two engineers)
 
-**Headline: The loop, grounded in what users actually do.**
+**Headline: Engine-neutral becomes verifiable, and judgments come from real users.**
 
-MVP1 ships with LLM-as-judge as the only authoritative judgment source. That's enough to demonstrate the optimization loop, but for operators with production traffic it's a weaker trust anchor than real user behavior. MVP1.5 closes that gap by making **OpenSearch UBI** (User Behavior Insights — a standardized, engine-neutral event-capture schema championed by Eric Pugh / OpenSource Connections, shipped as the OpenSearch UBI plugin in 2024) a first-class judgment source alongside LLM-as-judge.
-
-**MVP1.5 adds on top of MVP1:**
-
-- **`UbiReader`** (engine-agnostic) reads the standardized `ubi_queries` + `ubi_events` indices via any `SearchAdapter`'s `search_batch` — no engine-specific code, no new Compose service. Aggregates raw events over an operator-specified window into per-(query, doc) interaction features: click count, impression count, position-bias-corrected CTR, post-click dwell-time mean, conversion rate (where conversions are emitted), refinement rate.
-- **Pluggable `SignalsConverter` Protocol** mapping features → 0–3 ratings. Initial implementations:
-  - **Position-bias-corrected CTR threshold** (default, conservative)
-  - **Dwell-time threshold** (good for content discovery / long-read use cases)
-  - **Hybrid UBI+LLM** — UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold. The mixed-`source` judgment list is the operating mode most adopters will ship to production.
-- **No schema migration.** The `judgments.source` CHECK constraint accepts `click` today; a single judgment list can mix `llm` + `human` + `click` rows. The MVP1 schema was designed for this.
-- **`POST /api/v1/judgment-lists/generate-from-ubi`** endpoint + **`generate_judgments_from_ubi`** agent tool. Same code path on both surfaces (agent-first symmetry per §21).
-- **Calibration spot-check workflow** — same Cohen's kappa / agreement-stat surface as MVP1's LLM calibration, run between UBI-derived ratings and a 30–50 row hand-labeled sample. Catches mis-tuned converters (e.g., dwell-time threshold set too low for the traffic shape).
-- **Operator docs** — runbook for installing the OpenSearch UBI plugin, configuring event capture in the application, choosing the right converter for the use case, and a tutorial extension to the MVP1 tutorial that swaps the LLM judgment list for a UBI-derived one once enough events have been captured.
-- **Documented Phase 2 extensions** (NOT shipped at MVP1.5): counterfactual click models (CCM, DBN); engine-native behavioral-data readers for clusters that haven't adopted UBI — Elastic Behavioral Analytics and others — all feeding the same `SignalsConverter` Protocol unchanged.
-
-**MVP1.5 does NOT include:**
-
-- A second Compose service. `UbiReader` runs inside the existing API + worker containers.
-- Real-time signal streaming. UBI ratings are computed batch-wise at judgment-list creation time, not on the live serving path — this is still strictly offline Path A (per §27 "Why the deferral is right today").
-- Production quality monitoring or alerting (Path B, v2).
-- A schema migration. UBI rides the existing `judgments` table.
-
-**Audience expansion:** Operators with production search traffic and OpenSearch UBI logging enabled. These adopters disproportionately distrust LLM-as-judge ratings as a primary trust anchor; MVP1.5 is the release that earns their evaluation. Also: open-source signals that UBI is a first-class direction for RelyLoop, not deferred to a post-GA milestone — relevant for the OSC community where UBI was incubated.
-
-**Strategic rationale:** The optimization loop's quality is bounded by the quality of the judgments it scores against. LLM-as-judge unblocks the MVP1 demonstration, but it caps the believability of every winning trial behind "did the LLM actually get the relevance call right?" UBI removes that ceiling for operators with real traffic. Shipping it as the very next release (rather than waiting for MVP2's observability layer or MVP3's Fusion work) keeps the focus on the core value proposition: trustworthy automated relevance tuning.
-
----
-
-### MVP2 / v0.2 — "Observable" (target: +3 weeks)
-
-**Headline: The loop you can audit.**
-
-Without trustworthy observability, no platform team will run RelyLoop unattended overnight. v0.2 adds the full observability layer so adopters can see what the tool is doing, why, and what it produced — and have an immutable audit trail for governance.
+MVP2 bundles two capabilities into one release: the Apache Solr adapter and UBI-derived judgments with a hybrid UBI+LLM converter. They ship together because they tell one coherent story — RelyLoop runs on all three OSS engines (Elasticsearch, OpenSearch, Apache Solr) with UBI on every one of them — and because Solr's `solr.UBIComponent` writes the same standardized UBI schema as the OpenSearch UBI plugin, so the UBI reader works on Solr unchanged the moment the adapter lands.
 
 **MVP2 adds on top of MVP1:**
 
-- **Langfuse self-hosted** — every LLM call captured: prompts, responses, costs, token counts, latency. LangChain callback handler integrated. Eval datasets seeded for `propose_search_space`, `generate_judgments_llm`, `digest_narrative`.
-- **SigNoz self-hosted** — distributed traces, metrics, logs via OpenTelemetry. Auto-instrumentation for FastAPI, Postgres, Redis, OpenAI client.
+*Apache Solr adapter* (see [`infra_adapter_solr/idea.md`](../../02_product/planned_features/infra_adapter_solr/idea.md)):
+
+- Full `SearchAdapter` Protocol implementation: `search_batch` via parallel `/select`; `render` for `edismax` (primary), `dismax`, `lucene`; `get_schema` via Solr Schema API; `list_targets` via CoresAdmin (standalone) / CollectionsAdmin (SolrCloud); `explain` via `debugQuery=true`.
+- Engine support: Solr 9.x + Solr 10.x; SolrCloud + standalone.
+- Authentication: `solr_basic` (HTTP Basic) and `solr_apikey` (Solr 9+ JWT via `JWTAuthPlugin`).
+- LTR rescoring: applies pre-existing `MultipleAdditiveTreesModel` (XGBoost-compatible) via Solr's `/schema/model-store` as a rescore stage in a trial. Training is out of scope.
+- Compose service `solr` (Apache 2.0 image, `solr:10`) bound to `127.0.0.1:8983`, mirroring the existing `elasticsearch` and `opensearch` service shape.
+- Sample collection `products` seeded from the same `samples/products.json` MVP1 uses for ES.
+- Capability probe at adapter construction: detects Solr version, SolrCloud-vs-standalone, presence of `solr.UBIComponent`, presence of `ltr` module — written to `clusters.engine_config` JSONB.
+- One migration extending `clusters.auth_kind` and `engine_type` CHECK constraints to accept the Solr values. No new tables.
+
+*UBI judgments* (see [`feat_ubi_judgments/idea.md`](../../02_product/planned_features/feat_ubi_judgments/idea.md)):
+
+- **`UbiReader`** (engine-agnostic) reads the standardized `ubi_queries` + `ubi_events` indices via any `SearchAdapter`'s `search_batch`. Works on Elasticsearch, OpenSearch (via the OpenSearch UBI plugin), and Solr (via `solr.UBIComponent`) without engine-specific code.
+- Aggregates raw events over an operator-specified window into per-(query, doc) interaction features: click count, impression count, position-bias-corrected CTR (Wang-Bendersky correction), post-click dwell-time mean, conversion rate (where conversions are emitted), refinement rate.
+- **Pluggable `SignalsConverter` Protocol** mapping features → 0–3 ratings. Initial implementations:
+  - **Position-bias-corrected CTR threshold** (default, conservative)
+  - **Dwell-time threshold** (good for content discovery / long-read use cases)
+  - **Hybrid UBI+LLM** — UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold. The mixed-`source` judgment list is the operating mode most adopters will ship to production. This is the differentiated converter (SRW's UBI path uses COEC alone; no hybrid).
+- **No schema migration for UBI.** The `judgments.source` CHECK constraint accepts `click` today; a single judgment list can mix `llm` + `human` + `click` rows. The MVP1 schema was designed for this.
+- **`POST /api/v1/judgment-lists/generate-from-ubi`** endpoint + **`generate_judgments_from_ubi`** agent tool. Same code path on both surfaces (agent-first symmetry per §21).
+- **Calibration spot-check workflow** — same Cohen's kappa / agreement-stat surface as MVP1's LLM calibration, run between UBI-derived ratings and a 30–50 row hand-labeled sample.
+- **Documented post-MVP2 extensions** (not shipped here): counterfactual click models (CCM, DBN) as additional `SignalsConverter` implementations once operators accumulate enough impressions per (query, doc) to make them statistically valid; engine-native behavioral-data readers for clusters that haven't adopted UBI (e.g., Elastic Behavioral Analytics) — all feeding the same `SignalsConverter` Protocol unchanged.
+
+*Documentation*:
+
+- **New runbook:** `docs/03_runbooks/solr-cluster-registration.md` — register a Solr cluster, configure `edismax`, enable `solr.UBIComponent`, upload an LTR model.
+- **New runbook:** `docs/03_runbooks/ubi-judgment-generation.md` — install OpenSearch UBI plugin, configure event capture, choose the right converter, calibrate thresholds.
+- **Tutorial extensions:** `docs/08_guides/tutorial-first-study.md` gains a Step 0 Path C ("Run the tutorial against Solr instead of ES") and a Step 7 ("Swap the LLM judgment list for a UBI-derived one").
+
+**MVP2 does NOT include:**
+
+- A second observability stack. Langfuse + SigNoz land at MVP3.
+- Multi-Git provider abstraction (GitLab, Bitbucket) — in the backlog.
+- Multi-tenancy primitives — in the backlog.
+- Multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, etc.) — in the backlog. OpenAI-compatible endpoints (Ollama, vLLM, LM Studio, TGI) continue to work via `OPENAI_BASE_URL` redirection, exactly as in MVP1.
+- LTR training (cross-engine model training is a v2 candidate; MVP2's Solr LTR support is consume-only).
+- Real-time signal streaming. UBI ratings are computed batch-wise at judgment-list creation time, not on the live serving path — strictly offline Path A.
+- Fusion. Explicitly dropped; see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md).
+
+**Audience expansion:** Apache Solr operators (the OSC + Sease + Querqy + Quepid/Chorus community, predominantly Solr-native); operators with production search traffic and UBI logging enabled on any of the three engines; operators who distrust LLM-as-judge as the only trust anchor.
+
+**Strategic rationale:** MVP2 is the release that makes the engine-neutral claim verifiable rather than rhetorical, and the trust-anchor problem (LLM-as-judge alone is bounded by "did the LLM get the relevance call right?") solved for operators with traffic. Bundling Solr + UBI is cheaper than splitting them across two releases because UBI on Solr is free once the adapter ships, and the combined narrative is sharper than either capability alone.
+
+---
+
+### MVP3 / v0.3 — "Observable" (target: +3 weeks)
+
+**Headline: The loop you can audit.**
+
+Without trustworthy observability, no platform team will run RelyLoop unattended overnight. MVP3 adds the full observability layer so adopters can see what the tool is doing, why, and what it produced — and have an immutable audit trail for governance. Because all three engines and both judgment sources are in place by the start of MVP3, this work instruments the full system in one pass rather than retrofitting per engine.
+
+**MVP3 adds on top of MVP2:**
+
+- **Langfuse self-hosted** — every LLM call captured: prompts, responses, costs, token counts, latency. LangChain callback handler integrated. Eval datasets seeded for `propose_search_space`, `generate_judgments_llm`, `generate_judgments_from_ubi`, `digest_narrative`.
+- **SigNoz self-hosted** — distributed traces, metrics, logs via OpenTelemetry. Auto-instrumentation for FastAPI, Postgres, Redis, the OpenAI-compatible client, and all three engine adapters.
 - **Structured event catalog** — `src/events.py` with ~50 named events across 13 domains (auth, study, proposal, agent, etc.), backed by Pydantic schemas. CI gate rejects unregistered event names.
-- **Audit log immutability** — Postgres trigger blocking UPDATE/DELETE on `audit_log`. INSERT-only role for the API.
-- **Lineage columns** — `langfuse_trace_id`, `prompt_version`, `input_hash` on judgments, digests, proposals. Full provenance for every LLM-produced artifact.
+- **Audit log immutability** — `audit_log` table + Postgres trigger blocking UPDATE/DELETE. INSERT-only role for the API. Every state-mutating endpoint or service function calls `create_audit_event()` in the same transaction as the primary mutation.
+- **Lineage columns** — `langfuse_trace_id`, `prompt_version`, `input_hash` on judgments (`source='llm'` rows; `source='click'` rows leave it NULL), digests, proposals. Full provenance for every LLM-produced artifact.
 - **Trace context propagation** — W3C `traceparent` flows through API → Redis → worker → adapter → engine, including the Arq enqueue→pickup boundary that needs custom serialization.
-- **Cross-system correlation** — Langfuse traces annotated with SigNoz span IDs and vice versa. Two-clicks navigation between the two observability stacks.
+- **Cross-system correlation** — Langfuse traces annotated with SigNoz span IDs and vice versa. Two-click navigation between the two observability stacks.
 - **PII redaction processor** — centralized `structlog` processor scrubbing tokens, keys, credentials; configurable email and query-text redaction. CI runs a regex sweep of test logs to flag accidental leakage.
 - **Slow-operation flagging** — spans exceeding 5× their p99 SLO emit `system.slow_operation` regardless of trace sampling rate.
 - **Unified retention policy** — documented across audit log, application logs, traces, LLM traces, eval results, backups.
 
-**Audience expansion:** Platform teams considering serious evaluation. Without observability, the tool is a curiosity; with it, the tool can be assessed for production-style operation.
+**Audience expansion:** Platform teams considering serious evaluation of unattended overnight runs. Without observability, the tool is a curiosity; with it, the tool can be assessed for production-style operation.
 
-**Strategic rationale:** Observability is a foundational reliability layer that benefits every adopter regardless of engine, LLM provider, or scale. Adding it before broadening engine support means all subsequent MVPs ship with full traceability from day one — no retrofit needed.
-
----
-
-### MVP3 / v0.3 — "Production Stacks" (target: +3 weeks)
-
-**Headline: Works against your real production stack — Fusion, GitLab, Bitbucket.**
-
-v0.3 broadens the supported production stack by adding the Lucidworks Fusion adapter and the multi-Git-provider abstraction. After v0.3, RelyLoop can be evaluated against the search engine and Git provider you already run, not just ES + GitHub.
-
-**MVP3 adds on top of MVP2:**
-
-- **Lucidworks Fusion adapter** — full implementation:
-  - `search_batch` via Fusion's gateway query API (`POST /api/apps/{app}/query/{collection}`)
-  - `render` produces Fusion request bodies with parameter overrides; pipeline JSON is the canonical Git artifact
-  - Auth via session cookies or JWT
-  - Fusion-specific tools: `list_pipelines`, `get_pipeline`, `list_query_profiles`
-  - Two-step apply path (PR edits pipeline params; CI runs `objects-import` to deploy)
-  - `auth_kind = "fusion_session"` and `"fusion_jwt"` paths
-- **Engine-native signals reader for Fusion** — aggregates events from the `{app}_signals` collection into the same per-(query, doc) feature shape MVP1.5's `UbiReader` produces. Reuses the MVP1.5 `SignalsConverter` Protocol unchanged; only the read path is Fusion-specific. Relevant for Fusion deployments that haven't adopted UBI.
-- **Multi-Git-provider abstraction** — `GitProvider` Protocol with three implementations:
-  - GitHub (already present from MVP1)
-  - GitLab — token or app auth, project-level webhooks, MR + approval rules
-  - Bitbucket — workspace tokens, webhook UUID, default reviewers + branch restrictions
-  - Per-provider webhook endpoints (`/webhooks/github`, `/webhooks/gitlab`, `/webhooks/bitbucket`)
-- **Adapter contract tests** — every `SearchAdapter` and `GitProvider` implementation runs the same conformance suite. Future community-contributed adapters pass the same suite to be merged.
-- **Cassette-based testing infrastructure** — `pytest-recording` for Fusion adapter unit tests; deterministic replay without requiring a live Fusion instance.
-- **Fusion-specific docs** — config-repo conventions for Fusion (pipelines + params + profiles directory layout), pipeline-validate CI integration, two-step apply path runbook.
-
-**Audience expansion:** Lucidworks shops (a substantial enterprise-search audience), GitLab-using enterprises, Bitbucket-using enterprises. Roughly doubles the addressable adopter pool.
-
-**Strategic rationale:** Engine and Git providers are the two interfaces that gate enterprise adoption. v0.3 removes both as blockers for the most common production deployments — and the adapter contract tests it introduces become the foundation for community-contributed adapters going forward.
-
----
-
-### MVP4 / v0.4 — "Multi-tenant, Multi-LLM" (target: +3 weeks)
-
-**Headline: Run RelyLoop for many customers, with the LLM provider you need.**
-
-v0.4 enables platform-team-scale adoption: a single deployment serving many downstream customers in isolation, optionally with different LLM provider choices per tenant.
-
-**MVP4 adds on top of MVP3:**
-
-- **Multi-tenancy primitives** — `tenants` table, `tenant_id` columns across all user-facing tables (clusters, query_sets, judgment_lists, query_templates, studies, proposals, conversations, audit_log, config_repos), `tenant_memberships` junction table with per-tenant roles (`viewer`, `runner`, `tenant_admin`), `platform_admin` super-role for cross-tenant operations.
-- **Tenant scoping on all operations** — list endpoints filter by tenant, write endpoints enforce tenant context, audit log rolls up per tenant.
-- **Per-tenant configuration overrides** — `tenants.settings` JSONB allows different LLM providers, cost caps, default samplers per tenant.
-- **Bearer-token API keys** — `api_keys` table with Argon2id-hashed keys, role + scopes (e.g., `studies:write`, `proposals:write`), expiration, revocation. Tenant-scoped by default. Service accounts get long-lived keys; admins issue and rotate.
-- **Multi-LLM provider abstraction** — pluggable `ChatModel` adapter with implementations for OpenAI (already from MVP1), Anthropic, AWS Bedrock, Azure OpenAI, Google Vertex AI, and self-hosted (Ollama, vLLM). Provider selection per-tenant via config; capability validation at startup (refuses to start if the chosen provider lacks structured-output support).
-- **Cost tracking** — Langfuse-derived per-tenant LLM cost rollups exposed in the UI.
-- **Tenant switcher in UI** — for users who belong to multiple tenants.
-
-**Migration:** Single-tenant MVP1-MVP3 deployments are migrated into the new schema with an auto-created `default` tenant and all existing rows backfilled with that tenant_id. The migration is documented and CI-tested.
-
-**Audience expansion:** Platform teams running search for many internal/external customers (the target audience that motivated the project from the start); orgs with strict LLM provider policies (Bedrock-only AWS shops, Vertex-only GCP shops, air-gapped deployments on Ollama/vLLM).
-
-**Strategic rationale:** Multi-tenancy is the boundary between "internal team tool" and "platform-team product." Multi-LLM is the boundary between "OpenAI-only" and "fits any enterprise's LLM strategy." Both are needed for the platform-team use case that motivated the project from the start.
+**Strategic rationale:** Observability is a foundational reliability layer. Landing it after the engine sweep (MVP2) means three engines × two judgment sources are instrumented in one release of work, rather than per-engine retrofit. After MVP3, every product capability is in place; GA v1 is pure polish and governance.
 
 ---
 
@@ -2452,17 +2355,17 @@ v0.4 enables platform-team-scale adoption: a single deployment serving many down
 
 **Headline: The 1.0 release — production-ready, contributor-ready, fully governed.**
 
-GA v1 layers in the polish that elevates RelyLoop from a working tool to a proper open-source product: orchestrator architecture migration to LangGraph, the full agent-first API surface, the four-layer test pyramid, complete CI/CD with security gates, and the OSS launch infrastructure (governance, docs, ADRs, distribution).
+GA v1 layers in the polish that elevates RelyLoop from a working tool to a proper open-source product: orchestrator architecture migration to LangGraph, the full agent-first API surface, the four-layer test pyramid at 90% coverage, complete CI/CD with security gates, and the OSS launch infrastructure (governance, docs, ADRs, distribution). **No new product surface beyond MVP3** — all six differentiators are already live.
 
-**GA v1 adds on top of MVP4:**
+**GA v1 adds on top of MVP3:**
 
 - **LangGraph orchestrator** — replaces MVP1's plain OpenAI function calling with a state graph (orchestrator + hypothesis-gen subagent + evaluation subagent). Postgres-backed state persistence via `PostgresSaver`; resumable conversations; human-in-the-loop interrupts at three points (PR open, prod-cluster studies, judgment regeneration).
 - **Full agent-first API surface** — `/openapi.json`, `/capabilities`, `/tools.json`, idempotency keys with conflict semantics, RFC 7807 error format with `error_code` + `retryable` extensions, cursor pagination, rate-limit headers, outgoing webhook subscriptions with HMAC signing, SSE streams on `/studies/{id}/events` and `/proposals/{id}/events`.
 - **Full four-layer test pyramid:**
-  - Unit tests: **90% line coverage** (up from 80% in MVP1-4), 85% branch coverage
-  - Contract tests: every adapter, every `@tool`, every endpoint covered (extends the contract-test foundation laid in MVP3)
+  - Unit tests: **90% line coverage** (up from 80% in MVP1–3), 85% branch coverage
+  - Contract tests: every adapter (ES/OpenSearch + Solr), every `@tool`, every endpoint covered
   - Integration tests: Compose-based with cassetted external HTTP, < 5 min runtime
-  - E2E tests: live OpenAI + shared Fusion dev cluster + test config repo, < 20 min runtime, $5/run budget cap
+  - E2E tests: live OpenAI-compatible endpoint + Compose ES/OpenSearch/Solr stack + test config repo, < 20 min runtime, $5/run budget cap
 - **Full GitHub Actions CI/CD** — five workflows (`pr.yml`, `main.yml`, `release.yml`, `nightly.yml`, `cassette-refresh.yml`) with security scans (Trivy, bandit, pip-audit, npm audit), branch protection on `main`, auto-deploy to staging on merge, manual gate to prod on tag.
 - **Complete code quality gates** — ruff, mypy strict, eslint, prettier, tsc strict, pre-commit hooks, secret-leak detection.
 - **Backup & DR baseline** — daily Postgres dumps with 30-day retention, runbook for restore, quarterly DR exercise.
@@ -2475,69 +2378,53 @@ GA v1 layers in the polish that elevates RelyLoop from a working tool to a prope
   - API reference auto-generated from OpenAPI and rendered with Stoplight or Redoc
 - **ZDR (Zero Data Retention) enforcement** — deployment refuses to start if ZDR is required by config but the LLM key isn't enrolled.
 - **Telemetry stance** — explicit zero-telemetry commitment with CI grep gate against telemetry-pattern strings.
-- **Public-launch readiness** — design partners onboarded and live, brand naming and trademark verifications complete (see §28 and §29 #23), at least one public reference customer with permission.
+- **Public-launch readiness** — design partners onboarded and live (target: one each on ES, OpenSearch, Solr), brand naming and trademark verifications complete (see §28 and §29), at least one public reference customer with permission.
+- **Public benchmark** — head-to-head comparison of RelyLoop's Optuna/TPE loop vs OpenSearch SRW's 66-cell grid search on the same hybrid-weight problem, run on the same OpenSearch cluster, published with code and reproduction steps. The single most credible proof artifact for the Bayesian-optimization differentiator.
 
 **Audience expansion:** Production deployment by enterprise platform teams; foundation for community contributors; long-term sustainability of the project.
 
-**Strategic rationale:** GA v1 is the moment RelyLoop becomes a real open-source product, not just a working tool. It's contributor-ready (governance), production-ready (testing, security, observability already in place since MVP2), and adoption-ready (docs, distribution, design partners).
+**Strategic rationale:** GA v1 is the moment RelyLoop becomes a real open-source product, not just a working tool. It's contributor-ready (governance), production-ready (testing, security, observability all in place since MVP3), and adoption-ready (docs, distribution, design partners, public benchmark).
 
-### v1.5+ (post-GA, target: +4 weeks)
+---
 
-Post-GA polish items. UBI (MVP1.5) and engine-native behavioral-data readers (MVP3 / v2) used to live here; they were promoted to the release timeline when MVP1.5 was introduced as a formal tier.
+### Backlog (captured, not in flight)
 
-- Multiple config repos
-- Outgoing webhooks for resource lifecycle events (study, digest, proposal, PR state) — replaces polling for both internal and external agents
-- SSE streams on `/studies/{id}/events` and `/proposals/{id}/events`
-- Prod-validation flow (run winning config read-only against the prod cluster before opening the staging PR)
-- Calibration UI for judgment lists
-- Audit log UI
-- Performance hardening (worker pool tuning, RDB indexes)
-- Cost dashboard and per-user OpenAI quotas
-- W3C Trace Context (`traceparent`) propagation through to ES/Fusion
-- Counterfactual click models (CCM, DBN) as additional `SignalsConverter` implementations on top of the MVP1.5 Protocol — relevant once enough impressions per (query, doc) have accumulated to make them statistically valid
+Items previously in the release timeline that the 2026-05-27 reframe moved out of the pre-GA path. Captured here so they're not lost; promoted to a release if and when a design-partner conversation or a specific adopter request makes them load-bearing.
 
-### v2 (TBD)
+**Multi-Git provider abstraction.** `GitProvider` Protocol with GitLab + Bitbucket implementations alongside the existing GitHub provider. Was bundled with the dropped MVP3 Fusion work in the prior plan. Promoted out when an adopter on a non-GitHub provider commits to evaluating. Until then, all adopters use GitHub (which the global enterprise-search community overwhelmingly does).
 
-#### Path A continuations — refinements to the experimentation-and-change-management tool
+**Multi-tenancy primitives.** `tenants` + `tenant_memberships` + `users` + `api_keys` tables, `tenant_id` columns across all user-facing tables, per-tenant configuration overrides, tenant switcher UI. Was MVP4 in the prior plan. The platform-team-running-search-for-many-customers use case is real but underserved by the pre-GA path — single-tenant + SSO via reverse proxy is sufficient through GA v1. Promoted out when a multi-customer platform team commits to evaluating.
+
+**Multi-LLM provider abstraction.** Native (non-OpenAI-compatible) provider SDKs for Anthropic, AWS Bedrock, Azure OpenAI, Google Vertex AI. OpenAI-compatible endpoints (Ollama, vLLM, LM Studio, TGI) work today via `OPENAI_BASE_URL` redirection — covering the air-gapped + local-LLM use cases without provider-specific code. Was MVP4 in the prior plan. Promoted out when an adopter with strict Bedrock-only or Vertex-only policy commits to evaluating.
+
+**LTR training.** Cross-engine model training (XGBoost rerankers for ES + OpenSearch via the LTR plugin / native LTR; same XGBoost path for Solr via `MultipleAdditiveTreesModel`). MVP2's Solr LTR support is consume-only. Promoted to release status when adopter feedback prioritizes it over Path B.
+
+**Lucidworks Fusion adapter.** Dropped outright; see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md). The `SearchAdapter` Protocol shape means a community-contributed Fusion adapter remains possible, but the project does not own that direction.
+
+**Path B — Search Quality Platform expansion.** A coherent v2 direction is to expand from "experimentation and change management" into "experimentation and change management *plus* real-time production observability and online learning." This shifts the tool from Quepid-territory toward commercial-platform-territory (Coveo, Algolia, Bloomreach). Captured as a backlog/v2 set rather than a GA path because it requires stream-processing infrastructure (Kafka or Redis Streams + ClickHouse rolling-window aggregation) and changes the audience (Path A serves search engineers; Path B also serves search ops / SREs).
+
+Path B candidates, ordered by likely priority:
+
+- **Production quality monitoring.** Stream signals into rolling-window quality metrics — CTR, dwell time, refinement rate, zero-result rate, position-1 abandonment. Alert when metrics degrade beyond thresholds. Optionally trigger an LLM agent investigation that pulls recent failing queries and surfaces hypotheses. Most universally valuable Path B capability; turns the tool into a daily-driver for search platform teams, not just a tuning workbench.
+- **Bandit-style online learning.** Multi-armed bandits (Thompson sampling, contextual bandits via Vowpal Wabbit or similar) routing live production traffic across promising candidate configs and progressively shifting toward winners. The offline Karpathy-loop studies feed the bandit candidates; the bandit produces real-time learning. Two viable architectural shapes:
+  - **External coordinator.** The tool maintains the bandit state and exposes a `/api/v1/bandit/select?cluster=X` endpoint the search service calls per query to choose which config to serve. Adds latency to the hot path; clean integration boundary.
+  - **In-engine.** The bandit logic lives in the search engine itself (a Solr request handler driven by a config the tool publishes). No hot-path latency; harder to debug. Likely community-contributed per engine.
+- **Shadow validation pre-deploy.** When a PR is merged but before CI promotes it to live serving, run the new config against a sampled live-query stream (read-only, results discarded) for 30–60 minutes, compare metrics against the current production config, and either auto-approve the deploy or flag for human review.
+- **Manual one-click rollback.** Surfaced from the production monitoring UI when metrics degrade. Opens a revert PR against the config repo, triggering the same review-and-deploy path. Auto-rollback explicitly rejected (see §4 Non-goals).
+
+**Path A continuations (post-GA polish).**
 
 - Conditional parameters in search space
 - Multi-objective optimization (nDCG vs latency Pareto)
-- Pure-Solr adapter (when needed by a non-Fusion deployment)
-- Elastic Behavioral Analytics integration (real click data → judgments) for ES clusters
-- LTR plugin support (train + deploy XGBoost rerankers); Fusion ML reranker training integration
+- Counterfactual click models (CCM, DBN) as additional `SignalsConverter` implementations — relevant once enough impressions per (query, doc) have accumulated to make them statistically valid
+- Elastic Behavioral Analytics-derived judgments for ES clusters that haven't adopted UBI (despite Elastic's BA deprecation in 9.0, residual deployments remain through ~2028)
 - Vespa adapter
 - Cross-cluster fan-out studies
-
-#### Path B — Search Quality Platform expansion
-
-A coherent v2 direction is to expand from "experimentation and change management" into "experimentation and change management *plus* real-time production observability and online learning." This shifts the tool from Quepid-territory toward commercial-platform-territory (Coveo, Algolia, Bloomreach). It's deliberately deferred from v1 because:
-
-- v1 is already substantial scope; piling Path B on top jeopardizes shipping
-- Path A is independently valuable; Path B builds on Path A but isn't a prerequisite for it
-- Path B requires stream-processing infrastructure (Kafka or Redis Streams + ClickHouse rolling-window aggregation), which is a meaningful architectural addition
-- Path B changes the audience — Path A serves search engineers; Path B also serves search ops / SREs. Different mental model in the UI.
-
-**Path B candidates, ordered by likely priority:**
-
-- **Production quality monitoring.** Stream signals (Fusion `*_signals` collection or ES Behavioral Analytics) into rolling-window quality metrics — CTR, dwell time, refinement rate, zero-result rate, position-1 abandonment. Alert when metrics degrade beyond thresholds. Optionally trigger an LLM agent investigation that pulls recent failing queries and surfaces hypotheses. Most universally valuable Path B capability; turns the tool into a daily-driver for search platform teams, not just a tuning workbench.
-- **Bandit-style online learning.** Multi-armed bandits (Thompson sampling, contextual bandits via Vowpal Wabbit or similar) routing live production traffic across promising candidate configs and progressively shifting toward winners. The offline Karpathy-loop studies feed the bandit candidates; the bandit produces real-time learning. This is the most ambitious Path B addition because it requires the tool to participate in (or coordinate with) the production search-serving path, not just sit alongside it. Architecturally, two viable shapes:
-  - **External coordinator.** The tool maintains the bandit state and exposes a `/api/v1/bandit/select?cluster=X` endpoint the search service calls per query to choose which config to serve. Adds latency to the hot path; clean integration boundary.
-  - **In-engine.** The bandit logic lives in the search engine itself (a Solr request handler or a Fusion stage), driven by a config the tool publishes. No hot-path latency; harder to debug.
-  - The decision affects v2 scoping significantly. External-coordinator is the more natural OSS extension; in-engine implementations would likely be community-contributed adapters per engine.
-- **Shadow validation pre-deploy.** When a PR is merged but before CI promotes it to live serving, run the new config against a sampled live-query stream (read-only, results discarded) for 30–60 minutes, compare metrics against the current production config, and either auto-approve the deploy or flag for human review. Stronger confidence than offline judgment-list eval, lower risk than direct deploy. Builds on production monitoring infra.
-- **Fusion Experiments integration.** Online A/B testing of winning configs against current production via Fusion's native experiments feature; results flow back to the tool's experiment table.
-- **Manual one-click rollback.** Surfaced from the production monitoring UI when metrics degrade. Opens a revert PR against the config repo, triggering the same review-and-deploy path. Auto-rollback explicitly rejected (see §4 Non-goals).
-
-#### Why the deferral is right today
-
-The honest reasoning, in case the priority changes later:
-
-1. Shipping Path A as a focused, high-quality OSS release is more valuable than shipping a partial Path B that doesn't fully cover either side.
-2. Path A has demonstrable value standalone — Quepid users get a meaningful upgrade, search platform teams get measurable relevance improvements, and the experimentation-and-change-management problem is real and underserved on its own.
-3. Path B is a different *kind* of problem. It pulls in stream processing, real-time alerting, on-call operational thinking. Mixing both in v1 creates a product that's less coherent on each axis.
-4. If the project succeeds in Path A, Path B becomes the natural roadmap. If Path A struggles (low adoption, slow community formation), Path B was never going to save it.
-
-The bandit capability specifically has been called out as the single most interesting v2 candidate by the project sponsor; it's deliberately set aside for v1 to keep focus, with the explicit option to revisit after Path A ships.
+- Multiple config repos per cluster
+- Outgoing webhooks for resource lifecycle events (study, digest, proposal, PR state)
+- Prod-validation flow (run winning config read-only against the prod cluster before opening the staging PR)
+- Cost dashboard and per-user LLM cost quotas
+- W3C Trace Context (`traceparent`) propagation extending through to the search engine
 
 ## 28. Tech stack & implementation decisions
 
@@ -2597,7 +2484,7 @@ This section consolidates every implementation-level decision that shapes how Re
 | Database (app) | Postgres 16 | Primary application state + Optuna RDBStorage (single instance) |
 | Cache / queue | Redis 7 | Arq queue + LangChain cache (MVP4+) |
 | Trace storage (LLM) | ClickHouse 24 | Required by Langfuse (MVP2+) |
-| Search engines (targets) | Elasticsearch 8.11+/9.x; OpenSearch 2.x/3.x; Lucidworks Fusion 5.x; Solr 9.x (v2+) | Per-engine version support documented in §8 |
+| Search engines (targets) | Elasticsearch 8.11+/9.x; OpenSearch 2.x/3.x (MVP1); Apache Solr 9.x/10.x (MVP2) | Per-engine version support documented in §8 |
 | Reverse proxy | Caddy 2 | TLS termination, SSO via oauth2-proxy or Authelia |
 | Container runtime | Docker 24+ with Compose | MVP1 deployment target |
 | Helm chart (v1.5+) | Helm 3 | Kubernetes deployment for adopters that prefer it |
@@ -2753,13 +2640,13 @@ The Microsoft Loop product (collaboration app, separate goods/services category)
 
 ### Audience
 
-The primary intended adopter is an internal search platform team at a medium-to-large enterprise that runs search engines (Elasticsearch, Lucidworks Fusion, Solr) for one or more downstream "customers" (other product teams, business units, or external clients). These teams typically share three pains:
+The primary intended adopter is an internal search platform team at a medium-to-large enterprise that runs an open-source search engine (Elasticsearch, OpenSearch, or Apache Solr) for one or more downstream "customers" (other product teams, business units, or external clients). These teams typically share three pains:
 
 - Manual relevance tuning is slow and expert-bound; doesn't scale across many indexes/customers
-- Quantifying relevance improvements for stakeholders is hard without a standing eval harness
-- AI/LLM tooling for search is hyped but practical, deployable, customer-data-respecting answers are scarce
+- Quantifying relevance improvements for stakeholders is hard without a standing eval harness — and the closest workbench tools (Quepid, RRE) require human judgments at a scale most teams don't have
+- The OpenSearch-only auto-tuning surface (SRW's hybrid-weight grid search) doesn't cover the field-boost / function-score / fuzziness / `mm` parameter space where most relevance wins actually live
 
-Secondary adopters: search-as-a-service vendors building on top of OSS engines, and sophisticated single-product teams with one important search.
+Secondary adopters: search-as-a-service vendors building on top of OSS engines, sophisticated single-product teams with one important search, and the OSC + Sease + Querqy + Haystack community (predominantly Solr-native; the natural early-adopter pool for a Bayesian-loop upgrade to their existing manual workbenches).
 
 ### License
 
@@ -2853,19 +2740,22 @@ Without design partners, OSS projects in this space often ship features that don
 
 ### Comparison with alternatives
 
-The README's `comparison.md` covers the full set; representative summary:
+The full citation-backed matrix lives at [`docs/07_research/comparison.md`](../../07_research/comparison.md). Representative summary at a glance:
 
-| Tool | OSS? | Multi-engine? | Karpathy loop? | Local LLM obs? | Apache 2.0? |
-|---|---|---|---|---|---|
-| RelyLoop | yes | ES + Fusion (+ Solr v2) | yes | yes | yes |
-| Quepid | yes | yes | no | no LLM | yes |
-| RRE | yes | yes | no | no LLM | Apache 2.0 |
-| LangSmith | no | n/a | partial | hosted only | n/a |
-| Phoenix (Arize) | yes | n/a | no | yes | Apache 2.0 |
-| Lucidworks Springboard | no | Fusion only | partial | n/a | n/a |
-| Coveo / Algolia / Bloomreach | no (SaaS) | vendor only | partial (proprietary) | n/a | n/a |
+| Tool | OSS? | Engines | Bayesian/TPE optimizer over full search space? | Git-PR apply path? | Local LLM obs? | Apache 2.0? |
+|---|---|---|---|---|---|---|
+| RelyLoop | yes | ES + OpenSearch (MVP1); + Solr (MVP2) | yes (Optuna TPE, thousands of trials) | yes | yes (MVP3) | yes |
+| **OpenSearch Search Relevance Workbench (3.6)** | yes | OpenSearch only | no — 66-cell grid search over hybrid weights only ([docs](https://docs.opensearch.org/latest/search-plugins/search-relevance/optimize-hybrid-search/)); Bayesian in RFC #934, no shipped code | no — explicitly out of scope by [RFC #17735](https://github.com/opensearch-project/OpenSearch/issues/17735) | n/a (no LLM obs surface) | yes |
+| **OpenSearch Relevance Agent (3.6, experimental)** | yes | OpenSearch only | no — DSL recommender, doesn't run sweeps | no | n/a | yes |
+| Quepid | yes | Solr + ES + OpenSearch | no — manual workbench | no | n/a | yes |
+| RRE (Sease) | yes | Solr + ES | no — offline evaluator, no sweeps | no | n/a | yes |
+| Chorus (Querqy / OSC) | yes | Solr (primary) + OpenSearch (partial) | no | no | n/a | yes |
+| Elasticsearch (native) | Elastic License 2.0 + SSPL | ES only | no — `_rank_eval` is an API primitive; BA + Search Applications deprecated in 9.0 ([release notes](https://www.elastic.co/guide/en/elastic-stack/9.0/release-notes-elasticsearch-9.0.0.html)) | no | n/a | no |
+| Coveo / Algolia / Bloomreach | no (SaaS) | vendor only | partial (proprietary) | no | n/a | n/a |
 
-The defensible position: **Quepid + LLM-driven Karpathy loop + agent-first API + local-first observability + multi-engine + Git-as-source-of-truth**, all OSS under Apache 2.0. No other project covers this combination.
+**The defensible bundle:** *Bayesian/TPE optimization across the full search space + Git-PR apply path + works on every major OSS engine (Elasticsearch, OpenSearch, Apache Solr) + conversational agent that runs the loop + hybrid UBI+LLM judgments + local-first observability + Apache 2.0.*
+
+Each individual ingredient above has at least one OSS comparable. The combination does not. The closest competitor is OpenSearch SRW, which is OpenSearch-only by architecture, grid-search-only by current implementation, and has no apply path by explicit RFC choice — three constraints RelyLoop is built specifically to lift.
 
 ### Sustainability risks
 
@@ -2886,21 +2776,14 @@ A few honest acknowledgements:
 6. **Parameter ranges.** When the LLM proposes ranges, can it propose ranges that are out of bounds for the engine (e.g., negative boost)? Validator catches this, but worth defensive testing.
 7. **Agent runtimes to test against in v1.5.** The API is framework-agnostic, but we should pick 2–3 reference agent runtimes (LangGraph? OpenAI Assistants? Bedrock Agents? Claude Agent SDK with HTTP tools? a hand-rolled agent?) to validate the workflow ergonomics on. Choice influences the worked example in `x-agent-workflows`.
 8. **Service-account naming and rotation policy.** Are agent service accounts shared across multiple agent codebases or always one-per-agent? What's the rotation cadence and the rotation runbook? Affects API-key UX in v1.5.
-9. **Fusion pipeline forking strategy.** When a study recommends parameter changes that effectively constitute a new pipeline shape (e.g., a previously-disabled stage now matters), should the tool propose creating a *new* pipeline version (new ID) or modifying the existing one in place? Implications for promotion across environments and for rollback. Default v1 stance: edit in place; revisit if it bites us.
-10. **Fusion Signals enablement plan.** When does the user enable Signals in DEV, then STAGING, then PROD? What sample sizes do we need before signals-derived judgments are trustworthy enough to drive studies? Belongs in the v1.5 kickoff conversation.
-11. **Fusion app/collection scoping.** Some Fusion installations use one app per collection; others use one app for many collections. Does our `clusters.engine_config.app` model fit, or do we need a finer-grained "app + collection" target? Currently spec'd as one app per cluster row; revisit if the user has multi-app clusters.
-12. **Lucidworks eval license policy for engineers.** When a developer needs hands-on Fusion access (recording new cassettes, reproducing a bug, validating new adapter parameters), what's the request flow? Options: (a) negotiate a longer-term Lucidworks dev license that the team shares, (b) rely on the org's existing Fusion dev cluster with per-engineer scoped credentials, (c) per-engineer 30-day eval licenses on demand. Affects developer-onboarding ergonomics. Recommended default: option (b) for routine work, option (c) for engineers doing initial adapter implementation.
-13. **Cassette refresh cadence and ownership.** Who is responsible for re-recording the Fusion replay cassettes when the upstream Fusion API changes (e.g., a Fusion version upgrade)? Include in the v1 runbook. Consider a quarterly cassette-freshness CI check that pings the dev cluster and flags drift.
-14. **Mock Fusion fidelity scope.** The `fusion-mock` service emulates a small subset of the Fusion query gateway. How comprehensive should it be — just enough for UI demos, or a high-fidelity simulator suitable for some classes of integration testing? Bigger ambition increases maintenance burden. Recommended default: minimal, demo-only.
-15. **LLM eval cadence and triggers.** The Langfuse eval suite runs nightly and on prompt PRs by default. Should it also run on every model-version bump? On every Langfuse upgrade? On a schedule independent of code changes (e.g., monthly model-drift checks against the same prompts)? Affects CI runtime and cost. Recommended default: nightly + on prompt PRs in v1; add monthly drift checks in v1.5 once we have baseline scores to compare against.
-16. **Eval gold-set ownership.** Who maintains the `judgment_generation_eval` 200-tuple gold set? Refresh cadence? This is the single most important quality signal for the LLM-as-judge layer; if it drifts or rots, evals stop catching regressions. Recommended default: relevance team owns it, quarterly refresh, with a CI check that flags if the gold set hasn't been touched in 6 months.
-17. **Langfuse retention policy.** ClickHouse storage for traces grows linearly with usage. What's the retention period — 30 days? 90 days? 1 year? Affects disk sizing. Recommended default: 90 days for traces, indefinite for eval results (low volume).
-18. **v1 scope vs. team size.** v1 is now a 12-week single-engineer effort or ~7 weeks with two engineers. Three options: (a) commit two engineers and ship in 7 weeks, (b) accept 12 weeks for one engineer, (c) defer one major area (most reversibly: cut Langfuse and SigNoz from v1 — accept basic logging only — and add them in v1.5 once the core loop is proven; saves ~2 weeks). Recommended default: (a) if a second engineer is available, otherwise (b). Option (c) is structurally riskier because retrofitting observability is painful.
-19. **E2E test budget and frequency.** E2E tests use real OpenAI calls (~$5/run cap) and hit the shared Fusion dev cluster. At per-merge-to-main + nightly cadence, this could be ~$200/month in OpenAI costs alone, plus Fusion dev cluster contention. Worth confirming the budget envelope and whether per-merge E2E is the right cadence (alternative: nightly only + on-demand via PR label).
-20. **Performance benchmark suite for v1.5.** What hot paths are most worth regressionproofing — trial execution, OpenAPI serving, agent first-token, the digest LLM call? Pick 3–5 for v1.5 `pytest-benchmark` suite and decide pass/fail thresholds.
-21. **Path A vs. Path B long-term commitment.** v1 is strictly Path A (experimentation and change management). Path B (production quality monitoring, bandit-style online learning, shadow validation) is documented as a v2 direction but explicitly deferred. The strategic question is whether soundminds.ai commits to Path B as the long-term direction once v1 is shipped and adopted, or stays focused on Path A and treats Path B as community-driven expansion / fork territory. Affects roadmap signals to early adopters and contributor recruitment. Recommended default: revisit after 2–3 design partners are running Path A in production and we have real signal on what they want next. Early bandit-capability scoping (which architectural shape — external coordinator vs. in-engine, see §27) can begin in parallel without committing to v2 timelines.
-22. **Bandit architectural shape if Path B is pursued.** External coordinator (tool maintains bandit state, search service calls a tool endpoint per query) vs. in-engine (bandit logic embedded in Solr request handler or Fusion stage, driven by tool-published config). External coordinator is cleaner but adds hot-path latency; in-engine has no latency but is harder to debug and requires per-engine implementations. The bandit decision has the most architectural blast radius of any Path B capability — worth reaching alignment before any work begins.
-23. **Pre-launch RelyLoop trademark and namespace verification.** Before public announcement, the following must be completed and signed off:
+9. **LLM eval cadence and triggers.** The Langfuse eval suite runs nightly and on prompt PRs by default. Should it also run on every model-version bump? On every Langfuse upgrade? On a schedule independent of code changes (e.g., monthly model-drift checks against the same prompts)? Affects CI runtime and cost. Recommended default: nightly + on prompt PRs at MVP3; add monthly drift checks at GA once we have baseline scores to compare against.
+10. **Eval gold-set ownership.** Who maintains the `judgment_generation_eval` 200-tuple gold set? Refresh cadence? This is the single most important quality signal for the LLM-as-judge layer; if it drifts or rots, evals stop catching regressions. Recommended default: relevance team owns it, quarterly refresh, with a CI check that flags if the gold set hasn't been touched in 6 months.
+11. **Langfuse retention policy.** ClickHouse storage for traces grows linearly with usage. What's the retention period — 30 days? 90 days? 1 year? Affects disk sizing. Recommended default: 90 days for traces, indefinite for eval results (low volume).
+12. **E2E test budget and frequency.** E2E tests use real LLM calls (~$5/run cap) and hit the Compose ES/OpenSearch/Solr stack. At per-merge-to-main + nightly cadence, this could be ~$200/month in LLM costs. Worth confirming the budget envelope and whether per-merge E2E is the right cadence (alternative: nightly only + on-demand via PR label).
+13. **Performance benchmark suite.** What hot paths are most worth regressionproofing — trial execution, OpenAPI serving, agent first-token, the digest LLM call? Pick 3–5 for a `pytest-benchmark` suite at MVP3 and decide pass/fail thresholds.
+14. **Path A vs. Path B long-term commitment.** GA v1 is strictly Path A (experimentation and change management). Path B (production quality monitoring, bandit-style online learning, shadow validation) is documented as a v2 direction but explicitly deferred. The strategic question is whether soundminds.ai commits to Path B as the long-term direction once GA v1 is shipped and adopted, or stays focused on Path A and treats Path B as community-driven expansion / fork territory. Recommended default: revisit after 2–3 design partners are running GA v1 in production and we have real signal on what they want next.
+15. **Bandit architectural shape if Path B is pursued.** External coordinator (tool maintains bandit state, search service calls a tool endpoint per query) vs. in-engine (bandit logic embedded in a Solr request handler, driven by tool-published config). External coordinator is cleaner but adds hot-path latency; in-engine has no latency but is harder to debug and requires per-engine implementations. The bandit decision has the most architectural blast radius of any Path B capability — worth reaching alignment before any work begins.
+16. **Pre-launch RelyLoop trademark and namespace verification.** Before public announcement, the following must be completed and signed off:
     - **USPTO TESS search** for "RELYLOOP" and stylization variants (RelyLoop, Rely Loop, Rely-Loop) in software-related classes (Class 9 — downloadable software; Class 42 — SaaS / IT services). If a live registration or pending application is found, escalate to legal review before proceeding.
     - **Domain registration** for `relyloop.com`, `relyloop.io`, `relyloop.dev`, and ideally `relyloop.org`. Cost is minimal; squatting after public announcement is expensive.
     - **GitHub organization** `relyloop` reserved (and `rely-loop` as a backup). Ditto for npm scope `@relyloop` and PyPI package prefix `relyloop-*` to prevent typosquatting.

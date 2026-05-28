@@ -1,7 +1,7 @@
 # Apply Path: Git PR Workflow
 
 **Status:** Adopted for MVP1 with GitHub-only. Multi-Git-provider abstraction (GitLab + Bitbucket) ships at MVP3 per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §16](../00_overview/product/relevance-copilot-spec.md) ("Apply path: Git PR workflow").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §16](../00_overview/relyloop-spec.md) ("Apply path: Git PR workflow").
 
 ---
 
@@ -105,14 +105,14 @@ Per [`feat_github_webhook`](../02_product/planned_features/feat_github_webhook/f
 
 | Capability | Activates at |
 |---|---|
-| Multi-Git-provider abstraction (`GitProvider` Protocol) with GitLab + Bitbucket implementations | **MVP3** ("Production Stacks") |
-| GitLab (project token / app, project-level webhooks, MR + approval rules) | MVP3 |
-| Bitbucket (workspace tokens, webhook UUID, default reviewers + branch restrictions) | MVP3 |
-| GitHub App auth (installation tokens, JWT signing) | MVP3 |
-| Per-provider webhook signature verification beyond GitHub HMAC-SHA256 | MVP3 |
-| Lucidworks Fusion two-step apply path (PR edits pipeline params; CI runs `objects-import` to deploy) | MVP3 (with Fusion adapter) |
-| Slack notifications on PR open / review-requested / merged | MVP2 |
-| Validation re-run on prod after staging win (top user story #2 from umbrella §6) | MVP2 |
+| Multi-Git-provider abstraction (`GitProvider` Protocol) with GitLab + Bitbucket implementations | **Backlog** (was MVP3 in the prior plan) |
+| GitLab (project token / app, project-level webhooks, MR + approval rules) | Backlog |
+| Bitbucket (workspace tokens, webhook UUID, default reviewers + branch restrictions) | Backlog |
+| GitHub App auth (installation tokens, JWT signing) | Backlog |
+| Per-provider webhook signature verification beyond GitHub HMAC-SHA256 | Backlog |
+| Apache Solr apply path (PR edits `*.params.json`; CI writes to Solr via Request Parameters API or `solrconfig.xml` swap) | MVP2 (with Solr adapter) |
+| Slack notifications on PR open / review-requested / merged | MVP3 (observability layer) |
+| Validation re-run on prod after staging win (top user story #2 from umbrella §6) | MVP3 |
 
 ## Cross-references
 

@@ -1,7 +1,7 @@
 # Deployment
 
 **Status:** Adopted for MVP1. Local Docker Compose only; production-grade deployment activates as later releases add the missing pieces (TLS, SSO, observability).
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §25](../00_overview/product/relevance-copilot-spec.md) ("Deployment").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §25](../00_overview/relyloop-spec.md) ("Deployment").
 
 ---
 
@@ -189,19 +189,19 @@ Resetting state: `docker compose down -v && rm -rf ./data` returns to a clean in
 
 **MVP1: all services bind to `127.0.0.1` only.** The API is reachable on `localhost:8000`; ES on `localhost:9200`; OpenSearch on `localhost:9201`. No service is reachable from the network beyond the host.
 
-This is appropriate for laptop installs. **MVP3** adds a Caddy reverse proxy with TLS termination (Let's Encrypt) for production-style network exposure — but with **no authentication yet** (the API is reachable over TLS but unauthenticated; appropriate only for trusted-network deployments). **MVP4** adds SSO (oauth2-proxy or Authelia in front of Caddy) and bearer API keys, completing the authenticated-install story per umbrella §18.
+This is appropriate for laptop installs. **GA v1** adds a Caddy reverse proxy with TLS termination (Let's Encrypt) for production-style network exposure — but with **no authentication yet** (the API is reachable over TLS but unauthenticated; appropriate only for trusted-network deployments). SSO (oauth2-proxy or Authelia in front of Caddy) and bearer API keys ship when multi-tenancy is promoted from backlog.
 
 ## Reserved for later releases
 
-The umbrella spec §25 lists the full GA v1 deployment (which includes Caddy, Langfuse, ClickHouse, SigNoz, fusion-mock). MVP1 ships only the 6 containers above. The remaining services activate at:
+The umbrella spec §25 lists the full GA v1 deployment (which includes Caddy, Langfuse, ClickHouse, SigNoz). MVP1 ships only the 6 containers above. The remaining services activate at:
 
 | Service | Activates at | Why |
 |---|---|---|
-| `langfuse-web`, `langfuse-worker`, `clickhouse` | **MVP2** | LLM observability theme. |
-| `signoz`, `signoz-otel-collector` | **MVP2** | Distributed tracing theme. |
-| `caddy` (reverse proxy + Let's Encrypt TLS) | **MVP3** | Production-style install (TLS, network exposure) lands with production-stack hardening. **No SSO yet** at MVP3 — Caddy alone provides TLS for trusted-network deployments. |
-| `fusion-mock` | **MVP3** | Lucidworks Fusion adapter ships here; mock service for UI/demo dev when shared dev cluster isn't reachable. |
-| `oauth2-proxy` / Authelia (SSO in front of Caddy) | **MVP4** | Auth surface arrives with `users` + `tenants` + API keys; SSO completes the authenticated-install story per umbrella §18. |
+| `solr` | **MVP2** | Apache Solr 10 container, bound to `127.0.0.1:8983`; ships alongside the `SolrAdapter` and UBI judgments. |
+| `langfuse-web`, `langfuse-worker`, `clickhouse` | **MVP3** | LLM observability theme ("Observable"). |
+| `signoz`, `signoz-otel-collector` | **MVP3** | Distributed tracing also MVP3. |
+| `caddy` (reverse proxy + Let's Encrypt TLS) | **GA v1** | Production-style install (TLS, network exposure) lands with GA v1 hardening. **No SSO yet** — Caddy alone provides TLS for trusted-network deployments. |
+| `oauth2-proxy` / Authelia (SSO in front of Caddy) | **Backlog** | Auth surface arrives when multi-tenancy is promoted from backlog (`users` + `tenants` + API keys). |
 
 ## Operator workflow (MVP1)
 

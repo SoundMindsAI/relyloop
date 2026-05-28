@@ -5,6 +5,6 @@ Use this section for high-level project context, repository orientation, and umb
 Current contents:
 
 - `product/` — full product spec
-  - `product/relevance-copilot-spec.md` — full product and system specification
+  - `relyloop-spec.md` — full product and system specification
 
 For MVP1 decomposition (user stories + per-feature spec folders), see [`docs/02_product/`](../02_product/).

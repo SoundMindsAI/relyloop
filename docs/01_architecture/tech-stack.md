@@ -1,7 +1,7 @@
 # Tech Stack
 
 **Status:** Adopted for MVP1. Revisited per release as new layers come online.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §28](../00_overview/product/relevance-copilot-spec.md) ("Tech stack & implementation decisions"). This document is the engineering-facing distillation of those decisions, scoped to what's relevant for MVP1 with explicit notes on what activates in later releases.
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §28](../00_overview/relyloop-spec.md) ("Tech stack & implementation decisions"). This document is the engineering-facing distillation of those decisions, scoped to what's relevant for MVP1 with explicit notes on what activates in later releases.
 
 ---
 
@@ -11,16 +11,13 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 
 | Release | Theme | Adds on top of previous |
 |---|---|---|
-| **MVP1 / v0.1** | "The Loop" | ES + OpenSearch adapter (single `ElasticAdapter`); LLM via `openai` SDK pointed at any **OpenAI-compatible endpoint** (`OPENAI_BASE_URL` config; defaults to `https://api.openai.com/v1`; works against Ollama, LM Studio, vLLM, HuggingFace TGI for air-gapped evaluation); GitHub Git provider; single-tenant (no `tenants` table, no `tenant_id`); no auth; basic structured logging; Docker Compose; Apache 2.0 LICENSE; 80% backend coverage gate. **No** native non-OpenAI-compatible providers (Anthropic/Bedrock/Vertex SDKs ship at MVP4), **no** observability stack, **no** audit_log, **no** lineage, **no** Fusion, **no** SSO, **no** API keys. |
-| **MVP1.5 / v0.1.5** | "Real Signals" | **OpenSearch UBI judgments** as a first-class judgment source. New `UbiReader` (engine-agnostic; reads the standardized `ubi_queries` + `ubi_events` indices via any `SearchAdapter`'s `search_batch`) + pluggable `SignalsConverter` Protocol (initial impls: position-bias-corrected CTR, dwell-time threshold, hybrid UBI+LLM where UBI rates the dense head and LLM fills the long tail). Judgment lists can mix sources (`llm` + `human` + `click` rows in the same list — the existing `judgments.source` enum already permits this). New `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + new agent tool `generate_judgments_from_ubi`. **No** schema migration (additive — uses existing `source = 'click'` enum value), **no** new Compose service. Predicated on the operator having the OpenSearch UBI plugin installed and logging events. |
-| **MVP2 / v0.2** | "Observable" | Langfuse + ClickHouse + SigNoz + OpenTelemetry exporters wired; canonical event catalog; **`audit_log` table + Postgres immutability trigger** (no users/tenants yet — `actor_id`/`tenant_id` nullable, no FKs; FKs added at MVP4); lineage columns (`langfuse_trace_id`, `prompt_version`, `input_hash`) on `judgments`/`digests`/`proposals`; PII redaction; trace context propagation through API → Redis → worker → adapter → engine. |
-| **MVP3 / v0.3** | "Production Stacks" | **Lucidworks Fusion adapter** (`auth_kind = fusion_session` and `fusion_jwt`); multi-Git-provider abstraction (GitLab + Bitbucket alongside GitHub); adapter contract test suite; production-style install (TLS via Caddy + Let's Encrypt, managed Postgres/Redis); AWS managed OpenSearch (`auth_kind = opensearch_sigv4` activates). **No** SSO/auth yet (production-stack hardening only). |
-| **MVP4 / v0.4** | "Multi-tenant, Multi-LLM" | `tenants` + `tenant_memberships` + `users` + `api_keys` tables; `tenant_id` columns on every user-facing table (with backfill); roles `viewer` / `runner` / `tenant_admin` (per-tenant) + `platform_admin` (cross-tenant); **SSO via reverse proxy** (oauth2-proxy or Authelia injecting `X-Auth-Email`); **Argon2id-hashed bearer API keys** for service accounts; **native non-OpenAI-compatible LLM providers via LangChain `BaseChatModel` abstraction** (Anthropic, AWS Bedrock, Google Vertex AI); per-tenant LLM provider selection + cost rollups; FK constraints added to `audit_log.actor_id` / `audit_log.tenant_id`. (OpenAI-compatible providers — including Ollama, LM Studio, vLLM, HuggingFace TGI — already work in MVP1 via `OPENAI_BASE_URL`.) |
-| **GA v1 / v1.0** | "Production-ready" | **LangGraph orchestrator** (replaces plain `openai` SDK + function calling); `PostgresSaver` for resumable conversations; full RFC 7807 Problem Details on errors; `Idempotency-Key` header on POST/PATCH/DELETE; Helm 3 chart; container scanning (Trivy), deps audit (pip-audit/npm audit), image signing (cosign keyless OIDC); 90% backend coverage gate (up from 80% in MVP1). |
-| **v1.5+** | post-GA | Helm chart maturity, Kubernetes-native operator. |
-| **v2+** | post-GA | Apache Solr adapter (`auth_kind = solr_basic` activates). |
+| **MVP1 / v0.1 (shipped)** | "The Loop" | ES + OpenSearch adapter (single `ElasticAdapter`); LLM via `openai` SDK pointed at any **OpenAI-compatible endpoint** (`OPENAI_BASE_URL` config; defaults to `https://api.openai.com/v1`; works against Ollama, LM Studio, vLLM, HuggingFace TGI for air-gapped evaluation); GitHub Git provider; single-tenant (no `tenants` table, no `tenant_id`); no auth; basic structured logging; Docker Compose; Apache 2.0 LICENSE; 80% backend coverage gate; Optuna/TPE optimization loop over the full query-time search space; Git-PR apply path; conversational agent that runs the loop. **No** native non-OpenAI-compatible providers (backlog), **no** observability stack, **no** audit_log, **no** lineage, **no** Solr yet, **no** SSO, **no** API keys. |
+| **MVP2 / v0.2** | "Three-Engine + Real Signals" | **Apache Solr adapter** (`auth_kind = solr_basic` and `solr_apikey`) covering Solr 9.x + 10.x via `edismax` + `{!ltr}` rescoring + `solr.UBIComponent` for UBI capture; **UBI judgments** via engine-agnostic `UbiReader` (reads `ubi_queries` + `ubi_events` via any `SearchAdapter`'s `search_batch`); pluggable `SignalsConverter` Protocol (position-bias-corrected CTR, dwell-time threshold, **hybrid UBI+LLM**); `POST /api/v1/judgment-lists/generate-from-ubi` + `generate_judgments_from_ubi` agent tool; mixed-source judgment lists (`llm` + `human` + `click` rows in the same list — the existing `judgments.source` enum already permits this). After MVP2 ships, RelyLoop runs on all three OSS engines with UBI on every one of them. **No** schema migration for UBI (additive — uses existing `source = 'click'` enum value); **one** small migration extends `engine_type` + `auth_kind` CHECK constraints to accept Solr values. |
+| **MVP3 / v0.3** | "Observable" | Langfuse + ClickHouse + SigNoz + OpenTelemetry exporters wired; canonical event catalog; **`audit_log` table + Postgres immutability trigger** (no users/tenants yet — `actor_id`/`tenant_id` nullable, no FKs); lineage columns (`langfuse_trace_id`, `prompt_version`, `input_hash`) on `judgments`/`digests`/`proposals`; PII redaction; trace context propagation through API → Redis → worker → adapter → engine for all three engines. |
+| **GA v1 / v1.0** | "Production-ready" | **LangGraph orchestrator** (replaces plain `openai` SDK + function calling); `PostgresSaver` for resumable conversations; full RFC 7807 Problem Details on errors; `Idempotency-Key` header on POST/PATCH/DELETE; full four-layer test pyramid at 90% coverage; complete CI/CD with security gates (Trivy, bandit, pip-audit, npm audit); image signing (cosign keyless OIDC); Helm 3 chart; complete OSS launch infrastructure (docs, ADRs, contributor onboarding, design-partner references); public Optuna-vs-SRW-grid benchmark. **No new product surface** — all six differentiators are GA by MVP3; GA v1 is polish + governance + hardening. |
+| **Backlog** | — | Multi-Git provider abstraction (GitLab + Bitbucket); multi-tenancy primitives (`tenants` + `tenant_memberships` + `users` + `api_keys` tables; `tenant_id` columns; roles `viewer`/`runner`/`tenant_admin`/`platform_admin`); SSO via reverse proxy; Argon2id-hashed bearer API keys; native non-OpenAI provider SDKs (Anthropic, Bedrock, Vertex, Azure OpenAI); LTR training; Path B (production-quality monitoring, bandits, shadow validation, manual one-click rollback); Helm chart maturity; Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md)). |
 
-**Audit-without-users design:** MVP2 ships `audit_log` with `actor_id` / `tenant_id` as nullable UUIDs with **no FK constraints**, plus an `actor_type` ENUM constrained to `system` / `agent` / `anonymous`. MVP4 adds the FK constraints, extends `actor_type` to include `user`, and backfills `tenant_id` from the auto-created `default` tenant. Pre-MVP4 audit rows keep `actor_id = NULL`. See [`data-model.md` §"`audit_log`"](data-model.md) for the schema.
+**Audit-without-users design:** MVP3 ships `audit_log` with `actor_id` / `tenant_id` as nullable UUIDs with **no FK constraints**, plus an `actor_type` ENUM constrained to `system` / `agent` / `anonymous`. The FK constraints and the `user` actor type ship when multi-tenancy is promoted from backlog. Pre-multi-tenancy audit rows keep `actor_id = NULL`. See [`data-model.md` §"`audit_log`"](data-model.md) for the schema.
 
 ---
 
@@ -41,8 +38,8 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 | Optimization | Optuna with TPE sampler + RDBStorage | RDBStorage points at the same Postgres as the app. |
 | IR evaluation | ir_measures | Provider-abstracted; wraps multiple IR-evaluation backends behind a typed metric-object DSL; consistent metrics across engines. |
 | LLM SDK (MVP1) | `openai` Python SDK with function calling | LangGraph deferred to GA v1. No provider-abstraction layer in MVP1 — direct OpenAI calls. |
-| Auth — humans (MVP4+) | SSO via reverse proxy (oauth2-proxy or Authelia); proxy injects `X-Auth-Email` header; API trusts the header only when verified by mTLS or a shared secret | Not present in MVP1–3. No password storage in RelyLoop itself — identity provider owns credentials. |
-| Auth — service accounts (MVP4+) | Bearer API keys (`Authorization: Bearer <key>`); keys hashed with Argon2id (passlib) at rest | Not present in MVP1–3. Per-key role + scopes + expiration; revocation via `revoked_at`. |
+| Auth — humans (backlog) | SSO via reverse proxy (oauth2-proxy or Authelia); proxy injects `X-Auth-Email` header; API trusts the header only when verified by mTLS or a shared secret | Not present through GA v1. No password storage in RelyLoop itself — identity provider owns credentials. |
+| Auth — service accounts (backlog) | Bearer API keys (`Authorization: Bearer <key>`); keys hashed with Argon2id (passlib) at rest | Not present through GA v1. Per-key role + scopes + expiration; revocation via `revoked_at`. |
 | Testing | pytest + pytest-asyncio + pytest-mock + pytest-recording | `pytest-recording` cassettes are checked in for every external HTTP integration. |
 | Coverage | coverage.py | CI gate: 80% backend Python (MVP1) → 90% (GA v1). |
 | Linter / formatter | ruff (`check` + `format`) | Replaces flake8 + isort + black. |
@@ -74,8 +71,8 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 |---|---|---|
 | Database (app) | Postgres 16 | Single instance. Holds app state + Optuna RDBStorage. |
 | Cache / queue | Redis 7 | Used by Arq for the worker queue. |
-| Search engines (targets) | Elasticsearch 8.11+ / 9.x; OpenSearch 2.x / 3.x | Lucidworks Fusion (MVP3) and Solr (v2+) are NOT in MVP1. |
-| Reverse proxy | Caddy 2 | NOT in MVP1. **MVP3** adds Caddy + Let's Encrypt TLS for production-style network exposure (no SSO yet — trusted-network deployments only). **MVP4** adds oauth2-proxy or Authelia in front of Caddy for SSO. |
+| Search engines (targets) | Elasticsearch 8.11+ / 9.x; OpenSearch 2.x / 3.x (MVP1); Apache Solr 9.x / 10.x (MVP2) | Lucidworks Fusion explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md)). |
+| Reverse proxy | Caddy 2 | NOT in MVP1. Production-style install (TLS via Caddy + Let's Encrypt) lands as GA v1 hardening for trusted-network deployments. SSO (oauth2-proxy or Authelia in front of Caddy) is in the backlog with multi-tenancy. |
 | Trace storage (LLM) | ClickHouse 24 | NOT in MVP1 (Langfuse is MVP2+). |
 | Container runtime | Docker 24+ with Compose v2 | MVP1 deployment target. |
 | Helm chart | Helm 3 | NOT in MVP1 (v1.5+). |
@@ -129,7 +126,7 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 - snake_case table and column names.
 - JSONB for flexible structured fields (settings, params, metrics, payloads).
 - All foreign keys explicit; no implicit relationships.
-- Indexes on `(tenant_id, created_at)` for tenant-scoped tables — **MVP4+ only**; MVP1–3 has no `tenant_id` column.
+- Indexes on `(tenant_id, created_at)` for tenant-scoped tables — **backlog only**; RelyLoop is single-tenant through GA v1 with no `tenant_id` column.
 
 ### Logging conventions
 
@@ -142,17 +139,17 @@ This is the source-of-truth release matrix that every other arch doc derives fro
 
 - Mounted secret files only — never set in environment variables.
 - Source of truth: 1Password / Vault / SSM / equivalent (operator's choice).
-- API keys hashed with Argon2id at rest — **MVP4+** (no auth in MVP1).
+- API keys hashed with Argon2id at rest — **backlog** (no auth through GA v1).
 - For MVP1: `.env.example` enumerates every secret; `.env` is gitignored; Docker secrets mount each value as a file inside the container.
 
 ## Reserved for later releases
 
 These appear in the umbrella spec because the spec covers all releases. None of them are MVP1 work. Per-release timing per the §"Canonical release matrix" above:
 
-- **MVP2:** Langfuse + ClickHouse + SigNoz + OpenTelemetry exporters; canonical event catalog; `audit_log` table + immutability trigger (no users/tenants yet); lineage columns; PII redaction; trace context propagation through DB/Redis/worker/adapter/engine.
-- **MVP3:** Lucidworks Fusion adapter; multi-Git-provider abstraction (GitLab, Bitbucket); production-style install (TLS via Caddy + Let's Encrypt, managed Postgres/Redis); AWS managed OpenSearch.
-- **MVP4:** Multi-tenancy (`tenants`, `tenant_memberships`, `users`, `api_keys` tables; `tenant_id` columns); SSO via reverse proxy for humans; Argon2id-hashed bearer API keys for service accounts; roles `viewer/runner/tenant_admin/platform_admin`; multi-LLM provider abstraction (Anthropic, AWS Bedrock, Google Vertex, Ollama, vLLM); LangChain `RedisCache` for LLM responses.
-- **GA v1:** LangGraph orchestrator + `PostgresSaver`; full RFC 7807 Problem Details on errors; `Idempotency-Key` header; Helm chart; container scanning (Trivy); deps audit (pip-audit/npm audit); image signing (cosign); 90% backend coverage gate.
+- **MVP2 (Three-Engine + Real Signals):** Apache Solr adapter (Solr 9.x + 10.x; `edismax` + `{!ltr}` rescore; `solr.UBIComponent` support); UBI judgments via engine-agnostic `UbiReader`; pluggable `SignalsConverter` Protocol (CTR threshold, dwell-time, hybrid UBI+LLM); `POST /api/v1/judgment-lists/generate-from-ubi` + `generate_judgments_from_ubi` agent tool.
+- **MVP3 (Observable):** Langfuse + ClickHouse + SigNoz + OpenTelemetry exporters; canonical event catalog; `audit_log` table + immutability trigger (no users/tenants yet); lineage columns; PII redaction; trace context propagation through DB/Redis/worker/adapter/engine.
+- **GA v1 (Production-ready):** LangGraph orchestrator + `PostgresSaver`; full RFC 7807 Problem Details on errors; `Idempotency-Key` header; full four-layer test pyramid at 90% coverage; complete CI/CD with security gates (Trivy, bandit, pip-audit, npm audit); image signing (cosign); production-style install (TLS via Caddy + Let's Encrypt, managed Postgres/Redis); design-partner references; public Optuna-vs-SRW-grid benchmark. **No new product surface** — all six differentiators are GA by MVP3.
+- **Backlog:** Multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy (`tenants`, `tenant_memberships`, `users`, `api_keys` tables; `tenant_id` columns; roles `viewer/runner/tenant_admin/platform_admin`); SSO via reverse proxy for humans; Argon2id-hashed bearer API keys for service accounts; native non-OpenAI provider SDKs (Anthropic, AWS Bedrock, Google Vertex AI, Azure OpenAI); LangChain `RedisCache` for LLM responses; Helm chart maturity; Kubernetes-native operator; LTR training; Path B (production monitoring, bandits, shadow validation); Lucidworks Fusion adapter (explicitly dropped).
 - **Out of scope (no scheduled release):** Mobile UI, i18n, WCAG AA gating, Kubernetes-native operator, multi-region.
 
 ## Cross-references

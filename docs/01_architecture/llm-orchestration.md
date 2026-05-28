@@ -1,7 +1,7 @@
 # LLM Orchestration
 
 **Status:** Adopted for MVP1 with the plain `openai` SDK + function calling. **The SDK is pointed at any OpenAI-compatible endpoint via `OPENAI_BASE_URL`** (defaults to `https://api.openai.com/v1`; works against Ollama, LM Studio, vLLM, HuggingFace TGI for air-gapped evaluation). LangGraph orchestrator + native non-OpenAI-compatible provider SDKs (Anthropic, Bedrock, Vertex) + Langfuse + RedisCache arrive at later releases per the canonical [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §15](../00_overview/product/relevance-copilot-spec.md) ("LLM orchestration & observability").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §15](../00_overview/relyloop-spec.md) ("LLM orchestration & observability").
 
 ---
 

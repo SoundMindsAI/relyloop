@@ -8,8 +8,9 @@ RelyLoop is an **off-line** relevance-tuning tool for enterprise search
 platforms. The architecture has four cooperating layers:
 
 1. **Adapter** — a thin Protocol behind which engine differences
-   (Elasticsearch / OpenSearch / Lucidworks Fusion) and provider differences
-   (OpenAI / Anthropic / Bedrock / Ollama / Vertex) are isolated.
+   (Elasticsearch / OpenSearch in MVP1; Apache Solr in MVP2) and LLM
+   provider differences (OpenAI-compatible endpoints today; Anthropic /
+   Bedrock / Vertex / Azure OpenAI in the backlog) are isolated.
 2. **Domain** — pure Python (no I/O): study state machine, search-space
    rules, query rendering, evaluator helpers.
 3. **Service** — orchestrators (study runner, judgment generation, digest,
@@ -29,7 +30,7 @@ tests, and never modifies cluster schema/mapping/analyzer settings.
 | [`mvp1-overview.md`](docs/01_architecture/mvp1-overview.md) | The MVP1 reading guide — start here if you're new |
 | [`tech-stack.md`](docs/01_architecture/tech-stack.md) | Languages, frameworks, lockfiles, code organization, **canonical release matrix** |
 | [`system-overview.md`](docs/01_architecture/system-overview.md) | Service inventory, how containers fit together |
-| [`deployment.md`](docs/01_architecture/deployment.md) | Compose layout, secrets pattern, MVP1→MVP4 deployment evolution |
+| [`deployment.md`](docs/01_architecture/deployment.md) | Compose layout, secrets pattern, MVP1→GA v1 deployment evolution |
 | [`api-conventions.md`](docs/01_architecture/api-conventions.md) | Endpoint conventions, error envelope, pagination, idempotency |
 | [`data-model.md`](docs/01_architecture/data-model.md) | Per-table column-level reference; lineage; future audit_log |
 | [`adapters.md`](docs/01_architecture/adapters.md) | The `SearchAdapter` Protocol shape |
@@ -67,9 +68,10 @@ expected to honor them. The full text lives in [`CLAUDE.md`](CLAUDE.md):
 
 1. **Never commit directly to `main`** — feature branches + PRs only.
 2. **Secrets via mounted files** (`*_FILE` env vars), never bare env vars.
-3. LLM calls go through the `BaseChatModel` abstraction once it lands at
-   MVP4; until then services may use the `openai` SDK directly but always
-   read model + base URL from `Settings`.
+3. LLM calls go through the `BaseChatModel` abstraction once it lands
+   (backlog item — native non-OpenAI provider SDKs); until then services
+   may use the `openai` SDK directly but always read model + base URL
+   from `Settings`.
 4. **Engine-specific code lives only in `backend/app/adapters/<engine>.py`**
    — the orchestrator and study runner consume the unified `SearchAdapter`
    Protocol.

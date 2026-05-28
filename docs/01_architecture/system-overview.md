@@ -1,7 +1,7 @@
 # System Overview
 
 **Status:** Adopted for MVP1. Each release adds services; this doc shows the full topology with MVP1-active services highlighted.
-**Source of truth for product context:** [docs/00_overview/product/relevance-copilot-spec.md §7](../00_overview/product/relevance-copilot-spec.md) ("System architecture").
+**Source of truth for product context:** [docs/00_overview/relyloop-spec.md §7](../00_overview/relyloop-spec.md) ("System architecture").
 
 ---
 
@@ -114,11 +114,11 @@ Services in the umbrella spec §25 deployment that are NOT in MVP1:
 | Service | Activates at | Why deferred for MVP1 |
 |---|---|---|
 | `ui` (containerized) | Late MVP1 / chore_tutorial_polish | UI runs via `pnpm dev` during MVP1 development; containerization is a polish item. |
-| `caddy` (reverse proxy + Let's Encrypt TLS) | MVP3 | Production-style install adds TLS + network exposure. **No SSO yet** — trusted-network deployments only. |
-| `oauth2-proxy` / Authelia (SSO in front of Caddy) | MVP4 | Auth surface arrives with `users` + `tenants` + API keys per umbrella §18. |
-| `langfuse-web`, `langfuse-worker`, `clickhouse` | MVP2 | LLM observability is the MVP2 theme ("Observable"). |
-| `signoz`, `signoz-otel-collector` | MVP2 | Distributed tracing also MVP2. |
-| `fusion-mock` | MVP3 | Ships with the Lucidworks Fusion adapter; mock service for UI/demo dev when shared dev cluster isn't reachable. |
+| `solr` | MVP2 | Apache Solr 10 container, bound to `127.0.0.1:8983`. Mirrors the existing `elasticsearch` and `opensearch` service shape; ships alongside the `SolrAdapter`. |
+| `langfuse-web`, `langfuse-worker`, `clickhouse` | MVP3 | LLM observability is the MVP3 theme ("Observable"). |
+| `signoz`, `signoz-otel-collector` | MVP3 | Distributed tracing also MVP3. |
+| `caddy` (reverse proxy + Let's Encrypt TLS) | GA v1 | Production-style install adds TLS + network exposure. **No SSO yet** — trusted-network deployments only. |
+| `oauth2-proxy` / Authelia (SSO in front of Caddy) | Backlog | Auth surface arrives when multi-tenancy is promoted from backlog. |
 
 ## Deployment
 
