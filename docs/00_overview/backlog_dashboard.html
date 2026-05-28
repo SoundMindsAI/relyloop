@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>RelyLoop MVP2 Dashboard</title>
+<title>RelyLoop BACKLOG Dashboard</title>
 <style>
 * { box-sizing: border-box; }
 body {
@@ -367,7 +367,7 @@ footer {
 <body>
 <header>
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
-  <h1>RelyLoop MVP2 Dashboard</h1>
+  <h1>RelyLoop BACKLOG Dashboard</h1>
   <div class="meta">
     Reflects feature-folder state as of 2026-05-28 (latest mtime of any
     <code>docs/00_overview/planned_features/</code> or
@@ -384,7 +384,7 @@ footer {
 <section>
   <div class="next-up done">
     <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP2 features shipped 🎉</div>
+    <div class="title">All scoped BACKLOG features shipped 🎉</div>
     <div class="one-liner">
       Pull from the Idea backlog or capture a new feature spec.
     </div>
@@ -393,22 +393,22 @@ footer {
 
 
 <section>
-  <h2>MVP2 Progress</h2>
+  <h2>BACKLOG Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">1 / 1</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">0 / 0</div>
+      <div class="sub">0% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:0%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">11</div>
+      <div class="value">1</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">2</div>
+      <div class="value">1</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -420,29 +420,29 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">2</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">5</div>
+      <div class="value">1</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
       <div class="label">Backlog</div>
-      <div class="value">4</div>
+      <div class="value">0</div>
       <div class="sub">captured for record, not planned</div>
     </div>
     <div class="kpi">
-      <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">6</div>
+      <div class="label">Legacy "Path to BACKLOG"</div>
+      <div class="value">1</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      5 idea-only feat/infra folders (not yet scoped into MVP2)
+      0 idea-only feat/infra folders (not yet scoped into BACKLOG)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,146 +463,16 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">11</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments">Ubi Judgments</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`…</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_adapter_solr">Adapter Solr</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">After MVP1.5, RelyLoop runs against Elasticsearch and OpenSearch — but the &quot;engine-neutral&quot; positioning is aspirational until a third engine ships. Apache Solr is the right third engine because:</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_chat_last_message_preview">Chat Last Message Preview</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The `/chat` list page ([ui/src/app/chat/page.tsx](../../ui/src/app/chat/page.tsx)) renders each conversation row as `title + relative timestamp + &quot;{N} messages&quot;` via…</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite">Demo Seeding Integration Tests Rewrite</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The async flow&#x27;s contract:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_studies_post_arq_spy_fixture">Studies Post Arq Spy Fixture</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper </div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_template_library_expansion">Template Library Expansion</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Three connected gaps:</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">1</span></h3>
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive">Webhook Concurrent Merge Race Timing Sensitive</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/99_backlog/bug_starlette_request_poisons_fastapi_depends_tests">Starlette Request Poisons Fastapi Depends Tests</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI.</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering">Fts Rank Ordering</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">`feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery(&#x27;english&#x27;, &#x27;foo&#x27;)` is true but orders results by `created_at DESC, id DESC` (the def</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; </div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock">Auto Followup Parent Advisory Lock</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme:</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation">Chat Long Conversation Truncation</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">[`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages…</div>
+  <div class="one-liner">There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={&quot;type&quot;: &quot;http&quot;, ...})` and breaks subsequent `Depends` resolution. Possible suspects:</div>
 
 
 </div>
@@ -625,19 +495,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">1</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/124">PR #124</a> <span>merged 2026-05-15</span>
-  </div>
-  <div class="one-liner">Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study:</div>
-
-
-</div>
+  <h3>Done <span class="count">0</span></h3>
 
 </div>
 </div>
@@ -651,17 +509,13 @@ footer {
   classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
-  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
-  class feat_contextual_help_mvp2 done;</div>
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
   classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
-  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
-  class feat_contextual_help_mvp2 done;</pre></noscript>
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;</pre></noscript>
   </div>
 </section>
 

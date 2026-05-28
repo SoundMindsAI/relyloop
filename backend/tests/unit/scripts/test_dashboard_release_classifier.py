@@ -27,6 +27,48 @@ from scripts.build_mvp1_dashboard import (  # noqa: E402
 )
 
 
+class TestTargetReleaseBucket:
+    """The bucket folder is the authoritative release signal — overrides
+    suffix and status-line. Locks in the contract added when the
+    operator-curated bucket layout (``01_mvp1/`` / ``02_mvp2/`` / ...)
+    was promoted to the primary organization (2026-05-28)."""
+
+    def test_bucket_routes_to_release(self) -> None:
+        assert _target_release("foo", "", bucket="01_mvp1") == "mvp1"
+        assert _target_release("foo", "", bucket="02_mvp2") == "mvp2"
+        assert _target_release("foo", "", bucket="03_mvp3") == "mvp3"
+        assert _target_release("foo", "", bucket="04_ga") == "ga"
+
+    def test_backlog_bucket_uses_sentinel_tag(self) -> None:
+        """``99_backlog`` / ``00_unsure`` map to sentinel release tags
+        (``"backlog"`` / ``"unsure"``) that are NOT in ROADMAP_RELEASES,
+        so those features don't fall through to the default-MVP1 bucket
+        and don't appear on release dashboards."""
+        assert _target_release("foo", "", bucket="99_backlog") == "backlog"
+        assert _target_release("foo", "", bucket="00_unsure") == "unsure"
+
+    def test_bucket_wins_over_status_line(self) -> None:
+        """Operator filing under ``01_mvp1/`` overrides a stale ``Held for MVP2``
+        status line. Prevents the historical drift where a feature's status line
+        was updated independent of its folder location."""
+        assert (
+            _target_release("foo", "Held for MVP2 (decided 2026-05-13)", bucket="01_mvp1") == "mvp1"
+        )
+
+    def test_bucket_wins_over_folder_suffix(self) -> None:
+        """Folder filed under ``02_mvp2/`` with a legacy ``_mvp3`` suffix
+        classifies to mvp2 (the bucket, the operator's current intent)."""
+        assert _target_release("foo_mvp3", "", bucket="02_mvp2") == "mvp2"
+
+    def test_no_bucket_falls_through_to_existing_signals(self) -> None:
+        """When bucket is None or an unrecognized folder name, the suffix +
+        status-line cascade still applies (preserves the legacy contract for
+        non-bucketed paths used by tests + edge cases)."""
+        assert _target_release("foo_mvp2", "", bucket=None) == "mvp2"
+        assert _target_release("foo", "Held for MVP3", bucket=None) == "mvp3"
+        assert _target_release("regular", "", bucket="feature_templates") == DEFAULT_RELEASE
+
+
 class TestTargetReleaseSuffix:
     def test_integer_suffix_still_classifies_correctly(self) -> None:
         """Regression: pre-fix behavior preserved for ``_mvp2`` / ``_mvp3``."""
