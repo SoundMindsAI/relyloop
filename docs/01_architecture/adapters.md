@@ -1,6 +1,6 @@
 # Adapters
 
-**Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; SolrAdapter ships at MVP2 alongside UBI judgments. Lucidworks Fusion is explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md)) — a community-contributed Fusion adapter remains possible against this Protocol, but the project does not own that direction. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
+**Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; SolrAdapter ships at MVP2 alongside UBI judgments. Lucidworks Fusion is explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md)) — a community-contributed Fusion adapter remains possible against this Protocol, but the project does not own that direction. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
 **Source of truth for product context:** [docs/00_overview/relyloop-spec.md §8](../00_overview/relyloop-spec.md) ("Engine adapter specification") and §11 ("Search space & parameters").
 
 ---
@@ -108,7 +108,7 @@ Templates use **unified parameter names**. The adapter pivots them to native nam
 
 **When a concept doesn't exist natively**, the adapter either provides a best-effort translation OR raises `UnsupportedParameter` at render time. The search-space validator catches this before a study runs (rejects the study definition rather than failing trials individually).
 
-The earlier `stage_enabled` unified-vocabulary parameter (Fusion-specific pipeline stage toggle) was removed when Fusion was dropped — see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md).
+The earlier `stage_enabled` unified-vocabulary parameter (Fusion-specific pipeline stage toggle) was removed when Fusion was dropped — see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md).
 
 ## Authentication and credentials
 
@@ -127,7 +127,7 @@ Credentials never live in the database. The `clusters.credentials_ref` column is
 
 ### SolrAdapter (MVP2)
 
-Apache Solr ships in MVP2 alongside UBI judgments. Full scope in [`infra_adapter_solr/idea.md`](../../02_product/planned_features/infra_adapter_solr/idea.md). Summary:
+Apache Solr ships in MVP2 alongside UBI judgments. Full scope in [`infra_adapter_solr/idea.md`](../02_product/planned_features/infra_adapter_solr/idea.md). Summary:
 
 - `search_batch` uses parallel `/select` requests with a connection pool (Solr has no `_msearch` equivalent).
 - `render` produces a Solr request parameter dict; templates under `templates/solr/` mirror the `templates/elasticsearch/` shape. Supports `edismax` (primary), `dismax`, `lucene` parsers.

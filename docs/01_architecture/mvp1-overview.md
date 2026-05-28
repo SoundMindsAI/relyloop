@@ -62,7 +62,7 @@ These appear in the topical arch docs because the docs cover all releases — bu
 - LTR training (cross-engine model training; MVP2's LTR support is consume-only)
 - Path B (production monitoring, bandits, shadow validation)
 - Helm chart maturity; Kubernetes-native operator
-- Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../../02_product/planned_features/chore_drop_fusion_scope/idea.md))
+- Lucidworks Fusion adapter (explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../02_product/planned_features/chore_drop_fusion_scope/idea.md))
 
 ### Reserved for v2+
 - `SolrAdapter` (pure Apache Solr support)
