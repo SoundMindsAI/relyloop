@@ -51,17 +51,17 @@ DEFAULT_RELEASE = "mvp1"
 # still appear (as "Not yet scoped") so the roadmap shows runway.
 #
 # Each tuple is (release_tag, display_label, one-liner theme). The release_tag
-# matches the `_mvpN` suffix convention used by the per-folder classifier;
-# post-MVP4 releases (`ga`, `v2`) are reserved tags that the classifier can
-# extend to support when post-MVP4 features start being tagged.
+# matches the `_mvpN` suffix convention used by the per-folder classifier.
+# The 2026-05-27 reframe (PR #289) collapsed the prior six-release plan
+# (MVP1 / MVP1.5 / MVP2 / MVP3 / MVP4 / GA / v2) to MVP1 → MVP2 → MVP3 → GA:
+# MVP1.5 work folded into MVP2 ("Three-Engine + Real Signals"); MVP3 became
+# "Observable" (was previously MVP4 theme); multi-tenancy + multi-LLM and v2+
+# went to the backlog.
 ROADMAP_RELEASES: list[tuple[str, str, str]] = [
     ("mvp1", "MVP1 / v0.1", "The Loop"),
-    ("mvp1.5", "MVP1.5 / v0.1.5", "Real Signals"),
-    ("mvp2", "MVP2 / v0.2", "Observable"),
-    ("mvp3", "MVP3 / v0.3", "Production Stacks"),
-    ("mvp4", "MVP4 / v0.4", "Multi-tenant, Multi-LLM"),
+    ("mvp2", "MVP2 / v0.2", "Three-Engine + Real Signals"),
+    ("mvp3", "MVP3 / v0.3", "Observable"),
     ("ga", "GA v1 / v1.0", "Production-ready"),
-    ("v2", "v2+", "post-GA"),
 ]
 
 # Feature directory name → human title fragment. Anything not in this map
@@ -151,18 +151,45 @@ Capture group is the version number; supports integer (``"2"``) and decimal
 (``"1.5"``) forms."""
 
 
-def _target_release(short_name: str, status_line: str) -> str:
+_BUCKET_TO_RELEASE: dict[str, str] = {
+    "01_mvp1": "mvp1",
+    "02_mvp2": "mvp2",
+    "03_mvp3": "mvp3",
+    "04_ga": "ga",
+    "99_backlog": "backlog",
+    "00_unsure": "unsure",
+}
+"""MVP-bucket folder → release tag. The bucket is the authoritative signal:
+operators file features under ``02_mvp2/`` etc. to declare release scope.
+
+``99_backlog`` → ``"backlog"`` and ``00_unsure`` → ``"unsure"`` are
+sentinel tags absent from :data:`ROADMAP_RELEASES`, so features in those
+buckets don't appear on any release dashboard and don't inflate the
+default-MVP1 fallback. Operators promote them by moving the folder into
+an ``NN_mvpN`` / ``04_ga`` bucket when scope is locked."""
+
+
+def _target_release(short_name: str, status_line: str, bucket: str | None = None) -> str:
     """Classify a feature's target release tag.
 
-    Two signals, suffix wins over status:
+    Three signals, in precedence order:
 
-    1. Folder ``_mvpN`` or ``_mvpN_M`` suffix on ``short_name`` (e.g.,
+    1. **Bucket folder** (``01_mvp1`` / ``02_mvp2`` / ``03_mvp3`` / ``04_ga``
+       / ``99_backlog`` / ``00_unsure``). The authoritative operator-curated
+       signal — every bucket in :data:`_BUCKET_TO_RELEASE` short-circuits the
+       cascade. ``99_backlog`` → ``"backlog"`` and ``00_unsure`` → ``"unsure"``
+       are sentinel tags absent from :data:`ROADMAP_RELEASES`; a backlog
+       item with a stale ``Held for MVP2`` status line stays on the backlog
+       dashboard rather than polluting MVP2, because the operator's act of
+       filing it under ``99_backlog/`` is the more recent, authoritative
+       deferral signal. Promotion is done by moving the folder, not by
+       editing the status line.
+    2. Folder ``_mvpN`` or ``_mvpN_M`` suffix on ``short_name`` (e.g.,
        ``arq_subprocess_test_mvp2`` → ``mvp2``; ``foo_mvp1_5`` →
-       ``mvp1.5``). This is the canonical per-folder hold marker — same
-       precedent the ``bug_chat_long_conversation_truncation_mvp2`` rename
-       established (state.md 2026-05-13). Half-step folders use
-       underscore-instead-of-dot since folder names can't have dots.
-    2. ``**Status:** Held for MVPN`` / ``anchor feature for MVPN.M`` line
+       ``mvp1.5``). Legacy per-folder hold marker — preserved so older
+       folders that predate the bucket migration still classify
+       correctly when handed in via a synthetic ``bucket=None`` path.
+    3. ``**Status:** Held for MVPN`` / ``anchor feature for MVPN.M`` line
        in the idea/spec body. Recognizes both integer and decimal
        release tags.
 
@@ -172,6 +199,8 @@ def _target_release(short_name: str, status_line: str) -> str:
     folder name they live under (suffix-detected first), or MVP1 if
     they shipped before the per-release tagging convention.
     """
+    if bucket and bucket in _BUCKET_TO_RELEASE:
+        return _BUCKET_TO_RELEASE[bucket]
     m = _RELEASE_SUFFIX_RE.search(short_name)
     if m:
         # Normalize underscore-form half-step (``"1_5"``) → dot-form
@@ -838,6 +867,12 @@ def _load_planned(folder_path: Path) -> Feature | None:
         or DEFAULT_PRIORITY
     )
 
+    # Bucket = the immediate parent dir name (e.g., "01_mvp1"). Only set
+    # for features iterated from inside a bucket; legacy flat-iteration
+    # callers would leave bucket=None (used by tests that pass a synthetic
+    # path). load_all() always supplies bucketed paths.
+    bucket = folder_path.parent.name if folder_path.parent.name in _BUCKET_DIRS else None
+
     feature = Feature(
         folder=folder,
         prefix=prefix,
@@ -851,19 +886,14 @@ def _load_planned(folder_path: Path) -> Feature | None:
         pr_number=_extract_pr_number(pipe, plan, spec, idea),
         merged_date=_extract_merged_date(pipe + plan + spec),
         deferred_phase=deferred,
-        # Release classifier reads ONLY the parsed status_line, not the full
-        # idea body — body prose may quote release-tag phrases as documentation
-        # examples (e.g. `bug_dashboard_classifier_half_step_releases` cites
-        # "anchor feature for MVP1.5" in its design doc), which would
-        # incorrectly classify the bug folder as an MVP1.5 feature. The
-        # status_line is operator-curated and intentional; body prose isn't.
-        release=_target_release(short, status_line),
+        # Release classifier precedence: bucket > folder-name suffix > status_line.
+        # The bucket (`01_mvp1` / `02_mvp2` / ...) is the operator-curated
+        # authoritative signal. Suffix + status_line remain as fallbacks for
+        # folders without a bucket (00_unsure / 99_backlog) or that predate
+        # the bucket migration.
+        release=_target_release(short, status_line, bucket=bucket),
         priority=priority,
-        # Bucket = the immediate parent dir name (e.g., "01_mvp1"). Only set
-        # for features iterated from inside a bucket; legacy flat-iteration
-        # callers would leave bucket=None (used by tests that pass a synthetic
-        # path). load_all() always supplies bucketed paths.
-        bucket=folder_path.parent.name if folder_path.parent.name in _BUCKET_DIRS else None,
+        bucket=bucket,
     )
     return feature
 
