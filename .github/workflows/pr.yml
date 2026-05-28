@@ -80,7 +80,7 @@ jobs:
         run: uv sync --frozen
 
       - name: pytest backend/tests/unit/
-        run: uv run pytest backend/tests/unit/ --no-cov -q
+        run: uv run pytest backend/tests/unit/ -n auto --no-cov -q
 
   backend:
     name: backend (lint + typecheck + tests + coverage)
@@ -221,7 +221,15 @@ jobs:
           # behavior is acceptable until the deploy workflow exists.
           RELYLOOP_API_URL: http://localhost:8000
         run: |
+          # CI-perf #3: -n auto enables parallel test execution via pytest-xdist
+          # (1 worker per CPU core). Cuts the pytest step from ~6min serial to
+          # ~3min on the standard GitHub-hosted ubuntu-latest runner (2-core).
+          # --dist worksteal is the modern default for mixed-duration test mix;
+          # short tests fill in around long ones (better than the older
+          # round-robin `loadfile` distribution). See
+          # chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
           uv run pytest backend/tests/ \
+            -n auto --dist worksteal \
             --cov=backend \
             --cov-report=xml \
             --cov-report=term-missing
@@ -307,6 +315,13 @@ jobs:
     name: smoke (operator-path tutorial flow)
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    # Depend on the parallel `docker` (API) + `docker-ui` jobs so both image
+    # artifacts are ready before `make up`. Pre-bumps this PR was paying ~10min
+    # for `docker compose up -d` (image pulls + API + UI builds inside the
+    # step). The artifact handoff (API + UI) + base-image cache + SKIP_BUILD
+    # below cut that to ~2-3min on a warm cache. See
+    # chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
+    needs: [docker, docker-ui]
     permissions:
       contents: read
     steps:
@@ -365,7 +380,70 @@ jobs:
             exit 1
           fi
 
+      # CI-perf #1: download the pre-built API + UI images from the parallel
+      # docker / docker-ui jobs so `make up` skips both in-step `docker build`s
+      # (saves ~5min). Combined with RELYLOOP_SKIP_BUILD=1 (which makes
+      # install.sh skip its `docker compose build` step) compose just `up`s
+      # the loaded images. RELYLOOP_GIT_SHA below picks them up by tag.
+      - name: Download pre-built API image
+        uses: actions/download-artifact@v6
+        with:
+          name: relyloop-api-image-${{ github.sha }}
+          path: /tmp/
+
+      - name: Download pre-built UI image
+        uses: actions/download-artifact@v6
+        with:
+          name: relyloop-ui-image-${{ github.sha }}
+          path: /tmp/
+
+      - name: Load pre-built API + UI images into Docker
+        run: |
+          docker load -i /tmp/relyloop-api-image.tar
+          docker load -i /tmp/relyloop-ui-image.tar
+          docker image ls 'relyloop/*'
+
+      # CI-perf #2: cache the base service-container images (postgres / redis /
+      # elasticsearch / opensearch) keyed on their tags. On cache hit we
+      # `docker load` 4 tars in ~5s vs ~60-90s for `docker pull` on miss.
+      # Key changes whenever any of the image tags in docker-compose.yml change
+      # (forces re-pull on a bump PR, hit on subsequent runs).
+      - name: Cache base service-container images
+        id: base-image-cache
+        uses: actions/cache@v5
+        with:
+          path: /tmp/docker-base-images
+          key: docker-base-images-v1-${{ hashFiles('docker-compose.yml') }}
+
+      - name: Pre-pull + save base images on cache miss
+        if: steps.base-image-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /tmp/docker-base-images
+          for img in postgres:17 redis:8 elasticsearch:9.4.1 opensearchproject/opensearch:3.6.0; do
+            docker pull "$img"
+            safe=$(echo "$img" | tr '/:' '__')
+            docker save "$img" -o "/tmp/docker-base-images/${safe}.tar"
+          done
+
+      - name: Load base images on cache hit
+        if: steps.base-image-cache.outputs.cache-hit == 'true'
+        run: |
+          for tar in /tmp/docker-base-images/*.tar; do
+            docker load -i "$tar"
+          done
+          docker image ls
+
+      # Compose's `image:` lines reference `relyloop/api:${RELYLOOP_GIT_SHA:-dev}`
+      # and `relyloop/ui:${RELYLOOP_GIT_SHA:-dev}` — setting RELYLOOP_GIT_SHA
+      # here makes compose pick up the loaded images instead of trying to
+      # build/pull them. RELYLOOP_SKIP_BUILD=1 also makes install.sh skip its
+      # explicit `docker compose build` step (added 2026-05-28; see install.sh
+      # step 6). Together these eliminate the API + UI build duplication in
+      # smoke that was eating ~5min per run.
       - name: Bring up the stack
+        env:
+          RELYLOOP_GIT_SHA: ${{ github.sha }}
+          RELYLOOP_SKIP_BUILD: "1"
         run: make up
 
       - name: Wait for /healthz
@@ -545,3 +623,59 @@ jobs:
               exit 1
             }
           '
+
+      # Export the built API image as a tar so the smoke job can `docker load`
+      # it instead of rebuilding (which costs ~2-3min inside `make up`). See
+      # chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md for the
+      # smoke-pace context. compression-level: 0 because docker save already
+      # produces a compressed tar (re-compressing wastes ~30s with no win).
+      - name: Export API image as tar for smoke job
+        run: docker save relyloop/api:${{ github.sha }} -o /tmp/relyloop-api-image.tar
+
+      - name: Upload API image artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: relyloop-api-image-${{ github.sha }}
+          path: /tmp/relyloop-api-image.tar
+          retention-days: 1
+          compression-level: 0
+
+  docker-ui:
+    name: docker buildx (relyloop/ui)
+    runs-on: ubuntu-latest
+    # Parallel to `docker` (API buildx). Symmetric pattern: builds + uploads
+    # the UI image as a tar so the smoke job can `docker load` it instead of
+    # rebuilding inside `make up`. Reused via `needs: [docker, docker-ui]` on
+    # the smoke job + `RELYLOOP_SKIP_BUILD=1` to bypass install.sh's build step.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build relyloop/ui (no push, load into local daemon)
+        uses: docker/build-push-action@v7
+        with:
+          context: ./ui
+          file: ui/Dockerfile
+          push: false
+          load: true
+          tags: relyloop/ui:${{ github.sha }}
+          # The compose service bakes NEXT_PUBLIC_API_BASE_URL into the bundle
+          # at build time (Next.js inlines it at `next build`). Match the value
+          # docker-compose.yml line 183 sets so the smoke run uses the same URL.
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+          cache-from: type=gha,scope=ui
+          cache-to: type=gha,scope=ui,mode=max
+
+      - name: Export UI image as tar for smoke job
+        run: docker save relyloop/ui:${{ github.sha }} -o /tmp/relyloop-ui-image.tar
+
+      - name: Upload UI image artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: relyloop-ui-image-${{ github.sha }}
+          path: /tmp/relyloop-ui-image.tar
+          retention-days: 1
+          compression-level: 0

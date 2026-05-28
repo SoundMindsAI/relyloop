@@ -73,7 +73,17 @@ docker compose config --quiet
 #    No-args = build every service that declares a `build:` block. The earlier
 #    hardcoded `api worker` list silently skipped the `ui` service after it
 #    joined Compose, leaving frontend changes invisible until manual rebuild.
-docker compose build
+#
+#    CI escape hatch: set `RELYLOOP_SKIP_BUILD=1` to skip this step. CI pre-
+#    builds the API + UI images in parallel `docker` + `docker-ui` jobs and
+#    `docker load`s them before calling `make up`, so a second `docker compose
+#    build` here would be ~3-5min of pure duplication. See
+#    chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
+if [[ "${RELYLOOP_SKIP_BUILD:-0}" != "1" ]]; then
+  docker compose build
+else
+  echo "RELYLOOP_SKIP_BUILD=1 set — skipping 'docker compose build' (CI artifact-handoff path)"
+fi
 
 # 7. Bring the stack up. `docker compose up -d` is itself idempotent.
 #    `--wait` blocks until every container's healthcheck passes (or fails) —
