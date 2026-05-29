@@ -201,6 +201,17 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=false  # local dev only — production install activates at GA v1
       - ES_JAVA_OPTS=-Xms${ES_HEAP_SIZE:-512m} -Xmx${ES_HEAP_SIZE:-512m}
+      # Disable disk-watermark allocation gating for the single-node dev/CI
+      # cluster. GHA runners boot with ~9% free disk (~6.8 GB / 71 GB) which
+      # trips ES's high watermark (default 90%) and causes ES to refuse to
+      # allocate the products index's primary shard — status=red,
+      # active_primary_shards=0, initializing_shards=0. The watermark behavior
+      # is by-design on multi-node clusters (relocate shards off a full node)
+      # but harmful on single-node where there's nowhere to relocate. See
+      # bug_smoke_seed_es_unavailable_shards_race PR #297 for the diagnosis
+      # (smoke-logs from run 26612512222 showed the disk-watermark WARN
+      # immediately before the failed allocation).
+      - cluster.routing.allocation.disk.threshold_enabled=false
     ports:
       - "127.0.0.1:9200:9200"
     healthcheck:
