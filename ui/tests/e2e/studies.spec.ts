@@ -269,7 +269,7 @@ test.describe('/studies', () => {
     } else {
       // Button disabled = study has transitioned past queued/running.
       // Confirm the underlying state via the API.
-      const apiResp = await page.request.get(`${API_BASE}/api/v1/studies/${study.id}`);
+      const apiResp = await page.request.get(new URL(`/api/v1/studies/${study.id}`, API_BASE).toString());
       expect(apiResp.ok()).toBe(true);
       const body = await apiResp.json();
       expect(['completed', 'failed', 'cancelled']).toContain(body.status);

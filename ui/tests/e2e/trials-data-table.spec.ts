@@ -42,7 +42,7 @@ test.describe('/studies/[id] trials DataTable', () => {
       'optuna_trial_number_asc',
     ]) {
       const resp = await page.request.get(
-        `${API_BASE}/api/v1/studies/${study.id}/trials?sort=${sort}&limit=1`,
+        new URL(`/api/v1/studies/${study.id}/trials?sort=${sort}&limit=1`, API_BASE).toString(),
       );
       expect(resp.status(), `sort=${sort}`).toBe(200);
     }
@@ -61,7 +61,7 @@ test.describe('/studies/[id] trials DataTable', () => {
     // codec configures the column as asc-only). Garbage tokens also reject.
     for (const sort of ['optuna_trial_number_desc', 'name:asc', 'garbage']) {
       const resp = await page.request.get(
-        `${API_BASE}/api/v1/studies/${study.id}/trials?sort=${sort}&limit=1`,
+        new URL(`/api/v1/studies/${study.id}/trials?sort=${sort}&limit=1`, API_BASE).toString(),
       );
       expect(resp.status(), `sort=${sort}`).toBe(422);
     }
