@@ -60,6 +60,7 @@ Shipped guides:
 **Workflows still NOT covered by a guide:**
 
 - **D4 (full) — Open PR end-to-end**: the trigger is captured in guide 02; the worker's GitHub interaction requires a registered config-repo + real PAT, which is operator-credential territory.
+- **UBI judgment generation**: guide 09 covers the LLM-as-judge path; the UBI (click/dwell) alternative needs a cluster with captured behavior traffic, which is operator-data territory. See the [UBI judgment-generation runbook](../03_runbooks/ubi-judgment-generation.md) and the optional UBI upgrade step in [`tutorial-first-study.md`](tutorial-first-study.md).
 
 ### Adding or regenerating a guide
 

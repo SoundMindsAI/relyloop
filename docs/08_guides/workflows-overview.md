@@ -101,6 +101,14 @@ These define *what you're tuning* (the query template knobs) and *what good look
 - **Side effects:** Creates a `judgment_lists` row (status=`generating`), enqueues the worker. Cost-gated by daily OpenAI budget. ~$0.01–$0.05 with `gpt-4o-mini` on the 48-query tutorial set.
 - **Auto-recovery:** If the worker crashes mid-list, the boot-time sweep + the every-15-minute `resume_stuck_judgment_lists` cron re-enqueue stuck lists (capped at 24 attempts/day to prevent infinite loops). See [`feat_judgments_periodic_resume_sweep`](../00_overview/implemented_features/2026_05_14_feat_judgments_periodic_resume_sweep/).
 
+#### B4a. Generate judgments via UBI (User Behavior Insights)
+- **Solves:** Grading study trials against *real user behavior* (clicks, dwell time) instead of an LLM's prediction. Complementary to B4 — UBI needs a cluster that has captured click/dwell traffic; LLM works with zero traffic. Engine-neutral: works on Elasticsearch, OpenSearch, and Solr from the same `ubi_queries` + `ubi_events` schema.
+- **Readiness probe:** `GET /api/v1/clusters/{id}/ubi-readiness` reports a rung (`rung_0`..`rung_3`) from the captured event volume. The "Generate judgments" modal surfaces an on-ramp nudge below `rung_3` and a sparse-data card when coverage is thin.
+- **How (UI):** [`/query-sets/[id]`](../../ui/src/app/query-sets/[id]/page.tsx) → "Generate judgments" modal → **Method** picker: `UBI (click-through)`, `UBI (dwell-time)`, or `Hybrid UBI + LLM` (UBI for high-signal pairs, LLM fills the long tail). The detail page then shows a value-delta card comparing the UBI ratings against any prior LLM list.
+- **How (API):** `POST /api/v1/judgments/generate-from-ubi` returns `202 ACCEPTED` with a `judgment_list_id`. The `generate_judgments_from_ubi` worker runs the converter; the chat agent exposes the same path via the `generate_judgments_from_ubi` tool.
+- **Side effects:** Creates a `judgment_lists` row (status=`generating`, `source='click'`). Read-only against the cluster — RelyLoop never writes to UBI indices. Pure-UBI converters cost no LLM tokens; hybrid mode costs match B4 for the filled pairs only.
+- **Runbook:** [`../03_runbooks/ubi-judgment-generation.md`](../03_runbooks/ubi-judgment-generation.md) for per-engine UBI capture setup + converter selection.
+
 #### B5. Import pre-curated judgments (tutorial / sideload path)
 - **Solves:** Bypassing LLM generation when you already have human-labeled judgments (e.g., from Amazon ESCI, a previous tool, or hand-curation).
 - **How (API):** `POST /api/v1/judgment-lists/import` — bulk-insert with strict validation (every `query_id` must exist in the query set, duplicate `(query_id, doc_id)` rejected). Sets status=`complete` immediately, no LLM call.
@@ -108,7 +116,7 @@ These define *what you're tuning* (the query template knobs) and *what good look
 
 #### B6. Review and override individual judgments
 - **Solves:** The LLM gets things wrong — sometimes spectacularly. Engineers need to inspect the (query, doc, rating, LLM-reasoning) tuples and override the bad ones, *without* re-running generation.
-- **How (UI):** [`/judgments/[id]`](../../ui/src/app/judgments/[id]/page.tsx) — table with a source filter (`llm` / `human`), inline override.
+- **How (UI):** [`/judgments/[id]`](../../ui/src/app/judgments/[id]/page.tsx) — table with a source filter (`llm` / `human` / `click`), inline override.
 - **How (API):** `PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}` — UPSERT semantics; the human override coexists with the LLM judgment and supersedes it for scoring.
 
 #### B7. Calibrate LLM judgments against human ground truth

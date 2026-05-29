@@ -1,7 +1,7 @@
 # Implementation Plan — UBI Judgments (engine-neutral User Behavior Insights)
 
 **Date:** 2026-05-29
-**Status:** Approved (cross-model converged at 3-cycle cap; all 3 GPT-5.5 findings accepted — see footer)
+**Status:** Complete (PR #317, squash-merged 2026-05-29). 13/13 stories shipped; Gemini (6) + GPT-5.5 final review (6) adjudicated; deferrals → `chore_ubi_reader_search_after_pagination`, `chore_ubi_hybrid_template_render`, `feat_demo_ubi_study_comparison`.
 **Primary spec:** [feature_spec.md](feature_spec.md) (Approved 2026-05-29; cross-model converged at cycle-3 cap with all 10 findings accepted — see spec §19 D-10)
 **Policy source(s):**
 - [docs/01_architecture/api-conventions.md](../../../../01_architecture/api-conventions.md) — `/api/v1/<resource>` prefix, error envelope `{"detail":{"error_code","message","retryable"}}`, cursor pagination, `X-Total-Count`

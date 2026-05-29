@@ -6,30 +6,24 @@ _Reflects feature-folder state as of **2026-05-29** (latest mtime of any planned
 
 ## Next up
 
-**[feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md)** — Feature, currently in **Implementing**
+All scoped MVP2 features shipped 🎉
 
-> Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real click + dwell behavior via three converters
-
-Implementation in progress — resume to finish
-
-```bash
-/impl-execute docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments/implementation_plan.md --all  # resume in-progress
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP2 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **1 / 2** (50%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **18** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **1 / 1** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **3** high-value, ready when P0 clears |
+| → P1 | **2** high-value, ready when P0 clears |
 | → P2 (default) | 11 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 3 |
-| Legacy "Path to MVP2" | 10 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP2) |
-| In flight | 1 feature(s) actively shipping |
+| In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -39,11 +33,9 @@ Implementation in progress — resume to finish
 |---|---|---|---|---|
 | [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study: | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) merged 2026-05-15 |
 
-### Implementing (1)
+### Implementing (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P1 | [feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md) | Feature | Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic | — | — |
+_None._
 
 ### Plan (0)
 
@@ -86,8 +78,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_ubi_judgments["ubi judgments"]
-  class feat_ubi_judgments implement;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
 ```
