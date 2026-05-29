@@ -3,7 +3,7 @@
 **Date:** 2026-05-27
 **Status:** Idea — anchor feature for MVP2 / v0.2 "Three-Engine + Real Signals" (bundled with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md))
 **Priority:** P1 — MVP2 is named for the bundle of this adapter + UBI judgments; together they ship four of RelyLoop's six differentiators (all three OSS engines + hybrid UBI+LLM)
-**Origin:** Positioning reframe on 2026-05-27 (see [`chore_drop_fusion_scope/idea.md`](../chore_drop_fusion_scope/idea.md) for the paired Fusion-drop rationale and [`docs/07_research/comparison.md`](../../../07_research/comparison.md) for the moat analysis). Replaces the previously-planned Lucidworks Fusion adapter as the next engine target.
+**Origin:** Positioning reframe on 2026-05-27 (see [`chore_drop_fusion_scope/idea.md`](../../../implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md) for the paired Fusion-drop rationale — shipped 2026-05-28 — and [`docs/07_research/comparison.md`](../../../../07_research/comparison.md) for the moat analysis). Replaces the previously-planned Lucidworks Fusion adapter as the next engine target.
 **Depends on:** MVP1 shipped (`ElasticAdapter`, `SearchAdapter` Protocol, study lifecycle, judgment lists, PR worker). Co-released with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md): Solr's `solr.UBIComponent` writes the same `ubi_queries` + `ubi_events` schema, so the MVP2 `UbiReader` works unchanged against a Solr cluster from day one.
 
 ## Problem
@@ -15,7 +15,7 @@ After MVP1.5, RelyLoop runs against Elasticsearch and OpenSearch — but the "en
 3. **Quepid + Chorus user base is Solr-native.** OSC's primary reference stack is Solr-based. Operators who already run Quepid for manual relevance evaluation are the natural adopters for RelyLoop's Bayesian-loop upgrade on the same engine they already manage.
 4. **LTR is stable.** Solr 10 (March 2026) ships `modules/ltr` with `LinearModel`, `MultipleAdditiveTreesModel` (XGBoost-compatible), and `NeuralNetworkModel`. Stable since Solr 6. The de facto OSS LTR baseline outside ES native LTR ([Sease: Solr 10 LTR overview](https://sease.io/2026/03/apache-solr-10-what-is-new-for-vector-search-and-ltr.html)).
 
-The Lucidworks Fusion adapter that previously occupied this slot is dropped — see [`chore_drop_fusion_scope`](../chore_drop_fusion_scope/idea.md) for the rationale (vendor entanglement, narrower audience overlap with the Quepid/Chorus community, materially higher build cost).
+The Lucidworks Fusion adapter that previously occupied this slot is dropped — see [`chore_drop_fusion_scope`](../../../implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md) for the rationale (vendor entanglement, narrower audience overlap with the Quepid/Chorus community, materially higher build cost).
 
 ## Proposed capabilities
 
@@ -23,8 +23,8 @@ The Lucidworks Fusion adapter that previously occupied this slot is dropped — 
 
 - **Location:** new module `backend/app/adapters/solr.py` implementing the `SearchAdapter` Protocol from [`backend/app/adapters/protocol.py`](../../../../../backend/app/adapters/protocol.py).
 - **Engine support:** Solr 9.x (current widely-deployed) + Solr 10.x (released 2026-03). SolrCloud and standalone modes both supported. Solr 8.x and earlier explicitly out of scope.
-- **`search_batch`:** parallel `/select` requests with a connection pool. Solr has no `_msearch` equivalent; the JSON Request API allows multi-query but is awkward and undertested across versions. Connection pool sized via existing settings (`HTTPX_POOL_LIMITS`).
-- **`render`:** produces a Solr request parameter dict (later URL-encoded). Supports `edismax` (primary), `dismax`, and `lucene` parsers. Templates live under `templates/solr/` as Jinja templates that emit parameter maps, mirroring `templates/elasticsearch/` shape.
+- **`search_batch`:** parallel `/select` requests with a connection pool. Solr has no `_msearch` equivalent; the JSON Request API allows multi-query but is awkward and undertested across versions. Connection pool sized via the same inline `httpx.AsyncClient` pattern the ElasticAdapter uses today (`timeout=Timeout(10.0, connect=2.0)`, see [`backend/app/adapters/elastic.py:120`](../../../../../backend/app/adapters/elastic.py#L120)); a settings-level pool tunable can be introduced if Solr's per-query parallelism warrants it (open at spec time — there is no `HTTPX_POOL_LIMITS` setting today, verified 2026-05-29).
+- **`render`:** produces a Solr request parameter dict (later URL-encoded). Supports `edismax` (primary), `dismax`, and `lucene` parsers. Templates live under `templates/solr/` as Jinja templates that emit parameter maps. **Template-path convention is unresolved as of 2026-05-29:** the repo's only existing template is at [`samples/templates/product_search.j2`](../../../../../samples/templates/product_search.j2); the repo-root `templates/` directory exists but is empty (`.keep` only). The sibling [`chore_template_library_expansion`](../chore_template_library_expansion/idea.md) proposes expanding `samples/templates/`, not introducing `templates/<engine>/`. Pick one convention in `/spec-gen` and apply it uniformly to both adapters (open question listed below).
 - **`get_schema`:** uses Solr's Schema API (`/schema/fields`, `/schema/dynamicfields`, `/schema/fieldtypes`). Result shape matches `Schema` type unchanged.
 - **`list_targets`:** uses CoresAdmin API (`/admin/cores?action=STATUS`) for standalone; CollectionsAdmin (`/admin/collections?action=LIST`) for SolrCloud. Selects automatically based on a startup capability probe.
 - **`explain`:** uses `debugQuery=true&debug=results` and parses `debug.explain` from the response.
@@ -90,8 +90,16 @@ Solr-specific notes:
 
 ## Relationship to other work
 
-- **Replaces the previously-planned Lucidworks Fusion adapter** as the next engine target. See [`chore_drop_fusion_scope/idea.md`](../chore_drop_fusion_scope/idea.md) for why Fusion was dropped.
+- **Replaces the previously-planned Lucidworks Fusion adapter** as the next engine target. See [`chore_drop_fusion_scope`](../../../implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md) (shipped 2026-05-28) for why Fusion was dropped.
 - **Bundled with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md)** in MVP2 — Solr's `solr.UBIComponent` writes the same UBI schema; the UBI reader and hybrid UBI+LLM converter work on Solr unchanged from day one.
+- **Required by [`feat_ubi_onramp`](../feat_ubi_onramp/idea.md)** — the engine-aware "enable real user signals" nudge spans all three engines only after the `engine_type` CHECK constraint extension here lands. Until then the on-ramp covers `elasticsearch | opensearch` (current values at [`cluster.py:30`](../../../../../backend/app/db/models/cluster.py#L30)).
+- **Pairs with [`chore_template_library_expansion`](../chore_template_library_expansion/idea.md)** (Workstream C in [`mvp2-overview.md`](../../../../01_architecture/mvp2-overview.md)) — that idea ships the curated multi-engine template library (including Solr templates) and the per-engine tunable-params cheatsheets. Coordinate the template-path convention with it (see open questions).
 - **Multi-Git provider abstraction (GitLab, Bitbucket) is in the backlog** — was previously bundled with the Fusion-era MVP3; reframed as backlog because it serves a smaller adopter axis than the engine sweep + observability path. GitHub remains the only Git provider through GA v1.
-- **Unlocks the verifiable "engine-neutral" claim** in [`docs/07_research/comparison.md`](../../../07_research/comparison.md) and the umbrella spec §1. The claim is rhetorical at MVP1; it becomes factual at MVP2.
+- **Unlocks the verifiable "engine-neutral" claim** in [`docs/07_research/comparison.md`](../../../../07_research/comparison.md) and the umbrella spec §1. The claim is rhetorical at MVP1; it becomes factual at MVP2.
 - **MVP3 "Observable" follows** — Langfuse + SigNoz + audit-log immutability + lineage layers on top of all three engines and both judgment sources in one go.
+
+## Open questions for /spec-gen
+
+1. **Template-path convention.** Adopt `templates/<engine>/` (this idea's current text) or extend `samples/templates/` (the convention `chore_template_library_expansion` proposes)? Whichever wins must apply uniformly — splitting "Solr at one path, ES/OS at another" is the worst outcome. Recommended: `samples/templates/<engine>/` (extends today's location without introducing a second top-level templates dir, and matches the sibling chore's path baseline).
+2. **httpx pool tunable.** Introduce a settings-level pool limit (`HTTPX_POOL_LIMITS` or similar) as part of this work, or rely on the inline `AsyncClient` defaults the ElasticAdapter uses today? The latter ships sooner; the former is the right shape if Solr's parallel `/select` warrants per-engine tuning.
+3. **LTR test fixture** (also tracked in [`mvp2-overview.md` §10](../../../../01_architecture/mvp2-overview.md)) — load a real `MultipleAdditiveTreesModel` into Compose Solr for the E2E, or assert the `rq={!ltr …}` render shape only?

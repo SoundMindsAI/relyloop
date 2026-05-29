@@ -3,7 +3,7 @@
 **Date:** 2026-05-28
 **Status:** Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep
 **Priority:** P2 — latent. Affects operators running `make seed-demo` locally; same `unavailable_shards_exception` race that broke CI's `seed-es` step will silently corrupt the seeded demo data here, with no logs and no exit-code signal.
-**Origin:** Surfaced while tracing the bulk-error handling in `seed_es.py`. The sibling script `scripts/seed_meaningful_demos.py` has its OWN bulk-index loop using `urllib.request` (not httpx) that never inspects the response body — fundamentally the same write-allocation race exposed in [bug_smoke_seed_es_unavailable_shards_race](../bug_smoke_seed_es_unavailable_shards_race/idea.md), but unguarded.
+**Origin:** Surfaced while tracing the bulk-error handling in `seed_es.py`. The sibling script `scripts/seed_meaningful_demos.py` has its OWN bulk-index loop using `urllib.request` (not httpx) that never inspects the response body — fundamentally the same write-allocation race exposed in [bug_smoke_seed_es_unavailable_shards_race](../../../implemented_features/2026_05_29_bug_smoke_seed_es_unavailable_shards_race/idea.md), but unguarded.
 **Depends on:** None.
 
 ## Problem
@@ -23,7 +23,7 @@ ES bulk semantics return HTTP 200 even when the primary shard is INITIALIZING �
 
 Net: operators running `make seed-demo` get incomplete demo data with no signal. Studies created against the demo cluster will return zero results or fewer-than-expected hits, looking like a configuration problem.
 
-**Why latent now:** [`chore_drop_demo_seed_from_ci`](../../implemented_features/2026_05_28_chore_drop_demo_seed_from_ci/idea.md) removed `make seed-demo FORCE=1` from `pr.yml`, so CI doesn't exercise this path. Local-dev operators still hit it via the home page's "Reset to demo state" button + the `chore_tutorial_polish` walkthrough.
+**Why latent now:** [`chore_drop_demo_seed_from_ci`](../../../implemented_features/2026_05_28_chore_drop_demo_seed_from_ci/idea.md) removed `make seed-demo FORCE=1` from `pr.yml`, so CI doesn't exercise this path. Local-dev operators still hit it via the home page's "Reset to demo state" button + the `chore_tutorial_polish` walkthrough.
 
 ## Proposed capabilities
 
@@ -53,6 +53,6 @@ Just check `payload.get("errors")` and exit non-zero with a clear message. Doesn
 
 ## Relationship to other work
 
-- **Mirror of [`bug_smoke_seed_es_unavailable_shards_race`](../bug_smoke_seed_es_unavailable_shards_race/idea.md)** — same root cause, different script, different HTTP library. Pick this up after the sibling bug ships so the retry pattern is established.
+- **Mirror of [`bug_smoke_seed_es_unavailable_shards_race`](../../../implemented_features/2026_05_29_bug_smoke_seed_es_unavailable_shards_race/idea.md)** — same root cause, different script, different HTTP library. Pick this up after the sibling bug ships so the retry pattern is established.
 - **Composes with the "extract `_bulk_with_retry` to shared module" refactor** the bug_smoke fix noted but deferred — best to land both together.
 - **Surfaces on `make seed-demo` only.** Not a CI blocker; affects local operator first-impression quality.

@@ -8,7 +8,7 @@
 
 ## Problem
 
-The "Karpathy overnight loop" is **already implemented** and **already autonomous**, but an operator has no way to discover or trust it:
+The "Karpathy overnight loop" is already implemented and already autonomous, but an operator has no way to discover or trust it:
 
 1. **`auto_followup_depth` is a hidden config key.** When set (the validator accepts `0–5`, where `0` = no chaining, so `1–5` enables it — [`schemas.py:645`](../../../../../backend/app/api/v1/schemas.py#L645)), a completed study automatically narrows the search space around its winner, decrements the depth, and spawns a child study — **zero human intervention between iterations** ([`backend/workers/auto_followup.py`](../../../../../backend/workers/auto_followup.py)). The chain self-terminates on depth exhaustion, sub-epsilon lift (<0.5%), budget at 80%, or parent failure. This is exactly the operator's "wake up to a few results" ask. But it is not exposed as a first-class control in the create-study wizard — the operator never knew it existed, so all 7 studies ran one-shot.
 
