@@ -314,7 +314,7 @@ See [`docs/01_architecture/data-model.md`](docs/01_architecture/data-model.md) f
 
 ### Stack
 
-- Next.js 14 App Router (TypeScript) — pages in `ui/src/app/`
+- Next.js 16 App Router (TypeScript, Turbopack) — pages in `ui/src/app/`
 - **shadcn/ui** for UI primitives (components copied into the repo, not an npm dependency — fully customizable)
 - **Tailwind CSS** for styling
 - **TanStack Query** for server state (caching, retries, optimistic updates, mutations)
