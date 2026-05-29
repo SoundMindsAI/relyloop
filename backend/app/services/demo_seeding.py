@@ -105,6 +105,18 @@ _OS_DELETE_AUTH: Final[tuple[str, str]] = ("admin", "admin")
 DEMO_RESEED_STATUS_KEY: Final[str] = "demo_reseed:status"
 DEMO_RESEED_STATUS_TTL_S: Final[int] = 3600
 
+# 20-minute hard ceiling on the entire reseed — 4 small scenarios + the
+# rich ESCI scenario (1000 docs + LLM judgments + 15-trial study). Per
+# scripts/seed_meaningful_demos.py wall-clock notes: small scenarios run
+# ~1 min each, the rich scenario adds ~3-5 min, plus digest waits and
+# headroom. The advisory lock prevents concurrent runs from piling up;
+# this timeout bounds the worst case AND drives the POST handler's
+# stale-status auto-recovery (per
+# ``bug_demo_reseed_button_silent_enqueue_failure``). Lives here (not in
+# the worker module) so the route handler can read it without an
+# API → worker import.
+DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = 1200
+
 
 # Real-study Optuna config — identical to the CLI's
 # ``scripts/seed_meaningful_demos.py:seed_scenario`` so the reseed-button
@@ -392,6 +404,42 @@ async def status_get(redis: Redis) -> ReseedStatusResponse:
 def _now_iso() -> str:
     """UTC timestamp in ISO-8601 (Z-suffix), matching the rest of the API."""
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def reseed_status_is_stale(
+    status: ReseedStatusResponse,
+    *,
+    now: datetime | None = None,
+    timeout_s: int = DEMO_RESEED_JOB_TIMEOUT_S,
+) -> bool:
+    """True when a ``running`` status payload is older than ``timeout_s``.
+
+    Defense-in-depth check for the case where the worker process itself
+    died (OOM, container restart, hard kill) before any exception handler
+    — including the outer ``except BaseException`` barrier added by
+    ``bug_demo_reseed_button_silent_enqueue_failure`` — could run. The
+    POST handler uses this to convert a stuck-running status into a
+    "treat as failed and let the new POST proceed" outcome, instead of
+    leaving the operator 409-blocked forever.
+
+    Pure / deterministic — accepts ``now`` for testability. Treats
+    parse failures + missing ``started_at`` as not-stale (conservative:
+    if we can't prove staleness, prefer the existing 409 behavior so we
+    don't double-enqueue against a real in-flight worker).
+
+    Per ``bug_demo_reseed_button_silent_enqueue_failure`` §"Proposed
+    capabilities" #2.
+    """
+    if status.status != "running" or status.started_at is None:
+        return False
+    try:
+        started = datetime.fromisoformat(status.started_at.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if started.tzinfo is None:
+        started = started.replace(tzinfo=UTC)
+    now_utc = now if now is not None else datetime.now(UTC)
+    return (now_utc - started).total_seconds() > timeout_s
 
 
 # AC-12 test hook (lifted from the prior synchronous route handler) — a

@@ -34,6 +34,9 @@ from sqlalchemy import text
 from backend.app.core.settings import get_settings
 from backend.app.db.session import get_engine, get_session_factory
 from backend.app.services.demo_seeding import (
+    DEMO_RESEED_JOB_TIMEOUT_S as _DEMO_RESEED_JOB_TIMEOUT_S,
+)
+from backend.app.services.demo_seeding import (
     DEMO_RESEED_LOCK_KEY,
     DemoSeedingError,
     ReseedStatusResponse,
@@ -46,13 +49,11 @@ from backend.app.services.demo_seeding import (
 logger = structlog.get_logger(__name__)
 
 
-# 20-minute hard ceiling on the entire reseed — 4 small scenarios + the
-# rich ESCI scenario (1000 docs + LLM judgments + 15-trial study). Per
-# scripts/seed_meaningful_demos.py wall-clock notes: small scenarios run
-# ~1 min each, the rich scenario adds ~3-5 min, plus digest waits and
-# headroom. The advisory lock prevents concurrent runs from piling up;
-# this timeout bounds the worst case.
-DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = 1200
+# Re-export for back-compat — the canonical home is now
+# ``backend.app.services.demo_seeding`` so the route handler can read it
+# without importing from the workers package. Per
+# ``bug_demo_reseed_button_silent_enqueue_failure``.
+DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = _DEMO_RESEED_JOB_TIMEOUT_S
 
 
 async def run_demo_reseed(ctx: dict[str, Any]) -> None:
@@ -72,22 +73,42 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
     No retries — if the underlying ES/OS or DB is in a bad state, retrying
     won't help; the operator needs to investigate. Status flips to
     ``failed`` with the exception class + first 200 chars of the message.
+
+    Per ``bug_demo_reseed_button_silent_enqueue_failure``: the entire
+    function body sits inside a top-level ``except BaseException`` barrier
+    so a crash in pre-main-body init (settings load, ``get_engine()``,
+    ``engine.connect()``, ``factory()``, ``httpx.AsyncClient(...)``) still
+    flips Redis status to ``failed`` instead of leaving the polling
+    endpoint stuck at ``running`` forever. The barrier re-raises after
+    writing status so Arq still records ``JobExecutionFailed`` for ops
+    visibility AND the worker log gets a traceback the operator can read.
+    The inner ``reseed_demo_state`` handler keeps its ``return`` (no
+    re-raise) because re-running the destructive wipe is the wrong
+    behavior — only the outer barrier propagates.
     """
-    settings = get_settings()
-    factory = get_session_factory()
-    # Reuse the Arq-managed Redis pool when available (per Gemini PR #286
-    # finding #7). Falls back to a job-scoped Redis.from_url when ctx
-    # doesn't carry one (e.g., older Arq versions, or unit tests that
-    # invoke the function directly).
+    # Acquire Redis FIRST so the exception barrier can write status even
+    # when settings/factory/engine init explodes. Preserves Gemini PR #286
+    # finding #7 (reuse the Arq-managed pool when ctx carries one, fall
+    # back otherwise) and finding #8 (only close the Redis client when we
+    # created it ourselves; closing Arq's shared pool would kill every
+    # other in-flight job).
     arq_redis = ctx.get("redis") if isinstance(ctx, dict) else None
     created_redis = arq_redis is None
-    redis: Redis = (
-        arq_redis
-        if arq_redis is not None
-        else Redis.from_url(settings.redis_url, decode_responses=False)
-    )
-
+    redis: Redis | None = None
     try:
+        if arq_redis is not None:
+            redis = arq_redis
+        else:
+            # If ``get_settings()`` itself raises, we drop into the outer
+            # barrier without a Redis handle and the operator has to read
+            # worker logs. Acceptable — ``get_settings()`` failure means
+            # the worker can't start ANY job, which is loud at a different
+            # layer (the worker container will log the import-time error
+            # and the operator's whole queue is already stuck).
+            redis = Redis.from_url(get_settings().redis_url, decode_responses=False)
+
+        settings = get_settings()
+        factory = get_session_factory()
         engine = get_engine()
         async with engine.connect() as lock_conn:
             acquired = bool(
@@ -178,9 +199,39 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                     {"k": DEMO_RESEED_LOCK_KEY},
                 )
                 await lock_conn.commit()
+    except BaseException as exc:
+        # Top-level barrier: catches anything the inner handlers don't.
+        # Covers settings/factory/get_engine/engine.connect failures and
+        # any httpx.AsyncClient construction error. Best-effort status
+        # write — never mask the original exception. Re-raise so Arq
+        # still records JobExecutionFailed and the worker log shows the
+        # traceback.
+        if redis is not None:
+            try:
+                logger.warning(
+                    "demo_reseed_worker_init_failed",
+                    exc_class=type(exc).__name__,
+                    exc=str(exc)[:200],
+                )
+                await status_set(
+                    redis,
+                    ReseedStatusResponse(
+                        status="failed",
+                        started_at=_now_iso(),
+                        finished_at=_now_iso(),
+                        failed_reason=f"{type(exc).__name__}: {str(exc)[:200]}",
+                    ),
+                )
+            except Exception:  # noqa: BLE001, S110
+                # Best-effort — never mask the original ``exc``. The
+                # caller (Arq) will still see the re-raised ``BaseException``
+                # below and log a traceback, so this swallow is paired with
+                # a guaranteed loud error elsewhere.
+                pass
+        raise
     finally:
         # Only close the Redis client when we created it ourselves; closing
         # Arq's worker-shared pool would kill every other in-flight job
         # (per Gemini PR #286 finding #8).
-        if created_redis:
+        if created_redis and redis is not None:
             await redis.aclose()

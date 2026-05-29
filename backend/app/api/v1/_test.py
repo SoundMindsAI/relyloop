@@ -40,6 +40,9 @@ from backend.app.services.demo_seeding import (
     _demo_reseed_cleanup_test_gate as _demo_reseed_cleanup_test_gate,
 )
 from backend.app.services.demo_seeding import (
+    reseed_status_is_stale as _reseed_status_is_stale,
+)
+from backend.app.services.demo_seeding import (
     run_demo_reseed_cleanup as _run_demo_reseed_cleanup,  # noqa: F401 — back-compat alias
 )
 from backend.app.services.test_seeding import (
@@ -630,7 +633,7 @@ async def reseed_demo(
     # Reuse the shared ArqRedis pool (subclasses Redis) instead of opening
     # a fresh connection pool per request — per Gemini PR #286 finding #2.
     current = await status_get(arq_pool)
-    if current.status == "running":
+    if current.status == "running" and not _reseed_status_is_stale(current):
         raise _err(
             409,
             "SEED_IN_PROGRESS",
@@ -640,6 +643,13 @@ async def reseed_demo(
             ),
             True,
         )
+    # Per ``bug_demo_reseed_button_silent_enqueue_failure``: if the prior
+    # ``running`` payload is older than ``DEMO_RESEED_JOB_TIMEOUT_S``, the
+    # worker either crashed silently (container restart, OOM, hard kill
+    # before any exception handler ran) or hit a path the worker's
+    # ``except BaseException`` barrier somehow missed. Treat as failed and
+    # let this POST proceed instead of leaving the operator 409-blocked
+    # forever. The new ``initial`` payload below overwrites the stale one.
 
     # 4 small SCENARIOS + 1 rich ESCI scenario — matches ``make seed-demo``.
     # Worker will overwrite this status once it picks up the job, but
