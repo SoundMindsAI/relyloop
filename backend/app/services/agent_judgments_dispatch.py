@@ -26,6 +26,7 @@ dispatcher can map ``HTTPException.detail['error_code']`` into a
 
 from __future__ import annotations
 
+import dataclasses
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
@@ -453,6 +454,19 @@ async def start_ubi_judgment_generation(
       discriminator).
     * **U-H.** Best-effort Arq enqueue (``generate_judgments_from_ubi``).
     """
+    # Normalize naive datetimes to UTC-aware up front. Pydantic accepts a
+    # naive ISO-8601 `since`/`until` (no offset) and leaves it naive; comparing
+    # a naive datetime with the aware `datetime.now(UTC)` below raises
+    # TypeError and crashes the dispatcher (Gemini PR #317 finding #1). Treat
+    # naive inputs as UTC — the wire contract is UTC per the request schema.
+    since_utc = req.since if req.since.tzinfo is not None else req.since.replace(tzinfo=UTC)
+    until_utc = (
+        req.until
+        if (req.until is None or req.until.tzinfo is not None)
+        else req.until.replace(tzinfo=UTC)
+    )
+    req = dataclasses.replace(req, since=since_utc, until=until_utc)
+
     is_hybrid = req.converter == "hybrid_ubi_llm"
     template_id_for_resolve = req.current_template_id if is_hybrid else None
 

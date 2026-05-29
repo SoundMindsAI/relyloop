@@ -463,17 +463,25 @@ def _extract_event(source: dict[str, Any]) -> UbiEvent | None:
         attrs = {}
 
     # doc_id — prefer nested event_attributes.object.object_id, fall back
-    # to top-level object_id (o19s ES UBI fork shape).
+    # to top-level object_id (o19s ES UBI fork shape). Coerce numeric ids to
+    # str: operators may emit object_id as an integer/float (e.g. a numeric
+    # product SKU), and a strict isinstance(str) check would silently drop
+    # those events (Gemini PR #317 finding #4). The engine's own `_id` is
+    # always a string, but UBI event_attributes are operator-populated.
     doc_id: str | None = None
     obj = attrs.get("object")
     if isinstance(obj, dict):
         candidate = obj.get("object_id")
-        if isinstance(candidate, str) and candidate:
-            doc_id = candidate
+        if candidate is not None:
+            candidate_str = str(candidate).strip()
+            if candidate_str:
+                doc_id = candidate_str
     if doc_id is None:
         top_level = source.get("object_id")
-        if isinstance(top_level, str) and top_level:
-            doc_id = top_level
+        if top_level is not None:
+            top_level_str = str(top_level).strip()
+            if top_level_str:
+                doc_id = top_level_str
     if doc_id is None:
         logger.debug(
             "ubi_reader_dropped_event",

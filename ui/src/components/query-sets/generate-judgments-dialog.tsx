@@ -77,8 +77,14 @@ function thirtyDaysAgoIso(): string {
 
 function isoToUtcMs(local: string): string {
   // datetime-local form value is naive (no TZ). Treat it as UTC for the wire.
+  // The browser may return YYYY-MM-DDTHH:MM *or* include seconds/milliseconds;
+  // string-concatenating ':00.000Z' breaks on the latter, so parse via Date
+  // (appending 'Z' to force UTC interpretation) and fall back to "now" on an
+  // unparseable value (Gemini PR #317 finding #6).
   if (!local) return new Date().toISOString();
-  return `${local}:00.000Z`;
+  const naive = local.includes('Z') ? local : `${local}Z`;
+  const date = new Date(naive);
+  return isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
 function defaultMethodForRung(rung: string | undefined): JudgmentGenerationMethod {

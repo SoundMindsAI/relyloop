@@ -266,6 +266,57 @@ async def test_since_not_before_until_raises_422(monkeypatch: pytest.MonkeyPatch
     assert _detail(ei.value)["error_code"] == "VALIDATION_ERROR"
 
 
+async def test_naive_datetimes_do_not_crash_window_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Regression for Gemini PR #317 finding #1.
+
+    A naive ``since`` (no tzinfo — what Pydantic produces from an ISO-8601
+    string without an offset) must NOT raise TypeError when compared with
+    the aware ``datetime.now(UTC)`` inside the window check. The dispatcher
+    normalizes naive inputs to UTC up front. We push past U-C/U-D into the
+    sync count gate to prove the comparison didn't crash — the request has a
+    valid 28-day window, so it should reach U-D2 and reject with
+    UBI_INSUFFICIENT_DATA (observed < threshold), not TypeError.
+    """
+    _patch_repo(monkeypatch, "get_cluster", MagicMock(engine_type="opensearch"))
+    _patch_repo(monkeypatch, "get_query_set", MagicMock(cluster_id="clu_1"))
+    _patch_adapter(monkeypatch)
+    _patch_count(monkeypatch, observed=0)
+    naive_since = datetime(2026, 5, 1)  # noqa: DTZ001 — intentionally naive
+    naive_until = datetime(2026, 5, 28)  # noqa: DTZ001 — intentionally naive
+    with pytest.raises(HTTPException) as ei:
+        await dispatch.start_ubi_judgment_generation(
+            db=AsyncMock(),
+            redis=AsyncMock(),
+            arq_pool=None,
+            settings=_settings(),
+            req=_ubi_req(since=naive_since, until=naive_until),
+        )
+    # Reached U-D2 without a TypeError crash on the window comparison.
+    assert _detail(ei.value)["error_code"] == "UBI_INSUFFICIENT_DATA"
+
+
+async def test_naive_since_with_none_until_does_not_crash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Naive ``since`` + ``until=None`` (defaults to now) must not crash either."""
+    _patch_repo(monkeypatch, "get_cluster", MagicMock(engine_type="opensearch"))
+    _patch_repo(monkeypatch, "get_query_set", MagicMock(cluster_id="clu_1"))
+    _patch_adapter(monkeypatch)
+    _patch_count(monkeypatch, observed=0)
+    naive_since = datetime.now().replace(microsecond=0) - timedelta(days=7)  # noqa: DTZ005
+    with pytest.raises(HTTPException) as ei:
+        await dispatch.start_ubi_judgment_generation(
+            db=AsyncMock(),
+            redis=AsyncMock(),
+            arq_pool=None,
+            settings=_settings(),
+            req=_ubi_req(since=naive_since, until=None),
+        )
+    assert _detail(ei.value)["error_code"] == "UBI_INSUFFICIENT_DATA"
+
+
 # ----------------------------------------------------------------------------
 # U-D2: Sync UBI_INSUFFICIENT_DATA gate
 # ----------------------------------------------------------------------------

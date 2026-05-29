@@ -226,10 +226,17 @@ def _make_llm_rate_callback(
                         f"> budget ${budget_usd:.4f}"
                     )
 
-            # Fetch doc bodies for this query's pairs.
+            # Fetch doc bodies for this query's pairs. Map each prompt ordinal
+            # back to the FULL (query_id, doc_id) tuple — not just doc_id.
+            # Multiple distinct internal query_ids can share the same
+            # query_text (duplicate rows in the operator's query set), and
+            # they're grouped together here; mapping prompt_id → doc_id alone
+            # would attribute every rating to the single representative `qid`
+            # and silently drop ratings for the others (Gemini PR #317
+            # findings #2 + #3).
             doc_inputs: list[dict[str, str]] = []
-            prompt_id_to_real: dict[str, str] = {}
-            for i, (_q, doc_id) in enumerate(qd_pairs):
+            prompt_id_to_real: dict[str, tuple[str, str]] = {}
+            for i, (pair_query_id, doc_id) in enumerate(qd_pairs):
                 doc = await adapter.get_document(target, doc_id)
                 source = getattr(doc, "source", None) if doc is not None else None
                 body_raw: str
@@ -244,7 +251,7 @@ def _make_llm_rate_callback(
                 body = body_raw[:_DOC_BODY_CHAR_LIMIT]
                 prompt_id = f"item-{i}"
                 doc_inputs.append({"doc_id": prompt_id, "body": body})
-                prompt_id_to_real[prompt_id] = doc_id
+                prompt_id_to_real[prompt_id] = (pair_query_id, doc_id)
 
             expected = set(prompt_id_to_real.keys())
             user_prompt = render_user_prompt(
@@ -296,12 +303,13 @@ def _make_llm_rate_callback(
 
             llm_fill_calls_counter[0] += 1
 
-            # Map prompt-only ordinals back to real doc_ids.
+            # Map prompt-only ordinals back to the real (query_id, doc_id) so
+            # ratings stay attributed to the requesting query.
             for r in result.ratings:
-                real_doc_id = prompt_id_to_real.get(r.doc_id)
-                if real_doc_id is None:
+                real_pair = prompt_id_to_real.get(r.doc_id)
+                if real_pair is None:
                     continue  # hallucinated id; skip
-                out[(qid, real_doc_id)] = r.rating
+                out[real_pair] = r.rating
 
         return out
 
@@ -479,6 +487,15 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
                 scoped_features,
                 ConverterConfig(extra=converter_config_dict),
             )
+            # sparse_query_skip_count = scoped queries that received NO rating.
+            # Pure converters rate every pair (so this is 0), but in hybrid
+            # mode the LLM-fill callback skips a query's tail pairs when its
+            # LLM call fails (per-query isolation) — those pairs never appear
+            # in `ratings`, and this surfaces them in calibration telemetry
+            # (Gemini PR #317 finding #5).
+            rated_queries = {qid for qid, _doc in ratings}
+            all_scoped_queries = {qid for qid, _doc in scoped_features}
+            sparse_skip_count = len(all_scoped_queries - rated_queries)
         except BudgetExceededError as exc:
             async with factory() as db:
                 await _fail_list(db, judgment_list_id, "OPENAI_BUDGET_EXCEEDED")
