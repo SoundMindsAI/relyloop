@@ -39,7 +39,8 @@ if ((size > MAX_BYTES)); then
   echo "state.md must stay a one-page snapshot loadable in a single Read call." >&2
   echo "Move the oldest 'Last 5 merges' rows and any long narrative into" >&2
   echo "state_history.md (append-only, newest first). See CLAUDE.md" >&2
-  echo "\"Active Work — Read This First\" for the snapshot-vs-history convention." >&2
+  echo "\"Active Work — Read This First\" / \"Compressed Context First\"" >&2
+  echo "for the snapshot-vs-history convention." >&2
   echo "Do NOT raise this cap — the point is to force the split." >&2
   exit 1
 fi
