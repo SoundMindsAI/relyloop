@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-29
 **Status:** Idea — surfaced from an operator dogfooding review (2026-05-29). The autonomous-chaining *engine* already shipped; this is the ergonomics layer that makes it discoverable.
-**Priority:** P2 — high operator value, but the underlying capability already works; this is surfacing + a morning summary, not new core machinery. Pairs with [`feat_study_budget_presets`](../feat_study_budget_presets/idea.md) (the P1 of the theme).
+**Priority:** P2 — high operator value, but the underlying capability already works; this is surfacing + a morning summary, not new core machinery. Pairs with [`feat_study_sub_warmup_guard`](../feat_study_sub_warmup_guard/idea.md) (the P1 of the theme).
 **Origin:** Operator's stated goal: "set a study in motion, come back in a few hours (overnight), and wake up to a few results I could review and potentially turn into a PR." Tracing the live DB (2026-05-29) showed **zero** studies have ever used `auto_followup_depth` and zero are chain children — the feature that delivers exactly this goal is shipped but invisible.
 **Depends on:** [`feat_auto_followup_studies`](../../../implemented_features/2026_05_24_feat_auto_followup_studies/) (shipped 2026-05-24, PR #223) — the autonomous chaining engine. This idea is purely the surfacing + summary layer on top of it.
 
@@ -26,7 +26,7 @@ Promote `auto_followup_depth` from a hidden config key to a labeled wizard contr
 >
 > Compound up to **[3]** times. (1–5)
 
-Pairs naturally with the "Thorough (overnight)" budget preset from [`feat_study_budget_presets`](../feat_study_budget_presets/idea.md): selecting the overnight preset could default the chain depth on. Sets the existing `config.auto_followup_depth` field — no schema change.
+Pairs naturally with the "Thorough (overnight)" budget preset from [`feat_study_sub_warmup_guard`](../feat_study_sub_warmup_guard/idea.md): selecting the overnight preset could default the chain depth on. Sets the existing `config.auto_followup_depth` field — no schema change.
 
 ### Morning results summary ("the overnight digest")
 
@@ -58,7 +58,7 @@ The capability is real but the *trust and discoverability* gap is the whole barr
 ## Relationship to other work
 
 - **Surfaces** [`feat_auto_followup_studies`](../../../implemented_features/2026_05_24_feat_auto_followup_studies/) (the engine).
-- **Sibling theme:** [`feat_study_budget_presets`](../feat_study_budget_presets/idea.md) (the overnight preset feeds this) + [`feat_study_convergence_indicator`](../feat_study_convergence_indicator/idea.md) (each chain link's convergence display).
+- **Sibling theme:** [`feat_study_sub_warmup_guard`](../feat_study_sub_warmup_guard/idea.md) (the overnight preset feeds this) + [`feat_study_convergence_indicator`](../feat_study_convergence_indicator/idea.md) (each chain link's convergence display).
 - **Composes with the MVP2 UBI anchor** ([`feat_ubi_judgments`](../feat_ubi_judgments/idea.md)): overnight compounding is dramatically more valuable against a continuously-fresh UBI judgment list than a static LLM snapshot — the `feat_ubi_judgments` idea already notes this composition. This is the operator-facing payoff of that pairing.
 - **Respects** the human-merge invariant (umbrella spec §6) — autopilot runs the *exploration* side unattended; the *deployment* side stays a deliberate human click.
 

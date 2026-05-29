@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP2 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_study_sub_warmup_guard/feature_spec.md">Study Sub Warmup Guard</a></div>
+    <div class="one-liner">A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials &lt; STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click remediations.</div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/00_overview/planned_features/02_mvp2/feat_study_sub_warmup_guard/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -395,11 +395,11 @@ footer {
 <section>
   <h2>MVP2 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">1 / 1</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">1 / 2</div>
+      <div class="sub">50% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:50%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">7</div>
+      <div class="value">8</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      10 idea-only feat/infra folders (not yet scoped into MVP2)
+      9 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">17</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_study_budget_presets">Study Budget Presets</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">Three connected gaps make under-budgeting the default outcome:</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">16</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P1">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments">Ubi Judgments</a></div>
@@ -693,7 +680,19 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P1">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_study_sub_warmup_guard/feature_spec.md">Study Sub Warmup Guard</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+
+  </div>
+  <div class="one-liner">A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials &lt; STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme</div>
+
+
+</div>
 
 </div>
 
@@ -730,6 +729,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
+  class feat_study_sub_warmup_guard plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;</div>
     <noscript><pre>graph LR
@@ -738,6 +739,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
+  class feat_study_sub_warmup_guard plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;</pre></noscript>
   </div>
