@@ -39,6 +39,7 @@ async function pickEntity(
 
 async function getName(path: string): Promise<string> {
   const resp = await fetch(new URL(path, API_BASE).toString());
+  if (!resp.ok) throw new Error(`GET ${path} failed: ${resp.status}`);
   const body = (await resp.json()) as { name: string };
   return body.name;
 }

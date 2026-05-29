@@ -149,7 +149,10 @@ test('Step-1 target picker loads from the cluster, sorts alphabetically, and per
     // The study list page should be back in focus. Find the created study via
     // the list endpoint (returns StudySummary which omits `target`), then fetch
     // the detail endpoint to read the persisted `target`.
-    const studiesResp = await request.get(new URL(`/api/v1/studies?q=${studyName}&limit=10`, API_BASE).toString());
+    const studiesUrl = new URL('/api/v1/studies', API_BASE);
+    studiesUrl.searchParams.set('q', studyName);
+    studiesUrl.searchParams.set('limit', '10');
+    const studiesResp = await request.get(studiesUrl.toString());
     expect(studiesResp.ok()).toBe(true);
     const studies = (await studiesResp.json()) as {
       data: Array<{ id: string; name: string }>;
