@@ -204,12 +204,12 @@ class TestFirstBulkError:
 class TestConstants:
     """Pin the design-locked constants so a future edit can't silently flip them."""
 
-    def test_retry_attempts_is_eight(self) -> None:
-        # Revised on PR #297 first CI run (26611436430) — the original 3-attempt
-        # budget was insufficient because each bulk attempt waits ~60s for ES's
-        # internal shard-availability timeout. 8 × ~62s = ~8 minutes, well
-        # within the smoke job's 15-minute ceiling.
-        assert BULK_RETRY_ATTEMPTS == 8
+    def test_retry_attempts_is_three(self) -> None:
+        # The heavy lifting is done by _cluster/health?wait_for_status=yellow
+        # right after the index create (synchronizes with ES's allocation
+        # state machine). The retry loop is the safety net for residual
+        # transients after the health probe returns, so 3 is enough.
+        assert BULK_RETRY_ATTEMPTS == 3
 
     def test_retry_sleep_is_two_seconds(self) -> None:
         # The sleep between attempts is intentionally small — the long wait

@@ -33,33 +33,20 @@ SAMPLES_PRODUCTS = Path(__file__).resolve().parents[3] / "samples" / "products.j
 INDEX_NAME = "products"
 BULK_CHUNK = 500
 
-# On cold GHA runners the primary shard can stay in INITIALIZING for several
-# minutes even after the index-create PUT returns 200 — ES's bulk endpoint then
-# returns `unavailable_shards_exception` in the response body (HTTP is still 200
-# per bulk semantics). Retry the chunk up to BULK_RETRY_ATTEMPTS times with
-# BULK_RETRY_SLEEP_SECS between attempts; only retry this specific error type
-# so mapping bugs / type mismatches still fail loudly. Re-bulking the same
-# chunk is idempotent because each index action carries an explicit `_id`.
+# After the index is created, _cluster/health?wait_for_status=yellow is the
+# explicit synchronization point that blocks until the primary shard is
+# active. This is far more reliable than blind retries on the bulk call —
+# on cold GHA runners the bulk endpoint's internal 60s shard-availability
+# timeout would burn ~60s per attempt without making the shard active any
+# faster. PR #297 run 26611895567 exhausted 8 attempts × 62s ≈ 8m45s with
+# the shard still INITIALIZING.
 #
-# Budget: each bulk attempt waits ~60s for ES's internal shard-availability
-# timeout to fire before returning, so total worst-case time is roughly
-# ATTEMPTS × (60s + SLEEP). 8 × 62s = ~8 minutes, well within the smoke
-# job's 15-minute ceiling. The previous 3-attempt budget (~3.5 min) was
-# insufficient — PR #297's first CI run exhausted all 3 attempts and the
-# shard still hadn't activated (logs at run 26611436430). Budget revised
-# based on the observed cold-start tail.
-#
-# See bug_smoke_seed_es_unavailable_shards_race for the failure mode.
-BULK_RETRY_ATTEMPTS = 8
+# The retry loop below remains as a safety net for any residual transient
+# error after the health probe returns — keep it small (3 attempts × 2s)
+# because the heavy lifting is done by the probe.
+BULK_RETRY_ATTEMPTS = 3
 BULK_RETRY_SLEEP_SECS = 2.0
 RETRYABLE_BULK_ERROR_TYPES = frozenset({"unavailable_shards_exception"})
-
-# When the index is created, ask ES to wait for the primary shard to be active
-# before returning. This complements (does not replace) the bulk-retry loop:
-# the index create's master_timeout caps how long ES will spend waiting
-# upfront, then any residual cold-start delay falls through to the retries.
-INDEX_CREATE_WAIT_ACTIVE_SHARDS = 1
-INDEX_CREATE_MASTER_TIMEOUT = "60s"
 
 
 def _first_bulk_error(payload: dict[str, Any]) -> dict[str, Any] | None:
@@ -156,10 +143,6 @@ async def main() -> int:
         # time. See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
         create_resp = await client.put(
             f"/{INDEX_NAME}",
-            params={
-                "wait_for_active_shards": INDEX_CREATE_WAIT_ACTIVE_SHARDS,
-                "master_timeout": INDEX_CREATE_MASTER_TIMEOUT,
-            },
             json={
                 "settings": {"number_of_replicas": 0},
                 "mappings": {
@@ -174,6 +157,54 @@ async def main() -> int:
             },
         )
         create_resp.raise_for_status()
+
+        # Block until the primary shard is allocated before bulk-indexing. ES's
+        # bulk endpoint silently waits ~60s per request for shard availability
+        # and on cold GHA runners the activation can take many minutes;
+        # _cluster/health?wait_for_status=yellow explicitly synchronizes with
+        # ES's allocation state machine and returns as soon as the primary is
+        # active (or after timeout). This is much more reliable than blind
+        # retries on the bulk call. The retry loop below is still kept as a
+        # safety net for any residual shard-transient errors.
+        #
+        # See bug_smoke_seed_es_unavailable_shards_race PR #297 run
+        # 26611895567 — 8 retries × 62s exhausted without the shard activating;
+        # this synchronization point is what was missing.
+        # httpx default for the client is 90s; override here so the 10m
+        # server-side wait doesn't get killed client-side at 90s.
+        health_resp = await client.get(
+            f"/_cluster/health/{INDEX_NAME}",
+            params={
+                "wait_for_status": "yellow",
+                "timeout": "10m",
+            },
+            timeout=620.0,
+        )
+        if health_resp.status_code != 200:
+            logger.error(
+                "seed_es: cluster health probe for /%s returned %d: %s",
+                INDEX_NAME,
+                health_resp.status_code,
+                health_resp.text[:200],
+            )
+            return 1
+        health = health_resp.json()
+        if health.get("timed_out"):
+            logger.warning(
+                "seed_es: cluster health probe timed out before /%s went yellow; "
+                "proceeding to bulk + retries anyway (status=%s, active_shards=%s)",
+                INDEX_NAME,
+                health.get("status"),
+                health.get("active_shards"),
+            )
+        else:
+            logger.info(
+                "seed_es: /%s reached %s (active_shards=%s) in %dms",
+                INDEX_NAME,
+                health.get("status"),
+                health.get("active_shards"),
+                health.get("number_of_in_flight_fetch", 0),
+            )
 
         # _bulk-index in chunks (ES rejects >100MB single requests; 500 docs stays well under).
         for i in range(0, len(products), BULK_CHUNK):
