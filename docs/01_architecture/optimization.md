@@ -176,6 +176,26 @@ live as module constants in
 contract is reviewed in [`feat_pr_metric_confidence/feature_spec.md`](../00_overview/planned_features/feat_pr_metric_confidence/feature_spec.md)
 §7 (FR-4 / FR-4a) and §12 (AC-3 through AC-17).
 
+## Where RelyLoop fits in your relevance pipeline (and what comes *before* it)
+
+A search-relevance pipeline runs in stages, and RelyLoop deliberately operates at **one** of them. Knowing which stage matters, because the stage *before* RelyLoop is often where the biggest wins hide — and it is not something RelyLoop tunes.
+
+| Stage | What it does | Owned by | RelyLoop? |
+|---|---|---|---|
+| 1. **Query understanding / normalization** | Transform the *incoming query string* before it hits the engine: lowercasing, whitespace trimming, contraction expansion (`what's` → `what is`), spelling correction, synonym/abbreviation expansion, intent/entity detection. Fixes *vocabulary mismatch*. | The operator's query-rewriting layer (e.g. Querqy, a preprocessing service) **or** the engine's analyzers | **No** (see below) |
+| 2. **Retrieval** | Match the query against the index; pull candidate documents. | The engine, driven by the query template | RelyLoop *renders* the query here |
+| 3. **Ranking / boosting** | Field boosts, function scores, tie-breakers, fuzziness, slop, `min_should_match`, rerankers. | Query-time parameters | **Yes — this is RelyLoop's tuning surface** |
+| 4. **Re-ranking / business rules / personalization** | LTR rerank, pinned results, merchandising rules. | Operator (LTR consume-only in MVP2; rules are out of scope) | Partial (LTR consume-only) |
+
+**RelyLoop tunes stage 3.** It passes `query_text` through to the engine **verbatim** — no lowercasing, no trimming, no rewriting ([`ElasticAdapter.render`](../../backend/app/adapters/elastic.py); the template interpolates `{{ query_text }}` raw).
+
+Normalization splits into two mechanisms, both currently outside RelyLoop's tuning boundary, for *different* reasons:
+
+- **Analyzer-level normalization** (lowercase, stemming, stopwords, synonyms as token filters) is governed by the index's **analyzers**, with index-time/query-time *symmetry* — the same analysis runs on documents at index time and on the query at search time. Changing it usually requires **reindexing**, which is why it sits behind the umbrella spec §4 non-goal: *"Make schema/mapping/analyzer changes. Tuning is restricted to query-time parameters."* RelyLoop *reads* analyzer names (the schema browser shows them) but never writes them. **This boundary is permanent.**
+- **Pre-query rewriting** (contraction expansion, spell-correction, query expansion) is an *application-layer* transform of the query string before it reaches the engine. It does **not** require touching the cluster, so it is technically query-time — RelyLoop's domain — but RelyLoop has no parameter for it today. Tuning it is captured as an exploratory idea: [`feat_query_normalization_tuning`](../00_overview/planned_features/00_unsure/feat_query_normalization_tuning/idea.md) (release target unresolved pending the prod-reproducibility question — a rewrite RelyLoop applies only reproduces in production if the operator's query pipeline applies the same rewrite).
+
+**Operator guidance:** do your query-understanding work (stage 1) *before* leaning on RelyLoop for stage 3. Ranking tuning cannot recover a query whose terms never matched the index in the first place — the canonical failure is an analyzer that strips `not` as a stopword, turning "not waterproof" into "waterproof". RelyLoop sharpens *how matched candidates are scored*; it does not fix *whether the query matched*.
+
 ## Cross-references
 
 - Stack choices (Optuna + ir_measures pinned in `pyproject.toml`): [`tech-stack.md`](tech-stack.md)
