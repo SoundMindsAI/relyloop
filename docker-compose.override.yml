@@ -1,0 +1,18 @@
+# LOCAL-ONLY override (auto-merged by `docker compose`; NOT committed).
+#
+# Why this exists: the tracked docker-compose.yml pins `postgres:17` (bumped
+# from :16 by PR #290), but this machine's ./data/postgres volume was
+# initialized under PostgreSQL 16 and never migrated. PG 17 refuses to open
+# PG 16 data files ("database files are incompatible with server"), so a
+# `docker compose up` recreate of the postgres service fails.
+#
+# Pinning the local postgres image back to :16 lets the existing data load
+# cleanly — no data loss, returns the stack to its prior working state.
+#
+# To migrate to PG 17 later (the main-branch pin): back up the data
+# (`pg_dumpall`), `make reset` (wipes ./data), `docker compose up` on the
+# tracked :17 pin, then restore. Until then, this override keeps local dev
+# on PG 16.
+services:
+  postgres:
+    image: postgres:16
