@@ -4,6 +4,8 @@
 **Status:** Idea — bug captured during PR #286 first-run testing
 **Type:** `bug_`
 **Priority:** P1 (the home-button reseed is broken end-to-end even though `make seed-demo` works)
+**Depends on:** — (no blocking deps)
+**Coordinate with:** [[chore_demo_seeding_integration_tests_rewrite]] — the async-flow integration harness this chore ships would catch the regression in CI, but the bug fix can land first with a unit-level regression test (see "Proposed capabilities" §4).
 
 ## Origin
 
@@ -20,11 +22,18 @@ Net: the worker picked up the job, hit some error before the first `logger.info`
 
 ## Problem
 
-There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed`'s pre-main-body initialization that:
+There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed` that:
 
-1. Crashes the function before `logger.info("demo_reseed_worker_started")` runs.
-2. Bypasses the inner `try/except` that flips Redis status to `failed`.
+1. Crashes the function before `logger.info("demo_reseed_worker_started")` (currently at [`demo_reseed.py:134`](../../../../backend/workers/demo_reseed.py#L134)) runs.
+2. Bypasses both existing exception handlers (the lock-contention path at lines 102-116 and the `reseed_demo_state` exception handler at lines 150-173), neither of which catches errors in the regions below.
 3. Leaves the operator with a status indicator that says "running" forever, blocking the next 409-gated POST.
+
+**Two distinct gap regions** where an exception escapes Redis-status writing:
+
+- **Lines 76-88** (settings load, session-factory init, Redis acquisition) — sits **outside the outer `try`** at line 90. Any exception here propagates straight to Arq's machinery without writing a `failed` payload.
+- **Lines 91-133** (`get_engine()`, `engine.connect()`, advisory-lock query, `factory()` session, `httpx.AsyncClient(...)` constructors) — inside the outer `try` at line 90, but that block has no `except`, only a `finally` to close Redis (line 181). Exceptions in this region unwind through both `finally` blocks and escape to Arq.
+
+The inner `except (DemoSeedingError, httpx.HTTPError, Exception)` at line 150 only catches errors raised inside the `reseed_demo_state` call (line 140), so it doesn't cover either gap region.
 
 ## Candidate root causes
 
@@ -36,7 +45,7 @@ Things to investigate, ordered by likelihood:
 
 3. **`engine.connect()` immediately fails because the worker's DB pool is exhausted or in a bad state from a prior crash.** Less likely — other in-process workers are using the same engine successfully.
 
-4. **PostToolUse-hook-style silent stdout swallowing.** Some Arq configuration or `ctx`-level wrapping intercepts stderr/stdout before `logger.info` can emit. Lower likelihood but worth ruling out by adding a `print()` at the very top of `run_demo_reseed` and verifying it appears in `docker logs`.
+4. **Structlog buffering / processor-chain swallowing.** Lower likelihood given other workers log fine through the same chain, but worth ruling out by adding a top-level `print("run_demo_reseed: entered", flush=True)` at the very first line of the function and verifying it appears in `docker logs relyloop-worker-1`. If `print` appears but `logger.info` doesn't, structlog config is the culprit; if neither appears, the failure is at the module-load level (import error) and Arq's job picker is crashing before it ever invokes the function body.
 
 ## Why deferred
 
@@ -50,32 +59,58 @@ Both are >30 min of focused work and were out of scope for the merge cycle the o
 
 ## Proposed capabilities (when this is picked up)
 
-1. **Top-level exception barrier** in `run_demo_reseed`:
+1. **Top-level exception barrier** in `run_demo_reseed` — wraps the entire function body, including the Redis acquisition itself, while preserving the **Gemini PR #286 finding #7** pool-reuse pattern at the current `demo_reseed.py:82-88`:
 
    ```python
    async def run_demo_reseed(ctx: dict[str, Any]) -> None:
-       redis = None
+       # Acquire Redis FIRST so the exception barrier can write status even
+       # when settings/factory/engine init explodes. Preserves Gemini #7:
+       # reuse the Arq-managed pool when available, fall back otherwise.
+       arq_redis = ctx.get("redis") if isinstance(ctx, dict) else None
+       created_redis = arq_redis is None
+       redis: Redis | None = None
        try:
-           redis = Redis.from_url(get_settings().redis_url, decode_responses=False)
-           # … existing body …
+           if arq_redis is not None:
+               redis = arq_redis
+           else:
+               # If get_settings() itself raises, we drop into the outer
+               # except without a Redis handle — that's the one case the
+               # operator still has to read worker logs for. Acceptable
+               # because get_settings() failure means the worker can't
+               # start ANY job, which is loud at a different layer.
+               redis = Redis.from_url(get_settings().redis_url, decode_responses=False)
+
+           # ... existing body (settings, factory, engine, lock, httpx
+           # clients, reseed_demo_state) lives here ...
+
        except BaseException as exc:
            if redis is not None:
                try:
                    await status_set(redis, ReseedStatusResponse(
                        status="failed",
-                       failed_reason=f"{type(exc).__name__}: {str(exc)[:200]}",
+                       started_at=_now_iso(),
                        finished_at=_now_iso(),
+                       failed_reason=f"{type(exc).__name__}: {str(exc)[:200]}",
                    ))
                except Exception:
-                   pass
-           raise
+                   pass  # best-effort — never mask the original exc
+           raise  # let Arq still record JobExecutionFailed for ops visibility
+       finally:
+           if created_redis and redis is not None:
+               await redis.aclose()
    ```
 
-2. **Stale-status auto-recovery in POST handler.** If the GET status is `running` but `started_at` is older than `DEMO_RESEED_JOB_TIMEOUT_S`, treat it as `failed` and let the new POST proceed. Prevents the "stuck forever" state from a silent worker crash.
+   Spec-gen should lock the **re-raise after status-write** choice — re-raising preserves Arq's `JobExecutionFailed` record AND emits a worker-log traceback the operator can read, while still ensuring Redis flips to `failed` for the polling endpoint. The inner exception handler at lines 150-173 keeps its `return` (no re-raise) because it specifically does NOT want Arq retries for `reseed_demo_state` failures (the destructive wipe shouldn't replay).
 
-3. **Add a `print("run_demo_reseed: entered")` at the top of the function.** If it appears in the worker logs but `logger.info` doesn't, we know structlog is the culprit. If neither appears, the failure is at the module-load level (import error) and Arq's job picker is crashing.
+2. **Stale-status auto-recovery in POST handler.** If the GET status is `running` but `started_at` is older than `DEMO_RESEED_JOB_TIMEOUT_S` (currently 1200s = 20min), treat it as `failed` and let the new POST proceed. Prevents the "stuck forever" state from a silent worker crash. This is independent of capability #1 — a defense-in-depth layer for cases where the worker process itself dies (OOM, container restart) before any exception handler runs.
 
-4. **Regression test:** spin up a real worker + real Redis + intentionally misconfigure something (e.g., bad `database_url`) and assert the GET status flips to `failed` with the exception class name within 30s of the POST.
+3. **Diagnostic `print()` (temporary, behind the fix).** Add `print("run_demo_reseed: entered", flush=True)` at the very first line of the function as part of the investigation step. Remove once the root cause is identified — the top-level exception barrier in capability #1 makes the diagnostic unnecessary in steady state.
+
+4. **Regression test (preferred — unit, no chore dependency):** in `backend/tests/unit/workers/test_demo_reseed.py` (new file), monkeypatch `backend.app.core.settings.get_settings` (or `get_session_factory`, or `get_engine`) to raise `RuntimeError("boom")`, invoke `run_demo_reseed({"redis": <fake_redis>})` directly, and assert:
+   - The exception re-raises (caller-visible).
+   - The fake Redis received a `status_set` call with `status="failed"` and `failed_reason` containing `"RuntimeError"`.
+
+   This path does NOT depend on `chore_demo_seeding_integration_tests_rewrite` shipping the real-worker harness — the ctx pool fallback at `demo_reseed.py:82-88` already supports passing a synthetic `redis` in `ctx`. The chore's integration test, when it lands, would supplement this with a real-Postgres-misconfig variant.
 
 ## Scope signals
 

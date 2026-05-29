@@ -21,13 +21,13 @@ Implementation in progress — resume to finish
 | Metric | Value |
 |---|---|
 | Scoped items done | **92 / 93** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **6** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **7** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
 | → P2 (default) | 5 important to file, not blocking |
-| → Backlog | 0 captured for record, not planned |
+| → Backlog | 1 captured for record, not planned |
 | Open bugs | 3 |
-| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
@@ -176,15 +176,16 @@ _None._
 
 _None._
 
-### Idea (5)
+### Idea (6)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed`'s pre-main-body initialization that: | — | Idea — bug captured during PR #286 first-run testing |
+| 1 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed` that: | — | Idea — bug captured during PR #286 first-run testing |
 | 2 | P2 | [chore_e2e_api_base_url_construction](planned_features/01_mvp1/chore_e2e_api_base_url_construction/idea.md) | Chore | Five sites in three e2e specs concatenate `API_BASE` with a path string: | — | Idea — surfaced during Gemini Code Assist review on PR #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`). |
 | 3 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
 | 4 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
 | 5 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
+| 6 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
 
 ## Dependency graph
 
