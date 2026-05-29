@@ -1,7 +1,7 @@
 # Implementation Plan — Drop `push: branches: [main]` trigger from `pr.yml`
 
 **Date:** 2026-05-28
-**Status:** Ready for Execution
+**Status:** Complete (PR #295, merged 2026-05-28)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../CLAUDE.md), [docs/01_architecture/tech-stack.md](../../../01_architecture/tech-stack.md)
 
