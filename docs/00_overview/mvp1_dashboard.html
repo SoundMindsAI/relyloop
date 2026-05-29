@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">91 / 93</div>
-      <div class="sub">98% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:98%"></span></div>
+      <div class="value">92 / 93</div>
+      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:99%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">8</div>
+      <div class="value">7</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">6</div>
+      <div class="value">5</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">8</div>
+      <div class="value">7</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -550,19 +550,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">1</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/infra_pr_yml_drop_push_main_trigger/feature_spec.md">Pr Yml Drop Push Main Trigger</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/291">PR #291</a>
-  </div>
-  <div class="one-liner">`pr.yml` runs only on `pull_request` events.</div>
-
-
-</div>
+  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -584,7 +572,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">122</span></h3>
+  <h3>Done <span class="count">123</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1140,6 +1128,19 @@ footer {
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">`Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the </div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_28_infra_pr_yml_drop_push_main_trigger/feature_spec.md">Pr Yml Drop Push Main Trigger</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/295">PR #295</a> <span>merged 2026-05-28</span>
+  </div>
+  <div class="one-liner">`pr.yml` runs only on `pull_request` events.</div>
 
 
 </div>
@@ -2186,8 +2187,6 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
-  infra_pr_yml_drop_push_main_trigger[&quot;pr yml drop push main trigger&quot;]
-  class infra_pr_yml_drop_push_main_trigger plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2370,6 +2369,8 @@ footer {
   class chore_drop_demo_seed_from_ci done;
   chore_drop_fusion_scope[&quot;drop fusion scope&quot;]
   class chore_drop_fusion_scope done;
+  infra_pr_yml_drop_push_main_trigger[&quot;pr yml drop push main trigger&quot;]
+  class infra_pr_yml_drop_push_main_trigger done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2425,8 +2426,6 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
   class infra_agent_sibling_worktree_isolation implement;
-  infra_pr_yml_drop_push_main_trigger[&quot;pr yml drop push main trigger&quot;]
-  class infra_pr_yml_drop_push_main_trigger plan;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2609,6 +2608,8 @@ footer {
   class chore_drop_demo_seed_from_ci done;
   chore_drop_fusion_scope[&quot;drop fusion scope&quot;]
   class chore_drop_fusion_scope done;
+  infra_pr_yml_drop_push_main_trigger[&quot;pr yml drop push main trigger&quot;]
+  class infra_pr_yml_drop_push_main_trigger done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments

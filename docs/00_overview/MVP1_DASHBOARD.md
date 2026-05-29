@@ -20,20 +20,20 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **91 / 93** (98%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **8** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **92 / 93** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **7** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **2** high-value, ready when P0 clears |
-| → P2 (default) | 6 important to file, not blocking |
+| → P2 (default) | 5 important to file, not blocking |
 | → Backlog | 0 captured for record, not planned |
 | Open bugs | 4 |
-| Legacy "Path to MVP1" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (122)
+### Done (123)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -80,6 +80,7 @@ Implementation in progress — resume to finish
 | [infra_nvmrc](implemented_features/2026_05_13_infra_nvmrc/idea.md) | Infra | - `ui/package.json` engines: `"node": ">=20.18"`, verified on Node 22.22.2 per `state.md`. - No `.nvmrc` file at repo root or under `ui/`. - Default shell may have an older nvm-active Node (Node 18 in | — | Complete |
 | [infra_optuna_eval](implemented_features/2026_05_10_infra_optuna_eval/feature_spec.md) | Infra | Optuna RDB storage co-tenants with the application Postgres; TPE sampler + median pruner are the MVP1 defaults; ir_measures scores trials against judgment lists for nDCG@k, MAP, P@k, recall@k, and MRR | — | [PR #23](https://github.com/SoundMindsAI/relyloop/pull/23) merged 2026-05-10 |
 | [infra_per_trial_timeout](implemented_features/2026_05_13_infra_per_trial_timeout/idea.md) | Infra | `Settings.studies_default_timeout_s` (Story 1.5) is defined but never consumed at runtime. The intended semantic is: when `studies.config.trial_timeout_s` is absent, the worker should still bound the  | — | Complete |
+| [infra_pr_yml_drop_push_main_trigger](implemented_features/2026_05_28_infra_pr_yml_drop_push_main_trigger/feature_spec.md) | Infra | `pr.yml` runs only on `pull_request` events. | — | [PR #295](https://github.com/SoundMindsAI/relyloop/pull/295) merged 2026-05-28 |
 | [infra_structlog_test_helpers](implemented_features/2026_05_14_infra_structlog_test_helpers/idea.md) | Infra | The repo currently has two distinct, half-overlapping patterns for asserting structlog events from tests: | — | Complete |
 | [infra_study_preflight_real_engine_integration](implemented_features/2026_05_25_infra_study_preflight_real_engine_integration/feature_spec.md) | Infra | Replace AC-1 through AC-4b with real-engine variants that (a) seed `judgments.doc_id` rows for a representative query, (b) bulk-index a controlled subset of those `doc_id` values into the ES service-c | — | [PR #255](https://github.com/SoundMindsAI/relyloop/pull/255) merged 2026-05-22 |
 | [infra_test_worktree_missing_integration_envs](implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs/feature_spec.md) | Infra | `scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer | — | [PR #257](https://github.com/SoundMindsAI/relyloop/pull/257) merged 2026-05-26 |
@@ -166,11 +167,9 @@ Implementation in progress — resume to finish
 |---|---|---|---|---|---|---|
 | 1 | P2 | [infra_agent_sibling_worktree_isolation](planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [infra_pr_yml_drop_push_main_trigger](planned_features/01_mvp1/infra_pr_yml_drop_push_main_trigger/feature_spec.md) | Infra | `pr.yml` runs only on `pull_request` events. | — | [PR #291](https://github.com/SoundMindsAI/relyloop/pull/291) |
+_None._
 
 ### Spec (0)
 
@@ -200,8 +199,6 @@ graph LR
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
   class infra_agent_sibling_worktree_isolation implement;
-  infra_pr_yml_drop_push_main_trigger["pr yml drop push main trigger"]
-  class infra_pr_yml_drop_push_main_trigger plan;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
@@ -384,6 +381,8 @@ graph LR
   class chore_drop_demo_seed_from_ci done;
   chore_drop_fusion_scope["drop fusion scope"]
   class chore_drop_fusion_scope done;
+  infra_pr_yml_drop_push_main_trigger["pr yml drop push main trigger"]
+  class infra_pr_yml_drop_push_main_trigger done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
