@@ -358,6 +358,36 @@ curl -X POST http://localhost:8000/api/v1/config-repos \
 
 ---
 
+## Step 11 — (Optional) Upgrade your judgment list to UBI
+
+**This step is optional and requires an instrumented cluster.** The
+tutorial completes fully on the LLM path (Steps 1–10) with no UBI cluster.
+If you have a cluster running the OpenSearch UBI plugin (or the o19s ES
+UBI fork) with captured click/dwell traffic, you can swap the LLM-graded
+judgment list for one derived from real user behavior — no LLM cost for
+the pure converters.
+
+1. On the query-set detail page, click **Generate judgments** again.
+2. The dialog now shows a **Method** picker. If your cluster has UBI
+   traffic for the target index, the picker defaults to a UBI converter
+   based on the readiness rung (dense traffic → `UBI (click-through)`;
+   sparse → `Hybrid UBI + LLM`). If the cluster has no UBI plugin, you'll
+   see the **on-ramp nudge** with install instructions and the picker
+   stays on `LLM-as-judge`.
+3. Pick **Hybrid UBI + LLM** to rate the dense head from clicks and let
+   the LLM fill the long tail (requires a template + rubric, same as the
+   LLM path). Set the UBI window (defaults to the last 30 days).
+4. Submit. When generation completes, the judgment-list detail page shows
+   a **"What real signals bought you"** value-delta card comparing the
+   UBI coverage against your prior LLM list.
+5. Re-run your study (Step 8) against the new judgment list to see how the
+   recommendation shifts when grounded in real behavior.
+
+See the [UBI judgment-generation runbook](../03_runbooks/ubi-judgment-generation.md)
+for per-engine plugin install + converter selection guidance.
+
+---
+
 ## Where to next
 
 - The full feature set is in [`docs/02_product/mvp1-user-stories.md`](../02_product/mvp1-user-stories.md).

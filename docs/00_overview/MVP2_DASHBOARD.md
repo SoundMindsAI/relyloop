@@ -6,24 +6,30 @@ _Reflects feature-folder state as of **2026-05-29** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP2 features shipped 🎉
+**[feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md)** — Feature, currently in **Implementing**
 
-Pull from the Idea backlog or capture a new feature spec.
+> Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real click + dwell behavior via three converters
+
+Implementation in progress — resume to finish
+
+```bash
+/impl-execute docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments/implementation_plan.md --all  # resume in-progress
+```
 
 ## MVP2 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **1 / 1** (100%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **1 / 2** (50%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **18** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **3** high-value, ready when P0 clears |
-| → P2 (default) | 9 important to file, not blocking |
+| → P2 (default) | 11 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 3 |
-| Legacy "Path to MVP2" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 9 idea-only feat/infra (not yet scoped into MVP2) |
-| In flight | 0 feature(s) actively shipping |
+| Legacy "Path to MVP2" | 10 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 8 idea-only feat/infra (not yet scoped into MVP2) |
+| In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -33,9 +39,11 @@ Pull from the Idea backlog or capture a new feature spec.
 |---|---|---|---|---|
 | [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study: | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) merged 2026-05-15 |
 
-### Implementing (0)
+### Implementing (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P1 | [feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md) | Feature | Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic | — | — |
 
 ### Plan (0)
 
@@ -45,26 +53,27 @@ _None._
 
 _None._
 
-### Idea (16)
+### Idea (17)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/idea.md) | Feature | MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`… | — | Idea — bundled with [`infra_adapter_solr`](../infra_adapter_solr/idea.md) into MVP2 / v0.2 "Three-Engine + Real Signals" |
-| 2 | P1 | [feat_ubi_onramp](planned_features/02_mvp2/feat_ubi_onramp/idea.md) | Feature | `feat_ubi_judgments` adds click-derived judgments, but a UBI-centric release has a well-known failure mode: it makes the operators who *don't* have UBI feel like second-class citizens, when in reality | — | Idea — split out from [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md) as a first-class feature (2026-05-29) so the no-signals-majority UX is dashboard-visible and not treated as optional UBI polish. |
-| 3 | P1 | [infra_adapter_solr](planned_features/02_mvp2/infra_adapter_solr/idea.md) | Infra | After MVP1.5, RelyLoop runs against Elasticsearch and OpenSearch — but the "engine-neutral" positioning is aspirational until a third engine ships. Apache Solr is the right third engine because: | — | Idea — anchor feature for MVP2 / v0.2 "Three-Engine + Real Signals" (bundled with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md)) |
-| 4 | P2 | [feat_chat_last_message_preview](planned_features/02_mvp2/feat_chat_last_message_preview/idea.md) | Feature | The `/chat` list page ([ui/src/app/chat/page.tsx](../../ui/src/app/chat/page.tsx)) renders each conversation row as `title + relative timestamp + "{N} messages"` via… | — | Held for MVP2 (decided 2026-05-13). No technical dependency on MVP2 infra; bundling with [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation/idea.md) as chat polish. `feat_chat_agent` has been live since 2026-05-12 (PR #60) and no operator has asked for the preview yet. Folder renamed from `chore_chat_last_message_preview` 2026-05-14 per `/idea-preflight` audit — `chore_` is reserved for changes with no user-visible behavior per [feature_templates/README.md](../../feature_templates/README.md). |
-| 5 | P2 | [feat_overnight_autopilot](planned_features/02_mvp2/feat_overnight_autopilot/idea.md) | Feature | The "Karpathy overnight loop" is already implemented and already autonomous, but an operator has no way to discover or trust it: | — | Idea — surfaced from an operator dogfooding review (2026-05-29). The autonomous-chaining *engine* already shipped; this is the ergonomics layer that makes it discoverable. |
-| 6 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/idea.md) | Feature | A relevance pipeline runs in stages: (1) query understanding / normalization → (2) retrieval → (3) ranking / boosting → (4) re-ranking. RelyLoop tunes **stage 3 only**. But stage 1 is often where the  | — | Idea — scoped to MVP2 (moved from `00_unsure/` 2026-05-29). The core capability is small and fits the existing parameter model. One **gating design fork remains** — the prod-reproducibility question (below) — which `/spec-gen` must resolve; if no clean deployment path exists, this idea may be deferred out of MVP2 at spec time. Tracked as a release item rather than parked because the operator has a clear MVP2 intent and the theme fits the "Real Signals" / relevance-quality story. |
-| 7 | P2 | [feat_study_convergence_indicator](planned_features/02_mvp2/feat_study_convergence_indicator/idea.md) | Feature | After a study completes, the UI shows the best metric and a trials table, but **nothing tells the operator whether the metric had plateaued or was still climbing when the study stopped.** This is the  | — | Idea — surfaced from an operator dogfooding review (2026-05-29). The feedback half of the "overnight autopilot ergonomics" theme. |
-| 8 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/idea.md) | Chore | The async flow's contract: | — | Idea — chore captured during PR #286 |
-| 9 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 10 | P2 | [chore_template_library_expansion](planned_features/02_mvp2/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 11 | P2 | [bug_seed_meaningful_demos_silent_bulk_errors](planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep |
-| 12 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 13 | Backlog | [feat_fts_rank_ordering](planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
-| 14 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| 15 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 16 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
+| 1 | P1 | [feat_demo_ubi_study_comparison](planned_features/02_mvp2/feat_demo_ubi_study_comparison/idea.md) | Feature | The home-page "force refresh demo data" reseed (`backend/app/services/demo_seeding.py` → `run_demo_reseed`) seeds product docs + clusters + query sets + LLM judgment lists + studies, but **no UBI data | — | Idea — operator-requested during `feat_ubi_judgments` PR #317 review |
+| 2 | P1 | [infra_adapter_solr](planned_features/02_mvp2/infra_adapter_solr/idea.md) | Infra | After MVP1.5, RelyLoop runs against Elasticsearch and OpenSearch — but the "engine-neutral" positioning is aspirational until a third engine ships. Apache Solr is the right third engine because: | — | Idea — anchor feature for MVP2 / v0.2 "Three-Engine + Real Signals" (bundled with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md)) |
+| 3 | P2 | [feat_chat_last_message_preview](planned_features/02_mvp2/feat_chat_last_message_preview/idea.md) | Feature | The `/chat` list page ([ui/src/app/chat/page.tsx](../../ui/src/app/chat/page.tsx)) renders each conversation row as `title + relative timestamp + "{N} messages"` via… | — | Held for MVP2 (decided 2026-05-13). No technical dependency on MVP2 infra; bundling with [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation/idea.md) as chat polish. `feat_chat_agent` has been live since 2026-05-12 (PR #60) and no operator has asked for the preview yet. Folder renamed from `chore_chat_last_message_preview` 2026-05-14 per `/idea-preflight` audit — `chore_` is reserved for changes with no user-visible behavior per [feature_templates/README.md](../../feature_templates/README.md). |
+| 4 | P2 | [feat_overnight_autopilot](planned_features/02_mvp2/feat_overnight_autopilot/idea.md) | Feature | The "Karpathy overnight loop" is already implemented and already autonomous, but an operator has no way to discover or trust it: | — | Idea — surfaced from an operator dogfooding review (2026-05-29). The autonomous-chaining *engine* already shipped; this is the ergonomics layer that makes it discoverable. |
+| 5 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/idea.md) | Feature | A relevance pipeline runs in stages: (1) query understanding / normalization → (2) retrieval → (3) ranking / boosting → (4) re-ranking. RelyLoop tunes **stage 3 only**. But stage 1 is often where the  | — | Idea — scoped to MVP2 (moved from `00_unsure/` 2026-05-29). The core capability is small and fits the existing parameter model. One **gating design fork remains** — the prod-reproducibility question (below) — which `/spec-gen` must resolve; if no clean deployment path exists, this idea may be deferred out of MVP2 at spec time. Tracked as a release item rather than parked because the operator has a clear MVP2 intent and the theme fits the "Real Signals" / relevance-quality story. |
+| 6 | P2 | [feat_study_convergence_indicator](planned_features/02_mvp2/feat_study_convergence_indicator/idea.md) | Feature | After a study completes, the UI shows the best metric and a trials table, but **nothing tells the operator whether the metric had plateaued or was still climbing when the study stopped.** This is the  | — | Idea — surfaced from an operator dogfooding review (2026-05-29). The feedback half of the "overnight autopilot ergonomics" theme. |
+| 7 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/idea.md) | Chore | The async flow's contract: | — | Idea — chore captured during PR #286 |
+| 8 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| 9 | P2 | [chore_template_library_expansion](planned_features/02_mvp2/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| 10 | P2 | [chore_ubi_hybrid_template_render](planned_features/02_mvp2/chore_ubi_hybrid_template_render/idea.md) | Chore | Idea — contract decision deferred (NOT a worker bug) | — | Idea — contract decision deferred (NOT a worker bug) |
+| 11 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/idea.md) | Chore | `UbiReader._scan_ubi_events` / `_scan_ubi_queries` each issue ONE `search_batch` (a `size`-limited query). To stay under the engine result-window they now cap at 10000 rows per (target, window).… | — | Idea — deferred from `feat_ubi_judgments` (found during the rung-3 E2E) |
+| 12 | P2 | [bug_seed_meaningful_demos_silent_bulk_errors](planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep |
+| 13 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 14 | Backlog | [feat_fts_rank_ordering](planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
+| 15 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
+| 16 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
+| 17 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
 
 ## Dependency graph
 
@@ -77,6 +86,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_ubi_judgments["ubi judgments"]
+  class feat_ubi_judgments implement;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
 ```

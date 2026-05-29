@@ -13,7 +13,7 @@ Covers:
 * :func:`list_judgments_paginated` + cursor + source filter
 * :func:`count_judgments_for_list` total + per-source
 * :func:`count_judgments_for_list_and_query` (resume-skip helper)
-* :func:`source_breakdown_for_list` (folds ``click`` into ``human``)
+* :func:`source_breakdown_for_list` (three-term shape; ``feat_ubi_judgments`` FR-10)
 * :func:`list_judgment_lists` + :func:`count_judgment_lists`
 * :func:`update_judgment_list_status` + :func:`update_judgment_list_calibration`
 * :func:`list_generating_judgment_list_ids`
@@ -195,7 +195,7 @@ async def test_upsert_judgment_human_override_replaces() -> None:
         # OR the upsert minted a new id (DO UPDATE keeps the existing id, DO INSERT
         # uses the supplied id). Either way: source breakdown reflects 0 LLM rows.
         breakdown = await repo.source_breakdown_for_list(db, ids["judgment_list_id"])
-        assert breakdown == {"llm": 0, "human": 1}
+        assert breakdown == {"llm": 0, "human": 1, "click": 0}
         # original is no longer reachable as 'llm' source.
         refetched = await repo.get_judgment(db, original.id)
         assert refetched is not None

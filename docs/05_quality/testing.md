@@ -73,6 +73,16 @@ make test                # all three in sequence
   and [`backend/tests/integration/test_seed_es.py`](../../backend/tests/integration/test_seed_es.py).
 - CI provides Postgres + Redis + ES + OpenSearch via service containers in
   `.github/workflows/pr.yml`. Locally, run `make up` first.
+- **No-cluster-writes invariant (`feat_ubi_judgments`):** RelyLoop only
+  *reads* the UBI indices, never writes to a cluster. The pattern for
+  asserting this is in
+  [`backend/tests/unit/services/test_ubi_reader_no_writes.py`](../../backend/tests/unit/services/test_ubi_reader_no_writes.py):
+  boot a real `ElasticAdapter` against an `httpx.MockTransport` that
+  records every `(method, path)`, run the reader end-to-end, then assert
+  no recorded call used a write method (`PUT`/`DELETE`/`PATCH`) or a
+  write-shaped path segment (`_bulk`/`_update`/`_doc`/`_create`). Use the
+  same transport-recording shape for any future read-only adapter
+  surface.
 - Tests that depend on the API itself running should use the
   `_api_reachable()` helper to skip cleanly when the API isn't up — that's
   acceptable (CI doesn't boot the API in MVP1; deploy job comes at MVP3).

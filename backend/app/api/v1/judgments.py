@@ -39,6 +39,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.api.v1.schemas import (
     CalibrationResponse,
     CalibrationSamplesRequest,
+    CreateJudgmentListFromUbiRequest,
     CreateJudgmentListGenerateRequest,
     GenerateJudgmentsResponse,
     ImportJudgmentListRequest,
@@ -73,7 +74,9 @@ from backend.app.db.session import get_db
 from backend.app.eval.calibration import compute_calibration
 from backend.app.services.agent_judgments_dispatch import (
     JudgmentGenerationRequest,
+    UbiJudgmentGenerationRequest,
     start_judgment_generation,
+    start_ubi_judgment_generation,
 )
 
 router = APIRouter()
@@ -141,8 +144,10 @@ async def _detail(db: AsyncSession, row: JudgmentList) -> JudgmentListDetail:
         source_breakdown=_SourceBreakdown(
             llm=breakdown.get("llm", 0),
             human=breakdown.get("human", 0),
+            click=breakdown.get("click", 0),
         ),
         calibration=row.calibration,
+        generation_params=row.generation_params,
         created_at=row.created_at,
     )
 
@@ -217,6 +222,76 @@ async def generate_judgments(
                 await redis_client.aclose()
             except Exception as exc:  # noqa: BLE001 — defensive
                 logger.debug("redis close raised in generate_judgments handler", error=str(exc))
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/judgments/generate-from-ubi  (feat_ubi_judgments Story 3.2 / FR-3)
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/judgments/generate-from-ubi",
+    response_model=GenerateJudgmentsResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["judgments"],
+)
+async def generate_judgments_from_ubi(
+    body: CreateJudgmentListFromUbiRequest,
+    request: Request,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> GenerateJudgmentsResponse:
+    """Start a UBI-derived judgment generation job.
+
+    Delegates to
+    :func:`backend.app.services.agent_judgments_dispatch.start_ubi_judgment_generation`
+    which runs the full FR-4 preflight (U-A..U-H) before INSERT + Arq
+    enqueue. The Pydantic ``model_validator`` on
+    :class:`CreateJudgmentListFromUbiRequest` already enforces the
+    hybrid conditional (``current_template_id`` + ``rubric`` required
+    iff ``converter == 'hybrid_ubi_llm'``); the dispatcher trusts the
+    validated request.
+    """
+    settings = get_settings()
+    arq_pool = getattr(request.app.state, "arq_pool", None)
+    redis_client: Redis | None = None
+
+    try:
+        redis_client = await _open_redis()
+        result = await start_ubi_judgment_generation(
+            db=db,
+            redis=redis_client,
+            arq_pool=arq_pool,
+            settings=settings,
+            req=UbiJudgmentGenerationRequest(
+                name=body.name,
+                description=body.description,
+                query_set_id=body.query_set_id,
+                cluster_id=body.cluster_id,
+                target=body.target,
+                since=body.since,
+                until=body.until,
+                converter=body.converter,
+                converter_config=body.converter_config,
+                llm_fill_threshold=body.llm_fill_threshold,
+                min_impressions_threshold=body.min_impressions_threshold,
+                mapping_strategy=body.mapping_strategy,
+                current_template_id=body.current_template_id,
+                rubric=body.rubric,
+            ),
+        )
+        return GenerateJudgmentsResponse(
+            judgment_list_id=result.judgment_list_id,
+            status=result.status,
+        )
+    finally:
+        if redis_client is not None:
+            try:
+                await redis_client.aclose()
+            except Exception as exc:  # noqa: BLE001 — defensive
+                logger.debug(
+                    "redis close raised in generate_judgments_from_ubi handler",
+                    error=str(exc),
+                )
 
 
 # ---------------------------------------------------------------------------

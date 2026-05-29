@@ -28,6 +28,8 @@ Do not invent alternative prefixes (`/api/`, `/v1/`, `/relyloop/`). The single c
 | `PATCH` | Partial update of an existing resource |
 | `DELETE` | Soft-delete (sets `deleted_at`); hard-delete only on internal append-only tables |
 
+**Action-endpoint pattern.** Non-idempotent triggers use `POST /<resource>/<verb>` — e.g. `POST /api/v1/judgments/generate` (LLM) and `POST /api/v1/judgments/generate-from-ubi` (UBI, `feat_ubi_judgments`) both return `202` with `{judgment_list_id, status: "generating"}` and enqueue an Arq worker. `GET /api/v1/clusters/{id}/ubi-readiness?query_set_id=&target=` is the read-side probe for the UBI rung ladder.
+
 ## Error envelope
 
 All non-auth error responses use a structured envelope. Auth errors (when auth lands at MVP4) often have a different shape — see "Auth errors" below.

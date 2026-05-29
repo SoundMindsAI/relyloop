@@ -5,12 +5,15 @@ import { Suspense, use, useMemo, useState } from 'react';
 import { DetailPageShell } from '@/components/common/detail-page-shell';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { AmbiguousSkipRecoveryCard } from '@/components/judgments/ambiguous-skip-recovery-card';
 import { CalibrationModal } from '@/components/judgments/calibration-modal';
 import { JudgmentListHeader } from '@/components/judgments/judgment-list-header';
 import { JudgmentsTable } from '@/components/judgments/judgments-table';
 import { useJudgmentsColumns } from '@/components/judgments/judgments-table.column-config';
+import { ValueDeltaCard } from '@/components/judgments/value-delta-card';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
-import { useJudgmentList, useJudgments } from '@/lib/api/judgments';
+import { useJudgmentList, useJudgmentLists, useJudgments } from '@/lib/api/judgments';
+import { useGenerateJudgmentsFromUbi } from '@/lib/api/ubi';
 import { JUDGMENT_SOURCE_FILTER_VALUES } from '@/lib/enums';
 
 interface RouteProps {
@@ -27,10 +30,11 @@ export function JudgmentListView({ listId }: { listId: string }) {
   const urlState = useDataTableUrlState(`judgments-${listId}`, columns, { defaultPageSize: 50 });
   const [calibrationOpen, setCalibrationOpen] = useState(false);
 
-  // Narrow the URL source value to the backend's accepted set.
+  // Narrow the URL source value to the backend's accepted set (widened
+  // by feat_ubi_judgments FR-10 to include 'click').
   const rawSource = urlState.filters['source'];
-  const source = useMemo<'llm' | 'human' | undefined>(() => {
-    if (rawSource === 'llm' || rawSource === 'human') return rawSource;
+  const source = useMemo<'llm' | 'human' | 'click' | undefined>(() => {
+    if (rawSource === 'llm' || rawSource === 'human' || rawSource === 'click') return rawSource;
     if (rawSource && !(JUDGMENT_SOURCE_FILTER_VALUES as readonly string[]).includes(rawSource)) {
       return undefined;
     }
@@ -44,6 +48,19 @@ export function JudgmentListView({ listId }: { listId: string }) {
     cursor: urlState.cursor ?? undefined,
     limit: urlState.pageSize,
   });
+
+  // Pull LLM-only prior lists on the same query_set so the value-delta card
+  // can render a comparison link. Disabled until the list detail resolves.
+  const priorLists = useJudgmentLists(
+    list.data
+      ? {
+          query_set_id: list.data.query_set_id,
+          limit: 20,
+        }
+      : {},
+  );
+
+  const generateUbi = useGenerateJudgmentsFromUbi();
 
   return (
     <main className="mx-auto max-w-7xl space-y-6 p-6">
@@ -77,6 +94,73 @@ export function JudgmentListView({ listId }: { listId: string }) {
               step-by-step walkthrough.
             </p>
             <JudgmentListHeader list={listData} />
+            {(() => {
+              const calibration = listData.calibration as Record<string, unknown> | null;
+              const params = listData.generation_params as Record<string, unknown> | null;
+              const isUbi =
+                (calibration !== null &&
+                  typeof calibration === 'object' &&
+                  'coverage_pct' in calibration) ||
+                (params !== null && params?.generation_kind === 'ubi');
+              if (!isUbi) return null;
+              const coverage =
+                typeof calibration?.coverage_pct === 'number' ? calibration.coverage_pct : null;
+              const ambiguousSkip =
+                typeof calibration?.ambiguous_query_skip_count === 'number'
+                  ? calibration.ambiguous_query_skip_count
+                  : 0;
+              // Find a prior LLM list on the same query_set (latest first).
+              const priorLlm = (priorLists.data?.data ?? []).find(
+                (item) => item.id !== listData.id,
+              );
+              const priorListSummary = priorLlm
+                ? {
+                    id: priorLlm.id,
+                    name: priorLlm.name,
+                    judgment_count: 0,
+                  }
+                : null;
+              return (
+                <>
+                  <ValueDeltaCard
+                    coveragePct={coverage}
+                    judgmentCount={listData.judgment_count}
+                    priorList={priorListSummary}
+                  />
+                  {ambiguousSkip > 0 && params && (
+                    <AmbiguousSkipRecoveryCard
+                      skipCount={ambiguousSkip}
+                      pending={generateUbi.isPending}
+                      onRerunWithMostRecent={() => {
+                        // Reconstruct the original request body from generation_params
+                        // + override mapping_strategy + derive a new name.
+                        const body = {
+                          name: `${listData.name}-most-recent`,
+                          description: listData.description,
+                          query_set_id: listData.query_set_id,
+                          cluster_id: listData.cluster_id,
+                          target: listData.target,
+                          since: (params.since as string | null) ?? new Date().toISOString(),
+                          until: (params.until as string | null) ?? null,
+                          converter: params.converter as
+                            | 'ctr_threshold'
+                            | 'dwell_time'
+                            | 'hybrid_ubi_llm',
+                          mapping_strategy: 'most_recent' as const,
+                          llm_fill_threshold: (params.llm_fill_threshold as number | null) ?? null,
+                          min_impressions_threshold:
+                            (params.min_impressions_threshold as number | null) ?? null,
+                          current_template_id:
+                            (params.current_template_id as string | null) ?? null,
+                          rubric: (params.rubric as string | null) ?? null,
+                        };
+                        generateUbi.mutate(body);
+                      }}
+                    />
+                  )}
+                </>
+              );
+            })()}
             <Card>
               <CardContent className="pt-6">
                 <JudgmentsTable

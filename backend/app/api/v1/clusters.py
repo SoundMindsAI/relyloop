@@ -66,6 +66,7 @@ from backend.app.api.v1.schemas import (
     RunQueryRequest,
     RunQueryResponse,
     TargetListResponse,
+    UbiReadinessResponse,
 )
 from backend.app.db import repo
 from backend.app.db.models import Cluster
@@ -90,6 +91,7 @@ from backend.app.services.cluster import (
     dispatch_run_query,
 )
 from backend.app.services.documents import truncate_source_for_list
+from backend.app.services.ubi_readiness import classify_rung
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
@@ -335,6 +337,90 @@ async def get_cluster_schema(
 # ---------------------------------------------------------------------------
 # feat_create_study_target_autocomplete Story B2 — Target list
 # ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/clusters/{cluster_id}/ubi-readiness",
+    response_model=UbiReadinessResponse,
+    tags=["clusters"],
+)
+async def get_cluster_ubi_readiness(
+    cluster_id: str,
+    query_set_id: Annotated[str, Query(..., min_length=1, max_length=36)],
+    target: Annotated[str, Query(..., min_length=1, max_length=256)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> UbiReadinessResponse:
+    """Classify ``(cluster, query_set, target)`` on the UBI rung ladder.
+
+    feat_ubi_judgments FR-7.
+
+    Required query params: ``query_set_id`` + ``target`` (Spec FR-7 +
+    cycle-3 D-10c: the endpoint MUST 422 without them — the classifier
+    can't compute a per-target rung without an application filter).
+
+    Error envelopes (all per spec §7.5):
+    * ``404 CLUSTER_NOT_FOUND`` — cluster row missing or soft-deleted.
+    * ``404 QUERY_SET_NOT_FOUND`` — query set row missing.
+    * ``422 VALIDATION_ERROR`` — missing required query params (FastAPI's
+      built-in handler, surfaces via ``api/errors.py``).
+    * ``503 CLUSTER_UNREACHABLE`` — adapter cannot reach the cluster.
+
+    The result is cached for 60 s in Redis per
+    ``(cluster_id, query_set_id, target)`` so back-to-back dialog-open
+    and dialog-submit calls don't re-probe.
+    """
+    cluster = await repo.get_cluster(db, cluster_id)
+    if cluster is None:
+        raise _err(404, "CLUSTER_NOT_FOUND", f"cluster {cluster_id} not found", False)
+    query_set = await repo.get_query_set(db, query_set_id)
+    if query_set is None:
+        raise _err(
+            404,
+            "QUERY_SET_NOT_FOUND",
+            f"query set {query_set_id} not found",
+            False,
+        )
+
+    # Consistency: the query set must belong to the requested cluster
+    # (GPT-5.5 PR #317 finding #3, sub-point) — otherwise the rung is
+    # computed against a target the query set was never run on.
+    if query_set.cluster_id != cluster_id:
+        raise _err(
+            422,
+            "VALIDATION_ERROR",
+            f"query_set {query_set_id} belongs to cluster "
+            f"{query_set.cluster_id!r}, not {cluster_id!r}",
+            False,
+        )
+
+    # NOTE: we do NOT pass RelyLoop's internal queries.id values as a
+    # query_id filter. UBI's ubi_events.query_id is the plugin's own UUID,
+    # not queries.id — filtering on the internal ids would match nothing
+    # and silently under-report every cluster to rung_1 (GPT-5.5 PR #317
+    # finding #3). Mapping internal → UBI ids needs the user_query join,
+    # which the readiness probe deliberately skips (it must complete in
+    # <2s per spec §6). The rung is therefore a target-level signal — same
+    # approximation as the dispatcher's U-D2 count.
+    try:
+        async with cluster_svc.acquire_adapter(cluster) as adapter:
+            snapshot = await classify_rung(
+                adapter=adapter,
+                cluster_id=cluster_id,
+                query_set_id=query_set_id,
+                query_set_query_ids=[],
+                target=target,
+                redis=redis,
+            )
+    except (ClusterUnreachable, ClusterUnreachableError) as exc:
+        raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
+
+    return UbiReadinessResponse(
+        rung=snapshot.rung,
+        covered_pairs_pct=snapshot.covered_pairs_pct,
+        head_covered=snapshot.head_covered,
+        checked_at=snapshot.checked_at,
+    )
 
 
 @router.get(

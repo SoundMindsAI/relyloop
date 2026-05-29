@@ -1,7 +1,8 @@
 """Confirmation guard primitives (feat_chat_agent Story 2.5).
 
-* :data:`MUTATING_TOOL_NAMES` — the 7-tool set requiring confirmation per spec
-  FR-5 + §19 Decision log. ``create_query_set`` is intentionally NOT on this
+* :data:`MUTATING_TOOL_NAMES` — the 8-tool set requiring confirmation per spec
+  FR-5 + §19 Decision log (+ ``generate_judgments_from_ubi`` from
+  feat_ubi_judgments FR-6). ``create_query_set`` is intentionally NOT on this
   list (creating an empty container is cheap to undo).
 * :func:`is_affirmative` — whole-word, case-insensitive matcher against a small
   affirmative-token vocabulary.
@@ -15,6 +16,10 @@ MUTATING_TOOL_NAMES: frozenset[str] = frozenset(
     {
         "import_queries_from_csv",
         "generate_judgments_llm",
+        # feat_ubi_judgments FR-6 — UBI judgment generation is equivalent to
+        # the LLM path in operator commitment + data side-effects, so the
+        # server-side confirmation guard enforces it too (not prompt-only).
+        "generate_judgments_from_ubi",
         "create_study",
         "cancel_study",
         "create_proposal_from_study",

@@ -155,6 +155,28 @@ still gets a clear failure-narrative artifact.
 `peek_daily_total` + `estimated_max_call_cost(model)` gate refuses to
 fire when the projected total would breach `OPENAI_DAILY_BUDGET_USD`.
 
+## Hybrid UBI + LLM fill (`feat_ubi_judgments`)
+
+The `hybrid_ubi_llm` converter sends data to the LLM **only for
+below-threshold (sparse) pairs** — dense pairs are rated from UBI click
+signal and never leave the cluster as an LLM payload. For each sparse
+pair the worker fetches the doc body via `adapter.get_document(target,
+doc_id)` (the doc-id set is already known from UBI, so no extra search
+runs) and sends the same shape as judgment generation:
+
+* the operator's `query_text` (the UBI `user_query` mapped to the query
+  set row),
+* the truncated doc body (first 500 chars, same `_DOC_BODY_CHAR_LIMIT`
+  as the LLM-judgment path),
+* the operator-supplied rubric.
+
+**No UBI event data leaves the cluster** — the LLM sees only the same
+(query_text, doc_body, rubric) it would on the pure-LLM path. Click
+counts, dwell times, positions, and the standardized UBI index contents
+stay on the cluster; they're consumed locally by the converter to decide
+*which* pairs need LLM-fill, not sent to the provider. The same
+`peek_daily_total` + `record_cost` budget gate fires per call.
+
 ## Future work
 
 * `feat_chat_agent` (after `feat_digest_proposal`) adds a chat

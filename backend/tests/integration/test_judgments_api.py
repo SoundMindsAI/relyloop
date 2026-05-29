@@ -357,7 +357,7 @@ async def test_import_happy_path(async_client: httpx.AsyncClient) -> None:
     body = response.json()
     assert body["status"] == "complete"
     assert body["judgment_count"] == 2
-    assert body["source_breakdown"] == {"llm": 0, "human": 2}
+    assert body["source_breakdown"] == {"llm": 0, "human": 2, "click": 0}
 
 
 async def test_import_query_not_in_set_returns_400(async_client: httpx.AsyncClient) -> None:
@@ -734,8 +734,15 @@ async def test_detail_returns_404_on_unknown_id(async_client: httpx.AsyncClient)
     assert response.json()["detail"]["error_code"] == "JUDGMENT_LIST_NOT_FOUND"
 
 
-async def test_list_judgments_rejects_click_filter(async_client: httpx.AsyncClient) -> None:
-    """GET /judgment-lists/{id}/judgments?source=click → 422 VALIDATION_ERROR."""
+async def test_list_judgments_accepts_click_filter(async_client: httpx.AsyncClient) -> None:
+    """GET /judgment-lists/{id}/judgments?source=click → 200 (FR-10 widening).
+
+    The cycle-2 F6 ``click=422`` rejection contract was superseded by
+    ``feat_ubi_judgments`` FR-10 the moment the UBI worker started
+    writing ``source='click'`` rows. The filter now accepts ``click``
+    and returns the matching rows (empty here — the seeded list is
+    LLM-imported, no click rows).
+    """
     seeded = await _seed_chain(num_queries=1)
     import_resp = await async_client.post(
         "/api/v1/judgment-lists/import",
@@ -752,7 +759,10 @@ async def test_list_judgments_rejects_click_filter(async_client: httpx.AsyncClie
     response = await async_client.get(
         f"/api/v1/judgment-lists/{jl_id}/judgments", params={"source": "click"}
     )
-    assert response.status_code == 422
+    assert response.status_code == 200
+    body = response.json()
+    # No click rows on an LLM-imported list — but the filter is accepted.
+    assert body["data"] == []
 
 
 # ---------------------------------------------------------------------------

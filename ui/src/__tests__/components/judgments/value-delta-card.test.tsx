@@ -1,0 +1,36 @@
+/**
+ * Tests for `<ValueDeltaCard>` (feat_ubi_judgments Story 4.3 / FR-8 Capability D).
+ */
+import { describe, expect, it } from 'vitest';
+import { render, screen } from '@testing-library/react';
+
+import { ValueDeltaCard } from '@/components/judgments/value-delta-card';
+
+describe('<ValueDeltaCard>', () => {
+  it('renders the coverage-only variant when no prior LLM list exists', () => {
+    render(<ValueDeltaCard coveragePct={0.62} judgmentCount={234} />);
+    expect(screen.getByText('What real signals bought you')).toBeInTheDocument();
+    expect(screen.getByText('62%')).toBeInTheDocument();
+    expect(screen.getByText('234')).toBeInTheDocument();
+    expect(screen.queryByTestId('value-delta-prior-link')).not.toBeInTheDocument();
+  });
+
+  it('renders the delta variant with a link to the prior LLM list', () => {
+    render(
+      <ValueDeltaCard
+        coveragePct={0.78}
+        judgmentCount={500}
+        priorList={{ id: 'prior-1', name: 'llm-baseline', judgment_count: 320 }}
+      />,
+    );
+    const link = screen.getByTestId('value-delta-prior-link');
+    expect(link).toHaveTextContent('llm-baseline');
+    expect(link).toHaveAttribute('href', '/judgments/prior-1');
+    expect(screen.getByText('320')).toBeInTheDocument();
+  });
+
+  it('falls back to "most" when coveragePct is null', () => {
+    render(<ValueDeltaCard coveragePct={null} judgmentCount={42} />);
+    expect(screen.getByText('most')).toBeInTheDocument();
+  });
+});
