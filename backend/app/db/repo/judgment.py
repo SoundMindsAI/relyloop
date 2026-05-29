@@ -279,13 +279,14 @@ async def source_breakdown_for_list(
     db: AsyncSession,
     judgment_list_id: str,
 ) -> dict[str, int]:
-    """``{'llm': N, 'human': M}`` — used by ``JudgmentListDetail.source_breakdown``.
+    """``{'llm': N, 'human': M, 'click': K}`` — used by ``JudgmentListDetail.source_breakdown``.
 
-    Per spec FR-6 the response shape names only ``llm`` and ``human``. Per
-    GPT-5.5 cycle 2 F6 the invariant ``llm + human == judgment_count`` is
-    held by deterministically folding reserved ``click`` rows into the
-    ``human`` bucket. No ``click`` rows exist in MVP1; the contract is
-    fixed forward-compat.
+    Invariant: ``llm + human + click == judgment_count``. Evolved
+    2026-05-29 by ``feat_ubi_judgments`` FR-10 — the cycle 2 F6
+    "click folds into human" contract was forward-compat fiction
+    that became wrong the moment UBI lists ship click rows. The
+    three-term shape is what the source-breakdown UI card consumes;
+    operators see UBI vs LLM vs human-curated rows separately.
     """
     stmt = (
         select(Judgment.source, func.count())
@@ -293,13 +294,12 @@ async def source_breakdown_for_list(
         .group_by(Judgment.source)
     )
     rows = (await db.execute(stmt)).all()
-    out: dict[str, int] = {"llm": 0, "human": 0}
+    out: dict[str, int] = {"llm": 0, "human": 0, "click": 0}
     for source, count in rows:
-        if source == "llm":
-            out["llm"] += int(count)
-        else:
-            # 'human' AND 'click' both fold into 'human' per the cycle 2 F6 contract.
-            out["human"] += int(count)
+        if source in out:
+            out[source] += int(count)
+        # Unknown source values are silently dropped — the CHECK constraint
+        # rejects them at INSERT, so this branch is unreachable in practice.
     return out
 
 

@@ -821,20 +821,47 @@ class TrialListResponse(BaseModel):
 JudgmentListStatusWire = Literal["generating", "complete", "failed"]
 
 # Values must match backend/app/db/models/judgment.py CHECK constraint
-# judgments_source_check. `click` is reserved for v1.5+ click-derived
-# judgments — emitted on read paths but never accepted on the source filter
+# judgments_source_check. `click` is live in MVP2 (feat_ubi_judgments FR-10) —
+# UBI worker writes `source='click'` rows + the source filter accepts the value
 # (see JudgmentSourceFilterWire below).
 JudgmentSourceWire = Literal["llm", "human", "click"]
 
-# Subset of JudgmentSourceWire used as the ?source= filter on
-# GET /judgment-lists/{id}/judgments. Spec §8.4 enumerates only `llm` and
-# `human` for this filter — `click` is rejected at the API boundary
-# (GPT-5.5 cycle 1 F1).
-JudgmentSourceFilterWire = Literal["llm", "human"]
+# Used as the ?source= filter on GET /judgment-lists/{id}/judgments.
+# Widened in feat_ubi_judgments FR-10 to accept `click` so the UI's
+# Source filter on judgment-list detail can surface UBI rows. Cycle 2 F6's
+# rejection-at-API-boundary contract was superseded the moment UBI shipped
+# click rows.
+JudgmentSourceFilterWire = Literal["llm", "human", "click"]
 
 # Values must match backend/app/db/models/judgment.py CHECK constraint
 # judgments_rating_check.
 RatingWire = Literal[0, 1, 2, 3]
+
+# ---------------------------------------------------------------------------
+# UBI wire-value contracts (feat_ubi_judgments FR-9)
+# ---------------------------------------------------------------------------
+# UBI converter kind — body of POST /api/v1/judgments/generate-from-ubi.
+# Source-of-truth: this Literal + the UbiJudgmentGenerationRequest dataclass
+# in backend/app/services/agent_judgments_dispatch.py.
+UbiConverterKind = Literal["ctr_threshold", "dwell_time", "hybrid_ubi_llm"]
+
+# Superset surfaced by the frontend method picker (Story 4.2). The `llm`
+# branch routes to POST /judgments/generate (existing); the three UBI
+# branches route to POST /judgments/generate-from-ubi (Story 3.2). The
+# UBI endpoint itself never accepts `llm` for `converter` — that mapping
+# happens client-side.
+JudgmentGenerationMethodWire = Literal["llm", "ctr_threshold", "dwell_time", "hybrid_ubi_llm"]
+
+# UBI readiness rung label returned by GET /api/v1/clusters/{id}/ubi-readiness.
+# Source-of-truth: the UbiReadinessRung Literal in
+# backend/app/services/ubi_readiness.py.
+UbiReadinessRungWire = Literal["rung_0", "rung_1", "rung_2", "rung_3"]
+
+# UBI mapping strategy (FR-5 step 5 — how the worker joins UBI user_query
+# strings to query_set.queries.query_text when they're ambiguous).
+# `reject` is the default; under it ambiguous pairs are skipped per-query
+# (NOT terminal — cycle-3 finding `ambiguous-mapping-behavior-contradictory`).
+UbiMappingStrategyWire = Literal["reject", "first_match", "most_recent"]
 
 
 class CreateJudgmentListGenerateRequest(BaseModel):
@@ -864,13 +891,16 @@ class GenerateJudgmentsResponse(BaseModel):
 class _SourceBreakdown(BaseModel):
     """Source-breakdown sub-shape on :class:`JudgmentListDetail`.
 
-    Per spec FR-6 the response names only ``llm`` and ``human`` (GPT-5.5
-    cycle 1 F6). Reserved ``click`` rows fold into ``human`` per the cycle 2
-    F6 invariant ``llm + human == judgment_count``.
+    Evolved 2026-05-29 by ``feat_ubi_judgments`` FR-10 — now three terms
+    (``llm + human + click == judgment_count``). The cycle-2 F6
+    "click folds into human" contract is superseded the moment UBI ships
+    click rows; the UI's source-breakdown card now renders all three
+    buckets separately so operators see the mix at a glance.
     """
 
     llm: int
     human: int
+    click: int
 
 
 class JudgmentListSummary(BaseModel):
