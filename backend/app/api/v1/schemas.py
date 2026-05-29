@@ -917,7 +917,15 @@ class JudgmentListSummary(BaseModel):
 
 
 class JudgmentListDetail(BaseModel):
-    """``GET /api/v1/judgment-lists/{id}`` response."""
+    """``GET /api/v1/judgment-lists/{id}`` response.
+
+    Note: ``generation_params`` is populated for UBI lists (feat_ubi_judgments
+    Story 1.1's JSONB column) and NULL for LLM lists. The Story 4.3 UI
+    (``<ValueDeltaCard>`` + ``<AmbiguousSkipRecoveryCard>``) reads the
+    payload to discriminate UBI/hybrid lists and to reconstruct the
+    original request for the ambiguous-skip "Re-run with most_recent"
+    affordance.
+    """
 
     id: str
     name: str
@@ -932,6 +940,7 @@ class JudgmentListDetail(BaseModel):
     judgment_count: int
     source_breakdown: _SourceBreakdown
     calibration: dict[str, Any] | None
+    generation_params: dict[str, Any] | None
     created_at: datetime
 
 

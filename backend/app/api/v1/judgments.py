@@ -147,6 +147,7 @@ async def _detail(db: AsyncSession, row: JudgmentList) -> JudgmentListDetail:
             click=breakdown.get("click", 0),
         ),
         calibration=row.calibration,
+        generation_params=row.generation_params,
         created_at=row.created_at,
     )
 

@@ -12,7 +12,12 @@ import type { ApiError } from '@/lib/api-errors';
 import type { components } from '@/lib/types';
 
 export type JudgmentListSummary = components['schemas']['JudgmentListSummary'];
-export type JudgmentListDetail = components['schemas']['JudgmentListDetail'];
+// feat_ubi_judgments Story 4.3: augment the generated JudgmentListDetail
+// type with the new generation_params field until the next `pnpm types:gen`
+// regen pulls it from the live OpenAPI schema.
+export type JudgmentListDetail = components['schemas']['JudgmentListDetail'] & {
+  generation_params?: Record<string, unknown> | null;
+};
 export type JudgmentListListResponse = components['schemas']['JudgmentListListResponse'];
 export type JudgmentRow = components['schemas']['JudgmentRow'];
 export type JudgmentListJudgmentsResponse = components['schemas']['JudgmentListJudgmentsResponse'];
@@ -64,7 +69,8 @@ export function useJudgmentList(id: string): UseQueryResult<JudgmentListDetail, 
 export interface JudgmentsFilter {
   cursor?: string | undefined;
   limit?: number | undefined;
-  source?: 'llm' | 'human' | undefined;
+  // Widened by feat_ubi_judgments FR-10 — `click` is now a valid filter value.
+  source?: 'llm' | 'human' | 'click' | undefined;
   sort?: string | undefined;
 }
 
