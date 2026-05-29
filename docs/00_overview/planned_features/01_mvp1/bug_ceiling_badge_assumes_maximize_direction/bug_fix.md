@@ -48,6 +48,10 @@ On `main`, the FE test "does NOT show the Ceiling badge for a minimize study at 
 
 None — code-only. Additive backend field (defaulted, backward-compatible); additive frontend gate. No migration (objective is existing JSONB; `direction` already written there by study creation). No env var, no operator action.
 
+## Review adjudication (Gemini PR #305)
+
+- **1 Medium — Accepted.** Gemini noted that `direction === 'maximize'` would hide the badge for *all* studies during a rolling deploy where the frontend runs ahead of the backend (old API responses omit `direction` → `undefined === 'maximize'` is false). Changed to `direction !== 'minimize'`, so absent/undefined defaults to maximize — matching the backend's own `objective.get("direction", "maximize")` default. Added a regression test for the undefined-direction case. GPT-5.5 final review: CLEAN (pre-Gemini).
+
 ## Tangential observations
 
 None — the trace was contained to the studies-list shape + the one badge cell. The minimize "Floor" badge is a possible future enhancement, not filed as a separate idea (it's a UX-copy decision, capturable later if a minimize-heavy workflow emerges).

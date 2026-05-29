@@ -62,6 +62,19 @@ describe('studies-table best_metric ceiling badge', () => {
     expect(screen.getByText('0.995')).toBeInTheDocument();
   });
 
+  it('shows the badge when direction is undefined at >= 0.99 (rolling-deploy default)', () => {
+    // During a rolling deploy the FE can run ahead of the BE, so an old
+    // API response may omit `direction`. Absent direction must default to
+    // maximize (the backend's own default) — the badge should still show
+    // for a pinned maximize study rather than vanish for everyone. Per
+    // Gemini PR #305: `!== 'minimize'` not `=== 'maximize'`.
+    renderBestMetricCell({
+      direction: undefined as unknown as StudySummary['direction'],
+      best_metric: 0.995,
+    });
+    expect(screen.getByTestId('best-metric-ceiling-study-1')).toBeInTheDocument();
+  });
+
   it('does not show the badge for a maximize study below the threshold', () => {
     renderBestMetricCell({ direction: 'maximize', best_metric: 0.5 });
     expect(screen.queryByTestId('best-metric-ceiling-study-1')).not.toBeInTheDocument();
