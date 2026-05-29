@@ -1,7 +1,7 @@
 name: pr
 
 # infra_foundation Story 5.1 / FR-4.
-# Runs on every PR to main + every push to main.
+# Runs on every PR to main.
 #
 # Three parallel jobs:
 #   - backend  — uv sync · ruff check · ruff format --check · mypy · pytest
@@ -19,15 +19,6 @@ on:
     # Docs-only changes don't need backend tests / frontend build /
     # smoke / docker buildx. A PR that touches BOTH docs and code
     # still runs the full workflow (any non-ignored path matches).
-    # Keep this list synchronized with the `push` trigger below.
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - '.gitignore'
-      - 'LICENSE'
-      - 'release-notes-*.md'
-  push:
-    branches: [main]
     paths-ignore:
       - 'docs/**'
       - '*.md'
