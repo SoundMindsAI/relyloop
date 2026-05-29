@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-29** (latest mtime of any planned
 
 ## Next up
 
-**[feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md)** — Feature, currently in **Plan**
+**[feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md)** — Feature, currently in **Implementing**
 
 > Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real click + dwell behavior via three converters
 
-Plan approved; run /impl-execute to ship
+Implementation in progress — resume to finish
 
 ```bash
-/impl-execute docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments/implementation_plan.md --all
+/impl-execute docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments/implementation_plan.md --all  # resume in-progress
 ```
 
 ## MVP2 Progress
@@ -29,7 +29,7 @@ Plan approved; run /impl-execute to ship
 | Open bugs | 3 |
 | Legacy "Path to MVP2" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP2) |
-| In flight | 0 feature(s) actively shipping |
+| In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -39,15 +39,15 @@ Plan approved; run /impl-execute to ship
 |---|---|---|---|---|
 | [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study: | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) merged 2026-05-15 |
 
-### Implementing (0)
-
-_None._
-
-### Plan (1)
+### Implementing (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P1 | [feat_ubi_judgments](planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md) | Feature | Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic | — | — |
+
+### Plan (0)
+
+_None._
 
 ### Spec (0)
 
@@ -84,7 +84,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_ubi_judgments["ubi judgments"]
-  class feat_ubi_judgments plan;
+  class feat_ubi_judgments implement;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
 ```

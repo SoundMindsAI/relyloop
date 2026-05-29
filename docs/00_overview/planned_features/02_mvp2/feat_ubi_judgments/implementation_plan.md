@@ -1561,8 +1561,8 @@ Per Story 5.1: `testing.md` documents the no-cluster-writes integration test pat
 ### Current sprint
 
 - [x] Story 1.1 — Migration `0021_judgment_lists_generation_params` (commit `5acdee15`)
-- [ ] Story 1.2 — `domain/ubi/` package
-- [ ] Story 2.1 — `UbiReader` service
+- [x] Story 1.2 — `domain/ubi/` package (commit `6036586a`)
+- [x] Story 2.1 — `UbiReader` service
 - [ ] Story 2.2 — Readiness service + dispatcher refactor
 - [ ] Story 2.3 — `_SourceBreakdown` evolution + Literals + filter widening
 - [ ] Story 3.1 — `GET /api/v1/clusters/{id}/ubi-readiness` endpoint
