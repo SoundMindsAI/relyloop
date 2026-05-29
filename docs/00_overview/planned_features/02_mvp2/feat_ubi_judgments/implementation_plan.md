@@ -1563,7 +1563,7 @@ Per Story 5.1: `testing.md` documents the no-cluster-writes integration test pat
 - [x] Story 1.1 — Migration `0021_judgment_lists_generation_params` (commit `5acdee15`)
 - [x] Story 1.2 — `domain/ubi/` package (commit `6036586a`)
 - [x] Story 2.1 — `UbiReader` service
-- [ ] Story 2.2 — Readiness service + dispatcher refactor
+- [x] Story 2.2 — Readiness service + dispatcher refactor
 - [ ] Story 2.3 — `_SourceBreakdown` evolution + Literals + filter widening
 - [ ] Story 3.1 — `GET /api/v1/clusters/{id}/ubi-readiness` endpoint
 - [ ] Story 3.2 — `POST /api/v1/judgments/generate-from-ubi` endpoint
