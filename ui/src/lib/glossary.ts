@@ -487,6 +487,13 @@ export const glossary = {
   'judgment.converter': {
     short:
       'How a judgment list is generated: LLM-as-judge, UBI from real clicks/dwell, or a hybrid (UBI head + LLM tail).',
+    long: [
+      'Three options for generating a judgment list:',
+      '',
+      '- **LLM-as-judge** — an LLM rates every (query, doc) pair against the operator rubric. Works on any cluster; costs OpenAI dollars per query.',
+      '- **UBI (click-through / dwell-time)** — derives ratings from real user signal captured by the OpenSearch UBI plugin (or the o19s ES UBI fork). No LLM cost.',
+      '- **Hybrid UBI + LLM** — UBI rates pairs above the impression threshold; the LLM fills the long tail. Requires both a template and a rubric.',
+    ].join('\n'),
     ariaLabel: 'More information about judgment-generation methods',
   },
   // Source-of-truth: backend/app/api/v1/schemas.py JudgmentGenerationMethodWire.
