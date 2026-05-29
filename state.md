@@ -2,7 +2,7 @@
 
 > Read this first. A one-page snapshot: current focus, the last few merges, what's in flight, what's queued, and where the project sits in the MVP1 → MVP2 → MVP3 → GA roadmap. **Historical feature-merge narrative + chained execution context lives in [`state_history.md`](state_history.md)** — new merge entries land there, not here (per `chore_state_md_size_compression`, 2026-05-29). Keep this file loadable in a single `Read` call.
 
-**Last updated:** 2026-05-29 (after PR #310 — `01_mvp1/` planned-features bucket fully drained; the two remaining deferred-by-design folders reclassified to `99_backlog/` + `03_mvp3/`).
+**Last updated:** 2026-05-29 (after PR #316 — `feat_study_sub_warmup_guard` ships as the first MVP2 feature; pre-MVP2 `01_mvp1/` sweep drained, MVP2 backlog now down 1 to 17).
 
 ## Where the roadmap sits
 
@@ -14,8 +14,8 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 
 ## Current branch / execution context
 
-- **Branch:** working through the post-MVP1 `01_mvp1/` planned-features backlog (bugs + chores) via `/pipeline` — code PR + docs-only finalization PR per item. See `/pipeline status` for the live queue.
-- **Active feature:** none in flight (MVP1 alpha shipped; draining the `01_mvp1/` backlog).
+- **Branch:** MVP2 work begins. First MVP2 feature (`feat_study_sub_warmup_guard`, PR #316) shipped on `feature/study-sub-warmup-guard` 2026-05-29; folder finalized to `implemented_features/2026_05_29_feat_study_sub_warmup_guard/`. See `/pipeline status` for the next item from the MVP2 backlog (currently `feat_ubi_judgments` / `infra_adapter_solr` anchor bundle + `feat_overnight_autopilot` ergonomics theme).
+- **Active feature:** none in flight (PR #316 ready to merge as of finalization commit).
 - **Alembic head:** `0020_studies_baseline_trial` (added by `feat_study_baseline_trial` PR #245 — `studies.baseline_trial_id` + `trials.is_baseline` + partial unique index `uq_trials_study_baseline_complete`).
 - **Python:** 3.13. **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat), TypeScript 6, Playwright (chromium, single worker) for E2E.
 - **Coverage gates:** backend 80% (`fail_under` in pyproject), UI vitest + tsc + ESLint + Next build, plus a full-stack smoke E2E job. Live pass counts: see the latest `pr.yml` run (the historical per-feature counts moved to `state_history.md`).
@@ -24,15 +24,15 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 
 Detail + reasoning for each is in [`state_history.md`](state_history.md).
 
+- **2026-05-29** — `feat_study_sub_warmup_guard` (PR #316). First MVP2 feature ships. Closes the Custom-mode sub-warmup gap left open by `chore_study_default_stop_conditions` (2026-05-23): adds a non-blocking inline amber warning to the create-study modal's Step 5 when operators enter `max_trials < 50` in Custom mode. Hoists the inline `50` at `optuna_runtime.py:154` to a module-level `STUDIES_TPE_WARMUP_FLOOR` constant; frontend `SUB_WARMUP_FLOOR` mirrors with the `// Values must match` discipline comment + value-lock unit test. 3 new backend pytest assertions (value lock + `floor-1=49` boundary + `floor=50` boundary using constant); 5 new vitest cases (AC-1..AC-4 + AC-6 submit-non-blocking). Single-phase per spec D-6; digest narrative routed to `feat_study_convergence_indicator`. Cross-model review: spec converged at cycle 3 (13/13 accepted), plan converged at cycle 3 (8 accepted + 1 rejected with counter-evidence), phase-gate converged at cycle 2 (clean), final GPT-5.5 + 1 Gemini finding accepted.
 - **2026-05-29** — `docs: reclassify 2 deferred MVP1 items → 99_backlog/03_mvp3` (PR #310, docs-only). Empties `01_mvp1/` — MVP1 actionable backlog fully drained. `chore_demo_reseed_stale_recovery_atomic_cas` → `99_backlog/` (already Priority: Backlog); `infra_agent_sibling_worktree_isolation` → `99_backlog/` (phases 1+2 shipped, only phase3 remains, defer-until-incident). Dashboards regenerated.
 - **2026-05-29** — `bug_smoke_studies_data_table_search_flake` (PR #308 + finalization #309). Hardened the flaky `studies-data-table.spec.ts:20` search-visibility assertion: scoped it to the `studies-table` element + 15s web-first timeout to ride out the debounce→refetch→render race on slow CI runners. e2e-only; no product change.
 - **2026-05-29** — `ci(pr): SKIP_HEAVY_CI kill-switch` (PR #307, infra). Added an `if:` guard on the 5 `pr.yml` jobs over 1 min so a repo variable can skip them (temporary GitHub Actions budget measure). See the Active CI note above — variable currently set, auto-restores ~2026-06-01.
 - **2026-05-29** — `bug_ceiling_badge_assumes_maximize_direction` (PR #305 + finalization #306). Studies-list CEILING badge (best_metric ≥ 0.99) mislabeled minimize studies (0.99 is a bad score there). Preflight found it had gone latent→live (feat_study_baseline_trial made `direction=minimize` creatable). Added `direction` to StudySummary (defaults maximize) + gated the badge on `direction !== 'minimize'` (rolling-deploy-safe per Gemini). 7 tests.
-- **2026-05-29** — `chore_state_md_size_compression` (PR #303 + finalization #304). Split `state.md` (360 KB → 9.3 KB snapshot) from new `state_history.md` (append-only narrative, root); added `state-md-size-guard` pre-commit hook (60 KB cap) + CLAUDE.md snapshot-vs-history convention. **First merge under the new convention.**
 
 ## In flight
 
-- None. MVP1 alpha shipped; the pre-MVP2 sweep drained the entire `01_mvp1/` backlog — that bucket is now empty (PR #310). Next work is the `02_mvp2/` queue below.
+- None. PR #316 (`feat_study_sub_warmup_guard`) is the first MVP2 feature — finalized 2026-05-29, ready to merge. MVP2 backlog down 1 to 17; the four P1 anchors remain (`feat_ubi_judgments`, `feat_ubi_onramp`, `infra_adapter_solr`, `feat_study_budget_presets` — wait, this one shipped as `feat_study_sub_warmup_guard`; the P1 anchor was the budget-presets+guard bundle, with presets having shipped via `chore_study_default_stop_conditions` 2026-05-23 and the guard now via #316). Next `/pipeline` candidate: the MVP2 anchor bundle (Solr + UBI + UBI on-ramp) or the next ergonomics item (`feat_overnight_autopilot` / `feat_study_convergence_indicator`).
 
 ## Queued (priority-ordered by dashboard / dep graph)
 

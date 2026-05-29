@@ -6,28 +6,22 @@ _Reflects feature-folder state as of **2026-05-29** (latest mtime of any planned
 
 ## Next up
 
-**[feat_study_sub_warmup_guard](planned_features/02_mvp2/feat_study_sub_warmup_guard/feature_spec.md)** — Feature, currently in **Plan**
+All scoped MVP2 features shipped 🎉
 
-> A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials < STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click remediations.
-
-Plan approved; run /impl-execute to ship
-
-```bash
-/impl-execute docs/00_overview/planned_features/02_mvp2/feat_study_sub_warmup_guard/implementation_plan.md --all
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP2 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **1 / 2** (50%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **1 / 1** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **4** high-value, ready when P0 clears |
+| → P1 | **3** high-value, ready when P0 clears |
 | → P2 (default) | 9 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 3 |
-| Legacy "Path to MVP2" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 9 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -43,11 +37,9 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (1)
+### Plan (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P1 | [feat_study_sub_warmup_guard](planned_features/02_mvp2/feat_study_sub_warmup_guard/feature_spec.md) | Feature | A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials < STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme | — | — |
+_None._
 
 ### Spec (0)
 
@@ -85,8 +77,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  feat_study_sub_warmup_guard["study sub warmup guard"]
-  class feat_study_sub_warmup_guard plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
 ```

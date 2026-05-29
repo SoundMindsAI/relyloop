@@ -1,7 +1,7 @@
 # Implementation Plan — Study Budget Sub-Warmup Guard
 
 **Date:** 2026-05-29
-**Status:** Approved (Opus + GPT-5.5 cross-model review converged at cycle 3 — **9 findings across 3 cycles: 8 accepted, 1 rejected with cited counter-evidence**)
+**Status:** Complete (PR #316, ready to merge 2026-05-29)
 **Primary spec:** [`feature_spec.md`](./feature_spec.md) (Approved — Opus + GPT-5.5 converged at cycle 3, 13 findings accepted)
 
 ## Cross-model review log

@@ -6,8 +6,8 @@ _Top-level index across MVP1 → GA v1+ as of **2026-05-29**. Click a release na
 
 | Release | Theme | Progress | Status |
 |---|---|---|---|
-| [MVP1 / v0.1](MVP1_DASHBOARD.md) | The Loop | 94 / 94 scoped done | **Complete** |
-| [MVP2 / v0.2](MVP2_DASHBOARD.md) | Three-Engine + Real Signals | 1 / 2 scoped done · 8 remaining | **In progress** |
+| [MVP1 / v0.1](MVP1_DASHBOARD.md) | The Loop | 95 / 95 scoped done | **Complete** |
+| [MVP2 / v0.2](MVP2_DASHBOARD.md) | Three-Engine + Real Signals | 1 / 1 scoped done · 7 remaining | **In progress** |
 | MVP3 / v0.3 | Observable | — | **Not yet scoped** |
 | [GA v1 / v1.0](GA_DASHBOARD.md) | Production-ready | 1 item(s) queued | **Held / queued** |
 
