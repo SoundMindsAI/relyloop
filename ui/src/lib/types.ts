@@ -2895,6 +2895,12 @@ export interface components {
       /** Best Metric */
       best_metric: number | null;
       /**
+       * Direction
+       * @default maximize
+       * @enum {string}
+       */
+      direction: 'maximize' | 'minimize';
+      /**
        * Created At
        * Format: date-time
        */

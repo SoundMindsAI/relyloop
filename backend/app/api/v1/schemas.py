@@ -760,6 +760,14 @@ class StudySummary(BaseModel):
     cluster_id: str
     status: StudyStatusWire
     best_metric: float | None
+    direction: ObjectiveDirection = "maximize"
+    """Objective direction, surfaced so the studies-list UI can label a
+    ``best_metric`` correctly. The CEILING badge (``best_metric >= 0.99``)
+    is only meaningful for ``maximize`` objectives — for ``minimize`` a
+    0.99 is a *bad* score, not a ceiling. Defaults to ``maximize`` so
+    pre-``feat_study_baseline_trial`` studies whose ``objective`` JSON
+    predates the ``direction`` key still render correctly. Per
+    ``bug_ceiling_badge_assumes_maximize_direction``."""
     created_at: datetime
     completed_at: datetime | None
 

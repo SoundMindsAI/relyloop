@@ -155,12 +155,17 @@ async def _detail(db: AsyncSession, row: Study) -> StudyDetail:
 
 
 def _summary(row: Study) -> StudySummary:
+    # ``objective`` is a non-null JSONB dict; ``direction`` arrived with
+    # feat_study_baseline_trial, so older rows may lack the key — default
+    # to "maximize" (per bug_ceiling_badge_assumes_maximize_direction).
+    direction = row.objective.get("direction", "maximize")
     return StudySummary(
         id=row.id,
         name=row.name,
         cluster_id=row.cluster_id,
         status=row.status,
         best_metric=row.best_metric,
+        direction=direction,
         created_at=row.created_at,
         completed_at=row.completed_at,
     )

@@ -27,12 +27,28 @@ nothing special," when the truth is the opposite.
 
 ## Why deferred
 
+> **Preflight update (2026-05-29):** reason #1 below is now **STALE** — the
+> bug was elevated from latent to live and fixed in PR (see
+> [`bug_fix.md`](./bug_fix.md)). `feat_study_baseline_trial` added
+> `direction: Literal["maximize","minimize"] = "maximize"` to
+> [`ObjectiveSpec`](../../../../backend/app/api/v1/schemas.py) (schemas.py:579)
+> after this idea was written, so a `direction=minimize` study **is creatable
+> via the API today** — the badge can actively mislabel it. Reasons #2 and #3
+> stood (StudySummary lacked `direction`; the detail page carries the deeper
+> signal) and shaped the fix (the smallest option: add `direction` to
+> StudySummary + gate the badge). Original deferral reasons preserved below
+> for the historical record.
+
 Three concrete reasons the badge can stay maximize-only for now:
 
-1. **No minimize-direction metric currently supported.** The objective
+1. **No minimize-direction metric currently supported.** ~~The objective
    metric allowlist in [`backend/app/eval/scoring.py`](../../../backend/app/eval/scoring.py)
    is NDCG / MAP / MRR / Precision / Recall — all "higher is better".
-   No minimize study can be created today via API or UI.
+   No minimize study can be created today via API or UI.~~ **Stale —
+   see preflight update above.** The metric allowlist is still
+   maximize-natured, but `objective.direction` is now a settable field,
+   so a minimize study (minimizing a higher-is-better metric) is
+   creatable and the badge mislabels it.
 2. **`StudySummary` doesn't expose `direction`.** Gemini's suggested
    inline fix (`row.original.direction !== 'minimize'`) would be a
    TypeScript error — the list-view shape is `{id, name, cluster_id,
