@@ -1306,7 +1306,7 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   >
                     <strong>
                       The optimizer spends its first ~10 trials exploring randomly, and studies
-                      below 50 trials skip RelyLoop&rsquo;s pruning floor.
+                      below {SUB_WARMUP_FLOOR} trials skip RelyLoop&rsquo;s pruning floor.
                     </strong>{' '}
                     With {watchedMaxTrials} trials this study is unlikely to converge — switch to{' '}
                     <strong>Focused (50)</strong> for a quick run or <strong>Standard (200)</strong>{' '}
