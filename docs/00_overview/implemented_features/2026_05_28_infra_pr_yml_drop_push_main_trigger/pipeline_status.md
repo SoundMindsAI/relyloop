@@ -22,4 +22,10 @@
 - Phases covered: single phase (no deferred work)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-28
+- PR: [#295](https://github.com/SoundMindsAI/relyloop/pull/295)
+- CI: all non-smoke jobs green; smoke flaked on known `bug_smoke_seed_es_unavailable_shards_race` (not a regression)
+- Stories completed: 2/2 (Story 1.1 workflow edit + Story 1.2 runbook + CLAUDE.md doc updates)
+- Gemini review: 2 Medium findings (jq `// empty` filter fixes) accepted + applied in `d2f98f4a`
+- Final GPT-5.5 review: 1 Low finding (inline CLAUDE.md tangential fix) rejected with cited counter-evidence (inline-fix rubric + dedicated commit)
