@@ -187,5 +187,5 @@ those into a real cluster's registration body.
 - [`adapters.md`](adapters.md) — the `SearchAdapter` Protocol shape; what each adapter method does internally.
 - [`api-conventions.md`](api-conventions.md) — error envelope (`{detail: {error_code, message, retryable}}`), cursor pagination format, `X-Total-Count` semantics.
 - [`data-model.md`](data-model.md) — the `clusters` table column-by-column.
-- Spec [`infra_adapter_elastic/feature_spec.md`](../00_overview/planned_features/infra_adapter_elastic/feature_spec.md) — FRs, ACs, error code catalog, threat model.
+- Spec [`infra_adapter_elastic/feature_spec.md`](../00_overview/implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) — FRs, ACs, error code catalog, threat model.
 - Live OpenAPI: http://localhost:8000/docs (Swagger UI) — try every endpoint from the browser.

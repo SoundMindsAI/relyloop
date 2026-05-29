@@ -258,7 +258,7 @@ Per [spec §27](../00_overview/relyloop-spec.md):
 - **No LTR training** — MVP2's Solr LTR is consume-only; cross-engine training is backlog.
 - **No real-time signal streaming / Path B** — UBI ratings are computed batch-wise at judgment-list creation, strictly offline.
 - **No cluster-side actions to enable UBI.** RelyLoop never installs the UBI plugin, never writes the `ubi_queries`/`ubi_events` indices, never modifies the operator's cluster. The on-ramp (§4) is *guidance only* — detection + engine-specific runbook links. Enabling UBI is always the operator's action on their own infrastructure.
-- **No Lucidworks Fusion** — dropped outright ([`chore_drop_fusion_scope`](../00_overview/planned_features/chore_drop_fusion_scope/idea.md)).
+- **No Lucidworks Fusion** — dropped outright ([`chore_drop_fusion_scope`](../00_overview/implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md)).
 
 ## 10. Open questions for `/spec-gen`
 

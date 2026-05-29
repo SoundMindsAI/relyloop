@@ -85,7 +85,7 @@ CREATE TABLE clusters (
 
 `auth_kind = opensearch_sigv4` is a reserved enum value but rejected at the API layer with `AUTH_KIND_NOT_SUPPORTED` in MVP1 — AWS managed OpenSearch support lands at MVP3.
 
-`target_filter` (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/<date>_feat_cluster_target_filter/) at Alembic `0014`) is an optional operator-supplied glob pattern that scopes `GET /clusters/{id}/targets` to matching index/collection names. NULL = no filter (default, backward-compat for pre-`0014` rows). Pattern syntax: `*`, `?`, `[seq]`, `[!seq]` via Python `fnmatch.fnmatchcase` — no brace expansion. Trimmed at the API layer; stored verbatim otherwise. MVP1 is create-only: to change the filter, DELETE + re-register (no PATCH endpoint).
+`target_filter` (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/2026_05_20_feat_cluster_target_filter/) at Alembic `0014`) is an optional operator-supplied glob pattern that scopes `GET /clusters/{id}/targets` to matching index/collection names. NULL = no filter (default, backward-compat for pre-`0014` rows). Pattern syntax: `*`, `?`, `[seq]`, `[!seq]` via Python `fnmatch.fnmatchcase` — no brace expansion. Trimmed at the API layer; stored verbatim otherwise. MVP1 is create-only: to change the filter, DELETE + re-register (no PATCH endpoint).
 
 ### `config_repos` (owned by `infra_adapter_elastic`)
 
@@ -249,7 +249,7 @@ CREATE UNIQUE INDEX uq_trials_study_baseline_complete
 
 `trials` is hard-delete only (no `deleted_at`) — when a study is removed, trials cascade-delete with it; trial history is regenerable from Optuna's RDB if needed.
 
-`per_query_metrics` (added by [`feat_pr_metric_confidence`](../00_overview/implemented_features/<date>_feat_pr_metric_confidence/) at Alembic `0015`) carries the per-query ir_measures scores from `backend/app/eval/scoring.py::score()`'s `per_query` dict, keyed by the user-facing metric tokens it emits (e.g. `ndcg@10`, `map@10`, `mrr`). NULL for trials predating the migration or for failed/pruned trials. The DB-level CHECK constraint enforces NULL-or-object at the persistence boundary since the write path is the Arq `run_trial` worker, not a Pydantic-validated HTTP request. Consumed by `backend/app/services/study_confidence.py::fetch_study_confidence` (the FR-2 4-query read pattern) to assemble `ConfidenceShape` on the `StudyDetail` response, the PR body's `## Confidence` section, and the digest narrative's `<confidence>` / `<per_query_outcomes>` Jinja blocks. Per-sub-field FR-7 degradation paths suppress only the per-query-dependent surfaces (`ci_95`, `headline.n_queries`, `per_query_outcomes`) when this column is NULL.
+`per_query_metrics` (added by [`feat_pr_metric_confidence`](../00_overview/implemented_features/2026_05_21_feat_pr_metric_confidence/) at Alembic `0015`) carries the per-query ir_measures scores from `backend/app/eval/scoring.py::score()`'s `per_query` dict, keyed by the user-facing metric tokens it emits (e.g. `ndcg@10`, `map@10`, `mrr`). NULL for trials predating the migration or for failed/pruned trials. The DB-level CHECK constraint enforces NULL-or-object at the persistence boundary since the write path is the Arq `run_trial` worker, not a Pydantic-validated HTTP request. Consumed by `backend/app/services/study_confidence.py::fetch_study_confidence` (the FR-2 4-query read pattern) to assemble `ConfidenceShape` on the `StudyDetail` response, the PR body's `## Confidence` section, and the digest narrative's `<confidence>` / `<per_query_outcomes>` Jinja blocks. Per-sub-field FR-7 degradation paths suppress only the per-query-dependent surfaces (`ci_95`, `headline.n_queries`, `per_query_outcomes`) when this column is NULL.
 
 ### `digests`, `proposals` (owned by `feat_digest_proposal` + `feat_github_pr_worker`)
 
@@ -322,7 +322,7 @@ Migrations `0008`–`0013` add a `search_vector tsvector GENERATED ALWAYS AS …
 
 **Hard rule:** `search_vector` is **not declared** in the SQLAlchemy ORM models. The columns are read-only from the application's perspective — Postgres maintains them via the `GENERATED ALWAYS AS … STORED` clause. Any attempt to INSERT or UPDATE these columns will fail with a Postgres error. The Story 2.13 lint guard is not the enforcement point here; the database itself is.
 
-**Rank ordering deferred to MVP2** — the `?q=` predicate filters but does not re-order results, so the existing `(created_at, id)` cursor stays valid. See [`docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering/idea.md`](../00_overview/planned_features/feat_fts_rank_ordering_mvp2/idea.md) for the rank-ordering follow-up; cursor encoding will need to change to include the `ts_rank` score when that lands.
+**Rank ordering deferred to MVP2** — the `?q=` predicate filters but does not re-order results, so the existing `(created_at, id)` cursor stays valid. See [`docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering/idea.md`](../00_overview/planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) for the rank-ordering follow-up; cursor encoding will need to change to include the `ts_rank` score when that lands.
 
 ## Forthcoming: `audit_log` (MVP2 + MVP4 evolution)
 
