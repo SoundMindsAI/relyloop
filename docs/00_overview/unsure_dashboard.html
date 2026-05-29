@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>RelyLoop UNSURE Dashboard</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f6f7fb;
+  color: #1f2530;
+}
+header {
+  padding: 24px 32px 16px;
+  border-bottom: 1px solid #e2e6ee;
+  background: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+header h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+header .meta {
+  margin-top: 4px;
+  color: #5b6477;
+  font-size: 13px;
+}
+main { padding: 24px 32px 64px; max-width: 1600px; margin: 0 auto; }
+section { margin-bottom: 32px; }
+section > h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7385;
+}
+
+/* "Next up" callout — top-of-page recommendation. */
+.next-up {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.18);
+}
+.next-up .eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 6px;
+}
+.next-up .title {
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.next-up .title a { color: #fff; text-decoration: none; }
+.next-up .title a:hover { text-decoration: underline; }
+.next-up .one-liner {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 13px;
+  margin-bottom: 12px;
+  max-width: 900px;
+}
+.next-up .stage-hint {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.next-up .cmd {
+  display: block;
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font: 13px/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+  user-select: all;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.next-up.done {
+  background: linear-gradient(135deg, #15803d 0%, #14b8a6 100%);
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2);
+}
+
+/* KPI row */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.kpi {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.kpi .label { color: #5b6477; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.kpi .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.kpi .sub { color: #6b7385; font-size: 12px; margin-top: 2px; }
+.kpi.complete .value { color: #15803d; }
+.kpi.warn .value { color: #b45309; }
+.kpi.bug .value { color: #b91c1c; }
+.kpi-secondary {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 12px;
+  color: #5b6477;
+}
+
+/* Progress bar */
+.bar {
+  margin-top: 8px;
+  height: 6px;
+  background: #eaecf2;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #14b8a6);
+}
+
+/* Kanban */
+.kanban {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+.col {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 200px;
+}
+.col h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.col h3 .count {
+  font-weight: 500;
+  color: #6b7385;
+  background: #eaecf2;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+}
+.col.idea       h3 { color: #475569; }
+.col.spec       h3 { color: #1d4ed8; }
+.col.plan       h3 { color: #b45309; }
+.col.implement  h3 { color: #c2410c; }
+.col.done       h3 { color: #15803d; }
+.col.idea       { border-top: 3px solid #94a3b8; }
+.col.spec       { border-top: 3px solid #3b82f6; }
+.col.plan       { border-top: 3px solid #eab308; }
+.col.implement  { border-top: 3px solid #f97316; }
+.col.done       { border-top: 3px solid #22c55e; }
+
+/* Cards */
+.card {
+  background: #fbfcfe;
+  border: 1px solid #e2e6ee;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  position: relative;
+}
+.card .name {
+  font-weight: 600;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+.card .name a { color: inherit; text-decoration: none; }
+.card .name a:hover { text-decoration: underline; }
+.card .one-liner {
+  color: #4b5360;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.card .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+  font-size: 11px;
+  color: #6b7385;
+}
+.card .meta .badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.card .deps { font-size: 11px; color: #6b7385; margin-top: 4px; }
+.card .deps .dep-chip {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-right: 3px;
+  margin-top: 2px;
+  border-radius: 10px;
+  background: #eef2f7;
+  color: #475569;
+  font-size: 10px;
+}
+
+/* Type accents on the left edge */
+.card.feat   { border-left: 3px solid #6366f1; }
+.card.infra  { border-left: 3px solid #f59e0b; }
+.card.chore  { border-left: 3px solid #64748b; }
+.card.bug    { border-left: 3px solid #ef4444; }
+.card.epic   { border-left: 3px solid #0ea5e9; }
+.badge.feat  { background: #eef2ff; color: #4338ca; }
+.badge.infra { background: #fef3c7; color: #92400e; }
+.badge.chore { background: #f1f5f9; color: #475569; }
+.badge.bug   { background: #fee2e2; color: #991b1b; }
+.badge.epic  { background: #e0f2fe; color: #075985; }
+/* Priority chip — color-coded so P0 jumps out on visual scan. */
+.badge.priority[data-priority="P0"] {
+  background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5;
+}
+.badge.priority[data-priority="P1"] {
+  background: #fed7aa; color: #9a3412; border: 1px solid #fdba74;
+}
+.badge.priority[data-priority="P2"] {
+  background: #e0f2fe; color: #075985; border: 1px solid #bae6fd;
+}
+.badge.priority[data-priority="Backlog"] {
+  background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1;
+}
+
+.card .pr {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #dcfce7;
+  color: #14532d;
+  font-weight: 600;
+}
+.card .deferred {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.filters span.label { color: #6b7385; font-size: 12px; margin-right: 6px; }
+.filters button {
+  font: inherit;
+  background: #fff;
+  border: 1px solid #d4d9e3;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #475569;
+}
+.filters button.active { background: #1f2530; color: #fff; border-color: #1f2530; }
+.filters button:hover { border-color: #1f2530; }
+
+/* Dependency graph */
+.mermaid-wrap {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 16px;
+  overflow-x: auto;
+}
+.mermaid-wrap pre { margin: 0; font-size: 12px; }
+
+footer {
+  text-align: center;
+  color: #6b7385;
+  font-size: 12px;
+  padding: 16px 0 32px;
+}
+
+/* Hidden via filter */
+.card[data-hidden="1"] { display: none; }
+
+/* Back-to-roadmap link at the top of per-release dashboards. */
+.back-link {
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.back-link a {
+  color: #4f46e5;
+  text-decoration: none;
+}
+.back-link a:hover { text-decoration: underline; }
+
+/* Roadmap roll-up rows */
+.roadmap-row {
+  background: #fff;
+  border: 1px solid #e2e6ee;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(220px, 2fr) auto auto;
+  align-items: center;
+  gap: 16px;
+}
+.roadmap-row .release-name {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.roadmap-row .release-name a { color: inherit; text-decoration: none; }
+.roadmap-row .release-name a:hover { text-decoration: underline; }
+.roadmap-row .theme {
+  color: #4b5360;
+  font-size: 13px;
+}
+.roadmap-row .progress {
+  color: #5b6477;
+  font-size: 13px;
+  text-align: right;
+  white-space: nowrap;
+}
+.roadmap-row .state-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.state-pill.complete   { background: #dcfce7; color: #14532d; }
+.state-pill.in_progress { background: #ffedd5; color: #9a3412; }
+.state-pill.queued     { background: #fef3c7; color: #92400e; }
+.state-pill.unscoped   { background: #f1f5f9; color: #475569; }
+</style>
+</head>
+<body>
+<header>
+  <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
+  <h1>RelyLoop UNSURE Dashboard</h1>
+  <div class="meta">
+    Reflects feature-folder state as of 2026-05-29 (latest mtime of any
+    <code>docs/00_overview/planned_features/</code> or
+    <code>docs/00_overview/implemented_features/</code> file).
+    See <a href="../../state.md">state.md</a> for the active branch context,
+    <a href="../../CLAUDE.md">CLAUDE.md</a> for conventions, and
+    <a href="../02_product/mvp1-user-stories.md">mvp1-user-stories.md</a>
+    for the user-story narrative.
+  </div>
+</header>
+
+<main>
+
+<section>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped UNSURE features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
+  </div>
+</section>
+
+
+<section>
+  <h2>UNSURE Progress</h2>
+  <div class="kpi-row">
+    <div class="kpi ">
+      <div class="label">Scoped items done</div>
+      <div class="value">0 / 0</div>
+      <div class="sub">0% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:0%"></span></div>
+    </div>
+    <div class="kpi warn">
+      <div class="label">Pending work</div>
+      <div class="value">1</div>
+      <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
+    </div>
+    <div class="kpi bug">
+      <div class="label">Open bugs</div>
+      <div class="value">1</div>
+      <div class="sub">tracked bug_* idea files</div>
+    </div>
+    <div class="kpi ">
+      <div class="label">P0 — do next</div>
+      <div class="value">0</div>
+      <div class="sub">unblocking / paying daily cost</div>
+    </div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="label">P1</div>
+      <div class="value">0</div>
+      <div class="sub">high-value, ready when P0 clears</div>
+    </div>
+    <div class="kpi">
+      <div class="label">P2 (default)</div>
+      <div class="value">1</div>
+      <div class="sub">important to file, not blocking</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Backlog</div>
+      <div class="value">0</div>
+      <div class="sub">captured for record, not planned</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Legacy "Path to UNSURE"</div>
+      <div class="value">1</div>
+      <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
+    </div>
+  </div>
+  <div class="kpi-secondary">
+    <span>
+      <strong>Backlog ideas:</strong>
+      0 idea-only feat/infra folders (not yet scoped into UNSURE)
+    </span>
+    <span>
+      <strong>In flight:</strong>
+      0 feature(s) actively shipping
+    </span>
+  </div>
+</section>
+
+<section>
+  <h2>Pipeline</h2>
+  <div class="filters">
+    <span class="label">Filter:</span>
+    <button class="active" data-filter="all">All</button>
+    <button data-filter="feat">Features</button>
+    <button data-filter="infra">Infra</button>
+    <button data-filter="chore">Chores</button>
+    <button data-filter="bug">Bugs</button>
+  </div>
+  <div class="kanban">
+<div class="col idea">
+  <h3>Idea <span class="count">1</span></h3>
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/00_unsure/bug_seed_meaningful_demos_silent_bulk_errors">Seed Meaningful Demos Silent Bulk Errors</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">[`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario:</div>
+
+
+</div>
+
+</div>
+
+<div class="col spec">
+  <h3>Spec <span class="count">0</span></h3>
+
+</div>
+
+<div class="col plan">
+  <h3>Plan <span class="count">0</span></h3>
+
+</div>
+
+<div class="col implement">
+  <h3>Implementing <span class="count">0</span></h3>
+
+</div>
+
+<div class="col done">
+  <h3>Done <span class="count">0</span></h3>
+
+</div>
+</div>
+</section>
+
+<section>
+  <h2>Dependency graph (feat_ + infra_)</h2>
+  <div class="mermaid-wrap">
+    <div class="mermaid">graph LR
+  classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
+  classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
+  classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
+  classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;</div>
+    <noscript><pre>graph LR
+  classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
+  classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
+  classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
+  classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
+  classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;</pre></noscript>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  Single source of truth: the feature folder structure.
+  Regenerate after any spec/plan/pipeline_status change with
+  <code>make dashboard</code>.
+</footer>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "default", securityLevel: "loose" });
+</script>
+<script>
+  // Filter chips
+  document.querySelectorAll(".filters button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const f = btn.dataset.filter;
+      document.querySelectorAll(".card").forEach(c => {
+        c.dataset.hidden = (f === "all" || c.dataset.prefix === f) ? "0" : "1";
+      });
+    });
+  });
+</script>
+</body>
+</html>
