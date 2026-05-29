@@ -30,4 +30,4 @@ This means every studies-POST integration test today runs without a real Arq poo
 
 ## Coordinates with
 
-- [`infra_study_preflight_real_engine_integration`](../infra_study_preflight_real_engine_integration/idea.md) — also deferred from the same phase-gate review; both could be picked up together in an infra-sweep PR.
+- [`infra_study_preflight_real_engine_integration`](../../../implemented_features/2026_05_25_infra_study_preflight_real_engine_integration/idea.md) — also deferred from the same phase-gate review; both could be picked up together in an infra-sweep PR.

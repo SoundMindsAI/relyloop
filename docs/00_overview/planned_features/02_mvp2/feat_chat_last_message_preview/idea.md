@@ -1,7 +1,7 @@
 # feat_chat_last_message_preview
 
 **Type:** feat (chat UX polish — deferred)
-**Status:** Held for MVP2 (decided 2026-05-13). No technical dependency on MVP2 infra; bundling with [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation_mvp2/idea.md) as chat polish. `feat_chat_agent` has been live since 2026-05-12 (PR #60) and no operator has asked for the preview yet. Folder renamed from `chore_chat_last_message_preview` 2026-05-14 per `/idea-preflight` audit — `chore_` is reserved for changes with no user-visible behavior per [feature_templates/README.md](../feature_templates/README.md).
+**Status:** Held for MVP2 (decided 2026-05-13). No technical dependency on MVP2 infra; bundling with [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation/idea.md) as chat polish. `feat_chat_agent` has been live since 2026-05-12 (PR #60) and no operator has asked for the preview yet. Folder renamed from `chore_chat_last_message_preview` 2026-05-14 per `/idea-preflight` audit — `chore_` is reserved for changes with no user-visible behavior per [feature_templates/README.md](../../feature_templates/README.md).
 **Date:** 2026-05-12
 **Origin:** GPT-5.5 cycle-2 finding F15 against `feat_chat_agent` implementation plan ([deferred-work entries](../../../implemented_features/2026_05_12_feat_chat_agent/implementation_plan.md), F15 row in the rating table); Story 5.1 capture.
 
@@ -118,7 +118,7 @@ These need spec-time decisions the idea cannot lock from the codebase alone:
 
 Originally captured as `chore_chat_last_message_preview` (Story 5.1, 2026-05-12).
 Renamed to `feat_chat_last_message_preview` on 2026-05-14 per `/idea-preflight`
-audit: [feature_templates/README.md](../feature_templates/README.md) reserves
+audit: [feature_templates/README.md](../../feature_templates/README.md) reserves
 `chore_` for "Refactor, rename, dead-code removal, tech debt — no user-visible
 behavior change," and a preview line in the conversation list is a user-visible
 addition. Mirrors the 2026-05-13 `bug_chat_long_conversation_truncation` →
@@ -134,5 +134,5 @@ F15 row, deferred-work table) left untouched as frozen-at-ship-time.
   [`implementation_plan.md`](../../../implemented_features/2026_05_12_feat_chat_agent/implementation_plan.md)
   (cycle-2 F15 row + Story 5.1 deferred-work table).
 - Companion deferred work:
-  [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation_mvp2/idea.md)
+  [`bug_chat_long_conversation_truncation_mvp2`](../bug_chat_long_conversation_truncation/idea.md)
   — both are MVP2 chat polish items and could ship together.

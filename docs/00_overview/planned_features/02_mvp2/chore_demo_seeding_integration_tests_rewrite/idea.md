@@ -31,7 +31,7 @@ None of this is integration-tested. A future regression that:
 - Forgets to register `run_demo_reseed` in `WorkerSettings.functions` → no test fails.
 - Breaks the Redis status key shape → no test fails (the unit test covers the *Pydantic* shape but not the persistence path through the real Redis).
 
-[`bug_demo_reseed_button_silent_enqueue_failure`](../bug_demo_reseed_button_silent_enqueue_failure/idea.md) is a real bug that would have been caught by integration tests on the async flow.
+[`bug_demo_reseed_button_silent_enqueue_failure`](../../../implemented_features/2026_05_29_bug_demo_reseed_button_silent_enqueue_failure/idea.md) is a real bug that would have been caught by integration tests on the async flow.
 
 ## Why deferred
 

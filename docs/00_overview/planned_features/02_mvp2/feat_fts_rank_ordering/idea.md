@@ -3,7 +3,7 @@
 **Date:** 2026-05-16
 **Status:** Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16.
 **Priority:** Backlog — explicitly held for MVP2 (folder name suffix). Re-evaluate when MVP2 work begins; the tsvector + GIN indexes are already on disk so the actual implementation is small.
-**Origin:** [`feat_data_table_primitive/feature_spec.md` §16 lines 896–900](../feat_data_table_primitive/feature_spec.md). The 6 Postgres `tsvector` columns + GIN indexes already exist (migrations `0008`–`0013`); the `plainto_tsquery('english', :q)` predicate is wired into 6 list endpoints. Only the ORDER BY and the cursor encoding need to change.
+**Origin:** [`feat_data_table_primitive/feature_spec.md` §16 lines 896–900](../../../implemented_features/2026_05_16_feat_data_table_primitive/feature_spec.md). The 6 Postgres `tsvector` columns + GIN indexes already exist (migrations `0008`–`0013`); the `plainto_tsquery('english', :q)` predicate is wired into 6 list endpoints. Only the ORDER BY and the cursor encoding need to change.
 **Depends on:** `feat_data_table_primitive` (PR open on `feat/data-table-primitive`). Cursor pagination is already keyset-based on `(created_at, id)`.
 
 ## Problem

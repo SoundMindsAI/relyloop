@@ -15,14 +15,14 @@ Pull from the Idea backlog or capture a new feature spec.
 | Metric | Value |
 |---|---|
 | Scoped items done | **0 / 0** (0%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **1** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **2** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 1 important to file, not blocking |
+| → P2 (default) | 2 important to file, not blocking |
 | → Backlog | 0 captured for record, not planned |
 | Open bugs | 1 |
 | Legacy "Path to UNSURE" | 1 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 0 idea-only feat/infra (not yet scoped into UNSURE) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into UNSURE) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -43,11 +43,12 @@ _None._
 
 _None._
 
-### Idea (1)
+### Idea (2)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [bug_seed_meaningful_demos_silent_bulk_errors](planned_features/00_unsure/bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep |
+| 1 | P2 | [feat_query_normalization_tuning](planned_features/00_unsure/feat_query_normalization_tuning/idea.md) | Feature | A relevance pipeline runs in stages: (1) query understanding / normalization → (2) retrieval → (3) ranking / boosting → (4) re-ranking. RelyLoop tunes **stage 3 only**. But stage 1 is often where the  | — | Idea — exploratory. Placed in `00_unsure/` because the release target is genuinely unresolved: the core capability is small and fits the existing parameter model, but a prod-reproducibility question (below) must be answered before it can be committed to a release. |
+| 2 | P2 | [bug_seed_meaningful_demos_silent_bulk_errors](planned_features/00_unsure/bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep |
 
 ## Dependency graph
 
