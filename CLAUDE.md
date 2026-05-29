@@ -467,7 +467,7 @@ This section covers the **runtime data path** (what's safe to write to from insi
 
 One follow-on capability remains tracked as a deferred-phase idea in the feature's planned-features folder, picked up when the friction recurs:
 
-- [`phase3_idea.md`](docs/00_overview/planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec). Picked up on a migration-collision incident between concurrent worktrees sharing the same Postgres.
+- [`phase3_idea.md`](docs/00_overview/planned_features/99_backlog/infra_agent_sibling_worktree_isolation/phase3_idea.md) — per-worktree `DATABASE_URL_FILE` override following the `*_FILE`-mounted-secret pattern (locked by D-2 in the spec). Picked up on a migration-collision incident between concurrent worktrees sharing the same Postgres. (Moved to `99_backlog/` 2026-05-29 — phases 1+2 shipped; phase3 is defer-until-incident.)
 
 Phase 2 (capability B, the `make test-worktree` automation) shipped on PR #249 alongside Phase 1 — see the Shortcut subsection above and [`docs/03_runbooks/parallel-worktrees.md`](docs/03_runbooks/parallel-worktrees.md).
 

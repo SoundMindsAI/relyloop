@@ -65,4 +65,4 @@ None — code-only change. The exception barrier is purely additive (existing ha
 
 ## Tangential observations
 
-- [chore_demo_reseed_stale_recovery_atomic_cas](../chore_demo_reseed_stale_recovery_atomic_cas/idea.md) — make the stale-status → enqueue transition atomic via Redis CAS/Lua (GPT-5.5 #2; non-regression defense-in-depth — current Arq job_id + advisory lock already prevent duplicate runs).
+- [chore_demo_reseed_stale_recovery_atomic_cas](../../planned_features/99_backlog/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) — make the stale-status → enqueue transition atomic via Redis CAS/Lua (GPT-5.5 #2; non-regression defense-in-depth — current Arq job_id + advisory lock already prevent duplicate runs).
