@@ -381,3 +381,99 @@ describe('CreateStudyModal — stop-condition presets (FR-2..FR-4, FR-9)', () =>
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// feat_study_sub_warmup_guard — Custom-mode sub-warmup warning (FR-6 / AC-1..AC-6)
+// ---------------------------------------------------------------------------
+
+describe('CreateStudyModal — sub-warmup warning (feat_study_sub_warmup_guard)', () => {
+  it('AC-1: shows on Custom + sub-warmup max_trials with interpolation and preset labels', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    // Drive to Custom + sub-warmup: click Focused (writes max_trials=50),
+    // then edit max_trials to 12 — the (12, '') tuple matches no preset
+    // write, so activePreset re-derives to 'custom'.
+    fireEvent.click(getPresetButton(/Focused \(50\)/));
+    fireEvent.change(getMaxTrialsInput(), { target: { value: '12' } });
+
+    const warning = await screen.findByTestId('cs-sub-warmup-warning');
+    expect(warning).toBeInTheDocument();
+    expect(warning).toHaveTextContent(/12 trials/);
+    expect(warning).toHaveTextContent(/Focused \(50\)/);
+    expect(warning).toHaveTextContent(/Standard \(200\)/);
+  });
+
+  it('AC-2: hides at the SUB_WARMUP_FLOOR boundary (max_trials===50 in Custom mode)', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    // Drive to Custom + 50: Standard writes (200, ''), then edit to 50.
+    // (50, '') matches no preset write -> activePreset === 'custom', but
+    // 50 < SUB_WARMUP_FLOOR is false -> warning suppressed.
+    fireEvent.click(getPresetButton(/Standard \(200\)/));
+    fireEvent.change(getMaxTrialsInput(), { target: { value: '50' } });
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('cs-sub-warmup-warning')).toBeNull();
+    });
+  });
+
+  it('AC-3: hides when a non-Custom preset is active regardless of max_trials', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    // Focused preset writes (50, '') -> activePreset === 'focused' (not
+    // Custom) -> warning suppressed by the first guard clause.
+    fireEvent.click(getPresetButton(/Focused \(50\)/));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('cs-sub-warmup-warning')).toBeNull();
+    });
+  });
+
+  it('AC-4: hides on transient empty / non-integer max_trials in Custom mode', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    fireEvent.click(getPresetButton(/Standard \(200\)/));
+
+    // Empty: typeof watchedMaxTrials === 'number' check fails (NaN).
+    fireEvent.change(getMaxTrialsInput(), { target: { value: '' } });
+    await waitFor(() => {
+      expect(screen.queryByTestId('cs-sub-warmup-warning')).toBeNull();
+    });
+
+    // Non-integer (49.99): Number.isInteger check fails -> warning hidden,
+    // even though 49.99 < SUB_WARMUP_FLOOR. Per the FR-2 guard chain.
+    fireEvent.change(getMaxTrialsInput(), { target: { value: '49.99' } });
+    await waitFor(() => {
+      expect(screen.queryByTestId('cs-sub-warmup-warning')).toBeNull();
+    });
+  });
+
+  it('AC-6: submit is non-blocking when warning is visible (POST body carries max_trials=12)', async () => {
+    // Reuse mockBackend()'s postBodies capture — the helper installs the
+    // MSW POST /api/v1/studies handler at file line ~138 that returns
+    // { id: 'st1', name: 'demo', status: 'queued' }. We only read what
+    // was sent; do NOT override the handler (per spec / plan FR-6 AC-6).
+    const { postBodies } = mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    // Set up the warning-visible state (AC-1 preconditions).
+    fireEvent.click(getPresetButton(/Focused \(50\)/));
+    fireEvent.change(getMaxTrialsInput(), { target: { value: '12' } });
+    expect(await screen.findByTestId('cs-sub-warmup-warning')).toBeInTheDocument();
+
+    // Click submit — same query as the existing AC-10 test at line 364.
+    fireEvent.click(screen.getByRole('button', { name: /Create study/i }));
+
+    await waitFor(() => expect(postBodies.length).toBeGreaterThanOrEqual(1));
+    expect(postBodies[0]!.config?.max_trials).toBe(12);
+  });
+});
