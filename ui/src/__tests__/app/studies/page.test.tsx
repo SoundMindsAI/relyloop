@@ -58,6 +58,7 @@ function studyRows(count = 2) {
     cluster_id: `c${i}`,
     status: 'running' as const,
     best_metric: 0.5 + i * 0.1,
+    direction: 'maximize' as const,
     created_at: '2026-05-12T00:00:00Z',
     completed_at: null,
   }));
