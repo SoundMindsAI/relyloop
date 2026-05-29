@@ -65,7 +65,7 @@ test('Step-1 target picker loads from the cluster, sorts alphabetically, and per
   try {
     // Verify the backend sees the seeded indices before opening the modal.
     const apiCheck = await request.get(
-      `${API_BASE}/api/v1/clusters/${chain.clusterId}/targets`,
+      new URL(`/api/v1/clusters/${chain.clusterId}/targets`, API_BASE).toString(),
     );
     expect(apiCheck.ok()).toBe(true);
     const apiTargets = (await apiCheck.json()) as { data: Array<{ name: string }> };
@@ -106,10 +106,10 @@ test('Step-1 target picker loads from the cluster, sorts alphabetically, and per
     await page.getByTestId('step-next').click();
 
     // Walk Steps 2-5 quickly using the seeded chain.
-    const querySetResp = await request.get(`${API_BASE}/api/v1/query-sets/${chain.querySetId}`);
+    const querySetResp = await request.get(new URL(`/api/v1/query-sets/${chain.querySetId}`, API_BASE).toString());
     const querySetName = (await querySetResp.json()).name as string;
     const judgmentListResp = await request.get(
-      `${API_BASE}/api/v1/judgment-lists/${chain.judgmentListId}`,
+      new URL(`/api/v1/judgment-lists/${chain.judgmentListId}`, API_BASE).toString(),
     );
     const judgmentListName = (await judgmentListResp.json()).name as string;
 
@@ -149,7 +149,10 @@ test('Step-1 target picker loads from the cluster, sorts alphabetically, and per
     // The study list page should be back in focus. Find the created study via
     // the list endpoint (returns StudySummary which omits `target`), then fetch
     // the detail endpoint to read the persisted `target`.
-    const studiesResp = await request.get(`${API_BASE}/api/v1/studies?q=${studyName}&limit=10`);
+    const studiesUrl = new URL('/api/v1/studies', API_BASE);
+    studiesUrl.searchParams.set('q', studyName);
+    studiesUrl.searchParams.set('limit', '10');
+    const studiesResp = await request.get(studiesUrl.toString());
     expect(studiesResp.ok()).toBe(true);
     const studies = (await studiesResp.json()) as {
       data: Array<{ id: string; name: string }>;
@@ -157,7 +160,7 @@ test('Step-1 target picker loads from the cluster, sorts alphabetically, and per
     const created = studies.data.find((s) => s.name === studyName);
     expect(created).toBeDefined();
     if (created) {
-      const detailResp = await request.get(`${API_BASE}/api/v1/studies/${created.id}`);
+      const detailResp = await request.get(new URL(`/api/v1/studies/${created.id}`, API_BASE).toString());
       expect(detailResp.ok()).toBe(true);
       const detail = (await detailResp.json()) as { target: string };
       expect(detail.target).toBe(seededTargets[1]); // alpha

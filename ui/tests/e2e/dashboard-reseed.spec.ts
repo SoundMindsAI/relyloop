@@ -20,7 +20,7 @@
  */
 import { expect, test } from '@playwright/test';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000';
+const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
 interface PaginatedRow {
   id: string;
@@ -35,11 +35,11 @@ async function wipeDashboard(request: import('@playwright/test').APIRequestConte
   // judgment-lists → query-sets → query-templates. Each list is paginated;
   // we walk the first 200.
   const sweep = async (path: string, deletePathPrefix: string) => {
-    const resp = await request.get(`${API_BASE}${path}?limit=200`);
+    const resp = await request.get(new URL(`${path}?limit=200`, API_BASE).toString());
     if (!resp.ok()) return;
     const body = (await resp.json()) as PaginatedResponse;
     for (const row of body.data ?? []) {
-      await request.delete(`${API_BASE}${deletePathPrefix}/${row.id}`);
+      await request.delete(new URL(`${deletePathPrefix}/${row.id}`, API_BASE).toString());
     }
   };
   await sweep('/api/v1/proposals', '/api/v1/_test/proposals');
@@ -48,14 +48,14 @@ async function wipeDashboard(request: import('@playwright/test').APIRequestConte
   // studies hard-delete preflight-checks for digests + proposals. So we
   // must delete digests first.
   // The studies list returns digest_id (when present); fetch and delete.
-  const studiesResp = await request.get(`${API_BASE}/api/v1/studies?limit=200`);
+  const studiesResp = await request.get(new URL(`/api/v1/studies?limit=200`, API_BASE).toString());
   if (studiesResp.ok()) {
     const body = (await studiesResp.json()) as {
       data: { id: string; digest_id: string | null }[];
     };
     for (const study of body.data ?? []) {
       if (study.digest_id) {
-        await request.delete(`${API_BASE}/api/v1/_test/digests/${study.digest_id}`);
+        await request.delete(new URL(`/api/v1/_test/digests/${study.digest_id}`, API_BASE).toString());
       }
     }
   }
@@ -64,11 +64,11 @@ async function wipeDashboard(request: import('@playwright/test').APIRequestConte
   await sweep('/api/v1/query-sets', '/api/v1/_test/query-sets');
   await sweep('/api/v1/query-templates', '/api/v1/_test/query-templates');
   // Clusters use the public DELETE (no test-only required).
-  const clustersResp = await request.get(`${API_BASE}/api/v1/clusters?limit=200`);
+  const clustersResp = await request.get(new URL(`/api/v1/clusters?limit=200`, API_BASE).toString());
   if (clustersResp.ok()) {
     const body = (await clustersResp.json()) as PaginatedResponse;
     for (const cluster of body.data ?? []) {
-      await request.delete(`${API_BASE}/api/v1/clusters/${cluster.id}`);
+      await request.delete(new URL(`/api/v1/clusters/${cluster.id}`, API_BASE).toString());
     }
   }
 }

@@ -89,7 +89,7 @@ test('Run this followup → modal opens prefilled → submit creates lineage-lin
   // exists with the prefill-derived name is sufficient end-to-end proof
   // that the POST body (including the `parent` field) was accepted.
   await page.waitForTimeout(2_000);
-  const studiesResp = await request.get(`${API_BASE}/api/v1/studies?limit=20`);
+  const studiesResp = await request.get(new URL(`/api/v1/studies?limit=20`, API_BASE).toString());
   expect(studiesResp.ok()).toBe(true);
   const body = (await studiesResp.json()) as {
     data: Array<{ id: string; name: string }>;
@@ -182,7 +182,7 @@ test('swap_template followup → Run → modal opens with swap-target template +
   // `template_id`). Find the new study by name in the list response,
   // then fetch its detail.
   await page.waitForTimeout(2_000);
-  const studiesResp = await request.get(`${API_BASE}/api/v1/studies?limit=20`);
+  const studiesResp = await request.get(new URL(`/api/v1/studies?limit=20`, API_BASE).toString());
   expect(studiesResp.ok()).toBe(true);
   const listBody = (await studiesResp.json()) as {
     data: Array<{ id: string; name: string }>;
@@ -192,7 +192,7 @@ test('swap_template followup → Run → modal opens with swap-target template +
   );
   expect(newStudySummary).toBeDefined();
 
-  const detailResp = await request.get(`${API_BASE}/api/v1/studies/${newStudySummary!.id}`);
+  const detailResp = await request.get(new URL(`/api/v1/studies/${newStudySummary!.id}`, API_BASE).toString());
   expect(detailResp.ok()).toBe(true);
   const detail = (await detailResp.json()) as { id: string; template_id: string };
   // AC-12: the new study's template_id MUST be the swap target.

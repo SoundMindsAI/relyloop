@@ -56,7 +56,7 @@ test.describe('/judgments/[id]', () => {
 
     // Fetch the list's judgments to learn the first judgment id.
     const listResp = await request.get(
-      `${API_BASE}/api/v1/judgment-lists/${jl.id}/judgments?limit=1`,
+      new URL(`/api/v1/judgment-lists/${jl.id}/judgments?limit=1`, API_BASE).toString(),
     );
     expect(listResp.ok()).toBe(true);
     const listBody = (await listResp.json()) as { data: Array<{ id: string }> };
@@ -64,7 +64,7 @@ test.describe('/judgments/[id]', () => {
     const firstJudgmentId = listBody.data[0]!.id;
 
     const patchResp = await request.patch(
-      `${API_BASE}/api/v1/judgment-lists/${jl.id}/judgments/${firstJudgmentId}`,
+      new URL(`/api/v1/judgment-lists/${jl.id}/judgments/${firstJudgmentId}`, API_BASE).toString(),
       { data: { rating: 3, notes: 'e2e human override' } },
     );
     expect(patchResp.ok()).toBe(true);

@@ -35,7 +35,7 @@ const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 const ENTITY_SELECT_TIMEOUT = 10_000;
 
 async function getName(path: string): Promise<string> {
-  const resp = await fetch(`${API_BASE}${path}`);
+  const resp = await fetch(new URL(path, API_BASE).toString());
   if (!resp.ok) throw new Error(`GET ${path} failed: ${resp.status}`);
   const body = (await resp.json()) as { name: string };
   return body.name;

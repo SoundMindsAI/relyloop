@@ -26,7 +26,7 @@ const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 const ENTITY_SELECT_TIMEOUT = 10_000;
 
 async function getName(path: string): Promise<string> {
-  const resp = await fetch(`${API_BASE}${path}`);
+  const resp = await fetch(new URL(path, API_BASE).toString());
   if (!resp.ok) throw new Error(`GET ${path} failed: ${resp.status}`);
   const body = (await resp.json()) as { name: string };
   return body.name;
@@ -156,12 +156,12 @@ test.describe('/studies — create-study Step-4 builder (Story 4.1)', () => {
     await expect(page.getByTestId('create-study-form')).not.toBeVisible({ timeout: 5_000 });
 
     // Fetch the created study by name and assert persistence.
-    const studies = await (await fetch(`${API_BASE}/api/v1/studies?limit=10`)).json();
+    const studies = await (await fetch(new URL(`/api/v1/studies?limit=10`, API_BASE).toString())).json();
     const created = (studies.data as Array<{ id: string; name: string }>).find(
       (s) => s.name === studyName,
     );
     expect(created, `study ${studyName} not in /api/v1/studies?limit=10`).toBeDefined();
-    const detail = await (await fetch(`${API_BASE}/api/v1/studies/${created!.id}`)).json();
+    const detail = await (await fetch(new URL(`/api/v1/studies/${created!.id}`, API_BASE).toString())).json();
     expect(detail.search_space.params.boost.high).toBe(15);
   });
 
