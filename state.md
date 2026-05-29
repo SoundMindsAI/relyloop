@@ -20,11 +20,11 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 
 Detail + reasoning for each is in [`state_history.md`](state_history.md).
 
-- **2026-05-29** — `chore_state_md_size_compression` (PR #303 + finalization #304). Split `state.md` (360 KB → 9.3 KB snapshot) from new `state_history.md` (append-only narrative, root); added `state-md-size-guard` pre-commit hook (60 KB cap) + CLAUDE.md snapshot-vs-history convention. **This is the first merge recorded under the new convention.**
+- **2026-05-29** — `bug_ceiling_badge_assumes_maximize_direction` (PR #305 + finalization #306). Studies-list CEILING badge (best_metric ≥ 0.99) mislabeled minimize studies (0.99 is a bad score there). Preflight found it had gone latent→live (feat_study_baseline_trial made `direction=minimize` creatable). Added `direction` to StudySummary (defaults maximize) + gated the badge on `direction !== 'minimize'` (rolling-deploy-safe per Gemini). 7 tests.
+- **2026-05-29** — `chore_state_md_size_compression` (PR #303 + finalization #304). Split `state.md` (360 KB → 9.3 KB snapshot) from new `state_history.md` (append-only narrative, root); added `state-md-size-guard` pre-commit hook (60 KB cap) + CLAUDE.md snapshot-vs-history convention. **First merge under the new convention.**
 - **2026-05-29** — `chore_e2e_api_base_url_construction` (PR #301 + finalization #302). Swept 28 `${API_BASE}<path>` concats across 10 e2e specs to `new URL(...)`; aligned dashboard-reseed's API_BASE env var; URLSearchParams for a query. Mechanical, zero behavior change.
 - **2026-05-29** — `bug_demo_reseed_button_silent_enqueue_failure` (PR #299 + finalization #300). Top-level `except Exception` barrier in `run_demo_reseed` + `reseed_status_is_stale()` POST auto-recovery so a worker init crash flips Redis to `failed` instead of stuck-`running`. 14 unit tests.
 - **2026-05-29** — `bug_smoke_seed_es_unavailable_shards_race` (PR #297 + finalization #298). Retry bulk-index on `unavailable_shards_exception` in the ES seed path; fixed the chronic smoke-gate red badge.
-- **2026-05-28** — `infra_pr_yml_drop_push_main_trigger` (PR #295 + finalization #296). Dropped the `push: branches: [main]` trigger from `pr.yml`; rewrote release-checklist `gh` queries.
 
 ## In flight
 
