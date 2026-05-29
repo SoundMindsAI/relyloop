@@ -1,10 +1,12 @@
 # CLAUDE.md — RelyLoop
 
-Continue execution without constantly asking for permission to execute tests or code changes or commands. I approve all test executions, all commands, and all code changes scoped to the current feature branch. Stop and ask only for: (a) destructive ops on `main` or shared infra, (b) actions that publish to third parties (PR comments, Slack messages, GitHub Releases), (c) operator-environment changes the agent cannot make on the operator's behalf (`.env` content, mounted secret values, GitHub branch protection — see [implementation_plan.md §7.5](docs/00_overview/planned_features/infra_foundation/implementation_plan.md) for the canonical handoff list).
+Continue execution without constantly asking for permission to execute tests or code changes or commands. I approve all test executions, all commands, and all code changes scoped to the current feature branch. Stop and ask only for: (a) destructive ops on `main` or shared infra, (b) actions that publish to third parties (PR comments, Slack messages, GitHub Releases), (c) operator-environment changes the agent cannot make on the operator's behalf (`.env` content, mounted secret values, GitHub branch protection — see [implementation_plan.md §7.5](docs/00_overview/implemented_features/2026_05_09_infra_foundation/implementation_plan.md) for the canonical handoff list).
 
 **Never commit directly to main.** Always create a feature branch, push it, and open a PR. CI runs on PRs to main — merging to main triggers staging deploy (when staging exists; MVP1 has no remote staging — local-only).
 
 **After creating or pushing to a PR,** monitor the CI workflow. Use `gh run list --branch={BRANCH}` to find the run, then `gh run watch {RUN_ID}` to monitor. If CI fails, investigate and fix before moving on.
+
+**Before merging any non-docs PR,** verify the latest successful `pr.yml` run was produced against the current `main`. If `main` advanced after the last successful run, click "Update branch" on the PR (or rebase locally) to re-trigger CI before merging — this guards against merge-skew (the PR head was validated against an older base) until branch protection becomes available post-public-launch.
 
 **Before considering a PR ready to merge,** check for Gemini Code Assist review comments (`gh api repos/SoundMindsAI/relyloop/pulls/{PR_NUMBER}/comments`) and adjudicate every line-level finding using the four-quadrant rubric in `.claude/skills/impl-execute/SKILL.md` Step 6 (Accept / Reject with cited counter-evidence / Defer as non-regression follow-up). Post one summary comment with the verdict table before merge.
 
@@ -121,7 +123,7 @@ docs/
 
 5. **All Alembic migrations must include `downgrade()` and round-trip cleanly.** Verify with `alembic upgrade head && alembic downgrade -1 && alembic upgrade head` before merging. The MVP1 baseline is `0001_baseline` — the empty migration that registers `alembic_version`; subsequent feature migrations build on it.
 
-6. **`/healthz` is unauthenticated by design.** It's an operator-facing probe, unprefixed (not under `/api/v1/`), and reports subsystem status. Never gate it behind auth. The shape is documented in [`infra_foundation/feature_spec.md`](docs/00_overview/planned_features/infra_foundation/feature_spec.md) §7.3 — any change requires a spec patch first. When TLS + auth land (TLS via Caddy is a GA-v1 hardening item; multi-tenant auth is in the backlog), `/healthz` stays open via the reverse proxy's localhost or internal-network ACL.
+6. **`/healthz` is unauthenticated by design.** It's an operator-facing probe, unprefixed (not under `/api/v1/`), and reports subsystem status. Never gate it behind auth. The shape is documented in [`infra_foundation/feature_spec.md`](docs/00_overview/implemented_features/2026_05_09_infra_foundation/feature_spec.md) §7.3 — any change requires a spec patch first. When TLS + auth land (TLS via Caddy is a GA-v1 hardening item; multi-tenant auth is in the backlog), `/healthz` stays open via the reverse proxy's localhost or internal-network ACL.
 
 7. **Conventional Commits format is enforced** (per `infra_foundation` FR-6). Pre-commit `commit-msg` hook validates the message against `^(feat|fix|chore|docs|infra|refactor|test|style|perf|build|ci)(\([a-z0-9-]+\))?(!)?:`. Never bypass with `--no-verify` or `-n`. If a hook fails, fix the message; don't skip.
 
