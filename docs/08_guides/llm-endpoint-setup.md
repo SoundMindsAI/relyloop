@@ -7,6 +7,8 @@ RelyLoop talks to **any OpenAI-compatible endpoint** via a single environment va
 
 This guide walks through the most common configurations side by side.
 
+> **Not the only judgment source.** This guide configures the LLM endpoint that powers LLM-as-judge generation, the digest narrative, and the chat agent. If your cluster has captured click/dwell traffic, User Behavior Insights (UBI) generates judgments from real user behavior with no external LLM — see the [UBI judgment-generation runbook](../03_runbooks/ubi-judgment-generation.md).
+
 ## The pattern in one paragraph
 
 RelyLoop uses the `openai` Python SDK pointed at whatever URL you set in `OPENAI_BASE_URL`. The SDK speaks the OpenAI Chat Completions wire protocol (`POST /v1/chat/completions`). Anything that serves that protocol — OpenAI itself, Azure OpenAI's OpenAI-compatible mode, Ollama, LM Studio, vLLM, HuggingFace TGI, OpenRouter, LiteLLM proxy, or any other compatible server — works without changing a line of RelyLoop code. The API key is mounted at `./secrets/openai_key` (or whatever path you point `OPENAI_API_KEY_FILE` at) per [`CLAUDE.md`](../../CLAUDE.md) Absolute Rule #2 on secrets handling.
