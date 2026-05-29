@@ -227,6 +227,41 @@ export const faq: readonly FAQEntry[] = [
       'See [guide 05](/guide#) for the UI walkthrough.',
     ].join('\n'),
   },
+  {
+    anchor: 'do-i-need-ubi',
+    category: 'judgments',
+    question: 'Do I need UBI to use RelyLoop?',
+    answer: [
+      "No. The LLM-as-judge path works on any cluster — that's the default and what the tutorial covers. UBI (User Behavior Insights) is an opt-in upgrade once you have an instrumented cluster.",
+      '',
+      "UBI's value: ratings reflect what users actually do (clicks, dwell) rather than what an LLM thinks they should do. No LLM cost for pure converters. If you operate at scale and care about real-traffic relevance, install the [OpenSearch UBI plugin / o19s ES UBI fork](https://github.com/SoundMindsAI/relyloop/blob/main/docs/03_runbooks/ubi-judgment-generation.md) and switch the method picker.",
+    ].join('\n'),
+  },
+  {
+    anchor: 'trust-ubi-over-llm',
+    category: 'judgments',
+    question: 'Should I trust UBI ratings over LLM ratings?',
+    answer: [
+      'It depends on your traffic shape. UBI captures **real behavior** — clicks and dwell from actual users — so high-traffic queries get high-confidence ratings. But sparse queries (long tail) get weak or no UBI signal; pure UBI rates them 0, which can hurt your study.',
+      '',
+      'Recommended progression:',
+      '',
+      '- **rung_3** (≥ 500 events): trust pure UBI (`ctr_threshold` or `dwell_time`) — the signal is dense enough.',
+      '- **rung_2** (≥ 100 events): use `hybrid_ubi_llm` — UBI rates the head, LLM fills sparse pairs.',
+      '- **rung_1** (< 100 events): use `hybrid_ubi_llm` AND consider widening the time window.',
+      '- **rung_0** (UBI not enabled): use LLM-only — the picker defaults to this.',
+    ].join('\n'),
+  },
+  {
+    anchor: 'cluster-no-ubi',
+    category: 'judgments',
+    question: 'My cluster shows "UBI not enabled" — is that a problem?',
+    answer: [
+      "No, it just means the UBI plugin isn't installed on this cluster (or it's installed but no events have landed yet). LLM-as-judge still works.",
+      '',
+      'If you want UBI: install the [OpenSearch UBI plugin / o19s ES UBI fork](https://github.com/SoundMindsAI/relyloop/blob/main/docs/03_runbooks/ubi-judgment-generation.md) on every node, configure your application to emit events with `application=<target-index-name>`, and re-open the generate-judgments dialog. The on-ramp nudge that surfaces at rung_0 includes the install link.',
+    ].join('\n'),
+  },
 
   // ---------------------------------------------------------------------------
   // Proposals & PRs
