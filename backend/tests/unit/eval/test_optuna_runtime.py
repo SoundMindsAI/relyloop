@@ -21,6 +21,7 @@ from optuna.pruners import MedianPruner, NopPruner
 from optuna.samplers import RandomSampler, TPESampler
 
 from backend.app.eval.optuna_runtime import (
+    STUDIES_TPE_WARMUP_FLOOR,
     _compose_storage_url,
     build_pruner,
     build_sampler,
@@ -184,3 +185,45 @@ def test_build_pruner_non_int_max_trials_rejected():
     """max_trials must be an int (JSONB may decode it as float; reject early)."""
     with pytest.raises(ValueError, match=r"max_trials is required"):
         build_pruner({"max_trials": "100"})
+
+
+# ---------------------------------------------------------------------------
+# STUDIES_TPE_WARMUP_FLOOR — FR-7 lock (feat_study_sub_warmup_guard)
+# ---------------------------------------------------------------------------
+
+
+def test_studies_tpe_warmup_floor_constant_value():
+    """FR-7 lock: the warmup floor is 50 (the MedianPruner activation
+    threshold the wizard's Custom-mode sub-warmup warning also keys off).
+
+    A change here must be intentional and paired with a frontend
+    ``SUB_WARMUP_FLOOR`` + warning-copy update in
+    ``ui/src/components/studies/create-study-modal.tsx``. The frontend
+    constant carries a ``// Values must match`` comment pointing back at
+    this symbol.
+    """
+    assert STUDIES_TPE_WARMUP_FLOOR == 50
+
+
+def test_build_pruner_below_floor_returns_nop():
+    """FR-7 boundary: max_trials == STUDIES_TPE_WARMUP_FLOOR - 1 (49) → NopPruner.
+
+    Stricter than ``test_build_pruner_omitted_with_small_max_trials_is_nop``
+    above (which uses 30 — "well below floor"); this asserts the exact
+    boundary the spec mandates.
+    """
+    pruner = build_pruner({"max_trials": STUDIES_TPE_WARMUP_FLOOR - 1})
+    assert isinstance(pruner, NopPruner)
+
+
+def test_build_pruner_at_floor_returns_median():
+    """FR-7 boundary: max_trials == STUDIES_TPE_WARMUP_FLOOR (50) → MedianPruner.
+
+    Re-asserts the at-floor boundary using the named constant (complements
+    ``test_build_pruner_threshold_exactly_50_uses_median`` which uses the
+    literal). If a future edit shifts the constant, this test follows it
+    automatically; the literal test would fail and force an intentional
+    review.
+    """
+    pruner = build_pruner({"max_trials": STUDIES_TPE_WARMUP_FLOOR})
+    assert isinstance(pruner, MedianPruner)
