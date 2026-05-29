@@ -69,7 +69,8 @@ describe('wire-value arrays match documented spec table', () => {
       JUDGMENT_LIST_STATUS_VALUES,
       ['generating', 'complete', 'failed'],
     ],
-    ['JUDGMENT_SOURCE_FILTER_VALUES', JUDGMENT_SOURCE_FILTER_VALUES, ['llm', 'human']],
+    // Widened by feat_ubi_judgments FR-10 — `click` is now a valid filter value.
+    ['JUDGMENT_SOURCE_FILTER_VALUES', JUDGMENT_SOURCE_FILTER_VALUES, ['llm', 'human', 'click']],
     ['JUDGMENT_SOURCE_VALUES', JUDGMENT_SOURCE_VALUES, ['llm', 'human', 'click']],
     ['RATING_VALUES', RATING_VALUES, [0, 1, 2, 3]],
     [

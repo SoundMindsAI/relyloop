@@ -111,9 +111,40 @@ export type ObjectiveDirection = (typeof OBJECTIVE_DIRECTION_VALUES)[number];
 export const JUDGMENT_LIST_STATUS_VALUES = ['generating', 'complete', 'failed'] as const;
 export type JudgmentListStatus = (typeof JUDGMENT_LIST_STATUS_VALUES)[number];
 
+// Widened by feat_ubi_judgments FR-10 to include `click` so the UI's
+// Source filter on judgment-list detail can surface UBI rows.
 // Values must match backend/app/api/v1/schemas.py JudgmentSourceFilterWire.
-export const JUDGMENT_SOURCE_FILTER_VALUES = ['llm', 'human'] as const;
+export const JUDGMENT_SOURCE_FILTER_VALUES = ['llm', 'human', 'click'] as const;
 export type JudgmentSourceFilter = (typeof JUDGMENT_SOURCE_FILTER_VALUES)[number];
+
+// feat_ubi_judgments FR-9. Three UBI-specific converters consumed by
+// POST /api/v1/judgments/generate-from-ubi.
+// Values must match backend/app/api/v1/schemas.py UbiConverterKind.
+export const UBI_CONVERTER_VALUES = ['ctr_threshold', 'dwell_time', 'hybrid_ubi_llm'] as const;
+export type UbiConverter = (typeof UBI_CONVERTER_VALUES)[number];
+
+// feat_ubi_judgments FR-9. Superset surfaced by the generate-judgments
+// dialog's method picker — `llm` routes to POST /judgments/generate; the
+// three UBI converters route to POST /judgments/generate-from-ubi.
+// Values must match backend/app/api/v1/schemas.py JudgmentGenerationMethodWire.
+export const JUDGMENT_GENERATION_METHOD_VALUES = [
+  'llm',
+  'ctr_threshold',
+  'dwell_time',
+  'hybrid_ubi_llm',
+] as const;
+export type JudgmentGenerationMethod = (typeof JUDGMENT_GENERATION_METHOD_VALUES)[number];
+
+// feat_ubi_judgments FR-9. Returned by GET /api/v1/clusters/{id}/ubi-readiness.
+// Values must match backend/app/api/v1/schemas.py UbiReadinessRungWire.
+export const UBI_READINESS_RUNG_VALUES = ['rung_0', 'rung_1', 'rung_2', 'rung_3'] as const;
+export type UbiReadinessRung = (typeof UBI_READINESS_RUNG_VALUES)[number];
+
+// feat_ubi_judgments FR-9. `reject` is the default; per-query ambiguous
+// mappings under `reject` are skipped + counted (NOT terminal).
+// Values must match backend/app/api/v1/schemas.py UbiMappingStrategyWire.
+export const UBI_MAPPING_STRATEGY_VALUES = ['reject', 'first_match', 'most_recent'] as const;
+export type UbiMappingStrategy = (typeof UBI_MAPPING_STRATEGY_VALUES)[number];
 
 // Values must match backend/app/api/v1/schemas.py JudgmentSourceWire.
 export const JUDGMENT_SOURCE_VALUES = ['llm', 'human', 'click'] as const;
