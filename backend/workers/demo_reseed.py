@@ -199,13 +199,21 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                     {"k": DEMO_RESEED_LOCK_KEY},
                 )
                 await lock_conn.commit()
-    except BaseException as exc:
+    except Exception as exc:
         # Top-level barrier: catches anything the inner handlers don't.
         # Covers settings/factory/get_engine/engine.connect failures and
-        # any httpx.AsyncClient construction error. Best-effort status
-        # write — never mask the original exception. Re-raise so Arq
-        # still records JobExecutionFailed and the worker log shows the
-        # traceback.
+        # any httpx.AsyncClient construction error — all of which inherit
+        # from ``Exception``. Deliberately NOT ``BaseException``: Arq uses
+        # ``asyncio.CancelledError`` (a ``BaseException`` subclass since
+        # 3.8) for job-timeout cancellation, and ``SystemExit`` /
+        # ``KeyboardInterrupt`` signal worker shutdown. Awaiting
+        # ``status_set`` from inside a handler that caught one of those
+        # would re-raise ``CancelledError`` (masking the original) or
+        # delay/hang shutdown with network I/O. Per Gemini PR #299
+        # review — the documented bug (init-region exceptions) is fully
+        # covered by ``Exception``. Best-effort status write — never mask
+        # the original exception. Re-raise so Arq still records
+        # JobExecutionFailed and the worker log shows the traceback.
         if redis is not None:
             try:
                 logger.warning(
@@ -224,7 +232,7 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                 )
             except Exception:  # noqa: BLE001, S110
                 # Best-effort — never mask the original ``exc``. The
-                # caller (Arq) will still see the re-raised ``BaseException``
+                # caller (Arq) will still see the re-raised ``Exception``
                 # below and log a traceback, so this swallow is paired with
                 # a guaranteed loud error elsewhere.
                 pass
