@@ -180,7 +180,7 @@ _None._
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed`'s pre-main-body initialization that: | — | Idea — bug captured during PR #286 first-run testing |
+| 1 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed` that: | — | Idea — bug captured during PR #286 first-run testing |
 | 2 | P2 | [chore_e2e_api_base_url_construction](planned_features/01_mvp1/chore_e2e_api_base_url_construction/idea.md) | Chore | Five sites in three e2e specs concatenate `API_BASE` with a path string: | — | Idea — surfaced during Gemini Code Assist review on PR #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`). |
 | 3 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
 | 4 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
