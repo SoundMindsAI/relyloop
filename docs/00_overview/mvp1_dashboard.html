@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Infra, currently in <strong>Implementing</strong></div>
-    <div class="title"><a href="../../docs/00_overview/planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/feature_spec.md">Agent Sibling Worktree Isolation</a></div>
-    <div class="one-liner">Add a tight &quot;Working in sibling worktrees&quot; section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and therefore leak to the main worktree when writ</div>
-    <div class="stage-hint">Implementation in progress — resume to finish</div>
-    <code class="cmd">/pipeline docs/00_overview/planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/phase3_idea.md</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP1 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP1 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">94 / 95</div>
-      <div class="sub">99% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:99%"></span></div>
+      <div class="value">94 / 94</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
-    <div class="kpi warn">
+    <div class="kpi complete">
       <div class="label">Pending work</div>
-      <div class="value">2</div>
+      <div class="value">0</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi ">
@@ -425,17 +425,17 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
       <div class="label">Backlog</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">captured for record, not planned</div>
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP1"</div>
-      <div class="value">2</div>
+      <div class="value">0</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -446,7 +446,7 @@ footer {
     </span>
     <span>
       <strong>In flight:</strong>
-      1 feature(s) actively shipping
+      0 feature(s) actively shipping
     </span>
   </div>
 </section>
@@ -463,19 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">1</span></h3>
-
-<div class="card chore" data-prefix="chore" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas">Demo Reseed Stale Recovery Atomic Cas</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_</div>
-
-
-</div>
+  <h3>Idea <span class="count">0</span></h3>
 
 </div>
 
@@ -490,19 +478,7 @@ footer {
 </div>
 
 <div class="col implement">
-  <h3>Implementing <span class="count">1</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/feature_spec.md">Agent Sibling Worktree Isolation</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/249">PR #249</a> <span>merged 2026-05-25</span>
-  </div>
-  <div class="one-liner">Add a tight &quot;Working in sibling worktrees&quot; section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there</div>
-  <div class="deferred">deferred: Phase 3</div>
-
-</div>
+  <h3>Implementing <span class="count">0</span></h3>
 
 </div>
 
@@ -2198,8 +2174,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
-  class infra_agent_sibling_worktree_isolation implement;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]
@@ -2441,8 +2415,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  infra_agent_sibling_worktree_isolation[&quot;agent sibling worktree isolation&quot;]
-  class infra_agent_sibling_worktree_isolation implement;
   infra_foundation[&quot;foundation&quot;]
   class infra_foundation done;
   feat_study_lifecycle[&quot;study lifecycle&quot;]

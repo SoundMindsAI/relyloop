@@ -6,24 +6,30 @@ _Reflects feature-folder state as of **2026-05-29** (latest mtime of any planned
 
 ## Next up
 
-All scoped BACKLOG features shipped 🎉
+**[infra_agent_sibling_worktree_isolation](planned_features/99_backlog/infra_agent_sibling_worktree_isolation/feature_spec.md)** — Infra, currently in **Implementing**
 
-Pull from the Idea backlog or capture a new feature spec.
+> Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and therefore leak to the main worktree when writ
+
+Implementation in progress — resume to finish
+
+```bash
+/pipeline docs/00_overview/planned_features/99_backlog/infra_agent_sibling_worktree_isolation/phase3_idea.md
+```
 
 ## BACKLOG Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **0 / 0** (0%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **1** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **0 / 1** (0%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **3** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 1 important to file, not blocking |
-| → Backlog | 0 captured for record, not planned |
+| → P2 (default) | 2 important to file, not blocking |
+| → Backlog | 1 captured for record, not planned |
 | Open bugs | 1 |
-| Legacy "Path to BACKLOG" | 1 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to BACKLOG" | 3 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into BACKLOG) |
-| In flight | 0 feature(s) actively shipping |
+| In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -31,9 +37,11 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Implementing (0)
+### Implementing (1)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [infra_agent_sibling_worktree_isolation](planned_features/99_backlog/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
 
 ### Plan (0)
 
@@ -43,11 +51,12 @@ _None._
 
 _None._
 
-### Idea (1)
+### Idea (2)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [bug_starlette_request_poisons_fastapi_depends_tests](planned_features/99_backlog/bug_starlette_request_poisons_fastapi_depends_tests/idea.md) | Bug | There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={"type": "http", ...})` and breaks subsequent `Depends` resolution. Possible suspects: | — | Idea — bug captured during feat_index_document_browser Story 2.1 |
+| 2 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/99_backlog/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
 
 ## Dependency graph
 
@@ -60,6 +69,8 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
+  class infra_agent_sibling_worktree_isolation implement;
 ```
 
 ---
