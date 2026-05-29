@@ -38,6 +38,7 @@ from redis.asyncio import Redis
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.adapters.errors import ClusterUnreachableError
 from backend.app.core.logging import get_logger
 from backend.app.core.settings import Settings
 from backend.app.db import repo
@@ -487,6 +488,10 @@ async def start_ubi_judgment_generation(
     )
 
     # U-C + U-D + U-D2 — adapter-bound checks. Build adapter once.
+    # Adapter connectivity failures (probe / count) translate to the spec
+    # §8.5 503 CLUSTER_UNREACHABLE envelope rather than bubbling as an
+    # unstructured 500 (GPT-5.5 PR #317 final-review finding #2). The
+    # UbiNotEnabledError → 412 catch is narrower and runs first.
     adapter = build_adapter(cluster)
     try:
         reader = UbiReader(adapter)
@@ -494,6 +499,8 @@ async def start_ubi_judgment_generation(
             await reader._probe_enabled()
         except UbiNotEnabledError as exc:
             raise _err(412, "UBI_NOT_ENABLED", str(exc), False) from exc
+        except ClusterUnreachableError as exc:
+            raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
 
         # U-D.
         effective_until = req.until or datetime.now(UTC)
@@ -514,15 +521,26 @@ async def start_ubi_judgment_generation(
                 False,
             )
 
-        # U-D2.
+        # U-D2. NOTE: the count is scoped to (target, window) — NOT to the
+        # query set. Scoping to the query set requires the UBI
+        # user_query → queries.query_text join (the worker does this per
+        # FR-5 step 5), which is too expensive for a sync preflight. This
+        # is a deliberate MVP approximation: a target carrying unrelated
+        # traffic can pass U-D2 even when the selected query set has thin
+        # coverage; the worker's empty-features race-fallback
+        # (UBI_INSUFFICIENT_DATA terminal) catches the truly-empty scoped
+        # case. (GPT-5.5 PR #317 finding #4 — accepted as documented.)
         min_threshold = req.min_impressions_threshold or 100
-        observed = await count_ubi_events_in_window(
-            adapter,
-            target=req.target,
-            since=req.since,
-            until=effective_until,
-            cap=min_threshold,
-        )
+        try:
+            observed = await count_ubi_events_in_window(
+                adapter,
+                target=req.target,
+                since=req.since,
+                until=effective_until,
+                cap=min_threshold,
+            )
+        except ClusterUnreachableError as exc:
+            raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
         if observed < min_threshold:
             base_msg = (
                 f"only {observed} UBI events match the window "

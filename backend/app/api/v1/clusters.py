@@ -382,20 +382,33 @@ async def get_cluster_ubi_readiness(
             False,
         )
 
-    # Resolve the query_id IN <list> filter from the queries table — the
-    # rung classifier uses it to scope the event count to "your query set"
-    # rather than "any traffic on the target." Future-proofs the count
-    # gate against operators with multiple query sets on the same target.
-    queries = await repo.list_queries_for_set(db, query_set_id)
-    query_ids = [q.id for q in queries]
+    # Consistency: the query set must belong to the requested cluster
+    # (GPT-5.5 PR #317 finding #3, sub-point) — otherwise the rung is
+    # computed against a target the query set was never run on.
+    if query_set.cluster_id != cluster_id:
+        raise _err(
+            422,
+            "VALIDATION_ERROR",
+            f"query_set {query_set_id} belongs to cluster "
+            f"{query_set.cluster_id!r}, not {cluster_id!r}",
+            False,
+        )
 
+    # NOTE: we do NOT pass RelyLoop's internal queries.id values as a
+    # query_id filter. UBI's ubi_events.query_id is the plugin's own UUID,
+    # not queries.id — filtering on the internal ids would match nothing
+    # and silently under-report every cluster to rung_1 (GPT-5.5 PR #317
+    # finding #3). Mapping internal → UBI ids needs the user_query join,
+    # which the readiness probe deliberately skips (it must complete in
+    # <2s per spec §6). The rung is therefore a target-level signal — same
+    # approximation as the dispatcher's U-D2 count.
     try:
         async with cluster_svc.acquire_adapter(cluster) as adapter:
             snapshot = await classify_rung(
                 adapter=adapter,
                 cluster_id=cluster_id,
                 query_set_id=query_set_id,
-                query_set_query_ids=query_ids,
+                query_set_query_ids=[],
                 target=target,
                 redis=redis,
             )

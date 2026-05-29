@@ -481,11 +481,24 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
             )
             return
 
+        # The request-level llm_fill_threshold (top-level generation_params
+        # field) must reach BOTH the converter's head/tail partition AND the
+        # source-attribution below, or they disagree (GPT-5.5 PR #317
+        # finding #5). The HybridUbiLlmConverter reads
+        # `config.extra['llm_fill_threshold']`, so merge the top-level value
+        # into the converter config extra (a value already inside
+        # converter_config wins — explicit operator override).
+        llm_fill_threshold = params.get("llm_fill_threshold") or 20
+        converter_extra: dict[str, Any] = {
+            "llm_fill_threshold": llm_fill_threshold,
+            **converter_config_dict,
+        }
+
         # Apply converter to scoped features.
         try:
             ratings = await actual_converter.convert(
                 scoped_features,
-                ConverterConfig(extra=converter_config_dict),
+                ConverterConfig(extra=converter_extra),
             )
             # sparse_query_skip_count = scoped queries that received NO rating.
             # Pure converters rate every pair (so this is 0), but in hybrid
@@ -514,8 +527,7 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
         # Build rows. Pair source = 'click' (pure UBI rating) if the inner
         # converter rated it; 'llm' if the hybrid LLM-fill callback filled it.
         # The HybridUbiLlmConverter merges the two dicts; we re-derive the
-        # split by the threshold the converter used.
-        llm_fill_threshold = params.get("llm_fill_threshold") or 20
+        # split by the SAME threshold the converter used (merged above).
         is_hybrid = converter_kind == "hybrid_ubi_llm"
         model = settings.openai_model if is_hybrid else None
         rows: list[dict[str, Any]] = []

@@ -212,4 +212,15 @@ def _dummy_args_json(tool_name: str) -> str:
             + dummy_uuid
             + '","rubric":"r"}'
         )
+    if tool_name == "generate_judgments_from_ubi":
+        # Pure ctr_threshold converter — no template/rubric (the hybrid
+        # conditional validator rejects them for non-hybrid converters).
+        return (
+            '{"name":"x","query_set_id":"'
+            + dummy_uuid
+            + '","cluster_id":"'
+            + dummy_uuid
+            + '","target":"products","since":"2026-05-01T00:00:00Z",'
+            '"converter":"ctr_threshold"}'
+        )
     raise AssertionError(f"no dummy args for {tool_name}")
