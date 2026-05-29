@@ -1565,7 +1565,7 @@ Per Story 5.1: `testing.md` documents the no-cluster-writes integration test pat
 - [x] Story 2.1 — `UbiReader` service
 - [x] Story 2.2 — Readiness service + dispatcher refactor
 - [x] Story 2.3 — `_SourceBreakdown` evolution + Literals + filter widening
-- [ ] Story 3.1 — `GET /api/v1/clusters/{id}/ubi-readiness` endpoint
+- [x] Story 3.1 — `GET /api/v1/clusters/{id}/ubi-readiness` endpoint
 - [ ] Story 3.2 — `POST /api/v1/judgments/generate-from-ubi` endpoint
 - [ ] Story 3.3 — `generate_judgments_from_ubi` Arq worker
 - [ ] Story 3.4 — `generate_judgments_from_ubi` agent tool + orchestrator prompt update
