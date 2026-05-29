@@ -220,6 +220,40 @@ make seed-demo FORCE=1   # TRUNCATE demo tables + reseed (skip confirmation)
 
 After the reseed, the dashboard shows a "You're set up with demo data." banner above the StartHereChecklist. The banner is dismissable; once dismissed, the dismissal persists per-browser via the localStorage key `relyloop.home-first-run-demo-nudge.dismissed`. **`make seed-demo FORCE=1` does NOT clear that localStorage key** — to show the banner again after dismissal, clear the key via browser dev tools (`localStorage.removeItem('relyloop.home-first-run-demo-nudge.dismissed')` in the JS console). A future Phase 2 "Reset to demo state" UI affordance (tracked in [`phase2_idea.md`](../00_overview/planned_features/feat_home_first_run_demo_nudge/phase2_idea.md)) will optionally clear the key as a side effect of reseeding.
 
+### Demo seed produced fewer studies than expected
+
+A full `make seed-demo FORCE=1` should leave **5 completed studies** — four small scenarios (`tune-product-title-boost-baseline`, `reduce-fuzziness-helpcenter-search`, `add-7day-freshness-decay-news`, `tune-jobtitle-vs-company-boost`) plus the rich 1000-doc ESCI scenario (`tune-acme-products-rich-boosts`). If you end up with fewer, the seed hit a per-scenario failure. The script now **continues past a failed scenario** and prints a `=== N scenario(s) FAILED — demo is incomplete ===` summary at the end (and exits non-zero), so scroll up to the summary to see which scenario failed and why.
+
+The most common cause is the **engine disk flood-stage watermark**. `news-search-staging` is the only OpenSearch-backed scenario; the other four use Elasticsearch. When the Docker disk crosses ~95% used, Elasticsearch/OpenSearch auto-applies write blocks and rejects `PUT /<index>` with:
+
+```
+HTTP 403 index_create_block_exception:
+  blocked by: [FORBIDDEN/10/cluster create-index blocked (api)]
+```
+
+Recovery:
+
+```bash
+# 1. See how full the engine's disk is (>~95% = flooded). Use 9201 for OpenSearch, 9200 for ES.
+curl -s "http://127.0.0.1:9201/_cat/allocation?h=node,disk.percent,disk.avail&v"
+
+# 2. Reclaim Docker disk (build cache + dangling images are safe to drop).
+docker builder prune -f
+docker image prune -f
+
+# 3. Clear the blocks the watermark auto-applied (they do NOT self-clear).
+curl -s -X PUT "http://127.0.0.1:9201/_cluster/settings" -H 'Content-Type: application/json' \
+  -d '{"persistent":{"cluster.blocks.create_index":null}}'
+curl -s -X PUT "http://127.0.0.1:9201/_all/_settings" -H 'Content-Type: application/json' \
+  -d '{"index.blocks.read_only_allow_delete":null}'
+# (repeat step 3 against :9200 if Elasticsearch was the one flooded)
+
+# 4. Reseed.
+make seed-demo FORCE=1
+```
+
+> **Note:** before the continue-on-failure fix, a single scenario failure hard-stopped the whole seed, so a flooded OpenSearch would silently leave you with only the *two* Elasticsearch studies seeded before `news-search-staging`. If you saw that symptom on an older checkout, it was this same disk-watermark cause.
+
 ## Debugging
 
 ### Stack won't start
