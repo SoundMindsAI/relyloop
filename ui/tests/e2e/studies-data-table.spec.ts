@@ -36,7 +36,19 @@ test.describe('/studies DataTable', () => {
     const suffix = studyA.name.replace(/^e2e-study-/, '');
     await page.getByTestId('data-table-search').fill(suffix);
     await expect(page).toHaveURL(new RegExp(`[?&]q=${suffix}`), { timeout: 2_000 });
-    await expect(page.getByText(studyA.name).first()).toBeVisible();
+    // The `?q=` URL lands as soon as the 300ms debounce fires, but the
+    // studies-list still has to refetch the filtered page and re-render it.
+    // studyA may have been on a later page pre-filter, so it only reliably
+    // appears once that refetch completes. On a loaded CI runner that can
+    // exceed Playwright's default 5s expect timeout — the cause of the
+    // intermittent smoke red tracked as bug_smoke_studies_data_table_search_flake.
+    // Scope the match to the table (avoids incidental page text) and give the
+    // web-first assertion generous headroom; it auto-retries until visible or
+    // the timeout, so this rides out the debounce + refetch + render without
+    // weakening what's verified (studyA IS reachable via the filtered list).
+    await expect(
+      page.getByTestId('studies-table').getByText(studyA.name).first(),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test('clicking a sortable column header serializes to ?sort=<col>:<dir>', async ({ page }) => {
