@@ -109,6 +109,13 @@ const FOCUSED_WRITE: PresetWrite = { max_trials: 50, time_budget_min: '' };
 const STANDARD_WRITE: PresetWrite = { max_trials: 200, time_budget_min: '' };
 const DEEP_WRITE: PresetWrite = { max_trials: 1000, time_budget_min: 480 };
 
+// feat_study_sub_warmup_guard FR-5: Custom-mode sub-warmup warning threshold.
+// chore_study_default_stop_conditions shipped 50 as the MedianPruner activation
+// floor; this guard piggybacks on the same threshold so the wizard warning and
+// the backend pruning floor stay in lockstep. See feature_spec.md FR-5.
+// Values must match backend/app/eval/optuna_runtime.py STUDIES_TPE_WARMUP_FLOOR
+const SUB_WARMUP_FLOOR: number = 50;
+
 function presetWrite(preset: Exclude<PresetValue, 'custom'>): PresetWrite {
   switch (preset) {
     case 'focused':
@@ -1280,6 +1287,32 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   ))}
                 </div>
               </div>
+              {/* feat_study_sub_warmup_guard FR-2/FR-3: non-blocking inline
+                  warning when the operator's Custom-mode max_trials falls
+                  below the SUB_WARMUP_FLOOR. Mount guard suppresses transient
+                  empty / NaN / non-integer typing states; the warning is
+                  display-only and does not change the submit path.
+                  Visual pattern mirrors cs-placeholder-warning above
+                  (text-amber-700 dark:text-amber-400). */}
+              {activePreset === 'custom' &&
+                typeof watchedMaxTrials === 'number' &&
+                !Number.isNaN(watchedMaxTrials) &&
+                Number.isInteger(watchedMaxTrials) &&
+                watchedMaxTrials < SUB_WARMUP_FLOOR && (
+                  <p
+                    role="status"
+                    className="text-sm text-amber-700 dark:text-amber-400"
+                    data-testid="cs-sub-warmup-warning"
+                  >
+                    <strong>
+                      The optimizer spends its first ~10 trials exploring randomly, and studies
+                      below {SUB_WARMUP_FLOOR} trials skip RelyLoop&rsquo;s pruning floor.
+                    </strong>{' '}
+                    With {watchedMaxTrials} trials this study is unlikely to converge — switch to{' '}
+                    <strong>Focused (50)</strong> for a quick run or <strong>Standard (200)</strong>{' '}
+                    for a result worth turning into a PR.
+                  </p>
+                )}
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-1">

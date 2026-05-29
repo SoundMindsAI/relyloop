@@ -32,6 +32,16 @@ from optuna.samplers import BaseSampler, RandomSampler, TPESampler
 _OPTUNA_SEARCH_PATH_OPTION = "options=-csearch_path=optuna"
 """Postgres connection option that pins all CREATE/SELECT to the ``optuna`` schema."""
 
+STUDIES_TPE_WARMUP_FLOOR: int = 50
+"""Trial-count floor below which ``MedianPruner`` cannot warm up (``NopPruner``
+is substituted) AND the wizard's Custom-mode sub-warmup warning fires
+(``feat_study_sub_warmup_guard``). The frontend mirror at
+``ui/src/components/studies/create-study-modal.tsx`` carries a
+``// Values must match`` comment per the Enumerated Value Contract
+Discipline; the cross-side parity is asserted by
+``test_studies_tpe_warmup_floor_constant_value`` in
+``backend/tests/unit/eval/test_optuna_runtime.py``."""
+
 
 def _compose_storage_url(database_url: str) -> str:
     """Build the URL Optuna's ``RDBStorage`` should connect with.
@@ -118,9 +128,9 @@ def build_pruner(config: dict[str, Any]) -> BasePruner:
 
     Spec §FR-2 two-pronged contract:
 
-    * ``"pruner"`` key **absent** AND ``config["max_trials"] < 50`` →
+    * ``"pruner"`` key **absent** AND ``config["max_trials"] < STUDIES_TPE_WARMUP_FLOOR`` →
       ``NopPruner`` (safeguard — small studies don't get enough TPE warmup).
-    * ``"pruner"`` key **absent** AND ``config["max_trials"] >= 50`` →
+    * ``"pruner"`` key **absent** AND ``config["max_trials"] >= STUDIES_TPE_WARMUP_FLOOR`` →
       ``MedianPruner(n_warmup_steps=10)`` (MVP1 default).
     * ``config["pruner"] == "median"`` **explicit** → ``MedianPruner(n_warmup_steps=10)``
       regardless of ``max_trials`` (operator-override per spec FR-2 AC-6b).
@@ -151,7 +161,7 @@ def build_pruner(config: dict[str, Any]) -> BasePruner:
             "(needed to apply the FR-2 small-study auto-disable safeguard); "
             f"got {type(max_trials).__name__}"
         )
-    if max_trials < 50:
+    if max_trials < STUDIES_TPE_WARMUP_FLOOR:
         return NopPruner()
     return MedianPruner(n_warmup_steps=10)
 

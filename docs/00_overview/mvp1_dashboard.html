@@ -397,7 +397,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">94 / 94</div>
+      <div class="value">95 / 95</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">129</span></h3>
+  <h3>Done <span class="count">130</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -857,6 +857,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/193">PR #193</a> <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">`POST /api/v1/studies` issues a single bounded `ids`-existence query against the study&#x27;s target asking &quot;for the *first* query in the query set that has any judgments (chosen deterministically by `id A</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md">Study Sub Warmup Guard</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/316">PR #316</a> <span>merged 2026-05-29</span>
+  </div>
+  <div class="one-liner">A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials &lt; STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme</div>
 
 
 </div>
@@ -2362,6 +2375,8 @@ footer {
   class chore_e2e_api_base_url_construction done;
   chore_state_md_size_compression[&quot;state md size compression&quot;]
   class chore_state_md_size_compression done;
+  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
+  class feat_study_sub_warmup_guard done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2603,6 +2618,8 @@ footer {
   class chore_e2e_api_base_url_construction done;
   chore_state_md_size_compression[&quot;state md size compression&quot;]
   class chore_state_md_size_compression done;
+  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
+  class feat_study_sub_warmup_guard done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
