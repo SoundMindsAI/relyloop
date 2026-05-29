@@ -21,19 +21,19 @@ Implementation in progress — resume to finish
 | Metric | Value |
 |---|---|
 | Scoped items done | **94 / 95** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **4** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **3** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 3 important to file, not blocking |
+| → P2 (default) | 2 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 2 |
-| Legacy "Path to MVP1" | 4 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 1 |
+| Legacy "Path to MVP1" | 3 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (127)
+### Done (128)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -133,6 +133,7 @@ Implementation in progress — resume to finish
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_foundation` `infra_optuna_eval` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_auto_followup_completed_parent_stop_chain_race](implemented_features/2026_05_26_bug_auto_followup_completed_parent_stop_chain_race/idea.md) | Bug | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Complete |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
+| [bug_ceiling_badge_assumes_maximize_direction](implemented_features/2026_05_29_bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](../ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold  | — | Complete |
 | [bug_clone_e2e_seed_template_params_mismatch](implemented_features/2026_05_26_bug_clone_e2e_seed_template_params_mismatch/idea.md) | Bug | Two helpers produce inconsistent fixture state: | — | Complete |
 | [bug_contract_test_stub_missing_target_filter_kwarg](implemented_features/2026_05_23_bug_contract_test_stub_missing_target_filter_kwarg/idea.md) | Bug | `backend/tests/contract/test_error_codes.py::TestErrorCodes::test_targets_forbidden` and `::test_targets_unreachable_via_adapter` both define an inline `_Stub` class whose `list_targets` method has th | — | Complete |
 | [bug_cursor_decode_value_validation](implemented_features/2026_05_17_bug_cursor_decode_value_validation/idea.md) | Bug | `backend/app/db/repo/_sort.py:decode_cursor()` performs a `json.loads(base64.urlsafe_b64decode(raw))` round-trip and then takes `decoded[0]` + `str(decoded[1])` without validating the payload shape or | — | Complete |
@@ -179,13 +180,12 @@ _None._
 
 _None._
 
-### Idea (3)
+### Idea (2)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
-| 2 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
-| 3 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
+| 1 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
+| 2 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
 
 ## Dependency graph
 
