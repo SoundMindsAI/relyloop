@@ -102,6 +102,14 @@ class Settings(BaseSettings):
         description="Path to YAML file containing per-cluster credentials. "
         "Optional pre-infra_adapter_elastic; empty doc {} = no clusters need creds.",
     )
+    ubi_position_bias_prior_file: Path | None = Field(
+        default=None,
+        description="Path to JSON file containing a Wang-Bendersky position-bias "
+        "prior for UBI judgment generation (feat_ubi_judgments FR-11). Optional; "
+        "missing/empty/malformed → uninformed default (every position weighted 1.0, "
+        "equivalent to raw CTR). Expected shape: "
+        '{"positions": {"1": 1.0, "2": 0.65, "3": 0.45, ...}}.',
+    )
 
     # Plain values
     redis_url: str = Field(
@@ -365,6 +373,26 @@ class Settings(BaseSettings):
             required=False,
             name="CLUSTER_CREDENTIALS",
         )
+
+    @cached_property
+    def ubi_position_bias_prior(self) -> dict[int, float]:
+        """Resolved Wang-Bendersky position-bias prior (feat_ubi_judgments FR-11).
+
+        Reads ``ubi_position_bias_prior_file`` via
+        :func:`backend.app.domain.ubi.position_bias_prior.load_position_bias_prior`.
+        Returns ``{}`` (uninformed default — every position weighted 1.0)
+        when the env var is unset, the file is missing/empty, or the JSON
+        is malformed. Malformed-but-existing files log a structured WARN
+        but never raise; the worker falls back to uninformed cleanly.
+
+        Lazy import: the domain module imports ``structlog`` at module
+        load, and ``Settings`` is imported very early in the boot path
+        (before logging is fully configured). Deferring the import to
+        access time keeps the boot graph straight.
+        """
+        from backend.app.domain.ubi.position_bias_prior import load_position_bias_prior
+
+        return load_position_bias_prior(self.ubi_position_bias_prior_file)
 
 
 @lru_cache

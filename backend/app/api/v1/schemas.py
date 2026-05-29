@@ -821,20 +821,47 @@ class TrialListResponse(BaseModel):
 JudgmentListStatusWire = Literal["generating", "complete", "failed"]
 
 # Values must match backend/app/db/models/judgment.py CHECK constraint
-# judgments_source_check. `click` is reserved for v1.5+ click-derived
-# judgments — emitted on read paths but never accepted on the source filter
+# judgments_source_check. `click` is live in MVP2 (feat_ubi_judgments FR-10) —
+# UBI worker writes `source='click'` rows + the source filter accepts the value
 # (see JudgmentSourceFilterWire below).
 JudgmentSourceWire = Literal["llm", "human", "click"]
 
-# Subset of JudgmentSourceWire used as the ?source= filter on
-# GET /judgment-lists/{id}/judgments. Spec §8.4 enumerates only `llm` and
-# `human` for this filter — `click` is rejected at the API boundary
-# (GPT-5.5 cycle 1 F1).
-JudgmentSourceFilterWire = Literal["llm", "human"]
+# Used as the ?source= filter on GET /judgment-lists/{id}/judgments.
+# Widened in feat_ubi_judgments FR-10 to accept `click` so the UI's
+# Source filter on judgment-list detail can surface UBI rows. Cycle 2 F6's
+# rejection-at-API-boundary contract was superseded the moment UBI shipped
+# click rows.
+JudgmentSourceFilterWire = Literal["llm", "human", "click"]
 
 # Values must match backend/app/db/models/judgment.py CHECK constraint
 # judgments_rating_check.
 RatingWire = Literal[0, 1, 2, 3]
+
+# ---------------------------------------------------------------------------
+# UBI wire-value contracts (feat_ubi_judgments FR-9)
+# ---------------------------------------------------------------------------
+# UBI converter kind — body of POST /api/v1/judgments/generate-from-ubi.
+# Source-of-truth: this Literal + the UbiJudgmentGenerationRequest dataclass
+# in backend/app/services/agent_judgments_dispatch.py.
+UbiConverterKind = Literal["ctr_threshold", "dwell_time", "hybrid_ubi_llm"]
+
+# Superset surfaced by the frontend method picker (Story 4.2). The `llm`
+# branch routes to POST /judgments/generate (existing); the three UBI
+# branches route to POST /judgments/generate-from-ubi (Story 3.2). The
+# UBI endpoint itself never accepts `llm` for `converter` — that mapping
+# happens client-side.
+JudgmentGenerationMethodWire = Literal["llm", "ctr_threshold", "dwell_time", "hybrid_ubi_llm"]
+
+# UBI readiness rung label returned by GET /api/v1/clusters/{id}/ubi-readiness.
+# Source-of-truth: the UbiReadinessRung Literal in
+# backend/app/services/ubi_readiness.py.
+UbiReadinessRungWire = Literal["rung_0", "rung_1", "rung_2", "rung_3"]
+
+# UBI mapping strategy (FR-5 step 5 — how the worker joins UBI user_query
+# strings to query_set.queries.query_text when they're ambiguous).
+# `reject` is the default; under it ambiguous pairs are skipped per-query
+# (NOT terminal — cycle-3 finding `ambiguous-mapping-behavior-contradictory`).
+UbiMappingStrategyWire = Literal["reject", "first_match", "most_recent"]
 
 
 class CreateJudgmentListGenerateRequest(BaseModel):
@@ -864,13 +891,16 @@ class GenerateJudgmentsResponse(BaseModel):
 class _SourceBreakdown(BaseModel):
     """Source-breakdown sub-shape on :class:`JudgmentListDetail`.
 
-    Per spec FR-6 the response names only ``llm`` and ``human`` (GPT-5.5
-    cycle 1 F6). Reserved ``click`` rows fold into ``human`` per the cycle 2
-    F6 invariant ``llm + human == judgment_count``.
+    Evolved 2026-05-29 by ``feat_ubi_judgments`` FR-10 — now three terms
+    (``llm + human + click == judgment_count``). The cycle-2 F6
+    "click folds into human" contract is superseded the moment UBI ships
+    click rows; the UI's source-breakdown card now renders all three
+    buckets separately so operators see the mix at a glance.
     """
 
     llm: int
     human: int
+    click: int
 
 
 class JudgmentListSummary(BaseModel):
@@ -887,7 +917,15 @@ class JudgmentListSummary(BaseModel):
 
 
 class JudgmentListDetail(BaseModel):
-    """``GET /api/v1/judgment-lists/{id}`` response."""
+    """``GET /api/v1/judgment-lists/{id}`` response.
+
+    Note: ``generation_params`` is populated for UBI lists (feat_ubi_judgments
+    Story 1.1's JSONB column) and NULL for LLM lists. The Story 4.3 UI
+    (``<ValueDeltaCard>`` + ``<AmbiguousSkipRecoveryCard>``) reads the
+    payload to discriminate UBI/hybrid lists and to reconstruct the
+    original request for the ambiguous-skip "Re-run with most_recent"
+    affordance.
+    """
 
     id: str
     name: str
@@ -902,6 +940,7 @@ class JudgmentListDetail(BaseModel):
     judgment_count: int
     source_breakdown: _SourceBreakdown
     calibration: dict[str, Any] | None
+    generation_params: dict[str, Any] | None
     created_at: datetime
 
 
@@ -1326,3 +1365,68 @@ class SendMessageRequest(BaseModel):
 
     role: Literal["user"] = "user"
     content: SendMessageRequestContent
+
+
+# ---------------------------------------------------------------------------
+# UBI readiness + generate-from-ubi request shapes (feat_ubi_judgments
+# Stories 3.1 + 3.2)
+# ---------------------------------------------------------------------------
+
+
+class UbiReadinessResponse(BaseModel):
+    """``GET /api/v1/clusters/{cluster_id}/ubi-readiness`` response (FR-7).
+
+    ``covered_pairs_pct`` and ``head_covered`` are nullable — MVP2's
+    rung classifier uses event-count thresholds (the SearchAdapter
+    Protocol doesn't expose an exact ``_count`` endpoint). The fields
+    are reserved on the wire so a future ``infra_adapter_count_method``
+    can fill them without breaking the contract. See
+    :mod:`backend.app.services.ubi_readiness` for the rationale.
+    """
+
+    rung: UbiReadinessRungWire
+    covered_pairs_pct: float | None
+    head_covered: bool | None
+    checked_at: datetime
+
+
+class CreateJudgmentListFromUbiRequest(BaseModel):
+    """Body for ``POST /api/v1/judgments/generate-from-ubi`` (Story 3.2 / FR-3).
+
+    Mirrors :class:`backend.app.services.agent_judgments_dispatch.UbiJudgmentGenerationRequest`.
+    The ``@model_validator(mode="after")`` enforces the conditional
+    requiredness of ``current_template_id`` + ``rubric`` per the hybrid
+    converter: REQUIRED when ``converter == 'hybrid_ubi_llm'`` (the LLM-
+    fill path needs both); FORBIDDEN otherwise (pure UBI never calls
+    the LLM so accepting them silently would mask operator error).
+    """
+
+    name: str = Field(min_length=1, max_length=256)
+    description: str | None = Field(default=None, max_length=2000)
+    query_set_id: str = Field(min_length=1, max_length=36)
+    cluster_id: str = Field(min_length=1, max_length=36)
+    target: str = Field(min_length=1, max_length=256)
+    since: datetime
+    until: datetime | None = None
+    converter: UbiConverterKind
+    converter_config: dict[str, Any] | None = None
+    llm_fill_threshold: int | None = Field(default=20, ge=1)
+    min_impressions_threshold: int | None = Field(default=100, ge=1)
+    mapping_strategy: UbiMappingStrategyWire = "reject"
+    current_template_id: str | None = Field(default=None, min_length=36, max_length=36)
+    rubric: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def _validate_hybrid_conditional(self) -> CreateJudgmentListFromUbiRequest:
+        is_hybrid = self.converter == "hybrid_ubi_llm"
+        has_template = self.current_template_id is not None
+        has_rubric = self.rubric is not None
+        if is_hybrid and not (has_template and has_rubric):
+            raise ValueError(
+                "current_template_id and rubric are REQUIRED when converter == 'hybrid_ubi_llm'"
+            )
+        if not is_hybrid and (has_template or has_rubric):
+            raise ValueError(
+                "current_template_id and rubric MUST be null for non-hybrid converters"
+            )
+        return self

@@ -20,11 +20,16 @@ from backend.app.agent.tools import (
     TOOLS,
 )
 
-EXPECTED_TOOL_COUNT_MVP1 = 20
+EXPECTED_TOOL_COUNT = 21
+"""MVP1 shipped 20 tools; feat_ubi_judgments Story 3.4 brings the total to 21
+by adding the UBI judgment-generation tool (parallel surface to the LLM tool)."""
 
 
-# Canonical MVP1 inventory — kept verbatim with `docs/01_architecture/agent-tools.md`
-# §"MVP1 tool inventory". Any rename / drop / addition MUST update BOTH.
+# Canonical shipped-tool inventory — kept verbatim with
+# `docs/01_architecture/agent-tools.md` §"MVP1 tool inventory". Any rename /
+# drop / addition MUST update BOTH. The set name keeps the historical
+# ``CANONICAL_MVP1_TOOL_NAMES`` label even though MVP2 added the UBI tool;
+# the alternative (renaming everywhere) is more churn than it's worth.
 CANONICAL_MVP1_TOOL_NAMES: frozenset[str] = frozenset(
     {
         # Cluster & schema
@@ -39,6 +44,8 @@ CANONICAL_MVP1_TOOL_NAMES: frozenset[str] = frozenset(
         "create_query_set",
         "import_queries_from_csv",
         "generate_judgments_llm",
+        # feat_ubi_judgments Story 3.4 (MVP2 addition)
+        "generate_judgments_from_ubi",
         "get_calibration",
         # Quick experiments
         "run_query",
@@ -58,14 +65,15 @@ CANONICAL_MVP1_TOOL_NAMES: frozenset[str] = frozenset(
 
 
 def test_tool_registry_count_at_mvp1_complete() -> None:
-    """Story 2.4 + feat_agent_propose_search_space brings the MVP1 surface to 20 tools."""
-    assert len(TOOLS) == EXPECTED_TOOL_COUNT_MVP1
-    assert len(TOOL_REGISTRY) == EXPECTED_TOOL_COUNT_MVP1
-    assert len(TOOL_ARG_MODELS) == EXPECTED_TOOL_COUNT_MVP1
+    """Story 2.4 + feat_agent_propose_search_space brought MVP1 to 20 tools;
+    feat_ubi_judgments Story 3.4 adds the UBI tool, total = 21."""
+    assert len(TOOLS) == EXPECTED_TOOL_COUNT
+    assert len(TOOL_REGISTRY) == EXPECTED_TOOL_COUNT
+    assert len(TOOL_ARG_MODELS) == EXPECTED_TOOL_COUNT
 
 
 def test_tool_inventory_matches_agent_tools_md() -> None:
-    """The 20 tool names must match the canonical inventory in agent-tools.md.
+    """The 21 tool names must match the canonical inventory in agent-tools.md.
 
     Drift here (typo, dropped tool, renamed tool) is caught at unit-test time
     so the orchestrator's confirmation guard list (Story 2.5) and the system

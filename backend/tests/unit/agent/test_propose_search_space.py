@@ -95,10 +95,11 @@ def _patch_repo(
 
 
 class TestRegistrySanity:
-    def test_tool_count_advanced_to_20(self) -> None:
-        assert len(TOOLS) == 20
-        assert len(TOOL_REGISTRY) == 20
-        assert len(TOOL_ARG_MODELS) == 20
+    def test_tool_count_advanced_to_21(self) -> None:
+        """MVP1 = 20; feat_ubi_judgments Story 3.4 adds the UBI tool → 21."""
+        assert len(TOOLS) == 21
+        assert len(TOOL_REGISTRY) == 21
+        assert len(TOOL_ARG_MODELS) == 21
 
     def test_propose_search_space_registered_under_canonical_name(self) -> None:
         assert "propose_search_space" in TOOL_REGISTRY

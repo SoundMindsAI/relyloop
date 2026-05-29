@@ -69,6 +69,7 @@ from backend.workers.judgments_resume import (
     _resume_sweep_cron_kwargs,
     resume_stuck_judgment_lists,
 )
+from backend.workers.judgments_ubi import generate_judgments_from_ubi
 from backend.workers.orchestrator import resume_study, start_study
 from backend.workers.pr_reconcile import _poll_cron_kwargs, reconcile_pr_state
 from backend.workers.register_webhook import register_webhook
@@ -152,7 +153,28 @@ async def on_startup(ctx: dict[str, Any]) -> None:
             event_type="queued_dispatch_at_boot",
             study_id=sid,
         )
+    # Resolve LLM vs UBI rows by ``generation_params IS NOT NULL`` —
+    # UBI lists carry the JSONB payload, LLM lists leave it NULL
+    # (feat_ubi_judgments Story 1.1 + FR-5 step 4 resume-sweep discriminator).
+    async with factory() as db_sweep:
+        ubi_resume_ids: set[str] = set()
+        for jid in generating_judgment_ids:
+            row = await repo.get_judgment_list(db_sweep, jid)
+            if row is not None and row.generation_params is not None:
+                ubi_resume_ids.add(jid)
     for jid in generating_judgment_ids:
+        if jid in ubi_resume_ids:
+            await arq_pool.enqueue_job(
+                "generate_judgments_from_ubi",
+                jid,
+                _job_id=f"generate_judgments_from_ubi:{jid}",
+            )
+            logger.info(
+                "ubi judgment generation dispatched at worker boot",
+                event_type="ubi_judgment_resume_enqueued",
+                judgment_list_id=jid,
+            )
+            continue
         # Deterministic ``_job_id`` so the boot sweep doesn't enqueue a
         # duplicate when a job from the API is already in-flight (per
         # GPT-5.5 cycle-4 C4-F1).
@@ -216,6 +238,7 @@ class WorkerSettings:
         func(resume_study, timeout=_ORCHESTRATOR_JOB_TIMEOUT_S),
         generate_digest,
         func(generate_judgments_llm, timeout=_JUDGMENTS_JOB_TIMEOUT_S),
+        func(generate_judgments_from_ubi, timeout=_JUDGMENTS_JOB_TIMEOUT_S),
         func(open_pr, timeout=_OPEN_PR_JOB_TIMEOUT_S, max_tries=_OPEN_PR_MAX_TRIES),
         register_webhook,
         enqueue_followup_study,  # feat_auto_followup_studies Story 2.1

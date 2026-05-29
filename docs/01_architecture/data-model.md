@@ -171,7 +171,17 @@ CREATE TABLE judgment_lists (
     status                  TEXT NOT NULL CHECK (status IN ('generating', 'complete', 'failed')),
     failed_reason           TEXT,                              -- populated when status='failed'
     -- Calibration (advisory; not gating):
-    calibration             JSONB,                             -- {cohens_kappa, weighted_kappa, per_class, n_samples}
+    -- LLM lists: {cohens_kappa, weighted_kappa, per_class, n_samples}
+    -- UBI lists (feat_ubi_judgments FR-5): {coverage_pct, head_pairs, tail_pairs,
+    --   position_bias_prior_id, llm_fill_calls?, ambiguous_query_skip_count,
+    --   sparse_query_skip_count}
+    calibration             JSONB,
+    -- UBI worker resume payload (feat_ubi_judgments Story 1.1, Alembic head 0021).
+    -- Populated at INSERT time for UBI lists with
+    -- {generation_kind: 'ubi', target, since, until, converter, converter_config,
+    --  llm_fill_threshold, min_impressions_threshold, mapping_strategy,
+    --  current_template_id?, rubric?}. LLM lists leave it NULL.
+    generation_params       JSONB,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -181,6 +191,10 @@ CREATE TABLE judgments (
     query_id            UUID NOT NULL REFERENCES queries(id),
     doc_id              TEXT NOT NULL,
     rating              SMALLINT NOT NULL CHECK (rating BETWEEN 0 AND 3),
+    -- `click` is live in MVP2 (feat_ubi_judgments) — UBI worker writes
+    -- `source='click'` rows for UBI-derived ratings. `_SourceBreakdown` now
+    -- has three terms ({llm, human, click}); the cycle-2 F6 "click folds into
+    -- human" contract was superseded by FR-10.
     source              TEXT NOT NULL CHECK (source IN ('llm', 'human', 'click')),
     rater_ref           TEXT,                          -- model name (e.g., 'openai:gpt-4o-2024-08-06') or 'operator'
     confidence          REAL,

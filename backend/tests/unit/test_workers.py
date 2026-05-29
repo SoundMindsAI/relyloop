@@ -56,6 +56,8 @@ def test_worker_settings_importable(_settings_env: None) -> None:
         "resume_study",
         "generate_digest",
         "generate_judgments_llm",
+        # feat_ubi_judgments Story 3.3 — UBI judge worker
+        "generate_judgments_from_ubi",
         "open_pr",
         "register_webhook",
         # feat_auto_followup_studies Story 2.1

@@ -8,6 +8,12 @@ that feature owns the child ``judgments`` table and the LLM-runner that
 populates ratings; this feature only owns the parent header.
 
 CHECK constraint enforces ``status ∈ {generating, complete, failed}``.
+
+**MVP2 additive (feat_ubi_judgments Story 1.1, Alembic head 0021):**
+``generation_params`` JSONB nullable column populated at INSERT time for
+UBI lists so the boot-time resume sweep can reconstruct the worker call
+without depending on the Arq job payload. LLM lists leave it NULL —
+``current_template_id`` + ``rubric`` already carry LLM resume state.
 """
 
 from __future__ import annotations
@@ -56,8 +62,24 @@ class JudgmentList(Base):
     failed_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     """Populated when ``status == 'failed'``."""
     calibration: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
-    """``{cohens_kappa, weighted_kappa, per_class, n_samples}`` —
-    advisory, not gating."""
+    """``{cohens_kappa, weighted_kappa, per_class, n_samples}`` for LLM lists
+    (advisory, not gating). For UBI lists (``feat_ubi_judgments``): the worker
+    populates ``{coverage_pct, head_pairs, tail_pairs, position_bias_prior_id,
+    llm_fill_calls?, ambiguous_query_skip_count, sparse_query_skip_count}``
+    instead. The two shapes are distinguished by the presence of
+    ``cohens_kappa`` (LLM-calibrated) vs ``coverage_pct`` (UBI). When
+    ``POST /judgment-lists/{id}/calibration`` runs against a UBI list later,
+    the merge appends ``cohens_kappa`` + sibling keys to the existing
+    UBI-shaped object."""
+    generation_params: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
+    """UBI worker resume payload (``feat_ubi_judgments`` Story 1.1, Alembic
+    head 0021). UBI lists populate at INSERT time with the request shape
+    ``{generation_kind: 'ubi', target, since, until, converter,
+    converter_config, llm_fill_threshold, min_impressions_threshold,
+    mapping_strategy, current_template_id?, rubric?}``. The
+    ``generation_kind`` discriminator is what the value-delta UI card uses
+    to distinguish UBI/hybrid from LLM lists. LLM lists leave NULL —
+    ``current_template_id`` + ``rubric`` already carry LLM resume state."""
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )

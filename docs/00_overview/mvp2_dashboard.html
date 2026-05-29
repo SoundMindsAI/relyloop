@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP2 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Implementing</strong></div>
+    <div class="title"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md">Ubi Judgments</a></div>
+    <div class="one-liner">Operators with the OpenSearch / ES UBI plugin installed (today; Solr&#x27;s first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real click + dwell behavior via three converters </div>
+    <div class="stage-hint">Implementation in progress — resume to finish</div>
+    <code class="cmd">/impl-execute docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments/implementation_plan.md --all  # resume in-progress</code>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP2 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Scoped items done</div>
-      <div class="value">1 / 1</div>
-      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">1 / 2</div>
+      <div class="sub">50% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:50%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">16</div>
+      <div class="value">18</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">9</div>
+      <div class="value">11</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,18 +435,18 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">7</div>
+      <div class="value">10</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      9 idea-only feat/infra folders (not yet scoped into MVP2)
+      8 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
-      0 feature(s) actively shipping
+      1 feature(s) actively shipping
     </span>
   </div>
 </section>
@@ -463,29 +463,16 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">16</span></h3>
+  <h3>Idea <span class="count">17</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments">Ubi Judgments</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison">Demo Ubi Study Comparison</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
     <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
-  <div class="one-liner">MVP1 ships with **LLM-as-judge** as the only authoritative judgment source. The architecture anticipated this would change — the `judgments.source` CHECK already accepts `click`…</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_onramp">Ubi Onramp</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">`feat_ubi_judgments` adds click-derived judgments, but a UBI-centric release has a well-known failure mode: it makes the operators who *don&#x27;t* have UBI feel like second-class citizens, when in reality</div>
+  <div class="one-liner">The home-page &quot;force refresh demo data&quot; reseed (`backend/app/services/demo_seeding.py` → `run_demo_reseed`) seeds product docs + clusters + query sets + LLM judgment lists + studies, but **no UBI data</div>
 
 
 </div>
@@ -595,6 +582,32 @@ footer {
 </div>
 
 
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render">Ubi Hybrid Template Render</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Idea — contract decision deferred (NOT a worker bug)</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ubi_reader_search_after_pagination">Ubi Reader Search After Pagination</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">`UbiReader._scan_ubi_events` / `_scan_ubi_queries` each issue ONE `search_batch` (a `size`-limited query). To stay under the engine result-window they now cap at 10000 rows per (target, window).…</div>
+
+
+</div>
+
+
 <div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors">Seed Meaningful Demos Silent Bulk Errors</a></div>
   <div class="meta">
@@ -685,7 +698,19 @@ footer {
 </div>
 
 <div class="col implement">
-  <h3>Implementing <span class="count">0</span></h3>
+  <h3>Implementing <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P1">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_judgments/feature_spec.md">Ubi Judgments</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+
+  </div>
+  <div class="one-liner">Operators with the OpenSearch / ES UBI plugin installed (today; Solr&#x27;s first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic</div>
+
+
+</div>
 
 </div>
 
@@ -717,6 +742,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_ubi_judgments[&quot;ubi judgments&quot;]
+  class feat_ubi_judgments implement;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;</div>
     <noscript><pre>graph LR
@@ -725,6 +752,8 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  feat_ubi_judgments[&quot;ubi judgments&quot;]
+  class feat_ubi_judgments implement;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;</pre></noscript>
   </div>

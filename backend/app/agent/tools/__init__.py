@@ -43,6 +43,11 @@ from backend.app.agent.tools.clusters.list_clusters import (
     ListClustersArgs,
     list_clusters_impl,
 )
+from backend.app.agent.tools.judgments.generate_judgments_from_ubi import (
+    GENERATE_JUDGMENTS_FROM_UBI_TOOL,
+    GenerateJudgmentsFromUbiArgs,
+    generate_judgments_from_ubi_impl,
+)
 from backend.app.agent.tools.judgments.generate_judgments_llm import (
     GENERATE_JUDGMENTS_LLM_TOOL,
     GenerateJudgmentsLLMArgs,
@@ -156,6 +161,7 @@ TOOLS: list[ChatCompletionToolParam] = [
     CREATE_QUERY_SET_TOOL,
     IMPORT_QUERIES_FROM_CSV_TOOL,
     GENERATE_JUDGMENTS_LLM_TOOL,
+    GENERATE_JUDGMENTS_FROM_UBI_TOOL,
     GET_CALIBRATION_TOOL,
     RUN_QUERY_TOOL,
     # Studies (Story 2.3 + feat_agent_propose_search_space)
@@ -183,6 +189,8 @@ TOOL_REGISTRY: dict[str, ToolImpl] = {
     "create_query_set": create_query_set_impl,
     "import_queries_from_csv": import_queries_from_csv_impl,
     "generate_judgments_llm": generate_judgments_llm_impl,
+    # feat_ubi_judgments Story 3.4
+    "generate_judgments_from_ubi": generate_judgments_from_ubi_impl,
     "get_calibration": get_calibration_impl,
     "run_query": run_query_impl,
     # Story 2.3 + feat_agent_propose_search_space
@@ -210,6 +218,8 @@ TOOL_ARG_MODELS: dict[str, type[BaseModel]] = {
     "create_query_set": CreateQuerySetArgs,
     "import_queries_from_csv": ImportQueriesFromCsvArgs,
     "generate_judgments_llm": GenerateJudgmentsLLMArgs,
+    # feat_ubi_judgments Story 3.4
+    "generate_judgments_from_ubi": GenerateJudgmentsFromUbiArgs,
     "get_calibration": GetCalibrationArgs,
     "run_query": RunQueryArgs,
     # Story 2.3 + feat_agent_propose_search_space

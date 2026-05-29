@@ -480,6 +480,68 @@ export const glossary = {
   },
 
   // -------------------------------------------------------------------------
+  // feat_ubi_judgments — UBI converter + readiness glossary (Story 4.1)
+  // -------------------------------------------------------------------------
+  // Source-of-truth: backend/app/api/v1/schemas.py UbiConverterKind +
+  // JudgmentGenerationMethodWire.
+  'judgment.converter': {
+    short:
+      'How a judgment list is generated: LLM-as-judge, UBI from real clicks/dwell, or a hybrid (UBI head + LLM tail).',
+    long: [
+      'Three options for generating a judgment list:',
+      '',
+      '- **LLM-as-judge** — an LLM rates every (query, doc) pair against the operator rubric. Works on any cluster; costs OpenAI dollars per query.',
+      '- **UBI (click-through / dwell-time)** — derives ratings from real user signal captured by the OpenSearch UBI plugin (or the o19s ES UBI fork). No LLM cost.',
+      '- **Hybrid UBI + LLM** — UBI rates pairs above the impression threshold; the LLM fills the long tail. Requires both a template and a rubric.',
+    ].join('\n'),
+    ariaLabel: 'More information about judgment-generation methods',
+  },
+  // Source-of-truth: backend/app/api/v1/schemas.py JudgmentGenerationMethodWire.
+  'judgment.converter.llm': {
+    long: [
+      '**LLM-as-judge** — asks an LLM (your configured OpenAI-compatible endpoint) to rate every (query, doc) pair against the operator-supplied rubric.',
+      '',
+      '- Works on any cluster (no UBI install required).',
+      '- Costs per query (gated by the daily budget).',
+      "- The rubric is what's evaluated — a vague rubric produces vague ratings.",
+    ].join('\n'),
+    ariaLabel: 'More information about the LLM-as-judge converter',
+  },
+  // Source-of-truth: backend/app/api/v1/schemas.py UbiConverterKind.
+  'judgment.converter.ubi': {
+    long: [
+      '**UBI (click-through / dwell-time)** — derives ratings from real user signal captured by the OpenSearch UBI plugin (or the o19s ES UBI fork).',
+      '',
+      '- No LLM cost.',
+      '- Reflects what users actually do (click, dwell), not what an LLM thinks they should do.',
+      '- Sparse pairs (few impressions) get rating 0; switch to **Hybrid** if you want the LLM to fill the long tail.',
+    ].join('\n'),
+    ariaLabel: 'More information about UBI converters',
+  },
+  // Source-of-truth: backend/app/api/v1/schemas.py UbiConverterKind.
+  'judgment.converter.hybrid': {
+    long: [
+      '**Hybrid UBI + LLM** — UBI rates pairs above an impression threshold; the LLM fills below-threshold pairs against the rubric.',
+      '',
+      "- Cheapest path that covers the long tail. UBI handles the head (no LLM cost) and the LLM only spends tokens on the pairs that don't have enough behavioral signal.",
+      '- Requires both a template (for retrieval) and a rubric (for the LLM-fill ratings).',
+    ].join('\n'),
+    ariaLabel: 'More information about the hybrid UBI + LLM converter',
+  },
+  // Source-of-truth: backend/app/api/v1/schemas.py UbiReadinessRungWire.
+  'cluster.ubi_readiness': {
+    long: [
+      '**UBI readiness rungs** — how much UBI traffic this cluster has captured for the chosen target index and query set:',
+      '',
+      '- **rung_0** — UBI plugin is not installed on this cluster (or `ubi_queries` index does not exist).',
+      '- **rung_1** — UBI traffic captured but below the minimum events threshold (default 100) — too sparse for meaningful ratings on its own.',
+      '- **rung_2** — Enough UBI traffic for meaningful ratings (≥ 100 events, < 500 events).',
+      '- **rung_3** — Dense UBI traffic (≥ 500 events) — the picker defaults to a pure UBI converter at this rung.',
+    ].join('\n'),
+    ariaLabel: 'More information about UBI readiness rungs',
+  },
+
+  // -------------------------------------------------------------------------
   // Phase 2 — Proposals
   // -------------------------------------------------------------------------
 

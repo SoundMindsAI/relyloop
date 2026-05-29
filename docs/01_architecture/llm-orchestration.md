@@ -189,6 +189,7 @@ Correlating the two streams by `conversation_id` measures the chain adherence ra
 |---|---|---|---|---|
 | Chat orchestration | `feat_chat_agent` | Streaming chat completion + function calling | `gpt-4o-mini-2024-07-18` | Conversation state in `messages` table; SSE to UI |
 | Judgment generation | `feat_llm_judgments` | Structured-output completion (one call per (query, top-K-docs) batch) | `gpt-4o-2024-08-06` | Per-doc rating with rationale; rubric prompt loaded from `prompts/judgment_generation.user.jinja` |
+| Hybrid UBI + LLM fill | `feat_ubi_judgments` | Same `rate_query_batch` callsite + budget gate as judgment generation; only the below-`llm_fill_threshold` (sparse) pairs are LLM-rated | `Settings.openai_model` | The `HybridUbiLlmConverter` takes an injected `llm_rate` callback; the worker (`backend/workers/judgments_ubi.py`) binds it to `rate_query_batch` + `peek_daily_total` + `record_cost`. The converter never constructs an `AsyncOpenAI` client (Absolute Rule #3). Dense pairs are rated from UBI signal — zero LLM cost. |
 | Digest narrative | `feat_digest_proposal` | Single completion at study end | `gpt-4o-2024-08-06` | Prompt loaded from `prompts/digest_narrative.user.jinja`; output is markdown narrative + structured JSON for parameter importance |
 
 ## Prompt directory layout
