@@ -237,7 +237,7 @@ while IFS=$'\t' read -r pr_num head_sha; do
   RUN_ID=$(gh run list --workflow=pr.yml --event=pull_request \
              --commit="$head_sha" --status=completed \
              --json databaseId,createdAt \
-             --jq 'sort_by(.createdAt) | reverse | .[0].databaseId')
+             --jq 'sort_by(.createdAt) | reverse | .[0].databaseId // empty')
   if [ -z "$RUN_ID" ]; then
     echo "PR #$pr_num: skipped (docs-only or no completed pr.yml run)"
     continue
@@ -304,7 +304,7 @@ HEAD_SHA=$(gh pr list --state=merged --base=main --limit=20 \
            | while read sha; do
                id=$(gh run list --workflow=pr.yml --event=pull_request \
                       --commit="$sha" --status=completed \
-                      --json databaseId --jq '.[0].databaseId')
+                      --json databaseId --jq '.[0].databaseId // empty')
                [ -n "$id" ] && { echo "$sha"; break; }
              done)
 RUN_ID=$(gh run list --workflow=pr.yml --event=pull_request --commit="$HEAD_SHA" \
