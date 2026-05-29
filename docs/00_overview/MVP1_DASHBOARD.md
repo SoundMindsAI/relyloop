@@ -21,19 +21,19 @@ Implementation in progress — resume to finish
 | Metric | Value |
 |---|---|
 | Scoped items done | **92 / 93** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **7** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **6** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **1** high-value, ready when P0 clears |
+| → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 5 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
-| Open bugs | 3 |
-| Legacy "Path to MVP1" | 7 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 2 |
+| Legacy "Path to MVP1" | 6 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (124)
+### Done (125)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -140,6 +140,7 @@ Implementation in progress — resume to finish
 | [bug_dashboard_reset_disclosure_gating_too_strict](implemented_features/2026_05_26_bug_dashboard_reset_disclosure_gating_too_strict/idea.md) | Bug | [`ui/src/components/dashboard/start-here-checklist.tsx:150-160`](../ui/src/components/dashboard/start-here-checklist.tsx#L150-L160): | — | Complete |
 | [bug_datatable_col_vis_density_localstorage_undefined_jsdom](implemented_features/2026_05_26_bug_datatable_col_vis_density_localstorage_undefined_jsdom/idea.md) | Bug | The first integration test in the file (`toggling a column off via the menu removes its cells and persists to localStorage`, line 148) accesses `window.localStorage` successfully. By the time the 3rd– | — | Complete |
 | [bug_demo_clusters_unreachable_in_healthz](implemented_features/2026_05_25_bug_demo_clusters_unreachable_in_healthz/feature_spec.md) | Bug | **After** the warmup task completes (typically within ~5 seconds of API startup, bounded by per-cluster `httpx` probe latency), `/healthz` reports the accurate `healthy` / `unreachable` aggregate for  | — | [PR #236](https://github.com/SoundMindsAI/relyloop/pull/236) merged 2026-05-25 |
+| [bug_demo_reseed_button_silent_enqueue_failure](implemented_features/2026_05_29_bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed` that: | — | Complete |
 | [bug_demo_reseed_fake_metric_regression](implemented_features/2026_05_27_bug_demo_reseed_fake_metric_regression) | Bug | Complete | — | Complete |
 | [bug_digest_param_importance_seam](implemented_features/2026_05_13_bug_digest_param_importance_seam/idea.md) | Bug | The test fixture builds its own `RDBStorage` via `build_storage(...)`, constructs sampler/pruner with `seed=42`, and calls `tell()` against THAT handle. The worker independently calls `build_storage(. | — | Complete |
 | [bug_dockerfile_missing_prompts](implemented_features/2026_05_13_bug_dockerfile_missing_prompts/idea.md) | Bug | The `Dockerfile` at the repo root copies `backend/`, `migrations/`, `alembic.ini`, and `pyproject.toml` into `/app/` but does NOT copy `prompts/`. Any code that loads a file from `prompts/` at module- | — | Complete |
@@ -176,16 +177,15 @@ _None._
 
 _None._
 
-### Idea (6)
+### Idea (5)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [bug_demo_reseed_button_silent_enqueue_failure](planned_features/01_mvp1/bug_demo_reseed_button_silent_enqueue_failure/idea.md) | Bug | There is at least one untrapped exception path in `backend/workers/demo_reseed.py:run_demo_reseed` that: | — | Idea — bug captured during PR #286 first-run testing |
-| 2 | P2 | [chore_e2e_api_base_url_construction](planned_features/01_mvp1/chore_e2e_api_base_url_construction/idea.md) | Chore | Five sites in three e2e specs concatenate `API_BASE` with a path string: | — | Idea — surfaced during Gemini Code Assist review on PR #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`). |
-| 3 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
-| 4 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
-| 5 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
-| 6 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
+| 1 | P2 | [chore_e2e_api_base_url_construction](planned_features/01_mvp1/chore_e2e_api_base_url_construction/idea.md) | Chore | Five sites in three e2e specs concatenate `API_BASE` with a path string: | — | Idea — surfaced during Gemini Code Assist review on PR #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`). |
+| 2 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
+| 3 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
+| 4 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
+| 5 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
 
 ## Dependency graph
 
