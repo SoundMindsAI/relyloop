@@ -71,19 +71,33 @@ UBI_QUERIES_INDEX = "ubi_queries"
 UBI_EVENTS_INDEX = "ubi_events"
 """Standardized UBI events index name (OpenSearch UBI plugin + o19s ES fork)."""
 
+ES_MAX_RESULT_WINDOW = 10_000
+"""Elasticsearch/OpenSearch default ``index.max_result_window``.
+
+A single ``search_batch`` call is a ``size``-limited query (NOT a
+scroll / ``search_after`` paginator), so requesting ``size`` above this
+window makes the engine fail the query with "Result window is too
+large / all shards failed". The adapter swallows that per-query error
+in non-strict mode and returns ``[]`` — which previously surfaced as a
+spurious ``UBI_INSUFFICIENT_DATA`` even on dense clusters (found via
+the rung-3 E2E against a real engine; a stubbed adapter can't catch an
+engine-side window error). Both scan caps below MUST stay <= this.
+"""
+
 DEFAULT_MAX_QUERIES = 5000
-"""Default cap on ``ubi_queries`` rows per window. Matches plan §"Key interfaces"."""
+"""Default cap on ``ubi_queries`` rows per window. < ES_MAX_RESULT_WINDOW."""
 
-DEFAULT_MAX_EVENTS = 50_000
-"""Default cap on ``ubi_events`` rows per window.
+DEFAULT_MAX_EVENTS = ES_MAX_RESULT_WINDOW
+"""Default cap on ``ubi_events`` rows scanned per window.
 
-Sized for ~10 events/query at the ``DEFAULT_MAX_QUERIES`` cap, with
-headroom for top-of-funnel queries (popular search terms can carry
-hundreds of impressions). Operators with denser traffic narrow the
-window via ``since``/``until`` rather than raising the cap — the cap
-is a safety net against runaway memory use during a single
-``_msearch`` response decode, not a designed scaling axis. Documented
-in the Story 5.1 runbook.
+Capped at :data:`ES_MAX_RESULT_WINDOW` because a single ``search_batch``
+is ``size``-limited, not scrolling — requesting more makes the engine
+reject the query (see :data:`ES_MAX_RESULT_WINDOW`). 10k events is a
+representative sample for CTR/dwell rating derivation on any single
+(target, window); operators with denser traffic narrow the window via
+``since``/``until``. Exact full-traffic aggregation via ``search_after``
+pagination is a documented future enhancement
+(``chore_ubi_reader_search_after_pagination``), not MVP scope.
 """
 
 
@@ -337,7 +351,9 @@ class UbiReader:
         result = await self._adapter.search_batch(
             UBI_QUERIES_INDEX,
             queries=[native],
-            top_k=max_queries,
+            # Clamp to the engine result-window — search_batch is size-limited,
+            # not scrolling; a larger size makes the engine reject the query.
+            top_k=min(max_queries, ES_MAX_RESULT_WINDOW),
             request_id=request_id,
         )
         hits = result.get("ubi_queries_scan", [])
@@ -395,7 +411,10 @@ class UbiReader:
         result = await self._adapter.search_batch(
             UBI_EVENTS_INDEX,
             queries=[native],
-            top_k=max_events,
+            # Clamp to the engine result-window (see ES_MAX_RESULT_WINDOW) —
+            # exceeding it makes the engine fail the query ("all shards
+            # failed"), which the adapter swallows to an empty result.
+            top_k=min(max_events, ES_MAX_RESULT_WINDOW),
             request_id=request_id,
         )
         return [hit.source for hit in result.get("ubi_events_scan", []) if hit.source is not None]

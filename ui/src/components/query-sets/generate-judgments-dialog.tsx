@@ -246,11 +246,19 @@ export function GenerateJudgmentsDialog({
         >
           <div className="space-y-1.5">
             <Label htmlFor="gen-name">Judgment list name</Label>
-            <Input id="gen-name" {...form.register('name', { required: true })} />
+            <Input
+              id="gen-name"
+              data-testid="gen-name"
+              {...form.register('name', { required: true })}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="gen-target">Target index / collection</Label>
-            <Input id="gen-target" {...form.register('target', { required: true })} />
+            <Input
+              id="gen-target"
+              data-testid="gen-target"
+              {...form.register('target', { required: true })}
+            />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="gen-method">

@@ -64,6 +64,7 @@ from backend.app.adapters.protocol import (
 )
 from backend.app.services.ubi_errors import UbiNotEnabledError
 from backend.app.services.ubi_reader import (
+    ES_MAX_RESULT_WINDOW,
     UBI_EVENTS_INDEX,
     UBI_QUERIES_INDEX,
     UbiReader,
@@ -292,6 +293,30 @@ async def test_read_features_empty_queries_returns_empty_dict() -> None:
     # because the queries scan returned zero hits.
     scans = [call["query_id"] for call in adapter.search_batch_calls]
     assert scans == ["ubi_queries_scan"]
+
+
+async def test_scan_top_k_never_exceeds_es_result_window() -> None:
+    """Regression: a single search_batch is size-limited, not scrolling, so
+    requesting size > the engine result-window makes the engine fail the
+    query ("all shards failed") which the adapter swallows to empty — that
+    surfaced as a spurious UBI_INSUFFICIENT_DATA on dense clusters (found via
+    the rung-3 real-engine E2E). Both scans MUST clamp top_k to
+    ES_MAX_RESULT_WINDOW even when a caller passes a larger cap.
+    """
+    adapter = _StubUbiAdapter(
+        canned_query_hits=[_query_hit("q-1", "red shoes")],
+        canned_event_hits=[_nested_event(query_id="q-1", doc_id="d-a", action="click")],
+    )
+    await UbiReader(adapter).read_features(
+        target="products",
+        since=datetime(2026, 5, 1, tzinfo=UTC),
+        max_queries=999_999,
+        max_events=999_999,
+    )
+    for call in adapter.search_batch_calls:
+        assert call["top_k"] <= ES_MAX_RESULT_WINDOW, (
+            f"{call['query_id']} requested top_k={call['top_k']} > {ES_MAX_RESULT_WINDOW}"
+        )
 
 
 async def test_read_features_no_events_for_queries_returns_empty_dict() -> None:
