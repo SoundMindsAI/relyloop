@@ -24,14 +24,9 @@ if [[ ! -f "$STATE_FILE" ]]; then
   exit 0
 fi
 
-# Portable byte count (macOS `stat -f%z`, GNU `stat -c%s`, `wc -c` fallback).
-if size=$(stat -f%z "$STATE_FILE" 2>/dev/null); then
-  :
-elif size=$(stat -c%s "$STATE_FILE" 2>/dev/null); then
-  :
-else
-  size=$(wc -c <"$STATE_FILE" | tr -d '[:space:]')
-fi
+# Byte count via POSIX `wc -c` — portable across macOS / Linux / BSD with no
+# platform branching (avoids BSD `stat -f%z` vs GNU `stat -c%s` divergence).
+size=$(wc -c <"$STATE_FILE" | tr -d '[:space:]')
 
 if ((size > MAX_BYTES)); then
   echo "ERROR: $STATE_FILE is ${size} bytes, over the ${MAX_BYTES}-byte (60 KB) snapshot cap." >&2
