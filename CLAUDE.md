@@ -6,6 +6,8 @@ Continue execution without constantly asking for permission to execute tests or 
 
 **After creating or pushing to a PR,** monitor the CI workflow. Use `gh run list --branch={BRANCH}` to find the run, then `gh run watch {RUN_ID}` to monitor. If CI fails, investigate and fix before moving on.
 
+**Before merging any non-docs PR,** verify the latest successful `pr.yml` run was produced against the current `main`. If `main` advanced after the last successful run, click "Update branch" on the PR (or rebase locally) to re-trigger CI before merging — this guards against merge-skew (the PR head was validated against an older base) until branch protection becomes available post-public-launch.
+
 **Before considering a PR ready to merge,** check for Gemini Code Assist review comments (`gh api repos/SoundMindsAI/relyloop/pulls/{PR_NUMBER}/comments`) and adjudicate every line-level finding using the four-quadrant rubric in `.claude/skills/impl-execute/SKILL.md` Step 6 (Accept / Reject with cited counter-evidence / Defer as non-regression follow-up). Post one summary comment with the verdict table before merge.
 
 **Cross-model review policy:** All feature specs and implementation plans MUST be reviewed by GPT-5.5 (model ID: `gpt-5.5`) before being finalized. Opus 4.7 creates; GPT-5.5 reviews. Resolve the API key from `.env` (`grep '^OPENAI_API_KEY=' .env | cut -d'=' -f2-`). Never substitute gpt-4o or other models — the value comes from a different model family reviewing the work.

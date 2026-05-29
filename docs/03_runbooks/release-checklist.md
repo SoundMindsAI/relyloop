@@ -20,35 +20,87 @@ git log --oneline main | head -15
 If anything is unmerged, stop — the release notes can't honestly claim "MVP1"
 until every checked feature is in `main`.
 
-## 2. Smoke reliability gate (≥5 consecutive green smoke runs on main)
+## 2. Smoke reliability gate (≥5 consecutive green smoke runs across merged PRs)
 
 Per spec §13 NFR. The smoke job has a 15-minute budget; flake rate must be
-zero across 5 consecutive runs before the tag goes out.
+zero across the 5 most recently merged PRs before the tag goes out.
+
+`pr.yml` runs only on `pull_request` events (not on `push: main` —
+see [`infra_pr_yml_drop_push_main_trigger`](../00_overview/implemented_features/2026_05_28_infra_pr_yml_drop_push_main_trigger/idea.md)),
+so the gate is computed from the most recently merged PRs' per-job smoke
+conclusions rather than from push-event workflow conclusions.
 
 ```bash
-gh run list --workflow=pr.yml --branch=main --limit=20 \
-  --json conclusion,name,headSha \
-  | jq '[.[] | select(.name | startswith("smoke"))] | .[0:5] | map(.conclusion) | all(. == "success")'
-# Expected: true
+# 1. Get up to 30 most recently merged PRs targeting main (oversample to
+#    handle docs-only PRs that pr.yml skipped via paths-ignore).
+gh pr list --state=merged --base=main --limit=30 \
+  --json number,headRefOid,mergedAt \
+  --jq 'sort_by(.mergedAt) | reverse | .[] | [.number, .headRefOid] | @tsv' \
+  > /tmp/merged_prs
+# 2. Walk PRs newest-first until we've evaluated 5 with a real pr.yml run.
+#    Docs-only PRs (no completed pr.yml run) are skipped without counting.
+CHECKED=0
+SUCCESS_COUNT=0
+while IFS=$'\t' read -r pr_num head_sha; do
+  [ "$CHECKED" -ge 5 ] && break
+  RUN_ID=$(gh run list --workflow=pr.yml --event=pull_request \
+             --commit="$head_sha" --status=completed \
+             --json databaseId,createdAt \
+             --jq 'sort_by(.createdAt) | reverse | .[0].databaseId')
+  if [ -z "$RUN_ID" ]; then
+    echo "PR #$pr_num: skipped (docs-only or no completed pr.yml run)"
+    continue
+  fi
+  CONCL=$(gh run view "$RUN_ID" --json jobs \
+            --jq '.jobs[] | select(.name | test("smoke"; "i")) | .conclusion')
+  echo "PR #$pr_num smoke: $CONCL"
+  CHECKED=$((CHECKED + 1))
+  [ "$CONCL" = "success" ] && SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+done < /tmp/merged_prs
+if [ "$CHECKED" -lt 5 ]; then
+  echo "GATE INCONCLUSIVE: only $CHECKED code-bearing PRs found in last 30 merges"
+elif [ "$SUCCESS_COUNT" -eq 5 ]; then
+  echo "GATE PASSED"
+else
+  echo "GATE FAILED ($SUCCESS_COUNT/5)"
+fi
 ```
 
-If the answer is `false`, identify the failing run, read its `smoke-logs`
-artifact, fix or quarantine the cause, and re-run until 5-in-a-row green.
+If the gate fails, identify the failing PR's run, read its `smoke-logs`
+artifact, fix or quarantine the cause, land the fix on `main`, and re-run.
+Docs-only merged PRs are filtered out of `pr.yml` by `paths-ignore` (by
+design) and the loop walks past them without counting them as failures.
 
 ## 3. 80% coverage gate verification (AC-3)
 
 The coverage gate already lives in `pyproject.toml`
-(`[tool.coverage.report].fail_under = 80`). Verify it actually fired on the
-merge commit:
+(`[tool.coverage.report].fail_under = 80`). After
+[`infra_pr_yml_drop_push_main_trigger`](../00_overview/implemented_features/2026_05_28_infra_pr_yml_drop_push_main_trigger/idea.md)
+the merge SHA on `main` is never validated directly; instead, the coverage
+gate fires on the most recently merged non-docs-only PR's head SHA. Verify
+it actually fired:
 
 ```bash
-MERGE_SHA=$(git rev-parse main)
-RUN_ID=$(gh run list --workflow=pr.yml --commit="$MERGE_SHA" \
+# Iterate merged PRs newest-first; pick the first that has a pr.yml run.
+HEAD_SHA=$(gh pr list --state=merged --base=main --limit=20 \
+             --json headRefOid,mergedAt \
+             --jq 'sort_by(.mergedAt) | reverse | .[].headRefOid' \
+           | while read sha; do
+               id=$(gh run list --workflow=pr.yml --event=pull_request \
+                      --commit="$sha" --status=completed \
+                      --json databaseId --jq '.[0].databaseId')
+               [ -n "$id" ] && { echo "$sha"; break; }
+             done)
+RUN_ID=$(gh run list --workflow=pr.yml --event=pull_request --commit="$HEAD_SHA" \
            --json databaseId --jq '.[0].databaseId')
 gh run view "$RUN_ID" --log | grep -E "TOTAL|fail_under" | tail
 ```
 
 Expected: a `TOTAL` line ≥ 80% and no `fail_under` error.
+
+Note: docs-only merged PRs are skipped (filtered out of `pr.yml` by
+`paths-ignore`, by design); the loop's inner `while read` automatically
+walks past them to find the most recent code-bearing PR.
 
 ## 4. Manual fresh-VM tutorial run (LLM-required path) — AC-1
 
