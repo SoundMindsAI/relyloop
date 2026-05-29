@@ -8,6 +8,10 @@
 
 MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer, Git-PR apply path, conversational agent, ES + OpenSearch adapters, LLM judgments, local-first stack). The release matrix was compressed to four stops on 2026-05-27 — MVP1 → MVP2 (Three-Engine + Real Signals: Solr adapter + UBI judgments) → MVP3 (Observable) → GA v1 (hardening). Multi-tenant + multi-LLM + multi-Git + LTR + Path B are backlog. Canonical matrix: [`docs/01_architecture/tech-stack.md`](docs/01_architecture/tech-stack.md); full reshuffle rationale archived in [`state_history.md`](state_history.md).
 
+## ⚠️ Active CI note — heavy jobs temporarily skipped
+
+**`SKIP_HEAVY_CI=true` repo variable is set (2026-05-29, ~3-day GitHub Actions budget measure; PR #307).** The 5 `pr.yml` jobs over 1 min — `backend` (lint+typecheck+tests+coverage), `frontend`, `smoke`, both `docker buildx` — are **skipped** on every PR. Only the 4 sub-minute checks run (backend fast-lane unit tests, DCO, secrets guard, gitleaks). **While this is active, lean on local `make test` / `pnpm test` + review before merging — CI is not validating the full suite, coverage gate, smoke, or builds.** Scheduled to auto-restore on ~2026-06-01 (routine deletes the variable); restore manually anytime with `gh variable delete SKIP_HEAVY_CI`. The `if:` kill-switch stays in `pr.yml` as documented infra.
+
 ## Current branch / execution context
 
 - **Branch:** working through the post-MVP1 `01_mvp1/` planned-features backlog (bugs + chores) via `/pipeline` — code PR + docs-only finalization PR per item. See `/pipeline status` for the live queue.
@@ -20,11 +24,11 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 
 Detail + reasoning for each is in [`state_history.md`](state_history.md).
 
+- **2026-05-29** — `bug_smoke_studies_data_table_search_flake` (PR #308 + finalization #309). Hardened the flaky `studies-data-table.spec.ts:20` search-visibility assertion: scoped it to the `studies-table` element + 15s web-first timeout to ride out the debounce→refetch→render race on slow CI runners. e2e-only; no product change.
 - **2026-05-29** — `bug_ceiling_badge_assumes_maximize_direction` (PR #305 + finalization #306). Studies-list CEILING badge (best_metric ≥ 0.99) mislabeled minimize studies (0.99 is a bad score there). Preflight found it had gone latent→live (feat_study_baseline_trial made `direction=minimize` creatable). Added `direction` to StudySummary (defaults maximize) + gated the badge on `direction !== 'minimize'` (rolling-deploy-safe per Gemini). 7 tests.
 - **2026-05-29** — `chore_state_md_size_compression` (PR #303 + finalization #304). Split `state.md` (360 KB → 9.3 KB snapshot) from new `state_history.md` (append-only narrative, root); added `state-md-size-guard` pre-commit hook (60 KB cap) + CLAUDE.md snapshot-vs-history convention. **First merge under the new convention.**
 - **2026-05-29** — `chore_e2e_api_base_url_construction` (PR #301 + finalization #302). Swept 28 `${API_BASE}<path>` concats across 10 e2e specs to `new URL(...)`; aligned dashboard-reseed's API_BASE env var; URLSearchParams for a query. Mechanical, zero behavior change.
 - **2026-05-29** — `bug_demo_reseed_button_silent_enqueue_failure` (PR #299 + finalization #300). Top-level `except Exception` barrier in `run_demo_reseed` + `reseed_status_is_stale()` POST auto-recovery so a worker init crash flips Redis to `failed` instead of stuck-`running`. 14 unit tests.
-- **2026-05-29** — `bug_smoke_seed_es_unavailable_shards_race` (PR #297 + finalization #298). Retry bulk-index on `unavailable_shards_exception` in the ES seed path; fixed the chronic smoke-gate red badge.
 
 ## In flight
 
