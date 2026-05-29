@@ -703,7 +703,7 @@ The `source` field tracks judgment provenance:
 
 A judgment list can mix sources. The Judgment Review UI surfaces source per row and the calibration stats account for source mix.
 
-### Click-derived judgments — OpenSearch UBI as the engine-neutral primary path (MVP1.5)
+### Click-derived judgments — OpenSearch UBI as the engine-neutral primary path (MVP2, shipped 2026-05-29)
 
 **User Behavior Insights** is a standardized, engine-neutral schema (championed by Eric Pugh / OpenSource Connections) for capturing search events. The OpenSearch UBI plugin (2024) writes two indices into the cluster being tuned:
 
@@ -721,7 +721,7 @@ Because UBI is just two indices in the cluster RelyLoop is already adapting, the
 
 The pluggable `SignalsConverter` then maps these features to a 0–3 rating. Initial converters: position-bias-corrected CTR threshold, dwell-time threshold, and **hybrid UBI+LLM** (UBI rates the dense head; LLM-as-judge fills the long tail for queries below an impression threshold). Counterfactual click models (CCM, DBN) are documented as post-MVP2 extensions because they need enough impressions per (query, doc) to be statistically meaningful.
 
-The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. See [`feat_ubi_judgments/idea.md`](../00_overview/planned_features/feat_ubi_judgments/idea.md) and [`infra_adapter_solr/idea.md`](../00_overview/planned_features/infra_adapter_solr/idea.md) for the planned-feature scope.
+The judgments table accepts mixed-source lists today (the `source IN ('llm', 'human', 'click')` CHECK has shipped since MVP1) — no schema migration is required to turn this on. The MVP2 deliverable bundles the `UbiReader` + `SignalsConverter` + `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool with the Solr adapter, so all three engines support UBI judgments from the moment MVP2 ships. `feat_ubi_judgments` shipped 2026-05-29 (PR #317); the planning bundle lives at [`implemented_features/2026_05_29_feat_ubi_judgments/`](implemented_features/2026_05_29_feat_ubi_judgments/). The Solr adapter scope is at [`infra_adapter_solr/idea.md`](planned_features/02_mvp2/infra_adapter_solr/idea.md).
 
 Predicated on the operator having installed the UBI plugin on their engine (OpenSearch UBI plugin, the o19s Elasticsearch UBI fork, or Solr's first-party `solr.UBIComponent`) and logged enough events to be statistically useful. Deployments without UBI continue to run LLM-as-judge unchanged.
 

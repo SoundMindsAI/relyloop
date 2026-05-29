@@ -1572,8 +1572,8 @@ Per Story 5.1: `testing.md` documents the no-cluster-writes integration test pat
 - [x] Story 4.1 — Wire enums + `useUbiReadiness` + `<UbiRungBadge>`
 - [x] Story 4.2 — Dialog method picker + nudge + sparse-data card
 - [x] Story 4.3 — Value-delta card + ambiguous-skip recovery card
-- [x] Story 5.1 — Operator docs (runbook + FAQ + data-model). Tutorial Step 7 + spec patches + minor architecture-doc one-liners deferred to `chore_ubi_docs_followup` (captured below in §"Deferred sub-scope").
-- [~] Story 5.2 — E2E suite + `seed_ubi.ts` helper. Deferred — captured as `chore_ubi_e2e_suite` idea (needs a CI OpenSearch UBI plugin install + real-backend Playwright wiring).
+- [x] Story 5.1 — Operator docs (runbook + 3 FAQ + data-model + tutorial Step 11 + umbrella spec patches + api-conventions/llm-orchestration/llm-data-flow/testing one-liners). All 10 doc artifacts shipped (folded in after the Gemini-review pass per operator direction).
+- [x] Story 5.2 (partial — integration tests) + [~] (E2E deferred). The 6 DB-backed integration tests (migration round-trip, worker happy/fail paths, both endpoints, detail breakdown, agent tool) shipped this PR. The 4 Playwright E2E specs + `seed_ubi.ts` helper remain deferred to `chore_ubi_e2e_suite` (needs an OpenSearch UBI-plugin Compose change + SKIP_HEAVY_CI is currently on so E2E wouldn't run in CI until ~2026-06-01).
 
 ### Blocked items
 
