@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -31,6 +32,67 @@ logger = get_logger(__name__)
 SAMPLES_PRODUCTS = Path(__file__).resolve().parents[3] / "samples" / "products.json"
 INDEX_NAME = "products"
 BULK_CHUNK = 500
+
+# On cold GHA runners the primary shard can stay in INITIALIZING for >1m even
+# after the index-create PUT returns 200 — ES's bulk endpoint then returns
+# `unavailable_shards_exception` in the response body (HTTP is still 200 per
+# bulk semantics). Retry the chunk up to BULK_RETRY_ATTEMPTS times with
+# BULK_RETRY_SLEEP_SECS between attempts; only retry this specific error type
+# so mapping bugs / type mismatches still fail loudly. Re-bulking the same
+# chunk is idempotent because each index action carries an explicit `_id`.
+# See bug_smoke_seed_es_unavailable_shards_race for the failure mode.
+BULK_RETRY_ATTEMPTS = 3
+BULK_RETRY_SLEEP_SECS = 2.0
+RETRYABLE_BULK_ERROR_TYPES = frozenset({"unavailable_shards_exception"})
+
+
+def _first_bulk_error(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the first per-item error in a bulk response, or None."""
+    return next(
+        (
+            item["index"].get("error")
+            for item in payload.get("items", [])
+            if "error" in item.get("index", {})
+        ),
+        None,
+    )
+
+
+async def _bulk_with_retry(client: httpx.AsyncClient, body: bytes) -> bool:
+    """POST a bulk-index body, retrying on transient shard-availability errors.
+
+    Returns True on success, False after exhausting retries or hitting a
+    non-retryable error. The caller (``main``) returns 1 on False.
+
+    Retries are limited to ``RETRYABLE_BULK_ERROR_TYPES``; mapping bugs,
+    type mismatches, and other deterministic failures bubble up on the
+    first attempt so they don't get masked by sleep-and-hope behavior.
+    """
+    for attempt in range(1, BULK_RETRY_ATTEMPTS + 1):
+        bulk_resp = await client.post(
+            "/_bulk",
+            content=body,
+            headers={"Content-Type": "application/x-ndjson"},
+        )
+        bulk_resp.raise_for_status()
+        payload = bulk_resp.json()
+        if not payload.get("errors"):
+            return True
+        first_error = _first_bulk_error(payload)
+        first_type = (first_error or {}).get("type")
+        if first_type in RETRYABLE_BULK_ERROR_TYPES and attempt < BULK_RETRY_ATTEMPTS:
+            logger.warning(
+                "seed_es: bulk transient %s, retry %d/%d after %.1fs",
+                first_type,
+                attempt,
+                BULK_RETRY_ATTEMPTS,
+                BULK_RETRY_SLEEP_SECS,
+            )
+            await asyncio.sleep(BULK_RETRY_SLEEP_SECS)
+            continue
+        logger.error("seed_es: bulk index reported errors; first: %s", first_error)
+        return False
+    return False
 
 
 async def main() -> int:
@@ -102,23 +164,8 @@ async def main() -> int:
                     json.dumps({"index": {"_index": INDEX_NAME, "_id": product["id"]}})
                 )
                 body_lines.append(json.dumps(product))
-            bulk_resp = await client.post(
-                "/_bulk",
-                content=("\n".join(body_lines) + "\n").encode("utf-8"),
-                headers={"Content-Type": "application/x-ndjson"},
-            )
-            bulk_resp.raise_for_status()
-            payload = bulk_resp.json()
-            if payload.get("errors"):
-                first_error = next(
-                    (
-                        item["index"].get("error")
-                        for item in payload["items"]
-                        if "error" in item.get("index", {})
-                    ),
-                    None,
-                )
-                logger.error("seed_es: bulk index reported errors; first: %s", first_error)
+            body = ("\n".join(body_lines) + "\n").encode("utf-8")
+            if not await _bulk_with_retry(client, body):
                 return 1
 
         # Refresh so the doc count is observable immediately.
