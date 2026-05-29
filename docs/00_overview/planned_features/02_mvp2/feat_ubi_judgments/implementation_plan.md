@@ -1568,7 +1568,7 @@ Per Story 5.1: `testing.md` documents the no-cluster-writes integration test pat
 - [x] Story 3.1 — `GET /api/v1/clusters/{id}/ubi-readiness` endpoint
 - [x] Story 3.2 — `POST /api/v1/judgments/generate-from-ubi` endpoint
 - [x] Story 3.3 — `generate_judgments_from_ubi` Arq worker
-- [ ] Story 3.4 — `generate_judgments_from_ubi` agent tool + orchestrator prompt update
+- [x] Story 3.4 — `generate_judgments_from_ubi` agent tool + orchestrator prompt update
 - [ ] Story 4.1 — Wire enums + `useUbiReadiness` + `<UbiRungBadge>`
 - [ ] Story 4.2 — Dialog method picker + nudge + sparse-data card
 - [ ] Story 4.3 — Value-delta card + ambiguous-skip recovery card

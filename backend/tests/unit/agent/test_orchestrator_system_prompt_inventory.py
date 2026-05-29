@@ -30,11 +30,12 @@ def test_prompt_file_exists() -> None:
     assert _PROMPT_PATH.is_file(), f"orchestrator.system.md missing at {_PROMPT_PATH}"
 
 
-def test_tool_count_says_twenty() -> None:
-    """Locked: prompt says "You have 20 tools" (was 19 pre-feat_agent_propose_search_space)."""
+def test_tool_count_says_twenty_one() -> None:
+    """Locked: prompt says "You have 21 tools" — MVP1 = 20, +1 for UBI
+    (feat_ubi_judgments Story 3.4)."""
     prompt = _read_prompt()
-    assert "You have 20 tools" in prompt, (
-        "Tool count phrase must match the registry's EXPECTED_TOOL_COUNT_MVP1"
+    assert "You have 21 tools" in prompt, (
+        "Tool count phrase must match the registry's EXPECTED_TOOL_COUNT"
     )
 
 
