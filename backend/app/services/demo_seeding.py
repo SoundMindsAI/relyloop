@@ -439,6 +439,12 @@ def reseed_status_is_stale(
     if started.tzinfo is None:
         started = started.replace(tzinfo=UTC)
     now_utc = now if now is not None else datetime.now(UTC)
+    # Normalize a naive ``now`` to UTC (per GPT-5.5 PR #299 review) — an
+    # aware-minus-naive subtraction would raise TypeError. Production
+    # never passes ``now``; this guards callers/tests that pass a bare
+    # ``datetime(...)`` without tzinfo.
+    if now_utc.tzinfo is None:
+        now_utc = now_utc.replace(tzinfo=UTC)
     return (now_utc - started).total_seconds() > timeout_s
 
 

@@ -11,10 +11,14 @@ without writing ``status="failed"`` to Redis:
   *inside* the outer ``try`` but the block had no ``except``, only a
   ``finally`` to close Redis.
 
-The fix wraps the entire function body in an ``except BaseException``
+The fix wraps the entire function body in an ``except Exception``
 barrier that writes a ``failed`` status payload to Redis and then
 re-raises (preserves Arq's ``JobExecutionFailed`` record + the
-worker-log traceback).
+worker-log traceback). It is deliberately ``Exception``, not
+``BaseException`` — Arq cancels jobs via ``asyncio.CancelledError`` (a
+``BaseException`` subclass) and awaiting Redis I/O from a handler that
+caught it would mask the cancellation; the documented init-region
+failures all inherit from ``Exception``.
 
 These tests use a ``_FakeAsyncRedis`` that records ``set`` calls so we
 can assert what the barrier wrote to the status key without standing up
@@ -99,7 +103,7 @@ async def test_exception_barrier_writes_failed_status_when_get_engine_raises(
     the outer try, no except). On ``main`` this test fails because the
     bare ``try/finally`` swallows nothing — the exception escapes
     without ``status_set`` ever being called. On this branch the outer
-    ``except BaseException`` barrier writes ``failed`` first.
+    ``except Exception`` barrier writes ``failed`` first.
     """
     from backend.workers import demo_reseed as worker_mod
 

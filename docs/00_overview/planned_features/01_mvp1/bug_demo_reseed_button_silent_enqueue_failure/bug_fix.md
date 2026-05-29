@@ -56,6 +56,13 @@ Coverage check: `pytest --cov=backend.workers.demo_reseed --cov=backend.app.api.
 
 None — code-only change. The exception barrier is purely additive (existing happy path unchanged); the stale-status check is additive in the POST handler (only fires when `current.status == "running"` AND `started_at` parseable AND > 1200s ago). No DB migration, no env var, no operator action.
 
+## Review adjudication (GPT-5.5 final review, PR #299)
+
+- **#1 Medium** (`redis.aclose()` in finally can mask the original exception) — **Accepted**, wrapped close in `try/except` + WARN log.
+- **#2 Medium** (stale-running recovery is non-atomic check-then-set; concurrent POSTs could double-enqueue) — **Rejected as non-regression.** Counter-evidence: the deterministic Arq `_job_id="demo_reseed:singleton"` ([_test.py:663-666](../../../../backend/app/api/v1/_test.py#L663)) dedups concurrent enqueues, AND the worker holds a Postgres advisory lock ([demo_reseed.py:94-101](../../../../backend/workers/demo_reseed.py#L94)) — two layers already prevent duplicate *runs*. The stale path doesn't add a new race. Captured as a defense-in-depth follow-up below.
+- **#3 Low** (naive `now` arg raises on aware-minus-naive subtraction) — **Accepted**, normalize naive `now` to UTC + regression test `test_naive_now_argument_treated_as_utc`.
+- **#4 Low** (stale `BaseException` wording in docstrings) — **Accepted**, updated worker + test docstrings to `Exception`.
+
 ## Tangential observations
 
-None — the trace was tight to the worker init region.
+- [chore_demo_reseed_stale_recovery_atomic_cas](../chore_demo_reseed_stale_recovery_atomic_cas/idea.md) — make the stale-status → enqueue transition atomic via Redis CAS/Lua (GPT-5.5 #2; non-regression defense-in-depth — current Arq job_id + advisory lock already prevent duplicate runs).

@@ -75,7 +75,7 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
     ``failed`` with the exception class + first 200 chars of the message.
 
     Per ``bug_demo_reseed_button_silent_enqueue_failure``: the entire
-    function body sits inside a top-level ``except BaseException`` barrier
+    function body sits inside a top-level ``except Exception`` barrier
     so a crash in pre-main-body init (settings load, ``get_engine()``,
     ``engine.connect()``, ``factory()``, ``httpx.AsyncClient(...)``) still
     flips Redis status to ``failed`` instead of leaving the polling
@@ -240,6 +240,13 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
     finally:
         # Only close the Redis client when we created it ourselves; closing
         # Arq's worker-shared pool would kill every other in-flight job
-        # (per Gemini PR #286 finding #8).
+        # (per Gemini PR #286 finding #8). Wrap the close in its own
+        # try/except (per GPT-5.5 PR #299 review): a raise from aclose()
+        # in the finally would replace the re-raised original exception
+        # (or fail an otherwise-successful job) — never let cleanup mask
+        # the real outcome.
         if created_redis and redis is not None:
-            await redis.aclose()
+            try:
+                await redis.aclose()
+            except Exception:  # noqa: BLE001
+                logger.warning("demo_reseed_redis_close_failed")

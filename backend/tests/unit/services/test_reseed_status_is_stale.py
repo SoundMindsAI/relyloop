@@ -84,6 +84,22 @@ def test_custom_timeout_threshold_respected() -> None:
     assert reseed_status_is_stale(s, now=_NOW, timeout_s=120) is False
 
 
+def test_naive_now_argument_treated_as_utc() -> None:
+    """A naive ``now`` arg must not raise on aware-minus-naive subtraction.
+
+    Per GPT-5.5 PR #299 review: ``started`` is normalized to aware-UTC,
+    so a bare ``datetime(...)`` passed as ``now`` would otherwise raise
+    ``TypeError``. Production never passes ``now``; this guards
+    callers/tests that pass a naive datetime.
+    """
+    naive_now = datetime(2026, 5, 28, 12, 0, 0)  # noqa: DTZ001 — intentional naive
+    stale = ReseedStatusResponse(
+        status="running",
+        started_at="2026-05-28T11:00:00Z",  # 1h before naive_now
+    )
+    assert reseed_status_is_stale(stale, now=naive_now) is True
+
+
 def test_naive_timestamp_treated_as_utc() -> None:
     """Tolerate a ``started_at`` without timezone — assume UTC.
 
