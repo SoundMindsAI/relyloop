@@ -403,6 +403,13 @@ describe('CreateStudyModal — sub-warmup warning (feat_study_sub_warmup_guard)'
     expect(warning).toHaveTextContent(/12 trials/);
     expect(warning).toHaveTextContent(/Focused \(50\)/);
     expect(warning).toHaveTextContent(/Standard \(200\)/);
+    // Lock the lead sentence to catch future copy drift (per GPT-5.5 phase-gate
+    // review). Regex tolerates both ASCII apostrophe and the typographic right-
+    // single-quote (U+2019, &rsquo;) — the existing inline-warning pattern in
+    // the same file at line 1112 uses curly quotes by project convention.
+    expect(warning).toHaveTextContent(
+      /first ~10 trials exploring randomly.*studies below 50 trials skip RelyLoop[’']s pruning floor/,
+    );
   });
 
   it('AC-2: hides at the SUB_WARMUP_FLOOR boundary (max_trials===50 in Custom mode)', async () => {
@@ -410,15 +417,25 @@ describe('CreateStudyModal — sub-warmup warning (feat_study_sub_warmup_guard)'
     wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
     await walkToStep5();
 
-    // Drive to Custom + 50: Standard writes (200, ''), then edit to 50.
-    // (50, '') matches no preset write -> activePreset === 'custom', but
-    // 50 < SUB_WARMUP_FLOOR is false -> warning suppressed.
-    fireEvent.click(getPresetButton(/Standard \(200\)/));
+    // Drive to Custom + 50: Deep writes (1000, 480), then edit max_trials to 50.
+    // The resulting tuple (50, 480) matches NO preset write — FOCUSED is (50, ''),
+    // STANDARD is (200, ''), DEEP is (1000, 480) — so activePreset re-derives to
+    // 'custom'. The Custom guard is satisfied, but 50 < SUB_WARMUP_FLOOR is false
+    // -> warning correctly suppressed at the boundary.
+    //
+    // (Earlier draft used Standard -> edit-to-50 which produced (50, '') matching
+    // FOCUSED_WRITE, suppressing the warning via the non-Custom path (AC-3 case)
+    // instead of the boundary case. GPT-5.5 phase-gate review caught this; see
+    // implementation_plan.md cycle-1 cross-model review log.)
+    fireEvent.click(getPresetButton(/Deep \(1000\)/));
     fireEvent.change(getMaxTrialsInput(), { target: { value: '50' } });
 
-    await waitFor(() => {
-      expect(screen.queryByTestId('cs-sub-warmup-warning')).toBeNull();
-    });
+    // Confirm we're actually in Custom mode before asserting boundary suppression.
+    await waitFor(() =>
+      expect(getPresetButton(/^Custom$/).getAttribute('aria-pressed')).toBe('true'),
+    );
+
+    expect(screen.queryByTestId('cs-sub-warmup-warning')).toBeNull();
   });
 
   it('AC-3: hides when a non-Custom preset is active regardless of max_trials', async () => {

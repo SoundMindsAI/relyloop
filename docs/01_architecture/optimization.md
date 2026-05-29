@@ -26,7 +26,7 @@ Per umbrella spec §13, defaults below ship in MVP1:
 |---|---|---|
 | Storage | `RDBStorage` against the same Postgres instance, schema `optuna.*` | — |
 | Sampler | `TPESampler` (Tree-structured Parzen Estimator) | CMA-ES selectable per study (≥7 continuous params, no categoricals) at MVP2; random sampler available as a baseline-comparison option from MVP1 |
-| Pruner | `MedianPruner(n_warmup_steps=10)` | Studies with `<50` trials disable pruning automatically (pruning needs warmup; small studies don't get enough signal) |
+| Pruner | `MedianPruner(n_warmup_steps=10)` | Studies with `max_trials < STUDIES_TPE_WARMUP_FLOOR` (= 50) disable pruning automatically (pruning needs warmup; small studies don't get enough signal). The constant lives in [`backend/app/eval/optuna_runtime.py`](../../backend/app/eval/optuna_runtime.py) and is mirrored in the create-study wizard as `SUB_WARMUP_FLOOR` (the Custom-mode sub-warmup warning trigger — `feat_study_sub_warmup_guard`); a `// Values must match` comment + a backend value-lock test (`test_studies_tpe_warmup_floor_constant_value`) catch cross-side drift. |
 | Parallelism | N workers share one Optuna study via the RDB; each worker calls `study.ask()` / `study.tell()` independently; RDB locking handles concurrency | — |
 | Reproducibility | Seed stored on `studies.config.seed`; reruns of the same study with the same seed are deterministic up to RDB ordering effects | — |
 | Stop conditions | Worker polls `study.should_stop()` which checks Postgres `studies.status` for `cancelled` or `completed` | — |
