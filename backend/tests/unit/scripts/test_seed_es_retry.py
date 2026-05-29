@@ -128,14 +128,24 @@ class TestBulkRetry:
         assert len(client.calls) == 2
 
     async def test_succeeds_after_two_transient_failures(self) -> None:
-        """At the retry boundary: succeed on the last allowed attempt (3/3)."""
+        """Two retries, then success — exercises the retry path without exhausting the budget."""
         client = _FakeClient([_unavailable_shards(), _unavailable_shards(), _ok()])
+        body = json.dumps({}).encode()
+        assert await _bulk_with_retry(client, body) is True  # type: ignore[arg-type]
+        assert len(client.calls) == 3  # 2 failures + 1 success
+
+    async def test_succeeds_at_retry_boundary(self) -> None:
+        """Succeed on the last allowed attempt — exhausts BULK_RETRY_ATTEMPTS - 1 failures first."""
+        responses = [_unavailable_shards()] * (BULK_RETRY_ATTEMPTS - 1) + [_ok()]
+        client = _FakeClient(responses)
         body = json.dumps({}).encode()
         assert await _bulk_with_retry(client, body) is True  # type: ignore[arg-type]
         assert len(client.calls) == BULK_RETRY_ATTEMPTS
 
     async def test_returns_false_after_exhausting_retries(self) -> None:
         """If the shard never becomes available, fail loudly so the operator sees CI red."""
+        # Cap responses at BULK_RETRY_ATTEMPTS — _FakeClient.pop(0) would
+        # IndexError otherwise if the helper made an extra call.
         client = _FakeClient([_unavailable_shards()] * BULK_RETRY_ATTEMPTS)
         body = json.dumps({}).encode()
         assert await _bulk_with_retry(client, body) is False  # type: ignore[arg-type]
@@ -194,9 +204,15 @@ class TestFirstBulkError:
 class TestConstants:
     """Pin the design-locked constants so a future edit can't silently flip them."""
 
-    def test_retry_attempts_is_three(self) -> None:
-        # Idea-locked: 3 attempts × 2s = 6s grace within the 90s httpx timeout.
-        assert BULK_RETRY_ATTEMPTS == 3
+    def test_retry_attempts_is_eight(self) -> None:
+        # Revised on PR #297 first CI run (26611436430) — the original 3-attempt
+        # budget was insufficient because each bulk attempt waits ~60s for ES's
+        # internal shard-availability timeout. 8 × ~62s = ~8 minutes, well
+        # within the smoke job's 15-minute ceiling.
+        assert BULK_RETRY_ATTEMPTS == 8
 
     def test_retry_sleep_is_two_seconds(self) -> None:
+        # The sleep between attempts is intentionally small — the long wait
+        # happens INSIDE each bulk attempt (ES's 60s internal timeout), so
+        # additional sleep would only add to total wall time.
         assert BULK_RETRY_SLEEP_SECS == 2.0

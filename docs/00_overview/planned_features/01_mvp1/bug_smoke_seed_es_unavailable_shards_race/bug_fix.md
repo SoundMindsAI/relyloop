@@ -30,10 +30,11 @@ ES bulk semantics return HTTP 200 even when the shard isn't ready — the error 
 ## Fix design (locked decisions)
 
 1. **Retry on `unavailable_shards_exception` only** — surgical; mapping errors and type mismatches still fail loudly on attempt 1. Cites: idea's Option A (recommended) + CLAUDE.md "Don't add error handling for scenarios that can't happen" — broad retry would mask real bugs.
-2. **3 attempts × 2s sleep = 6s grace** — well within the existing 90s httpx timeout. Cites: idea's locked default; primary shard activation is typically 60–90s with some jitter, so 6s grace captures the tail.
+2. **8 attempts × 2s sleep ≈ 8 minutes wall budget** — revised from the idea's initial 3-attempt suggestion after PR #297's first CI run (`26611436430`) exhausted all 3 attempts with the shard still inactive. Each bulk attempt waits ~60s for ES's internal shard-availability timeout to fire, so the original 3-attempt budget capped at ~3.5 min — well short of the observed cold-start tail. 8 × ~62s ≈ 8 min, still well within the smoke job's 15-minute ceiling. Sleep stays at 2s because the long wait happens inside each bulk attempt, not between them.
 3. **Extract `_bulk_with_retry` + `_first_bulk_error` helpers** — pure-function design lets the unit test mock httpx without spinning up ES. Cites: existing pattern in `backend/app/scripts/seed_meaningful_demos.py` (constants + helpers at module level).
 4. **WARN log on each retry** — `seed_es: bulk transient unavailable_shards_exception, retry 1/3 after 2.0s` so flake telemetry is visible in CI logs. Cites: existing structlog pattern at [seed_es.py:42](../../../../../backend/app/scripts/seed_es.py#L42).
 5. **Allowlist via `RETRYABLE_BULK_ERROR_TYPES` frozenset** — future additions (e.g., `cluster_block_exception` if it surfaces) extend the set, not the retry call sites. Cites: same source-of-truth pattern as `backend/app/db/models/study.py` `StudyStatus` Literal.
+6. **`wait_for_active_shards=1&master_timeout=60s` on index create** — belt-and-suspenders: ES waits up to 60s for the primary shard to come active before the create PUT returns, so the bulk loop has the best chance of hitting an active shard on attempt 1. Doesn't replace the retry (cold runners can exceed 60s even with this), but reduces the average-case retry count.
 
 ### Open questions
 
