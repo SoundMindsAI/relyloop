@@ -6,30 +6,24 @@ _Reflects feature-folder state as of **2026-05-29** (latest mtime of any planned
 
 ## Next up
 
-**[infra_agent_sibling_worktree_isolation](planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/feature_spec.md)** — Infra, currently in **Implementing**
+All scoped MVP1 features shipped 🎉
 
-> Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and therefore leak to the main worktree when writ
-
-Implementation in progress — resume to finish
-
-```bash
-/pipeline docs/00_overview/planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/phase3_idea.md
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP1 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **94 / 95** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **2** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **94 / 94** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 1 important to file, not blocking |
-| → Backlog | 1 captured for record, not planned |
+| → P2 (default) | 0 important to file, not blocking |
+| → Backlog | 0 captured for record, not planned |
 | Open bugs | 0 |
-| Legacy "Path to MVP1" | 2 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 0 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
-| In flight | 1 feature(s) actively shipping |
+| In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -167,11 +161,9 @@ Implementation in progress — resume to finish
 | [bug_vitest_jsdom_localstorage_failures](implemented_features/2026_05_26_bug_vitest_jsdom_localstorage_failures/idea.md) | Bug | `pnpm vitest run` on `feature/home-demo-reseed-endpoint` (and `main`) reports the following 4 files failing with the same root error: | — | Complete |
 | [bug_worker_optuna_init_race](implemented_features/2026_05_13_bug_worker_optuna_init_race/idea.md) | Bug | Compose ordering: | — | Complete |
 
-### Implementing (1)
+### Implementing (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [infra_agent_sibling_worktree_isolation](planned_features/01_mvp1/infra_agent_sibling_worktree_isolation/feature_spec.md) | Infra | Add a tight "Working in sibling worktrees" section to `CLAUDE.md` between `## Common Pitfalls` and `## Bug Fix Protocol` that catalogs which host paths are bind-mounted by the Compose stack (and there | — | [PR #249](https://github.com/SoundMindsAI/relyloop/pull/249) merged 2026-05-25 |
+_None._
 
 ### Plan (0)
 
@@ -181,11 +173,9 @@ _None._
 
 _None._
 
-### Idea (1)
+### Idea (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
+_None._
 
 ## Dependency graph
 
@@ -198,8 +188,6 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  infra_agent_sibling_worktree_isolation["agent sibling worktree isolation"]
-  class infra_agent_sibling_worktree_isolation implement;
   infra_foundation["foundation"]
   class infra_foundation done;
   feat_study_lifecycle["study lifecycle"]
