@@ -1299,7 +1299,7 @@ def main() -> int:
     truncate_demo_state()
 
     results = []
-    failures: list[tuple[str, BaseException]] = []
+    failures: list[tuple[str, Exception]] = []
     for s in SCENARIOS:
         try:
             results.append(seed_scenario(s))
