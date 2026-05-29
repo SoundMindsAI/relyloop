@@ -46,18 +46,20 @@ If a CLAUDE.md statement conflicts with the canonical release matrix, the matrix
 
 **Current focus:** See [`state.md`](state.md). Always read `state.md` first to know what branch you're on, what just shipped, what's in flight, and what's queued.
 
+**`state.md` is a one-page snapshot, not a log.** It holds current focus, the **last 5 merges as one-liners**, in-flight/queued work, Alembic head, and known debt — and must stay loadable in a single `Read` call (the Read tool caps at 256 KB; the file is size-gated by a pre-commit hook at 60 KB). The append-only feature-merge narrative + chained execution-context history lives in [`state_history.md`](state_history.md). **New merge entries land in `state_history.md`, NOT `state.md`.** When you finalize a feature: prepend its one-liner to `state.md`'s "Last 5 merges", drop the now-6th row, and add the full reasoning entry to `state_history.md`. The canonical record is always `git log`; `state_history.md` is the human-readable trail.
+
 ## Compressed Context First
 
 Before starting any task, read these two files first:
 
 - [`architecture.md`](architecture.md) — high-level system design, boundaries, critical flows, and pointers into the topical docs under `docs/01_architecture/`
-- [`state.md`](state.md) — current branch reality, recent changes, active priorities, Alembic head, known fragility
+- [`state.md`](state.md) — current branch reality, last 5 merges, active priorities, Alembic head, known fragility (one-page snapshot; deeper merge history in [`state_history.md`](state_history.md))
 
 Use them as the default fast-path context. Fall back to deeper exploration (`docs/01_architecture/<topic>.md`, individual feature specs in `docs/00_overview/planned_features/`) only when the task requires file-level implementation detail or verification.
 
 After completing a task, evaluate whether documentation needs updating:
 
-- `state.md` — update if: the active branch changed, new features were completed, priorities shifted, new debt was introduced, or the Alembic head moved
+- `state.md` — update if: the active branch changed, new features were completed, priorities shifted, new debt was introduced, or the Alembic head moved. Keep it a snapshot: refresh the "Last 5 merges" one-liners (newest-first, drop the oldest) and move the full merge narrative to `state_history.md`. A pre-commit hook fails the commit if `state.md` exceeds 60 KB.
 - `architecture.md` — update if: new services/layers were added, new data flows were introduced, design decisions were made, invariants changed, or the topical docs in `docs/01_architecture/` got a new entry
 - `CLAUDE.md` — update if: new conventions, rules, environment variables, or build commands were added; or if a release crossed a maturity boundary that activates new rules (e.g., multi-tenancy rules below being activated)
 - `docs/03_runbooks/` — add or update if new ops procedures, deployment steps, or troubleshooting needed

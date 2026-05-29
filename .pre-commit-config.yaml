@@ -106,6 +106,16 @@ repos:
         files: ^(docs/00_overview/planned_features/|docs/00_overview/implemented_features/|scripts/build_mvp1_dashboard\.py$)
         pass_filenames: false
 
+      # Per chore_state_md_size_compression: keep state.md a one-page snapshot
+      # loadable in a single Read call. Fails the commit if it exceeds 60 KB —
+      # the fix is to move history into state_history.md, never to raise the cap.
+      - id: state-md-size-guard
+        name: state.md stays a one-page snapshot (<60 KB)
+        entry: bash scripts/check-state-md-size.sh
+        language: system
+        files: ^state\.md$
+        pass_filenames: false
+
   # ---------------------------------------------------------------------------
   # Secret scanning — gitleaks
   # ---------------------------------------------------------------------------
