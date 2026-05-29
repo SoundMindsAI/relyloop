@@ -20,20 +20,20 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **93 / 94** (99%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **5** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **94 / 95** (99%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **4** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 4 important to file, not blocking |
+| → P2 (default) | 3 important to file, not blocking |
 | → Backlog | 1 captured for record, not planned |
 | Open bugs | 2 |
-| Legacy "Path to MVP1" | 5 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP1" | 4 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into MVP1) |
 | In flight | 1 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (126)
+### Done (127)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -126,6 +126,7 @@ Implementation in progress — resume to finish
 | [chore_reconciler_terminal_closed_no_poll](implemented_features/2026_05_23_chore_reconciler_terminal_closed_no_poll/feature_spec.md) | Chore | Complete (PR #216, merged 2026-05-23, squash SHA `95d4c414`) | — | [PR #216](https://github.com/SoundMindsAI/relyloop/pull/216) merged 2026-05-23 |
 | [chore_spec_trial_created_at_drift](implemented_features/2026_05_13_chore_spec_trial_created_at_drift/idea.md) | Chore | `feat_study_lifecycle/feature_spec.md` §7.4 defines wire values for the trials list `?sort=` query parameter: | — | Complete |
 | [chore_starlette_422_deprecation](implemented_features/2026_05_13_chore_starlette_422_deprecation/idea.md) | Chore | Starlette has renamed `HTTP_422_UNPROCESSABLE_ENTITY` to `HTTP_422_UNPROCESSABLE_CONTENT`. Three call sites still use the old name: | — | Complete |
+| [chore_state_md_size_compression](implemented_features/2026_05_29_chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Complete |
 | [chore_study_default_stop_conditions](implemented_features/2026_05_23_chore_study_default_stop_conditions/feature_spec.md) | Chore | The wizard ships with `max_trials=200` pre-filled (typical 3–5 param case), a dimensionality-keyed preset selector (Focused 50 / Standard 200 / Deep 1000 / Custom) above the numeric fields, refreshed  | — | [PR #215](https://github.com/SoundMindsAI/relyloop/pull/215) merged 2026-05-23 |
 | [chore_test_both_engines](implemented_features/2026_05_13_chore_test_both_engines/idea.md) | Chore | `backend/tests/integration/test_clusters_api.py` only registers an **Elasticsearch** cluster in every test: | — | Complete |
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | [`backend/app/db/repo/trial.py:aggregate_trials_summary`](../../backend/app/db/repo/trial.py) currently issues two SQL statements: | — | Complete |
@@ -178,14 +179,13 @@ _None._
 
 _None._
 
-### Idea (4)
+### Idea (3)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [chore_state_md_size_compression](planned_features/01_mvp1/chore_state_md_size_compression/idea.md) | Chore | `state.md` is structured around two concerns conflated into one file: | — | Idea — tangential observation surfaced during `/impl-execute` for `infra_agent_sibling_worktree_isolation` (Phase 1, this PR). |
-| 2 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
-| 3 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
-| 4 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
+| 1 | P2 | [bug_ceiling_badge_assumes_maximize_direction](planned_features/01_mvp1/bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold che | — | — |
+| 2 | P2 | [bug_smoke_studies_data_table_search_flake](planned_features/01_mvp1/bug_smoke_studies_data_table_search_flake/idea.md) | Bug | [`ui/tests/e2e/studies-data-table.spec.ts:20-40`](../../ui/tests/e2e/studies-data-table.spec.ts#L20-L40): | — | Idea — surfaced during PR #273 CI watch. |
+| 3 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/01_mvp1/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
 
 ## Dependency graph
 
@@ -386,6 +386,8 @@ graph LR
   class infra_pr_yml_drop_push_main_trigger done;
   chore_e2e_api_base_url_construction["e2e api base url construction"]
   class chore_e2e_api_base_url_construction done;
+  chore_state_md_size_compression["state md size compression"]
+  class chore_state_md_size_compression done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
