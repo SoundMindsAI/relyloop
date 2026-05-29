@@ -73,7 +73,13 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
     cell: ({ row }) => {
       const m = row.original.best_metric;
       if (m == null) return <span className="text-muted-foreground">—</span>;
-      const saturated = m >= METRIC_CEILING_THRESHOLD;
+      // The CEILING badge (best_metric >= 0.99) only makes sense for
+      // maximize objectives, where ≥0.99 means the metric is pinned at its
+      // upper bound. For a minimize objective a 0.99 is a *bad* score, not
+      // a ceiling — labeling it "pinned at ceiling" would be the exact
+      // opposite of the truth. Gate on direction so a minimize study shows
+      // no false badge. Per bug_ceiling_badge_assumes_maximize_direction.
+      const saturated = row.original.direction === 'maximize' && m >= METRIC_CEILING_THRESHOLD;
       return (
         <span className="inline-flex items-center gap-1.5">
           <span>{m.toFixed(3)}</span>
