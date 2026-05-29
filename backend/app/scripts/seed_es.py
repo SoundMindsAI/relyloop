@@ -180,7 +180,10 @@ async def main() -> int:
             },
             timeout=620.0,
         )
-        if health_resp.status_code != 200:
+        # ES returns 408 (with body) when wait_for_status times out, and 200
+        # when the condition was met. Both are valid; only treat other status
+        # codes (e.g., 404 / 500) as fatal.
+        if health_resp.status_code not in (200, 408):
             logger.error(
                 "seed_es: cluster health probe for /%s returned %d: %s",
                 INDEX_NAME,

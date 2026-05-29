@@ -21,21 +21,29 @@ The test file mocks httpx to return `unavailable_shards_exception` on the first 
 
 ## Root cause
 
-- **Owning layer:** script — [`backend/app/scripts/seed_es.py`](../../../../../backend/app/scripts/seed_es.py)
-- **Origin:** the per-chunk bulk POST at [seed_es.py:105-110](../../../../../backend/app/scripts/seed_es.py#L105-L110) (pre-fix)
-- **Error sink:** the `if payload.get("errors"): return 1` branch at [seed_es.py:112-122](../../../../../backend/app/scripts/seed_es.py#L112-L122) (pre-fix)
+After three rounds of CI-side iteration on the seed script, the **actual** root cause turned out to be in the ES container config, not the seed script:
 
-ES bulk semantics return HTTP 200 even when the shard isn't ready — the error lives in the JSON response body. The pre-fix code treated any non-empty `errors` field as terminal, so a transient `unavailable_shards_exception` (which clears in 60–90s as the primary shard finishes INITIALIZING) became a permanent CI failure.
+- **Owning layer:** infra — [`docker-compose.yml:198-203`](../../../../../docker-compose.yml#L198-L203) (the `elasticsearch` service env)
+- **Diagnostic:** smoke-logs artifact from PR #297 run `26612512222` showed:
+  > `high disk watermark [90%] exceeded ... free: 6.8gb[9.5%], shards will be relocated away from this node`
+
+  GHA runners boot with ~6.8 GB free out of ~71 GB (~9.5%). ES's default high-watermark allocation gate is 90% — exceeded — so ES refuses to allocate new shards on that node. Cluster health stays at `status: red`, `active_primary_shards: 0`, `initializing_shards: 0` (ES isn't even *trying* to allocate). That's why all the bulk retries + health probes failed: the shard was never going to activate.
+
+The watermark behavior is correct on multi-node clusters (relocate shards off a full node), but harmful on the single-node dev/CI setup where there's nowhere to relocate to. Disabling `cluster.routing.allocation.disk.threshold_enabled` removes the gate.
+
+Two secondary issues compounded the failure mode:
+- **Script:** [`backend/app/scripts/seed_es.py:112-122`](../../../../../backend/app/scripts/seed_es.py#L112-L122) (pre-fix) treated any non-empty `errors` field in the bulk response as fatal. ES bulk semantics return HTTP 200 even when the shard is transiently unavailable, so a genuinely transient `unavailable_shards_exception` was indistinguishable from a real mapping bug.
+- **Synchronization:** the script proceeded straight from `PUT /<index>` to `POST /_bulk` with no wait for the primary shard to be allocated. Even with watermark gating disabled, cold ES can take seconds-to-minutes to finish allocating; `_cluster/health?wait_for_status=yellow` is the right tool to wait for the actual readiness signal.
 
 ## Fix design (locked decisions)
 
-1. **`_cluster/health/<index>?wait_for_status=yellow&timeout=10m` between create and bulk** — the actual synchronization point. Blocks until ES's allocation state machine reports the primary shard active, or 10 minutes elapse. This replaced the original blind-retry-only design after PR #297 run `26611895567` exhausted 8 × 62s retries with the shard still INITIALIZING — blind retries were burning ES's internal 60s shard-availability timeout per attempt without making the shard active any faster. The health probe is the standard ES mechanism for "wait until the index is ready" and lets ES tell us when to proceed instead of guessing.
-2. **httpx per-request `timeout=620.0` on the health probe** — overrides the client's 90s default so the 10m server-side wait isn't killed client-side. 620s = 10m + a 20s buffer.
-3. **Retry on `unavailable_shards_exception` only** (3 attempts × 2s) — kept as a safety net for residual transients after the health probe returns. Mapping errors / type mismatches still fail loudly on attempt 1. Cites: CLAUDE.md "Don't add error handling for scenarios that can't happen" — broad retry would mask real bugs.
-4. **Extract `_bulk_with_retry` + `_first_bulk_error` helpers** — pure-function design lets the unit test mock httpx without spinning up ES. Cites: existing pattern in `backend/app/scripts/seed_meaningful_demos.py` (constants + helpers at module level).
+1. **Disable disk-watermark gating on the single-node dev/CI ES** — add `cluster.routing.allocation.disk.threshold_enabled=false` to `docker-compose.yml`'s `elasticsearch` service env. This is the **actual** root cause; without it, no amount of script-side iteration would help on a low-disk runner. Cites: ES allocation-decider docs (`DiskThresholdMonitor`); the watermark is a multi-node-cluster safeguard not appropriate for single-node setups. Caveat: production deployment would NOT do this — production uses managed ES with provisioned disk.
+2. **`_cluster/health/<index>?wait_for_status=yellow&timeout=10m` between create and bulk** — synchronization with ES's allocation state machine. Even with watermark gating off, cold ES still takes seconds-to-minutes to allocate. Blocks until ready or 10 min elapse; httpx per-request `timeout=620.0` overrides the client's 90s default. Accepts both HTTP 200 (condition met) and HTTP 408 (timed out — still proceed and let the bulk retry safety net catch any residual transient).
+3. **Retry on `unavailable_shards_exception` only** (3 attempts × 2s) — safety net for residual transients after the health probe returns. Mapping errors / type mismatches still fail loudly on attempt 1. Cites: CLAUDE.md "Don't add error handling for scenarios that can't happen" — broad retry would mask real bugs.
+4. **Extract `_bulk_with_retry` + `_first_bulk_error` helpers** — pure-function design lets the unit test mock httpx without spinning up ES. Cites: existing pattern in `scripts/seed_meaningful_demos.py` (constants + helpers at module level).
 5. **WARN log on each retry** — `seed_es: bulk transient unavailable_shards_exception, retry 1/3 after 2.0s` so flake telemetry is visible in CI logs. Cites: existing structlog pattern at [seed_es.py:42](../../../../../backend/app/scripts/seed_es.py#L42).
 6. **Allowlist via `RETRYABLE_BULK_ERROR_TYPES` frozenset** — future additions (e.g., `cluster_block_exception` if it surfaces) extend the set, not the retry call sites. Cites: same source-of-truth pattern as `backend/app/db/models/study.py` `StudyStatus` Literal.
-7. **INFO log on health probe outcome** — `seed_es: /products reached yellow (active_shards=1) in Nms` so operators see when activation happened. If the probe times out, log a WARN and proceed to bulk + retries anyway (don't fail-fast at the probe — the bulk may still succeed if activation finishes during the seed walk).
+7. **INFO log on health probe outcome** — `seed_es: /products reached yellow (active_shards=1) in Nms` so operators see when activation happened. If the probe times out (HTTP 408 with `timed_out: true`), log a WARN and proceed to bulk + retries anyway — don't fail at the probe; the bulk may still succeed if activation finishes during the seed walk.
 
 ### Open questions
 
