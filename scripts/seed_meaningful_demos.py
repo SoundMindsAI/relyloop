@@ -1299,20 +1299,21 @@ def main() -> int:
     truncate_demo_state()
 
     results = []
+    failures: list[tuple[str, Exception]] = []
     for s in SCENARIOS:
         try:
             results.append(seed_scenario(s))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — see continue-on-failure note
             print(f"\n!! scenario {s['slug']} FAILED: {exc!r}")
+            failures.append((s["slug"], exc))
             # GPT-5.5 PR #182 review finding #1 fix — partial-seed self-heal.
             # In --if-empty mode (auto-seed from `make up`), a mid-seed
             # failure would leave the `clusters` table non-empty, which
             # would make every subsequent `make up` skip the seed and
             # leave the operator on a broken half-seeded stack. Roll back
-            # any rows we inserted so the next `make up` retries cleanly.
-            # In explicit `make seed-demo` mode, leave the partial state
-            # in place so the operator can inspect what landed before
-            # re-running with --force.
+            # any rows we inserted so the next `make up` retries cleanly,
+            # and bail immediately (don't waste time seeding the rest only
+            # to truncate it).
             if args.if_empty:
                 print(
                     "seed-demo: --if-empty mode — rolling back partial state "
@@ -1327,13 +1328,23 @@ def main() -> int:
                         "Run `make seed-demo FORCE=1` manually to recover.",
                         file=sys.stderr,
                     )
-            return 1
+                return 1
+            # Explicit `make seed-demo` mode: one failed scenario must NOT
+            # abort the rest. A single environmental hiccup (e.g. an
+            # Elasticsearch/OpenSearch disk-watermark create-index block on
+            # just one engine) used to hard-stop here via `return 1`, silently
+            # costing the operator every scenario after the first failure (the
+            # classic "I only got 2 of 5 studies" symptom). Keep going so the
+            # operator gets every scenario that CAN seed, then report the
+            # failures in a summary at the end. See docs/03_runbooks/local-dev.md
+            # → "Demo seed produced fewer studies than expected".
+            continue
 
     apply_study_renames(results)
 
     # Rich-data scenario — fifth, optional. Adds the 1000-product ESCI dataset
     # + LLM-generated judgments + a real 15-trial study. Tolerated failure:
-    # the four small scenarios are useful on their own, so a rich-scenario
+    # the small scenarios are useful on their own, so a rich-scenario
     # crash (LLM rate limit, ES unreachable, judgment-gen timeout) leaves the
     # rest of the seed valid. The operator gets a warning + retry instruction.
     try:
@@ -1343,7 +1354,7 @@ def main() -> int:
     except Exception as exc:  # noqa: BLE001 — deliberately broad; see comment
         print(
             f"\n!! rich scenario FAILED: {exc!r}\n"
-            "   The four small-data scenarios above are still valid.\n"
+            "   The small-data scenarios above are still valid.\n"
             "   Re-run `make seed-demo FORCE=1` once the cause is resolved.",
             file=sys.stderr,
         )
@@ -1351,6 +1362,27 @@ def main() -> int:
     print("\n=== seed complete ===")
     for r in results:
         print(f"  {r['slug']}: study={r['study_id']} ({r['study_name']})")
+
+    # If any small scenario failed in explicit-force mode we still seeded the
+    # rest, but the demo is incomplete — surface a loud summary and exit
+    # non-zero so the operator (and any caller checking the exit code) knows.
+    if failures:
+        print(
+            f"\n=== {len(failures)} scenario(s) FAILED — demo is incomplete ===",
+            file=sys.stderr,
+        )
+        for slug, err in failures:
+            print(f"  {slug}: {err!r}", file=sys.stderr)
+        print(
+            "Re-run `make seed-demo FORCE=1` after resolving the cause. If the "
+            "failure is a 403 index_create_block_exception / "
+            "FORBIDDEN/.../cluster create-index blocked, the engine hit its disk "
+            "flood-stage watermark — see docs/03_runbooks/local-dev.md → "
+            "'Demo seed produced fewer studies than expected'.",
+            file=sys.stderr,
+        )
+        return 1
+
     return 0
 
 
