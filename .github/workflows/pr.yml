@@ -12,6 +12,23 @@ name: pr
 # CI runs hermetically — service containers (Postgres, Redis, ES, OpenSearch)
 # are launched by GitHub Actions, never against managed cloud (CLAUDE.md
 # Common Pitfalls).
+#
+# TEMPORARY CI-BUDGET KILL-SWITCH (SKIP_HEAVY_CI repo variable)
+# ------------------------------------------------------------
+# The 5 jobs that take >1 min — `backend` (lint+typecheck+tests+coverage),
+# `frontend`, `smoke-test`, `docker` (api buildx), `docker-ui` — each carry
+#   if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
+# so they can be skipped en masse to conserve GitHub Actions minutes during a
+# budget crunch. The 4 sub-minute jobs (backend fast-lane unit tests, DCO,
+# secrets guard, gitleaks) always run, retaining baseline signal.
+#
+#   Activate (skip heavy jobs):  gh variable set SKIP_HEAVY_CI --body true
+#   Restore (run everything):    gh variable delete SKIP_HEAVY_CI
+#
+# Default (variable unset) is the SAFE state — every job runs. While the
+# switch is ON, PRs merge with only the fast-lane unit tests + secret scanning
+# as automated signal, so lean on local `make test` / `pnpm test` + review.
+# This is a temporary measure; restore full CI as soon as the budget allows.
 
 on:
   pull_request:
@@ -75,6 +92,10 @@ jobs:
 
   backend:
     name: backend (lint + typecheck + tests + coverage)
+    # TEMP CI-budget kill-switch — see the SKIP_HEAVY_CI note at the top of
+    # this file. When the repo variable SKIP_HEAVY_CI == 'true', skip this
+    # >1-min job to conserve GitHub Actions minutes. Default (var unset) → runs.
+    if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -264,6 +285,8 @@ jobs:
 
   frontend:
     name: frontend (lint + typecheck + tests + build)
+    # TEMP CI-budget kill-switch — see the SKIP_HEAVY_CI note at top of file.
+    if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -308,6 +331,10 @@ jobs:
 
   smoke-test:
     name: smoke (operator-path tutorial flow)
+    # TEMP CI-budget kill-switch — see the SKIP_HEAVY_CI note at top of file.
+    # (Also has `needs: [docker, docker-ui]` below; when the switch is on
+    # those skip too, so this stays consistent either way.)
+    if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     # Depend on the parallel `docker` (API) + `docker-ui` jobs so both image
@@ -556,6 +583,8 @@ jobs:
 
   docker:
     name: docker buildx (relyloop/api)
+    # TEMP CI-budget kill-switch — see the SKIP_HEAVY_CI note at top of file.
+    if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-latest
     # No `needs:` — buildx tests that the Dockerfile builds, which is
     # independent of backend/frontend test outcomes. Running in parallel
@@ -642,6 +671,8 @@ jobs:
 
   docker-ui:
     name: docker buildx (relyloop/ui)
+    # TEMP CI-budget kill-switch — see the SKIP_HEAVY_CI note at top of file.
+    if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-latest
     # Parallel to `docker` (API buildx). Symmetric pattern: builds + uploads
     # the UI image as a tar so the smoke job can `docker load` it instead of
