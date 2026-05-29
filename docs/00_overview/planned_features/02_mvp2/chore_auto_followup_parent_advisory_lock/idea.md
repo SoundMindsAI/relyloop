@@ -36,7 +36,7 @@ Lock scope is the transaction — `pg_advisory_xact_lock` is automatically relea
 
 ## Co-evolution with `bug_auto_followup_completed_parent_stop_chain_race`
 
-This chore composes with the bug fix at [`bug_auto_followup_completed_parent_stop_chain_race`](../bug_auto_followup_completed_parent_stop_chain_race/idea.md) — both races have the same shape (cascade-vs-worker timing) but at different layers:
+This chore composes with the bug fix at [`bug_auto_followup_completed_parent_stop_chain_race`](../../../implemented_features/2026_05_26_bug_auto_followup_completed_parent_stop_chain_race/idea.md) — both races have the same shape (cascade-vs-worker timing) but at different layers:
 
 - The bug fix (Option A) zeroes `parent.config["auto_followup_depth"]` in the cascade to short-circuit the **pending worker's gate**.
 - This chore (the advisory lock) coordinates **concurrent worker invocations** so the second one observes the first one's child.
