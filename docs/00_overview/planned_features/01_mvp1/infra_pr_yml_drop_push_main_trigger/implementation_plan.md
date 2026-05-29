@@ -160,7 +160,7 @@ N/A — no state involved.
 
 **Definition of Done (DoD)**
 
-- [ ] FR-1 — `pr.yml`'s `on:` block contains exactly one trigger (`pull_request`). Verified by `grep -cE "^\s*(pull_request|push):" .github/workflows/pr.yml` returning `1`.
+- [ ] FR-1 — `pr.yml`'s `on:` block contains exactly one trigger (`pull_request`). Verified by `grep -cE "^  (pull_request|push):$" .github/workflows/pr.yml` returning `1`. (The 2-space-indent + colon-end anchors are required — a looser `^\s*(pull_request|push):` regex also matches `push: false` inside docker buildx steps, producing a false positive count.)
 - [ ] FR-1 — The `pull_request.paths-ignore` block is byte-identical to the pre-edit version (5 paths in the same order). Verified by inspecting `git diff .github/workflows/pr.yml` and confirming no lines inside the `pull_request:` block were modified or deleted.
 - [ ] FR-2 — Line 4 reads `# Runs on every PR to main.` (no "+ every push to main"). Verified by `grep -F "# Runs on every PR to main." .github/workflows/pr.yml` returning 1 match AND `grep -cF "push to main" .github/workflows/pr.yml` returning `0`.
 - [ ] FR-2 — The `# Keep this list synchronized` comment is removed. Verified by `grep -cF "Keep this list synchronized" .github/workflows/pr.yml` returning `0`.
