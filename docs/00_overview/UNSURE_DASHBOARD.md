@@ -20,9 +20,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 1 important to file, not blocking |
 | → Backlog | 0 captured for record, not planned |
-| Open bugs | 0 |
-| Legacy "Path to UNSURE" | 0 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 1 idea-only feat/infra (not yet scoped into UNSURE) |
+| Open bugs | 1 |
+| Legacy "Path to UNSURE" | 1 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 0 idea-only feat/infra (not yet scoped into UNSURE) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -47,7 +47,7 @@ _None._
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [feat_query_normalization_tuning](planned_features/00_unsure/feat_query_normalization_tuning/idea.md) | Feature | A relevance pipeline runs in stages: (1) query understanding / normalization → (2) retrieval → (3) ranking / boosting → (4) re-ranking. RelyLoop tunes **stage 3 only**. But stage 1 is often where the  | — | Idea — exploratory. Placed in `00_unsure/` because the release target is genuinely unresolved: the core capability is small and fits the existing parameter model, but a prod-reproducibility question (below) must be answered before it can be committed to a release. |
+| 1 | P2 | [bug_relyloop_spec_ubi_section_drift](planned_features/00_unsure/bug_relyloop_spec_ubi_section_drift/idea.md) | Bug | [`docs/00_overview/relyloop-spec.md`](relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 releas | — | Idea — captured during `feat_ubi_judgments` preflight (2026-05-29) |
 
 ## Dependency graph
 
