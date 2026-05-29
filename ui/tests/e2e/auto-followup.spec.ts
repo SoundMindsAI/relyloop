@@ -38,7 +38,7 @@ async function pickEntity(
 }
 
 async function getName(path: string): Promise<string> {
-  const resp = await fetch(`${API_BASE}${path}`);
+  const resp = await fetch(new URL(path, API_BASE).toString());
   const body = (await resp.json()) as { name: string };
   return body.name;
 }
@@ -152,13 +152,13 @@ test.describe('/studies — auto-followup chain', () => {
     await expect(page.getByTestId('create-study-form')).toHaveCount(0, { timeout: 10_000 });
 
     // Fetch the new study from the backend and assert the config.
-    const listResp = await page.request.get(`${API_BASE}/api/v1/studies?limit=200`);
+    const listResp = await page.request.get(new URL(`/api/v1/studies?limit=200`, API_BASE).toString());
     expect(listResp.ok()).toBe(true);
     const listBody = (await listResp.json()) as { data: Array<{ id: string; name: string }> };
     const created = listBody.data.find((s) => s.name === studyName);
     expect(created, `expected to find study named ${studyName}`).toBeDefined();
 
-    const detailResp = await page.request.get(`${API_BASE}/api/v1/studies/${created!.id}`);
+    const detailResp = await page.request.get(new URL(`/api/v1/studies/${created!.id}`, API_BASE).toString());
     expect(detailResp.ok()).toBe(true);
     const detail = (await detailResp.json()) as { config: { auto_followup_depth?: number } };
     expect(detail.config.auto_followup_depth).toBe(2);

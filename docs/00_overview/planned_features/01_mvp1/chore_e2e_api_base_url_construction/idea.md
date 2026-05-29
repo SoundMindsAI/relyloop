@@ -27,7 +27,9 @@ PR #273 accepted Gemini's finding for the one line it flagged but explicitly cho
 
 ## Problem
 
-Five sites in three e2e specs concatenate `API_BASE` with a path string:
+> **Scope correction (2026-05-29, idea-preflight before implementation):** when this idea was filed (2026-05-26) the pattern lived at 5 sites in 3 specs. Between then and pickup, additional e2e specs landed with the same `${API_BASE}/...` convention. The actual sweep at implementation time was **28 sites across 10 spec files** — not the 4-sites/2-files the table below describes. The originally-cited table is preserved for historical context; the real coverage is in "Resolution" at the bottom. The idea's core rationale ("tightening one-of-N creates inconsistency") only strengthened with the larger N, so the full sweep was the right call.
+
+The e2e specs concatenate `API_BASE` with a path string (original 2026-05-26 census):
 
 | File | Line | Code |
 |---|---|---|
@@ -37,7 +39,7 @@ Five sites in three e2e specs concatenate `API_BASE` with a path string:
 | `ui/tests/e2e/followup_run.spec.ts` | 176 | `await request.get(\`${API_BASE}/api/v1/studies?limit=20\`)` |
 | `ui/tests/e2e/study-clone-narrow-bounds.spec.ts` | 135 | **Already fixed in PR #273.** |
 
-If a future operator sets `PLAYWRIGHT_API_BASE_URL=http://127.0.0.1:8000/` (with trailing slash) in their environment, the concat produces `http://127.0.0.1:8000//api/v1/...` — which most HTTP servers tolerate but Playwright's URL parser might trip on, or an upstream proxy might reject. No CI signal yet because CI sets the var without a trailing slash.
+If a future operator sets `PLAYWRIGHT_API_BASE_URL=http://127.0.0.1:8000/` (with trailing slash) in their environment, the concat produces `http://127.0.0.1:8000//api/v1/...` — which most HTTP servers tolerate but Playwright's URL parser might trip on, or an upstream proxy might reject. No CI signal yet because CI sets the var without a trailing slash. The `URL` constructor collapses the double slash regardless of whether `API_BASE` carries a trailing slash, which is the durable fix.
 
 ## Proposed fix
 
@@ -67,4 +69,12 @@ The pattern is established convention across 3 spec files. Fixing one without th
 
 ## Relationship to other work
 
-- **Originating PR:** #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`) — accepted Gemini's finding for the one new line it added; this idea captures the sweep for the other 4 sibling sites.
+- **Originating PR:** #273 (`chore_clone_narrow_bounds_full_roundtrip_e2e`) — accepted Gemini's finding for the one new line it added; this idea captures the sweep for the other sibling sites.
+
+## Resolution
+
+Swept all 28 `${API_BASE}<path>` concatenations to `new URL(<path>, API_BASE).toString()` across 10 e2e spec files (the 5-site/3-file census above had grown by pickup time):
+
+`auto-followup` (3), `dashboard-reseed` (6), `followup_run` (3), `judgments` (2), `studies-create-builder` (3), `studies-create-target-dropdown` (5), `studies-create-validation` (1), `studies` (1), `study-clone` (2), `trials-data-table` (2).
+
+All variable-path call sites were verified to pass `/`-prefixed paths, so `new URL(path, API_BASE)` is behaviorally identical. Pure single-interpolation cases (`${API_BASE}${path}`) collapse to `new URL(path, API_BASE)`; cases with a query suffix or second interpolation keep a template literal (`new URL(\`${path}?limit=200\`, API_BASE)`). No behavior change — the assertions exercise the same endpoints. `pnpm lint` + `pnpm typecheck` clean.

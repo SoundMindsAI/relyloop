@@ -37,7 +37,7 @@ test('Clone study from study-detail → banner + parent_study_id round-trip', as
   const sourceId = completed.studyId;
 
   // Fetch the source's name so we can spot-check the banner copy.
-  const sourceResp = await request.get(`${API_BASE}/api/v1/studies/${sourceId}`);
+  const sourceResp = await request.get(new URL(`/api/v1/studies/${sourceId}`, API_BASE).toString());
   expect(sourceResp.ok()).toBe(true);
   const source = (await sourceResp.json()) as { id: string; name: string };
 
@@ -88,7 +88,7 @@ test('Clone study from study-detail → banner + parent_study_id round-trip', as
   expect(created.parent_study_id).toBe(sourceId);
 
   // 5. Re-fetch the new study via the public API and confirm lineage persists.
-  const reloadResp = await request.get(`${API_BASE}/api/v1/studies/${created.id}`);
+  const reloadResp = await request.get(new URL(`/api/v1/studies/${created.id}`, API_BASE).toString());
   expect(reloadResp.ok()).toBe(true);
   const reloaded = (await reloadResp.json()) as { parent_study_id: string | null };
   expect(reloaded.parent_study_id).toBe(sourceId);
