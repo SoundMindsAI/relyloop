@@ -1,65 +1,57 @@
-# chore_ubi_hybrid_template_render — hybrid LLM-fill should render the template
+# chore_ubi_hybrid_template_render — resolve the vestigial hybrid template requirement
 
-**Date:** 2026-05-29
-**Status:** Idea — deferred from `feat_ubi_judgments` (GPT-5.5 PR #317 final-review finding #6)
-**Origin:** feat_ubi_judgments PR #317 — GPT-5.5 cross-model final review flagged that the hybrid worker's LLM-fill path fetches doc bodies via `adapter.get_document(target, doc_id)` rather than rendering `current_template_id` + running `search_batch` to build the LLM context.
+**Date:** 2026-05-29 (revised after analysis)
+**Status:** Idea — contract decision deferred (NOT a worker bug)
+**Origin:** GPT-5.5 PR #317 final-review finding #6 flagged that the hybrid
+LLM-fill worker uses `adapter.get_document` rather than rendering
+`current_template_id` + `search_batch`. On analysis (during the
+chore_ubi_e2e_suite work), this is **not** a bug — see below.
 **Depends on:** `feat_ubi_judgments` shipped
-**Priority:** P2
+**Priority:** P3 (cosmetic contract cleanup; current behavior is correct)
 
-## Problem
+## Analysis — the worker is correct as shipped
 
-The spec's hybrid contract (FR-2 + FR-3) requires `current_template_id`
-for `hybrid_ubi_llm` because the LLM-fill path is meant to retrieve docs
-*through the template* (same Jinja-render → `search_batch` path the
-LLM-judgment worker uses). The shipped worker
-(`backend/workers/judgments_ubi.py` `_make_llm_rate_callback`) instead:
+Spec FR-2 defines the hybrid `llm_rate` callback contract as **per-pair**:
+it receives `[(query_id, doc_id, query_text), …]` tuples and returns
+`{(query_id, doc_id): rating}`. The callback rates the EXACT sparse
+`(query, doc)` pairs UBI surfaced (below `llm_fill_threshold`).
 
-* takes the `(query_id, doc_id)` set already known from UBI,
-* fetches each doc body via `adapter.get_document(target, doc_id)`,
-* sends `(query_text, doc_body, rubric)` to `rate_query_batch`.
+The worker's `_make_llm_rate_callback` fetches each doc body by its known
+id (`adapter.get_document(target, doc_id)`) and rates it — the correct
+way to satisfy a per-pair contract. A template render + `search_batch`
+(spec FR-3 prose) would retrieve whatever the query *ranks*, which is NOT
+the sparse pairs (they're sparse precisely because they rank low / have
+little signal) — so it would rate the **wrong** docs. Implementing FR-3's
+literal "retrieve via template" would be a regression, not a fix.
 
-This is **functionally correct** — it rates the same (query, doc) pairs
-against the same rubric — but it deviates from the planned contract in
-two ways:
+So GPT-5.5 #6 surfaced a **spec inconsistency**, not a worker defect:
+- FR-2 (per-pair callback) is the load-bearing contract the converter,
+  dialog, and agent tool are all built around.
+- FR-3's "the Jinja template the LLM-fill path uses to retrieve docs per
+  query" is the stale half — with the per-pair callback there's nothing
+  to "retrieve."
 
-1. The `current_template_id` is required + validated but never used by
-   the worker (only the dispatcher resolves it for the FK check).
-2. UBI engine I/O expands from the spec's stated `search_batch` +
-   `get_schema` surface to also include `get_document` (still on the
-   `SearchAdapter` Protocol — does NOT violate Absolute Rule #4 — but
-   beyond the FR-1 "two-index scan" framing).
+## The only open question (a product/contract decision)
 
-## Why deferred (not fixed inline)
+`current_template_id` is REQUIRED for `hybrid_ubi_llm` today but is
+**vestigial w.r.t. retrieval** (the worker never uses it; it's kept for
+lineage/provenance parity with the LLM path + FK validation). Whether to
+**drop the requirement** (make it optional for hybrid; keep `rubric`
+required) is a product/UX + wire-contract decision touching:
+- `CreateJudgmentListFromUbiRequest` validator + `GenerateJudgmentsFromUbiArgs`
+- the generate-judgments dialog (stop forcing a template for hybrid)
+- the agent tool + the 3 hybrid-conditional tests + the E2E hybrid spec
+- spec §FR-3 prose
 
-* It's functionally correct as shipped — the ratings land on the right
-  pairs. This is a contract-fidelity / consistency issue, not a bug.
-* The template-render path is a >60-minute re-architecture of the
-  LLM-fill callback: render the Jinja template per query, run
-  `search_batch`, intersect with the UBI tail pair set, then build the
-  doc context from the search hits instead of `get_document`. That's
-  cross-cutting enough to warrant its own scoped change.
-* The deviation is documented in the worker module docstring
-  (`backend/workers/judgments_ubi.py` "Hybrid LLM-fill implementation
-  note").
-
-## Proposed capability
-
-Either:
-
-- **(a)** rework `_make_llm_rate_callback` to render `current_template_id`
-  + `search_batch` for the tail pairs (aligns with the spec contract +
-  keeps UBI I/O on the search surface), OR
-- **(b)** formally amend the spec/API to drop the `current_template_id`
-  requirement for hybrid mode and document `get_document`-based scoring
-  as the intended design.
-
-Decide (a) vs (b) at pickup — (b) is cheaper and the current behavior is
-correct, but (a) matches operator expectation that "the template drives
-retrieval everywhere."
+Because it (a) needs a product call on the operator flow and (b) churns a
+just-shipped, tested wire contract for marginal value, it stays deferred
+until an operator signal asks for it. If picked up: drop the template
+requirement, keep rubric required, and correct FR-3's prose to describe
+per-pair `get_document` scoring.
 
 ## Scope signals
 
-- Backend: `backend/workers/judgments_ubi.py` (callback) + possibly the
-  request schema (if option b drops the requirement).
-- Frontend: none (the dialog already collects template + rubric for hybrid).
-- Migration: none.
+- Backend: schema validator + agent-tool validator + dispatcher FK branch.
+- Frontend: dialog hybrid-mode template field (required → optional).
+- Spec: FR-3 prose correction.
+- Migration: none. Product decision required before pickup.

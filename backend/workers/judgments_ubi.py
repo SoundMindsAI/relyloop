@@ -51,20 +51,21 @@ via an injected callback." The callback signature is
 taking ``(query_id, doc_id, query_text)`` tuples. The worker-local
 :func:`_make_llm_rate_callback` constructs the callback bound to:
 
-* :func:`adapter.get_document` for fresh doc-body fetch (NOT
-  re-running the search — the doc_id set is already known from UBI).
-  This deviates from the spec's "use the template to retrieve docs
-  per query" language but produces ratings against the same
-  ``(query, doc)`` pairs; the doc_body source is the only
-  difference. Documented as a Story 3.3 implementation simplification.
+* :func:`adapter.get_document` for a doc-body fetch BY ID. The FR-2
+  callback contract is explicitly per-``(query_id, doc_id)`` pair (it
+  takes ``(query_id, doc_id, query_text)`` tuples), so the LLM-fill
+  rates the EXACT sparse pairs UBI surfaced — fetching each doc by its
+  known id is the correct way to do that. (A template render +
+  ``search_batch`` would retrieve whatever the query ranks, NOT the
+  specific sparse pairs — so it would rate the wrong docs. The spec
+  §FR-3 prose "template … to retrieve docs per query" predates the
+  per-pair callback design in FR-2 and is the stale half; the
+  ``current_template_id`` field is retained for lineage/provenance
+  parity with the LLM path, not for retrieval. Whether to drop that
+  now-vestigial requirement is tracked as a contract decision in
+  ``chore_ubi_hybrid_template_render``.)
 * :func:`rate_query_batch` for the LLM call + the existing budget
   gate + capability cache.
-
-If a future operator-feedback signal asks for template-rendered doc
-retrieval in hybrid mode (e.g., to score the same Jinja-shaped
-context the LLM-judgment worker uses), capture as
-``chore_ubi_hybrid_template_render`` and re-introduce the render
-path.
 """
 
 from __future__ import annotations
