@@ -68,6 +68,20 @@ Two reasons this idea defers rather than ships inline with the sibling-worktree 
 
 The rubric's "implement-over-defer" calls for this work if it's ≤60 min AND no operator-judgment fork. This idea hits the operator-judgment hard-stop — defer is correct.
 
+## Resolution (2026-05-29)
+
+Shipped. Operator decisions (via AskUserQuestion at pickup):
+
+1. **History file location:** `state_history.md` at **repo root** (next to `state.md`), keeping the snapshot/history pair together.
+2. **Retention:** **last 5 merges** as one-liner bullets in `state.md`; everything older moved to `state_history.md`.
+3. **Pre-commit hook:** **added now** (not deferred to Phase 2) — `state-md-size-guard` fails the commit if `state.md` exceeds 60 KB. Warn-vs-block resolved to **block** per operator ("do it now").
+
+Outcome:
+- `state.md`: 360 KB / 490 lines → **9.3 KB / 98 lines** (loadable in one Read call).
+- `state_history.md` (new, repo root): the full append-only "Most recent meaningful changes" narrative + archived chained execution context (branch/active-feature/last-updated history), newest first.
+- `scripts/check-state-md-size.sh` + `.pre-commit-config.yaml` `state-md-size-guard` hook (60 KB cap, portable byte count, "move to history — don't raise the cap" failure message). Verified: passes at 9.3 KB, fails at 61 KB.
+- `CLAUDE.md` §"Active Work" + §"Compressed Context First" document the snapshot-vs-history convention: new merge entries land in `state_history.md`; `state.md` keeps only the last 5 merge one-liners.
+
 ## Relationship to other work
 
 - **Coordinates with** the `CLAUDE.md` §"Compressed Context First" guidance — Eric's intent (per that section) is that `state.md` IS the compressed context. The current file size defeats that.
