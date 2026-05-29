@@ -1,6 +1,6 @@
 # Adapters
 
-**Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; SolrAdapter ships at MVP2 alongside UBI judgments. Lucidworks Fusion is explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](../00_overview/planned_features/chore_drop_fusion_scope/idea.md)) — a community-contributed Fusion adapter remains possible against this Protocol, but the project does not own that direction. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
+**Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; SolrAdapter ships at MVP2 alongside UBI judgments. Lucidworks Fusion is explicitly dropped (see [`chore_drop_fusion_scope/idea.md`](../00_overview/implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md)) — a community-contributed Fusion adapter remains possible against this Protocol, but the project does not own that direction. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
 **Source of truth for product context:** [docs/00_overview/relyloop-spec.md §8](../00_overview/relyloop-spec.md) ("Engine adapter specification") and §11 ("Search space & parameters").
 
 ---
@@ -60,9 +60,9 @@ class SearchAdapter(Protocol):
 | `list_targets` | `TargetsForbiddenError` → 403 `TARGETS_FORBIDDEN` (`retryable=false`; UI auto-engages manual mode) | (n/a) | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` |
 | `get_schema` | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` | `TargetNotFoundError` → 404 `TARGET_NOT_FOUND` | `ClusterUnreachableError` → 503 `CLUSTER_UNREACHABLE` |
 
-The asymmetry on 401/403 (`list_targets` distinguishes; `get_schema` conflates with 5xx) is intentional: ACL-restricted listing has a UX-distinct remediation (manual-mode target entry) that ACL-restricted schema lookup does not have at this point in the wizard. See [`feat_create_study_target_autocomplete`](../00_overview/implemented_features/<date>_feat_create_study_target_autocomplete/) for the rationale.
+The asymmetry on 401/403 (`list_targets` distinguishes; `get_schema` conflates with 5xx) is intentional: ACL-restricted listing has a UX-distinct remediation (manual-mode target entry) that ACL-restricted schema lookup does not have at this point in the wizard. See [`feat_create_study_target_autocomplete`](../00_overview/implemented_features/2026_05_20_feat_create_study_target_autocomplete/) for the rationale.
 
-**`list_targets` filter semantics** (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/<date>_feat_cluster_target_filter/)). When the caller passes `target_filter="<glob>"`, the adapter restricts the result to names where `fnmatch.fnmatchcase(name, glob)` returns True. Glob syntax: `*`, `?`, `[seq]`, `[!seq]` — no brace expansion. Case-sensitive via `fnmatchcase` (avoids platform-dependent `os.path.normcase` in `fnmatch.fnmatch`). **Order of operations:** the engine's system-index `.` exclusion runs FIRST; the glob filter runs SECOND. Operators cannot re-expose `.kibana_1` or similar via a permissive filter. The router resolves `cluster.target_filter` from the DB row before calling the adapter — `target_filter` is per-cluster metadata, not a per-request query parameter.
+**`list_targets` filter semantics** (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/2026_05_20_feat_cluster_target_filter/)). When the caller passes `target_filter="<glob>"`, the adapter restricts the result to names where `fnmatch.fnmatchcase(name, glob)` returns True. Glob syntax: `*`, `?`, `[seq]`, `[!seq]` — no brace expansion. Case-sensitive via `fnmatchcase` (avoids platform-dependent `os.path.normcase` in `fnmatch.fnmatch`). **Order of operations:** the engine's system-index `.` exclusion runs FIRST; the glob filter runs SECOND. Operators cannot re-expose `.kibana_1` or similar via a permissive filter. The router resolves `cluster.target_filter` from the DB row before calling the adapter — `target_filter` is per-cluster metadata, not a per-request query parameter.
 
 The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py` today; `backend/app/adapters/solr.py` arrives with MVP2).
 
@@ -108,7 +108,7 @@ Templates use **unified parameter names**. The adapter pivots them to native nam
 
 **When a concept doesn't exist natively**, the adapter either provides a best-effort translation OR raises `UnsupportedParameter` at render time. The search-space validator catches this before a study runs (rejects the study definition rather than failing trials individually).
 
-The earlier `stage_enabled` unified-vocabulary parameter (Fusion-specific pipeline stage toggle) was removed when Fusion was dropped — see [`chore_drop_fusion_scope/idea.md`](../00_overview/planned_features/chore_drop_fusion_scope/idea.md).
+The earlier `stage_enabled` unified-vocabulary parameter (Fusion-specific pipeline stage toggle) was removed when Fusion was dropped — see [`chore_drop_fusion_scope/idea.md`](../00_overview/implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md).
 
 ## Authentication and credentials
 
@@ -127,7 +127,7 @@ Credentials never live in the database. The `clusters.credentials_ref` column is
 
 ### SolrAdapter (MVP2)
 
-Apache Solr ships in MVP2 alongside UBI judgments. Full scope in [`infra_adapter_solr/idea.md`](../00_overview/planned_features/infra_adapter_solr/idea.md). Summary:
+Apache Solr ships in MVP2 alongside UBI judgments. Full scope in [`infra_adapter_solr/idea.md`](../00_overview/planned_features/02_mvp2/infra_adapter_solr/idea.md). Summary:
 
 - `search_batch` uses parallel `/select` requests with a connection pool (Solr has no `_msearch` equivalent).
 - `render` produces a Solr request parameter dict; templates under `templates/solr/` mirror the `templates/elasticsearch/` shape. Supports `edismax` (primary), `dismax`, `lucene` parsers.
@@ -143,5 +143,5 @@ Apache Solr ships in MVP2 alongside UBI judgments. Full scope in [`infra_adapter
 - `clusters` table backing the registered clusters: [`data-model.md`](data-model.md)
 - API conventions for `/clusters/{id}/...` endpoints: [`api-conventions.md`](api-conventions.md)
 - Service topology (where the adapter dispatch happens): [`system-overview.md`](system-overview.md)
-- MVP1 feature spec: [`infra_adapter_elastic/feature_spec.md`](../00_overview/planned_features/infra_adapter_elastic/feature_spec.md)
+- MVP1 feature spec: [`infra_adapter_elastic/feature_spec.md`](../00_overview/implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md)
 - MVP1 navigation summary: [`mvp1-overview.md`](mvp1-overview.md)

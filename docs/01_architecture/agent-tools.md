@@ -136,5 +136,5 @@ The dispatcher **MUST** validate `tool_call.arguments` against the tool's Pydant
 - LLM SDK + prompt + cost handling: [`llm-orchestration.md`](llm-orchestration.md)
 - API conventions + SSE conventions: [`api-conventions.md`](api-conventions.md)
 - `conversations` and `messages` schemas: [`data-model.md`](data-model.md)
-- Owning feature: [`feat_chat_agent/feature_spec.md`](../00_overview/planned_features/feat_chat_agent/feature_spec.md)
+- Owning feature: [`feat_chat_agent/feature_spec.md`](../00_overview/implemented_features/2026_05_12_feat_chat_agent/feature_spec.md)
 - MVP1 navigation summary: [`mvp1-overview.md`](mvp1-overview.md)
