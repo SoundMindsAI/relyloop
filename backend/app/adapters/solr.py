@@ -55,6 +55,7 @@ from backend.app.adapters.errors import (
     TargetsForbiddenError,
 )
 from backend.app.adapters.protocol import (
+    AdapterDocumentHit,
     Document,
     DocumentPage,
     EngineType,
@@ -1455,8 +1456,42 @@ class SolrAdapter:
         *,
         request_id: str | None = None,
     ) -> Document | None:
-        """Stub — Solr ``get_document`` lands in Story A8."""
-        raise NotImplementedError("Solr get_document lands in story A8")
+        """Fetch one document by id via Solr's RealTime Get (``/<target>/get``).
+
+        Returns ``None`` when Solr reports no match (``doc`` is null in the
+        response). Raises ``TargetNotFoundError`` when the target itself
+        does not exist (404 from ``/get``), ``ClusterUnreachableError`` on
+        connection / 5xx / 401 / 403.
+
+        uniqueKey resolved via ``_resolve_unique_key`` (engine_config cache
+        → on-demand ``/schema/uniquekey`` → ``id`` fallback). Adapter-side
+        memory-only cache for targets created post-registration per spec
+        FR-9 service-layer-only-write invariant.
+        """
+        await self._resolve_unique_key(target, request_id=request_id)
+        try:
+            resp = await self._request(
+                "GET",
+                f"/solr/{target}/get",
+                params={"id": doc_id},
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code == 404:
+            raise TargetNotFoundError(target)
+        if resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {resp.status_code}) on /{target}/get"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /{target}/get")
+        body = resp.json()
+        doc = body.get("doc")
+        if not isinstance(doc, dict):
+            return None
+        return Document(doc_id=doc_id, source=doc)
 
     async def list_documents(
         self,
@@ -1467,8 +1502,104 @@ class SolrAdapter:
         fields: list[str] | None = None,
         request_id: str | None = None,
     ) -> DocumentPage:
-        """Stub — Solr ``list_documents`` lands in Story A8."""
-        raise NotImplementedError("Solr list_documents lands in story A8")
+        """Paginated browse via Solr cursorMark (FR-9, AC-13).
+
+        Solr cursor-based paging:
+        * First page sets ``cursorMark=*`` (REQUIRED — omitting it falls
+          back to standard paging which doesn't return ``nextCursorMark``).
+        * Subsequent pages set ``cursorMark=<previous nextCursorMark>``.
+        * Terminal page: Solr returns ``nextCursorMark`` equal to the
+          current ``cursorMark`` — at that point the page is "stable" and
+          there's nothing more to fetch. We set ``next_cursor_token=None``
+          on the terminal page so the router's ``has_more`` derivation
+          falls naturally to ``False``.
+
+        ``rows=<limit>`` exactly (no overfetch). The ES path overfetches by
+        one to derive has_more from the trailing hit; Solr doesn't need
+        that because ``nextCursorMark`` IS the signal.
+
+        ``search_after`` carries the previous page's ``nextCursorMark`` in a
+        single-element list (kept as a list for cross-engine Protocol
+        compatibility with the ES path's per-hit sort).
+        """
+        unique_key = await self._resolve_unique_key(target, request_id=request_id)
+        cursor_mark = "*"
+        if search_after:
+            first = search_after[0]
+            if isinstance(first, str) and first:
+                cursor_mark = first
+
+        params: dict[str, Any] = {
+            "q": "*:*",
+            "sort": f"{unique_key} asc",
+            "rows": str(limit),
+            "cursorMark": cursor_mark,
+        }
+        # fl handling: when caller supplies fields, ensure uniqueKey is in
+        # the list so we can extract doc_id; otherwise use wildcard.
+        if fields:
+            requested = list(fields)
+            if unique_key not in requested:
+                requested.insert(0, unique_key)
+            params["fl"] = ",".join(requested)
+        else:
+            params["fl"] = "*"
+
+        try:
+            resp = await self._request(
+                "GET",
+                f"/solr/{target}/select",
+                params=params,
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code == 404:
+            raise TargetNotFoundError(target)
+        if resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {resp.status_code}) on /{target}/select (list)"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /{target}/select (list)")
+
+        body = resp.json()
+        response_block = body.get("response") or {}
+        total = response_block.get("numFound", 0)
+        if not isinstance(total, int):
+            total = 0
+        docs = response_block.get("docs") or []
+        hits: list[AdapterDocumentHit] = []
+        for doc in docs:
+            if not isinstance(doc, dict):
+                continue
+            raw_id = doc.get(unique_key)
+            if raw_id is None:
+                continue
+            hits.append(
+                AdapterDocumentHit(
+                    doc_id=str(raw_id),
+                    source=doc,
+                    # The per-hit ``sort`` field is used by the ES path for
+                    # cursor encoding. For Solr we drive cursors from
+                    # nextCursorMark instead; this list stays present so
+                    # the cross-engine Protocol shape is honored, but the
+                    # router prefers ``next_cursor_token`` when populated.
+                    sort=[str(raw_id)],
+                )
+            )
+
+        next_cursor_token = body.get("nextCursorMark")
+        if not isinstance(next_cursor_token, str):
+            next_cursor_token = None
+        elif next_cursor_token == cursor_mark:
+            # Terminal page — Solr signals "no more" by returning the same
+            # cursorMark back. Setting None lets the router's has_more
+            # derivation flip to False without an explicit page-count check.
+            next_cursor_token = None
+
+        return DocumentPage(hits=hits, total=total, next_cursor_token=next_cursor_token)
 
 
 # Solr-native request param keys that the templates may emit. Anything
