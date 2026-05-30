@@ -138,6 +138,15 @@ Output, in order:
 6. **Open questions for /spec-gen** (genuinely needs spec-time decision; not just deferred).
 7. **Sibling coordination notes**.
 8. **Patches applied** — one paragraph per file, exact edits that landed (Audit & Patch is the default). For each edit, cite the section (Origin / Depends on / Capability N / etc.) and one-line summary of the change. If a folder rename is recommended, present it as a proposal and pause before running `git mv` (folder renames are the one hard-confirmation gate per "Mode selection" above).
+9. **Suggested next command** — the runnable `/pipeline` command to advance the idea, in **autonomous (`--auto`) form**. Whenever the verdict is **ready** (or "ready after patching"), emit the command with the `--auto` flag appended so the user can run the full idea → spec → plan → implement → PR lifecycle without inter-stage approval pauses:
+
+   ```
+   /pipeline <feature_dir> --auto
+   ```
+
+   Example: `/pipeline docs/00_overview/planned_features/02_mvp2/infra_adapter_solr --auto`.
+
+   The `--auto` form is the default suggestion because a preflighted idea has already had its concrete claims verified, its forks locked, and its stale references refreshed — the pre-work that the inter-stage approval pauses would otherwise re-surface. The hard quality gates inside each skill (cross-model review, verification gates, test suites, CI, Gemini adjudication) still fire in `--auto` mode — only the inter-stage "approve to continue?" prompts are skipped, and the PR is still left for the user to merge manually. If the verdict is **not ready** (blockers remain that need a human decision), do NOT suggest `--auto` — instead point the user at the specific blocker remediation, since autonomous advancement would carry the unresolved decision downstream.
 
 Then: report `git diff --stat` so the user can see file-level scope. If Audit-only mode is in effect, swap section 8 to "Patch plan" and end by asking whether to apply.
 
@@ -169,9 +178,9 @@ Cap each section at what fits on screen. If the audit produces 20+ findings, gro
 
 ## Termination
 
-End with one of:
+End with one of the following. For every **ready** termination, the closing line is the autonomous `/pipeline <feature_dir> --auto` command (per Step 10 §9) so the user has a one-paste next action:
 
-- **"Ready for /pipeline."** — no patches needed (rare on first audit; common after a re-audit). No blockers, all decisions locked, folder name correct.
-- **"Patches applied. N edits across M files. Idea is now ready for /pipeline."** — the default termination after Audit & Patch. Include a short bullet list of what changed and a `git diff --stat` line. If a folder rename was recommended but skipped pending user confirmation, surface that explicitly: **"One pending decision: rename folder to `<new>`? Run `git mv` to apply."**
-- **"Not ready. N blockers remain after patching (see above)."** — Audit & Patch landed the safe edits but blockers requiring human decision remain. Each blocker has a remediation path the user must drive (product/UX call, schema design call, scope cut, etc.).
+- **"Ready for /pipeline."** — no patches needed (rare on first audit; common after a re-audit). No blockers, all decisions locked, folder name correct. Close with the `--auto` command.
+- **"Patches applied. N edits across M files. Idea is now ready for /pipeline."** — the default termination after Audit & Patch. Include a short bullet list of what changed and a `git diff --stat` line, then close with the `--auto` command. If a folder rename was recommended but skipped pending user confirmation, surface that explicitly: **"One pending decision: rename folder to `<new>`? Run `git mv` to apply."**
+- **"Not ready. N blockers remain after patching (see above)."** — Audit & Patch landed the safe edits but blockers requiring human decision remain. Each blocker has a remediation path the user must drive (product/UX call, schema design call, scope cut, etc.). Do NOT emit the `--auto` command here — point at the blocker remediation instead.
 - **"Audit-only output (no patches applied per `--audit-only` flag). Want me to apply?"** — Audit-only mode termination. The default termination above replaces this for normal invocations.
