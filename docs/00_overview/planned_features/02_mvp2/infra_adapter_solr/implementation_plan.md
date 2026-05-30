@@ -1535,18 +1535,18 @@ NOTE: the first GPT-5.5 run was fed a corrupted oversized diff (a proxied `git d
 | G5-1 | Medium | `docker/solr/bootstrap-security.sh` | **Already-correct + verify-live** | Flagged that anonymous `/admin/info/system` under `blockUnknown=true` depends on permission ordering. The committed `security.json` already lists the `role:null` `open-info-system` permission BEFORE the `all` catch-all — correct for `RuleBasedAuthorizationPlugin` (first match wins). No code change; the BLOCKING `make up` round-trip confirms it live. |
 | G5-2 | Low | `backend/app/adapters/solr.py` `_normalize_fl` | **Rejected** | `_normalize_fl` already `.strip()`s tokens + membership-checks before appending, so `fl=score,score` can't occur. Case-folding dedup would be wrong — Solr field names are case-sensitive. |
 
-### Gemini Code Assist — 6 findings (all pinned to first SHA `ab510b8b`)
+### Gemini Code Assist — 6 findings (the REAL set; an earlier draft of this section adjudicated phantom findings from a corrupted `gh api` fetch and was corrected)
 
 | # | Sev | Location | Verdict | Notes |
 |---|---|---|---|---|
-| Gm1 | Critical | `solr.py` `_request`/`search_batch` | **Rejected** | "retry re-sends empty body" — `search_batch` issues `GET /select` with `params=`, no body; the retry re-invokes `client.request(**kwargs)` with the same kwargs. Hunk-isolated false positive. |
-| Gm2 | High | `solr.py` `probe_capabilities` | **Deferred** | Sequential per-target uniqueKey calls — perf only, registration-time, demo clusters have 1–3 collections. Followups item 8. |
-| Gm3 | Medium | `solr.py` `search_batch` | **Deferred** | No explicit `asyncio.gather` semaphore — httpx's default pool already caps concurrent sockets. Followups item 9. |
-| Gm4 | Medium | `solr.py` `explain` | **Rejected (already handled)** | `body.get("debug") or {}` → absent debug yields the no-match tree. |
-| Gm5 | Medium | `solr.py` `_build_select_request` | **Deferred** | Validate non-int `rows` — Solr already 400s + we translate; degrades safely. Followups item 10. |
-| Gm6 | Medium | `solr.py` `list_documents` | **Accepted (already fixed)** | cursorMark loop risk — closed by S4's short-page guard at HEAD (pinned to the pre-S4 SHA). |
+| Gm-1 | Critical | `bootstrap-security.sh` | **Already fixed (stale SHA)** | `base64` trailing newline in SALT/HASH → invalid JSON + auth failure. The S1 commit already added `\| tr -d '\n'` to both; pinned to pre-fix SHA `27469ada`. |
+| Gm-2 | High | `solr.py` `explain` | **Accepted + fixed** | Solr's `debug.explain` is plain TEXT by default → `isinstance(node, dict)` never matched → every explain returned `matched=False` against a real Solr. Added `debug.explain.structured=true`. Regression test. |
+| Gm-3 | High | `solr.py` `_consume_search_result` | **Accepted + fixed** | `_execute` uses `translate_errors=False`, so a read timeout arrives as raw `httpx.ReadTimeout` and fell through to the 503 path. Now maps `(QueryTimeoutError, httpx.ReadTimeout)` → 504 and `(ClusterUnreachableError, httpx.HTTPError)` → 503. 2 regression tests. |
+| Gm-4 | Medium | `solr.py` `health_check` | **Accepted + fixed** | Narrow 4-exception catch could let `PoolTimeout`/`WriteTimeout`/`NetworkError` 500 `/healthz`. Broadened to `httpx.HTTPError`. Regression test. |
+| Gm-5 | Medium | `solr.py` `_join_field_boosts` | **Accepted + fixed** | `bool` is an `int` subclass → a `True` boost rendered `field^true`. Reject bools explicitly. Regression test. |
+| Gm-6 | Medium | `solr.py` `_normalize_fl` | **Accepted + fixed** | A list-valued `fl` produced `str(["id","title"])`. Join on comma. Regression test. |
 
-Outcome: 4 self-review fixes + regression tests; 2 real GPT-5.5 findings (1 already-correct/verify-live, 1 rejected); 6 Gemini findings (3 rejected/already-handled, 3 deferred as perf hardening to `chore_solr_post_pipeline_followups`). 0 blocking code issues. 1943 backend + 967 UI tests pass. **Merge remains BLOCKED on the operator `make up` + credentialed `/select` round-trip** (validates S1 + G5-1).
+Outcome: 4 self-review fixes + 2 GPT-5.5 findings (non-actionable) + 6 Gemini findings (1 already-fixed, 5 accepted+fixed with 8 regression tests). Process note: the corrupted-fetch phantom adjudication was caught and replaced; lesson captured below. 1951 backend + 967 UI tests pass. **Merge remains BLOCKED on the operator `make up` + credentialed `/select` round-trip** (validates the auth bootstrap, which CI's hermetic lane can't exercise).
 
 ## 12) Definition of plan done
 
