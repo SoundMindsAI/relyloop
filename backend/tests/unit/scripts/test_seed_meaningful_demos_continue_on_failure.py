@@ -60,8 +60,17 @@ def patched_io(monkeypatch: pytest.MonkeyPatch) -> _Calls:
 
 def _fake_seed_scenario(
     calls: _Calls, *, fail_slug: str | None
-) -> Callable[[dict[str, Any]], dict[str, Any]]:
-    def _seed(s: dict[str, Any]) -> dict[str, Any]:
+) -> Callable[[dict[str, Any]], list[dict[str, Any]]]:
+    """Stub for ``seed_scenario`` — returns a list to match Story 2.5 / FR-9.
+
+    The real ``seed_scenario`` returns 1 entry for non-UBI scenarios and
+    2 entries for UBI-enabled (LLM + UBI studies). For the failure-mode
+    test we only care that the loop iterates every scenario; returning a
+    single-entry list per call mirrors the simplest happy-path shape
+    without needing per-scenario UBI awareness.
+    """
+
+    def _seed(s: dict[str, Any]) -> list[dict[str, Any]]:
         slug = str(s["slug"])
         calls.scenarios.append(slug)
         if slug == fail_slug:
@@ -69,7 +78,7 @@ def _fake_seed_scenario(
                 "HTTP 403 index_create_block_exception: "
                 "FORBIDDEN/10/cluster create-index blocked (api)"
             )
-        return {"slug": slug, "study_id": f"study-{slug}", "study_name": slug}
+        return [{"slug": slug, "study_id": f"study-{slug}", "study_name": slug}]
 
     return _seed
 
