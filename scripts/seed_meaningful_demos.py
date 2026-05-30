@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-# ruff: noqa: E501, S310, S603, S607, S608
+# ruff: noqa: E501, S101, S310, S603, S607, S608
 #   E501 (line too long): scenario literals contain long product titles +
 #                  news headlines + helper-text strings. Wrapping each one
 #                  hurts readability more than it helps; this is a script,
 #                  not library code.
+#   S101 (assert): the module-level FR-8 invariant after SCENARIOS is a
+#                  load-time guard — failing it MUST stop the seed before
+#                  it writes the wrong demo data. assert is the right
+#                  primitive; Story 2.1 covers the assertion in
+#                  backend/tests/unit/scripts/test_scenarios_ubi_config.py.
 #   S310 (urllib): script only hits hardcoded localhost ports — no user-
 #                  controlled URL schemes.
 #   S603/S607 (subprocess/partial path): we invoke `docker compose exec`
@@ -48,13 +53,16 @@ Prereqs: ``make up`` has run successfully + Alembic head includes
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from typing import Any, cast
 
 # Repo paths — used by the rich-data scenario (seed_rich_scenario below).
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -84,7 +92,17 @@ TRUNCATE_TABLES = (
 
 # ES / OS user indices created by the seed (excludes engine system indices).
 # `acme-products-rich` is the 1000-doc ESCI index used by seed_rich_scenario.
-DEMO_ES_INDICES = ("products", "docs-articles", "job-listings", "acme-products-rich")
+# `ubi_queries` + `ubi_events` are added (Story 2.2 / FR-6) so the home-button
+# reseed and `make seed-demo` both DELETE them at cleanup start before the
+# synthetic UBI generator (FR-3) recreates them with the canonical mapping.
+DEMO_ES_INDICES = (
+    "products",
+    "docs-articles",
+    "job-listings",
+    "acme-products-rich",
+    "ubi_queries",
+    "ubi_events",
+)
 DEMO_OS_INDICES = ("news-articles",)
 
 # Rich-scenario tunables. Five queries × top-K LLM judgments per query keeps
@@ -140,7 +158,7 @@ def post(path: str, body: dict) -> dict:
 # Scenario definitions
 # ---------------------------------------------------------------------------
 
-SCENARIOS = [
+SCENARIOS: list[dict[str, Any]] = [
     {
         "slug": "acme-products-prod",
         "engine_type": "elasticsearch",
@@ -265,6 +283,14 @@ SCENARIOS = [
             (3, "p1002", 1),
         ],
         "study_name": "tune-product-title-boost-baseline",
+        # UBI demo config (FR-8 / D-2). Synthetic UBI is seeded for this
+        # scenario by the reseed orchestrator so the rung classifier reports
+        # rung_3 and the CTR-threshold converter has signal to grade against.
+        # ubi_target_rung values match `UbiReadinessRung` at
+        # backend/app/services/ubi_readiness.py; ubi_converter values match
+        # `UbiConverterKind` at backend/app/api/v1/schemas.py:846.
+        "ubi_target_rung": "rung_3",
+        "ubi_converter": "ctr_threshold",
     },
     {
         "slug": "corp-docs-search",
@@ -363,6 +389,11 @@ SCENARIOS = [
             (4, "d301", 3),
         ],
         "study_name": "reduce-fuzziness-helpcenter-search",
+        # UBI demo config (FR-8 / D-2). corp targets rung_1 (sparse signal) +
+        # hybrid converter so the LLM fills the long tail past CTR-only
+        # coverage. See acme entry above for the source-of-truth pointers.
+        "ubi_target_rung": "rung_1",
+        "ubi_converter": "hybrid_ubi_llm",
     },
     {
         "slug": "news-search-staging",
@@ -476,6 +507,11 @@ SCENARIOS = [
             (4, "n301", 3),
         ],
         "study_name": "add-7day-freshness-decay-news",
+        # UBI demo config (FR-8 / D-2). news-search-staging is the negative
+        # case — no synthetic UBI; rung classifier reports rung_0 so the
+        # on-ramp nudge surface stays demonstrable.
+        "ubi_target_rung": None,
+        "ubi_converter": None,
     },
     {
         "slug": "jobs-marketplace-prod",
@@ -592,8 +628,27 @@ SCENARIOS = [
             (4, "j301", 3),
         ],
         "study_name": "tune-jobtitle-vs-company-boost",
+        # UBI demo config (FR-8 / D-2). jobs targets rung_2 + hybrid converter
+        # so the demo exercises the middle rung of the on-ramp ladder.
+        "ubi_target_rung": "rung_2",
+        "ubi_converter": "hybrid_ubi_llm",
     },
 ]
+
+# FR-8 invariant: ubi_converter is None iff ubi_target_rung is None. A single
+# scenario that drifts (e.g., target_rung set without a converter) would
+# silently produce a broken demo — assert at import time so any future
+# editor of SCENARIOS gets a hard stop. The unit test at
+# backend/tests/unit/scripts/test_scenarios_ubi_config.py pins the
+# (slug, target) parity against DEMO_UBI_SCENARIO_ALLOWLIST.
+for _scenario in SCENARIOS:
+    assert (_scenario.get("ubi_converter") is None) == (_scenario.get("ubi_target_rung") is None), (
+        f"SCENARIOS[{_scenario['slug']}]: ubi_converter and ubi_target_rung "
+        f"must be both None or both non-None "
+        f"(got ubi_target_rung={_scenario.get('ubi_target_rung')!r}, "
+        f"ubi_converter={_scenario.get('ubi_converter')!r})"
+    )
+del _scenario
 
 
 # ---------------------------------------------------------------------------
@@ -601,7 +656,176 @@ SCENARIOS = [
 # ---------------------------------------------------------------------------
 
 
-def seed_scenario(s: dict) -> dict:
+async def _async_seed_synthetic_ubi(
+    *,
+    scenario_slug: str,
+    target_application: str,
+    target_rung: str,
+    scenario_judgments_map: list[tuple[int, str, int]],
+    query_id_by_index: dict[int, str],
+    query_text_by_index: dict[int, str],
+    seed_anchor_iso: str,
+    engine_base_url: str,
+    host_auth: tuple[str, str],
+) -> int:
+    """Sync-callable wrapper around the async UBI helpers (Story 2.5 / FR-5).
+
+    The CLI is sync (urllib); the canonical UBI helpers in
+    ``backend.app.services.demo_ubi_seed`` are async (``httpx.AsyncClient``)
+    so the home-button reseed and the CLI share a single source of truth
+    for the index mappings + bulk-write posture. Wrapping a short-lived
+    httpx client here in ``asyncio.run`` keeps the CLI's sync control
+    flow intact without duplicating the generator + writer.
+    """
+    # Imports deferred to inside the async wrapper — the CLI runs
+    # outside the api-container and `make seed-demo` shouldn't pay the
+    # cost of importing backend.app.* unless a UBI-enabled scenario
+    # actually fires.
+    import httpx
+
+    from backend.app.domain.demo.synthetic_ubi import (
+        UbiRung,
+        fabricate_ubi_for_scenario,
+    )
+    from backend.app.services.demo_ubi_seed import (
+        ensure_ubi_indices,
+        seed_synthetic_ubi,
+    )
+
+    queries, events = fabricate_ubi_for_scenario(
+        scenario_judgments_map=scenario_judgments_map,
+        query_id_by_index=query_id_by_index,
+        query_text_by_index=query_text_by_index,
+        target_application=target_application,
+        target_rung=cast(UbiRung, target_rung),
+        seed_anchor_iso=seed_anchor_iso,
+    )
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        await ensure_ubi_indices(
+            engine_client=client,
+            engine_base_url=engine_base_url,
+            host_auth=host_auth,
+            # CLI runs on the HOST — the in-container default
+            # /app/samples/ubi_index_mappings.json does not exist here.
+            # Resolve the repo-root samples/ path instead (GPT-5.5 final
+            # review on PR #320). The home-button reseed runs inside the
+            # api container where the in-container default is correct.
+            mapping_path=SAMPLES_DIR / "ubi_index_mappings.json",
+        )
+        return await seed_synthetic_ubi(
+            engine_client=client,
+            engine_base_url=engine_base_url,
+            host_auth=host_auth,
+            scenario_slug=scenario_slug,
+            target_application=target_application,
+            queries=queries,
+            events=events,
+        )
+
+
+def _poll_judgment_list_until_terminal(judgment_list_id: str, *, slug: str) -> dict:
+    """Sync CLI mirror of demo_seeding._poll_judgment_list_until_terminal."""
+    deadline = time.time() + 180
+    detail: dict = {}
+    while time.time() < deadline:
+        detail = http("GET", f"{API}/judgment-lists/{judgment_list_id}")
+        status = detail.get("status")
+        if status == "complete":
+            return detail
+        if status == "failed":
+            raise RuntimeError(
+                f"ubi_judgments/{slug}: failed "
+                f"({detail.get('failed_reason') or 'no failed_reason set'})"
+            )
+        time.sleep(3)
+    raise RuntimeError(
+        f"ubi_judgments/{slug}: poll ceiling 180s exceeded (last status={detail.get('status')!r})"
+    )
+
+
+def _create_one_study(
+    s: dict,
+    *,
+    study_name: str,
+    judgment_list_id: str,
+    cluster_id: str,
+    template_id: str,
+    qset_id: str,
+) -> str:
+    """Inline study create + poll + digest wait. Returns study_id.
+
+    Extracted from the original seed_scenario step 8 so the dual-study
+    path can call it twice (LLM list + UBI list) per Story 2.5 / FR-9.
+    """
+    search_space = {
+        "params": {
+            name: {"type": "float", "low": 0.5, "high": 5.0, "log": True}
+            for name in s["template_declared_params"]
+        }
+    }
+    study_create = post(
+        "/studies",
+        {
+            "name": study_name,
+            "cluster_id": cluster_id,
+            "target": s["target"],
+            "template_id": template_id,
+            "query_set_id": qset_id,
+            "judgment_list_id": judgment_list_id,
+            "search_space": search_space,
+            "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
+            "config": {
+                "max_trials": 12,
+                "parallelism": 2,
+                "sampler": "tpe",
+                "seed": 42,
+            },
+        },
+    )
+    study_id = study_create["id"]
+    print(f"  study created: {study_id} ({study_name}), polling for completion...")
+    deadline = time.time() + 180
+    detail: dict = study_create
+    while time.time() < deadline:
+        detail = http("GET", f"{API}/studies/{study_id}")
+        if detail["status"] in {"completed", "failed", "cancelled"}:
+            break
+        time.sleep(3)
+    final_status = detail["status"]
+    best_metric = detail.get("best_metric")
+    print(f"  study: {study_id} ({final_status}, best_metric={best_metric})")
+    if final_status != "completed":
+        print("  WARNING: study did not complete; skipping digest wait")
+        return study_id
+    digest_deadline = time.time() + 90
+    digest_landed = False
+    while time.time() < digest_deadline:
+        try:
+            digest = http("GET", f"{API}/studies/{study_id}/digest", quiet_404=True)
+            followups = digest.get("suggested_followups") or []
+            kinds = ", ".join(f.get("kind", "?") for f in followups) or "(none)"
+            print(f"  digest: {digest['id']} ({len(followups)} followups: {kinds})")
+            digest_landed = True
+            break
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+        time.sleep(3)
+    if not digest_landed:
+        print("  WARNING: digest did not land within 90s")
+    return study_id
+
+
+def seed_scenario(s: dict) -> list[dict]:
+    """Seed one scenario. Returns 1 result for non-UBI, 2 for UBI-enabled.
+
+    Story 2.5 / FR-5 / FR-9: for scenarios with `ubi_target_rung` non-None,
+    after the LLM judgment list imports we dispatch a UBI judgment
+    generation against the synthetic UBI rows the orchestrator wrote
+    earlier, poll until terminal, then seed a second study (UBI-graded)
+    on the same query set. Both studies are named with " (LLM)" / " (UBI)"
+    suffixes so the rename step disambiguates them in the tutorial.
+    """
     print(f"\n=== {s['slug']} ({s['engine_type']}) ===")
 
     # 1. Create ES/OS index with mapping
@@ -674,6 +898,30 @@ def seed_scenario(s: dict) -> dict:
     qtext_to_id = {r["query_text"]: r["id"] for r in qrows}
     # Indexed by original submission order (sample queries are unique by text)
     qid_by_idx = [qtext_to_id[q["query_text"]] for q in s["queries"]]
+
+    # 6.5. Synthetic UBI seeding (Story 2.5 / FR-3, FR-5) — runs BEFORE
+    # the LLM judgment import so a UBI-seeding failure surfaces early.
+    # Mirrors the home-button reseed orchestrator's insertion order
+    # (between qrows-fetched and judgments-imported).
+    ubi_target_rung = s.get("ubi_target_rung")
+    seed_anchor_iso = datetime.now(UTC).isoformat()
+    if ubi_target_rung is not None:
+        query_id_by_index = dict(enumerate(qid_by_idx))
+        query_text_by_index = {i: q["query_text"] for i, q in enumerate(s["queries"])}
+        event_count = asyncio.run(
+            _async_seed_synthetic_ubi(
+                scenario_slug=s["slug"],
+                target_application=s["target"],
+                target_rung=ubi_target_rung,
+                scenario_judgments_map=s["judgments_map"],
+                query_id_by_index=query_id_by_index,
+                query_text_by_index=query_text_by_index,
+                seed_anchor_iso=seed_anchor_iso,
+                engine_base_url=s["host_base_url"],
+                host_auth=s["host_auth"],
+            )
+        )
+        print(f"  synthetic UBI: {event_count} events ({ubi_target_rung})")
 
     # 7. Import judgment list (judgments reference query_id + doc_id)
     judgments = [
@@ -760,87 +1008,78 @@ def seed_scenario(s: dict) -> dict:
         )
         print(f"  swap template: {swap_template['id']} (function-score-price-decay-v1)")
 
-    # Build search_space from the template's declared_params. Float params get
-    # a [0.5, 5.0] log-uniform range — a sensible boost-shaped default that
-    # spans both "weakened" and "amplified" extremes around the natural 1.0.
-    search_space = {
-        "params": {
-            name: {"type": "float", "low": 0.5, "high": 5.0, "log": True}
-            for name in s["template_declared_params"]
-        }
-    }
-    study_create = post(
-        "/studies",
+    # 8. REAL study create + poll + digest wait (LLM-grade study). For
+    # UBI-enabled scenarios (Story 2.5 / FR-9) the LLM study gets a
+    # " (LLM)" suffix up front so the rename step doesn't have to
+    # special-case it; non-UBI scenarios keep the bare study_name.
+    base_study_name = s["study_name"]
+    llm_study_name = f"{base_study_name} (LLM)" if ubi_target_rung is not None else base_study_name
+    llm_study_id = _create_one_study(
+        s,
+        study_name=llm_study_name,
+        judgment_list_id=jlist_id,
+        cluster_id=cluster_id,
+        template_id=template_id,
+        qset_id=qset_id,
+    )
+
+    results: list[dict] = [
         {
-            "name": s["study_name"],
+            "slug": s["slug"],
+            "cluster_id": cluster_id,
+            "query_set_id": qset_id,
+            "template_id": template_id,
+            "judgment_list_id": jlist_id,
+            "study_id": llm_study_id,
+            "study_name": llm_study_name,
+        }
+    ]
+
+    # 9. UBI dispatch + dual study (Story 2.5 / FR-4, FR-9).
+    if ubi_target_rung is not None:
+        ubi_converter = s["ubi_converter"]
+        ubi_jlist_name = f"{s['judgment_list_name']} (UBI)"
+        ubi_dispatch_body: dict[str, Any] = {
+            "name": ubi_jlist_name,
+            "query_set_id": qset_id,
             "cluster_id": cluster_id,
             "target": s["target"],
-            "template_id": template_id,
-            "query_set_id": qset_id,
-            "judgment_list_id": jlist_id,
-            "search_space": search_space,
-            "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
-            "config": {
-                "max_trials": 12,
-                "parallelism": 2,
-                "sampler": "tpe",
-                "seed": 42,
-            },
-        },
-    )
-    study_id = study_create["id"]
-    print(f"  study created: {study_id}, polling for completion...")
-    # Poll the study until it reaches a terminal state. 3-minute ceiling per
-    # study — 12 trials × 2 parallelism against a healthy local-ES should
-    # finish in 30-60s; 3 min is a wide safety margin.
-    deadline = time.time() + 180
-    detail: dict = study_create
-    while time.time() < deadline:
-        detail = http("GET", f"{API}/studies/{study_id}")
-        if detail["status"] in {"completed", "failed", "cancelled"}:
-            break
-        time.sleep(3)
-    final_status = detail["status"]
-    best_metric = detail.get("best_metric")
-    print(f"  study: {study_id} ({final_status}, best_metric={best_metric})")
-    if final_status != "completed":
-        print("  WARNING: study did not complete; skipping digest wait")
-    else:
-        # Wait for the digest worker to land the digest + proposal. The worker
-        # fires automatically on the completed-study transition; usually 5-15s
-        # depending on LLM latency. 90s ceiling is a wide safety margin.
-        #
-        # The GET /studies/{id}/digest endpoint returns 404 with
-        # `DIGEST_NOT_READY` (retryable) while the worker is still running;
-        # any successful (HTTP 200) response means the digest landed. The
-        # response shape is DigestResponse (proposals.py:293) which has no
-        # "status" field — a successful return IS the ready signal.
-        digest_deadline = time.time() + 90
-        digest_landed = False
-        while time.time() < digest_deadline:
-            try:
-                digest = http("GET", f"{API}/studies/{study_id}/digest", quiet_404=True)
-                followups = digest.get("suggested_followups") or []
-                kinds = ", ".join(f.get("kind", "?") for f in followups) or "(none)"
-                print(f"  digest: {digest['id']} ({len(followups)} followups: {kinds})")
-                digest_landed = True
-                break
-            except urllib.error.HTTPError as e:
-                if e.code != 404:
-                    raise
-            time.sleep(3)
-        if not digest_landed:
-            print("  WARNING: digest did not land within 90s")
+            "since": (datetime.fromisoformat(seed_anchor_iso) - timedelta(seconds=60)).isoformat(),
+            "until": seed_anchor_iso,
+            "converter": ubi_converter,
+            "mapping_strategy": "reject",
+        }
+        if ubi_converter == "hybrid_ubi_llm":
+            ubi_dispatch_body["current_template_id"] = template_id
+            ubi_dispatch_body["rubric"] = s["rubric"]
+        print(f"  dispatching UBI judgment generation ({ubi_converter})...")
+        dispatch_resp = post("/judgments/generate-from-ubi", ubi_dispatch_body)
+        ubi_jlist_id = dispatch_resp["judgment_list_id"]
+        print(f"  polling UBI judgment-list {ubi_jlist_id[:8]} for completion...")
+        _poll_judgment_list_until_terminal(ubi_jlist_id, slug=s["slug"])
+        print(f"  UBI judgment-list: {ubi_jlist_id}")
+        ubi_study_name = f"{base_study_name} (UBI)"
+        ubi_study_id = _create_one_study(
+            s,
+            study_name=ubi_study_name,
+            judgment_list_id=ubi_jlist_id,
+            cluster_id=cluster_id,
+            template_id=template_id,
+            qset_id=qset_id,
+        )
+        results.append(
+            {
+                "slug": s["slug"],
+                "cluster_id": cluster_id,
+                "query_set_id": qset_id,
+                "template_id": template_id,
+                "judgment_list_id": ubi_jlist_id,
+                "study_id": ubi_study_id,
+                "study_name": ubi_study_name,
+            }
+        )
 
-    return {
-        "slug": s["slug"],
-        "cluster_id": cluster_id,
-        "query_set_id": qset_id,
-        "template_id": template_id,
-        "judgment_list_id": jlist_id,
-        "study_id": study_id,
-        "study_name": s["study_name"],
-    }
+    return results
 
 
 # ---------------------------------------------------------------------------
@@ -1298,11 +1537,13 @@ def main() -> int:
 
     truncate_demo_state()
 
-    results = []
+    results: list[dict] = []
     failures: list[tuple[str, Exception]] = []
     for s in SCENARIOS:
         try:
-            results.append(seed_scenario(s))
+            # seed_scenario returns a list — 1 entry for non-UBI scenarios,
+            # 2 entries for UBI-enabled (LLM + UBI studies, Story 2.5 / FR-9).
+            results.extend(seed_scenario(s))
         except Exception as exc:  # noqa: BLE001 — see continue-on-failure note
             print(f"\n!! scenario {s['slug']} FAILED: {exc!r}")
             failures.append((s["slug"], exc))

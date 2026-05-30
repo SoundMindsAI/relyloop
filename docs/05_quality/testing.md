@@ -103,6 +103,25 @@ make test                # all three in sequence
 - Use `page` (browser interactions) for assertions; `request` only for
   test setup (creating clusters, seeding judgments, etc.)
 
+#### Real-backend Playwright suite inventory
+
+The specs below run against the live `make up` stack. Heavy specs
+self-skip when `SKIP_HEAVY_CI=true` is set.
+
+| Spec | Heavy lane? | Coverage |
+|---|---|---|
+| `dashboard-reseed.spec.ts` | No | Dashboard reset-to-demo affordance |
+| `ubi-onramp-rung-0.spec.ts` | No | Rung_0 nudge + LLM default + dismissal |
+| `ubi-onramp-rung-3.spec.ts` | No | Rung_3 default → CTR converter → click judgments |
+| `demo-ubi.spec.ts` | Yes | 5 synthetic-UBI surfaces post-reseed (FR-7 + FR-12 of `feat_demo_ubi_study_comparison`); includes the chip-absent negative case on `news-search-staging` |
+
+#### Synthetic-UBI integration tests
+
+| File | Lane | Wall-clock | Coverage |
+|---|---|---|---|
+| `backend/tests/integration/test_demo_seeding_ubi_fast.py` | Always-on | <60s | Generator → writer → classifier round-trip; allowlist guard; mapping JSON shape |
+| `backend/tests/integration/test_demo_seeding_ubi_full.py` | Heavy (`SKIP_HEAVY_CI` gated) | 13–19 min | Full `reseed_demo_state` orchestrator; AC-1 (8 lists + 8 studies); AC-10 (cleanup deletes UBI indices) |
+
 ## Adding tests for a new feature
 
 The "test completeness rule" from CLAUDE.md: a feature is not complete until

@@ -128,8 +128,65 @@ Alternative resolutions:
 - Re-run with `mapping_strategy='most_recent'` to prefer the
   freshest matching query row.
 
+## Diagnosing synthetic-data issues (demo)
+
+The demo reseed seeds **synthetic UBI clickstream** on three of four
+demo clusters (`acme-products-prod`, `corp-docs-search`,
+`jobs-marketplace-prod`) so the rung classifier, method picker, and
+value-delta card are browser-visible without operator setup. The
+fourth demo cluster (`news-search-staging`) intentionally stays at
+rung_0. See [`feat_demo_ubi_study_comparison`](../00_overview/implemented_features/2026_05_29_feat_demo_ubi_study_comparison/).
+
+### Confirm the indices exist
+
+```bash
+# From the host:
+curl http://127.0.0.1:9200/ubi_queries?pretty | head
+curl http://127.0.0.1:9200/ubi_events?pretty | head
+
+# Or check counts per demo application:
+curl 'http://127.0.0.1:9200/ubi_events/_count?q=application:products'
+curl 'http://127.0.0.1:9200/ubi_events/_count?q=application:docs-articles'
+curl 'http://127.0.0.1:9200/ubi_events/_count?q=application:job-listings'
+```
+
+A clean reseed produces ~640 events for the rung_3 acme scenario,
+~240 for jobs (rung_2), and ~50 for corp (rung_1). Drift here means
+the synthetic generator's volume math regressed — see
+[`backend/app/domain/demo/synthetic_ubi.py`](../../backend/app/domain/demo/synthetic_ubi.py).
+
+### Read the rung classifier for a demo cluster
+
+```bash
+# Discover the cluster id + query_set id:
+curl 'http://127.0.0.1:8000/api/v1/clusters?limit=10' | jq '.data[] | {id, name}'
+curl 'http://127.0.0.1:8000/api/v1/query-sets?limit=10' | jq '.data[] | {id, name, cluster_id}'
+
+# Hit the readiness endpoint:
+curl 'http://127.0.0.1:8000/api/v1/clusters/<id>/ubi-readiness?query_set_id=<qs_id>&target=products' | jq
+```
+
+Expected: `rung_3` for acme-products-prod, `rung_2` for jobs,
+`rung_1` for corp, `rung_0` for news.
+
+### Manually rerun the synthetic generator outside the reseed
+
+The home-button reseed cleanup pass DELETEs both UBI indices at start
+of every reseed (`DEMO_ES_INDICES` includes `ubi_queries` +
+`ubi_events`). To regenerate synthetic UBI without clobbering the
+rest of the demo state, use the fast-lane integration test:
+
+```bash
+.venv/bin/pytest backend/tests/integration/test_demo_seeding_ubi_fast.py -v
+```
+
+It writes a self-contained synthetic dataset against an
+`application=products-fasttest` filter so it does not collide with
+the demo cluster's `application=products` rows.
+
 ## Related docs
 
 - [`docs/01_architecture/llm-orchestration.md`](../01_architecture/llm-orchestration.md) — hybrid LLM-fill cost model
 - [`docs/04_security/llm-data-flow.md`](../04_security/llm-data-flow.md) — what data leaves the cluster
 - Implementation: [`backend/app/services/ubi_reader.py`](../../backend/app/services/ubi_reader.py) (reader), [`backend/workers/judgments_ubi.py`](../../backend/workers/judgments_ubi.py) (worker)
+- Synthetic UBI: [`backend/app/domain/demo/synthetic_ubi.py`](../../backend/app/domain/demo/synthetic_ubi.py) (generator), [`backend/app/services/demo_ubi_seed.py`](../../backend/app/services/demo_ubi_seed.py) (writer + allowlist)

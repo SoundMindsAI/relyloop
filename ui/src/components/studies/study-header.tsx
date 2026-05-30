@@ -1,4 +1,5 @@
 'use client';
+import { DemoBadge } from '@/components/common/demo-badge';
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,6 +9,14 @@ import type { ShortGlossaryKey } from '@/lib/glossary';
 
 export interface StudyHeaderProps {
   study: StudyDetail;
+  /**
+   * Whether to render the FR-7 synthetic-data chip next to the study
+   * title. Caller is responsible for the
+   * `isDemoSyntheticUbiClusterName(cluster.name) &&
+   * judgment_list.generation_params?.generation_kind === 'ubi'`
+   * decision so this component stays presentational.
+   */
+  showSyntheticUbiChip?: boolean;
 }
 
 /**
@@ -24,7 +33,7 @@ const STATUS_TO_GLOSSARY_KEY = {
   failed: 'study.status.failed',
 } as const satisfies Record<StudyStatus, ShortGlossaryKey>;
 
-export function StudyHeader({ study }: StudyHeaderProps) {
+export function StudyHeader({ study, showSyntheticUbiChip = false }: StudyHeaderProps) {
   return (
     <Card>
       <CardHeader>
@@ -34,6 +43,7 @@ export function StudyHeader({ study }: StudyHeaderProps) {
             <StatusBadge kind="study" value={study.status} />
             <InfoTooltip glossaryKey={STATUS_TO_GLOSSARY_KEY[study.status]} />
           </div>
+          {showSyntheticUbiChip && <DemoBadge variant="synthetic-ubi" />}
         </CardTitle>
       </CardHeader>
       <CardContent>

@@ -1,10 +1,19 @@
 'use client';
+import { DemoBadge } from '@/components/common/demo-badge';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { JudgmentListDetail } from '@/lib/api/judgments';
 
 export interface JudgmentListHeaderProps {
   list: JudgmentListDetail;
+  /**
+   * Whether to render the FR-7 synthetic-data chip next to the list
+   * title. Caller is responsible for the
+   * `isDemoSyntheticUbiClusterName(cluster.name) &&
+   * generation_params?.generation_kind === 'ubi'` decision so this
+   * component stays presentational and trivially unit-testable.
+   */
+  showSyntheticUbiChip?: boolean;
 }
 
 function kappaDisplay(list: JudgmentListDetail): {
@@ -25,7 +34,10 @@ function kappaDisplay(list: JudgmentListDetail): {
   };
 }
 
-export function JudgmentListHeader({ list }: JudgmentListHeaderProps) {
+export function JudgmentListHeader({
+  list,
+  showSyntheticUbiChip = false,
+}: JudgmentListHeaderProps) {
   const k = kappaDisplay(list);
   return (
     <Card>
@@ -33,6 +45,7 @@ export function JudgmentListHeader({ list }: JudgmentListHeaderProps) {
         <CardTitle className="flex items-center gap-3 text-base">
           <span>{list.name}</span>
           <StatusBadge kind="judgment_list" value={list.status} />
+          {showSyntheticUbiChip && <DemoBadge variant="synthetic-ubi" />}
         </CardTitle>
       </CardHeader>
       <CardContent>

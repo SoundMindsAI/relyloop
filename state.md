@@ -2,7 +2,7 @@
 
 > Read this first. A one-page snapshot: current focus, the last few merges, what's in flight, what's queued, and where the project sits in the MVP1 → MVP2 → MVP3 → GA roadmap. **Historical feature-merge narrative + chained execution context lives in [`state_history.md`](state_history.md)** — new merge entries land there, not here (per `chore_state_md_size_compression`, 2026-05-29). Keep this file loadable in a single `Read` call.
 
-**Last updated:** 2026-05-29 (after PR #316 — `feat_study_sub_warmup_guard` ships as the first MVP2 feature; pre-MVP2 `01_mvp1/` sweep drained, MVP2 backlog now down 1 to 17).
+**Last updated:** 2026-05-29 (after `feat_demo_ubi_study_comparison` Phase 1 — synthetic UBI demo seed + dual studies + disclaimer chips ship; MVP2 backlog down 1 to 17).
 
 ## Where the roadmap sits
 
@@ -14,8 +14,8 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 
 ## Current branch / execution context
 
-- **Branch:** none active — `feat_ubi_judgments` (PR #317) squash-merged to `main` 2026-05-29; folder finalized to `implemented_features/2026_05_29_feat_ubi_judgments/` via the `docs/finalize-ubi-judgments` docs PR. See `/pipeline status` for the next MVP2 item.
-- **Active feature:** none in flight.
+- **Branch:** `feature/feat_demo_ubi_study_comparison` — Phase 1 implementation complete (Epics 1-4); awaiting push + PR review.
+- **Active feature:** `feat_demo_ubi_study_comparison` Phase 1 — synthetic UBI demo seed + dual (LLM)/(UBI) studies + disclaimer chips on 5 surfaces. Phase 2 (side-by-side study comparison view) tracked at [`phase2_idea.md`](docs/00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison/phase2_idea.md).
 - **Alembic head:** `0021_judgment_lists_generation_params` (added by `feat_ubi_judgments` Story 1.1 — JSONB column for UBI worker resume payload).
 - **Python:** 3.13. **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat), TypeScript 6, Playwright (chromium, single worker) for E2E.
 - **Coverage gates:** backend 80% (`fail_under` in pyproject), UI vitest + tsc + ESLint + Next build, plus a full-stack smoke E2E job. Live pass counts: see the latest `pr.yml` run (the historical per-feature counts moved to `state_history.md`).
@@ -31,7 +31,7 @@ Detail + reasoning for each is in [`state_history.md`](state_history.md).
 - **2026-05-29** — `ci(pr): SKIP_HEAVY_CI kill-switch` (PR #307, infra). Added an `if:` guard on the 5 `pr.yml` jobs over 1 min so a repo variable can skip them (temporary GitHub Actions budget measure). See the Active CI note above — variable currently set, auto-restores ~2026-06-01.
 ## In flight
 
-- _None._ `feat_ubi_judgments` (PR #317) merged 2026-05-29; finalization docs PR (`docs/finalize-ubi-judgments`) in review.
+- `feat_demo_ubi_study_comparison` Phase 1 — implementation complete on `feature/feat_demo_ubi_study_comparison` (14 stories across 4 epics: SCENARIOS catalog UBI keys + reseed orchestrator + CLI parity + frontend chips on 5 surfaces + fast/heavy-lane integration tests + E2E spec + docs). Awaiting push + PR + Gemini adjudication + GPT-5.5 review. The heavy-lane test (`test_demo_seeding_ubi_full.py`) and `demo-ubi.spec.ts` self-skip under `SKIP_HEAVY_CI=true` per FR-12.
 
 ## Queued (priority-ordered by dashboard / dep graph)
 
