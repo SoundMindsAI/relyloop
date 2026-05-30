@@ -58,6 +58,8 @@ Each cluster sits on a rung; the tool recommends the right judgment mode for the
 
 This ladder is the spine of Workstream B's UX stories (B10–B13 below). It is also why the `HybridUbiLlmConverter` is the *default* recommended converter, not the conservative CTR one — hybrid is the rung most real operators occupy.
 
+**Demo data on the on-ramp.** The demo reseed seeds **synthetic UBI clickstream** on three of four demo clusters so the rungs above are browser-visible without operator setup (per [`feat_demo_ubi_study_comparison`](../00_overview/implemented_features/2026_05_29_feat_demo_ubi_study_comparison/)). `acme-products-prod` reports rung_3 (CTR converter default), `corp-docs-search` rung_1, and `jobs-marketplace-prod` rung_2 (both hybrid); `news-search-staging` stays at rung_0 so the on-ramp nudge stays demoable. The three demo clusters that carry synthetic UBI render a "Synthetic demo data" disclosure chip on five surfaces (method picker, judgment-list header, cluster detail, study header, dashboard banner) so the operator can distinguish demo signal from real traffic. Real operator clusters never see the chip.
+
 ## 5. Definition of done (release exit criteria)
 
 MVP2 ships when **all** of the following hold:

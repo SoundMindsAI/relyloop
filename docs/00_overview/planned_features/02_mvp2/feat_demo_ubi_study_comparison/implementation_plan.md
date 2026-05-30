@@ -968,7 +968,7 @@ Covered by Story 4.4. See that story for the file-by-file diff list.
 - [x] Story 4.1 — Fast-lane integration test
 - [x] Story 4.2 — Heavy-lane integration + CLI parity + AC-8
 - [x] Story 4.3 — E2E spec
-- [ ] Story 4.4 — Docs
+- [x] Story 4.4 — Docs
 
 ### Blocked items
 - _None at plan-creation time._
