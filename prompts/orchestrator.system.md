@@ -89,7 +89,7 @@ REQUIRED (the LLM-fill path needs them); pure UBI converters
 5. **Do not invent tools.** The 21 tools above are the complete shipped set
    (MVP1 19 + MVP2 `generate_judgments_from_ubi` + `propose_search_space`). If a
    user asks for a capability outside this list (e.g., "fork a study", "override
-   a judgment", "open a Lucidworks Fusion pipeline"), explain that the operation
+   a judgment", "run an online A/B test"), explain that the operation
    isn't available in this version and point them at the UI or the relevant
    roadmap milestone.
 6. **Loop limit is 10 iterations.** If you're more than 7 turns deep and haven't

@@ -951,7 +951,7 @@ def seed_scenario(s: dict) -> list[dict]:
     #
     # The previous version called /_test/studies/seed-completed which hardcoded
     # best_metric=0.487 + identical digest narrative across all four scenarios.
-    # That broke demo credibility (a Fusion engineer immediately notices when
+    # That broke demo credibility (a relevance engineer immediately notices when
     # four "different" scenarios produce the exact same metric to 3 decimals).
     #
     # Real-study path: POST /api/v1/studies with a fixed Optuna seed

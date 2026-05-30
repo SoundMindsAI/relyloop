@@ -30,7 +30,7 @@ The system is **engine-neutral, provider-neutral, and Git-provider-neutral by de
 
 All six of RelyLoop's differentiators (Bayesian/TPE optimization, Git-PR apply path, conversational agent that runs the loop, all three OSS engines, hybrid UBI+LLM judgments, local-first observability) are live by MVP3. GA v1 adds no new product surface.
 
-**Backlog** (captured, not in flight): multi-Git-provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction (Anthropic, Bedrock, Azure OpenAI, Vertex, Ollama/vLLM); Path B production-monitoring + bandit-style online learning; Lucidworks Fusion adapter (explicitly dropped, see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md)).
+**Backlog** (captured, not in flight): multi-Git-provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction (Anthropic, Bedrock, Azure OpenAI, Vertex, Ollama/vLLM); Path B production-monitoring + bandit-style online learning.
 
 The HTTP API is designed as a first-class product, not just the back end of the UI. Every operation a human or the in-tool orchestrator can perform is also callable by an external agent over plain REST, with bearer-token auth, OpenAPI 3.1 publication, idempotency keys, outgoing webhooks, SSE event streams, and machine-readable capability discovery. See §21 *Agent integration*.
 
@@ -80,7 +80,6 @@ The tool will not:
 - Function as a search-engine UI. It does not show end-user search results; it shows experiment results.
 - Modify production cluster configuration directly. All changes flow through Git.
 - Provide an MCP server. The tool's HTTP API uses OpenAPI 3.1 + idiomatic REST + outgoing webhooks instead, which is testable with any HTTP client and consumable by any agent framework. The same operations the in-tool orchestrator uses are exposed externally — there is no second-class agent interface.
-- **Support Lucidworks Fusion.** Fusion was scoped as MVP3 in an earlier plan and is dropped in the 2026-05-27 reframe; see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md) for the rationale (vendor entanglement, narrower audience overlap with the OSC/Haystack community, materially higher build cost than Solr, no roadmap commitment to commercial engines). A community-contributed Fusion adapter remains possible because the `SearchAdapter` Protocol is unchanged; the project does not own that direction.
 - **Sit on the live search-serving path.** The tool is for offline experimentation and change management. It does not score, rank, or rerank production search results in real time, and it is never an inline dependency of the search-serving infrastructure. Production search behavior is determined by the configs that have been merged into the config repo and deployed by the operator's CI — the tool's role ends at the PR.
 - **Provide real-time production search-quality monitoring.** Streaming user signals into rolling-window quality metrics, alerting on degradation, and incident dashboards belong to operational observability tooling (APM, SRW's own metrics surface, custom Grafana boards). The tool is deliberately scoped to the experimentation-and-change-management problem; expanding into production monitoring is a coherent v2 Path B direction (see §27) but is **not** in scope through GA v1.
 - **Provide shadow validation against a live production traffic stream.** Pre-deploy validation is offline against query sets and judgment lists, plus the optional read-only "validate on prod" pass already in §17. Streaming a sample of live queries through a candidate config in real time is more confidence-building but requires stream-processing infrastructure that the project deliberately avoids through GA v1.
@@ -1822,7 +1821,7 @@ Branch protection rules on `main`:
 
 - **README** with a 5-minute quickstart for new engineers (clone, `docker compose up`, point at the local UI).
 - **OpenAPI spec** auto-published at `/openapi.json` and rendered by Stoplight or Redoc at `/docs`.
-- **ADRs** (Architecture Decision Records) for big choices: LangGraph, Langfuse, SigNoz, Solr-as-MVP2-third-engine, Fusion-explicitly-dropped, no-MCP, etc. One file per decision in `docs/09_decisions/`.
+- **ADRs** (Architecture Decision Records) for big choices: LangGraph, Langfuse, SigNoz, Solr-as-MVP2-third-engine, no-MCP, etc. One file per decision in `docs/09_decisions/`.
 - **Runbooks** in `docs/03_runbooks/` for: cassette refresh, eval-suite failure investigation, Langfuse storage cleanup, Postgres restore, study cancellation cleanup.
 - **Inline**: every Pydantic model has field descriptions; every public function has a docstring (enforced by `ruff D`).
 
@@ -2185,7 +2184,7 @@ services:
 
 **Tests.** Unit tests are hermetic and don't need any engine running. Integration tests against ES + OpenSearch + Solr run against the Compose containers (CI provisions service containers in GitHub Actions). E2E tests run the full Karpathy loop against the live Compose stack with a test config repo.
 
-There is no third-party vendor license, no shared dev cluster, no replay-cassette infrastructure to maintain. The forward-only documentation stance applies here too — earlier drafts of this spec included a four-tier model with Fusion eval licenses and replay cassettes; that complexity went away with the Fusion drop.
+There is no third-party vendor license, no shared dev cluster, no replay-cassette infrastructure to maintain. All three supported engines (Elasticsearch, OpenSearch, Apache Solr) run locally under Apache 2.0 with no licensing logistics.
 
 ## 26. Failure modes & edge cases
 
@@ -2210,7 +2209,7 @@ There is no third-party vendor license, no shared dev cluster, no replay-cassett
 
 ## 27. Phased delivery
 
-Delivery is incremental across three pre-GA releases plus a polish-and-governance GA. The 2026-05-27 reframe (see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md)) compressed the prior six-release plan: Fusion was dropped outright; Solr was promoted to MVP2 and bundled with UBI judgments; observability moved to MVP3; multi-Git, multi-tenancy, and multi-LLM moved to the backlog. The result is a tighter narrative that lands all six of RelyLoop's differentiators by MVP3 and reserves GA for polish + governance + hardening.
+Delivery is incremental across three pre-GA releases plus a polish-and-governance GA. The 2026-05-27 reframe compressed the prior six-release plan: Solr was promoted to MVP2 and bundled with UBI judgments; observability moved to MVP3; multi-Git, multi-tenancy, and multi-LLM moved to the backlog. The result is a tighter narrative that lands all six of RelyLoop's differentiators by MVP3 and reserves GA for polish + governance + hardening.
 
 | Release | Theme | Adds | Audience |
 |---|---|---|---|
@@ -2230,7 +2229,7 @@ Delivery is incremental across three pre-GA releases plus a polish-and-governanc
 | Hybrid UBI+LLM judgments + position-bias correction | MVP2 |
 | Local-first LLM observability (self-hosted Langfuse + SigNoz) | MVP3 |
 
-**Backlog** (captured but not in flight): multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction; Path B (production-quality monitoring, bandit-style online learning, shadow validation, manual one-click rollback); LTR training; Lucidworks Fusion adapter (explicitly dropped, would require a community contribution to revive).
+**Backlog** (captured but not in flight): multi-Git provider abstraction (GitLab, Bitbucket); multi-tenancy primitives + multi-LLM provider abstraction; Path B (production-quality monitoring, bandit-style online learning, shadow validation, manual one-click rollback); LTR training.
 
 ### MVP1 / v0.1 — "The Loop" (shipped)
 
@@ -2318,7 +2317,6 @@ MVP2 bundles two capabilities into one release: the Apache Solr adapter and UBI-
 - Multi-LLM provider abstraction (Anthropic, Bedrock, Vertex, etc.) — in the backlog. OpenAI-compatible endpoints (Ollama, vLLM, LM Studio, TGI) continue to work via `OPENAI_BASE_URL` redirection, exactly as in MVP1.
 - LTR training (cross-engine model training is a v2 candidate; MVP2's Solr LTR support is consume-only).
 - Real-time signal streaming. UBI ratings are computed batch-wise at judgment-list creation time, not on the live serving path — strictly offline Path A.
-- Fusion. Explicitly dropped; see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md).
 
 **Audience expansion:** Apache Solr operators (the OSC + Sease + Querqy + Quepid/Chorus community, predominantly Solr-native); operators with production search traffic and UBI logging enabled on any of the three engines; operators who distrust LLM-as-judge as the only trust anchor.
 
@@ -2391,15 +2389,13 @@ GA v1 layers in the polish that elevates RelyLoop from a working tool to a prope
 
 Items previously in the release timeline that the 2026-05-27 reframe moved out of the pre-GA path. Captured here so they're not lost; promoted to a release if and when a design-partner conversation or a specific adopter request makes them load-bearing.
 
-**Multi-Git provider abstraction.** `GitProvider` Protocol with GitLab + Bitbucket implementations alongside the existing GitHub provider. Was bundled with the dropped MVP3 Fusion work in the prior plan. Promoted out when an adopter on a non-GitHub provider commits to evaluating. Until then, all adopters use GitHub (which the global enterprise-search community overwhelmingly does).
+**Multi-Git provider abstraction.** `GitProvider` Protocol with GitLab + Bitbucket implementations alongside the existing GitHub provider. Promoted out when an adopter on a non-GitHub provider commits to evaluating. Until then, all adopters use GitHub (which the global enterprise-search community overwhelmingly does).
 
 **Multi-tenancy primitives.** `tenants` + `tenant_memberships` + `users` + `api_keys` tables, `tenant_id` columns across all user-facing tables, per-tenant configuration overrides, tenant switcher UI. Was MVP4 in the prior plan. The platform-team-running-search-for-many-customers use case is real but underserved by the pre-GA path — single-tenant + SSO via reverse proxy is sufficient through GA v1. Promoted out when a multi-customer platform team commits to evaluating.
 
 **Multi-LLM provider abstraction.** Native (non-OpenAI-compatible) provider SDKs for Anthropic, AWS Bedrock, Azure OpenAI, Google Vertex AI. OpenAI-compatible endpoints (Ollama, vLLM, LM Studio, TGI) work today via `OPENAI_BASE_URL` redirection — covering the air-gapped + local-LLM use cases without provider-specific code. Was MVP4 in the prior plan. Promoted out when an adopter with strict Bedrock-only or Vertex-only policy commits to evaluating.
 
 **LTR training.** Cross-engine model training (XGBoost rerankers for ES + OpenSearch via the LTR plugin / native LTR; same XGBoost path for Solr via `MultipleAdditiveTreesModel`). MVP2's Solr LTR support is consume-only. Promoted to release status when adopter feedback prioritizes it over Path B.
-
-**Lucidworks Fusion adapter.** Dropped outright; see [`chore_drop_fusion_scope/idea.md`](../../00_overview/planned_features/chore_drop_fusion_scope/idea.md). The `SearchAdapter` Protocol shape means a community-contributed Fusion adapter remains possible, but the project does not own that direction.
 
 **Path B — Search Quality Platform expansion.** A coherent v2 direction is to expand from "experimentation and change management" into "experimentation and change management *plus* real-time production observability and online learning." This shifts the tool from Quepid-territory toward commercial-platform-territory (Coveo, Algolia, Bloomreach). Captured as a backlog/v2 set rather than a GA path because it requires stream-processing infrastructure (Kafka or Redis Streams + ClickHouse rolling-window aggregation) and changes the audience (Path A serves search engineers; Path B also serves search ops / SREs).
 

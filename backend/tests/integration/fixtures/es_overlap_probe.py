@@ -26,7 +26,7 @@ is allowed here because (a) this is test-time-only code, (b) the established
 purposes, (c) bulk-index is intentionally NOT on the Protocol per spec D-1
 ("the Protocol's role is engine-agnostic query-time search; bulk-index is
 test-time concern that doesn't generalize across ElasticAdapter +
-FusionAdapter").
+SolrAdapter").
 
 No basic-auth headers — CI runs ES with ``xpack.security.enabled: "false"``
 (see ``.github/workflows/pr.yml``) and local Compose follows CLAUDE.md's

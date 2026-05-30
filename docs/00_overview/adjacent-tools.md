@@ -51,7 +51,7 @@ is fundamentally better than theirs on OpenSearch's own turf.
 **RelyLoop is the better choice for your shop when one or more of these is
 true:**
 
-1. **You operate Elasticsearch** (or Apache Solr, or any mix of ES + OpenSearch + Solr). The Relevance Agent only helps on OpenSearch. RelyLoop's single adapter spans ES 8.11+/9.x and OpenSearch 2.x/3.x today, with Apache Solr 9.x/10.x arriving at MVP2 (bundled with UBI judgments via Solr's first-party `solr.UBIComponent`). Lucidworks Fusion is explicitly dropped — see [`chore_drop_fusion_scope/idea.md`](../00_overview/planned_features/chore_drop_fusion_scope/idea.md).
+1. **You operate Elasticsearch** (or Apache Solr, or any mix of ES + OpenSearch + Solr). The Relevance Agent only helps on OpenSearch. RelyLoop's single adapter spans ES 8.11+/9.x and OpenSearch 2.x/3.x today, with Apache Solr 9.x/10.x arriving at MVP2 (bundled with UBI judgments via Solr's first-party `solr.UBIComponent`). These three OSS engines are the only supported targets.
 
 2. **You require Git-as-source-of-truth for production search-config changes.**
    RelyLoop opens Pull Requests against a central config repo where named

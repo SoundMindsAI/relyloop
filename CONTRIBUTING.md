@@ -55,7 +55,7 @@ Common types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `ci`, `perf`. 
 Examples:
 
 ```
-feat(adapter): add Lucidworks Fusion adapter
+feat(adapter): add Apache Solr adapter
 fix(worker): handle Optuna ask deadlock under high parallelism
 docs(spec): clarify multi-tenancy isolation boundaries
 chore(deps): bump structlog to 24.4
@@ -175,7 +175,7 @@ Trunk-based development:
 
 - `main` is always releasable
 - Feature branches are short-lived (target: <1 week)
-- Branch names: `<type>/<short-description>` (e.g., `feat/fusion-adapter`, `fix/worker-deadlock`)
+- Branch names: `<type>/<short-description>` (e.g., `feat/solr-adapter`, `fix/worker-deadlock`)
 - Squash-merge PRs to keep `main` history linear and readable
 - No force-pushes to `main`
 

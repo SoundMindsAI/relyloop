@@ -10,7 +10,7 @@
 >
 > The tool I started building the day after Haystack ended is called **RelyLoop**. It is open-source under Apache 2.0. An operator describes a relevance problem in chat; an agent introspects the cluster, proposes a query-time search space (BM25 parameters, field boosts, minimum-should-match, tie-breakers — nothing structural), and an Optuna TPE sampler runs thousands of trials scored by `ir_measures` against a judgment list. The winner opens as a pull request against the operator's search-config repo. A human approver merges it; the operator's CI deploys it. The tool itself never sits on the live serving path.
 >
-> First commit was May 8 — the day after Haystack ended. `v0.1.0` alpha tag five days later. It is still in active development; not ready for production use. Elasticsearch and OpenSearch first; Lucidworks Fusion lands in MVP3.
+> First commit was May 8 — the day after Haystack ended. `v0.1.0` alpha tag five days later. It is still in active development; not ready for production use. Elasticsearch and OpenSearch first; Apache Solr lands in MVP2.
 >
 > Long-form origin story (~10 min read): *[link to wherever the blog gets published]*
 > Repo: [github.com/SoundMindsAI/relyloop](https://github.com/SoundMindsAI/relyloop)

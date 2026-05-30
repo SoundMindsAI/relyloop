@@ -3,7 +3,7 @@
 **Date:** 2026-05-27
 **Status:** Idea — anchor feature for MVP2 / v0.2 "Three-Engine + Real Signals" (bundled with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md))
 **Priority:** P1 — MVP2 is named for the bundle of this adapter + UBI judgments; together they ship four of RelyLoop's six differentiators (all three OSS engines + hybrid UBI+LLM)
-**Origin:** Positioning reframe on 2026-05-27 (see [`chore_drop_fusion_scope/idea.md`](../../../implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md) for the paired Fusion-drop rationale — shipped 2026-05-28 — and [`docs/07_research/comparison.md`](../../../../07_research/comparison.md) for the moat analysis). Replaces the previously-planned Lucidworks Fusion adapter as the next engine target.
+**Origin:** Positioning reframe on 2026-05-27 (see [`docs/07_research/comparison.md`](../../../../07_research/comparison.md) for the moat analysis). Apache Solr is the third and final supported engine, completing the OSS-engine sweep (ES + OpenSearch + Solr).
 **Depends on:** MVP1 shipped (`ElasticAdapter`, `SearchAdapter` Protocol, study lifecycle, judgment lists, PR worker). Co-released with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md): Solr's `solr.UBIComponent` writes the same `ubi_queries` + `ubi_events` schema, so the MVP2 `UbiReader` works unchanged against a Solr cluster from day one.
 
 ## Problem
@@ -15,7 +15,6 @@ After MVP1.5, RelyLoop runs against Elasticsearch and OpenSearch — but the "en
 3. **Quepid + Chorus user base is Solr-native.** OSC's primary reference stack is Solr-based. Operators who already run Quepid for manual relevance evaluation are the natural adopters for RelyLoop's Bayesian-loop upgrade on the same engine they already manage.
 4. **LTR is stable.** Solr 10 (March 2026) ships `modules/ltr` with `LinearModel`, `MultipleAdditiveTreesModel` (XGBoost-compatible), and `NeuralNetworkModel`. Stable since Solr 6. The de facto OSS LTR baseline outside ES native LTR ([Sease: Solr 10 LTR overview](https://sease.io/2026/03/apache-solr-10-what-is-new-for-vector-search-and-ltr.html)).
 
-The Lucidworks Fusion adapter that previously occupied this slot is dropped — see [`chore_drop_fusion_scope`](../../../implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md) for the rationale (vendor entanglement, narrower audience overlap with the Quepid/Chorus community, materially higher build cost).
 
 ## Proposed capabilities
 
@@ -40,7 +39,7 @@ Solr-specific notes:
 - **`mm` syntax is richer than ES `minimum_should_match`.** Solr's `mm` accepts arithmetic expressions (`2<-25% 9<-3`); the adapter accepts unified `int | float | str` and validates against the Solr syntax server-side.
 - **Boosts in Solr are additive (`bf`) by default; multiplicative via `boost`.** ES `function_score` defaults to multiplicative. The unified `boost_fn` parameter carries an explicit `combine: "add" | "multiply"` field; the Solr adapter renders into `bf` or `boost` respectively.
 - **LTR rescoring is `{!ltr model=... reRankDocs=...}` injected as `rq=`**, not the ES `rescore.learning_to_rank` shape. The adapter handles both at the unified `rerank_model` parameter.
-- **No Solr-side "pipeline stage toggle" concept.** The `stage_enabled` parameter (was Fusion-only) is removed from the unified vocabulary as part of the Fusion drop.
+- **No Solr-side "pipeline stage toggle" concept.** The unified vocabulary covers query-time parameters (boosts, minimum-should-match, rescore, LTR), not pipeline-stage toggles.
 
 ### LTR rescoring
 
@@ -90,11 +89,10 @@ Solr-specific notes:
 
 ## Relationship to other work
 
-- **Replaces the previously-planned Lucidworks Fusion adapter** as the next engine target. See [`chore_drop_fusion_scope`](../../../implemented_features/2026_05_28_chore_drop_fusion_scope/idea.md) (shipped 2026-05-28) for why Fusion was dropped.
 - **Bundled with [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md)** in MVP2 — Solr's `solr.UBIComponent` writes the same UBI schema; the UBI reader and hybrid UBI+LLM converter work on Solr unchanged from day one.
 - **Required by the UBI on-ramp** (the engine-aware nudge in [`feat_ubi_judgments`](../feat_ubi_judgments/idea.md) Capability B, which absorbed the former `feat_ubi_onramp` 2026-05-29) — the "enable real user signals" nudge spans all three engines only after the `engine_type` CHECK constraint extension here lands. Until then it covers `elasticsearch | opensearch` (current values at [`cluster.py:30`](../../../../../backend/app/db/models/cluster.py#L30)).
 - **Pairs with [`chore_template_library_expansion`](../chore_template_library_expansion/idea.md)** (Workstream C in [`mvp2-overview.md`](../../../../01_architecture/mvp2-overview.md)) — that idea ships the curated multi-engine template library (including Solr templates) and the per-engine tunable-params cheatsheets. Coordinate the template-path convention with it (see open questions).
-- **Multi-Git provider abstraction (GitLab, Bitbucket) is in the backlog** — was previously bundled with the Fusion-era MVP3; reframed as backlog because it serves a smaller adopter axis than the engine sweep + observability path. GitHub remains the only Git provider through GA v1.
+- **Multi-Git provider abstraction (GitLab, Bitbucket) is in the backlog** — reframed as backlog because it serves a smaller adopter axis than the engine sweep + observability path. GitHub remains the only Git provider through GA v1.
 - **Unlocks the verifiable "engine-neutral" claim** in [`docs/07_research/comparison.md`](../../../../07_research/comparison.md) and the umbrella spec §1. The claim is rhetorical at MVP1; it becomes factual at MVP2.
 - **MVP3 "Observable" follows** — Langfuse + SigNoz + audit-log immutability + lineage layers on top of all three engines and both judgment sources in one go.
 

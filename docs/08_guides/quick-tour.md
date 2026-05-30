@@ -79,7 +79,7 @@ for Stop 1.
 
 <!-- presenter: the rich scenario produces a +2.3% lift on ndcg@10. That's
      a HONEST lift on 5 queries × 1000 docs of real ESCI data — not the
-     fabricated +18% headlines you'd see in marketing fluff. For a Fusion
+     fabricated +18% headlines you'd see in marketing fluff. For a relevance
      engineer, "we measured this carefully and found a +2.3% real
      improvement" lands much better than an obviously-too-good "+18%". -->
 
@@ -130,7 +130,7 @@ small instead of fabricating a lift.
 
 <!-- presenter: the framing question to ask the audience here is "how
      many trials would your team typically run when tuning a query
-     pipeline by hand?" Most Fusion engineers answer 5-10. The pitch
+     pipeline by hand?" Most relevance engineers answer 5-10. The pitch
      lands: this isn't replacing a human; it's running 50× more
      experiments than a human ever could. -->
 
@@ -257,7 +257,7 @@ branch protection all stay in charge of what reaches production.
 proposes; the operator's existing ship discipline disposes. No surprise
 config changes.
 
-<!-- presenter: this is the single biggest unlock for a Fusion customer
+<!-- presenter: this is the single biggest unlock for a team
      who's used to having relevance engineers write Solr config XML by
      hand. The PR-based workflow is familiar (they already do this for
      everything else); the difference is that the PR body now includes
@@ -355,9 +355,9 @@ the right tools.
 Three points to land, in order:
 
 1. **Engine-neutral by design.** What you saw runs against Elasticsearch
-   and OpenSearch today. The Fusion adapter is on the MVP3 roadmap. The
+   and OpenSearch today. The Solr adapter is on the MVP2 roadmap. The
    optimization engine doesn't care which backend implements the search;
-   it tunes whatever knobs the adapter exposes. Your existing Fusion
+   it tunes whatever knobs the adapter exposes. Your existing search
    query pipelines map directly.
 2. **Real signals, available now.** User Behavior Insights (UBI) is a
    first-class judgment source alongside LLM-as-judge: when your cluster
