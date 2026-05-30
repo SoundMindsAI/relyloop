@@ -79,10 +79,10 @@ None — Phase 1 adds no new routes, no link targets, no menu items. The existin
 |---|---|---|---|
 | `backend/tests/integration/services/test_demo_seeding_orchestrator.py` (if present — verify in plan) | `reseed_demo_state` invocation + assertions on scenarios_completed | TBD (~3-5) | Extend with assertions that the 3 UBI-enabled scenarios produced 2 judgment lists + 2 studies each; the OS + rich scenarios produced 1 each |
 | `backend/tests/integration/scripts/test_seed_meaningful_demos.py` (if present — verify in plan) | CLI parity tests | TBD | Same dual-list + dual-study assertions for the CLI path |
-| `ui/tests/e2e/specs/dashboard.spec.ts` and `studies-data-table.spec.ts` | Counts of clusters / studies on the dashboard | Existing snapshots | Update study-count assertions (3 scenarios now ship 2 studies → +3 studies on the dashboard); rung-badge assertions added on the 3 UBI scenarios |
-| `ui/tests/e2e/specs/ubi-onramp-nudge*.spec.ts` (if present) | rung_0 nudge visibility | Existing | Pin the rung_0 assertion to `news-search-staging` (the only remaining rung_0 demo cluster) |
+| `ui/tests/e2e/dashboard.spec.ts` and `studies-data-table.spec.ts` | Counts of clusters / studies on the dashboard | Existing snapshots | Update study-count assertions (3 scenarios now ship 2 studies → +3 studies on the dashboard); rung-badge assertions added on the 3 UBI scenarios |
+| `ui/tests/e2e/ubi-onramp-nudge*.spec.ts` (if present) | rung_0 nudge visibility | Existing | Pin the rung_0 assertion to `news-search-staging` (the only remaining rung_0 demo cluster) |
 
-The plan-gen pass will glob `backend/tests/integration/` and `ui/tests/e2e/specs/` for actual references and produce a concrete update list.
+The plan-gen pass will glob `backend/tests/integration/` and `ui/tests/e2e/` for actual references and produce a concrete update list.
 
 ### Existing behaviors affected by scope change
 
@@ -325,7 +325,7 @@ Phase 1 splits integration coverage into two lanes so the always-on lane stays u
 
 ### FR-12: E2E coverage for the UBI demo surfaces
 
-- A new Playwright spec at `ui/tests/e2e/specs/demo-ubi.spec.ts` **MUST** assert against the live reseeded stack with real backend, no `page.route()` mocking.
+- A new Playwright spec at `ui/tests/e2e/demo-ubi.spec.ts` **MUST** assert against the live reseeded stack with real backend, no `page.route()` mocking.
 - **Precondition / `beforeAll`**: the spec **MUST** invoke `POST /api/v1/_test/demo/reseed` via Playwright's `request` fixture and then poll the existing reseed-status endpoint until `status === "complete"` or fail with a clear diagnostic. Poll budget: 25 minutes (matches the heavy-lane integration test's worst-case wall-clock from §14). Discover cluster / query-set / judgment-list IDs by GET-ing the API after reseed completion — no hardcoded UUIDs, no mocked routes.
 - **Test cases** (each runs after `beforeAll` establishes the seeded stack):
   - Open `/clusters/{acme_id}` → the `<UbiRungBadge>` reads `"rung_3"` AND the synthetic-data chip is visible (FR-7 surface #3).
@@ -413,7 +413,7 @@ These are install-side Python literals; they do not appear in any DB table or AP
 - `backend/tests/unit/services/test_demo_ubi_seed.py` — unit tests including the mapping round-trip (FR-1).
 - `backend/tests/integration/services/test_demo_seeding_ubi_fast.py` — fast-lane integration test (<60s, always-on; FR-11).
 - `backend/tests/integration/services/test_demo_seeding_ubi_full.py` — heavy-lane integration test (full reseed, gated by `SKIP_HEAVY_CI`; FR-11).
-- `ui/tests/e2e/specs/demo-ubi.spec.ts` — E2E spec (FR-12).
+- `ui/tests/e2e/demo-ubi.spec.ts` — E2E spec (FR-12).
 - `docs/00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison/phase2_idea.md` — phase 2 tracking artifact (spec-finalization Step 10).
 
 ### Required invariants

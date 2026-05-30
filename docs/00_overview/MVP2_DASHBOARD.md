@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-30** (latest mtime of any planned
 
 ## Next up
 
-**[feat_demo_ubi_study_comparison](planned_features/02_mvp2/feat_demo_ubi_study_comparison/feature_spec.md)** — Feature, currently in **Spec**
+**[feat_demo_ubi_study_comparison](planned_features/02_mvp2/feat_demo_ubi_study_comparison/feature_spec.md)** — Feature, currently in **Plan**
 
 > After this feature, the home-button reseed (and the
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison --auto
+/impl-execute docs/00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison/implementation_plan.md --all
 ```
 
 ## MVP2 Progress
@@ -43,15 +43,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P1 | [feat_demo_ubi_study_comparison](planned_features/02_mvp2/feat_demo_ubi_study_comparison/feature_spec.md) | Feature | After this feature, the home-button reseed (and the | — | [PR #317](https://github.com/SoundMindsAI/relyloop/pull/317) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (16)
 
@@ -86,7 +86,7 @@ graph LR
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_demo_ubi_study_comparison["demo ubi study comparison"]
-  class feat_demo_ubi_study_comparison spec;
+  class feat_demo_ubi_study_comparison plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
 ```
