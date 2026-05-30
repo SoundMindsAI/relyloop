@@ -194,7 +194,13 @@ class TestListDocumentsCursorMark:
 
         def handler(req: httpx.Request) -> httpx.Response:
             seen_cursor.append(req.url.params.get("cursorMark"))
-            return _page_response([{"id": "p10"}], num_found=11, next_cursor_mark="cmark-2")
+            # Full page (== limit) with a NEW mark → more to fetch. (A short
+            # page would correctly terminate under the F3 short-page guard.)
+            return _page_response(
+                [{"id": f"p{i}"} for i in range(5)],
+                num_found=11,
+                next_cursor_mark="cmark-2",
+            )
 
         adapter = _build(handler)
         try:
