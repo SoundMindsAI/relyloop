@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.adapters.errors import (
     ClusterUnreachableError,
     InvalidQueryDSLError,
+    LtrModelNotFoundError,
     QueryTimeoutError,
     TargetNotFoundError,
     TargetsForbiddenError,
@@ -497,6 +498,12 @@ async def run_query(
                 top_k=body.top_k,
                 timeout_s=timeout_s,
             )
+    except LtrModelNotFoundError as exc:
+        # infra_adapter_solr Story A7: surface as 400 LTR_MODEL_NOT_FOUND so
+        # operators see the missing-model id + the list of available models
+        # (spec §8.5). Distinct from INVALID_QUERY_DSL — the query parsed,
+        # the requested LTR model just isn't loaded.
+        raise _err(400, "LTR_MODEL_NOT_FOUND", str(exc), False) from exc
     except InvalidQueryDSLError as exc:
         raise _err(400, "INVALID_QUERY_DSL", str(exc), False) from exc
     except QueryTimeoutError as exc:

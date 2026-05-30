@@ -50,6 +50,7 @@ from backend.app.adapters.credentials import resolve_credentials
 from backend.app.adapters.errors import (
     ClusterUnreachableError,
     InvalidQueryDSLError,
+    LtrModelNotFoundError,
     QueryTimeoutError,
     TargetNotFoundError,
     TargetsForbiddenError,
@@ -1080,8 +1081,41 @@ class SolrAdapter:
         except UndefinedError as exc:
             raise ValueError(f"render: undefined parameter — {exc}") from exc
 
+        # LTR pre-flight: if the template emits a rerank_model AND the
+        # cluster's capability probe recorded ltr_models, validate the
+        # requested model id BEFORE building the rq param. Raises
+        # LtrModelNotFoundError (router → 400 LTR_MODEL_NOT_FOUND per
+        # Story A7 / spec §8.5). When ltr_models is unset (cluster
+        # capability probe didn't run / failed), we skip the pre-flight
+        # rather than reject — the operator gets a 400 from Solr at
+        # request time instead of a false-positive 400 from us.
+        rerank = rendered.get("rerank_model")
+        if isinstance(rerank, dict):
+            self._check_ltr_model_available(rerank)
+
         body = self._pivot_to_solr_params(rendered)
         return NativeQuery(query_id=template.name, body=body)
+
+    def _check_ltr_model_available(self, rerank: dict[str, Any]) -> None:
+        """Validate ``rerank_model.id`` against the probe-recorded LTR models.
+
+        Skips validation silently when:
+        * ``self.engine_config["ltr_models"]`` is absent (probe didn't run /
+          failed mid-way; we don't want false-positive rejection here).
+        * ``rerank.id`` is not a string (the actual InvalidQueryDSLError will
+          surface from ``_render_rerank_model`` when the pivot runs).
+
+        Raises ``LtrModelNotFoundError`` only when the cluster has a known
+        LTR-models list AND the requested id is not in it. Story A7.
+        """
+        available = self.engine_config.get("ltr_models")
+        if not isinstance(available, list) or not available:
+            return
+        model_id = rerank.get("id")
+        if not isinstance(model_id, str) or not model_id:
+            return
+        if model_id not in available:
+            raise LtrModelNotFoundError(model_id, list(available))
 
     @staticmethod
     def _pivot_to_solr_params(rendered: dict[str, Any]) -> dict[str, Any]:
