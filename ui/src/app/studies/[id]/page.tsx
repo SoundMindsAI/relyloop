@@ -16,9 +16,12 @@ import { StudyHeader } from '@/components/studies/study-header';
 import { TrialsTable } from '@/components/studies/trials-table';
 import { trialsColumns } from '@/components/studies/trials-table.column-config';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
+import { useCluster } from '@/lib/api/clusters';
 import { useStudyDigest } from '@/lib/api/digests';
+import { useJudgmentList } from '@/lib/api/judgments';
 import { useProposalForStudy } from '@/lib/api/proposals';
 import { useStudy, useStudyChildren, useStudyTrials } from '@/lib/api/studies';
+import { isDemoSyntheticUbiClusterName } from '@/lib/demo-data';
 import { TRIAL_SORT_VALUES, type TrialSort } from '@/lib/enums';
 
 interface RouteProps {
@@ -84,7 +87,7 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               recommends a config to ship via a proposal. Click the floating <em>Guide</em> button
               (bottom-right) for the step-by-step walkthrough.
             </p>
-            <StudyHeader study={study} />
+            <StudyHeaderWithSyntheticChip study={study} />
             <LinkedEntitiesRow study={study} />
             {proposalQ.data && (
               <p className="text-sm" data-testid="study-proposal-link">
@@ -184,6 +187,29 @@ function TrialsCard({
       </CardContent>
     </Card>
   );
+}
+
+/**
+ * Wrapper that resolves cluster.name + judgment_list.generation_params
+ * for the FR-7 synthetic-data chip gate and forwards a boolean to keep
+ * <StudyHeader> presentational. Decision rule per FR-7 surface #4:
+ * `isDemoSyntheticUbiClusterName(cluster.name) &&
+ * judgment_list.generation_params?.generation_kind === 'ubi'`.
+ */
+function StudyHeaderWithSyntheticChip({
+  study,
+}: {
+  study: import('@/lib/api/studies').StudyDetail;
+}) {
+  const cluster = useCluster(study.cluster_id);
+  const judgmentList = useJudgmentList(study.judgment_list_id);
+  const params = judgmentList.data?.generation_params as Record<string, unknown> | null | undefined;
+  const generationKindIsUbi = params != null && params.generation_kind === 'ubi';
+  const showSyntheticUbiChip =
+    cluster.data !== undefined &&
+    generationKindIsUbi &&
+    isDemoSyntheticUbiClusterName(cluster.data.name);
+  return <StudyHeader study={study} showSyntheticUbiChip={showSyntheticUbiChip} />;
 }
 
 export default function StudyDetailPage({ params }: RouteProps) {

@@ -32,7 +32,7 @@ import json
 import logging
 import time
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, Final, Literal, cast
 
 import httpx
@@ -41,6 +41,15 @@ from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.domain.demo.synthetic_ubi import (
+    UbiRung,
+    fabricate_ubi_for_scenario,
+)
+from backend.app.services.demo_ubi_seed import (
+    DemoUbiSeedError,
+    ensure_ubi_indices,
+    seed_synthetic_ubi,
+)
 from scripts.seed_meaningful_demos import (
     DEMO_ES_INDICES,
     DEMO_OS_INDICES,
@@ -49,15 +58,11 @@ from scripts.seed_meaningful_demos import (
     TRUNCATE_TABLES,
 )
 from scripts.seed_meaningful_demos import (
-    SCENARIOS as _RAW_SCENARIOS,
+    # Re-exported (``as SCENARIOS``) so ``backend.tests.integration.*``
+    # callers can still ``from backend.app.services.demo_seeding import
+    # SCENARIOS`` under mypy --strict (PEP 484 explicit-reexport rule).
+    SCENARIOS as SCENARIOS,
 )
-
-# The CLI declares ``SCENARIOS`` as ``list[dict]`` (untyped values).
-# Cast at the import boundary so the orchestrator code can index the
-# expected string/tuple/list shapes without mypy complaining. The CLI
-# is out of scope per locked decision D2 — we don't add type hints to
-# ``scripts/seed_meaningful_demos.py``.
-SCENARIOS: list[dict[str, Any]] = cast("list[dict[str, Any]]", _RAW_SCENARIOS)
 
 logger = logging.getLogger(__name__)
 
@@ -133,6 +138,13 @@ _REAL_STUDY_POLL_CEILING_S: Final[float] = 180.0
 _REAL_STUDY_POLL_INTERVAL_S: Final[float] = 3.0
 _DIGEST_POLL_CEILING_S: Final[float] = 90.0
 _DIGEST_POLL_INTERVAL_S: Final[float] = 3.0
+
+# UBI judgment-list poll ceiling (Story 2.3 / FR-4). Mirrors the LLM
+# study/digest budget — the UBI worker runs on the same Arq queue and
+# the synthetic event count caps at ~640 per scenario (rung_3), so a
+# 180s ceiling is a wide safety margin.
+_UBI_JLIST_POLL_CEILING_S: Final[float] = 180.0
+_UBI_JLIST_POLL_INTERVAL_S: Final[float] = 3.0
 
 
 # Rich scenario constants — mirror
@@ -598,6 +610,51 @@ async def _create_acme_swap_template(
     )
 
 
+async def _poll_judgment_list_until_terminal(
+    api_client: httpx.AsyncClient,
+    judgment_list_id: str,
+    *,
+    slug: str,
+    ceiling_s: float = _UBI_JLIST_POLL_CEILING_S,
+    interval_s: float = _UBI_JLIST_POLL_INTERVAL_S,
+) -> dict[str, Any]:
+    """Poll ``GET /api/v1/judgment-lists/{id}`` until terminal.
+
+    Returns the final detail body on ``status == "complete"``. Raises
+    :class:`DemoSeedingError` on ``status == "failed"`` (includes the
+    ``failed_reason`` from the row) or on the ``ceiling_s`` timeout.
+
+    Mirrors the shape of the study-poll loop inside
+    :func:`_seed_real_study_for_scenario` but inlined here since the
+    UBI list status is a distinct enum (``generating | complete |
+    failed`` per the DB CHECK at
+    ``backend/app/db/models/judgment_list.py:37``) and the failure
+    message format is UBI-flavored for operator clarity.
+    """
+    deadline = time.monotonic() + ceiling_s
+    detail: dict[str, Any] = {}
+    while time.monotonic() < deadline:
+        detail = await _get(
+            api_client,
+            f"/api/v1/judgment-lists/{judgment_list_id}",
+            client_label="api",
+            step=f"{slug}/poll_ubi_jlist",
+        )
+        status = detail.get("status")
+        if status == "complete":
+            return detail
+        if status == "failed":
+            raise DemoSeedingError(
+                f"ubi_judgments/{slug}: failed "
+                f"({detail.get('failed_reason') or 'no failed_reason set'})"
+            )
+        await asyncio.sleep(interval_s)
+    raise DemoSeedingError(
+        f"ubi_judgments/{slug}: poll ceiling {ceiling_s}s exceeded "
+        f"(last status={detail.get('status')!r})"
+    )
+
+
 async def _seed_real_study_for_scenario(
     api_client: httpx.AsyncClient,
     *,
@@ -608,6 +665,8 @@ async def _seed_real_study_for_scenario(
     judgment_list_id: str,
     status_callback: StatusCallback,
     progress: ReseedStatusResponse,
+    study_name_override: str | None = None,
+    create_swap_template: bool = True,
 ) -> str:
     """Real study create + poll + digest wait for one scenario.
 
@@ -631,18 +690,29 @@ async def _seed_real_study_for_scenario(
             :class:`ReseedStatusResponse`.
         progress: mutable status payload the caller threads through every
             scenario. This function updates ``current_step`` in-place.
+        study_name_override: when set (e.g., Story 2.3 / FR-9 dual-study
+            seeding), use this instead of ``scenario["study_name"]`` as
+            the new study's ``name``. The orchestrator already disambiguates
+            with ``(LLM)`` / ``(UBI)`` suffixes; this lets the second call
+            avoid colliding with the first by passing a distinct name.
+        create_swap_template: when ``False``, skip the acme-only swap-
+            template POST. The dual-study path (FR-9) calls this function
+            twice for acme — the swap template must only be created on
+            the LLM call to avoid a duplicate-name 4xx on the UBI call.
 
     Returns:
         The new study's id (UUIDv7 string).
     """
     slug = cast("str", scenario["slug"])
     declared_params = cast("dict[str, str]", scenario["template_declared_params"])
-    study_name = cast("str", scenario["study_name"])
+    study_name = study_name_override or cast("str", scenario["study_name"])
     target = cast("str", scenario["target"])
     engine_type = cast("str", scenario["engine_type"])
 
     # Acme-specific swap template (per CLI line 714 / D-6 follow-through).
-    if slug == "acme-products-prod":
+    # Skipped on the UBI re-entry (FR-9) — the swap template was already
+    # created on the LLM pass; creating it twice 4xxs on the unique name.
+    if slug == "acme-products-prod" and create_swap_template:
         progress.current_step = f"{slug}: creating swap-template candidate"
         await status_callback(progress)
         await _create_acme_swap_template(
@@ -1097,6 +1167,19 @@ async def reseed_demo_state(
     handler's job (FR-3).
     """
     started_at = time.monotonic()
+    # Wall-clock anchor for the synthetic UBI generator (Story 2.2 / FR-3).
+    # `seed_anchor_iso` is the orchestrator's start instant; the synthetic
+    # generator builds events in `[seed_anchor - 60s, seed_anchor]` so the
+    # UBI judgment dispatcher's `since/until` window (Story 2.3) captures
+    # every row deterministically. `time.monotonic()` is unaffected by
+    # wall-clock jumps; for the ISO timestamp we use `datetime.now(UTC)`.
+    started_at_dt = datetime.now(UTC)
+    seed_anchor_iso = started_at_dt.isoformat()
+    # Per-invocation gate so `ensure_ubi_indices` runs at most once across
+    # the scenario loop. Local (NOT module-level) because the cleanup pass
+    # DELETEs both ubi_queries + ubi_events at start of every reseed —
+    # caching across invocations would skip the PUT on the second reseed.
+    ubi_indices_ready: bool = False
     # scenarios_total counts the 4 small SCENARIOS + the rich ESCI scenario
     # (matches the CLI's 5-study output from ``make seed-demo``).
     progress = ReseedStatusResponse(
@@ -1267,6 +1350,78 @@ async def reseed_demo_state(
                 )
             qid_by_idx.append(qtext_to_id[q_text])
 
+        # 2f.5. Synthetic UBI seeding (Story 2.2 / FR-3, FR-4).
+        # For UBI-enabled scenarios (SCENARIOS' new `ubi_target_rung` /
+        # `ubi_converter` keys, Story 2.1 / FR-8): ensure both indices
+        # exist (once per reseed), generate synthetic queries + events
+        # via the pure-domain generator, and bulk-write through the
+        # allowlisted helper. Runs BEFORE the LLM judgments import so a
+        # UBI-seeding failure surfaces before more downstream work
+        # commits — same posture the LLM dispatch helper uses.
+        ubi_target_rung_raw = scenario.get("ubi_target_rung")
+        if ubi_target_rung_raw is not None:
+            ubi_target_rung = cast("UbiRung", ubi_target_rung_raw)
+            # Wrap the whole UBI-seed block so any DemoUbiSeedError (engine
+            # bulk-write failure) or ValueError (allowlist guard) surfaces
+            # as DemoSeedingError("ubi_seed/{slug}: ...") — the failure
+            # contract the spec's §6 failure catalog promises + the prefix
+            # the route handler's 503 SEED_FAILED path expects. Without the
+            # wrap the raw DemoUbiSeedError/ValueError still 503s (the
+            # handler catches Exception), but the operator loses the
+            # ubi_seed/{slug} attribution. Per GPT-5.5 final review on PR #320.
+            try:
+                if not ubi_indices_ready:
+                    await ensure_ubi_indices(
+                        engine_client=engine_client,
+                        engine_base_url=engine_base,
+                        host_auth=host_auth,
+                    )
+                    ubi_indices_ready = True
+                query_id_by_index: dict[int, str] = dict(enumerate(qid_by_idx))
+                query_text_by_index: dict[int, str] = {
+                    i: cast("str", q["query_text"]) for i, q in enumerate(scenario_queries)
+                }
+                ubi_queries, ubi_events = fabricate_ubi_for_scenario(
+                    scenario_judgments_map=scenario_judgments_map,
+                    query_id_by_index=query_id_by_index,
+                    query_text_by_index=query_text_by_index,
+                    target_application=target,
+                    target_rung=ubi_target_rung,
+                    seed_anchor_iso=seed_anchor_iso,
+                )
+                progress.current_step = (
+                    f"{slug}: writing synthetic UBI ({ubi_target_rung}, {len(ubi_events)} events)"
+                )
+                await status_callback(progress)
+                ubi_seed_started = time.monotonic()
+                logger.info(
+                    "demo_reseed_ubi_seed_started",
+                    extra={
+                        "slug": slug,
+                        "rung": ubi_target_rung,
+                        "event_count_target": len(ubi_events),
+                    },
+                )
+                event_count = await seed_synthetic_ubi(
+                    engine_client=engine_client,
+                    engine_base_url=engine_base,
+                    host_auth=host_auth,
+                    scenario_slug=slug,
+                    target_application=target,
+                    queries=ubi_queries,
+                    events=ubi_events,
+                )
+            except (DemoUbiSeedError, ValueError) as exc:
+                raise DemoSeedingError(f"ubi_seed/{slug}: {exc}") from exc
+            logger.info(
+                "demo_reseed_ubi_seed_complete",
+                extra={
+                    "slug": slug,
+                    "event_count": event_count,
+                    "duration_ms": int((time.monotonic() - ubi_seed_started) * 1000),
+                },
+            )
+
         progress.current_step = f"{slug}: importing {len(scenario_judgments_map)} judgments"
         await status_callback(progress)
 
@@ -1295,7 +1450,7 @@ async def reseed_demo_state(
         )
         jlist_id: str = jlist["id"]
 
-        # 2h. API: REAL study create + poll + digest wait.
+        # 2h. API: REAL study create + poll + digest wait (LLM-grade study).
         #
         # Previously called /_test/studies/seed-completed which hardcoded
         # best_metric=0.487 for every scenario. The CLI's
@@ -1304,7 +1459,16 @@ async def reseed_demo_state(
         # that produced the bug surfaced as
         # ``bug_demo_reseed_fake_metric_regression``. Now matches the CLI
         # byte-for-byte so home-button reseed === ``make seed-demo`` output.
-        study_id = await _seed_real_study_for_scenario(
+        #
+        # For UBI-enabled scenarios (Story 2.3 / FR-9), the study is
+        # disambiguated up front with " (LLM)" so the rename loop (step
+        # 3) doesn't have to special-case it; non-UBI scenarios keep the
+        # bare study_name from SCENARIOS.
+        base_study_name: str = cast("str", scenario["study_name"])
+        llm_study_name: str = (
+            f"{base_study_name} (LLM)" if ubi_target_rung_raw is not None else base_study_name
+        )
+        llm_study_id = await _seed_real_study_for_scenario(
             api_client,
             scenario=scenario,
             cluster_id=cluster_id,
@@ -1313,9 +1477,89 @@ async def reseed_demo_state(
             judgment_list_id=jlist_id,
             status_callback=status_callback,
             progress=progress,
+            study_name_override=llm_study_name,
         )
-        study_name: str = cast("str", scenario["study_name"])
-        results.append((slug, study_id, study_name))
+        results.append((slug, llm_study_id, llm_study_name))
+
+        # 2i. UBI dispatch + dual study (Story 2.3 / FR-4, FR-9).
+        if ubi_target_rung_raw is not None:
+            ubi_converter = cast("str", scenario["ubi_converter"])
+            ubi_jlist_name = f"{cast('str', scenario['judgment_list_name'])} (UBI)"
+            # `since`/`until` MUST bracket the synthetic events the
+            # generator wrote in [seed_anchor - 60s, seed_anchor]. The
+            # dispatcher persists this exact window into
+            # generation_params so the worker's resume payload is
+            # reproducible (FR-4 spec lock).
+            ubi_dispatch_body: dict[str, Any] = {
+                "name": ubi_jlist_name,
+                "query_set_id": qset_id,
+                "cluster_id": cluster_id,
+                "target": target,
+                "since": (started_at_dt - timedelta(seconds=60)).isoformat(),
+                "until": started_at_dt.isoformat(),
+                "converter": ubi_converter,
+                "mapping_strategy": "reject",
+            }
+            if ubi_converter == "hybrid_ubi_llm":
+                # CreateJudgmentListFromUbiRequest's @model_validator
+                # REQUIRES current_template_id + rubric for hybrid and
+                # FORBIDS them otherwise.
+                ubi_dispatch_body["current_template_id"] = template_id
+                ubi_dispatch_body["rubric"] = scenario["rubric"]
+
+            progress.current_step = f"{slug}: dispatching UBI judgment generation ({ubi_converter})"
+            await status_callback(progress)
+            logger.info(
+                "demo_reseed_ubi_judgment_dispatch_started",
+                extra={"slug": slug, "converter": ubi_converter},
+            )
+            dispatch_resp = await _post(
+                api_client,
+                "/api/v1/judgments/generate-from-ubi",
+                json=ubi_dispatch_body,
+                client_label="api",
+                step=f"{slug}/dispatch_ubi_judgments",
+            )
+            ubi_jlist_id: str = cast("str", dispatch_resp["judgment_list_id"])
+
+            progress.current_step = (
+                f"{slug}: polling UBI judgment list {ubi_jlist_id[:8]} for completion"
+            )
+            await status_callback(progress)
+            await _poll_judgment_list_until_terminal(api_client, ubi_jlist_id, slug=slug)
+
+            # Second study seed against the UBI judgment list. Same
+            # template/qset/cluster/search_space/seed=42/max_trials=12 —
+            # only the judgment_list_id differs. Skip the acme swap-
+            # template creation: it was already done on the LLM pass.
+            ubi_study_name = f"{base_study_name} (UBI)"
+            progress.current_step = (
+                f"{slug}: creating UBI study (max_trials={_REAL_STUDY_MAX_TRIALS})"
+            )
+            await status_callback(progress)
+            ubi_study_started = time.monotonic()
+            ubi_study_id = await _seed_real_study_for_scenario(
+                api_client,
+                scenario=scenario,
+                cluster_id=cluster_id,
+                template_id=template_id,
+                qset_id=qset_id,
+                judgment_list_id=ubi_jlist_id,
+                status_callback=status_callback,
+                progress=progress,
+                study_name_override=ubi_study_name,
+                create_swap_template=False,
+            )
+            results.append((slug, ubi_study_id, ubi_study_name))
+            logger.info(
+                "demo_reseed_ubi_study_complete",
+                extra={
+                    "slug": slug,
+                    "study_id": ubi_study_id,
+                    "duration_ms": int((time.monotonic() - ubi_study_started) * 1000),
+                },
+            )
+
         progress.scenarios_completed += 1
         await status_callback(progress)
 
@@ -1354,12 +1598,19 @@ async def reseed_demo_state(
 
     # ---- Step 4: build summary + mark status complete. ----
     duration_ms = int((time.monotonic() - started_at) * 1000)
-    studies_seeded = len(SCENARIOS) + (1 if rich_study_id is not None else 0)
+    # One cluster + one query set per SCENARIOS entry (+1 for rich) —
+    # the UBI re-entry (Story 2.3) reuses the same cluster + query set,
+    # so the cluster / query-set counts stay at the SCENARIOS cardinality.
+    # Studies and proposals scale with `results` (each entry is one
+    # completed study + one digest + one proposal).
+    rich_count = 1 if rich_study_id is not None else 0
+    clusters_and_qsets = len(SCENARIOS) + rich_count
+    studies_and_proposals = len(results) + rich_count
     summary = ReseedSummary(
-        clusters_created=studies_seeded,
-        query_sets_created=studies_seeded,
-        studies_completed=studies_seeded,
-        proposals_created=studies_seeded,
+        clusters_created=clusters_and_qsets,
+        query_sets_created=clusters_and_qsets,
+        studies_completed=studies_and_proposals,
+        proposals_created=studies_and_proposals,
         duration_ms=duration_ms,
     )
     progress.status = "complete"

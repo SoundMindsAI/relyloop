@@ -540,6 +540,15 @@ export const glossary = {
     ].join('\n'),
     ariaLabel: 'More information about UBI readiness rungs',
   },
+  // Source-of-truth: backend/app/services/demo_ubi_seed.py
+  // DEMO_UBI_SCENARIO_ALLOWLIST + ui/src/lib/demo-data.ts
+  // DEMO_SYNTHETIC_UBI_CLUSTER_SLUGS (feat_demo_ubi_study_comparison
+  // Story 3.1 / FR-7).
+  ubi_synthetic_demo_data: {
+    short:
+      'This UBI data was fabricated by the demo reseed to demonstrate the UBI path; it is not real user behavior.',
+    ariaLabel: 'More information about synthetic demo UBI data',
+  },
 
   // -------------------------------------------------------------------------
   // Phase 2 — Proposals

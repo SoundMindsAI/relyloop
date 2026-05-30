@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { UbiOnrampNudge } from '@/components/clusters/ubi-onramp-nudge';
+import { DemoBadge } from '@/components/common/demo-badge';
 import { EntitySelect } from '@/components/common/entity-select';
 import { HelpPopover } from '@/components/common/help-popover';
 import { UbiSparseDataCard } from '@/components/query-sets/ubi-sparse-data-card';
@@ -30,7 +31,18 @@ import { useCluster } from '@/lib/api/clusters';
 import { useGenerateJudgments } from '@/lib/api/judgments';
 import { useTemplates } from '@/lib/api/query-templates';
 import { useGenerateJudgmentsFromUbi, useUbiReadiness } from '@/lib/api/ubi';
+import { isDemoSyntheticUbiClusterName } from '@/lib/demo-data';
 import { JUDGMENT_GENERATION_METHOD_VALUES, type JudgmentGenerationMethod } from '@/lib/enums';
+
+// UBI converter methods — values must match
+// backend/app/api/v1/schemas.py UbiConverterKind (mirrored in
+// JUDGMENT_GENERATION_METHOD_VALUES). Used to gate the synthetic-data
+// chip on UBI options only (the LLM option never shows the chip).
+const UBI_METHODS: ReadonlySet<JudgmentGenerationMethod> = new Set([
+  'ctr_threshold',
+  'dwell_time',
+  'hybrid_ubi_llm',
+]);
 
 interface GenerateFormValues {
   name: string;
@@ -275,11 +287,29 @@ export function GenerateJudgmentsDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {JUDGMENT_GENERATION_METHOD_VALUES.map((method) => (
-                  <SelectItem key={method} value={method}>
-                    {METHOD_LABELS[method]}
-                  </SelectItem>
-                ))}
+                {JUDGMENT_GENERATION_METHOD_VALUES.map((method) => {
+                  const showSyntheticUbiChip =
+                    UBI_METHODS.has(method) &&
+                    cluster.data !== undefined &&
+                    isDemoSyntheticUbiClusterName(cluster.data.name);
+                  return (
+                    <SelectItem key={method} value={method}>
+                      <span className="inline-flex items-center">
+                        {METHOD_LABELS[method]}
+                        {showSyntheticUbiChip && (
+                          // tabIndex={-1}: Radix <SelectItem> is already
+                          // keyboard-navigable; nesting a focusable chip
+                          // inside it disrupts the dropdown's listbox
+                          // semantics (WAI-ARIA). The chip stays
+                          // visually present + screen-reader-announced
+                          // via aria-label. Per Gemini Code Assist
+                          // review on PR #320.
+                          <DemoBadge variant="synthetic-ubi" tabIndex={-1} />
+                        )}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

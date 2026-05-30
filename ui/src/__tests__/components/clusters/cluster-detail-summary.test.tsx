@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 import { ClusterDetailSummary } from '@/components/clusters/cluster-detail-summary';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { ClusterDetail } from '@/lib/api/clusters';
 
 const BASE_CLUSTER: ClusterDetail = {
@@ -30,17 +31,54 @@ const BASE_CLUSTER: ClusterDetail = {
 
 describe('ClusterDetailSummary — target_filter', () => {
   it('renders the glob value when set', () => {
-    render(<ClusterDetailSummary cluster={{ ...BASE_CLUSTER, target_filter: 'products*' }} />);
+    render(
+      <TooltipProvider>
+        <ClusterDetailSummary cluster={{ ...BASE_CLUSTER, target_filter: 'products*' }} />
+      </TooltipProvider>,
+    );
     expect(screen.getByText('Target filter')).toBeInTheDocument();
     expect(screen.getByText('products*')).toBeInTheDocument();
   });
 
   it('renders an em-dash placeholder when null', () => {
-    render(<ClusterDetailSummary cluster={BASE_CLUSTER} />);
+    render(
+      <TooltipProvider>
+        <ClusterDetailSummary cluster={BASE_CLUSTER} />
+      </TooltipProvider>,
+    );
     expect(screen.getByText('Target filter')).toBeInTheDocument();
     // The dd contains a muted "—" span when target_filter is null.
     const targetFilterLabel = screen.getByText('Target filter');
     const dd = targetFilterLabel.parentElement?.querySelector('dd');
     expect(dd?.textContent).toBe('—');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Story 3.2 / FR-7 — synthetic-data chip on cluster detail (surface #3)
+// ---------------------------------------------------------------------------
+
+function renderWithTooltip(cluster: ClusterDetail) {
+  return render(
+    <TooltipProvider>
+      <ClusterDetailSummary cluster={cluster} />
+    </TooltipProvider>,
+  );
+}
+
+describe('ClusterDetailSummary — synthetic-data chip (FR-7 surface #3)', () => {
+  it('shows the chip when cluster is a synthetic-UBI demo (acme)', () => {
+    renderWithTooltip({ ...BASE_CLUSTER, name: 'acme-products-prod' });
+    expect(screen.getByTestId('demo-badge-synthetic-ubi')).toBeInTheDocument();
+  });
+
+  it('does NOT show the chip on news-search-staging (demo cluster, no synthetic UBI)', () => {
+    renderWithTooltip({ ...BASE_CLUSTER, name: 'news-search-staging' });
+    expect(screen.queryByTestId('demo-badge-synthetic-ubi')).not.toBeInTheDocument();
+  });
+
+  it('does NOT show the chip on a production (non-demo) cluster', () => {
+    renderWithTooltip({ ...BASE_CLUSTER, name: 'production-real-cluster' });
+    expect(screen.queryByTestId('demo-badge-synthetic-ubi')).not.toBeInTheDocument();
   });
 });

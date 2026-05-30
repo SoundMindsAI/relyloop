@@ -16,36 +16,32 @@
  * fields, date for `timestamp`) so the UbiReader's `term`/`range` filters
  * match deterministically — auto-mapped `text` fields would make
  * `{"term": {"application": target}}` brittle.
+ *
+ * Canonical mappings live in `samples/ubi_index_mappings.json` per
+ * feat_demo_ubi_study_comparison FR-1 (the Python synthetic-UBI generator
+ * loads the same file). A round-trip unit test at
+ * `backend/tests/unit/services/test_demo_ubi_seed.py::
+ * test_mapping_file_round_trips_to_seed_ubi_helper_shape` pins the JSON
+ * shape against the prior inline shape so neither side can silently drift.
  */
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 const ES_BASE = process.env.PLAYWRIGHT_ES_BASE_URL ?? 'http://127.0.0.1:9200';
 
 const UBI_QUERIES_INDEX = 'ubi_queries';
 const UBI_EVENTS_INDEX = 'ubi_events';
 
-const UBI_QUERIES_MAPPING = {
-  mappings: {
-    properties: {
-      query_id: { type: 'keyword' },
-      user_query: { type: 'text', fields: { keyword: { type: 'keyword' } } },
-      application: { type: 'keyword' },
-      timestamp: { type: 'date' },
-    },
-  },
-};
+// Repo-root-relative path. Playwright runs from the `ui/` working directory
+// (see `ui/playwright.config.ts`), so the JSON file is one level up.
+const _MAPPINGS_PATH = resolve(process.cwd(), '..', 'samples', 'ubi_index_mappings.json');
+const _MAPPINGS = JSON.parse(readFileSync(_MAPPINGS_PATH, 'utf8')) as Record<
+  'ubi_queries' | 'ubi_events',
+  { mappings: { properties: Record<string, unknown> } }
+>;
 
-const UBI_EVENTS_MAPPING = {
-  mappings: {
-    properties: {
-      query_id: { type: 'keyword' },
-      action_name: { type: 'keyword' },
-      object_id: { type: 'keyword' },
-      application: { type: 'keyword' },
-      position: { type: 'integer' },
-      dwell_seconds: { type: 'float' },
-      timestamp: { type: 'date' },
-    },
-  },
-};
+const UBI_QUERIES_MAPPING = _MAPPINGS.ubi_queries;
+const UBI_EVENTS_MAPPING = _MAPPINGS.ubi_events;
 
 async function deleteIndex(index: string): Promise<void> {
   // Tolerate 404 (index may not exist yet).

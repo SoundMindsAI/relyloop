@@ -132,6 +132,13 @@ export function DemoDataBanner(): React.ReactElement | null {
           ))}
           {copy.suffix}
         </p>
+        <p
+          className="text-sm text-muted-foreground"
+          data-testid="demo-data-banner-synthetic-ubi-prose"
+        >
+          Three demo clusters include simulated UBI clickstream so the UBI judgment + study path is
+          visible end-to-end.
+        </p>
         <div className="flex items-center gap-3">
           <Link
             href="/studies"
