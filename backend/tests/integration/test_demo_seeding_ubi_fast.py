@@ -232,3 +232,57 @@ def test_demo_ubi_seed_error_is_runtime_error_subclass() -> None:
     """DemoUbiSeedError must remain a RuntimeError subclass so the route
     handler's existing 503 SEED_FAILED catch-all path continues to handle it."""
     assert issubclass(DemoUbiSeedError, RuntimeError)
+
+
+@pytest.mark.asyncio
+async def test_poll_judgment_list_failed_raises_demo_seeding_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-9 (Story 4.2 DoD): a UBI judgment list reaching ``status='failed'``
+    mid-poll surfaces as ``DemoSeedingError("ubi_judgments/{slug}: failed ...")``.
+
+    Tests the poll helper in isolation (no full reseed, no live stack) by
+    monkeypatching the module-level ``_get`` to return a ``failed`` detail.
+    Lives in the fast lane so the AC-9 contract is always-on rather than
+    gated behind the 13-19-minute heavy-lane reseed.
+    """
+    from backend.app.services import demo_seeding
+
+    async def _fake_get(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return {"status": "failed", "failed_reason": "injected UBI worker failure"}
+
+    monkeypatch.setattr(demo_seeding, "_get", _fake_get)
+
+    with pytest.raises(
+        demo_seeding.DemoSeedingError, match=r"ubi_judgments/acme-products-prod: failed"
+    ):
+        await demo_seeding._poll_judgment_list_until_terminal(
+            None,  # type: ignore[arg-type]  # api_client unused — _get is patched
+            "jlist-injected",
+            slug="acme-products-prod",
+            ceiling_s=5.0,
+            interval_s=0.1,
+        )
+
+
+@pytest.mark.asyncio
+async def test_poll_judgment_list_timeout_raises_demo_seeding_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-9 sibling: a UBI list stuck in ``generating`` past the poll ceiling
+    raises ``DemoSeedingError`` with the poll-ceiling message (not a hang)."""
+    from backend.app.services import demo_seeding
+
+    async def _fake_get(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return {"status": "generating"}
+
+    monkeypatch.setattr(demo_seeding, "_get", _fake_get)
+
+    with pytest.raises(demo_seeding.DemoSeedingError, match=r"poll ceiling"):
+        await demo_seeding._poll_judgment_list_until_terminal(
+            None,  # type: ignore[arg-type]
+            "jlist-stuck",
+            slug="corp-docs-search",
+            ceiling_s=0.3,
+            interval_s=0.1,
+        )

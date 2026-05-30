@@ -705,6 +705,12 @@ async def _async_seed_synthetic_ubi(
             engine_client=client,
             engine_base_url=engine_base_url,
             host_auth=host_auth,
+            # CLI runs on the HOST — the in-container default
+            # /app/samples/ubi_index_mappings.json does not exist here.
+            # Resolve the repo-root samples/ path instead (GPT-5.5 final
+            # review on PR #320). The home-button reseed runs inside the
+            # api container where the in-container default is correct.
+            mapping_path=SAMPLES_DIR / "ubi_index_mappings.json",
         )
         return await seed_synthetic_ubi(
             engine_client=client,

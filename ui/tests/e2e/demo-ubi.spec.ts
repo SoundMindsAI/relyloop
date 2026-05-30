@@ -113,9 +113,7 @@ test.describe('demo-ubi surfaces (FR-7 + FR-12)', () => {
     // Trigger the reseed. The endpoint returns 202 (job enqueued) and
     // the worker drives the orchestrator; status flows through
     // GET /api/v1/_test/demo/reseed/status.
-    const startResp = await request.post(
-      new URL('/api/v1/_test/demo/reseed', API_BASE).toString(),
-    );
+    const startResp = await request.post(new URL('/api/v1/_test/demo/reseed', API_BASE).toString());
     if (!startResp.ok() && startResp.status() !== 409) {
       // 409 = already running; tolerate so we can poll the in-flight run.
       throw new Error(`POST /demo/reseed returned HTTP ${startResp.status()}`);
@@ -143,19 +141,20 @@ test.describe('demo-ubi surfaces (FR-7 + FR-12)', () => {
     );
   });
 
-  test('FR-7 surface #3: acme cluster detail shows rung_3 badge + synthetic-data chip', async ({
+  test('FR-7 surface #3: acme cluster detail shows the synthetic-data chip', async ({
     page,
     request,
   }) => {
     const acme = await discoverClusterByName(request, 'acme-products-prod');
     await page.goto(`/clusters/${acme.id}`);
-    // UbiRungBadge presence; the badge component exposes a stable testid.
-    await expect(page.getByTestId('ubi-rung-badge')).toContainText('rung_3', {
-      timeout: 15_000,
-    });
-    // Synthetic-data chip is visible adjacent to the badge.
+    // NB: the cluster detail page does NOT render <UbiRungBadge> — that
+    // badge needs query_set_id + target context it only has inside the
+    // generate-judgments dialog (see ubi-rung-badge.tsx docstring). The
+    // chip is gated purely on isDemoSyntheticUbiClusterName(cluster.name)
+    // and renders next to the cluster name. Wiring a rung badge onto the
+    // cluster detail page is tracked for phase 2 (see phase2_idea.md).
     await expect(page.getByTestId('demo-badge-synthetic-ubi').first()).toBeVisible({
-      timeout: 5_000,
+      timeout: 15_000,
     });
   });
 
@@ -181,6 +180,14 @@ test.describe('demo-ubi surfaces (FR-7 + FR-12)', () => {
     // "UBI (click-through)" per METHOD_LABELS.
     await expect(page.getByTestId('gen-method')).toContainText('UBI (click-through)', {
       timeout: 10_000,
+    });
+
+    // Open the picker (Radix Select trigger) so the UBI options + their
+    // synthetic-data chips render, then assert at least one chip is
+    // visible next to a UBI option (FR-7 surface #1).
+    await page.getByTestId('gen-method').click();
+    await expect(page.getByTestId('demo-badge-synthetic-ubi').first()).toBeVisible({
+      timeout: 5_000,
     });
   });
 
@@ -211,26 +218,41 @@ test.describe('demo-ubi surfaces (FR-7 + FR-12)', () => {
     });
   });
 
-  test('Negative case: news-search-staging shows rung_0 + on-ramp nudge + NO synthetic chip', async ({
+  test('Negative case: news-search-staging never shows the synthetic-data chip', async ({
     page,
     request,
   }) => {
+    // news-search-staging is a demo cluster but carries NO synthetic UBI
+    // (rung_0). The chip MUST NOT appear on any of its surfaces — this is
+    // the highest-correctness-value assertion in the spec. rung_0 + the
+    // on-ramp nudge are verified separately in ubi-onramp-rung-0.spec.ts
+    // (which drives the dialog where the rung badge + nudge actually
+    // render).
     const news = await discoverClusterByName(request, 'news-search-staging');
+
+    // (a) Cluster detail page — no chip next to the cluster name.
     await page.goto(`/clusters/${news.id}`);
-    await expect(page.getByTestId('ubi-rung-badge')).toContainText('rung_0', {
+    await expect(
+      page.getByTestId('cluster-detail-summary').or(page.getByText('news-search-staging')).first(),
+    ).toBeVisible({
       timeout: 15_000,
     });
-    // The on-ramp nudge appears at rung_0. Different test files use
-    // different testids — accept either the dialog-side or page-side.
-    await expect(
-      page
-        .getByTestId('ubi-onramp-nudge')
-        .or(page.getByText(/install the UBI plugin/i))
-        .first(),
-    ).toBeVisible({ timeout: 5_000 });
-    // The synthetic-data chip MUST NOT appear on news-search-staging
-    // (the negative case is the highest-correctness-value assertion in
-    // this spec).
+    await expect(page.getByTestId('demo-badge-synthetic-ubi')).toHaveCount(0);
+
+    // (b) Generate-judgments dialog method picker — UBI options exist but
+    // get no chip because news is not a synthetic-UBI demo cluster.
+    const qsResp = await request.get(
+      new URL(`/api/v1/query-sets?cluster_id=${news.id}&limit=10`, API_BASE).toString(),
+    );
+    expect(qsResp.ok()).toBeTruthy();
+    const qsBody = (await qsResp.json()) as { data: { id: string }[] };
+    const qsId = qsBody.data[0]?.id;
+    expect(qsId).toBeDefined();
+
+    await page.goto(`/query-sets/${qsId}`);
+    await page.getByTestId('open-generate-judgments').click();
+    await expect(page.getByTestId('generate-form')).toBeVisible({ timeout: 5_000 });
+    await page.getByTestId('gen-method').click();
     await expect(page.getByTestId('demo-badge-synthetic-ubi')).toHaveCount(0);
   });
 });

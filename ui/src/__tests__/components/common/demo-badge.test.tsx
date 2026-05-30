@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { DemoBadge } from '@/components/common/demo-badge';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { glossary } from '@/lib/glossary';
 
 const TOOLTIP_TEXT =
   "Pre-loaded by 'make up' or 'make seed-demo'. Has realistic queries + judgments + a winning study. Safe to delete with 'make seed-demo FORCE=1' to start over.";
@@ -111,5 +112,15 @@ describe('<DemoBadge variant="synthetic-ubi" />', () => {
 
     const tooltipContent = await screen.findAllByText(SYNTHETIC_UBI_TOOLTIP);
     expect(tooltipContent.length).toBeGreaterThan(0);
+  });
+
+  it('tooltip text matches the ubi_synthetic_demo_data glossary entry (drift guard)', () => {
+    // The DemoBadge inlines the tooltip string for hook-free rendering;
+    // this guard fails the moment it drifts from the glossary source of
+    // truth so the two can never silently diverge (GPT-5.5 final review
+    // on PR #320, finding 6).
+    const entry = glossary.ubi_synthetic_demo_data;
+    const glossaryText = 'short' in entry ? entry.short : undefined;
+    expect(glossaryText).toBe(SYNTHETIC_UBI_TOOLTIP);
   });
 });

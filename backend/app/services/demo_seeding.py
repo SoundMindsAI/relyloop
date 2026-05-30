@@ -46,6 +46,7 @@ from backend.app.domain.demo.synthetic_ubi import (
     fabricate_ubi_for_scenario,
 )
 from backend.app.services.demo_ubi_seed import (
+    DemoUbiSeedError,
     ensure_ubi_indices,
     seed_synthetic_ubi,
 )
@@ -1360,47 +1361,58 @@ async def reseed_demo_state(
         ubi_target_rung_raw = scenario.get("ubi_target_rung")
         if ubi_target_rung_raw is not None:
             ubi_target_rung = cast("UbiRung", ubi_target_rung_raw)
-            if not ubi_indices_ready:
-                await ensure_ubi_indices(
+            # Wrap the whole UBI-seed block so any DemoUbiSeedError (engine
+            # bulk-write failure) or ValueError (allowlist guard) surfaces
+            # as DemoSeedingError("ubi_seed/{slug}: ...") — the failure
+            # contract the spec's §6 failure catalog promises + the prefix
+            # the route handler's 503 SEED_FAILED path expects. Without the
+            # wrap the raw DemoUbiSeedError/ValueError still 503s (the
+            # handler catches Exception), but the operator loses the
+            # ubi_seed/{slug} attribution. Per GPT-5.5 final review on PR #320.
+            try:
+                if not ubi_indices_ready:
+                    await ensure_ubi_indices(
+                        engine_client=engine_client,
+                        engine_base_url=engine_base,
+                        host_auth=host_auth,
+                    )
+                    ubi_indices_ready = True
+                query_id_by_index: dict[int, str] = dict(enumerate(qid_by_idx))
+                query_text_by_index: dict[int, str] = {
+                    i: cast("str", q["query_text"]) for i, q in enumerate(scenario_queries)
+                }
+                ubi_queries, ubi_events = fabricate_ubi_for_scenario(
+                    scenario_judgments_map=scenario_judgments_map,
+                    query_id_by_index=query_id_by_index,
+                    query_text_by_index=query_text_by_index,
+                    target_application=target,
+                    target_rung=ubi_target_rung,
+                    seed_anchor_iso=seed_anchor_iso,
+                )
+                progress.current_step = (
+                    f"{slug}: writing synthetic UBI ({ubi_target_rung}, {len(ubi_events)} events)"
+                )
+                await status_callback(progress)
+                ubi_seed_started = time.monotonic()
+                logger.info(
+                    "demo_reseed_ubi_seed_started",
+                    extra={
+                        "slug": slug,
+                        "rung": ubi_target_rung,
+                        "event_count_target": len(ubi_events),
+                    },
+                )
+                event_count = await seed_synthetic_ubi(
                     engine_client=engine_client,
                     engine_base_url=engine_base,
                     host_auth=host_auth,
+                    scenario_slug=slug,
+                    target_application=target,
+                    queries=ubi_queries,
+                    events=ubi_events,
                 )
-                ubi_indices_ready = True
-            query_id_by_index: dict[int, str] = dict(enumerate(qid_by_idx))
-            query_text_by_index: dict[int, str] = {
-                i: cast("str", q["query_text"]) for i, q in enumerate(scenario_queries)
-            }
-            ubi_queries, ubi_events = fabricate_ubi_for_scenario(
-                scenario_judgments_map=scenario_judgments_map,
-                query_id_by_index=query_id_by_index,
-                query_text_by_index=query_text_by_index,
-                target_application=target,
-                target_rung=ubi_target_rung,
-                seed_anchor_iso=seed_anchor_iso,
-            )
-            progress.current_step = (
-                f"{slug}: writing synthetic UBI ({ubi_target_rung}, {len(ubi_events)} events)"
-            )
-            await status_callback(progress)
-            ubi_seed_started = time.monotonic()
-            logger.info(
-                "demo_reseed_ubi_seed_started",
-                extra={
-                    "slug": slug,
-                    "rung": ubi_target_rung,
-                    "event_count_target": len(ubi_events),
-                },
-            )
-            event_count = await seed_synthetic_ubi(
-                engine_client=engine_client,
-                engine_base_url=engine_base,
-                host_auth=host_auth,
-                scenario_slug=slug,
-                target_application=target,
-                queries=ubi_queries,
-                events=ubi_events,
-            )
+            except (DemoUbiSeedError, ValueError) as exc:
+                raise DemoSeedingError(f"ubi_seed/{slug}: {exc}") from exc
             logger.info(
                 "demo_reseed_ubi_seed_complete",
                 extra={
