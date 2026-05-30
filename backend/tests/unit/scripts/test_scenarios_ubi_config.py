@@ -53,16 +53,17 @@ def test_invariant_converter_iff_target_rung() -> None:
         )
 
 
-def test_exactly_three_scenarios_have_ubi_config() -> None:
-    """D-2: acme + corp + jobs are UBI-enabled; news + rich are not.
+def test_exactly_four_scenarios_have_ubi_config() -> None:
+    """D-2 + Story A13: acme + corp + jobs + acme-kb-docs-solr are UBI-enabled;
+    news + rich are not.
 
     The rich scenario (seed_rich_scenario) is a separate function and
     not in SCENARIOS; only news here is the negative case among the
-    four small scenarios.
+    five small scenarios.
     """
     ubi_enabled = [s for s in SCENARIOS if s.get("ubi_target_rung") is not None]
-    assert len(ubi_enabled) == 3, (
-        f"Expected exactly 3 UBI-enabled SCENARIOS; "
+    assert len(ubi_enabled) == 4, (
+        f"Expected exactly 4 UBI-enabled SCENARIOS; "
         f"found {len(ubi_enabled)}: {[s['slug'] for s in ubi_enabled]}"
     )
 
@@ -98,6 +99,9 @@ def test_specific_d2_assignments() -> None:
         "acme-products-prod": ("rung_3", "ctr_threshold"),
         "corp-docs-search": ("rung_1", "hybrid_ubi_llm"),
         "jobs-marketplace-prod": ("rung_2", "hybrid_ubi_llm"),
+        # infra_adapter_solr Story A13: Solr KB scenario added, rung_2 +
+        # hybrid_ubi_llm per spec §19 recommendation.
+        "acme-kb-docs-solr": ("rung_2", "hybrid_ubi_llm"),
     }
     actual = {
         s["slug"]: (s["ubi_target_rung"], s["ubi_converter"])

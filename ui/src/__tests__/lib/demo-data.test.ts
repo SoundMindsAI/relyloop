@@ -12,17 +12,19 @@ import {
 } from '@/lib/demo-data';
 
 describe('DEMO_CLUSTER_SLUGS', () => {
-  it('contains exactly the 4 expected slugs in the documented order', () => {
+  it('contains exactly the 5 expected slugs in the documented order', () => {
     expect(DEMO_CLUSTER_SLUGS).toEqual([
       'acme-products-prod',
       'corp-docs-search',
       'news-search-staging',
       'jobs-marketplace-prod',
+      // infra_adapter_solr Story A13 adds the Solr KB scenario.
+      'acme-kb-docs-solr',
     ]);
   });
 
-  it('has length 4', () => {
-    expect(DEMO_CLUSTER_SLUGS).toHaveLength(4);
+  it('has length 5', () => {
+    expect(DEMO_CLUSTER_SLUGS).toHaveLength(5);
   });
 });
 
@@ -44,11 +46,14 @@ describe('isDemoClusterName', () => {
 });
 
 describe('DEMO_SYNTHETIC_UBI_CLUSTER_SLUGS', () => {
-  it('contains exactly the 3 expected slugs in the documented order', () => {
+  it('contains exactly the 4 expected slugs in the documented order', () => {
     expect(DEMO_SYNTHETIC_UBI_CLUSTER_SLUGS).toEqual([
       'acme-products-prod',
       'corp-docs-search',
       'jobs-marketplace-prod',
+      // infra_adapter_solr Story A13: Solr KB scenario gets UBI rung_2 +
+      // hybrid_ubi_llm per spec §19.
+      'acme-kb-docs-solr',
     ]);
   });
 
