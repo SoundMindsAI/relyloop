@@ -29,9 +29,18 @@
   - Cycle 1: 11 findings (5 High, 6 Medium). All 11 accepted + patched. Major: /reprobe error code → CREDENTIALS_INVALID; list_documents first page uses cursorMark=*; solr_host defaults to None; LTR_MODEL_NOT_FOUND covers run_query path too; search_batch uses uniqueKey not hardcoded "id".
   - Cycle 2: 9 findings (1 High + 8 lower). 8 accepted + patched. Major: health_check + list_query_parsers FULLY implemented in A1 (were stubbed); probe endpoints concretized; BasicAuth added to seed + smoke; security.json.template removed; /reprobe language "serialize safely" not "coalesce"; bare re-export (no DeprecationWarning).
   - Cycle 3: 5 findings (1 High + 4 lower). All 5 accepted + patched in-cycle (no cycle 4 per max-3 rule). Major: A10 adds checked-in Solr configset (`docker/solr/configsets/relyloop_products` + `relyloop_ubi`) so `make up` brings up Solr with `solr.UBIComponent` + LTR module pre-enabled — closes AC-1/AC-6/AC-7 capability gap.
-- Stories: 12 total in single epic (A1–A12). Per `mvp2-overview.md` Workstream A skeleton (A1–A10) plus 2 added by spec-level FRs (A8 document-browser; A9 /reprobe endpoint).
+- Stories: **13 total** in single epic (A1–A13). Workstream A skeleton (A1–A10) + A8 (document-browser) + A9 (/reprobe + /test-connection) + A13 (Solr demo scenario). Expanded 2026-05-30 per operator UX/demo/guide review (see below).
 - Phases covered: 1 of 1 (single-phase delivery per spec §3).
-- Test layers planned: unit (10 files), integration (13 files), contract (5 file extensions), E2E (1 new spec).
+- Test layers planned: unit (10 backend + 3 frontend), integration (15 files), contract (6 file extensions/new), E2E (1 new spec + Guide 01 spec extension).
+
+### 2026-05-30 scope expansion (operator-requested)
+
+After a parallel codebase audit of the demo, guide, and cluster-registration-UX systems, the operator directed adding cross-engine improvements the original adapter-focused plan under-scoped:
+- **A13 (new):** Solr demo scenario in the home-button reseed (5th scenario; the demo system is already engine-aware — `news` runs on OpenSearch).
+- **A12 (expanded):** extend the existing 3-engine Guide 01 walkthrough (not a separate Solr guide).
+- **A11 (expanded + 2 plan-accuracy bugs fixed):** per-engine auth filtering, a 3-engine `<EngineBadge>` (none exists today), wire source-of-truth corrected to `schemas.py`. The audit found the form does NOT filter auth by engine today and no badge component exists.
+- **A9 (expanded):** new `POST /clusters/test-connection` endpoint (probe without persist) powering A11's pre-submit connection-test button.
+- Focused GPT-5.5 delta review: 5 findings (4 Medium + 1 Low), all accepted + patched. Full history in spec §19 decision log.
 
 ## Implementation
 - Status: Not started
@@ -39,7 +48,7 @@
 ## Notes for downstream skills
 
 - **`/impl-execute` should expect:**
-  - 12 stories (A1–A12). A6 (registry relocation) ships first as the foundation; A1 (adapter skeleton + probe + health_check + list_query_parsers) ships next; A2–A8 fill in the per-method adapter implementations on top.
+  - 13 stories (A1–A13). A6 (registry relocation) ships first as the foundation; A1 (adapter skeleton + probe + health_check + list_query_parsers) ships next; A2–A8 fill in the per-method adapter implementations; A9–A11 add the endpoints + frontend; A12 (guide/docs/E2E) + A13 (demo) are genuinely last (they exercise the fully-assembled feature).
   - Single-phase delivery; no `phase2_idea.md` to create at finalization.
   - All four test layers required per §3 / §14.
   - E2E spec `ui/tests/e2e/solr-study-end-to-end.spec.ts` runs the full Karpathy loop against the live Compose Solr (real-backend, no `page.route()` mocking per CLAUDE.md E2E Testing Rules).
