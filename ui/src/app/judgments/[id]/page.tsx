@@ -12,8 +12,10 @@ import { JudgmentsTable } from '@/components/judgments/judgments-table';
 import { useJudgmentsColumns } from '@/components/judgments/judgments-table.column-config';
 import { ValueDeltaCard } from '@/components/judgments/value-delta-card';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
+import { useCluster } from '@/lib/api/clusters';
 import { useJudgmentList, useJudgmentLists, useJudgments } from '@/lib/api/judgments';
 import { useGenerateJudgmentsFromUbi } from '@/lib/api/ubi';
+import { isDemoSyntheticUbiClusterName } from '@/lib/demo-data';
 import { JUDGMENT_SOURCE_FILTER_VALUES } from '@/lib/enums';
 
 interface RouteProps {
@@ -93,7 +95,7 @@ export function JudgmentListView({ listId }: { listId: string }) {
               your team's judgment. Click the floating <em>Guide</em> button (bottom-right) for the
               step-by-step walkthrough.
             </p>
-            <JudgmentListHeader list={listData} />
+            <JudgmentListHeaderWithSyntheticChip listData={listData} />
             {(() => {
               const calibration = listData.calibration as Record<string, unknown> | null;
               const params = listData.generation_params as Record<string, unknown> | null;
@@ -185,6 +187,29 @@ export function JudgmentListView({ listId }: { listId: string }) {
       </DetailPageShell>
     </main>
   );
+}
+
+/**
+ * Wrapper that resolves cluster.name for the FR-7 synthetic-data chip
+ * gate and forwards it as a boolean to keep <JudgmentListHeader>
+ * presentational. Decision rule mirrors spec FR-7 surface #2:
+ * `isDemoSyntheticUbiClusterName(cluster.name) &&
+ * generation_params?.generation_kind === 'ubi'`.
+ */
+function JudgmentListHeaderWithSyntheticChip({
+  listData,
+}: {
+  listData: import('@/lib/api/judgments').JudgmentListDetail;
+}) {
+  const clusterId = listData.cluster_id;
+  const cluster = useCluster(clusterId);
+  const params = listData.generation_params as Record<string, unknown> | null;
+  const generationKindIsUbi = params?.generation_kind === 'ubi';
+  const showSyntheticUbiChip =
+    cluster.data !== undefined &&
+    generationKindIsUbi &&
+    isDemoSyntheticUbiClusterName(cluster.data.name);
+  return <JudgmentListHeader list={listData} showSyntheticUbiChip={showSyntheticUbiChip} />;
 }
 
 export default function JudgmentListPage({ params }: RouteProps) {

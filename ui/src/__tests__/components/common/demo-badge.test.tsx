@@ -62,3 +62,54 @@ describe('<DemoBadge />', () => {
     expect(tooltipContent.length).toBeGreaterThan(0);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Story 3.2 / FR-7 — synthetic-ubi variant
+// ---------------------------------------------------------------------------
+
+const SYNTHETIC_UBI_TOOLTIP =
+  'This UBI data was fabricated by the demo reseed to demonstrate the UBI path; it is not real user behavior.';
+
+function renderSyntheticUbiBadge() {
+  return render(
+    <TooltipProvider>
+      <DemoBadge variant="synthetic-ubi" />
+    </TooltipProvider>,
+  );
+}
+
+describe('<DemoBadge variant="synthetic-ubi" />', () => {
+  it('renders the "Synthetic demo data" text with its own testid', () => {
+    renderSyntheticUbiBadge();
+    const badge = screen.getByTestId('demo-badge-synthetic-ubi');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveTextContent('Synthetic demo data');
+  });
+
+  it('exposes aria-label="Synthetic demo data" and is keyboard-focusable', () => {
+    renderSyntheticUbiBadge();
+    const badge = screen.getByTestId('demo-badge-synthetic-ubi');
+    expect(badge).toHaveAttribute('role', 'img');
+    expect(badge).toHaveAttribute('aria-label', 'Synthetic demo data');
+    expect(badge).toHaveAttribute('tabindex', '0');
+  });
+
+  it('reveals the FR-7 tooltip text on keyboard focus (not hover-only)', async () => {
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider>
+        <button type="button" data-testid="sibling-before">
+          before
+        </button>
+        <DemoBadge variant="synthetic-ubi" />
+      </TooltipProvider>,
+    );
+
+    screen.getByTestId('sibling-before').focus();
+    await user.tab();
+    expect(screen.getByTestId('demo-badge-synthetic-ubi')).toHaveFocus();
+
+    const tooltipContent = await screen.findAllByText(SYNTHETIC_UBI_TOOLTIP);
+    expect(tooltipContent.length).toBeGreaterThan(0);
+  });
+});

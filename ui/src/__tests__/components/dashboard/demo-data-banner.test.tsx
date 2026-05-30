@@ -163,4 +163,21 @@ describe('<DemoDataBanner />', () => {
     await userEvent.setup().click(cta);
     expect(mockSet).not.toHaveBeenCalled();
   });
+
+  // Story 3.2 / FR-7 surface #5 — single-branch prose assertion. The
+  // banner sentence is NOT chip-gated (it's universal copy that mirrors
+  // the three-slug allowlist); it only requires that a demo cluster is
+  // present in the page so the banner renders at all.
+  it('FR-7: includes the synthetic-UBI prose sentence', async () => {
+    mockUseClusters.mockReturnValue({
+      data: { data: [clusterRow('acme-products-prod')] },
+      isError: false,
+    });
+    renderBanner();
+    await screen.findByTestId('demo-data-banner');
+    const prose = screen.getByTestId('demo-data-banner-synthetic-ubi-prose');
+    expect(prose).toHaveTextContent(
+      'Three demo clusters include simulated UBI clickstream so the UBI judgment + study path is visible end-to-end.',
+    );
+  });
 });
