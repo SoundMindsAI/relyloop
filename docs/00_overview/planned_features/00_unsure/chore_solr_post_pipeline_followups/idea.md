@@ -91,6 +91,25 @@ trial-run hot path. Pre-flight at study create requires cluster.engine_config
 lookup across the studies POST handler, which adds a coupling point that's
 worth designing carefully rather than rushing.
 
+## Deferred Gemini perf-hardening findings (PR #336, non-blocking)
+
+8. **Bound the probe's per-target uniqueKey fetch (Gemini Gm2).**
+   `probe_capabilities` loops over targets sequentially issuing
+   `/<target>/schema/uniquekey`. For a cluster with many collections this is
+   N sequential round-trips. Wrap in `asyncio.gather` with a bounded
+   semaphore. Registration-time only; demo clusters have 1-3 collections so
+   no urgency.
+
+9. **Explicit concurrency cap in `search_batch` (Gemini Gm3).**
+   `asyncio.gather` over all queries has no semaphore. httpx's default pool
+   already caps concurrent sockets, so this is tuning rather than a leak;
+   add a bounded semaphore if a large query set saturates the pool.
+
+10. **Validate non-int `rows` in `_build_select_request` (Gemini Gm5).**
+    A template/operator passing a non-int `rows` string currently lets Solr
+    400 (translated to `INVALID_QUERY_DSL`). Pre-validating would give a
+    clearer message. Low value; safe degradation today.
+
 ## Scope signals
 
 - 1: operator action only (no code).

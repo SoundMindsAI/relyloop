@@ -1515,18 +1515,38 @@ Spec §19 has 2 open questions: both have recommended defaults (`HTTPX_POOL_LIMI
 
 ---
 
-## 11b) Final GPT-5.5 cross-model review (post-PR, PR #336)
+## 11b) Cross-model + Gemini review (post-PR, PR #336)
 
-Cycle 1 over the full `main..HEAD` diff (83 files) — 4 findings:
+### Self-review fixes (caught before/at PR open) — all fixed + regression-tested
 
 | # | Sev | Location | Verdict | Notes |
 |---|---|---|---|---|
-| F1 | High | `docker/solr/bootstrap-security.sh` | **Accepted** | Real auth-breaker. The credential hash was a single `sha256` over the *base64-text* salt; Solr's `Sha256AuthenticationProvider` stores `base64(sha256(sha256(raw_salt_bytes ‖ password)))` + `base64(raw_salt_bytes)`. The admin user would never authenticate → every credentialed call 401s. Fixed: correct double-sha256 over raw salt bytes via `openssl`; script hard-fails if `openssl` is absent rather than writing a broken `security.json`. **Must be confirmed by the BLOCKING `make up` + credentialed `/select` round-trip before merge** (this finding is exactly why the operator-path verification can't be skipped). |
-| F2 | High | `backend/app/adapters/solr.py` `_build_select_request` | **Accepted** | Now that run_query passes `query_dsl` through as Solr params, a nested ES-style DSL body would make httpx choke on a dict-valued param. Added `_validate_solr_param_values` → rejects non-scalar params with `InvalidQueryDSLError` (router → 400 `INVALID_QUERY_DSL`). 2 regression tests. |
-| F3 | Medium | `backend/app/adapters/solr.py` `list_documents` | **Accepted** | Secondary terminal guard: null `next_cursor_token` when `len(hits) < limit`, defending against a `nextCursorMark` that differs from the request mark only by string normalization (the `==` check would miss it). 2 regression tests. |
-| F4 | Low | `backend/app/adapters/solr.py` `explain` | **Deferred** | `{!term f=...}` would be analysis-independent, but the current Lucene-escape is correct for the normal `string` uniqueKey and changing it churns the escape-assertion tests. Captured in `chore_solr_post_pipeline_followups` item 6. |
+| S1 | High | `docker/solr/bootstrap-security.sh` | **Fixed** | The credential hash was a single `sha256` over the *base64-text* salt; Solr's `Sha256AuthenticationProvider` stores `base64(sha256(sha256(raw_salt_bytes ‖ password)))` + `base64(raw_salt_bytes)`. The admin user would never authenticate. Fixed to the correct double-sha256 over raw salt bytes via `openssl`; script hard-fails if `openssl` is absent. **Confirm via the BLOCKING `make up` + credentialed `/select` round-trip before merge.** |
+| S2 | High | `backend/app/services/cluster.py` `dispatch_run_query` | **Fixed** | run_query wrapped the body in the ES `{query, size}` shape for every engine — Solr would get meaningless `query`/`size` params. Now branches per engine_type (Solr passes `query_dsl` through as params). 3 regression tests. |
+| S3 | High | `backend/app/adapters/solr.py` `_build_select_request` | **Fixed** | `_validate_solr_param_values` rejects non-scalar `/select` params (`InvalidQueryDSLError` → 400) so a nested ES-DSL body sent to a Solr cluster surfaces cleanly instead of crashing httpx. 2 regression tests. |
+| S4 | Medium | `backend/app/adapters/solr.py` `list_documents` | **Fixed** | Secondary terminal guard nulls `next_cursor_token` when `len(hits) < limit`. 2 regression tests. |
 
-Outcome: 3 accepted + fixed with regression tests, 1 deferred. Plus the pre-review F1 (`dispatch_run_query` per-engine body) caught during self-review. 1941 backend unit tests pass.
+### GPT-5.5 final review (against the corrected 90-file PR diff) — 2 findings
+
+NOTE: the first GPT-5.5 run was fed a corrupted oversized diff (a proxied `git diff` pulled in already-merged feature content); those phantom findings were discarded. Re-run against the authoritative `gh api compare main...HEAD` diff:
+
+| # | Sev | Location | Verdict | Notes |
+|---|---|---|---|---|
+| G5-1 | Medium | `docker/solr/bootstrap-security.sh` | **Already-correct + verify-live** | Flagged that anonymous `/admin/info/system` under `blockUnknown=true` depends on permission ordering. The committed `security.json` already lists the `role:null` `open-info-system` permission BEFORE the `all` catch-all — correct for `RuleBasedAuthorizationPlugin` (first match wins). No code change; the BLOCKING `make up` round-trip confirms it live. |
+| G5-2 | Low | `backend/app/adapters/solr.py` `_normalize_fl` | **Rejected** | `_normalize_fl` already `.strip()`s tokens + membership-checks before appending, so `fl=score,score` can't occur. Case-folding dedup would be wrong — Solr field names are case-sensitive. |
+
+### Gemini Code Assist — 6 findings (all pinned to first SHA `ab510b8b`)
+
+| # | Sev | Location | Verdict | Notes |
+|---|---|---|---|---|
+| Gm1 | Critical | `solr.py` `_request`/`search_batch` | **Rejected** | "retry re-sends empty body" — `search_batch` issues `GET /select` with `params=`, no body; the retry re-invokes `client.request(**kwargs)` with the same kwargs. Hunk-isolated false positive. |
+| Gm2 | High | `solr.py` `probe_capabilities` | **Deferred** | Sequential per-target uniqueKey calls — perf only, registration-time, demo clusters have 1–3 collections. Followups item 8. |
+| Gm3 | Medium | `solr.py` `search_batch` | **Deferred** | No explicit `asyncio.gather` semaphore — httpx's default pool already caps concurrent sockets. Followups item 9. |
+| Gm4 | Medium | `solr.py` `explain` | **Rejected (already handled)** | `body.get("debug") or {}` → absent debug yields the no-match tree. |
+| Gm5 | Medium | `solr.py` `_build_select_request` | **Deferred** | Validate non-int `rows` — Solr already 400s + we translate; degrades safely. Followups item 10. |
+| Gm6 | Medium | `solr.py` `list_documents` | **Accepted (already fixed)** | cursorMark loop risk — closed by S4's short-page guard at HEAD (pinned to the pre-S4 SHA). |
+
+Outcome: 4 self-review fixes + regression tests; 2 real GPT-5.5 findings (1 already-correct/verify-live, 1 rejected); 6 Gemini findings (3 rejected/already-handled, 3 deferred as perf hardening to `chore_solr_post_pipeline_followups`). 0 blocking code issues. 1943 backend + 967 UI tests pass. **Merge remains BLOCKED on the operator `make up` + credentialed `/select` round-trip** (validates S1 + G5-1).
 
 ## 12) Definition of plan done
 
