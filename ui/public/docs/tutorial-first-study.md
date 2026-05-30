@@ -358,6 +358,60 @@ curl -X POST http://localhost:8000/api/v1/config-repos \
 
 ---
 
+## Step 11 — (Optional) Upgrade your judgment list to UBI
+
+**This step is optional and requires an instrumented cluster.** The
+tutorial completes fully on the LLM path (Steps 1–10) with no UBI cluster.
+If you have a cluster running the OpenSearch UBI plugin (or the o19s ES
+UBI fork) with captured click/dwell traffic, you can swap the LLM-graded
+judgment list for one derived from real user behavior — no LLM cost for
+the pure converters.
+
+1. On the query-set detail page, click **Generate judgments** again.
+2. The dialog now shows a **Method** picker. If your cluster has UBI
+   traffic for the target index, the picker defaults to a UBI converter
+   based on the readiness rung (dense traffic → `UBI (click-through)`;
+   sparse → `Hybrid UBI + LLM`). If the cluster has no UBI plugin, you'll
+   see the **on-ramp nudge** with install instructions and the picker
+   stays on `LLM-as-judge`.
+3. Pick **Hybrid UBI + LLM** to rate the dense head from clicks and let
+   the LLM fill the long tail (requires a template + rubric, same as the
+   LLM path). Set the UBI window (defaults to the last 30 days).
+4. Submit. When generation completes, the judgment-list detail page shows
+   a **"What real signals bought you"** value-delta card comparing the
+   UBI coverage against your prior LLM list.
+5. Re-run your study (Step 8) against the new judgment list to see how the
+   recommendation shifts when grounded in real behavior.
+
+See the [UBI judgment-generation runbook](../03_runbooks/ubi-judgment-generation.md)
+for per-engine plugin install + converter selection guidance.
+
+### Demo data: synthetic UBI is pre-seeded on three of four demo clusters
+
+If you ran `make seed-demo` (or clicked **Reset to demo state** on the
+dashboard), three demo clusters already carry **synthetic UBI
+clickstream** so this step is browser-walkable without a real
+instrumented cluster:
+
+- `acme-products-prod` reports `rung_3` — the picker defaults to
+  `UBI (click-through)` and the resulting judgment list grades against
+  the synthetic events end-to-end.
+- `corp-docs-search` (rung_1) and `jobs-marketplace-prod` (rung_2)
+  default to `Hybrid UBI + LLM` so the LLM fills the long tail.
+- `news-search-staging` stays at `rung_0` — the on-ramp nudge appears
+  with engine-specific install guidance. Use this cluster to see what
+  the no-UBI path looks like before you instrument your own.
+
+Every UBI surface on the three synthetic clusters carries a
+**"Synthetic demo data"** chip with a tooltip explaining the data was
+fabricated by the demo reseed. The chip never appears on real operator
+clusters or on `news-search-staging`. Phase 2 of
+[`feat_demo_ubi_study_comparison`](../00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison/phase2_idea.md)
+will add a side-by-side **Compare two studies** view so you can see
+the LLM-vs-UBI study output diff for the same query set.
+
+---
+
 ## Where to next
 
 - The full feature set is in [`docs/02_product/mvp1-user-stories.md`](../02_product/mvp1-user-stories.md).

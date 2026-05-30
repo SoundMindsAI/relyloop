@@ -1,7 +1,7 @@
 # Implementation Plan — feat_demo_ubi_study_comparison
 
 **Date:** 2026-05-29
-**Status:** Draft
+**Status:** Complete (PR #320, merged 2026-05-30)
 **Primary spec:** [feature_spec.md](./feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../CLAUDE.md) (Absolute Rules #1, #2, #4), [`docs/01_architecture/api-conventions.md`](../../../../01_architecture/api-conventions.md), [`docs/01_architecture/mvp2-overview.md`](../../../../01_architecture/mvp2-overview.md) §4 (UBI on-ramp), [`bug_demo_reseed_fake_metric_regression`](../../implemented_features/2026_05_28_bug_demo_reseed_fake_metric_regression/) (CLI ↔ home-button parity)
 
