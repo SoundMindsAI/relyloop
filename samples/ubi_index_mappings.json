@@ -1,0 +1,28 @@
+{
+  "ubi_queries": {
+    "mappings": {
+      "properties": {
+        "query_id": { "type": "keyword" },
+        "user_query": {
+          "type": "text",
+          "fields": { "keyword": { "type": "keyword" } }
+        },
+        "application": { "type": "keyword" },
+        "timestamp": { "type": "date" }
+      }
+    }
+  },
+  "ubi_events": {
+    "mappings": {
+      "properties": {
+        "query_id": { "type": "keyword" },
+        "action_name": { "type": "keyword" },
+        "object_id": { "type": "keyword" },
+        "application": { "type": "keyword" },
+        "position": { "type": "integer" },
+        "dwell_seconds": { "type": "float" },
+        "timestamp": { "type": "date" }
+      }
+    }
+  }
+}
