@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """CORS contract — the browser UI on :3000 calls the API on :8000.
 
 Verifies the API responds to OPTIONS preflights with the required

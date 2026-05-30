@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Hook tests for the per-query CRUD hooks (feat_query_inline_crud Story 4.0).
  *

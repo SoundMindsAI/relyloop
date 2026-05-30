@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit test: ToolContext exposes conversation_id; agent_chat plumbs it through.
 
 feat_agent_propose_search_space Story 3.1 — the adherence-telemetry events

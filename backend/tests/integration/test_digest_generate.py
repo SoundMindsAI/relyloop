@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-1 happy-path test for ``generate_digest`` (Story 2.1).
 
 Seeds a completed study with a pending proposal; mocks OpenAI; runs the

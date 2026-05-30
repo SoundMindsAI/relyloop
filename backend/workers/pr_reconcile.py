@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Polling reconciler for stale ``pr_opened`` proposals (feat_github_webhook FR-2).
 
 Runs on the cron cadence derived from ``Settings.relyloop_pr_poll_minutes``

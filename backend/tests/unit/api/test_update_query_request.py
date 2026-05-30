@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``UpdateQueryRequest`` Pydantic validation (feat_query_inline_crud Story 2.2).
 
 Pure-Pydantic validation; no DB. Covers:

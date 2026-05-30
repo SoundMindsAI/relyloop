@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the prefix-parser path in
 :func:`backend.app.api.errors.validation_exception_handler`
 (feat_auto_followup_studies Story 1.1).

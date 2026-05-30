@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Static guard for `scripts/seed_meaningful_demos._COUNT_LIVE_CLUSTERS_SQL`.
 
 Pins the SQL contract so a future edit can't silently re-introduce the

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """GitHub ``repository.full_name`` parser (feat_github_webhook Story 1.2).
 
 The GitHub webhook payload's ``repository.full_name`` field is the

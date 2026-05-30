@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``backend.app.domain.study.search_space`` unit tests (Story 1.1).
 
 Covers Pydantic schema validation (legal + illegal inputs), cardinality

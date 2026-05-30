@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``parse_repository_full_name`` (feat_github_webhook Story 1.2)."""
 
 from __future__ import annotations

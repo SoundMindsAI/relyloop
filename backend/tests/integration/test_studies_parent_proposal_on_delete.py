@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """BEFORE DELETE trigger integration test (Story 3.5, AC-11).
 
 Asserts ``trg_clear_studies_parent_proposal_on_proposal_delete`` (created

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend/app/api/v1/_strict_query_params.py``.
 
 Per ``feat_index_document_browser`` Story 2.1. Covers the FastAPI-dependency

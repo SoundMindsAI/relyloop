@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Method-agnostic GitHub REST client (feat_github_webhook Story 1.5).
 
 Generalises ``backend.workers.git_pr._github_post`` (POST-only, shipped

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``create_query_set`` tool — create an empty query set under a cluster."""
 
 from __future__ import annotations

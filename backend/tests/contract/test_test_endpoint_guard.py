@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract: ``/api/v1/_test/*`` endpoints exist ONLY when ``ENVIRONMENT=development``.
 
 Builds a minimal FastAPI app wired with the same ``_test`` router that

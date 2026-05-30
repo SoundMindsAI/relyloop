@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Repository registry (infra_adapter_elastic + feat_study_lifecycle Phase 1+2).
 
 One module per aggregate. Every repository function takes ``db: AsyncSession``

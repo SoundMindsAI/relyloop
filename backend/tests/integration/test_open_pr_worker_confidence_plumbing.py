@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """End-to-end integration test for the ``open_pr`` worker's confidence plumbing.
 
 Story 1.5 / FR-5d: prove that the worker's call site fetches confidence

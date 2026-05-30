@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``?study_id=`` filter on ``/api/v1/proposals``.
 
 Regression coverage for the bug where the proposals list endpoint silently

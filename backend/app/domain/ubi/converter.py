@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``SignalsConverter`` Protocol + three concrete converters (feat_ubi_judgments Story 1.2 / FR-2).
 
 Async Protocol (cycle-3 fix D-10e) so the worker can call

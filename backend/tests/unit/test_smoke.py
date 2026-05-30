@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Smoke test proving the toolchain is wired (Story 1.2).
 
 Also exercises the laptop-dev path: `pytest backend/tests/unit/test_smoke.py`

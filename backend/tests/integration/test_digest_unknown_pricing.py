@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``UNKNOWN_MODEL_PRICING`` test for ``generate_digest``.
 
 Sets ``Settings.openai_model`` to a value not in ``cost_model.known_models()``;

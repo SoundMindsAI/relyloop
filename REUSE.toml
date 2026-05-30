@@ -1,0 +1,83 @@
+version = 1
+
+# REUSE (https://reuse.software/) licensing metadata for files that do not
+# carry an inline SPDX header. Genuine source files (*.py, *.ts, *.tsx, *.css,
+# *.sh, *.toml, *.mjs, and most *.yml/*.yaml) carry inline headers added via
+# `reuse annotate`; the globs below cover files where an inline header is
+# impossible (no comment syntax: JSON/CSV/images), undesirable (Markdown prose,
+# generated lockfiles), or harmful (prompt templates whose leading bytes are
+# sent verbatim to the LLM). All such files are first-party RelyLoop content
+# licensed Apache-2.0 unless noted otherwise.
+#
+# To regenerate the picture of what is still uncovered: `uv run reuse lint`.
+
+# --- Documentation & prose ---------------------------------------------------
+[[annotations]]
+path = ["**/*.md", "**/*.html"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 soundminds.ai"
+SPDX-License-Identifier = "Apache-2.0"
+
+# --- Structured data with no comment syntax ----------------------------------
+[[annotations]]
+path = ["**/*.json", "**/*.csv", "**/*.ndjson"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 soundminds.ai"
+SPDX-License-Identifier = "Apache-2.0"
+
+# --- Images / video / binary assets ------------------------------------------
+[[annotations]]
+path = ["**/*.png", "**/*.svg", "**/*.jpg", "**/*.jpeg", "**/*.gif", "**/*.ico", "**/*.webp", "**/*.webm", "**/*.mp4", "**/*.woff", "**/*.woff2"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 soundminds.ai"
+SPDX-License-Identifier = "Apache-2.0"
+
+# --- Generated TypeScript declarations (regenerated on build) -----------------
+# next-env.d.ts is rewritten by `next build`; an inline header would be wiped.
+[[annotations]]
+path = ["**/*.d.ts"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 soundminds.ai"
+SPDX-License-Identifier = "Apache-2.0"
+
+# --- Prompt templates (inline header would leak into LLM input) --------------
+[[annotations]]
+path = ["prompts/**", "**/*.jinja", "**/*.j2"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 soundminds.ai"
+SPDX-License-Identifier = "Apache-2.0"
+
+# --- Generated lockfiles -----------------------------------------------------
+[[annotations]]
+path = ["uv.lock", "ui/pnpm-lock.yaml", "**/*.lock"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 soundminds.ai"
+SPDX-License-Identifier = "Apache-2.0"
+
+# --- Repo metadata / dotfiles / build descriptors (no comment-safe header) ---
+[[annotations]]
+path = [
+  "**/.gitkeep",
+  "**/.gitignore",
+  "**/.gitattributes",
+  "**/.dockerignore",
+  "**/.env.example",
+  "**/.editorconfig",
+  "**/.npmrc",
+  "**/.nvmrc",
+  "**/.prettierignore",
+  "**/.prettierrc",
+  "**/.eslintrc",
+  "**/.python-version",
+  "**/CODEOWNERS",
+  "**/Dockerfile",
+  "**/Dockerfile.*",
+  "Makefile",
+  "**/Makefile",
+  "**/*.mako",
+  "**/*.ini",
+  "NOTICE",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 soundminds.ai"
+SPDX-License-Identifier = "Apache-2.0"

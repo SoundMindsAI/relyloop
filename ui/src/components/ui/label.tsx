@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 'use client';
 import * as LabelPrimitive from '@radix-ui/react-label';
 import * as React from 'react';

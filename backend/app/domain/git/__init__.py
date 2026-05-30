@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Git provider domain helpers (feat_github_pr_worker Story 1.4).
 
 Pure-Python helpers shared between the open_pr worker, the config_repos

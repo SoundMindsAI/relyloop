@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Wraps `openapi-typescript` so the GENERATED-FILE banner survives every
  * regeneration. Without this wrapper, running `pnpm types:gen` (or the

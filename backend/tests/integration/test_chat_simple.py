@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """One-turn SSE chat (feat_chat_agent Story 3.2).
 
 Mocks ``AsyncOpenAI()`` at the agent_chat module boundary. The fake

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``judgments`` ORM model (feat_llm_judgments Story 1.2).
 
 Child table of :class:`backend.app.db.models.judgment_list.JudgmentList`. One

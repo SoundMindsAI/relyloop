@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """OpenAI capability-check result model (infra_foundation Story 3.2 / 3.3).
 
 Shape matches the JSON cached in Redis under

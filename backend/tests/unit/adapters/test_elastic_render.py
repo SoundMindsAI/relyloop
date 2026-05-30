@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter.render`` unit tests (Story 2.4 / spec §14).
 
 Covers the canonical multi_match + function_score + field_boosts shapes

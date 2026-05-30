@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """GitHub webhook HMAC-SHA256 signature verification (feat_github_webhook Story 1.2).
 
 Pure-domain helper consumed by ``backend.app.api.webhooks.github`` (Story

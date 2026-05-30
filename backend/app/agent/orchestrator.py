@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Chat-agent orchestrator (feat_chat_agent Story 2.5).
 
 PURE GENERATOR — no DB writes. The orchestrator yields :class:`StreamEvent`

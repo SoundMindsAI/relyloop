@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Engine-write helper for synthetic UBI demo data (Story 1.3 / FR-3).
 
 This module is **install-side / seed-only** — it never runs as part of

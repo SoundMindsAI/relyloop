@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the digest-narrative prompt renderer (feat_digest_proposal Story 1.3).
 
 Covers the contract documented in :mod:`backend.app.llm.digest_prompt`:

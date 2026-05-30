@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``get_proposal`` tool — return one proposal's full detail."""
 
 from __future__ import annotations

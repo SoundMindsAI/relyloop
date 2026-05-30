@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cross-validate ``validate_repo_url`` and ``parse_repository_full_name`` parity.
 
 feat_github_webhook spec FR-1 normalisation rule: the webhook receiver

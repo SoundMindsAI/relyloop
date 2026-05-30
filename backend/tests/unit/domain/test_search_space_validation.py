@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``validate_against_template`` (chore_create_study_wizard_polish Story 1.1).
 
 Covers the four behavioral cases from the implementation plan:

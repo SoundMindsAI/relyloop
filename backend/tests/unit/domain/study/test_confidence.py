@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.domain.study.confidence`` (Story 1.3).
 
 Covers every helper and every FR-7 degraded path. Pure tests — no DB, no

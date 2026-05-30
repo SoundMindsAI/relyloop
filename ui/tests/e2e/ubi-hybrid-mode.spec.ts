@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E: UBI hybrid mode + sparse-data card (feat_ubi_judgments FR-8 Capability C).
  *

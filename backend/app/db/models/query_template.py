@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``query_templates`` ORM model (feat_study_lifecycle Phase 1, Story 1.1).
 
 Full MVP1 shape per ``docs/01_architecture/data-model.md`` §"query_templates".

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Evaluation helpers (infra_optuna_eval + feat_llm_judgments)."""
 
 from backend.app.eval.calibration import CalibrationResult, compute_calibration

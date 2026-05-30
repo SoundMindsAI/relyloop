@@ -102,6 +102,32 @@ make pre-commit
 
 **Never bypass hooks with `--no-verify` or `-n`.** If a hook fails, fix the underlying issue. Bypassing the Conventional Commits hook breaks the auto-changelog generation that lands at GA v1; bypassing gitleaks risks committing credentials.
 
+### License headers (SPDX)
+
+Every source file carries a two-line SPDX header so machine license scanners
+(which many enterprise legal teams run) can attribute each file:
+
+```
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+# SPDX-License-Identifier: Apache-2.0
+```
+
+You don't write these by hand — `reuse annotate` adds the correct comment
+style for the file type:
+
+```bash
+uv run reuse annotate --copyright "soundminds.ai" --license "Apache-2.0" \
+  --year 2026 --merge-copyrights path/to/new_file.py
+```
+
+Files that can't carry an inline header (JSON, CSV, images, generated
+lockfiles, prompt templates whose leading bytes are sent to the LLM) are
+licensed in bulk via [`REUSE.toml`](REUSE.toml) instead. The `reuse-lint`
+pre-commit hook and the `license-headers` CI job both run `uv run reuse lint`
+and fail if any tracked file is uncovered — fix a new file by annotating it or
+adding a glob to `REUSE.toml`. Full compliance is reported as
+"Congratulations! Your project is compliant…".
+
 ### Verifying the gitleaks hook
 
 To confirm secret scanning is wired correctly on your machine:

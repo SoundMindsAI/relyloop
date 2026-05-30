@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``UbiReader`` write-safety invariant (feat_ubi_judgments §10 threat #2).
 
 Boots a real :class:`ElasticAdapter` against a recording

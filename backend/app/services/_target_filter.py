@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Visibility check for ``cluster.target_filter`` glob patterns.
 
 Per ``feat_index_document_browser`` spec D-13: when ``cluster.target_filter``

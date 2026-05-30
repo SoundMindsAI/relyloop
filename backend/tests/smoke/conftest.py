@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Smoke-test conftest (chore_tutorial_polish Story 3.1).
 
 Defines a single fixture, ``api_base_url``, that resolves the API base URL

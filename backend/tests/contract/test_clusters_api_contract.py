@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract test placeholder for ``/api/v1/clusters`` (Story 5.1).
 
 The full contract assertions (spec §7.5 error codes, response shapes) run

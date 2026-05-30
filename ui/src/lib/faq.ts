@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * FAQ — operator-judgment-shaped Q&A surface for questions tooltips and the
  * glossary can't carry. Lives next to `ui/src/lib/glossary.ts` because it

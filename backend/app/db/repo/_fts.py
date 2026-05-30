@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """FTS predicate helper for ``?q=`` parameter handling.
 
 Shared by every list/count repo function that exposes a Postgres full-text

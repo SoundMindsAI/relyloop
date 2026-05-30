@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """RequestIDMiddleware tests (infra_foundation Story 3.1).
 
 Verifies the X-Request-ID handshake per api-conventions.md §"Trace / request

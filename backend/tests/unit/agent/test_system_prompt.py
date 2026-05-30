@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """System-prompt sanity tests (feat_chat_agent Story 2.5).
 
 Asserts the prompt loaded at orchestrator import time mentions every mutating

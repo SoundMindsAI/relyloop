@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the ``FollowupItem`` discriminated union (Story 1.1).
 
 Pure tests — no DB, no I/O. Covers:

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Token → USD cost helper for judgment generation (feat_llm_judgments Story 1.4).
 
 A small, hand-maintained dict of OpenAI model pricing. New models added here

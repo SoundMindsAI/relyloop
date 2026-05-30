@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend/app/api/v1/_documents_fields.py``.
 
 Per ``feat_index_document_browser`` Story 2.1 (cycle-2 F2 / cycle-3 F3).

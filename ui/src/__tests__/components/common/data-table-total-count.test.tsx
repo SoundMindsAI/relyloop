@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Total-count display tests (feat_data_table_primitive Story 2.5 / FR-7 + AC-14).
  */

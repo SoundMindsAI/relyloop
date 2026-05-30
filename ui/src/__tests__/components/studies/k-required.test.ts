@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * K_REQUIRED parity test (chore_create_study_wizard_polish AC-13 frontend half).
  *

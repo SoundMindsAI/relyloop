@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``create_proposal_manual`` tool — create a hand-crafted proposal.
 
 This is a MUTATING tool (per spec FR-5 + §19 Decision log) — the orchestrator's

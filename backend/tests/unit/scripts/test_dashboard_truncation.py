@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for the markdown-aware truncation in scripts/build_mvp1_dashboard.py.
 
 Covers `_safe_truncate_markdown` + `_strip_unclosed_markdown` — the fix for

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-8 — CSV bulk upload to /api/v1/query-sets/{id}/queries (Story 3.2).
 
 Round-trip: POST a 50-row CSV → 201 + ``{added: 50}`` → GET

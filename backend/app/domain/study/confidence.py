@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Per-study metric-confidence analytics (feat_pr_metric_confidence Story 1.3).
 
 Pure-Python helpers for computing the ``ConfidenceShape`` exposed on

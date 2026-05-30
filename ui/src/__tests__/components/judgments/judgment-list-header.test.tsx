@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Story 3.2 / FR-7 surface #2 — three-branch chip gating on
  * JudgmentListHeader. The component is presentational; the page-level

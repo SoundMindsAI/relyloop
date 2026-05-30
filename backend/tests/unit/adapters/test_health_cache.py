@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Health-cache unit tests (Story 2.2).
 
 Uses a tiny in-memory stub for ``redis.asyncio.Redis`` so the cache write/

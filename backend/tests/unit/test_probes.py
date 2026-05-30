@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Per-probe unit tests (infra_foundation Story 3.2).
 
 Each probe in ``backend/app/api/probes.py`` is exercised in isolation with

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cluster repo integration tests (infra_adapter_elastic Story 1.4).
 
 Exercises every function in ``backend.app.db.repo.cluster`` against the

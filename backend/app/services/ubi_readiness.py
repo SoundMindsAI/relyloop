@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """UBI readiness classifier (feat_ubi_judgments Story 2.2 / FR-7).
 
 Classifies a ``(cluster, query_set, target)`` tuple on the UBI rung

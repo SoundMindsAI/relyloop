@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``open_pr`` Arq job (feat_github_pr_worker Story 2.1 / FR-2).
 
 Translates an operator-approved proposal into a GitHub pull request

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-2 C2-F3 (from feat_llm_judgments) ordering canary for ``generate_digest``.
 
 Patches ``record_cost`` to raise after a successful LLM call. Asserts the

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``cancel_study`` tool — request cancellation of a queued/running study.
 
 This is a MUTATING tool (per spec FR-5 + §19 Decision log) — the orchestrator's

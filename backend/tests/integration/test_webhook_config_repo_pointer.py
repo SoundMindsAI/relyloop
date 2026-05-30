@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Webhook integration tests for config_repos.last_merged_proposal_id pointer.
 
 feat_config_repo_baseline_tracking Story 1.3 (FR-3). Covers AC-3, AC-4, AC-5,

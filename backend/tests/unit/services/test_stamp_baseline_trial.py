@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for :func:`backend.app.services.study_state.stamp_baseline_trial`.
 
 The helper does one DB read (``repo.get_trial``) and one DB write (idempotent

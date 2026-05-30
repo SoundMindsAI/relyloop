@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Confirmation guard primitives (feat_chat_agent Story 2.5).
 
 * :data:`MUTATING_TOOL_NAMES` — the 8-tool set requiring confirmation per spec

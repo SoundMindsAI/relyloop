@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_auto_followup_studies Story 3.1 — AutoFollowupChainPanel tests.
  *

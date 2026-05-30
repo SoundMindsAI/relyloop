@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Pure cleanup-core module — types, constants, and pure functions for the
  * Playwright E2E cleanup registry (chore_e2e_test_rows_isolation Story 1.2).

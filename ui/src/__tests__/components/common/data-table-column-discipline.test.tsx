@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Source-of-truth lint guard test (feat_data_table_primitive Story 2.13 / FR-17 / AC-16).
  *

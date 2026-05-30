@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """ToolContext — dependency bundle passed to every tool impl by the orchestrator.
 
 Tools call into the service/repo layer using these. ``arq_pool`` is None when

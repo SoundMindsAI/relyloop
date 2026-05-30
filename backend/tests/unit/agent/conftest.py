@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared fixtures for orchestrator unit tests (feat_chat_agent Story 2.5).
 
 Provides:

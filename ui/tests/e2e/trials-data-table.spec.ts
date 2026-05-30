@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: /studies/[id] trials DataTable surface
  * (feat_data_table_primitive Story 3.7, spec §14 matrix row "trials").

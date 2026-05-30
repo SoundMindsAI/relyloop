@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``domain/ubi/`` — pure-domain UBI library (feat_ubi_judgments Story 1.2).
 
 This package implements the engine-neutral User Behavior Insights (UBI)

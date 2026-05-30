@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Replayed tool messages get re-wrapped (GPT-5.5 final-review F1)."""
 
 from __future__ import annotations

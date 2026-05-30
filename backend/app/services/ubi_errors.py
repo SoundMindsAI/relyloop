@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Service-layer UBI exceptions (feat_ubi_judgments Story 2.1 / FR-1).
 
 Two named classes so the dispatcher (Story 2.2), the worker (Story 3.3),

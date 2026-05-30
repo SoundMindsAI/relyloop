@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Column configuration for `<TemplatesTable>` (feat_data_table_primitive Story 3.4).
  *

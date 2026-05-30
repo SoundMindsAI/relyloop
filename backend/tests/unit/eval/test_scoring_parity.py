@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Parity test: ir_measures ↔ pytrec_eval value equivalence + per-query shape.
 
 Source-of-truth: infra_ir_measures_migration feature_spec.md FR-2 + FR-3 +

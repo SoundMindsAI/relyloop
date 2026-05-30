@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Lock the canonical Idea-table sort key in scripts/build_mvp1_dashboard.py.
 
 The order is documented in two places that MUST stay in sync:

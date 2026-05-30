@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``backend.workers.judgments_resume.resume_stuck_judgment_lists``.
 
 Spec: docs/00_overview/planned_features/feat_judgments_periodic_resume_sweep/feature_spec.md

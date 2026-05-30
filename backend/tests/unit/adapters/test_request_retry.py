@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter._request`` retry + error-translation unit tests (Story 2.1, F4).
 
 Verifies the spec §13 reliability contract:

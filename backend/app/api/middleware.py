@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """HTTP middleware (infra_foundation Story 3.1).
 
 Per ``docs/01_architecture/api-conventions.md`` §"Trace / request correlation":

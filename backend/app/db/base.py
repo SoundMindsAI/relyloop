@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Declarative Base for all RelyLoop ORM models (infra_foundation Story 2.1).
 
 The model registry is intentionally empty in MVP1 — business tables arrive with

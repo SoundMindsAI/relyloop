@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Adapter-failure integration test for ``run_trial`` (Story 3.1 / AC-5).
 
 When the adapter raises ``ClusterUnreachableError`` mid-trial, the worker

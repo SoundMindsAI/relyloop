@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``generate_digest`` Arq job (feat_digest_proposal Story 2.1 / FR-2).
 
 Replaces the stub at :mod:`backend.workers.digest_stub` under the same Arq

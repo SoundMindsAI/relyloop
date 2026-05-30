@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``?sort=`` on ``/api/v1/judgment-lists/{id}/judgments``
 (feat_data_table_primitive Story 1.3 — per-list judgment row sort).
 

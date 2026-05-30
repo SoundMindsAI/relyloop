@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Dockerfile runtime-stage regression tests.
 
 Pins the ordering of build steps inside the `FROM base AS runtime` stage

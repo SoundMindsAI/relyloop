@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Alembic env (infra_foundation Story 2.2).
 
 Reads ``DATABASE_URL`` from RelyLoop's ``Settings`` (which resolves

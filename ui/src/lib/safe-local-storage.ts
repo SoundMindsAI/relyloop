@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // SSR-safe + throw-resistant localStorage wrapper.
 //
 // Generalizes the bare `typeof window !== 'undefined'` guard found at

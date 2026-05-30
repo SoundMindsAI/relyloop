@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cross-template ``search_space`` remap helper for ``swap_template`` followups.
 
 Owner: ``feat_digest_executable_followups_swap_template`` (Tier B).

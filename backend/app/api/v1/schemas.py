@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Pydantic request / response models for ``/api/v1/clusters`` (Story 3.2).
 
 Per cycle 1 F2 + cycle 2 F1: ``engine_type`` and ``auth_kind`` are typed as

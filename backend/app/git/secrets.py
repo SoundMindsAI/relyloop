@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Mounted-secrets bundle reader (feat_github_webhook Story 1.5 hoist).
 
 Shared helper for reading per-repo PATs and webhook HMAC secrets from

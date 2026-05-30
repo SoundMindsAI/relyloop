@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * ESLint flat config — migrated from legacy .eslintrc.json on 2026-05-12
  * (see infra_frontend_stack_refresh). ESLint 9 deprecated the legacy

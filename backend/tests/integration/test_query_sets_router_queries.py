@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for /api/v1/query-sets/{set_id}/queries* (feat_query_inline_crud).
 
 Covers ACs 1–17 + 24 (cross-set anti-enumeration) + 25–26 (?since) + 28

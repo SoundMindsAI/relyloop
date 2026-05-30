@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Settings tests (infra_foundation Story 2.1).
 
 Covers every ``*_FILE`` resolution path per spec FR-3:

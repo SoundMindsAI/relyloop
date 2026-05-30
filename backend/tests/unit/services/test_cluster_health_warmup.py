@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for :mod:`backend.app.services.cluster_health_warmup`.
 
 Maps to plan Story 1.2 DoD: AC-2, AC-4, AC-5, AC-6, FR-5, FR-6, and the

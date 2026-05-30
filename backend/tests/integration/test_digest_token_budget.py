@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-8 cost-budget benchmark for ``generate_digest`` (Story 4.2).
 
 Asserts that a representative digest call stays within the spec §13 NFR

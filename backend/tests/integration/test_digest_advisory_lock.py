@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-2 F6 advisory-lock test for ``generate_digest``.
 
 Two ``generate_digest`` coroutines launched simultaneously against the

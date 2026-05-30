@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the FastAPI lifespan hook in :mod:`backend.app.main`.
 
 Maps to plan Story 1.3 DoD (bug_demo_clusters_unreachable_in_healthz):

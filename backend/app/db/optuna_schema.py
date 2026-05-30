@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Optuna RDB schema initializer (infra_foundation Story 2.2).
 
 Optuna's ``RDBStorage`` (used by ``infra_optuna_eval`` and ``feat_study_lifecycle``)

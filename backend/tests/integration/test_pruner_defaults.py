@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Pruner-default integration test (Story 3.1 / AC-6a + AC-6b).
 
 These exercise the FR-2 two-pronged contract at the data-path layer (config

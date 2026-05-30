@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter.get_document`` unit tests (Story 1.2, feat_index_document_browser FR-2).
 
 Covers the 6 paths the plan locks for the get_document contract:

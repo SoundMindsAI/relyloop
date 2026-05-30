@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 r"""Stream events emitted by the orchestrator (feat_chat_agent Story 2.5).
 
 The orchestrator is a pure async generator — it does not write to the DB.

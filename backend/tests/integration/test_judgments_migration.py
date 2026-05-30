@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0004_judgments`` migration test (feat_llm_judgments Story 1.1).
 
 Asserts the schema shape of the ``judgments`` child table created by

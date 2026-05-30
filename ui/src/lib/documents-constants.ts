@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Frontend mirror of ``backend/app/services/documents.py`` truncation
  * constants (feat_index_document_browser FR-3 / D-27).

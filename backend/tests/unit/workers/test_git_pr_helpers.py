@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for pure / cheap-to-mock helpers in backend.workers.git_pr.
 
 Complements ``test_pr_body_render.py`` (PR body composition) by exercising:

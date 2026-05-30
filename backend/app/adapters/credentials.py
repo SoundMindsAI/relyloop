@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cluster credential resolution (infra_adapter_elastic Story 2.1).
 
 Reads the YAML body resolved by ``Settings.cluster_credentials_yaml``. The

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Conversations CRUD integration tests (feat_chat_agent Story 3.1)."""
 
 from __future__ import annotations

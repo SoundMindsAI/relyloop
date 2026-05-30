@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Query repository (Phase 1 Story 1.3 + Phase 2 Story 1.4 + feat_query_inline_crud).
 
 Phase 1 shipped create + list-for-set (consumed by ``run_trial``).

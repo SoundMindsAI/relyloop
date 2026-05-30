@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Build the RelyLoop MVP1 dashboard HTML.
 
 Walks `docs/00_overview/planned_features/` and `docs/00_overview/implemented_features/`,

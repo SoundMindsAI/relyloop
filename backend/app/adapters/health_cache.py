@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cluster ``HealthStatus`` Redis cache (infra_adapter_elastic Story 2.2).
 
 Decision Log 2026-05-09: cluster health checks are cached in Redis with a

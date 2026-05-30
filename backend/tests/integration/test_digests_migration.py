@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0005_digests`` migration test (feat_digest_proposal Story 1.1).
 
 Asserts the schema shape of the ``digests`` table created by

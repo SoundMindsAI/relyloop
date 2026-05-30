@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # RelyLoop install script (infra_foundation Story 4.4 / FR-3).
 #
 # Auto-generates the required + placeholder secret files mounted by Compose,

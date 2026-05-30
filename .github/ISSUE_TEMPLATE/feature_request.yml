@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: Feature request
 description: Propose a new capability or a change to existing behavior.
 title: "feat: <short summary>"

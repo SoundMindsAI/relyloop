@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-10 test: ``OPENAI_NOT_CONFIGURED`` defers without writing.
 
 Seeds a completed study; clears ``Settings.openai_api_key``; runs the

@@ -1,3 +1,9 @@
+/*
+ * SPDX-FileCopyrightText: 2026 soundminds.ai
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 /* Tailwind 4 CSS-first import — replaces the v3 @tailwind base/components/
  * utilities trio. Project source paths are auto-detected; the v3
  * tailwind.config.ts `content` array is no longer needed (deleted on

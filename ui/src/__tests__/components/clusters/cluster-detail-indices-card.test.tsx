@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Unit tests for ClusterDetailIndicesCard (feat_index_document_browser Story 3.1 / FR-6).
  *

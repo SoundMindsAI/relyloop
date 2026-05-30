@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration test for the auto-seed-on-empty SQL contract.
 
 Pins `scripts/seed_meaningful_demos._COUNT_LIVE_CLUSTERS_SQL` so a single

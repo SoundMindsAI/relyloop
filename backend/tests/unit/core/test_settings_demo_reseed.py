@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for feat_home_demo_reseed_endpoint Story 1.0 Settings field.
 
 One new field:

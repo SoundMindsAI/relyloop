@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // @ts-check
 /**
  * Copy curated long-form guides from `docs/08_guides/` into `ui/public/docs/`

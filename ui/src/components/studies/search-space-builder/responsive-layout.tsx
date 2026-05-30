@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * `<ResponsiveLayout>` — split/tab responsive Step-4 layout (Story 3.1, FR-8).
  *

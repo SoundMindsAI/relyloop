@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.domain.demo.synthetic_ubi``.
 
 Story 1.2 (FR-2) — pins:

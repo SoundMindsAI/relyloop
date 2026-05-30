@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Auto-followup chain gate (feat_auto_followup_studies Story 1.1).
 
 Pure domain function deciding whether a completed study should enqueue

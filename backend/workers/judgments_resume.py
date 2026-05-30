@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Periodic in-worker resume sweep for stuck judgment lists (feat_judgments_periodic_resume_sweep).
 
 Story 1.2 — the complete worker module:

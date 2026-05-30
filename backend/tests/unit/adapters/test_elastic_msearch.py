@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter.search_batch`` unit tests via httpx.MockTransport (Story 2.5).
 
 Covers FR-3 + AC-4 (single _msearch call) plus the strict_errors / timeout

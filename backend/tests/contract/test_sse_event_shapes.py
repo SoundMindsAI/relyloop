@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """SSE event-shape contract (feat_chat_agent Story 3.2).
 
 For each of the 4 wire event types the SSE stream emits (``token``,

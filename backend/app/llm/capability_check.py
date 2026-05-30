@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """OpenAI-compatible endpoint capability check (infra_foundation Story 3.3 / FR-7).
 
 Runs a 4-step self-test against ``OPENAI_BASE_URL`` and caches the result in

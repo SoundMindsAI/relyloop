@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_study_target_judgment_mismatch_guard Story 2.1 — create-study modal
  * Step-2 judgment-list dropdown filters by the Step-1 target via the new

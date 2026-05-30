@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``DIGEST_RESPONSE_FORMAT`` (feat_digest_proposal cycle-1 F4).
 
 Asserts the structured-output contract that ``backend/workers/digest.py``

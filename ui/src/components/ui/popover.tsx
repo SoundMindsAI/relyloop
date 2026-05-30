@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 'use client';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import * as React from 'react';

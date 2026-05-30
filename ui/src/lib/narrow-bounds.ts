@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_study_clone_narrow_bounds Story 1.1 — pure helper that rewrites a
  * cloned study's ``search_space`` JSON so each numeric ``low``/``high`` clamps

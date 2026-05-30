@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Test-only seeding helper for E2E coverage of completed-study surfaces.
 
 Drives a study deterministically through ``queued → running → completed`` and

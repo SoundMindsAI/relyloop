@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Optuna RDB schema isolation integration test (Story 3.1 / AC-1a + AC-1b).
 
 * AC-1a — after ``make migrate``, both ``public`` and ``optuna`` schemas

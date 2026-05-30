@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract assertions for the Epic 3 conversations API (feat_chat_agent)."""
 
 from __future__ import annotations

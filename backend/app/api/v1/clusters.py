@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cluster CRUD + schema + run_query router (Stories 3.2, 3.3, 3.4).
 
 Endpoints (per spec §7.1, FR-5/FR-4/FR-6):

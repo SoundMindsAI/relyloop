@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-9 + FR-2b boot-time pending-proposal scan test for ``backend/workers/all.py``.
 
 Three scenarios:

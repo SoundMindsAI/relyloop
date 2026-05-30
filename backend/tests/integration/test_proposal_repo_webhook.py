@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Repo unit-of-work tests for feat_github_webhook Story 1.4 (proposal extensions).
 
 Exercises the 5 new functions added to :mod:`backend.app.db.repo.proposal`:

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.services.demo_seeding``.
 
 Story 1.1 (feat_home_demo_reseed_endpoint). Pure-function coverage only —

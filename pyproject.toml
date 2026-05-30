@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 [project]
 name = "relyloop"
 version = "0.1.0"
@@ -87,6 +91,10 @@ dev = [
     "pre-commit>=4.6.0",
     "types-PyYAML>=6.0",
     "asgi-lifespan>=2.1",
+    # REUSE (https://reuse.software/) — SPDX-header linter. `reuse lint` runs in
+    # pre-commit and CI to enforce that every new source file carries an SPDX
+    # header; `reuse annotate` adds them. See REUSE.toml for the coverage map.
+    "reuse>=4.0.0",
 ]
 
 [build-system]

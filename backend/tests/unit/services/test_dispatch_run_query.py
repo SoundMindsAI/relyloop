@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``dispatch_run_query`` unit tests (Story 3.4 / 5.1).
 
 Verifies the wrapper around ``ElasticAdapter.search_batch``:

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the demo-reseed status helpers and Redis serialization.
 
 Per ``bug_demo_reseed_fake_metric_regression``. Covers the pure parts of

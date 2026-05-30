@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Fast-lane integration test for synthetic UBI seeding (Story 4.1 / FR-11).
 
 Always-on (runs even with ``SKIP_HEAVY_CI=true``): exercises one

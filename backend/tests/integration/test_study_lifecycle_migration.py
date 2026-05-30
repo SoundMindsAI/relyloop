@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0003_study_lifecycle_schema`` migration test (feat_study_lifecycle Phase 1, Story 1.2).
 
 Per cycle-1 GPT-5.5 review F7, this test goes beyond table-existence + CHECK

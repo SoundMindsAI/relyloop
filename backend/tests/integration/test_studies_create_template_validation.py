@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for POST /api/v1/studies template validation.
 
 chore_create_study_wizard_polish Story 1.1.

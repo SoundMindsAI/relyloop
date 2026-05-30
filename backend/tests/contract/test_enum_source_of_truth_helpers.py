@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Helper used by ``scripts/ci/verify_enum_source_of_truth.sh`` to resolve a
 backend symbol (a ``typing.Literal[...]`` annotation OR a module-level
 ``frozenset``/``set``/``tuple``/``list`` constant) to its wire values.

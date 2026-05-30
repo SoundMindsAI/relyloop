@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the FR-2 baseline phase helpers in ``backend.workers.orchestrator``.
 
 Covers (real-backend integration coverage lives in

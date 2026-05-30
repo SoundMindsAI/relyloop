@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``propose_search_space`` tool — build a deterministic starter search space.
 
 Read-only agent tool (NOT in :data:`backend.app.agent.confirmation.MUTATING_TOOL_NAMES`).

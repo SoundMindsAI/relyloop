@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Parse the ``?fields=`` CSV query param for the documents browse endpoint.
 
 Spec FR-3 / D-21: the ``fields`` param selects which ``_source`` keys are

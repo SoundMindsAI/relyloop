@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Concurrent DELETE vs judgment-INSERT race test (feat_query_inline_crud §10 Threat 4).
 
 Spec §10 Threat 4 says: even if our application-level pre-DELETE count

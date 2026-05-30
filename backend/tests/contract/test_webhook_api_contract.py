@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract assertions for the GitHub webhook receiver (Story 2.1).
 
 * The endpoint is registered in the OpenAPI schema under

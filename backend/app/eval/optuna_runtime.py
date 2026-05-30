@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Optuna study factory + sampler/pruner builders (infra_optuna_eval Story 2.1).
 
 Pure-Python wrappers around Optuna's ``optuna.create_study``,

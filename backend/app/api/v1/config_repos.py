@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Config-repo CRUD endpoints (feat_github_pr_worker Stories 3.2 + 3.3 / FR-3).
 
 Three endpoints under ``/api/v1/config-repos``:

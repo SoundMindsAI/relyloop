@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the ``run_demo_reseed`` top-level exception barrier.
 
 Per ``bug_demo_reseed_button_silent_enqueue_failure``. The worker

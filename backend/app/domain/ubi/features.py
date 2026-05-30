@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``FeatureVec`` + ``aggregate_features`` (feat_ubi_judgments Story 1.2 / FR-1 + FR-2 backing).
 
 Pure-domain aggregation of raw UBI events into per-(query, doc)

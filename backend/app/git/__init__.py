@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Git provider HTTP clients (feat_github_webhook Story 1.5).
 
 CLAUDE.md "Repository Structure" reserves ``backend/app/git/`` as the

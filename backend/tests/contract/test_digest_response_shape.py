@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract test — DigestResponse.suggested_followups discriminated union (Story 4.1).
 
 Asserts:

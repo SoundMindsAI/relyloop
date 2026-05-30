@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Demo-state reseed service (feat_home_demo_reseed_endpoint Story 1.1).
 
 Orchestrates a complete wipe + reseed of the four demo scenarios used by

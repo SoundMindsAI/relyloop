@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration test for ``backend.app.scripts.seed_es`` (chore_tutorial_polish Story 2.1).
 
 Skips automatically when Elasticsearch isn't reachable from the test process

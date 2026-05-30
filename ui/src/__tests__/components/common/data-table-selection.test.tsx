@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Selection + bulk-action tests (feat_data_table_primitive Story 2.9 / FR-13 / AC-10).
  */

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Component tests for EditQueryPopover (feat_query_inline_crud Story 4.2).
  *

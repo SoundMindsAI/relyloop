@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for GET /api/v1/config-repos/{id} last_merged_proposal field.
 
 feat_config_repo_baseline_tracking Story 2.1 (FR-4). Covers AC-8 (detail

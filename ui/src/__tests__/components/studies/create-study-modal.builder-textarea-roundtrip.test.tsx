@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Story 3.1 — builder ↔ textarea responsive layout + cross-surface
  * round-trip behavior (FR-8 + AC-9 + AC-12).

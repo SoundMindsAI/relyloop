@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Repo-layer tests for the last-merged-pointer helpers.
 
 feat_config_repo_baseline_tracking Story 1.2. Real-Postgres AsyncSession

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Capability-cache degraded path (feat_chat_agent Story 2.5).
 
 When ``read_capability_result`` returns a ``CapabilityResult`` with

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0006_proposals_pr_url_idx`` migration test (feat_github_webhook Story 1.1).
 
 Asserts:

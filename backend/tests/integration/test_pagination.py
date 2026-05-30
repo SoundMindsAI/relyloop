@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-9 — pagination + since + X-Total-Count across the 4 list endpoints.
 
 12 methods (4 endpoints × 3 behaviors) called out by Story 3.3 task 7 +

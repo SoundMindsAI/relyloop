@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Sort-aware cursor pagination helpers.
 
 Shared by every list/count repo function that accepts ``?sort=<col>:<dir>``.

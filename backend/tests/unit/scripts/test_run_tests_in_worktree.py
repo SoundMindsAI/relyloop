@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Smoke tests for scripts/run-tests-in-worktree.sh.
 
 Phase 2 of infra_agent_sibling_worktree_isolation (FR-10). Exercises the

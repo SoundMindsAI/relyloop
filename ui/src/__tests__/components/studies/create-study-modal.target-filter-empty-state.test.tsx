@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_cluster_target_filter Story F2 — create-study modal target picker's
  * empty-state message branches on the selected cluster's `target_filter`.

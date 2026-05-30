@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``POST /api/v1/config-repos`` Story 4.2 extension.
 
 The existing endpoint behavior (response shape, 201 status, preflight

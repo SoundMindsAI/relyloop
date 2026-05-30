@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Study-lifecycle repo integration tests (feat_study_lifecycle Phase 1, Story 1.3).
 
 Exercises every function in the 7 new repo modules against the real test

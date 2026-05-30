@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract tests for ``feat_index_document_browser`` Stories 2.2 + 2.3.
 
 Asserts:
