@@ -123,19 +123,55 @@ Credentials never live in the database. The `clusters.credentials_ref` column is
 | `solr_basic` | YAML: `{username, password}` | Activates at **MVP2** (Apache Solr adapter) |
 | `solr_apikey` | YAML: `{jwt_token, refresh_url?}` for Solr 9+ `JWTAuthPlugin` | Activates at **MVP2** (Apache Solr adapter) |
 
-## Reserved for later releases
+### SolrAdapter (MVP2 — implemented)
 
-### SolrAdapter (MVP2)
+Apache Solr support ships in MVP2 via `backend/app/adapters/solr.py`. Full
+scope in
+[`infra_adapter_solr`](../00_overview/planned_features/02_mvp2/infra_adapter_solr/).
+Summary of the implementation:
 
-Apache Solr ships in MVP2 alongside UBI judgments. Full scope in [`infra_adapter_solr/idea.md`](../00_overview/planned_features/02_mvp2/infra_adapter_solr/idea.md). Summary:
-
-- `search_batch` uses parallel `/select` requests with a connection pool (Solr has no `_msearch` equivalent).
-- `render` produces a Solr request parameter dict; templates under `templates/solr/` mirror the `templates/elasticsearch/` shape. Supports `edismax` (primary), `dismax`, `lucene` parsers.
-- `get_schema` uses Solr's Schema API; `list_targets` selects CoresAdmin (standalone) or CollectionsAdmin (SolrCloud) based on a startup capability probe.
-- `explain` uses `debugQuery=true&debug=results`.
-- LTR rescoring: applies a pre-existing `MultipleAdditiveTreesModel` (XGBoost-compatible) loaded via Solr's `/schema/model-store` as a rescore stage in a trial. Training is out of scope (LTR training is in the backlog).
-- UBI on Solr: Solr ships `solr.UBIComponent` in core writing the same `ubi_queries` + `ubi_events` schema as the OpenSearch UBI plugin. The MVP2 `UbiReader` works on Solr unchanged.
-- Supports Solr 9.x and 10.x; SolrCloud and standalone.
+- `search_batch` issues parallel `/select` requests via
+  `asyncio.gather(..., return_exceptions=True)` with preserved
+  `query_id` mapping (Solr has no `_msearch` equivalent). `fl` is
+  normalized so `score` AND the resolved `uniqueKey` are always present
+  in the response.
+- `render` produces a Solr request-parameter dict that mixes Solr-native
+  keys (`defType`, `q`, `qf`, `pf`, `tie`, `mm`, `ps`, `bf`, `boost`,
+  `rq`, `fl`, ...) with unified cross-engine keys that auto-pivot to
+  their Solr equivalents (`field_boosts` → `qf`, `boost_fn{combine:
+  add|multiply}` → `bf`/`boost`, `rerank_model` → `rq={!ltr ...}`).
+  Canonical templates live at `samples/templates/solr/products_{edismax,
+  dismax, lucene}.j2`.
+- `get_schema` calls Solr's `/<target>/schema/fields`; `list_targets`
+  dispatches on the probe-recorded `engine_config.mode`: cloud →
+  `/admin/collections?action=LIST` + per-target `/select?rows=0` for
+  doc counts; standalone → `/admin/cores?action=STATUS` reads
+  `index.numDocs` directly.
+- `explain` uses `debugQuery=true&debug=results` with an `fq` pin on
+  the uniqueKey; doc IDs containing Lucene metacharacters
+  (`+`, `-`, `:`, `(`, `)`, spaces, ...) are escaped via the
+  `_lucene_escape` helper.
+- `get_document` uses Solr's RealTime Get (`/<target>/get?id=...`);
+  `list_documents` paginates via `cursorMark` with the terminal-page
+  rule (when `nextCursorMark == cursorMark`, drop the next-cursor token
+  so the router's `has_more` derives False without overfetch).
+- LTR rescoring: render-time pre-flight against
+  `engine_config.ltr_models` (capability-probe-populated) raises
+  `LtrModelNotFoundError` → 400 `LTR_MODEL_NOT_FOUND` when the
+  requested model id isn't loaded. Models are uploaded out-of-band via
+  Solr's `/schema/model-store`; training stays in the backlog.
+- Capability probe (`probe_capabilities()`) records version, mode,
+  `ubi_component_present`, `ltr_module_present`, `ltr_models[]`, and
+  `unique_key_per_target` into `engine_config`. Re-run via
+  `POST /api/v1/clusters/{id}/reprobe`. Two new sister endpoints:
+  `POST /clusters/test-connection` (probes an unsaved config; always 200
+  with a diagnostic result) and the reprobe itself (concurrent calls
+  serialize on `SELECT ... FOR UPDATE`).
+- UBI on Solr: Solr's first-party `solr.UBIComponent` writes the same
+  `ubi_queries` + `ubi_events` schema as the OpenSearch UBI plugin —
+  the MVP2 `UbiReader` works on Solr unchanged.
+- Supported versions: Solr 9.x and 10.x; SolrCloud and standalone
+  auto-detected via `/admin/zookeeper/status`.
 
 ## Cross-references
 
