@@ -114,7 +114,10 @@ def _join_field_boosts(value: dict[str, Any]) -> str:
     for field, boost in value.items():
         if boost is None:
             raise InvalidQueryDSLError(f"field_boosts: missing boost for field {field!r}")
-        if not isinstance(boost, (int, float)):
+        # bool is an int subclass — a True/False boost would otherwise pass the
+        # numeric check and render as `field^true` (invalid Solr). Reject it
+        # explicitly (Gemini review Gm-5).
+        if isinstance(boost, bool) or not isinstance(boost, (int, float)):
             raise InvalidQueryDSLError(
                 f"field_boosts[{field!r}]: boost must be a number, got {type(boost).__name__}"
             )
@@ -208,7 +211,12 @@ def _normalize_fl(existing: Any, unique_key: str) -> str:
     """
     if existing is None or existing == "":
         return "*,score"
-    if not isinstance(existing, str):
+    if isinstance(existing, (list, tuple)):
+        # A template/caller may hand fl as a list of fields. `str([...])`
+        # would produce a malformed "['id', 'title']" param (Gemini Gm-6) —
+        # join on comma instead.
+        existing = ",".join(str(x) for x in existing)
+    elif not isinstance(existing, str):
         existing = str(existing)
     fields = [f.strip() for f in existing.split(",") if f.strip()]
     if "*" in fields and "score" in fields:
@@ -800,12 +808,10 @@ class SolrAdapter:
                 request_id=request_id,
                 translate_errors=False,
             )
-        except (
-            httpx.ConnectError,
-            httpx.ReadTimeout,
-            httpx.RemoteProtocolError,
-            httpx.ConnectTimeout,
-        ) as exc:
+        except httpx.HTTPError as exc:
+            # Broad catch (Gemini Gm-4): /healthz must never 500. httpx.HTTPError
+            # is the base of every transport/protocol error (ConnectError,
+            # ReadTimeout, WriteTimeout, PoolTimeout, NetworkError, ...).
             return HealthStatus(status="unreachable", checked_at=now, error=str(exc))
 
         if resp.status_code >= 500:
@@ -1372,13 +1378,17 @@ class SolrAdapter:
         * 404 → ``TargetNotFoundError`` regardless of mode (the target gone
           mid-batch is a hard error worth surfacing).
         """
-        if isinstance(result, QueryTimeoutError):
+        # `_execute` calls `_request(translate_errors=False)`, so a read
+        # timeout surfaces here as a raw `httpx.ReadTimeout` (not yet wrapped
+        # as QueryTimeoutError). Map it to QueryTimeoutError → 504, NOT the
+        # generic ClusterUnreachableError → 503 (Gemini review Gm-3).
+        if isinstance(result, (QueryTimeoutError, httpx.ReadTimeout)):
             if strict_errors:
-                raise result
+                raise QueryTimeoutError(str(result)) from result
             return []
-        if isinstance(result, ClusterUnreachableError):
+        if isinstance(result, (ClusterUnreachableError, httpx.HTTPError)):
             if strict_errors:
-                raise result
+                raise ClusterUnreachableError(str(result)) from result
             return []
         if isinstance(result, BaseException):
             if strict_errors:
@@ -1469,6 +1479,10 @@ class SolrAdapter:
         params: dict[str, Any] = dict(query.body)
         params["debugQuery"] = "true"
         params["debug"] = "results"
+        # Solr's debug.explain is plain-TEXT by default; request the nested
+        # structured form so `_solr_explain_to_unified` gets a dict to walk
+        # (without this, every explain returns matched=False — Gemini Gm-2).
+        params["debug.explain.structured"] = "true"
         # ``fq`` may already be present from the query body; we append rather
         # than overwriting. Solr supports repeated fq via list values.
         fq_pin = f"{unique_key}:{_lucene_escape(doc_id)}"
