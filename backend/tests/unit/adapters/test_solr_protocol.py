@@ -101,29 +101,16 @@ class TestProtocolShape:
 
 
 class TestStubsRaiseNotImplemented:
-    """A2–A8 fill in the stubs; until then they raise NotImplementedError.
+    """A3–A8 fill in the remaining stubs; until then they raise NotImplementedError.
 
     The Protocol shape passes (isinstance is True) because runtime_checkable
     only checks attribute presence — not call behaviour. These tests assert
     the intentional stub state so a later refactor that accidentally drops a
     NotImplementedError doesn't ship undefined behaviour.
+
+    Story A2 landed ``render`` — its assertion has been removed; Story A3
+    will retire ``test_search_batch_raises``; etc.
     """
-
-    async def test_render_raises(self) -> None:
-        from backend.app.adapters.protocol import QueryTemplate
-
-        adapter = _build_solr_adapter()
-        try:
-            tpl = QueryTemplate(
-                name="t",
-                engine_type="solr",
-                body="{}",
-                declared_params={},
-            )
-            with pytest.raises(NotImplementedError, match="story A2"):
-                adapter.render(tpl, {}, "")
-        finally:
-            await adapter.aclose()
 
     async def test_list_targets_raises(self) -> None:
         adapter = _build_solr_adapter()

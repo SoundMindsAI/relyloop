@@ -48,6 +48,7 @@ from pydantic import BaseModel
 from backend.app.adapters.credentials import resolve_credentials
 from backend.app.adapters.errors import (
     ClusterUnreachableError,
+    InvalidQueryDSLError,
     QueryTimeoutError,
 )
 from backend.app.adapters.protocol import (
@@ -78,6 +79,66 @@ SOLR_MODE_VALUES = Literal["cloud", "standalone"]
 # ``/admin/cores?action=STATUS`` that should never surface to operators.
 # Names starting with ``.`` are also excluded (Solr-system convention).
 _SOLR_SYSTEM_TARGETS: frozenset[str] = frozenset({".system", "_default"})
+
+
+def _format_number(value: int | float) -> str:
+    """Render a number for a Solr request param.
+
+    Floats use Python's ``repr`` shortest-round-trip form (``0.3``, not
+    ``0.29999999999999999``); ints render without a decimal point. Solr
+    parses both.
+    """
+    if isinstance(value, bool):
+        # Defensive: ``bool`` is a subclass of ``int``; keep its wire shape
+        # explicit instead of writing "True" / "False".
+        return "true" if value else "false"
+    if isinstance(value, int):
+        return str(value)
+    # float — repr gives the shortest round-trip representation.
+    return repr(value)
+
+
+def _join_field_boosts(value: dict[str, Any]) -> str:
+    """Render ``{field: boost}`` as Solr's space-separated ``"f1^b1 f2^b2"``.
+
+    Insertion order from the dict is preserved. Boost values may be int or
+    float. Missing boosts (None) raise — the template must declare them.
+    """
+    parts: list[str] = []
+    for field, boost in value.items():
+        if boost is None:
+            raise InvalidQueryDSLError(f"field_boosts: missing boost for field {field!r}")
+        if not isinstance(boost, (int, float)):
+            raise InvalidQueryDSLError(
+                f"field_boosts[{field!r}]: boost must be a number, got {type(boost).__name__}"
+            )
+        parts.append(f"{field}^{_format_number(boost)}")
+    return " ".join(parts)
+
+
+def _coerce_to_solr_param_value(value: Any) -> Any:
+    """Coerce a Solr-native template value to its request-param wire form.
+
+    Solr request params are strings (the ``/select?key=value`` query string
+    accepts only strings) or lists of strings (for repeated params like
+    ``fq``). The template emits Python ints/floats/bools/strings; this
+    helper normalizes to the wire shape without losing the repeated-list
+    semantics.
+    """
+    if isinstance(value, list):
+        return [_coerce_to_solr_param_value(v) for v in value]
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return _format_number(value)
+    if isinstance(value, str):
+        return value
+    # Fallback: dict / None / something else — leave as-is and let Solr
+    # complain. The pivot path handles dicts (qf, pf, boost_fn,
+    # rerank_model); Solr-native dict-valued params are rare but exist
+    # (e.g., local params via ``{!key=value}``) and are template-author
+    # responsibility.
+    return value
 
 
 class ProbeResult(BaseModel):
@@ -741,8 +802,170 @@ class SolrAdapter:
         params: dict[str, ParamValue],
         query_text: str,
     ) -> NativeQuery:
-        """Stub — Solr ``render`` lands in Story A2."""
-        raise NotImplementedError("Solr render lands in story A2")
+        """Render a Jinja query template + params into a Solr request-parameter dict.
+
+        Unlike ``ElasticAdapter.render`` (which emits a query *body*), the
+        Solr return shape is a flat ``dict[str, str]`` mapping Solr request
+        parameters that the caller serializes into the ``/select`` query
+        string. The output dict is post-processed: any key recognized as a
+        unified (cross-engine) parameter name is pivoted into its Solr
+        equivalent per `docs/01_architecture/adapters.md` cross-engine map.
+
+        Templates can mix Solr-native keys (``defType``, ``q``, ``qf``,
+        ``pf``, ``tie``, ``mm``, ``ps``, ``bf``, ``boost``, ``rq``, ``fl``,
+        ``rows``, ``start``, ``sort``, ``fq``, ``qs``) with unified keys
+        (``field_boosts``, ``phrase_field_boosts``, ``tie_breaker``,
+        ``min_should_match``, ``slop``, ``boost_fn``, ``rerank_model``).
+        Unrecognized keys raise ``InvalidQueryDSLError`` — that includes
+        ``fuzziness`` (Solr's edismax handles fuzziness via the ``~``
+        operator in the query body, not as a request param) so a template
+        author can't silently drop a parameter that doesn't translate.
+
+        Validates that every key in ``template.declared_params`` is supplied;
+        the Jinja sandbox forbids attribute access so unified params are
+        flat (``field_boosts``, not ``boost_config.fields``).
+        """
+        from jinja2 import UndefinedError
+
+        from backend.app.domain.query.render import render_template
+
+        missing = set(template.declared_params) - set(params.keys())
+        if missing:
+            raise ValueError(f"render: missing required template params: {sorted(missing)}")
+
+        context: dict[str, Any] = {**params, "query_text": query_text}
+        try:
+            rendered = render_template(template.body, context)
+        except UndefinedError as exc:
+            raise ValueError(f"render: undefined parameter — {exc}") from exc
+
+        body = self._pivot_to_solr_params(rendered)
+        return NativeQuery(query_id=template.name, body=body)
+
+    @staticmethod
+    def _pivot_to_solr_params(rendered: dict[str, Any]) -> dict[str, Any]:
+        """Translate a mixed Solr-native + unified-param dict into a pure Solr param dict.
+
+        Pivots (unified → Solr):
+        * ``field_boosts: {field: boost}`` → ``qf: "f1^b1 f2^b2"``
+        * ``phrase_field_boosts: {field: boost}`` → ``pf: "f1^b1 f2^b2"``
+        * ``tie_breaker: float`` → ``tie: "0.3"``
+        * ``min_should_match: int|float|str`` → ``mm: "..."``
+        * ``slop: int`` → ``ps: "2"``
+        * ``boost_fn: {expr, combine}`` → ``bf`` (combine="add") or
+          ``boost`` (combine="multiply")
+        * ``rerank_model: {id, top_k}`` → ``rq: "{!ltr model=ID reRankDocs=K}"``
+
+        Solr-native keys pass through unchanged. Any other key raises
+        ``InvalidQueryDSLError`` (including ``fuzziness``).
+        """
+        out: dict[str, Any] = {}
+        for key, value in rendered.items():
+            pivot = _PARAM_PIVOTS.get(key)
+            if pivot is not None:
+                solr_key, solr_value = pivot(value)
+                out[solr_key] = solr_value
+                continue
+            if key in _SOLR_NATIVE_PARAMS:
+                out[key] = _coerce_to_solr_param_value(value)
+                continue
+            raise InvalidQueryDSLError(_unified_parameter_error_message(key))
+        return out
+
+    @staticmethod
+    def _render_qf(value: Any) -> tuple[str, str]:
+        """``field_boosts: {field: boost}`` → ``("qf", "f1^b1 f2^b2")``.
+
+        Insertion order from the dict is preserved (Python 3.7+ guarantee).
+        Boost values may be int or float; integers render without a decimal
+        point. Non-dict input raises (defensive; the validator should have
+        caught it earlier).
+        """
+        if not isinstance(value, dict):
+            raise InvalidQueryDSLError(f"field_boosts must be a dict, got {type(value).__name__}")
+        return "qf", _join_field_boosts(value)
+
+    @staticmethod
+    def _render_pf(value: Any) -> tuple[str, str]:
+        """``phrase_field_boosts: {field: boost}`` → ``("pf", "f1^b1 f2^b2")``."""
+        if not isinstance(value, dict):
+            raise InvalidQueryDSLError(
+                f"phrase_field_boosts must be a dict, got {type(value).__name__}"
+            )
+        return "pf", _join_field_boosts(value)
+
+    @staticmethod
+    def _render_tie(value: Any) -> tuple[str, str]:
+        """``tie_breaker: float`` → ``("tie", "0.3")``."""
+        if not isinstance(value, (int, float)):
+            raise InvalidQueryDSLError(f"tie_breaker must be a number, got {type(value).__name__}")
+        return "tie", _format_number(value)
+
+    @staticmethod
+    def _render_mm(value: Any) -> tuple[str, str]:
+        """``min_should_match`` → ``("mm", "...")``.
+
+        Accepts int, float, or string. Arithmetic syntax like
+        ``"2<-25% 9<-3"`` is preserved verbatim (Solr parses the string).
+        """
+        if isinstance(value, str):
+            return "mm", value
+        if isinstance(value, (int, float)):
+            return "mm", _format_number(value)
+        raise InvalidQueryDSLError(
+            f"min_should_match must be int|float|str, got {type(value).__name__}"
+        )
+
+    @staticmethod
+    def _render_ps(value: Any) -> tuple[str, str]:
+        """``slop: int`` → ``("ps", "2")``."""
+        if not isinstance(value, int):
+            raise InvalidQueryDSLError(f"slop must be an int, got {type(value).__name__}")
+        return "ps", str(value)
+
+    @staticmethod
+    def _render_boost_fn(value: Any) -> tuple[str, str]:
+        """``boost_fn: {expr, combine}`` → either ``bf`` (add) or ``boost`` (multiply).
+
+        The ``combine`` field is required and must be one of ``"add"`` /
+        ``"multiply"``. ``expr`` is the Solr function-query expression
+        (passed through verbatim — Solr parses it).
+        """
+        if not isinstance(value, dict):
+            raise InvalidQueryDSLError(f"boost_fn must be a dict, got {type(value).__name__}")
+        expr = value.get("expr")
+        combine = value.get("combine")
+        if not isinstance(expr, str) or not expr:
+            raise InvalidQueryDSLError("boost_fn.expr must be a non-empty string")
+        if combine == "add":
+            return "bf", expr
+        if combine == "multiply":
+            return "boost", expr
+        raise InvalidQueryDSLError(f"boost_fn.combine must be 'add' or 'multiply', got {combine!r}")
+
+    @staticmethod
+    def _render_rerank_model(value: Any) -> tuple[str, str]:
+        """``rerank_model: {id, top_k}`` → ``("rq", "{!ltr model=ID reRankDocs=K}")``.
+
+        ``top_k`` must be a positive int (the LTR rescore window). The model
+        ``id`` is the Solr model-store entry name. Story A7's validator runs
+        BEFORE this render to confirm the id exists in
+        ``engine_config.ltr_models``; this method does the literal string
+        translation only.
+        """
+        if not isinstance(value, dict):
+            raise InvalidQueryDSLError(f"rerank_model must be a dict, got {type(value).__name__}")
+        model_id = value.get("id")
+        top_k = value.get("top_k")
+        if not isinstance(model_id, str) or not model_id:
+            raise InvalidQueryDSLError("rerank_model.id must be a non-empty string")
+        if not isinstance(top_k, int) or top_k <= 0:
+            raise InvalidQueryDSLError("rerank_model.top_k must be a positive int")
+        return "rq", f"{{!ltr model={model_id} reRankDocs={top_k}}}"
+
+    # ------------------------------------------------------------------
+    # Protocol method stubs — Stories A3/A5/A8 land these.
+    # ------------------------------------------------------------------
 
     async def search_batch(
         self,
@@ -789,3 +1012,65 @@ class SolrAdapter:
     ) -> DocumentPage:
         """Stub — Solr ``list_documents`` lands in Story A8."""
         raise NotImplementedError("Solr list_documents lands in story A8")
+
+
+# Solr-native request param keys that the templates may emit. Anything
+# outside this set + ``_PARAM_PIVOTS`` raises ``InvalidQueryDSLError``.
+# Source: Solr Ref Guide "Common Query Parameters" + edismax / LTR /
+# rescoring sections. Extend conservatively — every added key is a
+# forward-compatibility commitment.
+_SOLR_NATIVE_PARAMS: frozenset[str] = frozenset(
+    {
+        "defType",  # query parser pick (edismax / dismax / lucene)
+        "q",  # main query
+        "qf",  # qf field boosts (post-pivot or native)
+        "pf",  # phrase field boosts
+        "pf2",  # 2-gram phrase boosts
+        "pf3",  # 3-gram phrase boosts
+        "tie",  # tie breaker
+        "mm",  # min should match
+        "ps",  # phrase slop
+        "qs",  # query string slop
+        "bf",  # additive boost function
+        "boost",  # multiplicative boost function
+        "rq",  # rescoring query (LTR lives here)
+        "fl",  # field list
+        "rows",  # page size
+        "start",  # offset
+        "sort",  # sort spec
+        "fq",  # filter query (may repeat)
+        "debugQuery",  # explain
+        "debug",  # explain detail level
+        "wt",  # response writer
+    }
+)
+
+
+# Unified-key → pivot-helper map. The helpers live on ``SolrAdapter`` as
+# staticmethods so they're individually testable (``test_solr_render``
+# and friends parametrize over the helper outputs). The map is module-level
+# so ``_pivot_to_solr_params`` can be a staticmethod.
+_PARAM_PIVOTS: dict[str, Any] = {
+    "field_boosts": SolrAdapter._render_qf,
+    "phrase_field_boosts": SolrAdapter._render_pf,
+    "tie_breaker": SolrAdapter._render_tie,
+    "min_should_match": SolrAdapter._render_mm,
+    "slop": SolrAdapter._render_ps,
+    "boost_fn": SolrAdapter._render_boost_fn,
+    "rerank_model": SolrAdapter._render_rerank_model,
+}
+
+
+def _unified_parameter_error_message(key: str) -> str:
+    """Friendly error for unknown / Solr-incompatible unified params."""
+    if key == "fuzziness":
+        return (
+            "unified parameter 'fuzziness' has no Solr edismax equivalent; "
+            "use the '~' operator in the query body"
+        )
+    return (
+        f"unified parameter {key!r} has no Solr pivot; "
+        "use a Solr-native param name (qf, pf, tie, mm, ps, bf, boost, rq, ...) "
+        "or one of: field_boosts, phrase_field_boosts, tie_breaker, "
+        "min_should_match, slop, boost_fn, rerank_model"
+    )
