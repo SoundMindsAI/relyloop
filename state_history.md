@@ -4,6 +4,63 @@
 
 ---
 
+### chore_oss_public_launch_punchlist — OSS launch gates (PRs #322, #330, + history-audit PR, 2026-05-30)
+
+Closed out the three-capability OSS public-launch punchlist (folder
+`docs/00_overview/planned_features/04_ga/chore_oss_public_launch_punchlist/`,
+now deleted — work is done and self-documenting in the repo). These were the
+gates on flipping the repository from private to public, deliberately split out
+of the earlier `chore_oss_launch_prep` docs PR because each was a
+bulk-mechanical sweep or an operator decision too large to bundle.
+
+**Capability 1 — SPDX headers (PR #322).** Adopted the FSFE REUSE convention.
+`reuse annotate` across every source file (`backend/`, `ui/`, `migrations/`,
+`scripts/`, root config — per-language comment style) + `REUSE.toml` for the
+files that can't carry an inline header (JSON/CSV/images/video, generated
+lockfiles + `*.d.ts`, Markdown, prompt templates whose leading bytes go to the
+LLM, dotfiles). `reuse lint` = 1477/1477. Enforced via a `reuse-lint`
+pre-commit hook + `license-headers` CI job. Load-bearing risk: the 128
+`'use client'` components — an SPDX comment now precedes the directive, which
+Next.js permits; confirmed by a clean `next build`. One squashed commit (937
+files); the 7 tooling/config files are the review surface, the rest mechanical.
+
+**Capability 2 — license inventory + CI gate (PR #330).**
+`scripts/gen_license_inventory.py` generates `docs/04_security/license-inventory.md`
+from the locked closure (`uv tree --frozen` + `pip-licenses` + `pnpm licenses`)
+— deterministic regardless of ambient venv, platform-specific npm binaries
+(`@img/sharp-*-darwin-arm64` vs `-linux-x64`) collapsed to `-<platform>`,
+versions omitted so routine bumps don't churn the file. `--check` (the
+`license-inventory` CI job) fails on staleness OR a forbidden (GPL/AGPL) /
+unclassified license in a *shipped* dep. Result: 786 deps, 0 violations; 9
+non-permissive licenses all adjudicated Accept (psycopg2-binary LGPL runtime —
+unmodified library; tqdm MPL∧MIT — take MIT; @img/sharp-libvips LGPL binary;
+dev-only reuse GPL-3.0 — build tool, never shipped). The first full run caught
+bugs a synthetic test missed: `classify()` missing `0BSD`/`BlueOak`/`CC-BY`
+(false-flagging tslib/minimatch/caniuse-lite) and the platform-binary
+non-determinism — both fixed before merge.
+
+**Capability 3 — git-history audit (history-audit PR).** Ran `gitleaks`
+against full history (`--log-opts="--all"` via Docker, since it's not a project
+dep) plus manual pickaxe sweeps. **All hits confirmed false positive:** 1
+gitleaks `generic-api-key` finding (the literal config-key string
+`judgment.rating.0` in a planned-feature doc); `ghp_`/`github_pat_` hits all
+from the token-**redaction** feature's own regex + test fixtures + sentinels;
+the lone `*.soundminds.internal` match inside the punchlist idea.md's own scan
+instructions; `acme.com`/`acme-products-rich` synthetic demo data; IP
+`192.0.2.1` (RFC 5737 doc range); author emails maintainer + bot only. Captured
+the procedure + a rotate-vs-`git-filter-repo`-rewrite-vs-defer decision tree +
+this run's adjudicated outcome in `docs/03_runbooks/oss-history-audit.md`,
+cross-linked from CONTRIBUTING. The visibility flip itself remains an operator
+action, pending a final media spot-check of the synthetic-demo `.webm`
+walkthroughs.
+
+Repo is cleared for the public flip. Note: `SKIP_HEAVY_CI=true` was set during
+this work, so the new `license-headers`/`license-inventory` jobs were skipped on
+the PRs and verified locally instead; they run normally once the kill-switch is
+cleared. Also surfaced: the classifier blocked auto-merge of #330 (its number
+never appeared in the session's tool output due to mid-run cancellations), so
+#330 was handed to the operator to merge.
+
 ### feat_study_sub_warmup_guard — first MVP2 feature (PR #316, 2026-05-29)
 
 **Theme position:** Closes the Custom-mode sub-warmup gap left open by `chore_study_default_stop_conditions` (shipped 2026-05-23). That chore landed the Focused (50) / Standard (200) / Deep (1000) / Custom preset surface with `max_trials=200` as the form default — but the Custom escape hatch still let operators silently re-introduce the under-budgeting failure mode the shipped presets prevent for the default path. The traced evidence (7 studies pre-2026-05-23, six running 12–15 trials) showed the operator's Bayesian loop was barely engaging before the stop condition fired; the digest's "narrow / widen" follow-ups read as "the tool needs me to iterate" but the real signal was "this study stopped before the optimizer learned anything."
