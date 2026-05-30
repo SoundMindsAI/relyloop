@@ -167,22 +167,26 @@ jobs:
         run: uv run python scripts/gen_license_inventory.py --check
 
   # -------------------------------------------------------------------------
-  # Static checks — ALWAYS run (not gated by SKIP_HEAVY_CI). Bundles the cheap,
-  # service-free quality gates that would otherwise be skipped during a CI-budget
-  # crunch: backend ruff + mypy + the bash drift-guards, and frontend prettier +
-  # eslint + tsc + vitest. No Postgres/Redis/ES/OpenSearch, no `next build`, no
-  # pytest — those stay in the heavy `backend` / `frontend` jobs. When the
-  # kill-switch is OFF these checks also run inside those jobs (minor, accepted
-  # duplication); when it's ON this job keeps static analysis + the frontend unit
-  # suite enforced on every PR.
+  # Static checks — ALWAYS run (not gated by SKIP_HEAVY_CI). Split into two
+  # parallel jobs by toolchain: the independent Python and Node dependency
+  # installs (the two big ~60-80s bottlenecks) now run concurrently on separate
+  # runners instead of back-to-back in one job, roughly halving wall-clock. tsc
+  # (Node) also overlaps the ruff/mypy chain (Python) for free. These are the
+  # cheap, service-free quality gates that must hold even during a CI-budget
+  # crunch: no Postgres/Redis/ES/OpenSearch, no `next build`, no pytest (those
+  # stay in the heavy `backend`/`frontend` jobs). When the kill-switch is OFF
+  # the same checks also run inside those jobs (minor, accepted duplication).
+  #
+  # NOTE: renamed from the former single `static-checks` job to
+  # `static-checks-backend` + `static-checks-frontend`. If branch protection
+  # lists the old name as a required check, update it to these two.
   # -------------------------------------------------------------------------
-  static-checks:
-    name: static-checks (lint + types + fe unit, always-run)
+  static-checks-backend:
+    name: static-checks (backend — ruff + mypy + guards, always-run)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
@@ -203,7 +207,25 @@ jobs:
           key: mypy-ruff-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml') }}
           restore-keys: |
             mypy-ruff-${{ runner.os }}-
+      - name: ruff check
+        run: uv run ruff check .
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+      - name: mypy --strict
+        run: uv run mypy backend/
+      - name: Verify source-of-truth enum comments
+        run: bash scripts/ci/verify_enum_source_of_truth.sh
+      - name: Verify demo-cluster slug parity
+        run: bash scripts/ci/verify_demo_slug_parity.sh
+      - name: Verify install.sh builds every buildable Compose service
+        run: bash scripts/ci/verify_install_builds_all_services.sh
 
+  static-checks-frontend:
+    name: static-checks (frontend — prettier + eslint + tsc + vitest, always-run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
         with:
           version: 9
@@ -214,21 +236,6 @@ jobs:
           cache-dependency-path: ui/pnpm-lock.yaml
       - name: pnpm install
         run: pnpm --dir ui install --frozen-lockfile
-
-      - name: ruff check
-        run: uv run ruff check .
-      - name: Format check (ruff)
-        run: uv run ruff format --check .
-      - name: mypy --strict
-        run: uv run mypy backend/
-
-      - name: Verify source-of-truth enum comments
-        run: bash scripts/ci/verify_enum_source_of_truth.sh
-      - name: Verify demo-cluster slug parity
-        run: bash scripts/ci/verify_demo_slug_parity.sh
-      - name: Verify install.sh builds every buildable Compose service
-        run: bash scripts/ci/verify_install_builds_all_services.sh
-
       - name: Format check (prettier)
         run: pnpm --dir ui exec prettier --check src package.json tsconfig.json eslint.config.mjs .prettierrc.json
       - name: ESLint
