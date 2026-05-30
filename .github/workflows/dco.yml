@@ -16,7 +16,7 @@ jobs:
     name: DCO sign-off check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           # Fetch full history so `git log <base>..HEAD` resolves.
           fetch-depth: 0
