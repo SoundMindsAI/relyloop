@@ -20,4 +20,10 @@
 - Phases covered: Phase 1 only. Phase 2 tracked at [phase2_idea.md](./phase2_idea.md).
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-30
+- PR: [#320](https://github.com/SoundMindsAI/relyloop/pull/320) (squash-merged 2026-05-30; merge commit `853a5053`)
+- CI: green (pr.yml backend fast-lane + DCO + secrets-defense; heavy jobs skipped under the active `SKIP_HEAVY_CI=true` repo variable)
+- Stories: 14/14 complete across 4 epics
+- Cross-model review: Gemini Code Assist (4 findings, all accepted + fixed in `b5b38dfb`) + GPT-5.5 final (6 findings — 5 accepted + fixed in `6e55c32e`, 1 rejected as spec-vs-code drift with cited counter-evidence). Adjudication tables posted on PR #320.
+- Phase 2 (side-by-side UBI-vs-LLM study comparison view) split out to [`feat_ubi_llm_study_comparison`](../feat_ubi_llm_study_comparison/idea.md) at finalization.

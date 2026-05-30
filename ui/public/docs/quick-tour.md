@@ -359,10 +359,12 @@ Three points to land, in order:
    optimization engine doesn't care which backend implements the search;
    it tunes whatever knobs the adapter exposes. Your existing Fusion
    query pipelines map directly.
-2. **Real signals next release.** MVP1.5 ("Real Signals") replaces
-   LLM-as-judge with UBI click/dwell data as a first-class judgment
-   source. Your existing Fusion Signals capture maps directly — you
-   grade studies against your users' real behavior, not an LLM's guess.
+2. **Real signals, available now.** User Behavior Insights (UBI) is a
+   first-class judgment source alongside LLM-as-judge: when your cluster
+   has captured click/dwell traffic, you grade studies against your
+   users' real behavior instead of an LLM's guess. UBI is engine-neutral
+   (Elasticsearch, OpenSearch, Solr) and complements the LLM path — the
+   demo above uses LLM because it needs no traffic to run.
 3. **Open source, self-hosted.** Apache 2.0. Run it on a laptop, run it
    on your own infra. The PR-based ship workflow keeps your existing CI
    and existing reviewers in charge of production.
