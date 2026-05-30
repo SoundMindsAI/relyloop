@@ -23,8 +23,13 @@ name: pr
 # `frontend`, `smoke-test`, `docker` (api buildx), `docker-ui` — each carry
 #   if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
 # so they can be skipped en masse to conserve GitHub Actions minutes during a
-# budget crunch. The 4 sub-minute jobs (backend fast-lane unit tests, DCO,
-# secrets guard, gitleaks) always run, retaining baseline signal.
+# budget crunch. The sub-minute jobs (backend fast-lane unit tests, DCO,
+# secrets guard, gitleaks) always run, retaining baseline signal. The two
+# legal-compliance gates — `license-headers` (SPDX) and `license-inventory`
+# (Apache-2.0 dependency check) — also ALWAYS run regardless of this switch:
+# they're cheap (no service containers, no test suite) and must not let a
+# missing header or a new GPL/AGPL runtime dep slip onto main while heavy jobs
+# are off.
 #
 #   Activate (skip heavy jobs):  gh variable set SKIP_HEAVY_CI --body true
 #   Restore (run everything):    gh variable delete SKIP_HEAVY_CI
@@ -93,6 +98,145 @@ jobs:
 
       - name: pytest backend/tests/unit/
         run: uv run pytest backend/tests/unit/ --no-cov -q
+
+  # -------------------------------------------------------------------------
+  # License headers — REUSE (https://reuse.software/) SPDX compliance.
+  # ALWAYS runs (not gated by SKIP_HEAVY_CI): a legal-compliance gate must hold
+  # even during a CI-budget crunch. Cheap — no service containers, just resolve
+  # the `reuse` dev pin and lint every tracked file for an SPDX header (inline
+  # or via REUSE.toml). Fix locally with `uv run reuse annotate`
+  # (see CONTRIBUTING.md "License headers (SPDX)").
+  # -------------------------------------------------------------------------
+  license-headers:
+    name: license-headers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          version: "0.5.7"
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install project deps (frozen)
+        run: uv sync --frozen
+      - name: Lint SPDX headers (reuse)
+        run: uv run reuse lint
+
+  # -------------------------------------------------------------------------
+  # Dependency license inventory — Apache-2.0 compatibility gate. ALWAYS runs
+  # (not gated by SKIP_HEAVY_CI). Regenerates docs/04_security/license-inventory.md
+  # from the locked closure (uv + pnpm) and fails if it's stale OR if any shipped
+  # dependency carries a forbidden (GPL/AGPL) or unclassified license. Needs both
+  # toolchains because the script spans Python (uv tree + pip-licenses) and
+  # frontend (pnpm licenses). Fix locally:
+  # `make license-inventory && git add docs/04_security/license-inventory.md`.
+  # -------------------------------------------------------------------------
+  license-inventory:
+    name: license-inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          version: "0.5.7"
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install Python deps (frozen)
+        run: uv sync --frozen
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: ui/pnpm-lock.yaml
+      - name: Install pnpm deps (frozen)
+        run: pnpm --dir ui install --frozen-lockfile
+      - name: Check license inventory
+        run: uv run python scripts/gen_license_inventory.py --check
+
+  # -------------------------------------------------------------------------
+  # Static checks — ALWAYS run (not gated by SKIP_HEAVY_CI). Bundles the cheap,
+  # service-free quality gates that would otherwise be skipped during a CI-budget
+  # crunch: backend ruff + mypy + the bash drift-guards, and frontend prettier +
+  # eslint + tsc + vitest. No Postgres/Redis/ES/OpenSearch, no `next build`, no
+  # pytest — those stay in the heavy `backend` / `frontend` jobs. When the
+  # kill-switch is OFF these checks also run inside those jobs (minor, accepted
+  # duplication); when it's ON this job keeps static analysis + the frontend unit
+  # suite enforced on every PR.
+  # -------------------------------------------------------------------------
+  static-checks:
+    name: static-checks (lint + types + fe unit, always-run)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+          version: "0.5.7"
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - name: Install project deps (frozen)
+        run: uv sync --frozen
+      - name: Restore mypy + ruff caches
+        uses: actions/cache@v5
+        with:
+          path: |
+            .mypy_cache
+            .ruff_cache
+          key: mypy-ruff-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml') }}
+          restore-keys: |
+            mypy-ruff-${{ runner.os }}-
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 9
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+          cache-dependency-path: ui/pnpm-lock.yaml
+      - name: pnpm install
+        run: pnpm --dir ui install --frozen-lockfile
+
+      - name: ruff check
+        run: uv run ruff check .
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+      - name: mypy --strict
+        run: uv run mypy backend/
+
+      - name: Verify source-of-truth enum comments
+        run: bash scripts/ci/verify_enum_source_of_truth.sh
+      - name: Verify demo-cluster slug parity
+        run: bash scripts/ci/verify_demo_slug_parity.sh
+      - name: Verify install.sh builds every buildable Compose service
+        run: bash scripts/ci/verify_install_builds_all_services.sh
+
+      - name: Format check (prettier)
+        run: pnpm --dir ui exec prettier --check src package.json tsconfig.json eslint.config.mjs .prettierrc.json
+      - name: ESLint
+        run: pnpm --dir ui lint
+      - name: tsc --noEmit
+        run: pnpm --dir ui typecheck
+      - name: vitest
+        run: pnpm --dir ui test
 
   backend:
     name: backend (lint + typecheck + tests + coverage)

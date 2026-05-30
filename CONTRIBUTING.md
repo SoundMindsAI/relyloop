@@ -128,6 +128,27 @@ and fail if any tracked file is uncovered — fix a new file by annotating it or
 adding a glob to `REUSE.toml`. Full compliance is reported as
 "Congratulations! Your project is compliant…".
 
+### Dependency licenses
+
+RelyLoop ships under Apache-2.0, which is incompatible with **strong copyleft
+(GPL / AGPL)** in a *shipped* dependency. Every dependency is inventoried in
+[`docs/04_security/license-inventory.md`](docs/04_security/license-inventory.md),
+generated from the locked closure (`uv tree` + `pnpm licenses`):
+
+```bash
+make license-inventory   # or: uv run python scripts/gen_license_inventory.py
+```
+
+The `license-inventory` CI job runs the same script with `--check`; it fails if
+the committed inventory is stale **or** if any shipped dependency carries a
+forbidden (GPL/AGPL) or unclassified license. If you add a dependency:
+
+1. Run `make license-inventory` and commit the updated file.
+2. If it introduces a non-permissive license, add an adjudication to the
+   `ADJUDICATIONS` map in [`scripts/gen_license_inventory.py`](scripts/gen_license_inventory.py).
+   Dev-only copyleft (e.g. the `reuse` linter, GPL-3.0) is fine — it never
+   ships. Strong copyleft in a runtime dependency is not; replace the dep.
+
 ### Verifying the gitleaks hook
 
 To confirm secret scanning is wired correctly on your machine:
