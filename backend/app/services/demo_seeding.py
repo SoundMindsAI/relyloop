@@ -49,15 +49,11 @@ from scripts.seed_meaningful_demos import (
     TRUNCATE_TABLES,
 )
 from scripts.seed_meaningful_demos import (
-    SCENARIOS as _RAW_SCENARIOS,
+    # Re-exported (``as SCENARIOS``) so ``backend.tests.integration.*``
+    # callers can still ``from backend.app.services.demo_seeding import
+    # SCENARIOS`` under mypy --strict (PEP 484 explicit-reexport rule).
+    SCENARIOS as SCENARIOS,
 )
-
-# The CLI declares ``SCENARIOS`` as ``list[dict]`` (untyped values).
-# Cast at the import boundary so the orchestrator code can index the
-# expected string/tuple/list shapes without mypy complaining. The CLI
-# is out of scope per locked decision D2 — we don't add type hints to
-# ``scripts/seed_meaningful_demos.py``.
-SCENARIOS: list[dict[str, Any]] = cast("list[dict[str, Any]]", _RAW_SCENARIOS)
 
 logger = logging.getLogger(__name__)
 

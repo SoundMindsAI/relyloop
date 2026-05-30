@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-# ruff: noqa: E501, S310, S603, S607, S608
+# ruff: noqa: E501, S101, S310, S603, S607, S608
 #   E501 (line too long): scenario literals contain long product titles +
 #                  news headlines + helper-text strings. Wrapping each one
 #                  hurts readability more than it helps; this is a script,
 #                  not library code.
+#   S101 (assert): the module-level FR-8 invariant after SCENARIOS is a
+#                  load-time guard — failing it MUST stop the seed before
+#                  it writes the wrong demo data. assert is the right
+#                  primitive; Story 2.1 covers the assertion in
+#                  backend/tests/unit/scripts/test_scenarios_ubi_config.py.
 #   S310 (urllib): script only hits hardcoded localhost ports — no user-
 #                  controlled URL schemes.
 #   S603/S607 (subprocess/partial path): we invoke `docker compose exec`
@@ -55,6 +60,7 @@ import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Any
 
 # Repo paths — used by the rich-data scenario (seed_rich_scenario below).
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -140,7 +146,7 @@ def post(path: str, body: dict) -> dict:
 # Scenario definitions
 # ---------------------------------------------------------------------------
 
-SCENARIOS = [
+SCENARIOS: list[dict[str, Any]] = [
     {
         "slug": "acme-products-prod",
         "engine_type": "elasticsearch",
@@ -265,6 +271,14 @@ SCENARIOS = [
             (3, "p1002", 1),
         ],
         "study_name": "tune-product-title-boost-baseline",
+        # UBI demo config (FR-8 / D-2). Synthetic UBI is seeded for this
+        # scenario by the reseed orchestrator so the rung classifier reports
+        # rung_3 and the CTR-threshold converter has signal to grade against.
+        # ubi_target_rung values match `UbiReadinessRung` at
+        # backend/app/services/ubi_readiness.py; ubi_converter values match
+        # `UbiConverterKind` at backend/app/api/v1/schemas.py:846.
+        "ubi_target_rung": "rung_3",
+        "ubi_converter": "ctr_threshold",
     },
     {
         "slug": "corp-docs-search",
@@ -363,6 +377,11 @@ SCENARIOS = [
             (4, "d301", 3),
         ],
         "study_name": "reduce-fuzziness-helpcenter-search",
+        # UBI demo config (FR-8 / D-2). corp targets rung_1 (sparse signal) +
+        # hybrid converter so the LLM fills the long tail past CTR-only
+        # coverage. See acme entry above for the source-of-truth pointers.
+        "ubi_target_rung": "rung_1",
+        "ubi_converter": "hybrid_ubi_llm",
     },
     {
         "slug": "news-search-staging",
@@ -476,6 +495,11 @@ SCENARIOS = [
             (4, "n301", 3),
         ],
         "study_name": "add-7day-freshness-decay-news",
+        # UBI demo config (FR-8 / D-2). news-search-staging is the negative
+        # case — no synthetic UBI; rung classifier reports rung_0 so the
+        # on-ramp nudge surface stays demonstrable.
+        "ubi_target_rung": None,
+        "ubi_converter": None,
     },
     {
         "slug": "jobs-marketplace-prod",
@@ -592,8 +616,27 @@ SCENARIOS = [
             (4, "j301", 3),
         ],
         "study_name": "tune-jobtitle-vs-company-boost",
+        # UBI demo config (FR-8 / D-2). jobs targets rung_2 + hybrid converter
+        # so the demo exercises the middle rung of the on-ramp ladder.
+        "ubi_target_rung": "rung_2",
+        "ubi_converter": "hybrid_ubi_llm",
     },
 ]
+
+# FR-8 invariant: ubi_converter is None iff ubi_target_rung is None. A single
+# scenario that drifts (e.g., target_rung set without a converter) would
+# silently produce a broken demo — assert at import time so any future
+# editor of SCENARIOS gets a hard stop. The unit test at
+# backend/tests/unit/scripts/test_scenarios_ubi_config.py pins the
+# (slug, target) parity against DEMO_UBI_SCENARIO_ALLOWLIST.
+for _scenario in SCENARIOS:
+    assert (_scenario.get("ubi_converter") is None) == (_scenario.get("ubi_target_rung") is None), (
+        f"SCENARIOS[{_scenario['slug']}]: ubi_converter and ubi_target_rung "
+        f"must be both None or both non-None "
+        f"(got ubi_target_rung={_scenario.get('ubi_target_rung')!r}, "
+        f"ubi_converter={_scenario.get('ubi_converter')!r})"
+    )
+del _scenario
 
 
 # ---------------------------------------------------------------------------
