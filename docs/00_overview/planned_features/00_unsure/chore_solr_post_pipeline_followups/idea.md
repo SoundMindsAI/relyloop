@@ -62,7 +62,17 @@ worth tracking so they don't evaporate.
    Solr (no `page.route()` mocking). Mirrors `signup_flow.spec.ts` pattern
    per CLAUDE.md E2E Testing Rules.
 
-6. **Pre-flight LTR-model validator on study create** — the
+6. **`explain` `{!term}` parser (GPT-5.5 review F4, deferred Low).**
+   `explain()` pins the doc via `fq=<uniqueKey>:<lucene-escaped doc_id>`.
+   That's correct for the normal `string` uniqueKey, but switching to the
+   `{!term f=<uniqueKey>}<doc_id>` parser would be analysis-independent
+   (matters only if a uniqueKey is mapped to a text field — unlikely for
+   IDs) and would drop the Lucene-escape dependency entirely. Deferred
+   because it churns the explain escape-assertion unit tests for a Low
+   finding that's correct in the common case. When picked up: also strip
+   `fl` from the explain request (harmless today; debug.explain ignores it).
+
+7. **Pre-flight LTR-model validator on study create** — the
    render-time pre-flight catches the common case (a trial would actually
    hit the missing model), but study create currently accepts a
    `rerank_model.id` that's not in `engine_config.ltr_models`. The

@@ -290,3 +290,43 @@ class TestListDocumentsFailures:
         assert seen_fl[0] is not None
         assert "sku" in seen_fl[0]
         assert "title" in seen_fl[0]
+
+
+class TestListDocumentsShortPageTerminal:
+    """Review F3: a short page (< limit) terminates even if Solr echoes a
+    differently-normalized nextCursorMark that doesn't string-equal the
+    request cursorMark."""
+
+    async def test_short_page_nulls_next_cursor_even_when_marks_differ(self) -> None:
+        def handler(req: httpx.Request) -> httpx.Response:
+            # 2 docs for a limit-25 request, with a DIFFERENT (non-equal)
+            # nextCursorMark — the == terminal check would miss this.
+            return _page_response(
+                [{"id": "p1"}, {"id": "p2"}],
+                num_found=2,
+                next_cursor_mark="AoIxOTk=normalized",
+            )
+
+        adapter = _build(handler)
+        try:
+            page = await adapter.list_documents("products", search_after=["AoIxOTk"], limit=25)
+        finally:
+            await adapter.aclose()
+        assert len(page.hits) == 2
+        assert page.next_cursor_token is None  # short page => terminal
+
+    async def test_full_page_with_new_mark_keeps_cursor(self) -> None:
+        def handler(req: httpx.Request) -> httpx.Response:
+            return _page_response(
+                [{"id": f"p{i}"} for i in range(5)],
+                num_found=99,
+                next_cursor_mark="next-mark",
+            )
+
+        adapter = _build(handler)
+        try:
+            page = await adapter.list_documents("products", limit=5)
+        finally:
+            await adapter.aclose()
+        # Full page (== limit) + a new mark => more to fetch.
+        assert page.next_cursor_token == "next-mark"

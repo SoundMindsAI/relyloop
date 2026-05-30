@@ -46,21 +46,40 @@ mkdir -p "${SOLR_HOME}"
 if [[ ! -s "${SECURITY_FILE}" ]]; then
   echo "bootstrap-security.sh: first-boot security.json install"
   # We assemble security.json directly rather than relying on
-  # `bin/solr auth enable-basic-auth` since the latter requires Solr to be
-  # running. Output mirrors what `enable-basic-auth -blockUnknown true`
-  # produces, plus an explicit anonymous allowlist for /admin/info/system.
+  # `bin/solr auth enable-basic-auth` (which needs Solr already running),
+  # plus an explicit anonymous allowlist for /admin/info/system.
   #
-  # Solr hashes BasicAuth passwords with PBKDF2 — we use the same form the
-  # bundled CLI emits (`SHA-256(salt + password)` base64'd).
-  SALT="$(head -c 32 /dev/urandom | base64)"
-  HASH="$(printf '%s' "${SALT}${SOLR_PASS}" | openssl dgst -sha256 -binary | base64)"
+  # Solr's BasicAuthPlugin / Sha256AuthenticationProvider stores the
+  # credential as:
+  #     value = base64( sha256( sha256( salt_bytes || password ) ) )
+  #             + " " + base64( salt_bytes )
+  # NOTE the DOUBLE sha256 and that the salt is the RAW 32 bytes (not its
+  # base64 text). Getting either wrong produces an admin user that can
+  # never authenticate (every credentialed call 401s). See the Solr ref
+  # guide "Basic Authentication Plugin" + Sha256AuthenticationProvider.
+  if ! command -v openssl >/dev/null 2>&1; then
+    echo "bootstrap-security.sh: openssl is required to hash the Solr admin password" >&2
+    echo "  (the solr image must provide openssl; install it or pin a base image that has it)" >&2
+    exit 1
+  fi
+  SALT_FILE="$(mktemp)"
+  head -c 32 /dev/urandom > "${SALT_FILE}"
+  SALT_B64="$(base64 < "${SALT_FILE}" | tr -d '\n')"
+  # sha256(salt_bytes || password) -> raw digest -> sha256 again -> base64.
+  HASH="$(
+    { cat "${SALT_FILE}"; printf '%s' "${SOLR_PASS}"; } \
+      | openssl dgst -sha256 -binary \
+      | openssl dgst -sha256 -binary \
+      | base64 | tr -d '\n'
+  )"
+  rm -f "${SALT_FILE}"
   cat > "${SECURITY_FILE}" <<EOF
 {
   "authentication": {
     "blockUnknown": true,
     "class": "solr.BasicAuthPlugin",
     "credentials": {
-      "${SOLR_USER}": "${HASH} ${SALT}"
+      "${SOLR_USER}": "${HASH} ${SALT_B64}"
     },
     "realm": "RelyLoop Solr",
     "forwardCredentials": false

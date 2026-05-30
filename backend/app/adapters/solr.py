@@ -167,6 +167,30 @@ def _solr_explain_to_unified(node: dict[str, Any], *, doc_id: str) -> ExplainTre
     )
 
 
+def _validate_solr_param_values(params: dict[str, Any]) -> None:
+    """Reject Solr request params that aren't flat scalars or lists of scalars.
+
+    Solr's ``/select`` GET params are strings (httpx serializes scalars +
+    lists-of-scalars fine, but raises on a dict value). The render path only
+    ever emits scalars / str-lists, so this fires only on the run_query
+    passthrough path where an operator sent a nested ES-style DSL to a Solr
+    cluster (review F2). Raises ``InvalidQueryDSLError`` → 400
+    ``INVALID_QUERY_DSL`` at the router.
+    """
+    scalar = (str, int, float, bool)
+    for key, value in params.items():
+        if isinstance(value, scalar):
+            continue
+        if isinstance(value, list) and all(isinstance(v, scalar) for v in value):
+            continue
+        raise InvalidQueryDSLError(
+            f"Solr request param {key!r} must be a scalar or list of scalars, "
+            f"got {type(value).__name__}; run_query against a Solr cluster expects "
+            "Solr request parameters (q, qf, defType, ...), not an Elasticsearch "
+            "query DSL body"
+        )
+
+
 def _normalize_fl(existing: Any, unique_key: str) -> str:
     """Merge ``score`` AND ``unique_key`` into a Solr ``fl`` request param.
 
@@ -1312,8 +1336,17 @@ class SolrAdapter:
         * Sets ``rows=<top_k>`` if not already specified.
         * Normalizes ``fl`` so ``score`` AND ``<unique_key>`` are always
           included (without ``score``, Solr omits the field from response.docs).
+
+        Validates that every param value is a Solr-serializable scalar
+        (str / int / float / bool) or a list of those (review F2): the
+        run_query passthrough path hands this method an operator-supplied
+        ``query_dsl`` that could carry nested ES-style dict/list structures
+        (e.g. ``{"query": {"match": {...}}}``). httpx would raise on a
+        dict-valued query param; surface it as ``InvalidQueryDSLError`` →
+        400 ``INVALID_QUERY_DSL`` instead.
         """
         params: dict[str, Any] = dict(query.body)
+        _validate_solr_param_values(params)
         params.setdefault("rows", str(top_k))
         params["fl"] = _normalize_fl(params.get("fl"), unique_key)
         return params
@@ -1631,6 +1664,13 @@ class SolrAdapter:
             # Terminal page — Solr signals "no more" by returning the same
             # cursorMark back. Setting None lets the router's has_more
             # derivation flip to False without an explicit page-count check.
+            next_cursor_token = None
+        elif len(hits) < limit:
+            # Secondary terminal guard (review F3): a short page means there's
+            # nothing after it. This defends against the unlikely case where
+            # Solr echoes a nextCursorMark that differs from the request's
+            # cursorMark only by string normalization (so the == check above
+            # misses), which would otherwise loop one extra empty page.
             next_cursor_token = None
 
         return DocumentPage(hits=hits, total=total, next_cursor_token=next_cursor_token)

@@ -1515,6 +1515,19 @@ Spec §19 has 2 open questions: both have recommended defaults (`HTTPX_POOL_LIMI
 
 ---
 
+## 11b) Final GPT-5.5 cross-model review (post-PR, PR #336)
+
+Cycle 1 over the full `main..HEAD` diff (83 files) — 4 findings:
+
+| # | Sev | Location | Verdict | Notes |
+|---|---|---|---|---|
+| F1 | High | `docker/solr/bootstrap-security.sh` | **Accepted** | Real auth-breaker. The credential hash was a single `sha256` over the *base64-text* salt; Solr's `Sha256AuthenticationProvider` stores `base64(sha256(sha256(raw_salt_bytes ‖ password)))` + `base64(raw_salt_bytes)`. The admin user would never authenticate → every credentialed call 401s. Fixed: correct double-sha256 over raw salt bytes via `openssl`; script hard-fails if `openssl` is absent rather than writing a broken `security.json`. **Must be confirmed by the BLOCKING `make up` + credentialed `/select` round-trip before merge** (this finding is exactly why the operator-path verification can't be skipped). |
+| F2 | High | `backend/app/adapters/solr.py` `_build_select_request` | **Accepted** | Now that run_query passes `query_dsl` through as Solr params, a nested ES-style DSL body would make httpx choke on a dict-valued param. Added `_validate_solr_param_values` → rejects non-scalar params with `InvalidQueryDSLError` (router → 400 `INVALID_QUERY_DSL`). 2 regression tests. |
+| F3 | Medium | `backend/app/adapters/solr.py` `list_documents` | **Accepted** | Secondary terminal guard: null `next_cursor_token` when `len(hits) < limit`, defending against a `nextCursorMark` that differs from the request mark only by string normalization (the `==` check would miss it). 2 regression tests. |
+| F4 | Low | `backend/app/adapters/solr.py` `explain` | **Deferred** | `{!term f=...}` would be analysis-independent, but the current Lucene-escape is correct for the normal `string` uniqueKey and changing it churns the escape-assertion tests. Captured in `chore_solr_post_pipeline_followups` item 6. |
+
+Outcome: 3 accepted + fixed with regression tests, 1 deferred. Plus the pre-review F1 (`dispatch_run_query` per-engine body) caught during self-review. 1941 backend unit tests pass.
+
 ## 12) Definition of plan done
 
 - [ ] Every FR mapped to stories/tasks/tests/docs (§1 traceability).

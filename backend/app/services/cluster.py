@@ -446,10 +446,18 @@ async def dispatch_run_query(
     is the outer wall-clock guard in case httpx itself doesn't honor the
     deadline; +1.0s slack lets cleanup run.
     """
-    query = NativeQuery(
-        query_id="run_query",
-        body={"query": query_dsl, "size": top_k},
-    )
+    # Per-engine body shape (infra_adapter_solr review F1): NativeQuery.body
+    # is the *engine-native* request body. For ES/OpenSearch that's the
+    # search-request body (`{query, size}` → an `_msearch` line). For Solr
+    # it's the `/select` request-parameter dict — wrapping it in
+    # `{"query": ..., "size": ...}` would hand Solr the meaningless params
+    # `query` + `size` instead of `q`/`rows`, silently returning wrong
+    # results. So for Solr we pass `query_dsl` through as Solr params and let
+    # `SolrAdapter._build_select_request` add `rows`/`fl`.
+    if adapter.engine_type == "solr":
+        query = NativeQuery(query_id="run_query", body=dict(query_dsl))
+    else:
+        query = NativeQuery(query_id="run_query", body={"query": query_dsl, "size": top_k})
     try:
         result = await asyncio.wait_for(
             adapter.search_batch(

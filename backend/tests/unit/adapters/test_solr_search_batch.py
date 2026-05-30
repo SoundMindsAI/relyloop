@@ -397,3 +397,45 @@ class TestResponseParsing:
         finally:
             await adapter.aclose()
         assert result["q1"] == []
+
+
+# ---------------------------------------------------------------------------
+# Solr param validation (review F2) — reject nested ES-DSL bodies.
+# ---------------------------------------------------------------------------
+
+
+class TestRejectNonScalarParams:
+    async def test_nested_dict_param_raises_invalid_query_dsl(self) -> None:
+        """run_query passthrough of an ES-style DSL to a Solr cluster must
+        surface as InvalidQueryDSLError (router -> 400 INVALID_QUERY_DSL),
+        not an httpx serialization crash."""
+        adapter = _build_adapter(lambda r: _ok_response([]))
+        try:
+            queries = [
+                NativeQuery(query_id="q1", body={"query": {"match": {"title": "x"}}}),
+            ]
+            with pytest.raises(InvalidQueryDSLError, match="scalar"):
+                await adapter.search_batch("products", queries, top_k=10, strict_errors=True)
+        finally:
+            await adapter.aclose()
+
+    async def test_scalar_and_str_list_params_pass(self) -> None:
+        seen_fq: list[list[str]] = []
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            seen_fq.append(req.url.params.get_list("fq"))
+            return _ok_response([_doc("p1")])
+
+        adapter = _build_adapter(handler)
+        try:
+            queries = [
+                NativeQuery(
+                    query_id="q1",
+                    body={"q": "laptop", "rows": 5, "fq": ["a:1", "b:2"]},
+                ),
+            ]
+            result = await adapter.search_batch("products", queries, top_k=10)
+        finally:
+            await adapter.aclose()
+        assert result["q1"][0].doc_id == "p1"
+        assert seen_fq[0] == ["a:1", "b:2"]
