@@ -65,7 +65,7 @@
     "eslint-config-next": "^16.2.6",
     "eslint-plugin-security": "^4.0.0",
     "jsdom": "^29.1.1",
-    "msw": "~2.7.6",
+    "msw": "~2.14.6",
     "openapi-typescript": "~7.5.2",
     "postcss": "^8.4.49",
     "prettier": "^3.4.2",
