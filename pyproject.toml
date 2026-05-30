@@ -95,6 +95,9 @@ dev = [
     # pre-commit and CI to enforce that every new source file carries an SPDX
     # header; `reuse annotate` adds them. See REUSE.toml for the coverage map.
     "reuse>=4.0.0",
+    # pip-licenses — feeds scripts/gen_license_inventory.py (the dependency
+    # license-compatibility audit). Used by the `license-inventory` CI gate.
+    "pip-licenses>=5.0.0",
 ]
 
 [build-system]
