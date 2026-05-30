@@ -963,7 +963,7 @@ Covered by Story 4.4. See that story for the file-by-file diff list.
 - [x] Story 2.3 — UBI judgment dispatch + dual studies
 - [x] Story 2.4 — Status sub-step labels + log events
 - [x] Story 2.5 — CLI parity
-- [ ] Story 3.1 — `isDemoSyntheticUbiClusterName` + glossary + CI parity
+- [x] Story 3.1 — `isDemoSyntheticUbiClusterName` + glossary + CI parity
 - [ ] Story 3.2 — `<DemoBadge variant="synthetic-ubi">` on 5 surfaces
 - [ ] Story 4.1 — Fast-lane integration test
 - [ ] Story 4.2 — Heavy-lane integration + CLI parity + AC-8
