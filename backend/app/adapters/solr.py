@@ -38,6 +38,7 @@ Story A1 lands the skeleton:
 
 from __future__ import annotations
 
+import asyncio
 import base64
 from datetime import UTC, datetime
 from typing import Any, Literal
@@ -50,6 +51,7 @@ from backend.app.adapters.errors import (
     ClusterUnreachableError,
     InvalidQueryDSLError,
     QueryTimeoutError,
+    TargetNotFoundError,
 )
 from backend.app.adapters.protocol import (
     Document,
@@ -114,6 +116,42 @@ def _join_field_boosts(value: dict[str, Any]) -> str:
             )
         parts.append(f"{field}^{_format_number(boost)}")
     return " ".join(parts)
+
+
+def _normalize_fl(existing: Any, unique_key: str) -> str:
+    """Merge ``score`` AND ``unique_key`` into a Solr ``fl`` request param.
+
+    Without ``score`` in ``fl``, Solr's response.docs entries omit the
+    ``score`` field (it's not returned by default) and
+    ``search_batch._consume_search_result`` skips those docs as malformed.
+    Without ``unique_key``, the parser can't extract ``doc_id``.
+
+    Cases:
+    * ``existing`` is None / empty → ``"*,score"`` (default).
+    * ``existing`` is ``"*"`` or ``"*,score"`` → leave alone (``*`` already
+      pulls every field including the uniqueKey).
+    * ``existing`` is a comma-separated list → prepend ``score`` and
+      ``unique_key`` if missing; dedupe while preserving order.
+    """
+    if existing is None or existing == "":
+        return "*,score"
+    if not isinstance(existing, str):
+        existing = str(existing)
+    fields = [f.strip() for f in existing.split(",") if f.strip()]
+    if "*" in fields and "score" in fields:
+        return ",".join(fields)
+    if "*" in fields:
+        # Append score after the wildcard so callers can see we added it.
+        if "score" not in fields:
+            fields.append("score")
+        return ",".join(fields)
+    # Specific field list — prepend score + unique_key if absent.
+    needed: list[str] = []
+    if "score" not in fields:
+        needed.append("score")
+    if unique_key not in fields:
+        needed.append(unique_key)
+    return ",".join(needed + fields)
 
 
 def _coerce_to_solr_param_value(value: Any) -> Any:
@@ -977,8 +1015,163 @@ class SolrAdapter:
         strict_errors: bool = False,
         timeout: float | None = None,
     ) -> dict[str, list[ScoredHit]]:
-        """Stub — Solr ``search_batch`` lands in Story A3."""
-        raise NotImplementedError("Solr search_batch lands in story A3")
+        """Hot path: parallel ``/select`` calls with preserved query_id mapping.
+
+        Spec FR-5. Solr has no ``_msearch`` analog — each query is its own HTTP call.
+        ``asyncio.gather(..., return_exceptions=True)`` makes the per-query
+        error isolation natural: a malformed query in the middle of the
+        batch doesn't abort its siblings under ``strict_errors=False``.
+
+        ``strict_errors=True`` (run_query API path):
+            per-query 400 → raise ``InvalidQueryDSLError``
+            per-query connection/5xx → raise ``ClusterUnreachableError``
+            timeout → raise ``QueryTimeoutError``
+
+        ``strict_errors=False`` (Optuna trial runner — default):
+            per-query failure → ``query_id`` maps to ``[]`` (trial records as
+            failed without aborting the batch).
+
+        ``fl`` normalization (cycle-3 C3-F3): ensure ``score`` AND the
+        resolved uniqueKey are always in the ``fl`` request param. Without
+        this Solr may omit ``score`` from the response (it's not returned
+        by default unless requested) and the parser raises KeyError; without
+        the uniqueKey field the parser can't extract ``doc_id``. The
+        normalizer merges into any caller-provided ``fl`` value.
+        """
+        if not queries:
+            return {}
+
+        unique_key = await self._resolve_unique_key(target, request_id=request_id)
+        urls_params = [self._build_select_request(query, top_k, unique_key) for query in queries]
+
+        async def _execute(url_params: dict[str, Any]) -> httpx.Response:
+            return await self._request(
+                "GET",
+                f"/solr/{target}/select",
+                params=url_params,
+                request_id=request_id,
+                timeout=timeout,
+                translate_errors=False,
+            )
+
+        raw_results = await asyncio.gather(
+            *(_execute(p) for p in urls_params),
+            return_exceptions=True,
+        )
+
+        out: dict[str, list[ScoredHit]] = {}
+        for query, result in zip(queries, raw_results, strict=True):
+            out[query.query_id] = self._consume_search_result(
+                result, target=target, unique_key=unique_key, strict_errors=strict_errors
+            )
+        return out
+
+    def _build_select_request(
+        self, query: NativeQuery, top_k: int, unique_key: str
+    ) -> dict[str, Any]:
+        """Build the request-param dict for one ``/select`` call.
+
+        Starts from ``query.body`` (the ``render`` output) and:
+        * Sets ``rows=<top_k>`` if not already specified.
+        * Normalizes ``fl`` so ``score`` AND ``<unique_key>`` are always
+          included (without ``score``, Solr omits the field from response.docs).
+        """
+        params: dict[str, Any] = dict(query.body)
+        params.setdefault("rows", str(top_k))
+        params["fl"] = _normalize_fl(params.get("fl"), unique_key)
+        return params
+
+    def _consume_search_result(
+        self,
+        result: httpx.Response | BaseException,
+        *,
+        target: str,
+        unique_key: str,
+        strict_errors: bool,
+    ) -> list[ScoredHit]:
+        """Translate one ``asyncio.gather`` result into a ``list[ScoredHit]``.
+
+        On exception:
+        * ``strict_errors=True`` re-raises (typed translations applied).
+        * ``strict_errors=False`` returns ``[]`` (trial-runner contract).
+
+        On HTTP response:
+        * 2xx → parse ``response.docs`` into ``ScoredHit`` list.
+        * 400 → ``InvalidQueryDSLError`` (strict) / ``[]`` (lenient).
+        * 401/403/5xx → ``ClusterUnreachableError`` (strict) / ``[]`` (lenient).
+        * 404 → ``TargetNotFoundError`` regardless of mode (the target gone
+          mid-batch is a hard error worth surfacing).
+        """
+        if isinstance(result, QueryTimeoutError):
+            if strict_errors:
+                raise result
+            return []
+        if isinstance(result, ClusterUnreachableError):
+            if strict_errors:
+                raise result
+            return []
+        if isinstance(result, BaseException):
+            if strict_errors:
+                raise ClusterUnreachableError(str(result)) from result
+            return []
+
+        if result.status_code == 404:
+            raise TargetNotFoundError(target)
+        if result.status_code == 400:
+            detail = self._extract_solr_error_detail(result)
+            if strict_errors:
+                raise InvalidQueryDSLError(f"Solr parse error: {detail}")
+            return []
+        if result.status_code in (401, 403):
+            if strict_errors:
+                raise ClusterUnreachableError(
+                    f"Authentication failed (HTTP {result.status_code}) on /select"
+                )
+            return []
+        if result.status_code >= 500:
+            if strict_errors:
+                raise ClusterUnreachableError(f"HTTP {result.status_code} from /{target}/select")
+            return []
+        if result.status_code != 200:
+            if strict_errors:
+                raise ClusterUnreachableError(f"HTTP {result.status_code} from /{target}/select")
+            return []
+
+        body = result.json()
+        docs = (body.get("response") or {}).get("docs") or []
+        hits: list[ScoredHit] = []
+        for doc in docs:
+            if not isinstance(doc, dict):
+                continue
+            raw_id = doc.get(unique_key)
+            score = doc.get("score")
+            if raw_id is None or score is None:
+                # Defensive: skip docs missing required fields rather than
+                # raising; strict_errors only governs the per-request error
+                # path, not malformed responses.
+                continue
+            hits.append(ScoredHit(doc_id=str(raw_id), score=float(score), source=doc))
+        return hits
+
+    @staticmethod
+    def _extract_solr_error_detail(resp: httpx.Response) -> str:
+        """Pull a human-readable error message from a Solr error response.
+
+        Solr 9+ returns ``{"error": {"msg": "...", "code": 400}}`` for parser
+        errors. Falls back to the raw body text when the JSON shape is
+        unexpected (e.g., a bare 400 from the auth plugin).
+        """
+        try:
+            payload = resp.json()
+        except ValueError:
+            return resp.text[:200]
+        if isinstance(payload, dict):
+            err = payload.get("error")
+            if isinstance(err, dict):
+                msg = err.get("msg") or err.get("message")
+                if isinstance(msg, str) and msg:
+                    return msg
+        return resp.text[:200]
 
     async def explain(
         self,
