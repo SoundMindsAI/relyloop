@@ -200,15 +200,29 @@ async def seed_synthetic_ubi(
                 f"ubi_seed/bulk_write/{index_name}: HTTP {resp.status_code} {resp.text[:200]}"
             )
         # ES returns 200 with `errors: true` for per-item errors even when
-        # the request itself succeeded. Surface those explicitly.
+        # the request itself succeeded. Surface those explicitly with a
+        # sampled error payload so the operator can diagnose mapping /
+        # parsing issues without rerunning under verbose tracing (per
+        # Gemini Code Assist review on PR #320).
         try:
             data = resp.json()
         except ValueError:
             data = None
         if isinstance(data, dict) and data.get("errors"):
+            sample_err: object = None
+            items = data.get("items")
+            if isinstance(items, list):
+                for item in items:
+                    if not isinstance(item, dict) or not item:
+                        continue
+                    op_result = next(iter(item.values()))
+                    if isinstance(op_result, dict) and "error" in op_result:
+                        sample_err = op_result["error"]
+                        break
+            err_details = f" (sample: {sample_err})" if sample_err is not None else ""
             raise DemoUbiSeedError(
-                f"ubi_seed/bulk_write/{index_name}: per-item errors in response "
-                f"({len(payload)} rows attempted)"
+                f"ubi_seed/bulk_write/{index_name}: per-item errors in response"
+                f"{err_details} ({len(payload)} rows attempted)"
             )
 
     return len(events)

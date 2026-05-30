@@ -296,7 +296,16 @@ export function GenerateJudgmentsDialog({
                     <SelectItem key={method} value={method}>
                       <span className="inline-flex items-center">
                         {METHOD_LABELS[method]}
-                        {showSyntheticUbiChip && <DemoBadge variant="synthetic-ubi" />}
+                        {showSyntheticUbiChip && (
+                          // tabIndex={-1}: Radix <SelectItem> is already
+                          // keyboard-navigable; nesting a focusable chip
+                          // inside it disrupts the dropdown's listbox
+                          // semantics (WAI-ARIA). The chip stays
+                          // visually present + screen-reader-announced
+                          // via aria-label. Per Gemini Code Assist
+                          // review on PR #320.
+                          <DemoBadge variant="synthetic-ubi" tabIndex={-1} />
+                        )}
                       </span>
                     </SelectItem>
                   );

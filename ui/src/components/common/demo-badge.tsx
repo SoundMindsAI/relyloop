@@ -38,9 +38,25 @@ export type DemoBadgeVariant = 'default' | 'synthetic-ubi';
 
 interface DemoBadgeProps {
   variant?: DemoBadgeVariant;
+  /**
+   * Override the default `tabIndex={0}`. Pass `-1` when rendering inside
+   * an already-keyboard-navigable parent (Radix `<SelectItem>`, dialog
+   * options, etc.) to avoid nested focusable controls — that's a
+   * WAI-ARIA listbox violation that disrupts keyboard navigation in the
+   * surrounding widget. Per Gemini Code Assist review on PR #320.
+   *
+   * Default (omitted) keeps the chip keyboard-reachable on static
+   * surfaces (cluster detail, judgment-list header, study header,
+   * dashboard banner) so screen-reader + keyboard users can still
+   * reveal the FR-7 tooltip via Tab.
+   */
+  tabIndex?: number;
 }
 
-export function DemoBadge({ variant = 'default' }: DemoBadgeProps = {}): React.ReactElement {
+export function DemoBadge({
+  variant = 'default',
+  tabIndex,
+}: DemoBadgeProps = {}): React.ReactElement {
   if (variant === 'synthetic-ubi') {
     return (
       <Tooltip>
@@ -49,7 +65,7 @@ export function DemoBadge({ variant = 'default' }: DemoBadgeProps = {}): React.R
             variant="secondary"
             role="img"
             aria-label="Synthetic demo data"
-            tabIndex={0}
+            tabIndex={tabIndex ?? 0}
             data-testid="demo-badge-synthetic-ubi"
             className="ml-2 cursor-help focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
           >

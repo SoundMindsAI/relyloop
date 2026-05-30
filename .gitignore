@@ -173,6 +173,14 @@ env.bak/
 !.env.example
 venv.bak/
 
+# Docker Compose local overrides — `docker-compose.override.yml` is
+# auto-merged by `docker compose` and SHOULD NEVER be committed (it
+# would force per-operator local choices on every developer pulling the
+# branch — see Gemini Code Assist review on PR #320 for the canonical
+# incident). The tracked `docker-compose.yml` is the source of truth.
+docker-compose.override.yml
+docker-compose.override.yaml
+
 # Spyder project settings
 .spyderproject
 .spyproject
