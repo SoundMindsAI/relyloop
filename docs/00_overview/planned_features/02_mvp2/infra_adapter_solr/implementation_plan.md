@@ -1406,7 +1406,7 @@ A single agent will execute sequentially; the dependency graph above is for huma
 
 ### Current sprint
 
-- [ ] A6 — registry.py + migration + auth extension
+- [x] A6 — registry.py + migration 0022 + auth extension — **DONE** (commit `157e0b9f`). registry.py created; elastic.py re-export shim; wire Literals + ORM CHECK + credentials extended; migration 0022 round-trip + Solr-row downgrade-abort verified vs real Postgres. 1789 unit + 12 contract green; lint + mypy clean.
 - [ ] A1 — SolrAdapter skeleton + capability probe + Protocol conformance
 - [ ] A2 — render edismax/dismax/lucene + templates
 - [ ] A3 — search_batch parallel /select

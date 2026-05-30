@@ -43,7 +43,11 @@ After a parallel codebase audit of the demo, guide, and cluster-registration-UX 
 - Focused GPT-5.5 delta review: 5 findings (4 Medium + 1 Low), all accepted + patched. Full history in spec §19 decision log.
 
 ## Implementation
-- Status: Not started
+- Status: In progress — Story A6 done (1 of 13). Branch `feature/infra-adapter-solr`.
+- **Resume point:** Story A1 (SolrAdapter skeleton + capability probe + health_check + list_query_parsers). Run `/impl-execute docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/implementation_plan.md A1` (or `--all` to continue the batch). The plan §9 execution tracker has the per-story DONE markers.
+- **Completed:**
+  - A6 (commit `157e0b9f`) — registry.py relocation + migration 0022 + auth/wire Literal extension. Round-trip + Solr-row downgrade-abort verified vs real Postgres. 1789 unit + 12 contract green.
+- **Durable state:** branch has 5 commits (idea-preflight, spec, plan, plan-expansion, A6). All execution detail is in `implementation_plan.md`; per-story progress in §9 + this file.
 
 ## Notes for downstream skills
 
