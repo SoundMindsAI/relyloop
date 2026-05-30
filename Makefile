@@ -8,7 +8,7 @@
         ui-fmt ui-lint ui-typecheck ui-test ui-build ui-dev \
         pre-commit pre-commit-install \
         up down restart logs reset migrate migrate-create seed-clusters seed-es \
-        dev dashboard
+        dev dashboard license-inventory
 
 help:  ## Show this help message
 	@echo ""
@@ -185,3 +185,6 @@ migrate-create:  ## Create new migration: make migrate-create name=<slug> (runs 
 
 dashboard:  ## Regenerate docs/00_overview/<release>_dashboard.{html,md} from feature folders
 	@python3 scripts/build_mvp1_dashboard.py
+
+license-inventory: ## Regenerate the dependency license inventory (docs/04_security/license-inventory.md)
+	uv run python scripts/gen_license_inventory.py
