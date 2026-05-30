@@ -150,9 +150,6 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | @babel/traverse | npm | MIT | runtime | Yes |
 | @babel/types | npm | MIT | runtime | Yes |
 | @bramus/specificity | npm | MIT | dev | Yes |
-| @bundled-es-modules/cookie | npm | ISC | dev | Yes |
-| @bundled-es-modules/statuses | npm | ISC | dev | Yes |
-| @bundled-es-modules/tough-cookie | npm | ISC | dev | Yes |
 | @csstools/color-helpers | npm | MIT-0 | dev | Yes |
 | @csstools/css-calc | npm | MIT | dev | Yes |
 | @csstools/css-color-parser | npm | MIT | dev | Yes |
@@ -264,7 +261,6 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | @testing-library/user-event | npm | MIT | dev | Yes |
 | @types/aria-query | npm | MIT | dev | Yes |
 | @types/chai | npm | MIT | dev | Yes |
-| @types/cookie | npm | MIT | dev | Yes |
 | @types/d3-array | npm | MIT | runtime | Yes |
 | @types/d3-color | npm | MIT | runtime | Yes |
 | @types/d3-ease | npm | MIT | runtime | Yes |
@@ -287,8 +283,8 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | @types/prismjs | npm | MIT | runtime | Yes |
 | @types/react | npm | MIT | runtime | Yes |
 | @types/react-dom | npm | MIT | runtime | Yes |
+| @types/set-cookie-parser | npm | MIT | dev | Yes |
 | @types/statuses | npm | MIT | dev | Yes |
-| @types/tough-cookie | npm | MIT | dev | Yes |
 | @types/unist | npm | MIT | runtime | Yes |
 | @types/use-sync-external-store | npm | MIT | runtime | Yes |
 | @typescript-eslint/eslint-plugin | npm | MIT | dev | Yes |
@@ -444,6 +440,9 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | fast-glob | npm | MIT | dev | Yes |
 | fast-json-stable-stringify | npm | MIT | dev | Yes |
 | fast-levenshtein | npm | MIT | dev | Yes |
+| fast-string-truncated-width | npm | MIT | dev | Yes |
+| fast-string-width | npm | MIT | dev | Yes |
+| fast-wrap-ansi | npm | MIT | dev | Yes |
 | fastq | npm | ISC | dev | Yes |
 | fdir | npm | MIT | dev | Yes |
 | file-entry-cache | npm | MIT | dev | Yes |
@@ -453,7 +452,6 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | flatted | npm | ISC | dev | Yes |
 | for-each | npm | MIT | dev | Yes |
 | fraction.js | npm | MIT | dev | Yes |
-| fsevents | npm | MIT | runtime | Yes |
 | function-bind | npm | MIT | dev | Yes |
 | function.prototype.name | npm | MIT | dev | Yes |
 | functions-have-names | npm | MIT | dev | Yes |
@@ -656,9 +654,7 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | prism-react-renderer | npm | MIT | runtime | Yes |
 | prop-types | npm | MIT | dev | Yes |
 | property-information | npm | MIT | runtime | Yes |
-| psl | npm | MIT | dev | Yes |
 | punycode | npm | MIT | dev | Yes |
-| querystringify | npm | MIT | dev | Yes |
 | queue-microtask | npm | MIT | dev | Yes |
 | react | npm | MIT | runtime | Yes |
 | react-dom | npm | MIT | runtime | Yes |
@@ -682,11 +678,11 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | remark-stringify | npm | MIT | runtime | Yes |
 | require-directory | npm | MIT | dev | Yes |
 | require-from-string | npm | MIT | dev | Yes |
-| requires-port | npm | MIT | dev | Yes |
 | reselect | npm | MIT | runtime | Yes |
 | resolve | npm | MIT | dev | Yes |
 | resolve-from | npm | MIT | dev | Yes |
 | resolve-pkg-maps | npm | MIT | dev | Yes |
+| rettime | npm | MIT | dev | Yes |
 | reusify | npm | MIT | dev | Yes |
 | rolldown | npm | MIT | dev | Yes |
 | run-parallel | npm | MIT | dev | Yes |
@@ -697,6 +693,7 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | saxes | npm | ISC | dev | Yes |
 | scheduler | npm | MIT | runtime | Yes |
 | semver | npm | ISC | runtime | Yes |
+| set-cookie-parser | npm | MIT | dev | Yes |
 | set-function-length | npm | MIT | dev | Yes |
 | set-function-name | npm | MIT | dev | Yes |
 | set-proto | npm | MIT | dev | Yes |
@@ -736,6 +733,7 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | supports-color | npm | MIT | runtime | Yes |
 | supports-preserve-symlinks-flag | npm | MIT | dev | Yes |
 | symbol-tree | npm | MIT | dev | Yes |
+| tagged-tag | npm | MIT | dev | Yes |
 | tailwind-merge | npm | MIT | runtime | Yes |
 | tailwindcss | npm | MIT | dev | Yes |
 | tapable | npm | MIT | dev | Yes |
@@ -771,12 +769,11 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | unist-util-stringify-position | npm | MIT | runtime | Yes |
 | unist-util-visit | npm | MIT | runtime | Yes |
 | unist-util-visit-parents | npm | MIT | runtime | Yes |
-| universalify | npm | MIT | dev | Yes |
 | unrs-resolver | npm | MIT | dev | Yes |
+| until-async | npm | MIT | dev | Yes |
 | update-browserslist-db | npm | MIT | runtime | Yes |
 | uri-js | npm | BSD-2-Clause | dev | Yes |
 | uri-js-replace | npm | MIT | dev | Yes |
-| url-parse | npm | MIT | dev | Yes |
 | use-callback-ref | npm | MIT | runtime | Yes |
 | use-sidecar | npm | MIT | runtime | Yes |
 | use-sync-external-store | npm | MIT | runtime | Yes |
@@ -806,12 +803,11 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | yargs | npm | MIT | dev | Yes |
 | yargs-parser | npm | ISC | dev | Yes |
 | yocto-queue | npm | MIT | dev | Yes |
-| yoctocolors-cjs | npm | MIT | dev | Yes |
 | zod | npm | MIT | runtime | Yes |
 | zod-validation-error | npm | MIT | dev | Yes |
 | zwitch | npm | MIT | runtime | Yes |
 
 ## Summary
 
-- Total dependencies in locked closure: **786** (324 shipped, 462 dev-only).
+- Total dependencies in locked closure: **782** (323 shipped, 459 dev-only).
 - Non-permissive licenses: **9** (all adjudicated above).

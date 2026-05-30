@@ -114,6 +114,16 @@ ADJUDICATIONS = {
         "**Accept.** Dev-only (CSS build tooling). MPL-2.0 file-level "
         "copyleft; never shipped in the runtime artifact."
     ),
+    "lightningcss-<platform>": (
+        "**Accept.** Dev-only platform binary for the `lightningcss` CSS build "
+        "tool (installed only on the build host). MPL-2.0 file-level copyleft; "
+        "never shipped in the runtime artifact."
+    ),
+    "@tailwindcss/oxide-<platform>": (
+        "**Accept.** Dev-only platform binary for the Tailwind `oxide` engine "
+        "(installed only on the build host). MIT-licensed and never shipped in "
+        "the runtime artifact."
+    ),
 }
 
 # License classification. Order matters: copyleft checks run before permissive.
@@ -158,13 +168,21 @@ def _norm(name: str) -> str:
 
 
 # pnpm reports only the OPTIONAL platform binaries for the *current* host
-# (e.g. @img/sharp-libvips-darwin-arm64 on macOS, -linux-x64 on CI's runner).
-# Left raw, the inventory would differ per platform and the --check gate would
-# fail on every CI run. Collapse each platform variant to a single canonical
-# "<pkg>-<platform>" entry so the output is host-independent.
+# (e.g. @img/sharp-libvips-darwin-arm64 on macOS, @next/swc-linux-x64-gnu on
+# CI's Linux runner). Left raw, the inventory would differ per platform and the
+# --check gate would fail on every CI run. Collapse each platform variant to a
+# single canonical "<pkg>-<platform>" entry so the output is host-independent.
+#
+# The suffix is "<os>[-<arch>][-<libc/abi>]" with wide real-world variation
+# (-linux-x64-gnu, -linux-x64-musl, -win32-ia32-msvc, -linux-arm-gnueabihf,
+# -wasm32-wasi, …). Match the first OS token and EVERYTHING after it so the
+# libc/abi tail (gnu, musl, msvc, gnueabihf) collapses too — anchoring on the
+# trailing arch alone left Linux -gnu/-musl variants diverging from the
+# macOS-generated committed file. Verified against ui/pnpm-lock.yaml: all
+# native-package families collapse to a single canonical name each.
 _PLATFORM_SUFFIX = re.compile(
-    r"-(darwin|linux|linuxmusl|win32|freebsd|wasm32)"
-    r"(-(x64|arm64|arm|ia32|s390x|ppc64|riscv64))?$"
+    r"-(darwin|linux|linuxmusl|win32|freebsd|openbsd|netbsd|android|sunos|wasm32)"
+    r"(-.*)?$"
 )
 
 
