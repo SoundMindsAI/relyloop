@@ -41,6 +41,14 @@ from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.domain.demo.synthetic_ubi import (
+    UbiRung,
+    fabricate_ubi_for_scenario,
+)
+from backend.app.services.demo_ubi_seed import (
+    ensure_ubi_indices,
+    seed_synthetic_ubi,
+)
 from scripts.seed_meaningful_demos import (
     DEMO_ES_INDICES,
     DEMO_OS_INDICES,
@@ -1093,6 +1101,19 @@ async def reseed_demo_state(
     handler's job (FR-3).
     """
     started_at = time.monotonic()
+    # Wall-clock anchor for the synthetic UBI generator (Story 2.2 / FR-3).
+    # `seed_anchor_iso` is the orchestrator's start instant; the synthetic
+    # generator builds events in `[seed_anchor - 60s, seed_anchor]` so the
+    # UBI judgment dispatcher's `since/until` window (Story 2.3) captures
+    # every row deterministically. `time.monotonic()` is unaffected by
+    # wall-clock jumps; for the ISO timestamp we use `datetime.now(UTC)`.
+    started_at_dt = datetime.now(UTC)
+    seed_anchor_iso = started_at_dt.isoformat()
+    # Per-invocation gate so `ensure_ubi_indices` runs at most once across
+    # the scenario loop. Local (NOT module-level) because the cleanup pass
+    # DELETEs both ubi_queries + ubi_events at start of every reseed —
+    # caching across invocations would skip the PUT on the second reseed.
+    ubi_indices_ready: bool = False
     # scenarios_total counts the 4 small SCENARIOS + the rich ESCI scenario
     # (matches the CLI's 5-study output from ``make seed-demo``).
     progress = ReseedStatusResponse(
@@ -1262,6 +1283,67 @@ async def reseed_demo_state(
                     "or text-normalization mismatch)"
                 )
             qid_by_idx.append(qtext_to_id[q_text])
+
+        # 2f.5. Synthetic UBI seeding (Story 2.2 / FR-3, FR-4).
+        # For UBI-enabled scenarios (SCENARIOS' new `ubi_target_rung` /
+        # `ubi_converter` keys, Story 2.1 / FR-8): ensure both indices
+        # exist (once per reseed), generate synthetic queries + events
+        # via the pure-domain generator, and bulk-write through the
+        # allowlisted helper. Runs BEFORE the LLM judgments import so a
+        # UBI-seeding failure surfaces before more downstream work
+        # commits — same posture the LLM dispatch helper uses.
+        ubi_target_rung_raw = scenario.get("ubi_target_rung")
+        if ubi_target_rung_raw is not None:
+            ubi_target_rung = cast("UbiRung", ubi_target_rung_raw)
+            if not ubi_indices_ready:
+                await ensure_ubi_indices(
+                    engine_client=engine_client,
+                    engine_base_url=engine_base,
+                    host_auth=host_auth,
+                )
+                ubi_indices_ready = True
+            query_id_by_index: dict[int, str] = dict(enumerate(qid_by_idx))
+            query_text_by_index: dict[int, str] = {
+                i: cast("str", q["query_text"]) for i, q in enumerate(scenario_queries)
+            }
+            ubi_queries, ubi_events = fabricate_ubi_for_scenario(
+                scenario_judgments_map=scenario_judgments_map,
+                query_id_by_index=query_id_by_index,
+                query_text_by_index=query_text_by_index,
+                target_application=target,
+                target_rung=ubi_target_rung,
+                seed_anchor_iso=seed_anchor_iso,
+            )
+            progress.current_step = (
+                f"{slug}: writing synthetic UBI ({ubi_target_rung}, {len(ubi_events)} events)"
+            )
+            await status_callback(progress)
+            ubi_seed_started = time.monotonic()
+            logger.info(
+                "demo_reseed_ubi_seed_started",
+                extra={
+                    "slug": slug,
+                    "rung": ubi_target_rung,
+                    "event_count_target": len(ubi_events),
+                },
+            )
+            event_count = await seed_synthetic_ubi(
+                engine_client=engine_client,
+                engine_base_url=engine_base,
+                host_auth=host_auth,
+                scenario_slug=slug,
+                target_application=target,
+                queries=ubi_queries,
+                events=ubi_events,
+            )
+            logger.info(
+                "demo_reseed_ubi_seed_complete",
+                extra={
+                    "slug": slug,
+                    "event_count": event_count,
+                    "duration_ms": int((time.monotonic() - ubi_seed_started) * 1000),
+                },
+            )
 
         progress.current_step = f"{slug}: importing {len(scenario_judgments_map)} judgments"
         await status_callback(progress)

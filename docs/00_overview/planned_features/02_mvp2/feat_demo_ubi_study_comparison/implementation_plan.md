@@ -958,8 +958,8 @@ Covered by Story 4.4. See that story for the file-by-file diff list.
 - [ ] Story 1.1 — Canonical UBI mapping JSON
 - [ ] Story 1.2 — Pure-domain generator
 - [ ] Story 1.3 — Engine-write helper + allowlist
-- [ ] Story 2.1 — SCENARIOS catalog UBI keys
-- [ ] Story 2.2 — Reseed UBI seeding + cleanup
+- [x] Story 2.1 — SCENARIOS catalog UBI keys
+- [x] Story 2.2 — Reseed UBI seeding + cleanup
 - [ ] Story 2.3 — UBI judgment dispatch + dual studies
 - [ ] Story 2.4 — Status sub-step labels + log events
 - [ ] Story 2.5 — CLI parity

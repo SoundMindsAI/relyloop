@@ -90,7 +90,17 @@ TRUNCATE_TABLES = (
 
 # ES / OS user indices created by the seed (excludes engine system indices).
 # `acme-products-rich` is the 1000-doc ESCI index used by seed_rich_scenario.
-DEMO_ES_INDICES = ("products", "docs-articles", "job-listings", "acme-products-rich")
+# `ubi_queries` + `ubi_events` are added (Story 2.2 / FR-6) so the home-button
+# reseed and `make seed-demo` both DELETE them at cleanup start before the
+# synthetic UBI generator (FR-3) recreates them with the canonical mapping.
+DEMO_ES_INDICES = (
+    "products",
+    "docs-articles",
+    "job-listings",
+    "acme-products-rich",
+    "ubi_queries",
+    "ubi_events",
+)
 DEMO_OS_INDICES = ("news-articles",)
 
 # Rich-scenario tunables. Five queries × top-K LLM judgments per query keeps
