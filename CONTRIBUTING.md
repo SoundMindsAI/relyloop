@@ -163,6 +163,12 @@ git restore --staged fake-key.txt && rm -f fake-key.txt   # clean up
 
 The commit should be rejected by the `Detect hardcoded secrets` hook. If it isn't, run `make pre-commit-install` again or check `.git/hooks/pre-commit` exists.
 
+> **Maintainers:** the pre-commit and CI gitleaks hooks scan *new* commits.
+> Before flipping the repo public or cutting a major release, run the
+> full-history audit in
+> [`docs/03_runbooks/oss-history-audit.md`](docs/03_runbooks/oss-history-audit.md),
+> which sweeps the entire commit graph for secrets and sensitive data.
+
 ## Branching strategy
 
 Trunk-based development:
