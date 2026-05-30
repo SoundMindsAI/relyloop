@@ -68,7 +68,7 @@ make test                # all three in sequence
   module. Bulk-indexing is intentionally NOT on the `SearchAdapter` Protocol
   per `infra_study_preflight_real_engine_integration` D-1 (the Protocol is
   engine-agnostic *query-time* search; write-side helpers don't generalize
-  across `ElasticAdapter` + future `FusionAdapter`). The same pattern is used
+  across `ElasticAdapter` + future `SolrAdapter`). The same pattern is used
   by [`backend/app/scripts/seed_es.py`](../../backend/app/scripts/seed_es.py)
   and [`backend/tests/integration/test_seed_es.py`](../../backend/tests/integration/test_seed_es.py).
 - CI provides Postgres + Redis + ES + OpenSearch via service containers in

@@ -10,7 +10,7 @@
 >
 > The rough shape is this: an operator describes a relevance problem in chat, the agent introspects the cluster and proposes a query-time search space (BM25 parameters, field boosts, minimum-should-match, tie-breakers — nothing structural like schema or analyzers), and an Optuna TPE sampler runs thousands of trials scored by `ir_measures` against a judgment list. The winning configuration opens as a pull request against the operator's search-config repository. The tool itself never sits on the live serving path. The deploy decision stays with the operator's approvers and their existing CI.
 >
-> It is not actually released yet. I'm still finishing MVP1, which supports Elasticsearch and OpenSearch first, with Lucidworks Fusion coming in MVP3. The license is Apache 2.0 and the repository is already public on GitHub, just not yet announced anywhere.
+> It is not actually released yet. I'm still finishing MVP1, which supports Elasticsearch and OpenSearch first, with Apache Solr coming in MVP2. The license is Apache 2.0 and the repository is already public on GitHub, just not yet announced anywhere.
 >
 > The real reason I'm reaching out is that I'd genuinely value your feedback on it. And the bigger question I'd like your honest read on is whether this is something that would actually be useful to your organization. If the framing is off, or the scope is wrong, or the whole premise does not match a problem your team actually has, I would much rather hear that from you now than discover it after release.
 >
@@ -24,7 +24,7 @@
 - The Karpathy reference is a gentle reminder rather than an explanation. A single sentence summarizing the pattern is enough for someone who's heard of `autoresearch` to reload the context, without being condescending if they already have it in mind.
 - Doug Turnbull's talk is named because it happened and it mattered, not as a credibility play. The phrasing "I sat in on" works whether they were in the room or not.
 - "It is not actually released yet" is the honest state, and it frames everything else correctly. The ask is for a read on a work-in-progress, not for adoption of a finished product.
-- Engine support is stated neutrally, without assuming which engine they care about. If Fusion matters to them, they will ask; if not, the sentence is just neutral information about the state of the project.
+- Engine support is stated neutrally, without assuming which engine they care about. If a particular engine matters to them, they will ask; if not, the sentence is just neutral information about the state of the project.
 - "The real reason I'm reaching out" signals that I'm being direct about the ask. There are two asks, ordered smallest first: feedback (low commitment, anyone can give it) and the organization-fit question (the one I most want answered).
 - The organization-fit question is phrased as "would this actually be useful to your organization," not "would your organization buy this" or "would you adopt this." I'm asking for a read on whether the problem RelyLoop solves matches a problem they have. That is a peer question, not a sales question.
 - The message deliberately does not speculate about their angle, their role, or how their team tunes in practice. They know their context; I do not. Asking the question cleanly lets them answer from wherever they actually sit.
@@ -37,7 +37,7 @@
 - Search space: the agent proposes it from cluster introspection plus a template library; the operator can edit before trials kick off. Optuna TPE narrows from there.
 - Deploy story: there isn't one. Tool ends at the PR. The operator's protected branches + CI own the rest by design.
 - Why `ir_measures`: clean typed-metric DSL (nDCG@10, AP@5, RR, P@k, R@k), broad metric coverage, actively maintained by the PyTerrier team.
-- Fusion: adapter Protocol is already in the spec; ES/OpenSearch shipped first because they were the fastest path to closing the loop end-to-end. Fusion is the third adapter, not an afterthought.
+- Solr: adapter Protocol is already in the spec; ES/OpenSearch shipped first because they were the fastest path to closing the loop end-to-end. Solr is the third adapter, not an afterthought.
 - If they ask "how would my org actually use this": the workflow is offline tuning sessions, not continuous. Someone on the team points it at a query set + judgments, lets it grind, reviews the resulting PR, merges if the diff is sane. Sits alongside whatever they already do, not instead of it.
 - If they push back on the premise — "we don't actually have a tuning problem worth this" or "our judgments aren't good enough for this to mean anything" — that's the most useful answer they could give. Ask follow-ups, don't defend.
 
