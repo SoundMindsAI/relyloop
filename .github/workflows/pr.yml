@@ -23,8 +23,13 @@ name: pr
 # `frontend`, `smoke-test`, `docker` (api buildx), `docker-ui` — each carry
 #   if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
 # so they can be skipped en masse to conserve GitHub Actions minutes during a
-# budget crunch. The 4 sub-minute jobs (backend fast-lane unit tests, DCO,
-# secrets guard, gitleaks) always run, retaining baseline signal.
+# budget crunch. The sub-minute jobs (backend fast-lane unit tests, DCO,
+# secrets guard, gitleaks) always run, retaining baseline signal. The two
+# legal-compliance gates — `license-headers` (SPDX) and `license-inventory`
+# (Apache-2.0 dependency check) — also ALWAYS run regardless of this switch:
+# they're cheap (no service containers, no test suite) and must not let a
+# missing header or a new GPL/AGPL runtime dep slip onto main while heavy jobs
+# are off.
 #
 #   Activate (skip heavy jobs):  gh variable set SKIP_HEAVY_CI --body true
 #   Restore (run everything):    gh variable delete SKIP_HEAVY_CI
