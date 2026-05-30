@@ -164,6 +164,43 @@ async def revive_cluster(db: AsyncSession, cluster: Cluster, **updates: object) 
     return cluster
 
 
+async def get_cluster_by_id_for_update(db: AsyncSession, cluster_id: str) -> Cluster | None:
+    """Fetch an active cluster with ``SELECT … FOR UPDATE`` row-lock.
+
+    Used by ``services.cluster.reprobe_cluster`` (infra_adapter_solr Story A9)
+    to serialize concurrent /reprobe calls — the second call blocks on the
+    row lock until the first commits, then re-reads the (now updated)
+    engine_config before running its own probe.
+    """
+    stmt = (
+        select(Cluster)
+        .where(Cluster.id == cluster_id, Cluster.deleted_at.is_(None))
+        .with_for_update()
+    )
+    return (await db.execute(stmt)).scalar_one_or_none()
+
+
+async def update_cluster_engine_config(
+    db: AsyncSession,
+    cluster_id: str,
+    *,
+    engine_config: dict[str, object] | None,
+) -> Cluster | None:
+    """Update ``clusters.engine_config`` for ``cluster_id``; caller commits.
+
+    Used by ``services.cluster.reprobe_cluster`` (Story A9) to persist the
+    refreshed capability probe. Returns the updated row or ``None`` if the
+    row was already deleted/missing.
+    """
+    cluster = await get_cluster(db, cluster_id)
+    if cluster is None:
+        return None
+    cluster.engine_config = engine_config
+    await db.flush()
+    await db.refresh(cluster)
+    return cluster
+
+
 async def soft_delete_cluster(db: AsyncSession, cluster_id: str) -> Cluster | None:
     """Set ``deleted_at`` on an active cluster; returns the row or ``None`` if absent."""
     cluster = await get_cluster(db, cluster_id)

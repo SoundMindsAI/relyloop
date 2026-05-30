@@ -136,6 +136,70 @@ class CreateClusterRequest(BaseModel):
         return v
 
 
+class ConnectionTestRequest(BaseModel):
+    """Body for ``POST /api/v1/clusters/test-connection`` (infra_adapter_solr Story A9).
+
+    Same shape as ``CreateClusterRequest`` minus the persisted-only fields
+    (``name``, ``environment``, ``notes``, ``target_filter``). ``engine_type``
+    + ``auth_kind`` are typed as ``str`` (not Literal) so a bad value yields
+    the project-standard 400 envelope rather than a raw 422 — same convention
+    as ``CreateClusterRequest``.
+    """
+
+    engine_type: str = Field(min_length=1, max_length=64)
+    base_url: str = Field(min_length=1, max_length=512)
+    auth_kind: str = Field(min_length=1, max_length=64)
+    credentials_ref: str = Field(min_length=1, max_length=128)
+    engine_config: dict[str, Any] | None = None
+
+    @field_validator("base_url")
+    @classmethod
+    def validate_base_url(cls, v: str) -> str:
+        """Same base_url validation as CreateClusterRequest — see that class for rationale."""
+        parsed = urlparse(v)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError("base_url must use http or https scheme")
+        if not parsed.hostname:
+            raise ValueError("base_url must include a host")
+        try:
+            ip = ip_address(parsed.hostname)
+        except ValueError:
+            return v
+        if (ip.is_private or ip.is_loopback) and not get_settings().relyloop_allow_private_clusters:
+            raise ValueError(
+                f"base_url host {parsed.hostname} is a private-range IP "
+                f"and RELYLOOP_ALLOW_PRIVATE_CLUSTERS is false"
+            )
+        return v
+
+
+class ConnectionTestResult(BaseModel):
+    """Response for ``POST /api/v1/clusters/test-connection``.
+
+    Always 200 — reachable vs unreachable surfaces via ``reachable`` +
+    ``status`` fields. The endpoint is a diagnostic, never a mutation,
+    so it never returns 503; invalid engine×auth pairings 400 BEFORE the
+    network call. (Cycle-delta F1.)
+    """
+
+    reachable: bool
+    """True when the cluster responded green/yellow within timeout."""
+
+    status: Literal["green", "yellow", "red", "unreachable"]
+    """Mirrors HealthStatus.status — green/yellow when reachable, unreachable otherwise."""
+
+    version: str | None = None
+    """Engine version when reachable; None when unreachable."""
+
+    engine_capabilities: dict[str, Any] | None = None
+    """For Solr clusters: probe summary (mode + ubi_component_present +
+    ltr_module_present + ltr_models + unique_key_per_target). None for ES/OS
+    or for unreachable clusters."""
+
+    error: str | None = None
+    """Human-readable diagnostic when not reachable."""
+
+
 class ClusterDetail(BaseModel):
     """``GET /api/v1/clusters/{id}`` response."""
 

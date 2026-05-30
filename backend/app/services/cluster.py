@@ -202,6 +202,164 @@ async def register_cluster(
     return cluster, health
 
 
+async def reprobe_cluster(db: AsyncSession, redis: Redis, cluster_id: str) -> Cluster:
+    """Re-run capability probe for a registered cluster + persist to engine_config.
+
+    Story A9 / spec FR-2. Selects the row FOR UPDATE so concurrent /reprobe
+    calls serialize safely (each call runs its own probe sequentially after
+    acquiring the row lock — not strictly "coalesce", per cycle-2 C2-B3
+    terminology clarification). On probe failure, raises ``ClusterUnreachable``
+    without committing — the row is left at its prior engine_config.
+
+    Currently Solr is the only adapter with a `probe_capabilities` method;
+    for ES/OpenSearch this falls through to a health_check-only refresh.
+    """
+    cluster = await repo.get_cluster_by_id_for_update(db, cluster_id)
+    if cluster is None:
+        raise ClusterNotFound(cluster_id)
+
+    try:
+        adapter = build_adapter(cluster)
+    except CredentialsMissing as exc:
+        raise ClusterUnreachable(f"credentials resolution failed: {exc}") from exc
+
+    new_engine_config: dict[str, Any] = dict(cluster.engine_config or {})
+    try:
+        # Always run a health_check so we know the cluster is reachable + has
+        # the correct version. Solr additionally runs probe_capabilities to
+        # refresh UBI/LTR/uniqueKey state.
+        health = await adapter.health_check()
+        if health.status == "unreachable":
+            raise ClusterUnreachable(health.error or "cluster did not respond within timeout")
+        if cluster.engine_type == "solr":
+            from backend.app.adapters.solr import SolrAdapter
+
+            assert isinstance(adapter, SolrAdapter)  # noqa: S101 — narrow type for mypy
+            probe = await adapter.probe_capabilities()
+            new_engine_config.update(probe.model_dump())
+        elif health.version:
+            new_engine_config["api_version"] = health.version.split(".")[0]
+    finally:
+        await adapter.aclose()
+
+    updated = await repo.update_cluster_engine_config(
+        db, cluster_id, engine_config=new_engine_config or None
+    )
+    await db.commit()
+    await write_cached_health(redis, cluster_id, health)
+    return updated or cluster
+
+
+async def test_cluster_connection(
+    *,
+    engine_type: str,
+    base_url: str,
+    auth_kind: str,
+    credentials_ref: str,
+    engine_config: dict[str, Any] | None,
+) -> ConnectionTestSummary:
+    """Build a transient adapter from unsaved form fields and probe.
+
+    Returns a `ConnectionTestSummary` without writing to the database. Validates
+    the engine×auth pairing BEFORE the network call so an invalid combo 400s
+    rather than wasting a probe round-trip. The endpoint is a diagnostic — it
+    always returns a structured result, never raises for transport-level
+    failures (those surface as ``reachable=False`` with ``error`` set).
+
+    Validation that DOES raise (translated to 400 at the router):
+    * ``EngineTypeNotSupported`` — unknown engine_type
+    * ``AuthKindNotSupported`` — engine_type×auth_kind mismatch / reserved
+    * ``ClusterUnreachable`` — credentials resolution failed before any probe
+    """
+    if engine_type not in SUPPORTED_ENGINE_TYPES:
+        raise EngineTypeNotSupported(
+            f"engine_type must be one of: {sorted(SUPPORTED_ENGINE_TYPES)} (got: {engine_type!r})"
+        )
+    if auth_kind in RESERVED_AUTH_KINDS:
+        raise AuthKindNotSupported(f"{auth_kind!r} is reserved but not implemented in MVP2")
+    if auth_kind not in SUPPORTED_AUTH_KINDS:
+        raise AuthKindNotSupported(
+            f"auth_kind must be one of: "
+            f"{sorted(SUPPORTED_AUTH_KINDS | RESERVED_AUTH_KINDS)} "
+            f"(got: {auth_kind!r})"
+        )
+    allowed_for_engine = ALLOWED_AUTH_PER_ENGINE.get(engine_type, frozenset())
+    if auth_kind not in allowed_for_engine:
+        raise AuthKindNotSupported(
+            f"auth_kind={auth_kind!r} is not valid for engine_type={engine_type!r}; "
+            f"allowed for {engine_type!r}: {sorted(allowed_for_engine)}"
+        )
+
+    try:
+        adapter = _build_adapter_from_args(
+            cluster_id="transient",
+            engine_type=engine_type,
+            base_url=base_url,
+            auth_kind=auth_kind,
+            credentials_ref=credentials_ref,
+            engine_config=engine_config,
+        )
+    except CredentialsMissing as exc:
+        raise ClusterUnreachable(f"credentials resolution failed: {exc}") from exc
+
+    try:
+        health = await adapter.health_check()
+        reachable = health.status in ("green", "yellow")
+        capabilities: dict[str, Any] | None = None
+        # For reachable Solr clusters, also run probe_capabilities (best-effort)
+        # so the operator sees UBI/LTR/uniqueKey availability before submitting.
+        if reachable and engine_type == "solr":
+            from backend.app.adapters.solr import SolrAdapter
+
+            assert isinstance(adapter, SolrAdapter)  # noqa: S101 — narrow type for mypy
+            try:
+                probe = await adapter.probe_capabilities()
+                capabilities = probe.model_dump()
+            except ClusterUnreachableError:
+                # Probe failed but health passed — surface capabilities=None
+                # rather than rejecting the test result; operator can still
+                # register and run reprobe later.
+                capabilities = None
+        return ConnectionTestSummary(
+            reachable=reachable,
+            status=health.status,
+            version=health.version,
+            engine_capabilities=capabilities,
+            error=health.error,
+        )
+    finally:
+        await adapter.aclose()
+
+
+class ClusterNotFound(LookupError):
+    """Cluster row not found. Maps to 404 CLUSTER_NOT_FOUND at the router."""
+
+
+class ConnectionTestSummary:
+    """Internal service-layer wrapper around the connection-test result.
+
+    The router maps this to the ``ConnectionTestResult`` Pydantic schema.
+    Defined as a plain class (not a Pydantic model) so the service layer
+    stays Pydantic-free at the boundary.
+    """
+
+    def __init__(
+        self,
+        *,
+        reachable: bool,
+        status: str,
+        version: str | None,
+        engine_capabilities: dict[str, Any] | None,
+        error: str | None,
+    ) -> None:
+        """Capture the probe result fields."""
+        self.reachable = reachable
+        self.status = status
+        self.version = version
+        self.engine_capabilities = engine_capabilities
+        self.error = error
+
+
 async def get_or_probe_health(redis: Redis, cluster: Cluster) -> HealthStatus:
     """Return cached HealthStatus, or probe + cache (30s TTL).
 

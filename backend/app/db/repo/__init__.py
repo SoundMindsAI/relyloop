@@ -15,9 +15,11 @@ from backend.app.db.repo.cluster import (
     get_active_cluster_by_name,
     get_any_cluster_by_name,
     get_cluster,
+    get_cluster_by_id_for_update,
     list_clusters,
     revive_cluster,
     soft_delete_cluster,
+    update_cluster_engine_config,
 )
 from backend.app.db.repo.config_repo import (
     count_config_repos,
@@ -141,18 +143,20 @@ from backend.app.db.repo.trial import (
 )
 
 __all__ = [
-    # Cluster aggregate (infra_adapter_elastic)
+    # Cluster aggregate (infra_adapter_elastic + infra_adapter_solr Story A9)
     "count_clusters",
     "create_cluster",
     "create_config_repo",
     "get_active_cluster_by_name",
     "get_any_cluster_by_name",
     "get_cluster",
+    "get_cluster_by_id_for_update",
     "get_config_repo",
     "get_config_repo_by_name",
     "list_clusters",
     "revive_cluster",
     "soft_delete_cluster",
+    "update_cluster_engine_config",
     # feat_study_lifecycle Phase 1
     "create_judgment_list",
     "create_proposal",
