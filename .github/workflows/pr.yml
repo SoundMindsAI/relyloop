@@ -556,13 +556,13 @@ jobs:
       # install.sh skip its `docker compose build` step) compose just `up`s
       # the loaded images. RELYLOOP_GIT_SHA below picks them up by tag.
       - name: Download pre-built API image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: relyloop-api-image-${{ github.sha }}
           path: /tmp/
 
       - name: Download pre-built UI image
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: relyloop-ui-image-${{ github.sha }}
           path: /tmp/
