@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared helpers for the feat_digest_proposal integration tests.
 
 Centralizes the boilerplate:

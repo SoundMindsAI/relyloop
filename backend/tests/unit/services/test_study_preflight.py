@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.services.study_preflight.probe_judgment_overlap``.
 
 Verifies the probe orchestration with mocked repo + adapter dependencies.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-3 F2 test: capability fallback STILL gates on daily budget.
 
 Companion to ``test_digest_capability_fallback_respects_pricing.py``.

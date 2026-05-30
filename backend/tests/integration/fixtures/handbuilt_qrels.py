@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Hand-built qrels + canned hits used by infra_optuna_eval integration tests.
 
 The qrels here mirror the unit-test fixture from

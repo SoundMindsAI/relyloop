@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend/app/services/documents.py::truncate_source_for_list``.
 
 Per ``feat_index_document_browser`` Story 2.1 / spec D-27 / FR-3.

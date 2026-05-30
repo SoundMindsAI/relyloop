@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for `postgres_skip_reason()` in `backend/tests/conftest.py`.
 
 Closes `chore_db_session_skip_reason_disambiguation` — the prior

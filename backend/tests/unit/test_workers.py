@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Worker smoke tests (infra_foundation Story 4.3 + infra_optuna_eval Story 2.3).
 
 These tests verify the ``WorkerSettings`` class is importable,

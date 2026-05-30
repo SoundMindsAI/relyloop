@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the SCENARIOS UBI config additions (Story 2.1 / FR-8).
 
 These tests pin the per-scenario ``ubi_target_rung`` / ``ubi_converter``

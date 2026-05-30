@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * `<AddCustomParam>` — non-actionable affordance pointing users at the
  * template detail page to add new tunable params (Story 2.4, FR-10).

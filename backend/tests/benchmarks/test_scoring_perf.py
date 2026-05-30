@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Performance benchmark for ``backend.app.eval.scoring.score`` (Story 3.2).
 
 Per spec §FR-3: scoring SHOULD complete in <100ms per query for a 50-query

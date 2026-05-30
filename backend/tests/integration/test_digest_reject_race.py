@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-3 F4 reject-race test for ``generate_digest``.
 
 The worker reads the pending proposal, makes a long-running LLM call,

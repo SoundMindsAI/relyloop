@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for the cluster health warmup against real Postgres + Redis.
 
 Skipped when service containers aren't available (mirrors the

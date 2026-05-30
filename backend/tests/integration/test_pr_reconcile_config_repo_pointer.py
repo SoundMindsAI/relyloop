@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """PR reconciler integration tests for config_repos.last_merged_proposal_id.
 
 feat_config_repo_baseline_tracking Story 1.4 (FR-3a) +

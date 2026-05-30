@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Pre-commit hooks for RelyLoop (infra_foundation Story 1.4 / FR-6).
 #
 # Install:
@@ -115,6 +119,23 @@ repos:
         language: system
         files: ^state\.md$
         pass_filenames: false
+
+  # ---------------------------------------------------------------------------
+  # SPDX / license headers — REUSE (https://reuse.software/). Run via the
+  # project venv (uv run) so the linter version matches the `reuse` pin in
+  # pyproject.toml `[dependency-groups].dev` exactly — same single-source-of-
+  # truth rationale as the mypy hook above. Fails the commit if any tracked
+  # file lacks an SPDX header and isn't covered by REUSE.toml. `reuse annotate`
+  # adds headers; see REUSE.toml for the coverage map of header-exempt files.
+  # ---------------------------------------------------------------------------
+  - repo: local
+    hooks:
+      - id: reuse-lint
+        name: reuse lint (SPDX headers, project venv via uv run)
+        entry: uv run reuse lint
+        language: system
+        pass_filenames: false
+        always_run: true
 
   # ---------------------------------------------------------------------------
   # Secret scanning — gitleaks

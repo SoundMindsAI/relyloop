@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Discriminated-union models for LLM-suggested digest follow-ups.
 
 Owner: ``feat_digest_executable_followups``.

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * UBI seed helpers (feat_ubi_judgments E2E — chore_ubi_e2e_suite).
  *

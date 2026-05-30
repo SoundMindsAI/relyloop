@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_study_clone_from_previous Story 2.1 — pure helper that maps a
  * ``StudyDetail`` returned by ``GET /api/v1/studies/{id}`` into the

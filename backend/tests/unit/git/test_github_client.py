@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.git.github_client.github_request``.
 
 Method-agnostic retry policy covered via ``httpx.MockTransport`` (the

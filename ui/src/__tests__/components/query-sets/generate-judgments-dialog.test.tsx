@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Tests for `<GenerateJudgmentsDialog>` method picker + nudge + sparse-card
  * (feat_ubi_judgments Story 4.2 / FR-8 Capabilities A + B + C).

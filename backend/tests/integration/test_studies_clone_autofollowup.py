@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration test — manual clone suppresses auto_followup auto-spawn.
 
 feat_study_clone_from_previous Story 1.3 case (g) — covers FR-15 / D-10 /

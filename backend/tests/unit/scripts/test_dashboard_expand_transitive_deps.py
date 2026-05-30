@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for the DEPS_ALL_BACKEND time-ordered expansion in
 ``scripts/build_mvp1_dashboard.py``.
 

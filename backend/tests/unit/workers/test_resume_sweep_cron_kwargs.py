@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.workers.judgments_resume._resume_sweep_cron_kwargs``.
 
 Mirrors :mod:`backend.tests.unit.workers.test_poll_cron_kwargs` — the same

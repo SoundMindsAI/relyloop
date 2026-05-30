@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Fail the commit if state.md grows past the snapshot threshold.
 #
 # Per chore_state_md_size_compression (2026-05-29): state.md is a one-page

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``run_baseline_trial`` Arq job (feat_study_baseline_trial Story 1.4 / FR-10).
 
 One-shot non-Optuna trial executed before the Optuna polling loop starts.

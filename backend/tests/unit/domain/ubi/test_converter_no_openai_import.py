@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """ast-based guard: ``backend.app.domain.ubi.converter`` MUST NOT import
 ``openai`` or construct an ``AsyncOpenAI`` instance (feat_ubi_judgments
 Story 1.2 / FR-2 anti-pattern guard).

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Conversation + Message repository (feat_chat_agent Story 1.3).
 
 Per CLAUDE.md "Repository Layer": one file per aggregate. ``conversations``

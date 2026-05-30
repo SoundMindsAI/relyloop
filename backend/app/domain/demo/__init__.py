@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Domain-layer helpers for the demo dataset.
 
 This package is **install-side / seed-only** — none of its code runs at

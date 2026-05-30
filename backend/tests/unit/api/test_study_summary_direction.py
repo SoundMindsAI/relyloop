@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``_summary``'s objective-direction extraction.
 
 Per ``bug_ceiling_badge_assumes_maximize_direction``. The studies-list

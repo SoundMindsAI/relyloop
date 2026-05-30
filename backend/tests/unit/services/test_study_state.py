@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``backend.app.services.study_state`` unit tests (Story 1.3, FR-7).
 
 State-machine + guard-listener tests. Service-layer functions are async

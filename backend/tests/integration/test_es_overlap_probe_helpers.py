@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Helper-smoke tests for backend/tests/integration/fixtures/es_overlap_probe.py.
 
 Lands with ``infra_study_preflight_real_engine_integration`` Story 1.2 (a-d)

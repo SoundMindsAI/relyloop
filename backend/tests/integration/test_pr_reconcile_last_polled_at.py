@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """PR reconciler integration tests for chore_reconciler_terminal_closed_no_poll.
 
 Six scenarios mapping to the FR-2 / FR-3 / FR-4 acceptance criteria:

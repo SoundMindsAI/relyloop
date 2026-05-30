@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``config_repos`` ORM model (infra_adapter_elastic Story 1.2 / FR-5).
 
 Full MVP1 shape per ``docs/01_architecture/data-model.md`` §"config_repos".

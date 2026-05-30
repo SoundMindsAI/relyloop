@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``backend.app.domain.query.render`` unit tests (Story 2.4).
 
 Pure-function tests of the Jinja-to-dict rendering path. The adapter-level

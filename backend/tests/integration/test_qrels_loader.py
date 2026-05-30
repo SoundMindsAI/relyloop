@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for the real ``load_qrels`` (feat_llm_judgments Story 1.6).
 
 Replaces the MVP1 stub-era contract with end-to-end SELECTs against a real

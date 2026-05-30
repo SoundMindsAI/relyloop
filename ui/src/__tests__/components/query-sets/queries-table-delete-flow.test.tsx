@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Integration-style component test (feat_query_inline_crud — was
  * chore_query_inline_crud_table_integration_test before in-PR implementation).

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Smoke test for the matplotlib dependency added in feat_github_pr_worker Story 1.4a.
 
 The open_pr worker uses matplotlib to render the parameter-importance PNG

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared error envelope builder for /api/v1 routers.
 
 Resolves the cycle-2 F6 circular-import risk: helpers under ``backend/app/api/v1``

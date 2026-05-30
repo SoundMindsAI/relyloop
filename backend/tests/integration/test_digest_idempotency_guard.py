@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-1 F6 idempotency guard test for ``generate_digest``.
 
 Pre-seeds a digest row; runs the worker; asserts:

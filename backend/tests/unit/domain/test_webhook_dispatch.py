@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``dispatch_event`` (feat_github_webhook Story 1.3).
 
 Covers every branch of the FR-1 matrix plus a parametrised negative

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract tests for ``POST /api/v1/judgments/generate-from-ubi``
 (feat_ubi_judgments Story 3.2 / FR-3).
 

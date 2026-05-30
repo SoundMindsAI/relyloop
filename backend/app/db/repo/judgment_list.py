@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Judgment-list repository.
 
 Phase 1 (feat_study_lifecycle) shipped ``create_judgment_list`` +

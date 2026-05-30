@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Keyboard navigation tests (feat_data_table_primitive Story 2.12 / FR-16 / AC-12).
  *

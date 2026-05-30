@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the per-query cursor helpers (feat_query_inline_crud Story 1.1).
 
 Pure-function tests for ``_encode_query_cursor`` / ``_decode_query_cursor``.

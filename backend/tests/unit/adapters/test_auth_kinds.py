@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """ElasticAdapter constructor + auth_kind handling (Story 2.1, FR-2 + AC-7).
 
 Asserts the ``auth_kind`` allowlist matches the spec § enum + plan §0

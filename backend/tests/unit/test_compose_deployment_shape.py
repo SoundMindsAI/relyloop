@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Compose deployment-shape regression tests (bug_worker_optuna_init_race).
 
 The worker's ``on_startup`` hook constructs Optuna's ``RDBStorage``, which

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for :mod:`backend.app.domain.study.search_space_defaults`.
 
 Covers FR-1 (heuristic + overflow guard), FR-3 (narrowing math + skip rules),

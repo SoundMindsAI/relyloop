@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // Plural-aware copy helper for the home-page demo-data banner.
 //
 // Spec FR-3 commits the final body sentence verbatim across all K-variants

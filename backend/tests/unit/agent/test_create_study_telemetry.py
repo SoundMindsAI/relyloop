@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Telemetry tests for ``agent.create_study.invoked`` (Story 3.3 / spec FR-6).
 
 The create-side tool emits one INFO event after search-space validation

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Full propose → create_study chain integration test (Story 4.2 / spec §14 + FR-6).
 
 Verifies the end-to-end DB round-trip when the chat agent's LLM follows the

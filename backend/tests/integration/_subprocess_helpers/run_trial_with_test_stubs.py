@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Subprocess entrypoint for partial-failure tests (Story 3.1 / AC-8b).
 
 Pytest monkeypatches do NOT survive into a fresh Python interpreter, so the

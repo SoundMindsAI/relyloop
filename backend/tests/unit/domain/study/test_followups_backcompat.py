@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``parse_followup_list`` decision table (Story 1.1).
 
 Covers every row in FR-4's decision table for the defensive ingest helper.

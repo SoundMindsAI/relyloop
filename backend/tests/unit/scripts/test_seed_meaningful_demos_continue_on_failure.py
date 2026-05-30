@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Regression guard: `seed_meaningful_demos.main()` failure semantics.
 
 Pins the continue-on-failure contract introduced after the

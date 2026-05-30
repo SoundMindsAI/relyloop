@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Helpers for the documents browse endpoint.
 
 Per ``feat_index_document_browser`` spec D-27 / FR-3: the list endpoint

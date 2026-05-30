@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Lock the release classifier in scripts/build_mvp1_dashboard.py.
 
 Covers the fix for

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``get_study`` tool — return one study's full detail (with trial summary)."""
 
 from __future__ import annotations

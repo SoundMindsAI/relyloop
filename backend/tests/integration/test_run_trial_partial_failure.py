@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Partial-failure integration test for ``run_trial`` (Story 3.1 / AC-8b).
 
 Spec §11 clause 1b: when the worker dies between ``study.tell()`` and the

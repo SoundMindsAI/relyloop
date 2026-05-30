@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``classify_rung`` (feat_ubi_judgments Story 2.2 / FR-7)."""
 
 from __future__ import annotations

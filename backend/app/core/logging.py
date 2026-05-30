@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Structured logging configuration (infra_foundation Story 3.1).
 
 Per RelyLoop's logging conventions ([`docs/01_architecture/tech-stack.md`

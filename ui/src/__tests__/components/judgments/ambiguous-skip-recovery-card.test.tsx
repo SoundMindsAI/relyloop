@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Tests for `<AmbiguousSkipRecoveryCard>` (feat_ubi_judgments Story 4.3 /
  * FR-8 Capability D).

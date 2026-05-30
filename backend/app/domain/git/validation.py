@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Git repo URL + config-path validators (feat_github_pr_worker Story 1.4).
 
 Two validators called from the config-repos API surface and the open_pr

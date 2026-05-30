@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration smoke for the development-only seed endpoint.
 
 End-to-end smoke for ``POST /api/v1/_test/studies/seed-completed`` against a

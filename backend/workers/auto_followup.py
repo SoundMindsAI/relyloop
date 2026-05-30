@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Auto-followup chain worker (feat_auto_followup_studies Story 2.1).
 
 `enqueue_followup_study` is dispatched by the digest worker after a study

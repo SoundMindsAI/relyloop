@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Async glue for the pure-Python confidence orchestrator (feat_pr_metric_confidence Story 1.4).
 
 :mod:`backend.app.domain.study.confidence` keeps the analytics pure (no DB,

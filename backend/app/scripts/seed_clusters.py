@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Idempotent seed of ``local-es`` and ``local-opensearch`` cluster rows (Story 4.1).
 
 Operator convenience for first-run setup: registers two cluster rows

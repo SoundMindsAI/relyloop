@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Story 3.2 / FR-7 surface #1 — three-branch synthetic-data chip gating on
  * the GenerateJudgmentsDialog method picker.

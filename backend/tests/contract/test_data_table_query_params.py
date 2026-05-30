@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract: every ``feat_data_table_primitive``-added query param is
 declared in the OpenAPI schema so SDK generators + the frontend's
 generated-types pipeline see them.

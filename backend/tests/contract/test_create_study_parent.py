@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract test — POST /api/v1/studies parent body (Story 4.2).
 
 Asserts:

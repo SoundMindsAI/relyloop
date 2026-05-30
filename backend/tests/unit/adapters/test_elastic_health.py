@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter.health_check`` unit tests via httpx.MockTransport (Story 2.2).
 
 These run in the unit layer because ``MockTransport`` makes them hermetic and

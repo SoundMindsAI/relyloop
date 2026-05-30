@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter`` schema + targets unit tests (Story 2.3, AC-2 / FR-4).
 
 Cassette-replay tests live in the integration layer (Epic 2 gate); these

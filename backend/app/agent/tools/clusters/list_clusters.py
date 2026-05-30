@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``list_clusters`` tool — return every active cluster (id, name, engine, env)."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Loop-limit termination (feat_chat_agent Story 2.5)."""
 
 from __future__ import annotations

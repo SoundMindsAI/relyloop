@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration test for the three-term ``source_breakdown`` on
 ``GET /api/v1/judgment-lists/{id}`` (feat_ubi_judgments Story 2.3 / FR-10).
 

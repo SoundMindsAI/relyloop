@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-7 + cycle-1 F7 parameter-importance test for ``generate_digest``.
 
 Seeds a study with 4 continuous params + ≥10 successful trials so

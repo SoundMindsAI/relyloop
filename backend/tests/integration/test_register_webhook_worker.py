@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``backend.workers.register_webhook.register_webhook``.
 
 Mocks GitHub via :class:`httpx.MockTransport`. Asserts spec FR-3 ACs:

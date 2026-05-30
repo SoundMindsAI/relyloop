@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for agent_proposals_dispatch (feat_chat_agent Story 2.4)."""
 
 from __future__ import annotations

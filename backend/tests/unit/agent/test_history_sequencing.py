@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """OpenAI history sequencing (feat_chat_agent Story 2.5).
 
 After a streamed assistant turn with tool_calls, the orchestrator must append

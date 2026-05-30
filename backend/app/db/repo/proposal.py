@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Proposal repository (feat_study_lifecycle Phase 1 + feat_digest_proposal Story 1.2).
 
 Phase 1 (feat_study_lifecycle) shipped ``create_proposal`` + ``get_proposal``.

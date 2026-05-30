@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_create_study_target_autocomplete Story F1 unit tests for the two
  * cluster API hooks: `useClusterTargets` (new) and `useClusterSchema` (tuned).

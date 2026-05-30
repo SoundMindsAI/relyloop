@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Test-only ES bulk-index + per-test seed helpers for the overlap-probe rewrite.
 
 Lands with ``infra_study_preflight_real_engine_integration`` Story 1.2 (FR-2 + FR-6).

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Engine-branch completeness tests (Story 2.7 / spec §14).
 
 Verifies the small set of ``engine_type``-aware code paths behaves correctly

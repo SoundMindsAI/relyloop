@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Source-of-truth lint guard for form components (chore_form_dropdown_primitive Story 1.2 / FR-7).
  *

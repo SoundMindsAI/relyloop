@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``UbiReader`` (feat_ubi_judgments Story 2.1 / FR-1).
 
 Exercises the reader end-to-end against a stubbed

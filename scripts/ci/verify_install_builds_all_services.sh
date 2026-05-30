@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # bug_install_skip_ui_rebuild regression gate.
 #
 # Asserts that scripts/install.sh's `docker compose build` invocation covers

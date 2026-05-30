@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Pure-domain logic (no I/O, no DB, no async).
 
 Lives outside the adapter / service / router layers so unit tests can

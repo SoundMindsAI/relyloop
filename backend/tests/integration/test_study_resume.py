@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-4 — resume-after-restart sweep (Story 2.3, FR-5).
 
 The full subprocess-driven Arq-worker SIGTERM + restart test is heavy

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Lock the bulk-retry behavior in ``backend.app.scripts.seed_es``.
 
 Covers the fix for ``bug_smoke_seed_es_unavailable_shards_race`` — the seed

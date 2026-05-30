@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Regression tests for the ``## Working in sibling worktrees`` section in CLAUDE.md.
 
 Locks the historically-observed failure modes for the section added by

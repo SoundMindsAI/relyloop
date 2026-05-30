@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``?template_id=`` filter on ``/api/v1/proposals``
 (feat_data_table_primitive FR-3 / Story 1.5).
 

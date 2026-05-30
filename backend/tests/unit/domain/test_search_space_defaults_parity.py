@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Backend half of the build_starter_search_space TS↔Python parity test.
 
 Consumes ``backend/tests/_fixtures/search_space_defaults_parity.json`` —

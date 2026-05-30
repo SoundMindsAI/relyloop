@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 'use client';
 import { DemoBadge } from '@/components/common/demo-badge';
 import { StatusBadge } from '@/components/common/status-badge';

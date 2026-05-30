@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for feat_judgments_periodic_resume_sweep Story 1.1 Settings fields.
 
 Two new Settings fields:

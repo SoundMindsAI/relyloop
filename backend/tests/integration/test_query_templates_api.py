@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration smoke for /api/v1/query-templates (Story 3.1, FR-2 + AC-7).
 
 The full contract test matrix lives in

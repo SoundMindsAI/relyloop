@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // Source: scripts/seed_meaningful_demos.py SCENARIOS slugs (lines 129/245/343/456).
 // CI guard at scripts/ci/verify_demo_slug_parity.sh enforces parity between this
 // file and the seed-script SCENARIOS list. Do NOT add demo slugs to enums.ts —

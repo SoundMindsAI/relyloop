@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Query-template create-time validator (Story 1.2).
 
 Pure-domain helper invoked by ``POST /api/v1/query-templates`` (Story 3.1

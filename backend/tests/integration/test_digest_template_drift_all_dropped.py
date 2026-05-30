@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-2 F7 all-dropped sub-case test for ``generate_digest``.
 
 Best trial used 4 params; template now declares 0 of them; assert:

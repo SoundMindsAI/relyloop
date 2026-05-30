@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """End-to-end /healthz integration test (infra_foundation Story 4.4).
 
 Boots the full Compose stack, hits ``GET /healthz``, asserts the documented

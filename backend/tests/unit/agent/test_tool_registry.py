@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Tool registry sanity tests (feat_chat_agent Story 2.1).
 
 Asserts the three parallel data structures (``TOOLS``, ``TOOL_REGISTRY``,

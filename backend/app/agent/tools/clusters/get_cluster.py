@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``get_cluster`` tool — return one cluster's full detail by id."""
 
 from __future__ import annotations

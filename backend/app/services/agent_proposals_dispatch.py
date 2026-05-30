@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Service-layer dispatch for ``open_pr`` (feat_chat_agent Story 2.4).
 
 Lifts the ``open_pr`` preflight + Arq enqueue from

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """feat_create_study_target_autocomplete Story B2: error-path integration tests
 for ``GET /api/v1/clusters/{cluster_id}/targets``.
 

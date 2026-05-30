@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Vitest spec for ``<StartHereChecklist />`` — covers the new
  * "Reset to demo state" disclosure introduced by

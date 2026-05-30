@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # RelyLoop MVP1 stack (infra_foundation Story 4.2 / FR-1).
 #
 # Services per docs/01_architecture/deployment.md §"MVP1 deployment shape":

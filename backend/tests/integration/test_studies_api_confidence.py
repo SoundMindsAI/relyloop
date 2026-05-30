@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``StudyDetail.confidence`` (feat_pr_metric_confidence Story 1.4).
 
 Covers AC-3, AC-3a, AC-4, AC-5, AC-6, AC-7, AC-8, AC-9, AC-10, AC-15, AC-16

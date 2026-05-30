@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``messages`` ORM model (feat_chat_agent Story 1.2).
 
 Full MVP1 shape per ``docs/01_architecture/data-model.md`` §"messages" and

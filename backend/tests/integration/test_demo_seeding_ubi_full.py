@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Heavy-lane integration test for the full UBI demo reseed (Story 4.2).
 
 Gated by ``SKIP_HEAVY_CI`` so the always-on PR matrix can skip it; runs

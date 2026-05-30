@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Health check endpoint (infra_foundation Story 3.2 / FR-2 / spec §7.1).
 
 ``GET /healthz`` returns the documented JSON shape per spec §7.3:

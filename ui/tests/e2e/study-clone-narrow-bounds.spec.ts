@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: clone-with-narrow-bounds happy path
  * (feat_study_clone_narrow_bounds Story 1.4, AC-12).

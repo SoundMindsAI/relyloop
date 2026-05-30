@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the ``generate_judgments_from_ubi`` agent tool
 (feat_ubi_judgments Story 3.4 / FR-6)."""
 

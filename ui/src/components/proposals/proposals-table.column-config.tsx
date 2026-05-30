@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Column configuration for `<ProposalsTable>` (feat_data_table_primitive Story 3.2).
  *

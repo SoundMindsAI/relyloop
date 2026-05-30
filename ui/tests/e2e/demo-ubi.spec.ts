@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E: synthetic-UBI demo surfaces (feat_demo_ubi_study_comparison
  * Story 4.3 / FR-12).

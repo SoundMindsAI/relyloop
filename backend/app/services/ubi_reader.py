@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``UbiReader`` — engine-neutral UBI scan + client-side join (feat_ubi_judgments Story 2.1 / FR-1).
 
 Reads ``ubi_queries`` + ``ubi_events`` via

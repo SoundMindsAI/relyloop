@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: Run-followup happy path (feat_digest_executable_followups Story 6.1).
  *

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Synthetic UBI clickstream generator (Story 1.2 / FR-2).
 
 Pure-domain — no I/O, no httpx, no Settings. Given a demo scenario's

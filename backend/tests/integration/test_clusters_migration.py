@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0002_clusters_config_repos`` migration test (infra_adapter_elastic Story 1.3).
 
 Asserts:

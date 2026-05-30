@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Idempotency integration test for ``run_trial`` (Story 3.1 / AC-8a).
 
 Spec §11 clause 1a: re-running ``run_trial(study_id, N)`` after a

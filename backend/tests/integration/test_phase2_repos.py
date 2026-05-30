@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Phase 2 repo extension integration tests (Story 1.4).
 
 Covers the new functions added by Story 1.4:

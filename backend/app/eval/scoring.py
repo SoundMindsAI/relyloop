@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """IR-evaluation scoring helper (infra_optuna_eval Story 1.2 / FR-3 + FR-5).
 
 Pure-functional layer. ``score(qrels, run, metrics)`` is the only function the

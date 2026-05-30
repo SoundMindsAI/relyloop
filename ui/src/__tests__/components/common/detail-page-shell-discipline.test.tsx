@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Discipline lint guard for detail page scaffolding
  * (chore_detail_page_shell_primitive Q3 — regex-based per recommended default).

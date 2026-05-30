@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for backend.workers.trials helpers (Story 2.3).
 
 These tests cover the pure-ish helpers — ``_snapshot_optuna_trial``,

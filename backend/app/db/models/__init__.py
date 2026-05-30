@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """ORM model registry (infra_adapter_elastic Story 1.2 + feat_study_lifecycle Phase 1 Story 1.1).
 
 Importing this package registers every ORM model with ``Base.metadata`` so

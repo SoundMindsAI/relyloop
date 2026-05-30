@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Snapshot test for ``prompts/orchestrator.system.md`` inventory (Story 4.1 / spec FR-5).
 
 Locks the four AC-16 invariants:

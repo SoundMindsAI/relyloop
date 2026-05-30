@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Migration round-trip integration test (infra_foundation Story 2.2).
 
 Marked ``@pytest.mark.integration`` — only runs when a Postgres instance is

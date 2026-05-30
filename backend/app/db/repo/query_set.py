@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Query-set repository (Phase 1 Story 1.3 + Phase 2 Story 1.4)."""
 
 from __future__ import annotations

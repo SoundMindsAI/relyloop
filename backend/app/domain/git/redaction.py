@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """GitHub PAT redaction (feat_github_pr_worker Story 1.4 / FR-5).
 
 Two surfaces: a string-level ``redact_token`` for ad-hoc redaction (used

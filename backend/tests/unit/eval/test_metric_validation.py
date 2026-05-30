@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for scoring helper enum/k-allowlist enforcement.
 
 Exercises ``SUPPORTED_METRICS`` / ``SUPPORTED_K_VALUES`` frozensets and the

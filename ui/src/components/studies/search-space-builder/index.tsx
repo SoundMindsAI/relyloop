@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * `<SearchSpaceBuilder>` — visual editor for Step 4 of the create-study modal.
  *

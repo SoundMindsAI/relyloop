@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Webhook receivers (feat_github_webhook).
 
 Per ``docs/01_architecture/api-conventions.md`` webhook endpoints

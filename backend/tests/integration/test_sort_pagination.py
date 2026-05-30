@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Sort-aware cursor pagination tests (feat_data_table_primitive Story 1.3).
 
 Covers ``?sort=<col>:<dir>`` on the 7 sortable list endpoints. For each

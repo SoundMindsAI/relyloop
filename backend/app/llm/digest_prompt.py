@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Digest-narrative prompt loader + renderer (feat_digest_proposal Story 1.3).
 
 Mirrors :mod:`backend.app.llm.prompt_loader` exactly — same module-level

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.db.repo._sort``.
 
 Covers the four pure helpers that drive sort-aware cursor pagination

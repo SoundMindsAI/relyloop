@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Application settings (infra_foundation Story 2.1, FR-3 application layer).
 
 RelyLoop reads secrets from mounted files via ``*_FILE``-suffixed env vars per

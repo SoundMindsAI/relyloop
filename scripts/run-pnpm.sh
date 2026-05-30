@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # run-pnpm.sh — invoke pnpm with the repo's nvm-pinned Node when available.
 #
 # Why: pre-commit hooks `prettier-ui` and `eslint-ui` shell out to pnpm,

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for `_extract_pr_number`'s idea-aware extraction.
 
 Covers `chore_dashboard_pr_extraction_from_idea` FRs 1-5 and ACs 1-17:

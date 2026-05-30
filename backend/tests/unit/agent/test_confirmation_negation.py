@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Negation handling in is_affirmative (feat_chat_agent — GPT-5.5 final-review F2)."""
 
 from __future__ import annotations

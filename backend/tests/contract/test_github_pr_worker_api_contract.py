@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract assertions for the feat_github_pr_worker API surface.
 
 Mirrors :mod:`backend.tests.contract.test_digest_proposal_api_contract`.

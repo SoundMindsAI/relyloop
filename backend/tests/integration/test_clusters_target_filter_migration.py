@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0014_clusters_target_filter`` migration test (feat_cluster_target_filter Story B1).
 
 Asserts the schema shape of the ``clusters.target_filter`` column added by

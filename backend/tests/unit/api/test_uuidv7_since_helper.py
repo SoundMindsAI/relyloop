@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the UUIDv7 lower-bound helper (feat_query_inline_crud Story 1.1).
 
 ``_uuidv7_lower_bound_from_iso(datetime)`` returns a UUIDv7-shaped string

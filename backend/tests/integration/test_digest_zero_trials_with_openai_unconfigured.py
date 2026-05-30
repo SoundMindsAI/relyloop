@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-2 F5 test: zero-trials path fires regardless of OpenAI configuration.
 
 Pre-cycle-2-F5 design gated zero-trials behind OpenAI key/capability/budget

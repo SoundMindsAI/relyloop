@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Prompt-injection delimiter wrapping (feat_chat_agent Story 2.5, spec §10 Threat 4)."""
 
 from __future__ import annotations

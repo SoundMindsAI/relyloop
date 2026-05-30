@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract tests for the PR body's ``## Confidence`` section (Story 1.5).
 
 Covers AC-11 (full-confidence rendering), AC-12 (section omitted on

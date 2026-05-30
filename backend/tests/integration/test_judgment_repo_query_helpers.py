@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``count_and_sample_judgment_refs`` (feat_query_inline_crud Story 3.2).
 
 Verifies the 4-field ``JudgmentRefCounts`` return shape across the

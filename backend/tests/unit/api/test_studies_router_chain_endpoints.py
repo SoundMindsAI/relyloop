@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Router-level tests for the Story 2.3 chain endpoints.
 
 Verifies that ``backend.app.api.v1.studies`` registers:

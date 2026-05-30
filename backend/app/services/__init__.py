@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Service layer (use-case orchestrators).
 
 Each module composes repositories + domain logic + adapter calls into a

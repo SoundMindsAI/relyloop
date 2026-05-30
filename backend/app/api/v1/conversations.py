@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Conversation CRUD + SSE messages router (feat_chat_agent Epic 3).
 
 Five endpoints under ``/api/v1`` (Stories 3.1 + 3.2):

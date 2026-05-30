@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 'use client';
 import { Highlight, themes } from 'prism-react-renderer';
 import { useState } from 'react';

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for backend.app.eval.optuna_runtime.
 
 Story 2.1 covers sampler/pruner defaults + overrides + the spec §FR-2

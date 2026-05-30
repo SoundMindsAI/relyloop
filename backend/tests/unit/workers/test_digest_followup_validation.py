@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the digest worker's swap_template downgrade cascade (Story 2.3).
 
 Owner: ``feat_digest_executable_followups_swap_template`` (Tier B).

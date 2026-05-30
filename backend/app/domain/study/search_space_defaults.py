@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Heuristic starter-search-space + ±50% narrowing helpers (feat_agent_propose_search_space).
 
 Python port of ``ui/src/lib/search-space-defaults.ts``. The TS module is the

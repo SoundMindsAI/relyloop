@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """CHECK ``studies_parent_proposal_pair_check`` integration test (Story 3.4).
 
 Asserts the pair-set-together-and-index-non-negative CHECK constraint

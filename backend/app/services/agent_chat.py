@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Chat-agent service layer (feat_chat_agent Story 2.6).
 
 This module is the **sole owner** of chat-feature message persistence.

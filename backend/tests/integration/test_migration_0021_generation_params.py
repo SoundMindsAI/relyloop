@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0021_judgment_lists_generation_params`` migration test
 (feat_ubi_judgments Story 1.1).
 
