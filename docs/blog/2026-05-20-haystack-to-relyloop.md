@@ -42,13 +42,13 @@ The product, in one paragraph: a relevance engineer describes a problem in chat.
 
 That last constraint is load-bearing. The reason it's an offline tool that produces PRs instead of an online tuner that auto-deploys is that the deploy decision belongs to the operator, on their own protected branches, in their own CI. RelyLoop's job ends at the PR.
 
-The architecture is engine-agnostic by design. The initial release supports Elasticsearch and OpenSearch via a shared adapter; **Lucidworks Fusion lands in MVP3**. The same adapter pattern abstracts LLM providers (OpenAI today, Anthropic / Bedrock / Vertex / self-hosted Ollama later) and Git providers (GitHub now; GitLab and Bitbucket later). No part of the system is structurally coupled to a vendor — RelyLoop is intentionally a tool that complements whatever search stack a team already runs.
+The architecture is engine-agnostic by design. The initial release supports Elasticsearch and OpenSearch via a shared adapter; **Apache Solr lands in MVP2**, completing the three supported OSS engines. The same adapter pattern abstracts LLM providers (OpenAI today, Anthropic / Bedrock / Vertex / self-hosted Ollama later) and Git providers (GitHub now; GitLab and Bitbucket later). No part of the system is structurally coupled to a vendor — RelyLoop is intentionally a tool that complements whatever search stack a team already runs.
 
 ## Where it is, twelve days in
 
 As of today, May 20, 2026, there are eighteen features merged into `main`. A `v0.1.0` alpha tag was cut on May 13 — five days after the first commit. The project is Apache 2.0. The repo lives at [github.com/SoundMindsAI/relyloop](https://github.com/SoundMindsAI/relyloop) — `SoundMindsAI` is my open-source identity.
 
-The cadence isn't a stunt. It works because the architecture is small (four cooperating layers — adapter, domain, service, API+UI), because the test layers are disciplined (every endpoint has a contract test, every service an integration test, every domain function a unit test, with an 80% coverage gate on backend Python), and because the project is meant to do one thing well. RelyLoop is not a Lucidworks Fusion competitor or a replacement for any vendor stack; it's a tool that a relevance team can run alongside their existing platform to make tuning sessions less of a guess.
+The cadence isn't a stunt. It works because the architecture is small (four cooperating layers — adapter, domain, service, API+UI), because the test layers are disciplined (every endpoint has a contract test, every service an integration test, every domain function a unit test, with an 80% coverage gate on backend Python), and because the project is meant to do one thing well. RelyLoop is not a competitor to any vendor stack or a replacement for one; it's a tool that a relevance team can run alongside their existing platform to make tuning sessions less of a guess.
 
 If you're a relevance engineer who's tired of guessing at configs, the easiest ways to engage:
 

@@ -7,7 +7,7 @@
 The Protocol defines the engine boundary per
 [`docs/01_architecture/adapters.md`](../../../docs/01_architecture/adapters.md).
 Every adapter implementation (MVP1: ``ElasticAdapter`` for ES + OpenSearch;
-MVP3+: ``LucidworksFusionAdapter``; v2+: ``SolrAdapter``) implements this
+MVP2: ``SolrAdapter`` for Apache Solr) implements this
 Protocol so the orchestrator, study runner, evaluator, and UI consume one
 unified surface — no engine-specific code outside ``backend/app/adapters/``
 (CLAUDE.md Absolute Rule #4).

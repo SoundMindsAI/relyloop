@@ -16,10 +16,30 @@ phase: schemas, adapter contracts, and APIs are changing fast, and a small
 group of people with full context can move much faster than a committee.
 The model is intentionally temporary — see "Transition plan" below.
 
+## We're actively looking to broaden the maintainer team
+
+Single-vendor stewardship is the starting point, not the destination. We
+**want** RelyLoop to be maintained by people from more than one
+organization, and we're actively looking for contributors who want to grow
+into that role — relevance engineers, search-platform folks, and anyone who
+cares about open-source search tuning across Elasticsearch, OpenSearch, and
+Apache Solr.
+
+If that's you — whether you already have a contribution in mind or just want
+to talk about where the project is headed — reach out directly to Eric Starr:
+
+- **LinkedIn:** [linkedin.com/in/starrman](https://www.linkedin.com/in/starrman/)
+- **X:** [@Starrman777](https://x.com/Starrman777)
+
+A DM is the fastest way to start the conversation. The realistic bar for
+becoming a maintainer is in "How to become a maintainer" below, and the
+multi-organization goal is in "Transition plan."
+
 ## Project scope
 
 RelyLoop is an open-source tool for tuning query-time search relevance on
-Elasticsearch, OpenSearch, and (in later releases) Lucidworks Fusion. The
+the three supported open-source engines: Elasticsearch, OpenSearch, and
+Apache Solr (Solr ships at MVP2). The
 authoritative scope statement is the [umbrella spec](docs/00_overview/relyloop-spec.md),
 particularly §4 (non-goals). Proposals that materially expand scope
 (new engine families, online A/B testing, LTR training, sitting on the live

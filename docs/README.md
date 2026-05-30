@@ -23,7 +23,7 @@ Pick the path that matches your goal:
 - `03_runbooks/` — operator and maintainer procedures (boot, debug, deploy, restore)
 - `04_security/` — threat models, policies, and security-specific guidance (populates at MVP2 with the `audit_log` work)
 - `05_quality/` — testing strategy, quality gates, and validation docs
-- `06_vendor_docs/` — vendor- or engine-specific notes (Elasticsearch, OpenSearch, Lucidworks Fusion, OpenAI-compatible providers)
+- `06_vendor_docs/` — vendor- or engine-specific notes (Elasticsearch, OpenSearch, Apache Solr, OpenAI-compatible providers)
 - `07_research/` — exploratory notes, comparisons, and background analysis
 - `08_guides/` — tenant-facing walkthrough guides (lands later with the UI features)
 - `09_decisions/` — ADR-style decision records
