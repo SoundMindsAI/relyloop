@@ -16,12 +16,13 @@
  */
 import Link from 'next/link';
 
+import { EngineBadge } from '@/components/clusters/engine-badge';
 import { DemoBadge } from '@/components/common/demo-badge';
 import { StatusBadge } from '@/components/common/status-badge';
 import type { DataTableColumnDef } from '@/components/common/types';
 import type { ClusterSummary } from '@/lib/api/clusters';
 import { isDemoClusterName } from '@/lib/demo-data';
-import { ENGINE_TYPE_VALUES, ENVIRONMENT_VALUES } from '@/lib/enums';
+import { ENGINE_TYPE_VALUES, ENVIRONMENT_VALUES, type EngineType } from '@/lib/enums';
 
 export const clustersColumns: DataTableColumnDef<ClusterSummary>[] = [
   {
@@ -46,6 +47,7 @@ export const clustersColumns: DataTableColumnDef<ClusterSummary>[] = [
     id: 'engine_type',
     header: 'Engine',
     accessorKey: 'engine_type',
+    cell: ({ row }) => <EngineBadge engine={row.original.engine_type as EngineType} />,
     filter: {
       kind: 'enum',
       wireValues: ENGINE_TYPE_VALUES,
