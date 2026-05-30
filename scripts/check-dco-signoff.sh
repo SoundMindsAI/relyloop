@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Developer Certificate of Origin (DCO) sign-off check.
 # Invoked by pre-commit's `commit-msg` stage with the path to the commit message
 # file as $1. Exits 0 if the message contains a Signed-off-by trailer; non-zero

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for :mod:`backend.app.domain.study.baseline_resolver`.
 
 Covers FR-3's 4-tier fallback resolver:

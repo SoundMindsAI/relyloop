@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Judgment repository (feat_llm_judgments Story 1.2).
 
 Backs every read/write the API + worker performs against the ``judgments``

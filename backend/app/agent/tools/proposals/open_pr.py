@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``open_pr`` tool — enqueue the GitHub PR worker for an approved proposal.
 
 This is a MUTATING tool (per spec FR-5 + §19 Decision log) — the orchestrator's

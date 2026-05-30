@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-3 F2 test: capability fallback STILL gates on pricing.
 
 Pre-cycle-3 design short-circuited on capability fail. That meant the

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Create-time preflight overlap probe for POST /api/v1/studies.
 
 Single bounded ids-existence probe against the study's target index to detect

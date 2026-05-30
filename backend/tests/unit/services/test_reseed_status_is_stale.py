@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``reseed_status_is_stale`` (defense-in-depth stale check).
 
 Per ``bug_demo_reseed_button_silent_enqueue_failure`` §"Proposed

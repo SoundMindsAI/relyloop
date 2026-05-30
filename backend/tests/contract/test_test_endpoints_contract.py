@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Hermetic source-presence contract for the chore_e2e_test_rows_isolation
 DELETE endpoints. Mirrors the precedent at
 ``test_judgments_api_contract.py:test_all_spec_error_codes_referenced_in_router_source``.

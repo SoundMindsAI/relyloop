@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``parse_queries_csv`` (Story 3.2, FR-3)."""
 
 from __future__ import annotations

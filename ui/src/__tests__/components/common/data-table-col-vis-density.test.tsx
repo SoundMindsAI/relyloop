@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Column visibility + density toggle tests
  * (feat_data_table_primitive Stories 2.10 + 2.11 / FR-14 + FR-15).

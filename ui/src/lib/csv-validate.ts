@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * UI-side CSV pre-submit guard (spec §10). The backend has its own quota and
  * row-level validators (returns `INVALID_CSV` with row numbers). This helper

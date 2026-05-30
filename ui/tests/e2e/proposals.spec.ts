@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: /proposals workflows (D2 list + filters, D3 detail, D4 open-PR
  * trigger, D6 reject).

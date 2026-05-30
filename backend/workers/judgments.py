@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``generate_judgments_llm`` Arq job (feat_llm_judgments Story 2.1 / FR-2).
 
 Single-list LLM-as-judge pipeline:

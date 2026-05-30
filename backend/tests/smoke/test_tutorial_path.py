@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Smoke test orchestrating tutorial Steps 5–8 against a running stack.
 
 Designed for CI (Story 3.2) but also runs locally against ``make up``. The test:

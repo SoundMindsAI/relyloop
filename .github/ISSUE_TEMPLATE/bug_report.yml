@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 name: Bug report
 description: Something in RelyLoop doesn't behave the way the docs or spec say it should.
 title: "bug: <short summary>"

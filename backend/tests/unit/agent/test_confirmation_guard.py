@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Two-condition confirmation guard (feat_chat_agent Story 2.5).
 
 * The most-recent assistant message must mention the tool name.

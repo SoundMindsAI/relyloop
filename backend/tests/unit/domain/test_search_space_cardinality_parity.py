@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Backend half of the cardinality parity test (chore_create_study_wizard_polish Story 2.1).
 
 Consumes the same JSON fixture as

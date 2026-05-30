@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract test: assert the OpenAPI surface declares every documented endpoint.
 
 Per `chore_openapi_contract_validation` (originally proposed strict

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: auto-followup chain (feat_auto_followup_studies, Story 3.3, FR-8/10/11).
  *

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Digest fetch + proposal CRUD endpoints (feat_digest_proposal Epic 3).
 
 Six endpoints under ``/api/v1``:

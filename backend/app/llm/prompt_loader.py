@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Judgment-generation prompt loader + renderer (feat_llm_judgments Story 1.3).
 
 Loads the three prompt files under ``prompts/`` and exposes a sandboxed Jinja2

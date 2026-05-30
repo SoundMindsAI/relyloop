@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_pr_metric_confidence Story 2.2 — ConfidencePanel component tests.
  *

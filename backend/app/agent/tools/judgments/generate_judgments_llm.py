@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``generate_judgments_llm`` tool — start an LLM-judgment generation job.
 
 This is a MUTATING tool (per spec FR-5 + §19 Decision log) — the orchestrator's

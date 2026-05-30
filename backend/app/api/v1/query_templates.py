@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Query-template endpoints (feat_study_lifecycle Phase 2, Story 3.1, FR-2).
 
 Three endpoints under ``/api/v1/query-templates``:

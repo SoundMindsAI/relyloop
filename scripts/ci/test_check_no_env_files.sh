@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Regression test for check-no-env-files.sh.
 #
 # Feeds synthetic file lists through the guard in --from-stdin mode and

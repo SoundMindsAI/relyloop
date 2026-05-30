@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """GET /api/v1/proposals — is_currently_live + ?is_last_merged filter.
 
 feat_config_repo_baseline_tracking Stories 2.2 + 2.3 (FR-5 + FR-6).

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for the Phase 2 orchestrator (Story 2.1).
 
 Covers AC-1, AC-2, AC-5, AC-6, AC-10 against the integration-test Postgres.

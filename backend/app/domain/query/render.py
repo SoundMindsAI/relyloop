@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Pure Jinja → JSON renderer for query templates.
 
 Story 2.4 of infra_adapter_elastic established this; feat_study_lifecycle

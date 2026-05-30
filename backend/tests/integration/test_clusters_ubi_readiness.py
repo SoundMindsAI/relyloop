@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``GET /api/v1/clusters/{id}/ubi-readiness``
 (feat_ubi_judgments Story 3.1 / FR-7).
 

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cluster service — registration, lookup, dispatch (Story 3.1).
 
 Composes the repo + adapter + Redis cache into business operations:

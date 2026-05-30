@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * `<ProposalsTable>` row-level rendering tests
  * (feat_data_table_primitive Story 3.2 Legacy Parity rows 5/6/7).

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Defensive read-path: legacy list[str] JSONB unwraps to text items (AC-5).
 
 After Story 3.3 migrated digests.suggested_followups from ARRAY(Text) to

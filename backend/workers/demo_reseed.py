@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Arq worker job for the demo-reseed flow.
 
 Per ``bug_demo_reseed_fake_metric_regression`` — the home-button reseed

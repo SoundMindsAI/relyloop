@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for backend.app.eval.scoring (infra_optuna_eval Story 1.2 / AC-3).
 
 The nDCG@10 and MAP@10 expected values in this module are independently

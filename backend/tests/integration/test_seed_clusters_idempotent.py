@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Idempotency test for ``make seed-clusters`` (Story 4.1 / spec §14).
 
 Runs the seed entrypoint twice and asserts exactly two cluster rows

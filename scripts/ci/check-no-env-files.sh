@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # bug_env_file_corrupted_during_session — defense-in-depth CI guard.
 #
 # Fails when a PR diff (or commit on main) introduces or modifies any .env

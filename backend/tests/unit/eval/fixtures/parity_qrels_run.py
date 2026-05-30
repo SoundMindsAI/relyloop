@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Parity fixture for the pytrec_eval ↔ ir_measures value-equivalence test.
 
 Source of truth for ``backend/tests/unit/eval/test_scoring_parity.py``

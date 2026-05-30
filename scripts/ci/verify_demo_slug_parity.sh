@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # feat_home_first_run_demo_nudge — Story 4.2.
 #
 # Verifies the 4 demo cluster slugs in the frontend constant

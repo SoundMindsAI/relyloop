@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Unit tests for `estimateParamCardinality()` helper (Story 2.3, FR-6).
  *

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // @ts-check
 /**
  * Promote walkthrough videos captured by `playwright test -c

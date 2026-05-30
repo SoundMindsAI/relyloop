@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract test for ``Trial`` row shape after a happy-path run_trial (Story 3.2).
 
 Asserts every Trial column matches the spec §FR-5 contract:

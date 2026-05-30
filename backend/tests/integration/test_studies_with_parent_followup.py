@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """POST /api/v1/studies parent body integration test (Story 4.2).
 
 Covers all four paths from spec §8.5 + the malformed-payload envelope

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.workers.pr_reconcile._poll_cron_kwargs``.
 
 Covers every value in :data:`SUPPORTED_POLL_MINUTES` plus the documented

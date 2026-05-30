@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-11 + cycle-3 F2 test: capability-fail falls back to narrative-only.
 
 Seeds a completed study; stubs the capability cache with

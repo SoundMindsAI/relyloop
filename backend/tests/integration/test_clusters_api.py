@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cluster API integration tests (Stories 3.2 / 3.3 / 3.4).
 
 End-to-end coverage of the six endpoints from spec §7.1 against the live

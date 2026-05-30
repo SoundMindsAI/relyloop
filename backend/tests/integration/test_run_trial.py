@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Happy-path integration test for ``run_trial`` (Story 3.1).
 
 Covers ACs 2 (TPE default), 4 (complete trial row), and 7 (single _msearch

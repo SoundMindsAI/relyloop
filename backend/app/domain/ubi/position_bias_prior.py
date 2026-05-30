@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Position-bias prior loader (feat_ubi_judgments Story 1.2 / FR-11).
 
 Loads the optional operator-supplied Wang-Bendersky position-bias prior

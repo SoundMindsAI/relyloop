@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``POST /webhooks/github`` (Story 2.1).
 
 Covers spec FR-1 ACs:

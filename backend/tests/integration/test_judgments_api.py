@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration smoke for /api/v1/judgments* + /api/v1/judgment-lists*.
 
 Covers Epic 3 (Stories 3.1 – 3.5):

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_study_clone_from_previous Story 2.3 — `/studies?clone_from=…` tests.
  *

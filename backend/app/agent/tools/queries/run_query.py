@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``run_query`` tool — execute one ad-hoc Query DSL fragment against a cluster."""
 
 from __future__ import annotations

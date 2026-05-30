@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``get_template`` tool — return one query template's full detail by id."""
 
 from __future__ import annotations

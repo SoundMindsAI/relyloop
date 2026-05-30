@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-3 (service-layer half) — orchestrator detects cancel + drains.
 
 The HTTP 409 "cancel an already-cancelled study" half lives in Story 3.5's

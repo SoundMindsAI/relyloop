@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the ``template_swap`` domain helper (Story 1.2).
 
 Owner: ``feat_digest_executable_followups_swap_template``.

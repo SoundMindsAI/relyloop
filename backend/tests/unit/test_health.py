@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Health endpoint handler tests (infra_foundation Story 3.2).
 
 Tests the /healthz handler with mocked probes — verifies the status mapping,

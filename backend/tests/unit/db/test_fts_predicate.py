@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.db.repo._fts.fts_predicate``.
 
 The FTS helper is the shared building block for every list/count repo

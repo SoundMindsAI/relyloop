@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Adapter domain exceptions (infra_adapter_elastic Story 2.1+).
 
 Single import path so the adapter, services, and routers translate engine

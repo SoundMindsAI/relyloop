@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * `<RowTypeSelector>` — type discriminator selector (Story 2.1, FR-2).
  *

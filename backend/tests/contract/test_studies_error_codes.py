@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Spec §7.5 error-code matrix for the Phase 2 API surface (Story 3.5).
 
 The DB-dependent codes are exercised at the integration layer

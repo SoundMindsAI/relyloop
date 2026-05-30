@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Step-4 auto-fill heuristic for the create-study wizard
  * (chore_create_study_wizard_polish, spec FR-1).

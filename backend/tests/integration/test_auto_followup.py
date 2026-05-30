@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for backend/workers/auto_followup.py (Story 2.1).
 
 Real Postgres + real Redis (test container). Verifies the FR-3 worker

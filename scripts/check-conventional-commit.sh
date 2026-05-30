@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Conventional Commits format check (infra_foundation FR-6).
 # Invoked by pre-commit's `commit-msg` stage with the path to the commit message
 # file as $1. Exits 0 if the first line matches the regex; non-zero otherwise.

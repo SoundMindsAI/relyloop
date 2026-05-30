@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Repo unit-of-work tests for feat_llm_judgments Story 1.2.
 
 Exercises every function in :mod:`backend.app.db.repo.judgment` and the

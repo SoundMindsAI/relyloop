@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``studies.search_space`` schema + Optuna sampler mapping (Story 1.1).
 
 Pure-domain helpers (no I/O, no async, no DB). Used at two sites:

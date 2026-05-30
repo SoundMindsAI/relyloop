@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Query-set endpoints (feat_study_lifecycle Phase 2, Story 3.2, FR-3 + AC-8).
 
 Four endpoints under ``/api/v1/query-sets``:

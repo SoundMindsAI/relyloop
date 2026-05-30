@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: /clusters/[id] studies-by-cluster table inheritance
  * (feat_data_table_primitive Story 3.9 — verify the wrapper inherits the

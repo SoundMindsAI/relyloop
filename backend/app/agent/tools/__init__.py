@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Tool registry (feat_chat_agent Story 2.1 — locks the per-tool pattern).
 
 Three parallel data structures, one entry per tool:

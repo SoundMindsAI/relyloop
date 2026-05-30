@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Tests for `_rewrite_markdown_links` + `_maybe_write` in scripts/build_mvp1_dashboard.py.
 
 Covers the two fixes shipped via the

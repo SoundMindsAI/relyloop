@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.llm.digest_prompt`` (Story 2.2).
 
 Covers the new ``parent_search_space`` kwarg added by

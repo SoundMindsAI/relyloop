@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Study endpoints (feat_study_lifecycle Phase 2, Story 3.3 + 3.4).
 
 Five endpoints under ``/api/v1/studies``:

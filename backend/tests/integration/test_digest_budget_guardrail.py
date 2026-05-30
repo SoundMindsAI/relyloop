@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Budget-peek-breach test for ``generate_digest``.
 
 Pre-populates the daily budget Redis key so that the pre-call peek sees

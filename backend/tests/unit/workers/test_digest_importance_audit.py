@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Audit + routing tests for ``backend.workers.digest._compute_param_importance``.
 
 Per the ``chore_digest_worker_narrow_except`` idea (idea.md in the same

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """In-process uvicorn helpers for ``POST /api/v1/_test/demo/reseed`` tests.
 
 The reseed handler's ``api_client`` self-calls ``http://localhost:8000``

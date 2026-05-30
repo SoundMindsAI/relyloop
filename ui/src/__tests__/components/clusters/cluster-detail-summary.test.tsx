@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Unit tests for ClusterDetailSummary's target_filter rendering
  * (chore_cluster_detail_show_target_filter — bundled into the guide-01 regen

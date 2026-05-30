@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared Elasticsearch reachability probe + skip marker for integration tests.
 
 Extracted from ``backend/tests/integration/test_seed_es.py`` so test-helper

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """CSV → row-dicts parser for bulk query upload (Story 3.2, FR-3 + AC-8).
 
 Pure-domain helper used by ``POST /api/v1/query-sets/{id}/queries`` when

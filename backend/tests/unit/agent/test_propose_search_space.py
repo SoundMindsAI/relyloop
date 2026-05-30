@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``propose_search_space_impl`` (feat_agent_propose_search_space Story 3.2).
 
 Covers every spec FR-2 / FR-3 path: arg validation, all 5 error codes,

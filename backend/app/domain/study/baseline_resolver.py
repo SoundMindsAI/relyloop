@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Baseline-trial parameter resolver (feat_study_baseline_trial FR-3).
 
 Pure-domain async helper that resolves the parameter dict for the

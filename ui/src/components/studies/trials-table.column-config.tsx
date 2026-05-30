@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Column configuration + sort codec for `<TrialsTable>`
  * (feat_data_table_primitive Story 3.7).

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the metric → ir_measures metric-object mapper.
 
 chore_create_study_wizard_polish Story 1.2 / AC-14 backend half.

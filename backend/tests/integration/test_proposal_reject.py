@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """POST /api/v1/proposals/{id}/reject tests (Story 3.4, FR-4 / AC-5)."""
 
 from __future__ import annotations

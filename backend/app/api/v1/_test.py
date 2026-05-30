@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Test-only endpoints exposed when ``Settings.environment == "development"``.
 
 These endpoints exist solely to support deterministic E2E coverage of

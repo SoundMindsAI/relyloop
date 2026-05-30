@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * TypeScript half of the buildStarterSearchSpace TS↔Python parity test
  * (feat_agent_propose_search_space Story 1.3 — FR-7, AC-10, AC-13).

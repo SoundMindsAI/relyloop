@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``run_trial`` Arq job (infra_optuna_eval Story 2.3 / FR-4 + FR-5).
 
 Hot-path worker that executes one Optuna trial end-to-end:

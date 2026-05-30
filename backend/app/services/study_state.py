@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Study state machine + ``studies.status`` protection guard (Story 1.3, FR-7).
 
 All ``studies.status`` mutations route through four async service functions

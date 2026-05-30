@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0015_trials_per_query_metrics`` migration test (feat_pr_metric_confidence Story 1.1).
 
 Asserts the schema shape of the ``trials.per_query_metrics`` column added by

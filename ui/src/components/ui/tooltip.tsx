@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 'use client';
 import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import * as React from 'react';

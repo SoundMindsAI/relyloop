@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E: UBI on-ramp at rung_0 (feat_ubi_judgments FR-7 + FR-8 Capability A).
  *

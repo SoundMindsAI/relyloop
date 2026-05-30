@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter.explain`` unit tests via httpx.MockTransport (Story 2.6).
 
 Covers the recursive ``ExplainTree`` shape + the 404/auth/5xx error mapping.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-3 strict-regex enumeration tests for the user-facing metric-token allowlist.
 
 These tests prove the leakage assertion in

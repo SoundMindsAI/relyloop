@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Opaque cursor encoding for the documents browse endpoint.
 
 Encodes/decodes the ES ``hits.hits[i].sort`` array (used as ``search_after``

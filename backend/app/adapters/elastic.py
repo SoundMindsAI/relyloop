@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """ElasticAdapter — single adapter for Elasticsearch + OpenSearch (Story 2.1+).
 
 One class handles both engines because the wire surface RelyLoop uses

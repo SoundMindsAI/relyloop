@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: /chat workflows (E4 resume past conversation, new-conversation
  * button, secrets warning banner).

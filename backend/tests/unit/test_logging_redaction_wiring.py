@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Story 1.4 — verify the global structlog chain redacts GitHub PATs.
 
 The unit tests in ``backend/tests/unit/domain/test_redaction.py`` cover

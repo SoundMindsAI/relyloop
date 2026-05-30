@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Subsystem health probes (infra_foundation Story 3.2 / FR-2).
 
 Each probe is a small async function that returns a Literal status string.

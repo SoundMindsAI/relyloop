@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Shared setup helpers for the run_trial integration tests.
 
 These helpers use ``get_session_factory()`` directly (NOT the ``db_session``

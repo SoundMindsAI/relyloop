@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``GET /api/v1/studies?target=`` (Story 2.4 / FR-5).
 
 Asserts:

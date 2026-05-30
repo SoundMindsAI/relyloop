@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Contract assertions for the per-query CRUD endpoints (feat_query_inline_crud).
 
 * The 3 new endpoints (GET / PATCH / DELETE) appear in the OpenAPI schema.

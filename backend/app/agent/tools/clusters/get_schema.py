@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``get_schema`` tool — introspect an index/collection's field schema."""
 
 from __future__ import annotations

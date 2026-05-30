@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``generate_judgments_from_ubi`` tool (feat_ubi_judgments Story 3.4 / FR-6).
 
 Mirrors ``generate_judgments_llm`` for the UBI path. Routes through the

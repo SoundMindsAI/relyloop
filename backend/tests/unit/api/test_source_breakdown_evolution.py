@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``_SourceBreakdown`` evolution + UBI wire-Literal locks (feat_ubi_judgments
 Story 2.3 / FR-9 + FR-10).
 

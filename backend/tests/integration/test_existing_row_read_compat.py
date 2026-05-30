@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Existing-row read compatibility regression for infra_ir_measures_migration.
 
 Per spec AC-12 + plan cycle-1 F9: inserts a synthetic ``Trial`` row whose

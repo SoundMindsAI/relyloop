@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # ruff: noqa: E501, S101, S310, S603, S607, S608
 #   E501 (line too long): scenario literals contain long product titles +
 #                  news headlines + helper-text strings. Wrapping each one

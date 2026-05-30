@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Error envelope tests (infra_foundation Story 3.1).
 
 Verifies that each of the three exception handlers produces the documented

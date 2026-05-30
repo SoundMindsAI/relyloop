@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for :func:`backend.app.eval.calibration.compute_calibration`.
 
 Hand-computed kappa baselines verified against the standard formulas:

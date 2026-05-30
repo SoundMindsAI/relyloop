@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """SearchAdapter Protocol + Pydantic types (infra_adapter_elastic Story 1.1 / FR-1).
 
 The Protocol defines the engine boundary per

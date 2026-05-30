@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0007_conversations_messages`` migration test (feat_chat_agent Story 1.1).
 
 Asserts the schema shape of the ``conversations`` + ``messages`` tables created

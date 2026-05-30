@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Service-layer dispatch for judgment generation — LLM + UBI.
 
 (feat_chat_agent Story 2.2 + feat_ubi_judgments Story 2.2 / FR-4)

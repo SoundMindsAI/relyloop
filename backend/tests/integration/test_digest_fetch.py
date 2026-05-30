@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """GET /api/v1/studies/{id}/digest tests (Story 3.1, FR-3 / AC-3 / AC-4)."""
 
 from __future__ import annotations

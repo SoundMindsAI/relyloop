@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 // GENERATED FILE — do not edit. Regenerate via: cd ui && pnpm types:gen
 // Source: http://localhost:8000/openapi.json
 //

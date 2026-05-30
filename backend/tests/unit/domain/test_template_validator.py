@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``backend.app.domain.study.template_validator`` unit tests (Story 1.2).
 
 Covers the three validation stages:

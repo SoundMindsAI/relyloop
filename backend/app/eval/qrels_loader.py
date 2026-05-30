@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Qrels loader (feat_llm_judgments Story 1.6).
 
 Real ``SELECT`` against the ``judgments`` table (introduced by the

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """GitHub webhook event dispatcher (feat_github_webhook Story 1.3).
 
 Pure-domain decision function: takes ``X-GitHub-Event`` + parsed payload,

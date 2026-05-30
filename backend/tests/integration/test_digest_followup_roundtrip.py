@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Worker round-trip with structured followups (Story 2.3).
 
 Drives ``generate_digest`` against a real Postgres + a mocked OpenAI

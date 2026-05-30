@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for :func:`backend.app.domain.study.template_defaults.compute_default_params`.
 
 Originally inlined as ``backend.workers.judgments._compute_default_params``

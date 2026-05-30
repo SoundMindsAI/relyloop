@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Strict query-param dependency factory.
 
 Per ``feat_index_document_browser`` spec D-21 / FR-12: the documents browse

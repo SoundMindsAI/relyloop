@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """FTS endpoint integration tests (feat_data_table_primitive Story 1.2).
 
 Covers ``?q=`` on the 6 searchable list endpoints. Each test seeds rows

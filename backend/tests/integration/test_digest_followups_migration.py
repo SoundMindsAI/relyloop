@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0019_digests_suggested_followups_jsonb`` migration round-trip test (Story 3.6).
 
 Drives the column-type migration over two seeded ``digests`` rows (one

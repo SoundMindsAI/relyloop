@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Study repository (feat_study_lifecycle Phase 1 Story 1.3 + Phase 2 Story 1.4).
 
 Phase 1 shipped create + get. Phase 2 extends with cursor-paginated list +

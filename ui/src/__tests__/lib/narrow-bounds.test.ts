@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * feat_study_clone_narrow_bounds Story 1.1 — unit tests for the pure
  * ``narrowBoundsAroundWinner`` helper at [`ui/src/lib/narrow-bounds.ts`](../../lib/narrow-bounds.ts).

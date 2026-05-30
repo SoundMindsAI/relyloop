@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Source-inspection tests for the Story 2.2 auto-followup trigger
 in :mod:`backend.workers.digest`.
 

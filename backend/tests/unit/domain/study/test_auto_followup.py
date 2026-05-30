@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for ``backend.app.domain.study.auto_followup`` (Story 1.1).
 
 Pure tests — no DB, no fixtures beyond SimpleNamespace stand-ins for

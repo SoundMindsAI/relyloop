@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Default-value picker for query-template params (feat_digest_proposal Story 2.1).
 
 Sibling module: :mod:`backend.app.domain.study.search_space_defaults` picks

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Telemetry tests for ``agent.search_space_proposed`` (Story 3.3 / spec FR-6).
 
 The propose-side tool emits one INFO event per successful invocation tagged

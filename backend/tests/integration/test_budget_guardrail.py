@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration test for AC-4 budget enforcement (feat_llm_judgments Story 2.1).
 
 Pre-seeds the Redis daily counter above the configured budget and runs the

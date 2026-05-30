@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Tail-truncation preserves tool-message-group integrity (GPT-5.5 final-review F4)."""
 
 from __future__ import annotations

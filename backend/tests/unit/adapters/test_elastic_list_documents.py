@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``ElasticAdapter.list_documents`` unit tests (Story 1.3, feat_index_document_browser FR-2).
 
 Locked behaviors:

@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # Run tests inside a one-shot container that mounts the sibling worktree's
 # source paths and joins the existing Compose network — without leaking writes
 # to the operator's main checkout.

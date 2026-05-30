@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``run_trial`` per_query_metrics persistence (feat_pr_metric_confidence Story 1.2).
 
 Asserts that the run_trial worker persists ``scored["per_query"]`` from

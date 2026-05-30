@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """SearchAdapter Protocol + Pydantic types — unit tests (Story 1.1, FR-1)."""
 
 from __future__ import annotations

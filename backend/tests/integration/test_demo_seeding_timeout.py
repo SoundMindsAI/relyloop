@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """AC-4 isolated test: per-call timeout returns 503 SEED_FAILED.
 
 Per plan §3.2 Task 4, AC-4 lives in its own file with a function-scoped

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Config-repo repository.
 
 infra_adapter_elastic Story 1.4 shipped ``create_config_repo``,

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Arq worker entry point (Phase 2 / infra_optuna_eval / infra_foundation).
 
 Adds feat_study_lifecycle Phase 2 Stories 2.1 / 2.3 on top of the

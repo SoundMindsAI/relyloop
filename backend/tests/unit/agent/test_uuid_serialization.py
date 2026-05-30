@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """UUID serialization in events + Pydantic validation (feat_chat_agent Story 2.5).
 
 Defense-in-depth: ToolCallEvent.arguments comes from json.loads (so it's

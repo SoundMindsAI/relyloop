@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cycle-1 F5/F9 partial-drift test for ``generate_digest``.
 
 Best trial used 4 params; template now declares only 2 of them; assert:

@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * Story 3.3 — verify the create-study-modal cluster picker appends
  * " (Demo)" to demo cluster labels and not to non-demo cluster labels.

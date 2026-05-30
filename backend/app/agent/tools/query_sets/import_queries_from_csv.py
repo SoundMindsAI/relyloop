@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``import_queries_from_csv`` tool — bulk-add queries to a query set from CSV text.
 
 This is a MUTATING tool (per spec FR-5 + §19 Decision log) — the orchestrator's

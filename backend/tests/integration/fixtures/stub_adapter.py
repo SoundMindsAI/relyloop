@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Stub adapter used by infra_optuna_eval integration tests.
 
 A minimal ``SearchAdapter`` implementation that returns deterministic

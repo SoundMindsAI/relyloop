@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E spec: /proposals DataTable surface
  * (feat_data_table_primitive Story 3.2, spec §14 matrix row "proposals").

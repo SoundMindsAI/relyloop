@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Idempotent webhook auto-registration (feat_github_webhook Story 4.1 / FR-3).
 
 Enqueued by ``POST /api/v1/config-repos`` (Story 4.2) for any newly

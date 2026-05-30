@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """``0020_studies_baseline_trial`` migration test (feat_study_baseline_trial Story 1.1).
 
 Asserts the schema shape of the two columns + partial unique index added by

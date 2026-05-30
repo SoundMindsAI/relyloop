@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /**
  * E2E seed helpers — register clusters, query-sets, queries, templates,
  * judgment-lists, studies, proposals, and conversations against the real

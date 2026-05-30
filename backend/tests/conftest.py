@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Pytest fixtures for the RelyLoop backend test suite.
 
 Most fixtures land with the stories that need them:

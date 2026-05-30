@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Startup cluster-health cache warmup (bug_demo_clusters_unreachable_in_healthz).
 
 Fire-and-forget background task spawned from the FastAPI lifespan hook

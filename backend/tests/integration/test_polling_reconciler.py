@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Integration tests for ``backend.workers.pr_reconcile.reconcile_pr_state``.
 
 Mocks GitHub via :class:`httpx.MockTransport` (the codebase's established

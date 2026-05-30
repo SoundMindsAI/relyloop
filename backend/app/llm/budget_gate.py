@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Redis-backed daily OpenAI budget counter (Story 1.7).
 
 Two operations:

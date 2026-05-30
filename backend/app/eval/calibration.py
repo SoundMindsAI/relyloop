@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Cohen's kappa + linear-weighted kappa for judgment calibration (Story 1.5).
 
 Pure-Python implementation (no NumPy dep — the formulas are short enough that

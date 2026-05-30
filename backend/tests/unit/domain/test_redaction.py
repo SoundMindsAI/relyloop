@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for backend.app.domain.git.redaction (Story 1.4 / FR-5).
 
 Token-format coverage matrix from cycle-3 F2:

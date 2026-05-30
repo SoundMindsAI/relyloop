@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the OpenAI judge client (feat_llm_judgments Story 1.4).
 
 The judge client is mocked at the ``client.chat.completions.create`` boundary

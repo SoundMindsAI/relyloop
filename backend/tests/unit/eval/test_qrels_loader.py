@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for :mod:`backend.app.eval.qrels_loader` (feat_llm_judgments
 Story 1.6).
 

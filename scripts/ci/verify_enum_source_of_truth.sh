@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # feat_studies_ui Story 4.2 — source-of-truth comment grep gate (AC-6 + AC-9).
 #
 # Scans `ui/src/lib/enums.ts` for `// Values must match <path.py> <Symbol>`

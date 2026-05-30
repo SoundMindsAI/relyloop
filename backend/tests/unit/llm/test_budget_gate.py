@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Unit tests for the Redis-backed daily budget gate (Story 1.7).
 
 Mock-Redis tests via :class:`unittest.mock.AsyncMock`. No live Redis dep —

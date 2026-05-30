@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """Spec §7.5 error code envelope contract (Story 5.1 / spec §14).
 
 Asserts every error code in spec §7.5 is reachable through ``/api/v1/clusters``
