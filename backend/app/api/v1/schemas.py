@@ -36,16 +36,20 @@ from backend.app.domain.study.followups import FollowupItem as FollowupItem
 # above keeps it importable via ``from backend.app.api.v1.schemas import
 # ConfidenceShape`` under mypy strict's ``no_implicit_reexport``.
 
-EngineType = Literal["elasticsearch", "opensearch"]
+EngineType = Literal["elasticsearch", "opensearch", "solr"]
 """Response-only: values are guaranteed by service-layer validation before the
-DB write, so the response model is safe to lock down with ``Literal``."""
+DB write, so the response model is safe to lock down with ``Literal``.
+``solr`` added by ``infra_adapter_solr`` (Story A6/A11)."""
 
 Environment = Literal["prod", "staging", "dev"]
 """Both request- and response-side: spec §8.5 has no ENVIRONMENT_NOT_SUPPORTED
 domain code, so invalid values surface as 422 VALIDATION_ERROR via Pydantic."""
 
-AuthKind = Literal["es_apikey", "es_basic", "opensearch_basic", "opensearch_sigv4"]
-"""Response-only — see EngineType note."""
+AuthKind = Literal[
+    "es_apikey", "es_basic", "opensearch_basic", "opensearch_sigv4", "solr_basic", "solr_apikey"
+]
+"""Response-only — see EngineType note. ``solr_basic`` / ``solr_apikey`` added
+by ``infra_adapter_solr``."""
 
 HealthStatusValue = Literal["green", "yellow", "red", "unreachable"]
 
@@ -247,8 +251,8 @@ class DocumentListResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-# Values must match backend/app/adapters/elastic.py SUPPORTED_ENGINE_TYPES.
-EngineTypeWire = Literal["elasticsearch", "opensearch"]
+# Values must match backend/app/adapters/registry.py SUPPORTED_ENGINE_TYPES.
+EngineTypeWire = Literal["elasticsearch", "opensearch", "solr"]
 
 # Values must match backend/app/db/models/study.py CHECK constraint AND
 # backend/app/db/repo/study.py StudyStatusFilter Literal.

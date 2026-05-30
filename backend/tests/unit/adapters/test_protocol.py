@@ -232,11 +232,21 @@ class TestQueryTemplate:
         )
         assert qt.engine_type == "elasticsearch"
 
+    def test_solr_engine_type_now_valid(self) -> None:
+        # ``solr`` joined the EngineType Literal in infra_adapter_solr (Story A6).
+        qt = QueryTemplate(
+            name="x",
+            engine_type="solr",
+            body="{}",
+            declared_params={},
+        )
+        assert qt.engine_type == "solr"
+
     def test_invalid_engine_type(self) -> None:
         with pytest.raises(ValidationError):
             QueryTemplate(
                 name="x",
-                engine_type="solr",
+                engine_type="fusion",  # not a supported engine
                 body="{}",
                 declared_params={},
             )

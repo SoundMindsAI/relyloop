@@ -28,8 +28,9 @@ from typing import Any, Literal, Protocol, runtime_checkable
 
 from pydantic import BaseModel, Field
 
-EngineType = Literal["elasticsearch", "opensearch"]
-"""Wire values for cluster registration. Source-of-truth — DB CHECK in 0002 migration."""
+EngineType = Literal["elasticsearch", "opensearch", "solr"]
+"""Wire values for cluster registration. Source-of-truth — DB CHECK in 0002 + 0022 migrations.
+``solr`` added by ``infra_adapter_solr`` (Story A6)."""
 
 ParamValue = bool | int | float | str | list[str]
 """Allowed Jinja-template parameter value types."""

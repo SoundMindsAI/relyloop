@@ -2,16 +2,19 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""``0002_clusters_config_repos`` migration test (infra_adapter_elastic Story 1.3).
+"""``0002_clusters_config_repos`` + ``0022_solr_engine_auth_check`` migration tests.
 
 Asserts:
 
 - After ``alembic upgrade head`` the ``clusters`` and ``config_repos`` tables
   exist.
-- ``alembic downgrade -1`` removes both tables cleanly.
-- The ``clusters_auth_kind_check`` CHECK constraint accepts the four
-  documented values and rejects an out-of-allowlist value (e.g.
-  ``solr_basic``) per spec §7.4 + the wire-value source of truth.
+- ``alembic downgrade`` removes both tables cleanly.
+- The ``clusters_auth_kind_check`` CHECK constraint accepts the six documented
+  values (incl. ``solr_basic`` / ``solr_apikey`` after migration 0022) and
+  rejects an out-of-allowlist value per spec §7.4.
+- Migration 0022 round-trips (0021↔0022) and its ``downgrade()`` aborts with a
+  clear error when a Solr-typed row still exists (infra_adapter_solr Story A6 /
+  AC-9).
 
 Marked ``@pytest.mark.integration`` and skipped automatically when Postgres
 is not host-reachable from the test process; see
@@ -135,12 +138,16 @@ class TestClustersMigration:
             engine.dispose()
 
     def test_auth_kind_check_constraint(self, restore_head: None) -> None:
-        """CHECK rejects 'solr_basic' but accepts the four documented values."""
+        """CHECK rejects an unknown value but accepts the six documented values.
+
+        After migration 0022, ``solr_basic`` / ``solr_apikey`` are in-allowlist;
+        the rejection case uses a genuinely-unknown value.
+        """
         _alembic("upgrade", "head")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.begin() as conn:
-                # Reject the out-of-allowlist value first (verifies CHECK fires).
+                # Reject a genuinely out-of-allowlist value (verifies CHECK fires).
                 with pytest.raises(IntegrityError):
                     conn.execute(
                         text(
@@ -148,26 +155,75 @@ class TestClustersMigration:
                             "(id, name, engine_type, environment, base_url, auth_kind, "
                             " credentials_ref) "
                             "VALUES ('id-bad', 'bad', 'elasticsearch', 'dev', "
-                            "'http://x', 'solr_basic', 'ref')"
+                            "'http://x', 'fusion_basic', 'ref')"
                         )
                     )
             # Each accepted value gets its own row + transaction (the failed insert
-            # above poisoned the previous one).
-            for i, kind in enumerate(
-                ["es_apikey", "es_basic", "opensearch_basic", "opensearch_sigv4"]
-            ):
+            # above poisoned the previous one). engine_type matches the auth family
+            # so the row is realistic (no DB-level cross-product CHECK — that's
+            # service-layer), but the auth_kind CHECK is what's under test here.
+            accepted = [
+                ("elasticsearch", "es_apikey"),
+                ("elasticsearch", "es_basic"),
+                ("opensearch", "opensearch_basic"),
+                ("opensearch", "opensearch_sigv4"),
+                ("solr", "solr_basic"),
+                ("solr", "solr_apikey"),
+            ]
+            for i, (engine_type, kind) in enumerate(accepted):
                 with engine.begin() as conn:
                     conn.execute(
                         text(
                             "INSERT INTO clusters "
                             "(id, name, engine_type, environment, base_url, auth_kind, "
                             " credentials_ref) "
-                            "VALUES (:id, :name, 'elasticsearch', 'dev', "
+                            "VALUES (:id, :name, :engine, 'dev', "
                             "'http://x', :auth, 'ref')"
                         ),
-                        {"id": f"id-{i}", "name": f"ok-{i}", "auth": kind},
+                        {
+                            "id": f"id-{i}",
+                            "name": f"ok-{i}",
+                            "engine": engine_type,
+                            "auth": kind,
+                        },
                     )
             with engine.begin() as conn:
                 conn.execute(text("DELETE FROM clusters WHERE id LIKE 'id-%'"))
+        finally:
+            engine.dispose()
+
+    def test_0022_roundtrips_and_downgrade_aborts_on_solr_row(self, restore_head: None) -> None:
+        """0022 round-trips (0021↔0022); downgrade aborts when a Solr row exists.
+
+        infra_adapter_solr Story A6 / AC-9. The downgrade guard prevents
+        restoring the narrower CHECK while a Solr-typed row would violate it.
+        """
+        _alembic("upgrade", "head")
+        engine = create_engine(_sync_database_url(), future=True)
+        try:
+            # Clean round-trip with NO solr rows present.
+            _alembic("downgrade", "0021")
+            _alembic("upgrade", "head")
+
+            # Insert a Solr-typed row, then assert downgrade -1 aborts.
+            with engine.begin() as conn:
+                conn.execute(
+                    text(
+                        "INSERT INTO clusters "
+                        "(id, name, engine_type, environment, base_url, auth_kind, "
+                        " credentials_ref) "
+                        "VALUES ('solr-guard', 'guard', 'solr', 'dev', "
+                        "'http://solr:8983', 'solr_basic', 'ref')"
+                    )
+                )
+            with pytest.raises(subprocess.CalledProcessError) as exc:
+                _alembic("downgrade", "0021")
+            # The RuntimeError message surfaces in alembic's stderr.
+            assert "Solr cluster row" in (exc.value.stderr or "")
+
+            # Cleanup: remove the guard row so the restore_head fixture can
+            # upgrade cleanly (we're still at 0022 since the downgrade aborted).
+            with engine.begin() as conn:
+                conn.execute(text("DELETE FROM clusters WHERE id = 'solr-guard'"))
         finally:
             engine.dispose()

@@ -37,13 +37,7 @@ from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.adapters.credentials import CredentialsMissing
-from backend.app.adapters.elastic import (
-    ALLOWED_AUTH_PER_ENGINE,
-    RESERVED_AUTH_KINDS,
-    SUPPORTED_AUTH_KINDS,
-    SUPPORTED_ENGINE_TYPES,
-    ElasticAdapter,
-)
+from backend.app.adapters.elastic import ElasticAdapter
 from backend.app.adapters.errors import (
     ClusterUnreachableError,
     InvalidQueryDSLError,
@@ -51,6 +45,12 @@ from backend.app.adapters.errors import (
 )
 from backend.app.adapters.health_cache import read_cached_health, write_cached_health
 from backend.app.adapters.protocol import HealthStatus, NativeQuery, ScoredHit
+from backend.app.adapters.registry import (
+    ALLOWED_AUTH_PER_ENGINE,
+    RESERVED_AUTH_KINDS,
+    SUPPORTED_AUTH_KINDS,
+    SUPPORTED_ENGINE_TYPES,
+)
 from backend.app.db import repo
 from backend.app.db.models import Cluster
 
