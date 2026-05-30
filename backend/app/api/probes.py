@@ -81,6 +81,24 @@ async def probe_opensearch(
         return "unreachable"
 
 
+async def probe_solr(
+    client: httpx.AsyncClient, base_url: str
+) -> Literal["reachable", "unreachable"]:
+    """GET {base_url}/solr/admin/info/system for Solr (infra_adapter_solr Story A10).
+
+    The bootstrap-security.sh script anonymously allowlists this endpoint so
+    /healthz can probe reachability without credentials (spec FR-3 + FR-12a).
+    Returns 'reachable' on 2xx/3xx/4xx (so an auth-misconfigured cluster still
+    reports as up-but-failing rather than down) — only 5xx and connection
+    failures → 'unreachable'.
+    """
+    try:
+        resp = await client.get(f"{base_url.rstrip('/')}/solr/admin/info/system")
+        return "reachable" if resp.status_code < 500 else "unreachable"
+    except Exception:  # noqa: BLE001
+        return "unreachable"
+
+
 class ClusterAggregateHealth(BaseModel):
     """Aggregate counts for the ``elasticsearch_clusters`` /healthz field (Story 3.5).
 

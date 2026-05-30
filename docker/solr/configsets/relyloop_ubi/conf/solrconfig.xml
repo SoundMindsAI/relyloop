@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 soundminds.ai
+
+SPDX-License-Identifier: Apache-2.0
+
+infra_adapter_solr Story A10: configset for the ubi_queries / ubi_events
+collections. Same shape as relyloop_products but trimmed (no LTR module —
+UBI collections are pure event sinks; not searched against an LTR rescore).
+-->
+<config>
+  <luceneMatchVersion>10.0.0</luceneMatchVersion>
+  <lib dir="${solr.install.dir:../../../..}/modules/ubi/lib" regex=".*\.jar" />
+
+  <dataDir>${solr.data.dir:}</dataDir>
+  <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}" />
+  <codecFactory class="solr.SchemaCodecFactory" />
+
+  <indexConfig>
+    <lockType>${solr.lock.type:native}</lockType>
+  </indexConfig>
+
+  <updateHandler class="solr.DirectUpdateHandler2">
+    <autoCommit>
+      <maxTime>15000</maxTime>
+      <openSearcher>false</openSearcher>
+    </autoCommit>
+  </updateHandler>
+
+  <query>
+    <filterCache size="512" initialSize="512" autowarmCount="0" />
+    <queryResultCache size="512" initialSize="512" autowarmCount="0" />
+  </query>
+
+  <requestDispatcher>
+    <requestParsers enableRemoteStreaming="false" />
+  </requestDispatcher>
+
+  <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="echoParams">explicit</str>
+      <int name="rows">100</int>
+    </lst>
+  </requestHandler>
+
+  <requestHandler name="/get" class="solr.RealTimeGetHandler">
+    <lst name="defaults">
+      <str name="omitHeader">true</str>
+      <str name="wt">json</str>
+    </lst>
+  </requestHandler>
+
+  <searchComponent name="ubi" class="solr.UBIComponent" />
+</config>

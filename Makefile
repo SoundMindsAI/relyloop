@@ -7,7 +7,7 @@
         backend-fmt backend-lint backend-typecheck \
         ui-fmt ui-lint ui-typecheck ui-test ui-build ui-dev \
         pre-commit pre-commit-install \
-        up down restart logs reset migrate migrate-create seed-clusters seed-es \
+        up down restart logs reset migrate migrate-create seed-clusters seed-es seed-solr \
         dev dashboard license-inventory
 
 help:  ## Show this help message
@@ -156,6 +156,13 @@ seed-es:  ## Seed local-es 'products' index from samples/products.json (idempote
 	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
 	}
 	docker compose exec -T api python -m backend.app.scripts.seed_es
+
+seed-solr:  ## Seed local-solr 'products' collection + ubi_queries + ubi_events (idempotent — overwrites by uniqueKey)
+	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \
+	  echo "ERROR: api container is not running. Run 'make up' first."; exit 1; \
+	}
+	docker compose exec -T api python -m backend.app.scripts.seed_solr_products \
+	  --solr-host solr --solr-port 8983
 
 seed-demo:  ## DESTRUCTIVE: TRUNCATE demo state + reseed 4 meaningful scenarios (FORCE=1 to skip prompt)
 	@docker compose ps --status running --services 2>/dev/null | grep -q '^api$$' || { \

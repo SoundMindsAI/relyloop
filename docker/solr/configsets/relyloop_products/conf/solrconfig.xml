@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 soundminds.ai
+
+SPDX-License-Identifier: Apache-2.0
+
+infra_adapter_solr Story A10: configset for the `products` demo collection.
+Enables `solr.UBIComponent` (User Behavior Insights, MVP2 headliner) and the
+LTR query parser + model-store so the capability probe reports both as
+present out of the box.
+-->
+<config>
+  <luceneMatchVersion>10.0.0</luceneMatchVersion>
+
+  <!-- Load required modules. -->
+  <lib dir="${solr.install.dir:../../../..}/modules/ltr/lib" regex=".*\.jar" />
+  <lib dir="${solr.install.dir:../../../..}/modules/ubi/lib" regex=".*\.jar" />
+
+  <dataDir>${solr.data.dir:}</dataDir>
+  <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}" />
+  <codecFactory class="solr.SchemaCodecFactory" />
+
+  <indexConfig>
+    <lockType>${solr.lock.type:native}</lockType>
+  </indexConfig>
+
+  <updateHandler class="solr.DirectUpdateHandler2">
+    <autoCommit>
+      <maxTime>15000</maxTime>
+      <openSearcher>false</openSearcher>
+    </autoCommit>
+    <autoSoftCommit>
+      <maxTime>1000</maxTime>
+    </autoSoftCommit>
+  </updateHandler>
+
+  <query>
+    <maxBooleanClauses>1024</maxBooleanClauses>
+    <filterCache size="512" initialSize="512" autowarmCount="0" />
+    <queryResultCache size="512" initialSize="512" autowarmCount="0" />
+    <documentCache size="512" initialSize="512" autowarmCount="0" />
+    <enableLazyFieldLoading>true</enableLazyFieldLoading>
+    <queryResultWindowSize>20</queryResultWindowSize>
+    <queryResultMaxDocsCached>200</queryResultMaxDocsCached>
+    <useColdSearcher>false</useColdSearcher>
+  </query>
+
+  <requestDispatcher>
+    <requestParsers enableRemoteStreaming="false" />
+    <httpCaching never304="true" />
+  </requestDispatcher>
+
+  <!-- Default /select handler -->
+  <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="defType">edismax</str>
+      <str name="echoParams">explicit</str>
+      <int name="rows">10</int>
+      <str name="qf">title^2.0 description^1.0 bullet_points^0.5</str>
+    </lst>
+  </requestHandler>
+
+  <!-- RealTime Get handler (used by SolrAdapter.get_document, Story A8). -->
+  <requestHandler name="/get" class="solr.RealTimeGetHandler">
+    <lst name="defaults">
+      <str name="omitHeader">true</str>
+      <str name="wt">json</str>
+    </lst>
+  </requestHandler>
+
+  <!-- LTR query parser (Story A7). -->
+  <queryParser name="ltr" class="org.apache.solr.ltr.search.LTRQParserPlugin" />
+
+  <!-- LTR feature + model stores (per-collection). -->
+  <transformer name="features" class="org.apache.solr.ltr.response.transform.LTRFeatureLoggerTransformerFactory">
+    <str name="fvCacheName">QUERY_DOC_FV</str>
+  </transformer>
+  <cache name="QUERY_DOC_FV"
+         class="solr.search.CaffeineCache"
+         size="4096"
+         initialSize="2048"
+         autowarmCount="4096"
+         regenerator="solr.search.NoOpRegenerator" />
+
+  <!-- UBI search component (capability probe FR-2 signal). -->
+  <searchComponent name="ubi" class="solr.UBIComponent" />
+
+  <!-- Wire the UBI component into /select. -->
+  <requestHandler name="/select-with-ubi" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="defType">edismax</str>
+      <str name="echoParams">explicit</str>
+      <int name="rows">10</int>
+    </lst>
+    <arr name="last-components">
+      <str>ubi</str>
+    </arr>
+  </requestHandler>
+</config>

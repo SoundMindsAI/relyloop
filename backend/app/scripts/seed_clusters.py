@@ -56,6 +56,23 @@ LOCAL_OS = dict(
     notes="Local OpenSearch container from infra_foundation Compose stack.",
 )
 
+# infra_adapter_solr Story A10: register the local Apache Solr container too.
+# Requires the bootstrap-security.sh script to have generated the admin
+# credentials AND the seed_solr_products.py script to have created the
+# `products` collection. When the credentials_ref isn't present in
+# cluster_credentials.yaml the registration fails — captured as a single
+# best-effort entry.
+LOCAL_SOLR = dict(
+    name="local-solr",
+    engine_type="solr",
+    environment="dev",
+    base_url="http://solr:8983",
+    auth_kind="solr_basic",
+    credentials_ref="local-solr",
+    engine_config=None,
+    notes="Local Apache Solr container from infra_adapter_solr Compose stack.",
+)
+
 
 async def main() -> int:
     """Register both local clusters; return process exit code."""
@@ -65,7 +82,7 @@ async def main() -> int:
     failures = 0
     try:
         async with factory() as db:
-            for spec in (LOCAL_ES, LOCAL_OS):
+            for spec in (LOCAL_ES, LOCAL_OS, LOCAL_SOLR):
                 name = spec["name"]
                 try:
                     await register_cluster(db, redis, **spec)  # type: ignore[arg-type]

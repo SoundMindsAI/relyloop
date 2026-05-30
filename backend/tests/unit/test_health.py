@@ -248,6 +248,7 @@ class TestResponseShape:
             "openai",
             "elasticsearch",
             "opensearch",
+            "solr",
             "elasticsearch_clusters",
         }
         # Aggregate field is informational; registered=0 when no clusters seeded.

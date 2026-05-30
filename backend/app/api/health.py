@@ -128,6 +128,14 @@ class Subsystems(BaseModel):
     opensearch: Literal["reachable", "unreachable"] = Field(
         description="Local OpenSearch container reachability"
     )
+    solr: Literal["reachable", "unreachable", "not_configured"] = Field(
+        default="not_configured",
+        description=(
+            "Local Apache Solr container reachability. 'not_configured' when "
+            "SOLR_HOST is unset (operator opted out of running the Solr "
+            "service). Added by infra_adapter_solr Story A10 / spec FR-12a."
+        ),
+    )
     elasticsearch_clusters: probes.ClusterAggregateHealth = Field(
         description=(
             "Aggregate health of user-registered clusters (infra_adapter_elastic "
@@ -164,6 +172,10 @@ def overall_status(s: Subsystems) -> Literal["ok", "degraded"]:
         or s.redis == "down"
         or s.elasticsearch == "unreachable"
         or s.opensearch == "unreachable"
+        # Solr is conditionally required: when configured AND unreachable it
+        # triggers degraded; "not_configured" is a non-blocking opt-out so
+        # operators can run the stack without Solr.
+        or s.solr == "unreachable"
     )
     return "degraded" if blocking_down else "ok"
 
@@ -256,11 +268,16 @@ async def healthz(
     engine = get_engine()
     es_base_url = "http://elasticsearch:9200"
     os_base_url = "http://opensearch:9200"
+    # Solr is optional — opt-in via SOLR_HOST. When unset the probe is
+    # skipped entirely and subsystems.solr reports "not_configured".
+    solr_base_url = (
+        f"http://{settings.solr_host}:{settings.solr_port}" if settings.solr_host else None
+    )
 
-    # Run all four async probes concurrently with per-probe 200ms timeouts.
+    # Run all async probes concurrently with per-probe 200ms timeouts.
     # asyncio.wait_for raises TimeoutError on timeout; gather(return_exceptions=True)
     # collects the exception so a single hung probe doesn't fail the others.
-    results = await asyncio.gather(
+    probe_coros = [
         asyncio.wait_for(probes.probe_db(engine), timeout=PROBE_TIMEOUT_SECONDS),
         asyncio.wait_for(probes.probe_redis(redis_client), timeout=PROBE_TIMEOUT_SECONDS),
         asyncio.wait_for(
@@ -275,18 +292,32 @@ async def healthz(
             probes.probe_registered_clusters(db, redis_client),
             timeout=PROBE_TIMEOUT_SECONDS,
         ),
-        return_exceptions=True,
-    )
+    ]
+    if solr_base_url is not None:
+        probe_coros.append(
+            asyncio.wait_for(
+                probes.probe_solr(es_client, solr_base_url),
+                timeout=PROBE_TIMEOUT_SECONDS,
+            )
+        )
+    results = await asyncio.gather(*probe_coros, return_exceptions=True)
     db_status = _safe_status(results[0], fallback="down")
     redis_status = _safe_status(results[1], fallback="down")
     es_status = _safe_status(results[2], fallback="unreachable")
     os_status = _safe_status(results[3], fallback="unreachable")
     clusters_aggregate: probes.ClusterAggregateHealth
-    if isinstance(results[4], BaseException):
+    raw_clusters = results[4]
+    if isinstance(raw_clusters, BaseException) or not isinstance(
+        raw_clusters, probes.ClusterAggregateHealth
+    ):
         # Probe timeout / DB/Redis hiccup: surface zeros (informational field).
         clusters_aggregate = probes.ClusterAggregateHealth(registered=0, healthy=0, unreachable=0)
     else:
-        clusters_aggregate = results[4]
+        clusters_aggregate = raw_clusters
+    if solr_base_url is None:
+        solr_status: str = "not_configured"
+    else:
+        solr_status = _safe_status(results[5], fallback="unreachable")
 
     # OpenAI state is computed from cached capability data + key presence.
     cap = await _read_capability_cache(redis_client, settings.openai_base_url)
@@ -299,6 +330,7 @@ async def healthz(
             "openai": openai_state,
             "elasticsearch": es_status,
             "opensearch": os_status,
+            "solr": solr_status,
             "elasticsearch_clusters": clusters_aggregate.model_dump(),
         }
     )

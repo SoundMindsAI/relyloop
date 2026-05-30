@@ -238,6 +238,40 @@ services:
       timeout: 5s
       retries: 6
 
+  # Apache Solr (MVP2 / infra_adapter_solr Story A10).
+  # Bootstrap-security.sh reads SOLR_ADMIN_USERNAME_FILE +
+  # SOLR_ADMIN_PASSWORD_FILE at startup and enables BasicAuthPlugin via
+  # `bin/solr auth enable-basic-auth` BEFORE handing off to the standard
+  # solr-foreground entrypoint. /admin/info/system is the only anonymous-
+  # allowlisted endpoint (per spec FR-3 + FR-11) so /healthz can probe
+  # reachability without credentials.
+  solr:
+    image: solr:10.0
+    environment:
+      SOLR_ADMIN_USERNAME_FILE: /run/secrets/solr_admin_username
+      SOLR_ADMIN_PASSWORD_FILE: /run/secrets/solr_admin_password
+      SOLR_HEAP: ${SOLR_HEAP_SIZE:-512m}
+    volumes:
+      - ./data/solr:/var/solr
+      # Bootstrap script + configsets mounted read-only at /etc/solr-bootstrap.
+      # The entrypoint sources the script as PID 1; configsets are copied
+      # into Solr's solr.solr.home on first boot when the matching collection
+      # is created.
+      - ./docker/solr:/etc/solr-bootstrap:ro
+    entrypoint: ["/etc/solr-bootstrap/bootstrap-security.sh"]
+    ports:
+      - "127.0.0.1:8983:8983"
+    secrets:
+      - solr_admin_username
+      - solr_admin_password
+    healthcheck:
+      # /admin/info/system is the anonymous-allowlisted endpoint per FR-3.
+      test: ["CMD-SHELL", "curl -fs http://localhost:8983/solr/admin/info/system || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
 secrets:
   postgres_password:
     file: ./secrets/postgres_password
@@ -247,3 +281,7 @@ secrets:
     file: ./secrets/openai_key
   cluster_credentials:
     file: ./secrets/cluster_credentials.yaml
+  solr_admin_username:
+    file: ./secrets/solr_admin_username
+  solr_admin_password:
+    file: ./secrets/solr_admin_password

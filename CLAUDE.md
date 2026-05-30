@@ -177,13 +177,14 @@ make migrate-create name=<slug>   # alembic revision --autogenerate -m "<slug>"
 .venv/bin/pre-commit run --all-files
 ```
 
-**Ports (MVP1):**
+**Ports:**
 - API: `127.0.0.1:8000`
 - UI: `127.0.0.1:3000` (Compose service `ui`, rebuilt by `make up`; for hot-reload during frontend work, stop the service with `docker compose stop ui` and run `cd ui && pnpm dev` instead)
 - Postgres: internal only (`postgres:5432` on the Compose network; not bound to host)
 - Redis: internal only (`redis:6379`)
 - Elasticsearch: `127.0.0.1:9200`
 - OpenSearch: `127.0.0.1:9201`
+- Apache Solr: `127.0.0.1:8983` (MVP2 — opt-in via `SOLR_HOST=solr` in `.env`; bootstrap-security.sh enables BasicAuthPlugin on first boot, `/admin/info/system` anonymously allowlisted)
 
 **DB bootstrap for fresh DB:** `make migrate` (creates `alembic_version` table at the head revision; subsequent feature migrations add their tables).
 
