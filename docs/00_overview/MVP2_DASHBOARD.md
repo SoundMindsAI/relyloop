@@ -6,14 +6,14 @@ _Reflects feature-folder state as of **2026-05-30** (latest mtime of any planned
 
 ## Next up
 
-**[infra_adapter_solr](planned_features/02_mvp2/infra_adapter_solr/feature_spec.md)** — Infra, currently in **Spec**
+**[infra_adapter_solr](planned_features/02_mvp2/infra_adapter_solr/feature_spec.md)** — Infra, currently in **Plan**
 
 > A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.
 
-Spec exists; run /pipeline to generate the implementation plan + ship
+Plan approved; run /impl-execute to ship
 
 ```bash
-/pipeline docs/00_overview/planned_features/02_mvp2/infra_adapter_solr --auto
+/impl-execute docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/implementation_plan.md --all
 ```
 
 ## MVP2 Progress
@@ -44,15 +44,15 @@ Spec exists; run /pipeline to generate the implementation plan + ship
 
 _None._
 
-### Plan (0)
-
-_None._
-
-### Spec (1)
+### Plan (1)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P1 | [infra_adapter_solr](planned_features/02_mvp2/infra_adapter_solr/feature_spec.md) | Infra | A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time. | `feat_ubi_judgments` | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) merged 2026-05-15 |
+
+### Spec (0)
+
+_None._
 
 ### Idea (16)
 
@@ -89,7 +89,7 @@ graph LR
   feat_demo_ubi_study_comparison["demo ubi study comparison"]
   class feat_demo_ubi_study_comparison done;
   infra_adapter_solr["adapter solr"]
-  class infra_adapter_solr spec;
+  class infra_adapter_solr plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
 ```

@@ -383,11 +383,11 @@ footer {
 
 <section>
   <div class="next-up">
-    <div class="eyebrow">Next up — Infra, currently in <strong>Spec</strong></div>
+    <div class="eyebrow">Next up — Infra, currently in <strong>Plan</strong></div>
     <div class="title"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
     <div class="one-liner">A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.</div>
-    <div class="stage-hint">Spec exists; run /pipeline to generate the implementation plan + ship</div>
-    <code class="cmd">/pipeline docs/00_overview/planned_features/02_mvp2/infra_adapter_solr --auto</code>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -675,7 +675,12 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">1</span></h3>
+  <h3>Spec <span class="count">0</span></h3>
+
+</div>
+
+<div class="col plan">
+  <h3>Plan <span class="count">1</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P1">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
@@ -688,11 +693,6 @@ footer {
 
   <div class="deps">depends on: <span class="dep-chip">feat_ubi_judgments</span></div>
 </div>
-
-</div>
-
-<div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
 
 </div>
 
@@ -745,7 +745,7 @@ footer {
   feat_demo_ubi_study_comparison[&quot;demo ubi study comparison&quot;]
   class feat_demo_ubi_study_comparison done;
   infra_adapter_solr[&quot;adapter solr&quot;]
-  class infra_adapter_solr spec;
+  class infra_adapter_solr plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;</div>
     <noscript><pre>graph LR
@@ -757,7 +757,7 @@ footer {
   feat_demo_ubi_study_comparison[&quot;demo ubi study comparison&quot;]
   class feat_demo_ubi_study_comparison done;
   infra_adapter_solr[&quot;adapter solr&quot;]
-  class infra_adapter_solr spec;
+  class infra_adapter_solr plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;</pre></noscript>
   </div>

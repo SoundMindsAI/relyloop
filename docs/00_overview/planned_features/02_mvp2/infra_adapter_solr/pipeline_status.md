@@ -22,20 +22,27 @@
 - New Compose service: 1 (`solr:10.0` on `127.0.0.1:8983`).
 
 ## Plan
-- Status: Not started
+- Status: Approved (Ready for Execution)
+- Date: 2026-05-30
+- File: [`implementation_plan.md`](implementation_plan.md)
+- Cross-model review: GPT-5.5 ran 3 cycles (max per CLAUDE.md). Total findings: 25 (12 High overall). 24 accepted + patched. 1 rejected with cited counter-evidence (cycle-2 C2-A4 — `ALLOWED_AUTH_PER_ENGINE["opensearch"]` excluding `opensearch_sigv4` matches existing elastic.py:79-93 reserved-kind pattern).
+  - Cycle 1: 11 findings (5 High, 6 Medium). All 11 accepted + patched. Major: /reprobe error code → CREDENTIALS_INVALID; list_documents first page uses cursorMark=*; solr_host defaults to None; LTR_MODEL_NOT_FOUND covers run_query path too; search_batch uses uniqueKey not hardcoded "id".
+  - Cycle 2: 9 findings (1 High + 8 lower). 8 accepted + patched. Major: health_check + list_query_parsers FULLY implemented in A1 (were stubbed); probe endpoints concretized; BasicAuth added to seed + smoke; security.json.template removed; /reprobe language "serialize safely" not "coalesce"; bare re-export (no DeprecationWarning).
+  - Cycle 3: 5 findings (1 High + 4 lower). All 5 accepted + patched in-cycle (no cycle 4 per max-3 rule). Major: A10 adds checked-in Solr configset (`docker/solr/configsets/relyloop_products` + `relyloop_ubi`) so `make up` brings up Solr with `solr.UBIComponent` + LTR module pre-enabled — closes AC-1/AC-6/AC-7 capability gap.
+- Stories: 12 total in single epic (A1–A12). Per `mvp2-overview.md` Workstream A skeleton (A1–A10) plus 2 added by spec-level FRs (A8 document-browser; A9 /reprobe endpoint).
+- Phases covered: 1 of 1 (single-phase delivery per spec §3).
+- Test layers planned: unit (10 files), integration (13 files), contract (5 file extensions), E2E (1 new spec).
 
 ## Implementation
 - Status: Not started
 
 ## Notes for downstream skills
 
-- **`/impl-plan-gen` inputs to highlight:**
-  - The 5 cycle-3 cleanup patches resolved real consistency issues (cursorMark terminal-condition rule, bootstrap-security.sh flow, uniqueKey-at-probe-time, `unique_key_per_target` required in `engine_config` examples, `/healthz` presence rule). The plan must produce stories that implement these exact contracts.
-  - Two arch-doc drift patches must land in this feature's Verification Ledger (NOT a separate PR): `mvp2-overview.md` Story A2 + A3 (`templates/solr/` → `samples/templates/solr/`) and A3 (`HTTPX_POOL_LIMITS` claim → "inline AsyncClient defaults"). Idea-preflight flagged both; this feature owns the patches.
-  - Mandatory allowlist relocation: move `SUPPORTED_AUTH_KINDS` + `ALLOWED_AUTH_PER_ENGINE` from `backend/app/adapters/elastic.py` to a new `backend/app/adapters/registry.py` module before adding Solr entries. ES adapter re-exports for one release as deprecated aliases.
-  - SolrCloud test coverage is intentionally cassette + mocked HTTP only (NOT live Compose) — see §19 decision log. Plan should explicitly NOT add a SolrCloud Compose profile.
 - **`/impl-execute` should expect:**
-  - ~10 stories mapping to `mvp2-overview.md` Workstream A1–A10.
+  - 12 stories (A1–A12). A6 (registry relocation) ships first as the foundation; A1 (adapter skeleton + probe + health_check + list_query_parsers) ships next; A2–A8 fill in the per-method adapter implementations on top.
   - Single-phase delivery; no `phase2_idea.md` to create at finalization.
-  - All four test layers (unit / integration / contract / E2E) required per FR-12 + §14.
-  - E2E spec `ui/tests/e2e/solr-study-end-to-end.spec.ts` runs the full Karpathy loop against a live Compose Solr (real-backend, no `page.route()` mocking per CLAUDE.md).
+  - All four test layers required per §3 / §14.
+  - E2E spec `ui/tests/e2e/solr-study-end-to-end.spec.ts` runs the full Karpathy loop against the live Compose Solr (real-backend, no `page.route()` mocking per CLAUDE.md E2E Testing Rules).
+  - **Verification Ledger items** (NOT separate PRs): three arch-doc patches land with the feature — `mvp2-overview.md` Story A2 + Story A3 row (`templates/solr/` → `samples/templates/solr/`); Story A3 prose (`HTTPX_POOL_LIMITS` → "inline `httpx.AsyncClient` defaults"); plus `adapters.md` §"SolrAdapter (MVP2)" rewrite from forward-reference to past-tense (Story A12 owns).
+  - **Mandatory allowlist relocation** lands in A6 (foundational, before any A1 adapter code that imports from `registry.py`).
+  - **SolrCloud coverage is cassette + mocked HTTP only** — do NOT add a SolrCloud Compose profile; the maintainer re-records cassettes per the runbook procedure.
