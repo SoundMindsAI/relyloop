@@ -52,12 +52,14 @@ from backend.app.adapters.errors import (
     InvalidQueryDSLError,
     QueryTimeoutError,
     TargetNotFoundError,
+    TargetsForbiddenError,
 )
 from backend.app.adapters.protocol import (
     Document,
     DocumentPage,
     EngineType,
     ExplainTree,
+    FieldSpec,
     HealthStatus,
     NativeQuery,
     ParamValue,
@@ -116,6 +118,51 @@ def _join_field_boosts(value: dict[str, Any]) -> str:
             )
         parts.append(f"{field}^{_format_number(boost)}")
     return " ".join(parts)
+
+
+# Lucene query metacharacters that must be escaped when injecting an
+# arbitrary value (like a doc_id) into a Lucene/Solr query string. Source:
+# Solr Ref Guide "Standard Query Parser" + Lucene QueryParser javadoc.
+_LUCENE_META = set('+-&|!(){}[]^"~*?:\\/')
+
+
+def _lucene_escape(value: str) -> str:
+    """Escape Lucene query metacharacters in ``value``.
+
+    URL encoding is a *separate* concern handled by httpx when the params
+    are serialized — Solr decodes the URL, then parses the value as a
+    Lucene expression. Both stages need escaping (URL encoding hides ``/``
+    from the URL parser; Lucene escaping hides ``/`` from the Lucene
+    parser). Without the Lucene escape, a doc_id like ``a/b`` would be
+    interpreted as a regex query.
+    """
+    out: list[str] = []
+    for ch in value:
+        if ch in _LUCENE_META or ch.isspace():
+            out.append("\\" + ch)
+        else:
+            out.append(ch)
+    return "".join(out)
+
+
+def _solr_explain_to_unified(node: dict[str, Any], *, doc_id: str) -> ExplainTree:
+    """Convert one node of Solr's debug.explain tree into a unified ExplainTree.
+
+    Solr keys: ``match`` (bool), ``value`` (float), ``description`` (str),
+    ``details`` (list of nested nodes). The unified shape mirrors the same
+    semantics; ``matched`` is the unified key for ``match``.
+    """
+    children: list[ExplainTree] = []
+    for child in node.get("details") or []:
+        if isinstance(child, dict):
+            children.append(_solr_explain_to_unified(child, doc_id=doc_id))
+    return ExplainTree(
+        doc_id=doc_id,
+        matched=bool(node.get("match", False)),
+        value=float(node.get("value", 0.0)),
+        description=str(node.get("description", "")),
+        details=children,
+    )
 
 
 def _normalize_fl(existing: Any, unique_key: str) -> str:
@@ -827,12 +874,167 @@ class SolrAdapter:
         request_id: str | None = None,
         target_filter: str | None = None,
     ) -> list[TargetInfo]:
-        """Stub — Solr ``list_targets`` lands in Story A4."""
-        raise NotImplementedError("Solr list_targets lands in story A4")
+        """List collections (cloud) or cores (standalone), filtered + system-excluded.
+
+        Mode is read from ``self.engine_config["mode"]`` (populated by the
+        probe at registration). When the mode is missing (engine_config not
+        yet probed), defaults to detecting on the fly — the listing call
+        itself is mode-specific, so a fresh detect is cheap.
+
+        Applies ``target_filter`` glob via ``fnmatch.fnmatchcase`` mirroring
+        ``ElasticAdapter.list_targets`` (system-target exclusion runs FIRST
+        then glob filter so operators cannot re-expose system targets).
+
+        Raises ``TargetsForbiddenError`` on 401/403 (Solr ``BasicAuthPlugin``
+        denial); ``ClusterUnreachableError`` on 5xx / connection.
+        """
+        import fnmatch
+
+        mode = self.engine_config.get("mode")
+        if mode not in ("cloud", "standalone"):
+            mode = await self._detect_mode(request_id=request_id)
+
+        # Fetch raw targets + their doc-count (cores carry it directly; cloud
+        # requires a per-collection /select?q=*:*&rows=0 to derive numFound).
+        if mode == "cloud":
+            raw_targets = await self._list_targets_cloud(request_id=request_id)
+        else:
+            raw_targets = await self._list_targets_standalone(request_id=request_id)
+
+        # System-target exclusion runs FIRST.
+        visible = [t for t in raw_targets if self._is_visible_target(t.name)]
+        # Glob filter runs SECOND. Match the ElasticAdapter pattern exactly.
+        if target_filter is not None:
+            visible = [t for t in visible if fnmatch.fnmatchcase(t.name, target_filter)]
+        return visible
+
+    async def _list_targets_cloud(self, *, request_id: str | None) -> list[TargetInfo]:
+        """SolrCloud target listing.
+
+        ``/admin/collections?action=LIST`` returns collection names only;
+        doc counts require per-collection ``/select?q=*:*&rows=0``.
+        """
+        try:
+            resp = await self._request(
+                "GET",
+                "/solr/admin/collections",
+                params={"action": "LIST"},
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code in (401, 403):
+            raise TargetsForbiddenError(
+                f"cluster denied listing call (HTTP {resp.status_code} from /admin/collections)"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /admin/collections")
+        body = resp.json()
+        names = [str(c) for c in (body.get("collections") or [])]
+
+        # Doc counts via parallel /select?q=*:*&rows=0 — best effort; failures
+        # surface as None (not raised) so a partial listing remains useful.
+        async def _count(name: str) -> int | None:
+            try:
+                count_resp = await self._request(
+                    "GET",
+                    f"/solr/{name}/select",
+                    params={"q": "*:*", "rows": "0"},
+                    request_id=request_id,
+                    translate_errors=False,
+                )
+            except httpx.HTTPError:
+                return None
+            if count_resp.status_code != 200:
+                return None
+            data = count_resp.json()
+            return (data.get("response") or {}).get("numFound")
+
+        counts = await asyncio.gather(*(_count(n) for n in names))
+        return [TargetInfo(name=n, doc_count=c) for n, c in zip(names, counts, strict=True)]
+
+    async def _list_targets_standalone(self, *, request_id: str | None) -> list[TargetInfo]:
+        """Standalone Solr target listing.
+
+        ``/admin/cores?action=STATUS`` includes ``index.numDocs`` per core.
+        """
+        try:
+            resp = await self._request(
+                "GET",
+                "/solr/admin/cores",
+                params={"action": "STATUS"},
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code in (401, 403):
+            raise TargetsForbiddenError(
+                f"cluster denied listing call (HTTP {resp.status_code} from /admin/cores)"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /admin/cores")
+        body = resp.json()
+        status_block = body.get("status") or {}
+        out: list[TargetInfo] = []
+        for name, defn in status_block.items():
+            doc_count: int | None = None
+            if isinstance(defn, dict):
+                idx = defn.get("index") or {}
+                num = idx.get("numDocs")
+                if isinstance(num, int):
+                    doc_count = num
+            out.append(TargetInfo(name=str(name), doc_count=doc_count))
+        return out
 
     async def get_schema(self, target: str, *, request_id: str | None = None) -> Schema:
-        """Stub — Solr ``get_schema`` lands in Story A4."""
-        raise NotImplementedError("Solr get_schema lands in story A4")
+        """Build a ``Schema`` from Solr's Schema API.
+
+        Issues two parallel calls: ``/<target>/schema/fields`` (the field
+        definitions) and ``/<target>/select?q=*:*&rows=0`` (the per-target
+        document count which the Schema doesn't carry). The doc-count call
+        is best-effort — its failure logs a degraded count but the schema
+        still resolves.
+
+        404 on ``/schema/fields`` → ``TargetNotFoundError`` (the target
+        collection or core does not exist). 401/403 / 5xx → ``ClusterUnreachableError``.
+        """
+        try:
+            fields_resp = await self._request(
+                "GET",
+                f"/solr/{target}/schema/fields",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if fields_resp.status_code == 404:
+            raise TargetNotFoundError(target)
+        if fields_resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {fields_resp.status_code}) on /{target}/schema/fields"
+            )
+        if fields_resp.status_code >= 400:
+            raise ClusterUnreachableError(
+                f"HTTP {fields_resp.status_code} from /{target}/schema/fields"
+            )
+        body = fields_resp.json()
+        raw_fields: list[dict[str, Any]] = body.get("fields") or []
+        fields = [
+            FieldSpec(
+                name=str(f.get("name")),
+                type=str(f.get("type", "text")),
+                # Solr fields don't carry a per-field analyzer in the
+                # /schema/fields response (analyzers are on the fieldType,
+                # not the field). Leave None — the cross-engine API surface
+                # treats analyzer as advisory.
+                analyzer=None,
+            )
+            for f in raw_fields
+            if isinstance(f, dict) and f.get("name")
+        ]
+        return Schema(name=target, fields=fields)
 
     def render(
         self,
@@ -1181,8 +1383,70 @@ class SolrAdapter:
         *,
         request_id: str | None = None,
     ) -> ExplainTree:
-        """Stub — Solr ``explain`` lands in Story A5."""
-        raise NotImplementedError("Solr explain lands in story A5")
+        r"""Return Solr's scoring explanation for a (target, query, doc_id) triple.
+
+        Solr's explain is exposed via ``debugQuery=true&debug=results`` on
+        ``/<target>/select``. We pin the response to the single doc via
+        ``fq=<uniqueKey>:<lucene-escaped doc_id>&rows=1``.
+
+        Doc IDs containing Lucene metacharacters are escaped first
+        (``+ - && || ! ( ) { } [ ] ^ " ~ * ? : \ / `` plus whitespace),
+        then URL-encoded via httpx's request-param machinery.
+
+        Raises:
+            TargetNotFoundError: when /<target>/select returns 404.
+            ClusterUnreachableError: 5xx / 401 / 403 / connection.
+        """
+        unique_key = await self._resolve_unique_key(target, request_id=request_id)
+        params: dict[str, Any] = dict(query.body)
+        params["debugQuery"] = "true"
+        params["debug"] = "results"
+        # ``fq`` may already be present from the query body; we append rather
+        # than overwriting. Solr supports repeated fq via list values.
+        fq_pin = f"{unique_key}:{_lucene_escape(doc_id)}"
+        existing_fq = params.get("fq")
+        if existing_fq is None:
+            params["fq"] = fq_pin
+        elif isinstance(existing_fq, list):
+            params["fq"] = [*existing_fq, fq_pin]
+        else:
+            params["fq"] = [existing_fq, fq_pin]
+        params["rows"] = "1"
+
+        try:
+            resp = await self._request(
+                "GET",
+                f"/solr/{target}/select",
+                params=params,
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        if resp.status_code == 404:
+            raise TargetNotFoundError(target)
+        if resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {resp.status_code}) on /{target}/select (explain)"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(
+                f"HTTP {resp.status_code} from /{target}/select (explain)"
+            )
+
+        body = resp.json()
+        debug = body.get("debug") or {}
+        explain_block = debug.get("explain") or {}
+        node = explain_block.get(doc_id)
+        if not isinstance(node, dict):
+            # No matching doc OR doc id missing from explain map → unmatched.
+            return ExplainTree(
+                doc_id=doc_id,
+                matched=False,
+                value=0.0,
+                description="no match",
+            )
+        return _solr_explain_to_unified(node, doc_id=doc_id)
 
     async def get_document(
         self,

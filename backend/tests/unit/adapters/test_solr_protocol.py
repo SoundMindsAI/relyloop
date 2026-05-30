@@ -101,30 +101,23 @@ class TestProtocolShape:
 
 
 class TestStubsRaiseNotImplemented:
-    """A3–A8 fill in the remaining stubs; until then they raise NotImplementedError.
+    """A5/A7/A8 fill in the remaining stubs; until then they raise NotImplementedError.
 
     The Protocol shape passes (isinstance is True) because runtime_checkable
     only checks attribute presence — not call behaviour. These tests assert
     the intentional stub state so a later refactor that accidentally drops a
     NotImplementedError doesn't ship undefined behaviour.
 
-    Story A2 landed ``render`` — its assertion has been removed; Story A3
-    will retire ``test_search_batch_raises``; etc.
+    Retired assertions (now real implementations): ``render`` (A2),
+    ``list_targets`` (A4), ``search_batch`` (A3), ``get_schema`` (A4),
+    ``explain`` (A5).
     """
 
-    async def test_list_targets_raises(self) -> None:
+    async def test_get_document_raises(self) -> None:
         adapter = _build_solr_adapter()
         try:
-            with pytest.raises(NotImplementedError, match="story A4"):
-                await adapter.list_targets()
-        finally:
-            await adapter.aclose()
-
-    async def test_search_batch_raises(self) -> None:
-        adapter = _build_solr_adapter()
-        try:
-            with pytest.raises(NotImplementedError, match="story A3"):
-                await adapter.search_batch(target="t", queries=[], top_k=10)
+            with pytest.raises(NotImplementedError, match="story A8"):
+                await adapter.get_document(target="t", doc_id="d")
         finally:
             await adapter.aclose()
 
