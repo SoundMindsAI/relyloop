@@ -1407,7 +1407,7 @@ A single agent will execute sequentially; the dependency graph above is for huma
 ### Current sprint
 
 - [x] A6 — registry.py + migration 0022 + auth extension — **DONE** (commit `157e0b9f`). registry.py created; elastic.py re-export shim; wire Literals + ORM CHECK + credentials extended; migration 0022 round-trip + Solr-row downgrade-abort verified vs real Postgres. 1789 unit + 12 contract green; lint + mypy clean.
-- [ ] A1 — SolrAdapter skeleton + capability probe + Protocol conformance
+- [x] A1 — SolrAdapter skeleton + capability probe + Protocol conformance — **DONE**. `backend/app/adapters/solr.py` lands with full `probe_capabilities()` (version + mode + targets + uniqueKey-per-target + LTR module/models + UBI), `health_check()`, `list_query_parsers()`; stubs for A2–A8 raise `NotImplementedError`. `protocol.py` extends `DocumentPage` with `next_cursor_token`. `services/cluster.py` `build_adapter()` dispatches on `engine_type`; shared `_build_adapter_from_args` factory. 53 new unit tests cover Protocol shape, probe parsing (Solr 10 cloud + Solr 9 standalone fallback + multi-collection uniqueKey + UBI variants), version-floor + auth + health_check + list_query_parsers. 184 adapter+service unit tests pass; lint + typecheck clean.
 - [ ] A2 — render edismax/dismax/lucene + templates
 - [ ] A3 — search_batch parallel /select
 - [ ] A4 — get_schema + list_targets

@@ -1,0 +1,791 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+"""SolrAdapter — Apache Solr 9.x + 10.x adapter (infra_adapter_solr Story A1+).
+
+Single adapter for SolrCloud and standalone Solr — modes are auto-detected via
+capability probe (``probe_capabilities``). The wire surface RelyLoop uses
+(``/admin/info/system``, ``/admin/zookeeper/status``, ``/admin/collections``,
+``/admin/cores``, ``/<target>/schema/...``, ``/<target>/select``,
+``/<target>/get``, ``/<target>/config/...``) is stable across Solr 9 and 10.
+
+Per CLAUDE.md Absolute Rule #4, no engine-specific code lives outside this
+module — services consume the unified ``SearchAdapter`` Protocol from
+``backend.app.adapters.protocol``.
+
+I/O methods are async (``httpx.AsyncClient``); ``render`` /
+``list_query_parsers`` stay synchronous per the Protocol. ``aclose()`` MUST be
+called when the adapter goes out of scope (the service layer wraps registration
+probes in ``try/finally``; ``acquire_adapter`` in ``services/cluster.py`` does
+the same for transient adapters).
+
+Story A1 lands the skeleton:
+
+* ``__init__`` — auth_kind allowlist validation, BasicAuth + Bearer header build.
+* ``_request`` — single-retry on connection-class failures, typed error mapping.
+* ``health_check`` — full implementation; lazy-fetches version + enforces
+  ``SOLR_MIN_VERSION`` floor (9.0).
+* ``list_query_parsers`` — full implementation; returns the static set
+  ``["edismax", "dismax", "lucene"]`` (no HTTP call).
+* ``probe_capabilities`` — full implementation; returns ``ProbeResult``.
+* Other Protocol methods (``list_targets``, ``get_schema``, ``render``,
+  ``search_batch``, ``explain``, ``get_document``, ``list_documents``) raise
+  ``NotImplementedError`` until Stories A2–A8 land. The Protocol-conformance
+  test only checks shape (``isinstance``), not behavior, so the NotImplementedError
+  stubs are intentional during incremental delivery.
+"""
+
+from __future__ import annotations
+
+import base64
+from datetime import UTC, datetime
+from typing import Any, Literal
+
+import httpx
+from pydantic import BaseModel
+
+from backend.app.adapters.credentials import resolve_credentials
+from backend.app.adapters.errors import (
+    ClusterUnreachableError,
+    QueryTimeoutError,
+)
+from backend.app.adapters.protocol import (
+    Document,
+    DocumentPage,
+    EngineType,
+    ExplainTree,
+    HealthStatus,
+    NativeQuery,
+    ParamValue,
+    QueryTemplate,
+    Schema,
+    ScoredHit,
+    TargetInfo,
+)
+from backend.app.adapters.registry import (
+    RESERVED_AUTH_KINDS,
+    SUPPORTED_AUTH_KINDS,
+)
+
+SOLR_MIN_VERSION: tuple[int, int] = (9, 0)
+"""Apache Solr minimum supported version (spec FR-2)."""
+
+SOLR_MODE_VALUES = Literal["cloud", "standalone"]
+"""Solr deployment mode — auto-detected by the capability probe."""
+
+# Targets returned by ``/admin/collections?action=LIST`` or
+# ``/admin/cores?action=STATUS`` that should never surface to operators.
+# Names starting with ``.`` are also excluded (Solr-system convention).
+_SOLR_SYSTEM_TARGETS: frozenset[str] = frozenset({".system", "_default"})
+
+
+class ProbeResult(BaseModel):
+    """Capability probe output.
+
+    Written to ``clusters.engine_config`` by the service layer
+    (``services.cluster.register_cluster`` / ``reprobe_cluster``).
+
+    The adapter itself does NOT persist this — it returns it; the service
+    layer writes it inside the same transaction as the row INSERT/UPDATE so
+    a probe failure rolls the row back atomically (spec FR-2 / Story A9).
+    """
+
+    version: str
+    """Solr engine version (e.g. ``"10.0.0"``)."""
+
+    mode: SOLR_MODE_VALUES
+    """``cloud`` if ``/admin/zookeeper/status`` responded 200, else ``standalone``."""
+
+    ubi_component_present: bool
+    """``solr.UBIComponent`` is registered as a searchComponent on at least
+    one of the enumerated targets."""
+
+    ltr_module_present: bool
+    """The LTR module (``solr.ltr.LTRQParserPlugin``) is loaded and reachable
+    via ``/<target>/config/queryParser``."""
+
+    ltr_models: list[str]
+    """LTR model names listed in ``/<target>/schema/model-store`` for the
+    first enumerated target. Per-collection in Solr (not cluster-wide) — see
+    the runbook for the maintenance implications."""
+
+    unique_key_per_target: dict[str, str]
+    """{target_name: uniqueKey_field_name} — populated from
+    ``/<target>/schema/uniquekey`` for every enumerated target. Solr's
+    ``uniqueKey`` is configurable per collection (typically ``id`` but may be
+    ``sku``/``pk``/etc.); ``search_batch``/``explain``/``get_document`` resolve
+    against this map rather than hardcoding ``"id"``."""
+
+
+class SolrAdapter:
+    """Engine adapter for Apache Solr 9.x + 10.x (cloud + standalone)."""
+
+    engine_type: EngineType
+
+    def __init__(
+        self,
+        *,
+        cluster_id: str,
+        engine_type: EngineType,
+        base_url: str,
+        auth_kind: str,
+        credentials_ref: str,
+        engine_config: dict[str, Any] | None,
+        client: httpx.AsyncClient | None = None,
+    ) -> None:
+        """Construct a Solr adapter; validates the auth_kind allowlist immediately."""
+        if auth_kind in RESERVED_AUTH_KINDS:
+            raise NotImplementedError(f"{auth_kind!r} is reserved but not implemented in MVP2")
+        if auth_kind not in SUPPORTED_AUTH_KINDS:
+            raise ValueError(f"unknown auth_kind: {auth_kind!r}")
+        if auth_kind not in ("solr_basic", "solr_apikey"):
+            raise ValueError(
+                f"auth_kind {auth_kind!r} is not valid for engine_type='solr' "
+                "(valid: solr_basic, solr_apikey)"
+            )
+        if engine_type != "solr":
+            raise ValueError(f"SolrAdapter requires engine_type='solr', got {engine_type!r}")
+        self.cluster_id = cluster_id
+        self.engine_type = engine_type
+        self.base_url = base_url.rstrip("/")
+        self.auth_kind = auth_kind
+        self.credentials_ref = credentials_ref
+        self.engine_config = engine_config or {}
+        self._auth_headers = self._build_auth_headers()
+        self._client = client or httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=2.0))
+        self._version: str | None = None
+        """Engine version string; populated on the first health_check."""
+        # Adapter-side memory-only cache for uniqueKey lookups against targets
+        # created AFTER cluster registration (and therefore absent from
+        # engine_config.unique_key_per_target). Not persisted — Story A8
+        # spec FR-9 requires service-layer-only writes to engine_config.
+        # The cache is seeded lazily on the first get_document/list_documents
+        # call against a new target; survives the adapter's lifetime only.
+        seeded: dict[str, str] = dict(self.engine_config.get("unique_key_per_target", {}) or {})
+        self._unique_key_cache: dict[str, str] = seeded
+
+    def _build_auth_headers(self) -> dict[str, str]:
+        """Resolve mounted credentials and build the static Authorization header.
+
+        * ``solr_basic`` → ``Authorization: Basic <base64(user:password)>``
+          for ``BasicAuthPlugin``.
+        * ``solr_apikey`` → ``Authorization: Bearer <jwt_token>`` for Solr 9+
+          ``JWTAuthPlugin``. ``refresh_url`` is out of scope for MVP2 per spec
+          FR-3 — the credential file may carry it as metadata but the adapter
+          ignores it.
+        """
+        creds = resolve_credentials(self.auth_kind, self.credentials_ref)
+        if self.auth_kind == "solr_basic":
+            token = base64.b64encode(f"{creds['username']}:{creds['password']}".encode()).decode()
+            return {"Authorization": f"Basic {token}"}
+        if self.auth_kind == "solr_apikey":
+            return {"Authorization": f"Bearer {creds['jwt_token']}"}
+        # Unreachable — auth_kind validated in __init__.
+        raise AssertionError("unreachable: auth_kind validated in __init__")
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        json: Any = None,
+        content: bytes | str | None = None,
+        params: dict[str, Any] | None = None,
+        request_id: str | None = None,
+        timeout: float | None = None,
+        extra_headers: dict[str, str] | None = None,
+        translate_errors: bool = True,
+    ) -> httpx.Response:
+        """Issue an HTTP request to the cluster with the spec §13 single retry.
+
+        Mirrors ``ElasticAdapter._request``: connection-class failures are
+        retried exactly once before propagating; ``translate_errors=True``
+        maps retried-and-still-failed connection errors + 401/403/5xx to
+        ``ClusterUnreachableError``. ``health_check`` opts out so it can own
+        its own status mapping.
+
+        ``X-Request-Id`` carries the operator-supplied correlation id. (Solr
+        does not have an ES-style ``X-Opaque-Id`` convention; ``X-Request-Id``
+        is the canonical project-wide correlation header.)
+        """
+        headers = dict(self._auth_headers)
+        if extra_headers:
+            headers.update(extra_headers)
+        if request_id:
+            headers["X-Request-Id"] = request_id
+
+        kwargs: dict[str, Any] = dict(
+            method=method,
+            url=f"{self.base_url}{path}",
+            headers=headers,
+            params=params,
+        )
+        if json is not None:
+            kwargs["json"] = json
+        if content is not None:
+            kwargs["content"] = content
+        if timeout is not None:
+            kwargs["timeout"] = timeout
+
+        connection_excs = (
+            httpx.ConnectError,
+            httpx.RemoteProtocolError,
+            httpx.ConnectTimeout,
+            httpx.ReadTimeout,
+        )
+
+        resp: httpx.Response | None = None
+        for attempt in (1, 2):
+            try:
+                resp = await self._client.request(**kwargs)
+                break
+            except httpx.ReadTimeout as exc:
+                # Distinct from connection errors at the typed-exception layer:
+                # callers (search_batch with strict_errors=True) need
+                # QueryTimeoutError to translate to 504 QUERY_TIMEOUT rather
+                # than 503 CLUSTER_UNREACHABLE.
+                if attempt == 2:
+                    if translate_errors:
+                        raise QueryTimeoutError(str(exc)) from exc
+                    raise
+                continue
+            except connection_excs as exc:
+                if attempt == 2:
+                    if translate_errors:
+                        raise ClusterUnreachableError(str(exc)) from exc
+                    raise
+                continue
+        assert resp is not None  # noqa: S101
+
+        if translate_errors and resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {resp.status_code}) for {method} {path}"
+            )
+        if translate_errors and resp.status_code >= 500:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from {method} {path}")
+        return resp
+
+    async def aclose(self) -> None:
+        """Close the underlying httpx client. Idempotent at the httpx level."""
+        await self._client.aclose()
+
+    # ------------------------------------------------------------------
+    # Capability probe (Story A1, FR-2)
+    # ------------------------------------------------------------------
+
+    async def probe_capabilities(self, *, request_id: str | None = None) -> ProbeResult:
+        """Probe Solr capabilities + enumerate uniqueKey per target.
+
+        Pure I/O; no DB writes (the service layer persists the result in the
+        same transaction as the cluster row INSERT/UPDATE per spec FR-2).
+
+        The probe is robust to per-endpoint 404s — missing capabilities resolve
+        to ``False`` / empty list rather than propagating exceptions. The only
+        connection-level failure path is ``ClusterUnreachableError`` from the
+        very first ``/admin/info/system`` call (which also drives the version-
+        floor check). On version below ``SOLR_MIN_VERSION`` the probe raises
+        ``ClusterUnreachableError`` so the service layer rolls back the row
+        atomically and returns 503 ``CLUSTER_UNREACHABLE`` (cycle 3 C3-F2).
+        """
+        # 1. Version + version-floor — REQUIRED. Any failure aborts the probe.
+        info_resp = await self._request(
+            "GET", "/solr/admin/info/system", request_id=request_id, translate_errors=False
+        )
+        if info_resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {info_resp.status_code}) on /admin/info/system"
+            )
+        if info_resp.status_code != 200:
+            raise ClusterUnreachableError(
+                f"HTTP {info_resp.status_code} from /admin/info/system — cannot read Solr version"
+            )
+        info_body = info_resp.json()
+        version = self._extract_version(info_body)
+        if version is None:
+            raise ClusterUnreachableError(
+                "/admin/info/system response missing lucene.solr-spec-version "
+                "— cannot enforce engine floor"
+            )
+        if not self._meets_min_version(version):
+            raise ClusterUnreachableError(
+                f"Solr {SOLR_MIN_VERSION[0]}.{SOLR_MIN_VERSION[1]} or later required "
+                f"(cluster reports {version})"
+            )
+        self._version = version
+
+        # 2. Mode detection — 200 zkStatus → cloud, otherwise standalone.
+        mode = await self._detect_mode(request_id=request_id)
+
+        # 3. Target enumeration (mode-dispatched).
+        targets = await self._enumerate_targets(mode, request_id=request_id)
+
+        # 4. uniqueKey per target — best-effort per-target probe.
+        unique_key_per_target: dict[str, str] = {}
+        for t in targets:
+            uk = await self._fetch_unique_key(t, request_id=request_id)
+            if uk is not None:
+                unique_key_per_target[t] = uk
+
+        # 5. LTR module presence (per spec FR-2): check the modules array on
+        #    Solr 10+, fall back to the query-parser config on Solr 9.
+        ltr_module_present = await self._detect_ltr_module(
+            info_body, targets, request_id=request_id
+        )
+
+        # 6. LTR models — only if module is present; per-collection (first
+        #    enumerated target). 404 → empty list.
+        ltr_models: list[str] = []
+        if ltr_module_present and targets:
+            ltr_models = await self._fetch_ltr_models(targets[0], request_id=request_id)
+
+        # 7. UBI component — first enumerated target's searchComponent config.
+        ubi_component_present = False
+        if targets:
+            ubi_component_present = await self._detect_ubi_component(
+                targets[0], request_id=request_id
+            )
+
+        # Refresh adapter-side cache so subsequent calls within this adapter
+        # lifetime see the probed uniqueKeys without an extra schema/uniquekey
+        # round-trip.
+        self._unique_key_cache.update(unique_key_per_target)
+
+        return ProbeResult(
+            version=version,
+            mode=mode,
+            ubi_component_present=ubi_component_present,
+            ltr_module_present=ltr_module_present,
+            ltr_models=ltr_models,
+            unique_key_per_target=unique_key_per_target,
+        )
+
+    @staticmethod
+    def _extract_version(info_body: dict[str, Any]) -> str | None:
+        """Pull ``lucene.solr-spec-version`` out of the ``/admin/info/system`` body.
+
+        Solr 9 + 10 both expose this nested field; the top-level ``solr-spec-
+        version`` is the same value on most distributions but the ``lucene``
+        block is the canonical spec location.
+        """
+        lucene = info_body.get("lucene") or {}
+        version = lucene.get("solr-spec-version")
+        if isinstance(version, str) and version:
+            return version
+        # Fallback: top-level ``solr-spec-version`` exists on some distros.
+        top = info_body.get("solr-spec-version")
+        if isinstance(top, str) and top:
+            return top
+        return None
+
+    @staticmethod
+    def _meets_min_version(version: str) -> bool:
+        """Compare ``version`` against ``SOLR_MIN_VERSION`` (major.minor).
+
+        Bad/partial version strings (no dot, non-numeric) conservatively
+        return False so the floor enforcement aborts registration rather than
+        silently letting an unknown Solr through.
+        """
+        parts = [int(p) for p in version.split(".")[:2] if p.isdigit()]
+        if len(parts) < 2:
+            return False
+        return (parts[0], parts[1]) >= SOLR_MIN_VERSION
+
+    async def _detect_mode(self, *, request_id: str | None) -> SOLR_MODE_VALUES:
+        """``GET /admin/zookeeper/status`` — 200 → cloud; anything else → standalone.
+
+        SolrCloud always exposes ``zkStatus``; standalone Solr has no
+        ZooKeeper at all and the endpoint returns 404 (Solr 9+) or 503.
+        """
+        try:
+            resp = await self._request(
+                "GET",
+                "/solr/admin/zookeeper/status",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except (ClusterUnreachableError, QueryTimeoutError, httpx.HTTPError):
+            return "standalone"
+        if resp.status_code == 200:
+            body = resp.json()
+            # Belt-and-suspenders: status 200 with explicit zkStatus is cloud.
+            if "zkStatus" in body or "zkStatus" in (body.get("zkStatus") or {}):
+                return "cloud"
+            # Some Solr distros return 200 with no zkStatus block in standalone
+            # (unlikely but defensive).
+            if body:
+                return "cloud"
+        return "standalone"
+
+    async def _enumerate_targets(
+        self, mode: SOLR_MODE_VALUES, *, request_id: str | None
+    ) -> list[str]:
+        """List collections (cloud) or cores (standalone), excluding system targets.
+
+        404s on the listing endpoint yield an empty list rather than raising
+        — the rest of the probe still resolves (operators may register a
+        cluster before any collection exists; the probe then writes empty
+        engine_config blocks).
+        """
+        if mode == "cloud":
+            resp = await self._request(
+                "GET",
+                "/solr/admin/collections",
+                params={"action": "LIST"},
+                request_id=request_id,
+                translate_errors=False,
+            )
+            if resp.status_code == 404:
+                return []
+            if resp.status_code >= 400:
+                raise ClusterUnreachableError(f"HTTP {resp.status_code} from /admin/collections")
+            body = resp.json()
+            raw: list[Any] = body.get("collections") or []
+            return [str(c) for c in raw if self._is_visible_target(str(c))]
+        # standalone
+        resp = await self._request(
+            "GET",
+            "/solr/admin/cores",
+            params={"action": "STATUS", "indexInfo": "false"},
+            request_id=request_id,
+            translate_errors=False,
+        )
+        if resp.status_code == 404:
+            return []
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /admin/cores")
+        body = resp.json()
+        status_block = body.get("status") or {}
+        names: list[str] = []
+        for name, defn in status_block.items():
+            if self._is_visible_target(name):
+                # Solr's ``status`` block keys ARE the core names; ``defn.name``
+                # mirrors but is more authoritative when present.
+                actual = defn.get("name") if isinstance(defn, dict) else None
+                names.append(str(actual or name))
+        return names
+
+    @staticmethod
+    def _is_visible_target(name: str) -> bool:
+        """Exclude Solr-system targets (names starting with ``.`` or canonical names)."""
+        if not name:
+            return False
+        if name.startswith("."):
+            return False
+        if name in _SOLR_SYSTEM_TARGETS:
+            return False
+        return True
+
+    async def _fetch_unique_key(self, target: str, *, request_id: str | None) -> str | None:
+        """``GET /<target>/schema/uniquekey`` → ``uniqueKey`` field name.
+
+        404 → ``None`` (the probe simply omits that target from the map; the
+        adapter's run-time cache will lazy-populate on first get_document call
+        per spec FR-9). Other non-2xx → ``None`` (defensive; engine_config
+        omission is recoverable).
+        """
+        try:
+            resp = await self._request(
+                "GET",
+                f"/solr/{target}/schema/uniquekey",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except (ClusterUnreachableError, QueryTimeoutError, httpx.HTTPError):
+            return None
+        if resp.status_code != 200:
+            return None
+        body = resp.json()
+        uk = body.get("uniqueKey")
+        if isinstance(uk, str) and uk:
+            return uk
+        return None
+
+    async def _detect_ltr_module(
+        self,
+        info_body: dict[str, Any],
+        targets: list[str],
+        *,
+        request_id: str | None,
+    ) -> bool:
+        """Detect whether the LTR module is loaded.
+
+        Solr 10+ exposes ``.system.modules`` (a list of loaded module names)
+        in the ``/admin/info/system`` response — ``"ltr"`` in that list →
+        ``True``. Solr 9 does not expose modules there; fall back to a
+        per-collection ``GET /<target>/config/queryParser`` and look for the
+        ``ltr`` parser registration (the LTR module installs that parser when
+        loaded).
+        """
+        system_block = info_body.get("system") or {}
+        modules = system_block.get("modules")
+        if isinstance(modules, list) and "ltr" in modules:
+            return True
+        if not targets:
+            return False
+        try:
+            resp = await self._request(
+                "GET",
+                f"/solr/{targets[0]}/config/queryParser",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except (ClusterUnreachableError, QueryTimeoutError, httpx.HTTPError):
+            return False
+        if resp.status_code != 200:
+            return False
+        body = resp.json()
+        qparsers = body.get("config", {}).get("queryParser") or {}
+        if isinstance(qparsers, dict) and "ltr" in qparsers:
+            return True
+        return False
+
+    async def _fetch_ltr_models(self, target: str, *, request_id: str | None) -> list[str]:
+        """``GET /<target>/schema/model-store`` → list of LTR model names.
+
+        Solr's model-store is per-collection — the probe records the models
+        visible on the FIRST enumerated target only. Operators with multi-
+        collection LTR deployments rerun ``/reprobe`` after selecting the
+        intended collection (documented in the runbook).
+        """
+        try:
+            resp = await self._request(
+                "GET",
+                f"/solr/{target}/schema/model-store",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except (ClusterUnreachableError, QueryTimeoutError, httpx.HTTPError):
+            return []
+        if resp.status_code == 404:
+            return []
+        if resp.status_code != 200:
+            return []
+        body = resp.json()
+        raw_models = body.get("models") or []
+        out: list[str] = []
+        for m in raw_models:
+            if isinstance(m, dict):
+                name = m.get("name")
+                if isinstance(name, str) and name:
+                    out.append(name)
+        return out
+
+    async def _detect_ubi_component(self, target: str, *, request_id: str | None) -> bool:
+        """Detect whether ``solr.UBIComponent`` is registered on the target.
+
+        Primary signal: ``GET /<target>/config/searchComponent`` → look for
+        any registered component whose ``class`` equals ``solr.UBIComponent``.
+        404 / non-200 → ``False`` (the cluster may not have the UBI module
+        installed; the probe records that and the UI nudge prompts the
+        operator to enable it).
+        """
+        try:
+            resp = await self._request(
+                "GET",
+                f"/solr/{target}/config/searchComponent",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except (ClusterUnreachableError, QueryTimeoutError, httpx.HTTPError):
+            return False
+        if resp.status_code != 200:
+            return False
+        body = resp.json()
+        components = body.get("config", {}).get("searchComponent") or {}
+        if not isinstance(components, dict):
+            return False
+        for defn in components.values():
+            if not isinstance(defn, dict):
+                continue
+            cls = defn.get("class")
+            if isinstance(cls, str) and cls.lower().endswith("ubicomponent"):
+                return True
+        return False
+
+    # ------------------------------------------------------------------
+    # health_check (Story A1, FR-1) — full implementation.
+    # ------------------------------------------------------------------
+
+    async def health_check(self, *, request_id: str | None = None) -> HealthStatus:
+        """Probe ``/solr/admin/info/system`` for reachability + version.
+
+        Connection-class failures and unsupported versions surface as
+        ``HealthStatus(status='unreachable', error=...)`` — never raised. The
+        cluster service relies on this contract to translate to
+        ``CLUSTER_UNREACHABLE`` (spec FR-1 / FR-2).
+
+        On the FIRST successful call, the version is cached on the adapter
+        instance — subsequent ``health_check`` calls skip the version-floor
+        check (already passed) and return the cached value, mirroring
+        ``ElasticAdapter``'s pattern.
+        """
+        now = datetime.now(UTC).isoformat()
+        try:
+            resp = await self._request(
+                "GET",
+                "/solr/admin/info/system",
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except (
+            httpx.ConnectError,
+            httpx.ReadTimeout,
+            httpx.RemoteProtocolError,
+            httpx.ConnectTimeout,
+        ) as exc:
+            return HealthStatus(status="unreachable", checked_at=now, error=str(exc))
+
+        if resp.status_code >= 500:
+            return HealthStatus(
+                status="unreachable",
+                checked_at=now,
+                error=f"HTTP {resp.status_code} from /admin/info/system",
+            )
+        if resp.status_code in (401, 403):
+            return HealthStatus(
+                status="unreachable",
+                checked_at=now,
+                error=f"Authentication failed (HTTP {resp.status_code})",
+            )
+        if resp.status_code != 200:
+            return HealthStatus(
+                status="unreachable",
+                checked_at=now,
+                error=f"HTTP {resp.status_code} from /admin/info/system",
+            )
+
+        body = resp.json()
+        version = self._extract_version(body)
+        if version is None:
+            return HealthStatus(
+                status="unreachable",
+                checked_at=now,
+                error="/admin/info/system response missing lucene.solr-spec-version",
+            )
+        if not self._meets_min_version(version):
+            return HealthStatus(
+                status="unreachable",
+                version=version,
+                checked_at=now,
+                error=(
+                    f"Solr engine version {version} is below minimum "
+                    f"{SOLR_MIN_VERSION[0]}.{SOLR_MIN_VERSION[1]}"
+                ),
+            )
+        # Solr has no global ``cluster.status`` analog to ES — reachability +
+        # version-floor compliance maps to green.
+        self._version = version
+        return HealthStatus(status="green", version=version, checked_at=now)
+
+    # ------------------------------------------------------------------
+    # list_query_parsers (Story A1) — full implementation, pure return.
+    # ------------------------------------------------------------------
+
+    def list_query_parsers(self) -> list[str]:
+        """Return the static set of query parsers MVP2 Solr templates use.
+
+        ``edismax`` is the primary; ``dismax`` and ``lucene`` are included for
+        feature parity with the cross-engine parameter map. The list is
+        stable across Solr 9 and 10 — no HTTP call needed.
+        """
+        return ["edismax", "dismax", "lucene"]
+
+    # ------------------------------------------------------------------
+    # Helpers shared with Stories A2–A8 — uniqueKey resolution.
+    # ------------------------------------------------------------------
+
+    async def _resolve_unique_key(self, target: str, *, request_id: str | None = None) -> str:
+        """Return the ``uniqueKey`` field for ``target``.
+
+        Lookup order:
+        1. Adapter instance cache (seeded from ``engine_config.unique_key_per_target``
+           at construction; refreshed by the probe).
+        2. On miss → ``/<target>/schema/uniquekey`` (best-effort; cached on success).
+        3. On failure → ``"id"`` fallback (Solr's universal default).
+
+        Story A8 spec FR-9 forbids persisting NEW target uniqueKeys back to
+        ``engine_config`` from the adapter — the service layer alone writes
+        that field. The in-memory cache is per-adapter-instance and disappears
+        on the next process restart; operators rerun ``/reprobe`` if they
+        want the new uniqueKey persisted.
+        """
+        cached = self._unique_key_cache.get(target)
+        if cached is not None:
+            return cached
+        fetched = await self._fetch_unique_key(target, request_id=request_id)
+        resolved = fetched or "id"
+        self._unique_key_cache[target] = resolved
+        return resolved
+
+    # ------------------------------------------------------------------
+    # Protocol method stubs — Stories A2–A8 land these.
+    # ------------------------------------------------------------------
+
+    async def list_targets(
+        self,
+        *,
+        request_id: str | None = None,
+        target_filter: str | None = None,
+    ) -> list[TargetInfo]:
+        """Stub — Solr ``list_targets`` lands in Story A4."""
+        raise NotImplementedError("Solr list_targets lands in story A4")
+
+    async def get_schema(self, target: str, *, request_id: str | None = None) -> Schema:
+        """Stub — Solr ``get_schema`` lands in Story A4."""
+        raise NotImplementedError("Solr get_schema lands in story A4")
+
+    def render(
+        self,
+        template: QueryTemplate,
+        params: dict[str, ParamValue],
+        query_text: str,
+    ) -> NativeQuery:
+        """Stub — Solr ``render`` lands in Story A2."""
+        raise NotImplementedError("Solr render lands in story A2")
+
+    async def search_batch(
+        self,
+        target: str,
+        queries: list[NativeQuery],
+        top_k: int,
+        *,
+        request_id: str | None = None,
+        strict_errors: bool = False,
+        timeout: float | None = None,
+    ) -> dict[str, list[ScoredHit]]:
+        """Stub — Solr ``search_batch`` lands in Story A3."""
+        raise NotImplementedError("Solr search_batch lands in story A3")
+
+    async def explain(
+        self,
+        target: str,
+        query: NativeQuery,
+        doc_id: str,
+        *,
+        request_id: str | None = None,
+    ) -> ExplainTree:
+        """Stub — Solr ``explain`` lands in Story A5."""
+        raise NotImplementedError("Solr explain lands in story A5")
+
+    async def get_document(
+        self,
+        target: str,
+        doc_id: str,
+        *,
+        request_id: str | None = None,
+    ) -> Document | None:
+        """Stub — Solr ``get_document`` lands in Story A8."""
+        raise NotImplementedError("Solr get_document lands in story A8")
+
+    async def list_documents(
+        self,
+        target: str,
+        *,
+        search_after: list[Any] | None = None,
+        limit: int = 25,
+        fields: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> DocumentPage:
+        """Stub — Solr ``list_documents`` lands in Story A8."""
+        raise NotImplementedError("Solr list_documents lands in story A8")

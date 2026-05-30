@@ -51,8 +51,17 @@ from backend.app.adapters.registry import (
     SUPPORTED_AUTH_KINDS,
     SUPPORTED_ENGINE_TYPES,
 )
+from backend.app.adapters.solr import SolrAdapter
 from backend.app.db import repo
 from backend.app.db.models import Cluster
+
+# Adapter union type — the concrete adapters this MVP supports. Public APIs
+# (build_adapter, acquire_adapter, dispatch_run_query) annotate against this
+# union so the caller can rely on the Protocol surface without a runtime
+# isinstance check. Callers that need a Protocol-only constraint can import
+# ``SearchAdapter`` from ``backend.app.adapters.protocol`` directly — the
+# union is structurally a subset.
+ClusterAdapter = ElasticAdapter | SolrAdapter
 
 # ---------------------------------------------------------------------------
 # Service exceptions — translated by routers to spec §7.5 error codes.
@@ -136,9 +145,9 @@ async def register_cluster(
     cluster_id_for_probe = existing.id if existing is not None else str(uuid_utils.uuid7())
 
     try:
-        adapter = ElasticAdapter(
+        adapter = _build_adapter_from_args(
             cluster_id=cluster_id_for_probe,
-            engine_type=engine_type,  # type: ignore[arg-type]
+            engine_type=engine_type,
             base_url=base_url,
             auth_kind=auth_kind,
             credentials_ref=credentials_ref,
@@ -234,7 +243,7 @@ async def soft_delete_cluster(db: AsyncSession, cluster_id: str) -> Cluster | No
 
 
 @asynccontextmanager
-async def acquire_adapter(cluster: Cluster) -> AsyncIterator[ElasticAdapter]:
+async def acquire_adapter(cluster: Cluster) -> AsyncIterator[ClusterAdapter]:
     """Build an adapter from a stored cluster row, ensure ``aclose()`` on exit.
 
     Translates ``CredentialsMissing`` (raised by adapter construction when the
@@ -264,7 +273,7 @@ async def acquire_adapter(cluster: Cluster) -> AsyncIterator[ElasticAdapter]:
 
 
 async def dispatch_run_query(
-    adapter: ElasticAdapter,
+    adapter: ClusterAdapter,
     *,
     target: str,
     query_dsl: dict[str, Any],
@@ -322,13 +331,62 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 
-def build_adapter(cluster: Cluster) -> ElasticAdapter:
-    """Construct a fresh ``ElasticAdapter`` from a stored cluster row."""
-    return ElasticAdapter(
+def build_adapter(cluster: Cluster) -> ClusterAdapter:
+    """Construct a fresh adapter from a stored cluster row.
+
+    Dispatches on ``cluster.engine_type``: ``elasticsearch``/``opensearch`` →
+    ``ElasticAdapter``; ``solr`` → ``SolrAdapter`` (added by
+    ``infra_adapter_solr`` Story A1). The unified ``SearchAdapter`` Protocol
+    contract means callers don't care which concrete class is returned —
+    they call Protocol methods.
+    """
+    return _build_adapter_from_args(
         cluster_id=cluster.id,
-        engine_type=cluster.engine_type,  # type: ignore[arg-type]
+        engine_type=cluster.engine_type,
         base_url=cluster.base_url,
         auth_kind=cluster.auth_kind,
         credentials_ref=cluster.credentials_ref,
         engine_config=cluster.engine_config,
+    )
+
+
+def _build_adapter_from_args(
+    *,
+    cluster_id: str,
+    engine_type: str,
+    base_url: str,
+    auth_kind: str,
+    credentials_ref: str,
+    engine_config: dict[str, Any] | None,
+) -> ClusterAdapter:
+    """Internal factory shared by ``build_adapter`` and ``register_cluster``.
+
+    ``build_adapter`` is row-driven (a persisted ``Cluster`` already exists);
+    ``register_cluster`` is request-driven (no row yet — the probe runs
+    before the INSERT). Both share this factory so the dispatch logic stays
+    in one place.
+
+    Dispatches strictly on ``engine_type``. Unknown engines raise
+    ``EngineTypeNotSupported`` (translated to 400 by the router).
+    """
+    if engine_type == "solr":
+        return SolrAdapter(
+            cluster_id=cluster_id,
+            engine_type="solr",
+            base_url=base_url,
+            auth_kind=auth_kind,
+            credentials_ref=credentials_ref,
+            engine_config=engine_config,
+        )
+    if engine_type in ("elasticsearch", "opensearch"):
+        return ElasticAdapter(
+            cluster_id=cluster_id,
+            engine_type=engine_type,  # type: ignore[arg-type]
+            base_url=base_url,
+            auth_kind=auth_kind,
+            credentials_ref=credentials_ref,
+            engine_config=engine_config,
+        )
+    raise EngineTypeNotSupported(
+        f"engine_type={engine_type!r} has no adapter; supported: {sorted(SUPPORTED_ENGINE_TYPES)}"
     )

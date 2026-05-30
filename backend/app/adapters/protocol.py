@@ -136,10 +136,20 @@ class DocumentPage(BaseModel):
     ``hits`` may contain up to ``limit + 1`` entries — the router caller
     slices to ``user_limit`` before serializing and uses the trailing entry
     only as the has-more sentinel, not for cursor encoding.
+
+    ``next_cursor_token`` is an additive optional field for adapters that
+    paginate via an engine-supplied opaque cursor token rather than per-hit
+    sort values (Solr's ``nextCursorMark`` — see ``infra_adapter_solr``
+    Story A8). When populated, the router prefers it over the trailing-hit
+    ``sort`` for cursor encoding; when ``None``, the router falls back to
+    the existing ES path (slice + encode ``hits[limit - 1].sort``). The
+    Solr adapter sets it to ``None`` on the terminal page so ``has_more``
+    derives correctly without an extra overfetch.
     """
 
     hits: list[AdapterDocumentHit]
     total: int
+    next_cursor_token: str | None = None
 
 
 class QueryTemplate(BaseModel):
