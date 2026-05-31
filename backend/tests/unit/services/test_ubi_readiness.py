@@ -309,7 +309,8 @@ async def test_count_ubi_events_builds_solr_native_body() -> None:
 
 async def test_count_ubi_events_solr_includes_query_id_clause() -> None:
     """classify_rung passes the query-set ids through to the count probe;
-    on Solr they become a query_id:(...) fq clause."""
+    on Solr they become a ``{!terms}`` query_id fq clause (NOT a boolean OR —
+    that would exceed maxBooleanClauses on large query sets)."""
     adapter = _StubAdapter(engine_type="solr", canned_event_hits=_hits(50))
     await classify_rung(
         adapter=adapter,
@@ -320,7 +321,7 @@ async def test_count_ubi_events_solr_includes_query_id_clause() -> None:
         redis=_FakeRedis(),  # type: ignore[arg-type]
     )
     body = adapter.search_batch_calls[0]["body"]
-    assert 'query_id:("q1" OR "q2")' in body["fq"]
+    assert "{!terms f=query_id}q1,q2" in body["fq"]
 
 
 # ----------------------------------------------------------------------------

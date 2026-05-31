@@ -225,7 +225,12 @@ def _to_solr_docs(rows: list[dict[str, object]], collection: str) -> list[dict[s
     """
     out: list[dict[str, object]] = []
     for ordinal, row in enumerate(rows):
-        doc: dict[str, object] = {"id": f"{collection}-{ordinal}", **row}
+        # Include ``application`` (unique per scenario) in the synthesized id —
+        # ``ubi_queries`` / ``ubi_events`` are SHARED collections across all
+        # scenarios, so a bare ``{collection}-{ordinal}`` would collide (and
+        # silently overwrite) when a second Solr scenario seeds into them.
+        app = row.get("application", "default")
+        doc: dict[str, object] = {"id": f"{collection}-{app}-{ordinal}", **row}
         if "timestamp" in doc:
             doc["timestamp"] = _to_solr_date(doc["timestamp"])
         out.append(doc)

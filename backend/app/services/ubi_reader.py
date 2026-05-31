@@ -143,7 +143,11 @@ def _build_solr_ubi_body(
           exclusive upper — matches the ES ``gte``/``lt`` half-open intent;
           Solr supports the ``}`` exclusive-upper bound).
         - ``application:"<target>"`` (quoted).
-        - when ``query_ids`` is non-empty, ``query_id:(<id> OR <id> ...)``.
+        - when ``query_ids`` is non-empty, ``{!terms f=query_id}<id>,<id>,...``
+          (the Solr ``terms`` query parser — NOT a boolean ``OR`` expansion,
+          which would blow past ``maxBooleanClauses`` (default 1024) once an
+          operator's query set exceeds ~1k unique ids; ``max_queries`` defaults
+          to 5000).
     * ``rows`` — ``str(rows)``.
     * ``fl`` — the caller's field list (``_normalize_fl`` will inject ``score``
       + the uniqueKey).
@@ -159,8 +163,11 @@ def _build_solr_ubi_body(
         f'application:"{target}"',
     ]
     if query_ids:
-        joined = " OR ".join(f'"{qid}"' for qid in query_ids)
-        fq.append(f"query_id:({joined})")
+        # Solr ``terms`` query parser — handles arbitrarily long id lists
+        # without expanding to boolean clauses (avoids ``TooManyClauses`` once
+        # an operator's query set exceeds ``maxBooleanClauses``). UBI query_ids
+        # are plugin UUIDs (no commas), so the default comma separator is safe.
+        fq.append("{!terms f=query_id}" + ",".join(query_ids))
     return {
         "q": "*:*",
         "fq": fq,

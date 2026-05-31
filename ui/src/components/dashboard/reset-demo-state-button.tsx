@@ -125,7 +125,10 @@ export function ResetDemoStateButton(): React.ReactElement {
   useEffect(() => {
     const el = logRef.current;
     if (el != null) el.scrollTop = el.scrollHeight;
-  }, [steps.length]);
+    // ``open`` is a dep so the log pins to the newest entry when the dialog is
+    // (re)opened — without it, reopening with an unchanged ``steps.length``
+    // would leave the log scrolled to the top (the ref was null while closed).
+  }, [steps.length, open]);
 
   return (
     <>

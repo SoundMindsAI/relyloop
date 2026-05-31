@@ -592,7 +592,7 @@ async def test_read_features_builds_solr_native_bodies() -> None:
     assert ebody["rows"] == str(ecall["top_k"])
     assert "timestamp:[2026-04-01T00:00:00Z TO 2026-05-01T00:00:00Z}" in ebody["fq"]
     assert 'application:"articles"' in ebody["fq"]
-    assert 'query_id:("q-1")' in ebody["fq"]
+    assert "{!terms f=query_id}q-1" in ebody["fq"]
 
 
 async def test_read_features_solr_query_filter_adds_user_query_fq() -> None:
