@@ -5,6 +5,12 @@
     is [`CONTRIBUTING.md`](https://github.com/SoundMindsAI/relyloop/blob/main/CONTRIBUTING.md)
     in the repo; this page is the orientation for first-time contributors.
 
+!!! tip "Contributing with an AI agent?"
+    RelyLoop is built agent-first and spec-driven. If you use Claude Code (or
+    another agent), see **[Contributing with AI agents](contributing-with-agents.md)**
+    for onboarding prompts, the skills, the spec → plan → implement pipeline,
+    and how cross-model review works.
+
 ## First-time path
 
 1. **Set up the dev environment.** You'll need Docker 24+ (Compose v2),
