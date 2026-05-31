@@ -1490,8 +1490,10 @@ async def reseed_demo_state(
             ubi_converter = cast("str", scenario["ubi_converter"])
             ubi_jlist_name = f"{cast('str', scenario['judgment_list_name'])} (UBI)"
             # `since`/`until` MUST bracket the synthetic events the
-            # generator wrote in [seed_anchor - 60s, seed_anchor]. The
-            # dispatcher persists this exact window into
+            # generator wrote in [seed_anchor - 60s, seed_anchor). Query rows
+            # sit at the inclusive lower bound and events strictly below the
+            # upper bound, so the reader's half-open `timestamp < until` scan
+            # captures both. The dispatcher persists this exact window into
             # generation_params so the worker's resume payload is
             # reproducible (FR-4 spec lock).
             ubi_dispatch_body: dict[str, Any] = {
@@ -1503,6 +1505,12 @@ async def reseed_demo_state(
                 "until": started_at_dt.isoformat(),
                 "converter": ubi_converter,
                 "mapping_strategy": "reject",
+                # Derive the sync count-gate floor from the actually-seeded
+                # event count so the sparse rung_1 scenario (~50 events, which
+                # exists to demo hybrid LLM-fill) clears its own gate while
+                # dense rungs keep the 100 default. Mirrors the CLI reseed in
+                # scripts/seed_meaningful_demos.py.
+                "min_impressions_threshold": min(100, event_count),
             }
             if ubi_converter == "hybrid_ubi_llm":
                 # CreateJudgmentListFromUbiRequest's @model_validator
