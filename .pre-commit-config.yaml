@@ -155,7 +155,9 @@ repos:
         exclude: \.md$  # markdown allows trailing whitespace for line breaks
       - id: end-of-file-fixer
       - id: check-yaml
-        exclude: ^docker-compose\.ya?ml$  # docker-compose YAML uses non-standard tags
+        # docker-compose + mkdocs.yml use non-standard YAML tags (custom merge
+        # tags / `!!python/name:` for Mermaid + emoji) the safe loader rejects.
+        exclude: ^(docker-compose\.ya?ml|website/mkdocs\.yml)$
       - id: check-json
       - id: check-toml
       - id: check-merge-conflict

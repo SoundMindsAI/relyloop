@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+authors:
+  relyloop:
+    name: The RelyLoop maintainers
+    description: soundminds.ai
+    avatar: https://github.com/SoundMindsAI.png
+    url: https://github.com/SoundMindsAI/relyloop

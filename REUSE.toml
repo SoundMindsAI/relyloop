@@ -70,6 +70,7 @@ path = [
   "**/.eslintrc",
   "**/.python-version",
   "**/CODEOWNERS",
+  "**/CNAME",
   "**/Dockerfile",
   "**/Dockerfile.*",
   "Makefile",

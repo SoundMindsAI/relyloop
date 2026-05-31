@@ -289,6 +289,10 @@ Thumbs.db
 *.swo
 *~
 
+# MkDocs site build output + cache (public site under website/)
+website/site/
+.mkdocs_cache/
+
 # Build / temp / sandbox
 .tmp/
 tmp/
