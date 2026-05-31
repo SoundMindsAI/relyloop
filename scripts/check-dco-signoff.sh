@@ -45,8 +45,10 @@ Fix:
   git commit --amend -s --no-edit   # add to the most recent commit
   git rebase --signoff <base>       # backfill across a range
 
-Or configure your repo to always sign off:
-  git config format.signoff true
+Note: 'git config format.signoff true' does NOT auto-sign 'git commit' — that
+setting only applies to 'git format-patch'. Use -s on every commit (the
+/impl-execute and /bug-fix skills already do). To automate it, add a git alias
+(e.g. 'git config alias.ci "commit -s"') and use 'git ci'.
 
 Bypass requires --no-verify (forbidden per CLAUDE.md).
 EOF
