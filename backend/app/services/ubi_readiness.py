@@ -50,7 +50,11 @@ from redis.asyncio import Redis
 
 from backend.app.adapters.protocol import NativeQuery, SearchAdapter
 from backend.app.services.ubi_errors import UbiNotEnabledError
-from backend.app.services.ubi_reader import UBI_EVENTS_INDEX, UbiReader
+from backend.app.services.ubi_reader import (
+    UBI_EVENTS_INDEX,
+    UbiReader,
+    _build_solr_ubi_body,
+)
 
 logger = structlog.get_logger(__name__)
 
@@ -264,26 +268,39 @@ async def _count_ubi_events_at_most(
     the returned count against their threshold and treats ``return == cap``
     as "≥ cap events present".
     """
-    filters: list[dict[str, Any]] = [
-        {
-            "range": {
-                "timestamp": {
-                    "gte": since.isoformat(),
-                    "lt": until.isoformat(),
+    if adapter.engine_type == "solr":
+        # Count-only — the caller does len(result[...]), so request the
+        # minimal field (fl="id") rather than full docs. _normalize_fl
+        # injects score + uniqueKey; "id" keeps the projection tight.
+        body: dict[str, Any] = _build_solr_ubi_body(
+            target=target,
+            since=since,
+            until=until,
+            query_ids=query_ids,
+            rows=cap,
+            fl="id",
+        )
+    else:
+        filters: list[dict[str, Any]] = [
+            {
+                "range": {
+                    "timestamp": {
+                        "gte": since.isoformat(),
+                        "lt": until.isoformat(),
+                    }
                 }
-            }
-        },
-        {"term": {"application": target}},
-    ]
-    if query_ids:
-        filters.append({"terms": {"query_id": query_ids}})
+            },
+            {"term": {"application": target}},
+        ]
+        if query_ids:
+            filters.append({"terms": {"query_id": query_ids}})
 
-    body: dict[str, Any] = {
-        "query": {"bool": {"filter": filters}},
-        "_source": False,
-        "track_total_hits": False,
-        "size": cap,
-    }
+        body = {
+            "query": {"bool": {"filter": filters}},
+            "_source": False,
+            "track_total_hits": False,
+            "size": cap,
+        }
     native = NativeQuery(query_id="ubi_readiness_count", body=body)
     result = await adapter.search_batch(
         UBI_EVENTS_INDEX,

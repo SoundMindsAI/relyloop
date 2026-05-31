@@ -40,7 +40,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Final, Literal, cast
 
 import httpx
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from redis.asyncio import Redis
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -48,6 +48,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.domain.demo.synthetic_ubi import (
     UbiRung,
     fabricate_ubi_for_scenario,
+)
+from backend.app.scripts.seed_solr_products import (
+    _bulk_index_products as _solr_bulk_index,
+)
+from backend.app.scripts.seed_solr_products import (
+    _ensure_collection as _solr_ensure_collection,
 )
 from backend.app.services.demo_ubi_seed import (
     DemoUbiSeedError,
@@ -113,6 +119,16 @@ _OS_DELETE_AUTH: Final[tuple[str, str]] = ("admin", "admin")
 # themselves. Per ``bug_demo_reseed_fake_metric_regression`` D-2.
 DEMO_RESEED_STATUS_KEY: Final[str] = "demo_reseed:status"
 DEMO_RESEED_STATUS_TTL_S: Final[int] = 3600
+
+# Upper bound on the step-history list carried in the status blob. The
+# operator-facing reseed UI renders ``steps`` as a scrolling log; the worker
+# appends one entry per *distinct* ``current_step`` transition. A real reseed
+# emits well under 100 transitions, but the trial-polling loop bumps the step
+# string every few seconds, so the count scales with run duration. Cap the
+# list at the most recent N so the Redis blob (re-serialized on every poll
+# write) can't grow unbounded over a long or pathologically-slow run. Per
+# ``feat_demo_reseed_solr_and_steplog``.
+DEMO_RESEED_STEP_HISTORY_CAP: Final[int] = 500
 
 # 20-minute hard ceiling on the entire reseed — 4 small scenarios + the
 # rich ESCI scenario (1000 docs + LLM judgments + 15-trial study). Per
@@ -222,6 +238,14 @@ class ReseedStatusResponse(BaseModel):
     current_step: str | None = None
     failed_reason: str | None = None
     summary: ReseedSummary | None = None
+    # Ordered, oldest-first history of every distinct ``current_step`` value
+    # the worker has set during this run. The reseed UI renders it as a
+    # scrolling log so the operator sees the full progression, not just the
+    # latest overwriting line. Appended by :func:`append_step_history` (dedupe
+    # of consecutive duplicates + cap at :data:`DEMO_RESEED_STEP_HISTORY_CAP`)
+    # via the :func:`_emit_progress` choke point. Per
+    # ``feat_demo_reseed_solr_and_steplog``.
+    steps: list[str] = Field(default_factory=list)
 
 
 # Status callback receives an in-progress ReseedStatusResponse and persists
@@ -237,6 +261,50 @@ async def _noop_status(_status: ReseedStatusResponse) -> None:
     streaming. The Arq worker passes a Redis-writing closure instead.
     """
     return None
+
+
+def append_step_history(
+    steps: list[str],
+    step: str | None,
+    *,
+    cap: int = DEMO_RESEED_STEP_HISTORY_CAP,
+) -> None:
+    """Append ``step`` to the ordered ``steps`` history in place.
+
+    Pure (mutates the passed list; no I/O). Three rules, per
+    ``feat_demo_reseed_solr_and_steplog``:
+
+    1. **Skip ``None``.** The terminal idle reset sets ``current_step=None``;
+       there's nothing to log.
+    2. **Dedupe consecutive duplicates.** The worker re-persists the same
+       ``current_step`` across poll ticks (e.g. the trial-polling loop). Only
+       append when the step actually *changed* from the last logged entry, so
+       the log reflects transitions rather than poll cadence.
+    3. **Cap at ``cap``.** Keep only the most-recent ``cap`` entries so the
+       Redis blob — re-serialized on every status write — can't grow
+       unbounded over a long run.
+    """
+    if step is None:
+        return
+    if steps and steps[-1] == step:
+        return
+    steps.append(step)
+    if len(steps) > cap:
+        # Keep the most-recent ``cap`` entries (drop oldest first).
+        del steps[:-cap]
+
+
+async def _emit_progress(status_callback: StatusCallback, progress: ReseedStatusResponse) -> None:
+    """Append the current step to history, then invoke ``status_callback``.
+
+    Single choke point for every progress emission in :func:`reseed_demo_state`
+    and its helpers. Threading the append through here (rather than each of
+    the ~26 ``current_step`` assignment sites) keeps the dedupe/cap rule in one
+    place and guarantees every persisted status carries the full accumulated
+    history, not just the latest line.
+    """
+    append_step_history(progress.steps, progress.current_step)
+    await status_callback(progress)
 
 
 # ---------------------------------------------------------------------------
@@ -257,6 +325,13 @@ _ENGINE_BASE_URL_MAPPING: Final[dict[str, str]] = {
     # would attempt to reach a port that's not bound and fail with
     # ``ConnectError`` (GPT-5.5 final-review High).
     "http://localhost:9201": "http://opensearch:9200",
+    # Host-published Solr port (Compose ``"127.0.0.1:8983:8983"``) → in-container
+    # Solr service port. Unlike OpenSearch, Solr's host and container ports
+    # match (8983:8983) — there's no ES collision to avoid — so this maps
+    # straight through to ``solr:8983``. Added with the MVP2 ``acme-kb-docs-solr``
+    # demo scenario (``scripts/seed_meaningful_demos.py`` SCENARIOS); without it
+    # the reseed raises ``Unrecognized engine host URL`` on the Solr scenario.
+    "http://localhost:8983": "http://solr:8983",
 }
 
 
@@ -265,10 +340,11 @@ def _resolve_engine_base_url(host_base_url: str) -> str:
 
     The imported :data:`SCENARIOS` constant from
     ``scripts/seed_meaningful_demos.py`` carries ``host_base_url`` values
-    like ``"http://localhost:9200"`` (ES) and ``"http://localhost:9201"``
-    (OS) — correct from the host shell, wrong from inside the API
-    container where ``localhost`` is the API itself. This function
-    transparently maps to the Compose service DNS names.
+    like ``"http://localhost:9200"`` (ES), ``"http://localhost:9201"``
+    (OS), and ``"http://localhost:8983"`` (Solr) — correct from the host
+    shell, wrong from inside the API container where ``localhost`` is the
+    API itself. This function transparently maps to the Compose service
+    DNS names.
 
     Pure / deterministic / no I/O. No env hooks (per cycle-4 plan review
     A1 — AC-5's test injection lives in the test harness, not here).
@@ -276,7 +352,7 @@ def _resolve_engine_base_url(host_base_url: str) -> str:
     Per FR-1d.
 
     Raises:
-        ValueError: when ``host_base_url`` is not one of the two
+        ValueError: when ``host_base_url`` is not one of the three
             recognized CLI URLs. The orchestrator unwraps this to a
             :class:`DemoSeedingError` so the route handler returns a
             503 ``SEED_FAILED`` envelope.
@@ -380,6 +456,76 @@ async def _get(
     if not response.content:
         return {}
     return cast("dict[str, Any]", response.json())
+
+
+# ---------------------------------------------------------------------------
+# Solr scenario seeding (infra_adapter_solr Story A13 completion)
+#
+# Solr collections are created from configsets, not from an ES-style JSON
+# mapping — so the ``acme-kb-docs-solr`` demo scenario carries no
+# ``index_mapping`` key and the ES PUT-index path KeyErrors. This helper
+# replaces the three ES calls (PUT index_mapping / per-doc PUT / _refresh)
+# with the Solr equivalents, reusing the canonical sync logic from
+# ``backend.app.scripts.seed_solr_products`` (which uploads the configset to
+# ZooKeeper, creates the collection, and bulk-indexes with a commit). The
+# sync functions take an ``httpx.Client`` with a ``base_url``; we run them off
+# the event loop via ``asyncio.to_thread`` to avoid drift from a second async
+# port. The local Compose Solr is security-disabled, so ``host_auth`` is
+# harmless either way — we pass it through for parity with real operator
+# clusters that DO enable auth.
+# ---------------------------------------------------------------------------
+
+
+def _seed_solr_scenario_sync(
+    engine_base: str,
+    target: str,
+    configset: str,
+    scenario_docs: list[dict[str, Any]],
+    host_auth: _AuthTuple | None,
+) -> None:
+    """Blocking Solr seed: configset UPLOAD → collection CREATE → bulk index.
+
+    Runs inside :func:`asyncio.to_thread`. Reuses the canonical sync helpers
+    from ``seed_solr_products`` so the configset-zip / collection-create /
+    commit logic never drifts. The scenario docs are the reseed's
+    ``{"id": ..., "doc": {...}}`` wrapper shape; we unwrap them to the flat
+    Solr doc shape (id merged into the body) before indexing.
+    """
+    flat_docs: list[dict[str, Any]] = [{"id": d["id"], **d["doc"]} for d in scenario_docs]
+    with httpx.Client(base_url=engine_base, timeout=30.0, auth=host_auth) as client:
+        _solr_ensure_collection(client, target, configset)
+        _solr_bulk_index(client, target, flat_docs)
+
+
+async def _seed_solr_scenario(
+    *,
+    engine_base: str,
+    target: str,
+    configset: str,
+    scenario_docs: list[dict[str, Any]],
+    host_auth: _AuthTuple | None,
+    slug: str,
+) -> None:
+    """Async wrapper: emit the lifecycle log, then run the blocking Solr seed.
+
+    Mirrors the per-call logging the ES path gets via :func:`_log_call_started`
+    so the reseed step trail records the Solr collection-create + index calls.
+    """
+    _log_call_started(
+        "POST", f"{engine_base}/solr/admin/collections?action=CREATE&name={target}", "engine"
+    )
+    _log_call_started("POST", f"{engine_base}/solr/{target}/update?commit=true", "engine")
+    try:
+        await asyncio.to_thread(
+            _seed_solr_scenario_sync,
+            engine_base,
+            target,
+            configset,
+            scenario_docs,
+            host_auth,
+        )
+    except httpx.HTTPError as exc:
+        raise DemoSeedingError(f"{slug}/solr_seed: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -718,14 +864,14 @@ async def _seed_real_study_for_scenario(
     # created on the LLM pass; creating it twice 4xxs on the unique name.
     if slug == "acme-products-prod" and create_swap_template:
         progress.current_step = f"{slug}: creating swap-template candidate"
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
         await _create_acme_swap_template(
             api_client, engine_type=engine_type, declared_params=declared_params
         )
 
     # POST /studies — real create, no test-endpoint shortcut.
     progress.current_step = f"{slug}: creating study (max_trials={_REAL_STUDY_MAX_TRIALS})"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     study = await _post(
         api_client,
         "/api/v1/studies",
@@ -753,7 +899,7 @@ async def _seed_real_study_for_scenario(
     # Poll for terminal state. The Arq worker runs trials async; we GET
     # the study row every 3s until status flips out of {queued, running}.
     progress.current_step = f"{slug}: polling study {study_id[:8]} for trial completion"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     deadline = time.monotonic() + _REAL_STUDY_POLL_CEILING_S
     detail: dict[str, Any] = study
     while time.monotonic() < deadline:
@@ -771,7 +917,7 @@ async def _seed_real_study_for_scenario(
         progress.current_step = (
             f"{slug}: study {study_id[:8]} running (trials {trials_total}/{_REAL_STUDY_MAX_TRIALS})"
         )
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
         await asyncio.sleep(_REAL_STUDY_POLL_INTERVAL_S)
     final_status = detail.get("status")
     if final_status != "completed":
@@ -785,7 +931,7 @@ async def _seed_real_study_for_scenario(
     # would render the studies but the "Latest digest" sections would
     # all be empty until the next page load.
     progress.current_step = f"{slug}: waiting for digest worker"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     digest_deadline = time.monotonic() + _DIGEST_POLL_CEILING_S
     while time.monotonic() < digest_deadline:
         response = await api_client.get(f"/api/v1/studies/{study_id}/digest")
@@ -846,7 +992,7 @@ async def _seed_rich_scenario(
     # 1. Load 1000 ESCI products from samples/. The file lives at
     # ``/app/samples/products.json`` thanks to the Compose mount.
     progress.current_step = f"{_RICH_SCENARIO_SLUG}: loading 1000 ESCI products from samples"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     products_path = f"{_SAMPLES_DIR}/products.json"
     try:
         with open(products_path, encoding="utf-8") as f:
@@ -873,7 +1019,7 @@ async def _seed_rich_scenario(
         )
 
     progress.current_step = f"{_RICH_SCENARIO_SLUG}: creating index mapping"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     await _put(
         engine_client,
         f"{es_base}/{_RICH_SCENARIO_INDEX}",
@@ -897,7 +1043,7 @@ async def _seed_rich_scenario(
     # with application/x-ndjson; the helper ``_post`` sends JSON, so
     # bypass it here and use the raw httpx client directly.
     progress.current_step = f"{_RICH_SCENARIO_SLUG}: bulk-indexing {len(products)} docs"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     bulk_chunk = 500
     for i in range(0, len(products), bulk_chunk):
         chunk = products[i : i + bulk_chunk]
@@ -928,7 +1074,7 @@ async def _seed_rich_scenario(
     # 4. Register cluster with target_filter so this cluster's dropdowns
     # only surface the rich index.
     progress.current_step = f"{_RICH_SCENARIO_SLUG}: registering cluster"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     cluster = await _post(
         api_client,
         "/api/v1/clusters",
@@ -960,7 +1106,7 @@ async def _seed_rich_scenario(
         return None
 
     progress.current_step = f"{_RICH_SCENARIO_SLUG}: creating template + query set"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     template = await _post(
         api_client,
         "/api/v1/query-templates",
@@ -1010,7 +1156,7 @@ async def _seed_rich_scenario(
 
     # 7. Generate judgments via LLM. Returns 202; worker generates async.
     progress.current_step = f"{_RICH_SCENARIO_SLUG}: generating LLM judgments (~30-60s)"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     jl_resp = await _post(
         api_client,
         "/api/v1/judgments/generate",
@@ -1046,7 +1192,7 @@ async def _seed_rich_scenario(
         if status_value in {"complete", "failed"}:
             break
         progress.current_step = f"{_RICH_SCENARIO_SLUG}: LLM judgments status={status_value!r}"
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
         await asyncio.sleep(_REAL_STUDY_POLL_INTERVAL_S)
     if jl_detail.get("status") != "complete":
         logger.warning(
@@ -1060,7 +1206,7 @@ async def _seed_rich_scenario(
     progress.current_step = (
         f"{_RICH_SCENARIO_SLUG}: creating study (max_trials={_RICH_SCENARIO_MAX_TRIALS})"
     )
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     study = await _post(
         api_client,
         "/api/v1/studies",
@@ -1120,7 +1266,7 @@ async def _seed_rich_scenario(
             f"{_RICH_SCENARIO_SLUG}: study {study_id[:8]} running "
             f"(trials {trials_total}/{_RICH_SCENARIO_MAX_TRIALS})"
         )
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
         await asyncio.sleep(_REAL_STUDY_POLL_INTERVAL_S)
     if detail.get("status") != "completed":
         logger.warning(
@@ -1179,11 +1325,16 @@ async def reseed_demo_state(
     # wall-clock jumps; for the ISO timestamp we use `datetime.now(UTC)`.
     started_at_dt = datetime.now(UTC)
     seed_anchor_iso = started_at_dt.isoformat()
-    # Per-invocation gate so `ensure_ubi_indices` runs at most once across
-    # the scenario loop. Local (NOT module-level) because the cleanup pass
-    # DELETEs both ubi_queries + ubi_events at start of every reseed —
-    # caching across invocations would skip the PUT on the second reseed.
-    ubi_indices_ready: bool = False
+    # Per-invocation gate so `ensure_ubi_indices` runs at most once PER
+    # ENGINE BASE across the scenario loop. Tracking the set of engine bases
+    # already ensured (not a single bool) is required because the loop spans
+    # multiple engines (ES on :9200, OpenSearch on :9201, Solr on :8983):
+    # a bare bool flipped True by the first ES scenario would skip
+    # `ensure_ubi_indices` for the Solr scenario, leaving its ubi_queries /
+    # ubi_events collections uncreated. Local (NOT module-level) because the
+    # cleanup pass DELETEs both UBI indices at start of every reseed —
+    # caching across invocations would skip the create on the second reseed.
+    ubi_indices_ready: set[str] = set()
     # scenarios_total counts the 4 small SCENARIOS + the rich ESCI scenario
     # (matches the CLI's 5-study output from ``make seed-demo``).
     progress = ReseedStatusResponse(
@@ -1193,7 +1344,7 @@ async def reseed_demo_state(
         scenarios_completed=0,
         current_step="wiping demo state",
     )
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
 
     # ---- Step 1a: TRUNCATE demo tables, COMMIT before any self-call. ----
     await db.execute(text(_TRUNCATE_DEMO_TABLES_SQL))
@@ -1235,37 +1386,55 @@ async def reseed_demo_state(
         scenario_judgments_map = cast("list[tuple[int, str, int]]", scenario["judgments_map"])
 
         progress.current_step = f"{slug}: indexing {len(scenario_docs)} docs into {target}"
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
 
-        # 2a. Engine: PUT index, PUT docs, POST _refresh.
-        await _put(
-            engine_client,
-            f"{engine_base}/{target}",
-            json=scenario["index_mapping"],
-            auth=host_auth,
-            client_label="engine",
-            step=f"{slug}/put_index",
-        )
-        for doc in scenario_docs:
+        # 2a. Engine: create the index/collection + load docs.
+        #
+        # Solr collections are built from configsets, not from an ES-style
+        # JSON mapping, so the ``acme-kb-docs-solr`` scenario carries no
+        # ``index_mapping`` key (it would KeyError on the ES path below).
+        # Branch on the Solr engine hint and route through the configset +
+        # collection-create + commit path instead. Every other scenario keeps
+        # the unchanged ES PUT-index / per-doc PUT / _refresh sequence.
+        if scenario.get("engine_type") == "solr":
+            await _seed_solr_scenario(
+                engine_base=engine_base,
+                target=target,
+                configset=cast("str", scenario["solr_configset"]),
+                scenario_docs=scenario_docs,
+                host_auth=host_auth,
+                slug=slug,
+            )
+            # Fall through to the shared 2b+ API path (cluster/template/...).
+        else:
             await _put(
                 engine_client,
-                f"{engine_base}/{target}/_doc/{doc['id']}",
-                json=doc["doc"],
+                f"{engine_base}/{target}",
+                json=scenario["index_mapping"],
                 auth=host_auth,
                 client_label="engine",
-                step=f"{slug}/put_doc",
+                step=f"{slug}/put_index",
             )
-        await _post(
-            engine_client,
-            f"{engine_base}/{target}/_refresh",
-            json=None,
-            auth=host_auth,
-            client_label="engine",
-            step=f"{slug}/refresh",
-        )
+            for doc in scenario_docs:
+                await _put(
+                    engine_client,
+                    f"{engine_base}/{target}/_doc/{doc['id']}",
+                    json=doc["doc"],
+                    auth=host_auth,
+                    client_label="engine",
+                    step=f"{slug}/put_doc",
+                )
+            await _post(
+                engine_client,
+                f"{engine_base}/{target}/_refresh",
+                json=None,
+                auth=host_auth,
+                client_label="engine",
+                step=f"{slug}/refresh",
+            )
 
         progress.current_step = f"{slug}: registering cluster + template + query set"
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
 
         # 2b. API: cluster.
         cluster = await _post(
@@ -1374,13 +1543,15 @@ async def reseed_demo_state(
             # handler catches Exception), but the operator loses the
             # ubi_seed/{slug} attribution. Per GPT-5.5 final review on PR #320.
             try:
-                if not ubi_indices_ready:
+                ubi_engine_type = cast("str", scenario["engine_type"])
+                if engine_base not in ubi_indices_ready:
                     await ensure_ubi_indices(
                         engine_client=engine_client,
                         engine_base_url=engine_base,
                         host_auth=host_auth,
+                        engine_type=ubi_engine_type,
                     )
-                    ubi_indices_ready = True
+                    ubi_indices_ready.add(engine_base)
                 query_id_by_index: dict[int, str] = dict(enumerate(qid_by_idx))
                 query_text_by_index: dict[int, str] = {
                     i: cast("str", q["query_text"]) for i, q in enumerate(scenario_queries)
@@ -1396,7 +1567,7 @@ async def reseed_demo_state(
                 progress.current_step = (
                     f"{slug}: writing synthetic UBI ({ubi_target_rung}, {len(ubi_events)} events)"
                 )
-                await status_callback(progress)
+                await _emit_progress(status_callback, progress)
                 ubi_seed_started = time.monotonic()
                 logger.info(
                     "demo_reseed_ubi_seed_started",
@@ -1410,6 +1581,7 @@ async def reseed_demo_state(
                     engine_client=engine_client,
                     engine_base_url=engine_base,
                     host_auth=host_auth,
+                    engine_type=ubi_engine_type,
                     scenario_slug=slug,
                     target_application=target,
                     queries=ubi_queries,
@@ -1427,7 +1599,7 @@ async def reseed_demo_state(
             )
 
         progress.current_step = f"{slug}: importing {len(scenario_judgments_map)} judgments"
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
 
         # 2g. API: judgments.
         judgments_payload = [
@@ -1520,7 +1692,7 @@ async def reseed_demo_state(
                 ubi_dispatch_body["rubric"] = scenario["rubric"]
 
             progress.current_step = f"{slug}: dispatching UBI judgment generation ({ubi_converter})"
-            await status_callback(progress)
+            await _emit_progress(status_callback, progress)
             logger.info(
                 "demo_reseed_ubi_judgment_dispatch_started",
                 extra={"slug": slug, "converter": ubi_converter},
@@ -1537,7 +1709,7 @@ async def reseed_demo_state(
             progress.current_step = (
                 f"{slug}: polling UBI judgment list {ubi_jlist_id[:8]} for completion"
             )
-            await status_callback(progress)
+            await _emit_progress(status_callback, progress)
             await _poll_judgment_list_until_terminal(api_client, ubi_jlist_id, slug=slug)
 
             # Second study seed against the UBI judgment list. Same
@@ -1548,7 +1720,7 @@ async def reseed_demo_state(
             progress.current_step = (
                 f"{slug}: creating UBI study (max_trials={_REAL_STUDY_MAX_TRIALS})"
             )
-            await status_callback(progress)
+            await _emit_progress(status_callback, progress)
             ubi_study_started = time.monotonic()
             ubi_study_id = await _seed_real_study_for_scenario(
                 api_client,
@@ -1573,7 +1745,7 @@ async def reseed_demo_state(
             )
 
         progress.scenarios_completed += 1
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
 
     # ---- Step 2b: rich ESCI scenario (5th study). ----
     # Matches scripts/seed_meaningful_demos.py:851 — 1000 docs +
@@ -1596,11 +1768,11 @@ async def reseed_demo_state(
         rich_study_id = None
     if rich_study_id is not None:
         progress.scenarios_completed += 1
-        await status_callback(progress)
+        await _emit_progress(status_callback, progress)
 
     # ---- Step 3: rename the 4 small studies. ----
     progress.current_step = "renaming studies to tutorial names"
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     for _slug, study_id, study_name in results:
         await db.execute(
             text("UPDATE studies SET name = :name WHERE id = :id"),
@@ -1629,5 +1801,5 @@ async def reseed_demo_state(
     progress.finished_at = _now_iso()
     progress.current_step = None
     progress.summary = summary
-    await status_callback(progress)
+    await _emit_progress(status_callback, progress)
     return summary

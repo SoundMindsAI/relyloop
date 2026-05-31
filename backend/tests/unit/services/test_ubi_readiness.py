@@ -61,7 +61,12 @@ class _StubAdapter:
         timeout: float | None = None,
     ) -> dict[str, list[ScoredHit]]:
         self.search_batch_calls.append(
-            {"target": target, "query_id": queries[0].query_id, "top_k": top_k}
+            {
+                "target": target,
+                "query_id": queries[0].query_id,
+                "body": queries[0].body,
+                "top_k": top_k,
+            }
         )
         return {queries[0].query_id: list(self.canned_event_hits)}
 
@@ -272,6 +277,51 @@ async def test_count_ubi_events_builds_expected_filter() -> None:
     call = adapter.search_batch_calls[0]
     assert call["target"] == "ubi_events"
     assert call["top_k"] == 100
+    # ES/OpenSearch path: bool/filter DSL with the half-open timestamp range.
+    filters = call["body"]["query"]["bool"]["filter"]
+    assert {"range": {"timestamp": {"gte": since.isoformat(), "lt": until.isoformat()}}} in filters
+    assert {"term": {"application": "articles"}} in filters
+
+
+async def test_count_ubi_events_builds_solr_native_body() -> None:
+    """Regression: the count probe used to hand ES DSL to the SolrAdapter,
+    which rejects it (InvalidQueryDSLError). On Solr it must emit Solr params."""
+    adapter = _StubAdapter(engine_type="solr", canned_event_hits=_hits(10))
+    since = datetime(2026, 5, 1, tzinfo=UTC)
+    until = datetime(2026, 5, 29, tzinfo=UTC)
+    count = await count_ubi_events_in_window(
+        adapter,
+        target="articles",
+        since=since,
+        until=until,
+        cap=100,
+    )
+    assert count == 10  # result handling unchanged across engines
+
+    body = adapter.search_batch_calls[0]["body"]
+    assert {"query", "_source", "size", "track_total_hits"}.isdisjoint(body.keys()), body
+    assert body["q"] == "*:*"
+    assert body["rows"] == "100"
+    assert body["fl"] == "id"
+    assert "timestamp:[2026-05-01T00:00:00Z TO 2026-05-29T00:00:00Z}" in body["fq"]
+    assert 'application:"articles"' in body["fq"]
+
+
+async def test_count_ubi_events_solr_includes_query_id_clause() -> None:
+    """classify_rung passes the query-set ids through to the count probe;
+    on Solr they become a ``{!terms}`` query_id fq clause (NOT a boolean OR —
+    that would exceed maxBooleanClauses on large query sets)."""
+    adapter = _StubAdapter(engine_type="solr", canned_event_hits=_hits(50))
+    await classify_rung(
+        adapter=adapter,
+        cluster_id="c1",
+        query_set_id="qs1",
+        query_set_query_ids=["q1", "q2"],
+        target="products",
+        redis=_FakeRedis(),  # type: ignore[arg-type]
+    )
+    body = adapter.search_batch_calls[0]["body"]
+    assert "{!terms f=query_id}q1,q2" in body["fq"]
 
 
 # ----------------------------------------------------------------------------

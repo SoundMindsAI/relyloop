@@ -165,6 +165,7 @@ async def test_seed_synthetic_ubi_accepts_allowlisted_pairs(
         engine_client=client,
         engine_base_url="http://localhost:9200",
         host_auth=("elastic", "changeme"),
+        engine_type="elasticsearch",
         scenario_slug=scenario_slug,
         target_application=target,
         queries=[_q(target)],
@@ -202,6 +203,7 @@ async def test_seed_synthetic_ubi_rejects_non_allowlisted_pairs(
             engine_client=client,
             engine_base_url="http://localhost:9200",
             host_auth=("elastic", "changeme"),
+            engine_type="elasticsearch",
             scenario_slug=scenario_slug,
             target_application=target,
             queries=[_q(target)],
@@ -236,6 +238,7 @@ async def test_bulk_body_uses_refresh_wait_for_query_param() -> None:
         engine_client=client,
         engine_base_url="http://localhost:9200",
         host_auth=("elastic", "changeme"),
+        engine_type="elasticsearch",
         scenario_slug="acme-products-prod",
         target_application="products",
         queries=[_q()],
@@ -258,6 +261,7 @@ async def test_bulk_body_uses_ndjson_content_type() -> None:
         engine_client=client,
         engine_base_url="http://localhost:9200",
         host_auth=("elastic", "changeme"),
+        engine_type="elasticsearch",
         scenario_slug="acme-products-prod",
         target_application="products",
         queries=[_q()],
@@ -282,6 +286,7 @@ async def test_bulk_body_has_trailing_newline_and_index_action() -> None:
         engine_client=client,
         engine_base_url="http://localhost:9200",
         host_auth=("elastic", "changeme"),
+        engine_type="elasticsearch",
         scenario_slug="acme-products-prod",
         target_application="products",
         queries=[_q()],
@@ -334,6 +339,7 @@ async def test_application_tag_normalized_to_target() -> None:
         engine_client=client,
         engine_base_url="http://localhost:9200",
         host_auth=("elastic", "changeme"),
+        engine_type="elasticsearch",
         scenario_slug="acme-products-prod",
         target_application="products",
         queries=[bad_q],
@@ -361,6 +367,7 @@ async def test_bulk_error_raises_demo_ubi_seed_error() -> None:
             engine_client=client,
             engine_base_url="http://localhost:9200",
             host_auth=("elastic", "changeme"),
+            engine_type="elasticsearch",
             scenario_slug="acme-products-prod",
             target_application="products",
             queries=[_q()],
@@ -389,6 +396,7 @@ async def test_bulk_per_item_errors_raise_demo_ubi_seed_error() -> None:
             engine_client=client,
             engine_base_url="http://localhost:9200",
             host_auth=("elastic", "changeme"),
+            engine_type="elasticsearch",
             scenario_slug="acme-products-prod",
             target_application="products",
             queries=[_q()],
@@ -420,6 +428,7 @@ async def test_ensure_ubi_indices_tolerates_resource_already_exists(tmp_path: Pa
         engine_client=client,
         engine_base_url="http://localhost:9200",
         host_auth=("elastic", "changeme"),
+        engine_type="elasticsearch",
         mapping_path=mapping_path,
     )
     assert client.put.await_count == 2
@@ -439,5 +448,131 @@ async def test_ensure_ubi_indices_raises_on_other_4xx(tmp_path: Path) -> None:
             engine_client=client,
             engine_base_url="http://localhost:9200",
             host_auth=("elastic", "changeme"),
+            engine_type="elasticsearch",
             mapping_path=mapping_path,
+        )
+
+
+# ============================================================================
+# Solr engine-aware path (feat_demo_reseed_solr_and_steplog).
+#
+# On Solr, ``ensure_ubi_indices`` CREATEs the two UBI collections from the
+# ``relyloop_ubi`` configset via ``seed_solr_products._ensure_collection``
+# (reused, mocked here) and ``seed_synthetic_ubi`` POSTs a JSON doc array to
+# ``/solr/{collection}/update?commit=true`` via
+# ``seed_solr_products._bulk_index_products`` (reused, mocked) — NEVER the ES
+# ``_bulk`` NDJSON path. The async client / mapping file are untouched on the
+# Solr branch.
+# ============================================================================
+
+
+async def test_ensure_ubi_indices_solr_creates_both_collections(monkeypatch) -> None:
+    """Solr branch routes through ``_ensure_collection`` for both UBI
+    collections from the ``relyloop_ubi`` configset, NOT the ES PUT path."""
+    calls: list[tuple[str, str]] = []
+
+    def _fake_ensure(client, collection, configset):  # noqa: ANN001
+        calls.append((collection, configset))
+
+    monkeypatch.setattr("backend.app.services.demo_ubi_seed._solr_ensure_collection", _fake_ensure)
+    # The ES async client must NOT be touched on the Solr branch.
+    client = MagicMock(spec=httpx.AsyncClient)
+    client.put = AsyncMock(side_effect=AssertionError("ES PUT must not run on Solr"))
+
+    await ensure_ubi_indices(
+        engine_client=client,
+        engine_base_url="http://localhost:8983",
+        host_auth=("solr", "solr"),
+        engine_type="solr",
+    )
+
+    assert calls == [
+        ("ubi_queries", "relyloop_ubi"),
+        ("ubi_events", "relyloop_ubi"),
+    ]
+    client.put.assert_not_called()
+
+
+async def test_ensure_ubi_indices_solr_wraps_http_error(monkeypatch) -> None:
+    """A Solr collection-create failure surfaces as ``DemoUbiSeedError`` with
+    the ``ubi_seed/ensure_indices/...`` prefix so the orchestrator's 503
+    attribution stays uniform with the ES path."""
+
+    def _boom(client, collection, configset):  # noqa: ANN001
+        raise httpx.HTTPError("solr unreachable")
+
+    monkeypatch.setattr("backend.app.services.demo_ubi_seed._solr_ensure_collection", _boom)
+    client = MagicMock(spec=httpx.AsyncClient)
+
+    with pytest.raises(DemoUbiSeedError, match="ensure_indices"):
+        await ensure_ubi_indices(
+            engine_client=client,
+            engine_base_url="http://localhost:8983",
+            host_auth=("solr", "solr"),
+            engine_type="solr",
+        )
+
+
+async def test_seed_synthetic_ubi_solr_posts_json_docs_with_id(monkeypatch) -> None:
+    """Solr branch reuses ``_bulk_index_products`` (POST
+    ``/solr/{coll}/update?commit=true`` with a JSON doc list) and synthesizes
+    the required ``id`` uniqueKey + normalizes timestamps to ``...Z`` — it
+    NEVER hits the ES ``_bulk`` NDJSON path on the async client."""
+    indexed: list[tuple[str, list[dict[str, object]]]] = []
+
+    def _fake_bulk(client, collection, docs):  # noqa: ANN001
+        indexed.append((collection, docs))
+
+    monkeypatch.setattr("backend.app.services.demo_ubi_seed._solr_bulk_index", _fake_bulk)
+    client = MagicMock(spec=httpx.AsyncClient)
+    client.post = AsyncMock(side_effect=AssertionError("ES _bulk must not run on Solr"))
+
+    result = await seed_synthetic_ubi(
+        engine_client=client,
+        engine_base_url="http://localhost:8983",
+        host_auth=("solr", "solr"),
+        engine_type="solr",
+        scenario_slug="acme-kb-docs-solr",
+        target_application="acme-kb-docs",
+        queries=[_q("acme-kb-docs")],
+        events=[_ev("acme-kb-docs")],
+    )
+
+    assert result == 1
+    client.post.assert_not_called()
+    # Both collections written; each doc carries a synthesized id + Z-form ts.
+    collections = {c for c, _ in indexed}
+    assert collections == {"ubi_queries", "ubi_events"}
+    for collection, docs in indexed:
+        assert docs, f"{collection} got no docs"
+        for doc in docs:
+            assert "id" in doc, f"{collection} doc missing required uniqueKey id"
+            assert doc["application"] == "acme-kb-docs"
+            # +00:00 offset must have been rewritten to the Solr ...Z form.
+            ts = doc["timestamp"]
+            assert isinstance(ts, str)
+            assert ts.endswith("Z")
+            assert "+00:00" not in ts
+
+
+async def test_seed_synthetic_ubi_solr_wraps_http_error(monkeypatch) -> None:
+    """A Solr update failure surfaces as ``DemoUbiSeedError`` with the
+    ``ubi_seed/bulk_write/...`` prefix (same as the ES per-item path)."""
+
+    def _boom(client, collection, docs):  # noqa: ANN001
+        raise httpx.HTTPError("solr 500")
+
+    monkeypatch.setattr("backend.app.services.demo_ubi_seed._solr_bulk_index", _boom)
+    client = MagicMock(spec=httpx.AsyncClient)
+
+    with pytest.raises(DemoUbiSeedError, match="bulk_write"):
+        await seed_synthetic_ubi(
+            engine_client=client,
+            engine_base_url="http://localhost:8983",
+            host_auth=("solr", "solr"),
+            engine_type="solr",
+            scenario_slug="acme-kb-docs-solr",
+            target_application="acme-kb-docs",
+            queries=[_q("acme-kb-docs")],
+            events=[_ev("acme-kb-docs")],
         )

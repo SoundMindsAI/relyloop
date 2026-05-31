@@ -43,6 +43,15 @@ export interface ReseedStatusResponse {
   current_step: string | null;
   failed_reason: string | null;
   summary: ReseedSummary | null;
+  /**
+   * Ordered, oldest-first history of every distinct ``current_step`` the
+   * worker has set during this run. Rendered by ``ResetDemoStateButton`` as a
+   * scrolling log so the operator sees the full progression, not just the
+   * latest overwriting line. The worker dedupes consecutive duplicates and
+   * caps the list at the 500 most-recent entries. Matches
+   * ``backend.app.services.demo_seeding.ReseedStatusResponse.steps``.
+   */
+  steps: string[];
 }
 
 const STATUS_PATH = '/api/v1/_test/demo/reseed/status';
