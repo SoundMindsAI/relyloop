@@ -497,7 +497,7 @@ When working on any task (feature, bug fix, refactor, doc update), you will rout
    - `bug_<short-slug>` — pre-existing failure, regression, broken behavior
    - `chore_<short-slug>` — non-feature cleanup (debt, doc rot, naming)
    - `infra_<short-slug>` — tooling, CI, test framework, deploy infra
-2. Write `docs/00_overview/planned_features/<folder>/idea.md` following [`feature_templates/idea-template.md`](docs/00_overview/planned_features/feature_templates/idea-template.md). Include:
+2. Write `docs/00_overview/planned_features/<bucket>/<folder>/idea.md` following [`feature_templates/idea-template.md`](docs/00_overview/planned_features/feature_templates/idea-template.md). **`<bucket>` defaults to the current active-release bucket** — read the active release from [`state.md`](state.md) ("Where the roadmap sits" / current focus; today **MVP2 → `02_mvp2/`**). A discovery tripped over while building the current MVP is almost always that MVP's concern, so it goes there by default — NOT into `00_unsure/`. Only file elsewhere when the target is clearly a *different* release: GA-hardening → `04_ga/`, Observable/MVP3 → `03_mvp3/`, defer-until-incident → `99_backlog/`. `00_unsure/` is reserved for the genuinely-rare "I truly can't tell which release" case. Include:
    - **Origin**: how you noticed it (which PR / phase gate / story / conversation)
    - **Problem**: what's wrong, with `file:line` citations where you can
    - **Why deferred**: why you didn't fix it inline (almost always: "out of scope for current task")
