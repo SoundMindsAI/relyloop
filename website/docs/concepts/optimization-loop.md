@@ -40,7 +40,7 @@ query-time space at once instead of one slice.
 Each candidate is scored by running your **query set** against the engine and
 comparing the ranked results to your **judgments** with
 [`ir_measures`](https://ir-measur.es/) — a provider-abstracted IR-evaluation
-engine. You get cut-aware metrics (nDCG\@k, ERR, precision\@k, …) computed the
+engine. You get cut-aware metrics (nDCG@k, ERR, precision@k, …) computed the
 same way regardless of engine.
 
 ## Where the loop's output goes

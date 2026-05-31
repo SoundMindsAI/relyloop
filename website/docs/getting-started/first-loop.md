@@ -43,7 +43,7 @@ The study hands the search space to Optuna's TPE sampler. Each **trial**:
 2. Renders your query templates with those values.
 3. Runs the query set against the cluster through the engine adapter.
 4. Scores the ranked results against your judgments with `ir_measures`
-   (nDCG, ERR, precision\@k, and friends).
+   (nDCG, ERR, precision@k, and friends).
 
 TPE uses the scores so far to propose more promising parameter sets — thousands
 of trials, converging far faster than a grid sweep.

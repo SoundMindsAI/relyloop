@@ -25,8 +25,8 @@ trustworthy.
 
 Trials are scored with [`ir_measures`](https://ir-measur.es/), which computes
 standard information-retrieval metrics over the ranked results versus your
-judgments. The study optimizes a chosen objective metric — commonly **nDCG\@k**,
-but ERR, precision\@k, and others are available. Because `ir_measures`
+judgments. The study optimizes a chosen objective metric — commonly **nDCG@k**,
+but ERR, precision@k, and others are available. Because `ir_measures`
 abstracts the metric backend, the number means the same thing whether the
 engine underneath was Elasticsearch, OpenSearch, or Solr.
 
