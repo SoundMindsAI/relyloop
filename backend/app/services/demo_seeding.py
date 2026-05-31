@@ -49,6 +49,12 @@ from backend.app.domain.demo.synthetic_ubi import (
     UbiRung,
     fabricate_ubi_for_scenario,
 )
+from backend.app.scripts.seed_solr_products import (
+    _bulk_index_products as _solr_bulk_index,
+)
+from backend.app.scripts.seed_solr_products import (
+    _ensure_collection as _solr_ensure_collection,
+)
 from backend.app.services.demo_ubi_seed import (
     DemoUbiSeedError,
     ensure_ubi_indices,
@@ -450,6 +456,76 @@ async def _get(
     if not response.content:
         return {}
     return cast("dict[str, Any]", response.json())
+
+
+# ---------------------------------------------------------------------------
+# Solr scenario seeding (infra_adapter_solr Story A13 completion)
+#
+# Solr collections are created from configsets, not from an ES-style JSON
+# mapping — so the ``acme-kb-docs-solr`` demo scenario carries no
+# ``index_mapping`` key and the ES PUT-index path KeyErrors. This helper
+# replaces the three ES calls (PUT index_mapping / per-doc PUT / _refresh)
+# with the Solr equivalents, reusing the canonical sync logic from
+# ``backend.app.scripts.seed_solr_products`` (which uploads the configset to
+# ZooKeeper, creates the collection, and bulk-indexes with a commit). The
+# sync functions take an ``httpx.Client`` with a ``base_url``; we run them off
+# the event loop via ``asyncio.to_thread`` to avoid drift from a second async
+# port. The local Compose Solr is security-disabled, so ``host_auth`` is
+# harmless either way — we pass it through for parity with real operator
+# clusters that DO enable auth.
+# ---------------------------------------------------------------------------
+
+
+def _seed_solr_scenario_sync(
+    engine_base: str,
+    target: str,
+    configset: str,
+    scenario_docs: list[dict[str, Any]],
+    host_auth: _AuthTuple | None,
+) -> None:
+    """Blocking Solr seed: configset UPLOAD → collection CREATE → bulk index.
+
+    Runs inside :func:`asyncio.to_thread`. Reuses the canonical sync helpers
+    from ``seed_solr_products`` so the configset-zip / collection-create /
+    commit logic never drifts. The scenario docs are the reseed's
+    ``{"id": ..., "doc": {...}}`` wrapper shape; we unwrap them to the flat
+    Solr doc shape (id merged into the body) before indexing.
+    """
+    flat_docs: list[dict[str, Any]] = [{"id": d["id"], **d["doc"]} for d in scenario_docs]
+    with httpx.Client(base_url=engine_base, timeout=30.0, auth=host_auth) as client:
+        _solr_ensure_collection(client, target, configset)
+        _solr_bulk_index(client, target, flat_docs)
+
+
+async def _seed_solr_scenario(
+    *,
+    engine_base: str,
+    target: str,
+    configset: str,
+    scenario_docs: list[dict[str, Any]],
+    host_auth: _AuthTuple | None,
+    slug: str,
+) -> None:
+    """Async wrapper: emit the lifecycle log, then run the blocking Solr seed.
+
+    Mirrors the per-call logging the ES path gets via :func:`_log_call_started`
+    so the reseed step trail records the Solr collection-create + index calls.
+    """
+    _log_call_started(
+        "POST", f"{engine_base}/solr/admin/collections?action=CREATE&name={target}", "engine"
+    )
+    _log_call_started("POST", f"{engine_base}/solr/{target}/update?commit=true", "engine")
+    try:
+        await asyncio.to_thread(
+            _seed_solr_scenario_sync,
+            engine_base,
+            target,
+            configset,
+            scenario_docs,
+            host_auth,
+        )
+    except httpx.HTTPError as exc:
+        raise DemoSeedingError(f"{slug}/solr_seed: {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -1307,32 +1383,50 @@ async def reseed_demo_state(
         progress.current_step = f"{slug}: indexing {len(scenario_docs)} docs into {target}"
         await _emit_progress(status_callback, progress)
 
-        # 2a. Engine: PUT index, PUT docs, POST _refresh.
-        await _put(
-            engine_client,
-            f"{engine_base}/{target}",
-            json=scenario["index_mapping"],
-            auth=host_auth,
-            client_label="engine",
-            step=f"{slug}/put_index",
-        )
-        for doc in scenario_docs:
+        # 2a. Engine: create the index/collection + load docs.
+        #
+        # Solr collections are built from configsets, not from an ES-style
+        # JSON mapping, so the ``acme-kb-docs-solr`` scenario carries no
+        # ``index_mapping`` key (it would KeyError on the ES path below).
+        # Branch on the Solr engine hint and route through the configset +
+        # collection-create + commit path instead. Every other scenario keeps
+        # the unchanged ES PUT-index / per-doc PUT / _refresh sequence.
+        if scenario.get("engine_type") == "solr":
+            await _seed_solr_scenario(
+                engine_base=engine_base,
+                target=target,
+                configset=cast("str", scenario["solr_configset"]),
+                scenario_docs=scenario_docs,
+                host_auth=host_auth,
+                slug=slug,
+            )
+            # Fall through to the shared 2b+ API path (cluster/template/...).
+        else:
             await _put(
                 engine_client,
-                f"{engine_base}/{target}/_doc/{doc['id']}",
-                json=doc["doc"],
+                f"{engine_base}/{target}",
+                json=scenario["index_mapping"],
                 auth=host_auth,
                 client_label="engine",
-                step=f"{slug}/put_doc",
+                step=f"{slug}/put_index",
             )
-        await _post(
-            engine_client,
-            f"{engine_base}/{target}/_refresh",
-            json=None,
-            auth=host_auth,
-            client_label="engine",
-            step=f"{slug}/refresh",
-        )
+            for doc in scenario_docs:
+                await _put(
+                    engine_client,
+                    f"{engine_base}/{target}/_doc/{doc['id']}",
+                    json=doc["doc"],
+                    auth=host_auth,
+                    client_label="engine",
+                    step=f"{slug}/put_doc",
+                )
+            await _post(
+                engine_client,
+                f"{engine_base}/{target}/_refresh",
+                json=None,
+                auth=host_auth,
+                client_label="engine",
+                step=f"{slug}/refresh",
+            )
 
         progress.current_step = f"{slug}: registering cluster + template + query set"
         await _emit_progress(status_callback, progress)
