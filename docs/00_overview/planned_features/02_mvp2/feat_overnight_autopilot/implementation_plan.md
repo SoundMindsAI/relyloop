@@ -374,7 +374,7 @@ async def get_study_chain(
 
 **Outcome:** `ui/src/components/studies/auto-followup-chain-panel.tsx` calls a new `useStudyChain(studyId)` hook (added to `ui/src/lib/api/studies.ts`) and renders the chain header, ordered link list with deltas, cumulative-lift row, best-config row (3-branch per D-11), and stop-reason row when the new render predicate (D-13) holds. Existing render rules for parent link + remaining-depth + direct-children table are preserved.
 
-**Insertion point:** the existing panel at `ui/src/components/studies/auto-followup-chain-panel.tsx` is 121 lines today. New summary block lands inside `<CardContent>` after the existing `{hasChildren && …}` block (line 116). Header `<CardTitle>` keeps the existing "Auto-followup chain" label and `auto_followup_chain` glossary key for back-compat — the new summary block has its own `<h3>` header "Overnight chain — {N} studies" under the rolled-up section.
+**Insertion point:** the existing panel at `ui/src/components/studies/auto-followup-chain-panel.tsx` is 120 lines today. New summary block lands inside `<CardContent>` after the existing `{hasChildren && …}` block (closing `)}` at line 116, before `</CardContent>` at line 117 — verified 2026-05-31). Header `<CardTitle>` keeps the existing "Auto-followup chain" label and `auto_followup_chain` glossary key for back-compat — the new summary block has its own `<h3>` header "Overnight chain — {N} studies" under the rolled-up section.
 
 **New files**
 
@@ -488,7 +488,7 @@ const CHAIN_STOP_REASON_PHRASE: Record<NonNullable<StudyChainResponse['stop_reas
 
 **Legacy behavior parity**
 
-No legacy behavior parity table — the existing panel is 121 LOC (under the 100-LOC delete/replace threshold's intent — see [implementation-plan-template.md L304](../../feature_templates/implementation-plan-template.md)) AND we are extending it in place, not deleting or migrating it. Every existing test case at `auto-followup-chain-panel.test.tsx:81-141` continues to pass unchanged — explicitly required by AC-12 and called out in DoD.
+No legacy behavior parity table — the existing panel is 120 LOC (under the 100-LOC delete/replace threshold's intent — see [implementation-plan-template.md L304](../../feature_templates/implementation-plan-template.md)) AND we are extending it in place, not deleting or migrating it. Every existing test case at `auto-followup-chain-panel.test.tsx:81-141` continues to pass unchanged — explicitly required by AC-12 and called out in DoD.
 
 **Definition of Done**
 
@@ -692,7 +692,7 @@ _None_ (helpers reused as-is).
 
 ### Reference: current component structure
 
-**`ui/src/components/studies/auto-followup-chain-panel.tsx`** — 121 LOC.
+**`ui/src/components/studies/auto-followup-chain-panel.tsx`** — 120 LOC.
 
 | Section | Lines | Description |
 |---|---|---|
@@ -814,7 +814,7 @@ The wizard hint mirrors the existing wizard helper-paragraph pattern at `create-
 
 ### Legacy behavior parity
 
-No legacy behavior parity table — no user-facing component >100 LOC is being deleted or migrated in this plan. `AutoFollowupChainPanel` is being extended in place (lines 1-121 remain; new block appended after line 116). The existing 7 vitest cases at `auto-followup-chain-panel.test.tsx:80-141` continue to pass unchanged; this is captured in Story 2.1 DoD.
+No legacy behavior parity table — no user-facing component >100 LOC is being deleted or migrated in this plan. `AutoFollowupChainPanel` is being extended in place (lines 1-120 remain; new block appended after line 116). The existing 7 vitest cases at `auto-followup-chain-panel.test.tsx:80-141` continue to pass unchanged; this is captured in Story 2.1 DoD.
 
 ### Client-side persistence
 
@@ -1038,9 +1038,9 @@ N/A — this feature uses no `localStorage` / `sessionStorage` / cookies.
 ## 9) Execution tracker
 
 ### Current sprint
-- [ ] Story 1.1 — Pure-domain chain summary helpers
-- [ ] Story 1.2 — Chain traversal repo helper
-- [ ] Story 1.3 — `GET /api/v1/studies/{id}/chain` router
+- [x] Story 1.1 — Pure-domain chain summary helpers
+- [x] Story 1.2 — Chain traversal repo helper
+- [x] Story 1.3 — `GET /api/v1/studies/{id}/chain` router
 - [ ] Story 2.1 — Extend `AutoFollowupChainPanel` + `useStudyChain` hook
 - [ ] Story 3.1 — Wizard relabel + Deep hint + glossary key
 - [ ] Story 4.1 — Tutorial + 3 docs/01_architecture updates + state.md
@@ -1116,7 +1116,7 @@ For every story, attach evidence:
 | `backend/app/db/repo/study.py:182-208` is `list_children_of_study` | Read repo/study.py:182-208 | Verified |
 | `repo.__all__` exports `list_children_of_study` | Read repo/__init__.py | Verified |
 | `backend/app/domain/study/auto_followup.py` exports `compute_first_decile_max` + `_direction_normalized_lift` | Read auto_followup.py:77-227 | Verified |
-| `ui/src/components/studies/auto-followup-chain-panel.tsx` is 121 LOC, mount at `/studies/[id]/page.tsx:109` | Read both files | Verified |
+| `ui/src/components/studies/auto-followup-chain-panel.tsx` is 120 LOC, mount at `/studies/[id]/page.tsx:109` | Read both files | Verified (120 LOC; insertion anchors line 116/117 confirmed) |
 | `ui/src/lib/glossary.ts:866-899` carries `auto_followup_depth`, `auto_followup_chain`, `lift_gate`, `auto_followup_budget_skip` | Read glossary.ts:855-900 | Verified |
 | `AUTO_FOLLOWUP_DEPTH_WIZARD_VALUES = [0, 1, 2, 3, 4, 5]` at `ui/src/lib/enums.ts:111` | grep | Verified |
 | `useStudy`, `useStudyChildren`, `useCancelStudy` patterns at `ui/src/lib/api/studies.ts` | Read | Verified |
