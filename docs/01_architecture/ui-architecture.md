@@ -38,7 +38,7 @@ Per umbrella spec §22, MVP1 ships these top-level routes:
 | `/templates` | Templates list | `feat_studies_ui` |
 | `/templates/{id}` | Template editor | `feat_studies_ui` |
 | `/studies` | Studies list | `feat_studies_ui` |
-| `/studies/{id}` | Study detail (live trial table + digest) | `feat_studies_ui` |
+| `/studies/{id}` | Study detail (live trial table + digest; the `AutoFollowupChainPanel` renders a rolled-up **Overnight chain** summary — ordered links, cumulative lift, best-config, stop reason — fed by `useStudyChain` against `GET /studies/{id}/chain`. Refetch contract per `feat_overnight_autopilot` D-10; render predicate D-13; best-config 3-branch D-11) | `feat_studies_ui` |
 | `/proposals` | Proposals list | `feat_proposals_ui` |
 | `/proposals/{id}` | Proposal detail (config diff + metric delta + PR link) | `feat_proposals_ui` |
 
