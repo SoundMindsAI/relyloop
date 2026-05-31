@@ -117,6 +117,16 @@ export function ResetDemoStateButton(): React.ReactElement {
     return Math.round((status.scenarios_completed / status.scenarios_total) * 100);
   }
 
+  // Auto-scroll the step-history log to the newest entry as steps arrive.
+  // ``steps`` is appended-to by the worker (oldest-first), so the freshest
+  // line is at the bottom; keep it pinned into view on each poll tick.
+  const steps = status?.steps ?? [];
+  const logRef = useRef<HTMLOListElement | null>(null);
+  useEffect(() => {
+    const el = logRef.current;
+    if (el != null) el.scrollTop = el.scrollHeight;
+  }, [steps.length]);
+
   return (
     <>
       <Button
@@ -180,6 +190,25 @@ export function ResetDemoStateButton(): React.ReactElement {
               </AlertDialogDescription>
             )}
           </AlertDialogHeader>
+          {steps.length > 0 && (
+            <div className="space-y-1" data-testid="reset-demo-state-log">
+              <div className="text-xs font-medium text-muted-foreground">Step log</div>
+              <ol
+                ref={logRef}
+                className="max-h-40 overflow-y-auto rounded border bg-muted/40 p-2 font-mono text-xs leading-relaxed"
+                data-testid="reset-demo-state-log-list"
+              >
+                {steps.map((step, i) => (
+                  // The history is append-only and may contain repeated
+                  // (non-adjacent) step strings, so the index is the stable
+                  // key here — entries are never reordered or removed.
+                  <li key={i} className="whitespace-pre-wrap break-words">
+                    {step}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
           <AlertDialogFooter>
             {!isRunning && !isTerminal && (
               <>
