@@ -123,8 +123,10 @@ from backend.app.db.repo.query_template import (
     list_query_templates,
 )
 from backend.app.db.repo.study import (
+    ChainTraversalResult,
     count_studies,
     create_study,
+    get_chain_for_study,
     get_study,
     hard_delete_study,
     list_children_of_study,
@@ -189,6 +191,10 @@ __all__ = [
     "list_running_study_ids",
     "list_studies",
     "list_trials_paginated",
+    # feat_overnight_autopilot Story 1.2 — chain traversal for the rolled-up
+    # overnight-chain summary (FR-3).
+    "ChainTraversalResult",
+    "get_chain_for_study",
     # feat_llm_judgments Story 1.2 (judgments child table + judgment_list extensions)
     "bulk_create_judgments",
     "count_judgment_lists",
