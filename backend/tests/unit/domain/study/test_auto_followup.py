@@ -17,6 +17,7 @@ from types import SimpleNamespace
 import pytest
 
 from backend.app.domain.study.auto_followup import (
+    AUTO_FOLLOWUP_LIFT_EPSILON,
     ChainGateDecision,
     ChainGateOutcome,
     compute_first_decile_max,
@@ -295,3 +296,34 @@ def test_chain_gate_outcome_is_frozen() -> None:
     except Exception:  # noqa: BLE001
         return
     raise AssertionError("ChainGateOutcome should be frozen (immutable)")
+
+
+# ---------------------------------------------------------------------------
+# feat_study_convergence_indicator Story 1.1 — epsilon hoist value-lock
+# ---------------------------------------------------------------------------
+
+
+class TestAutoFollowupLiftEpsilonHoist:
+    """Story 1.1 value-lock: the module-level ``AUTO_FOLLOWUP_LIFT_EPSILON``
+    constant exists, equals 0.005, and is the value both the dataclass
+    field default and the ``evaluate_chain_gate`` kwarg default resolve
+    to. Uses value equality (``==``) per plan §0 — never ``is``."""
+
+    def test_constant_equals_legacy_literal(self) -> None:
+        assert AUTO_FOLLOWUP_LIFT_EPSILON == 0.005
+
+    def test_dataclass_field_default_matches_constant(self) -> None:
+        outcome = ChainGateOutcome(decision=ChainGateDecision.ENQUEUE)
+        assert outcome.epsilon == AUTO_FOLLOWUP_LIFT_EPSILON
+        assert outcome.epsilon == 0.005
+
+    def test_evaluate_chain_gate_kwarg_default_matches_constant(self) -> None:
+        # The kwarg default flows into the returned outcome's ``epsilon``
+        # field. Driving evaluate_chain_gate without passing ``epsilon=``
+        # asserts the kwarg default resolves to the hoisted constant.
+        parent = _study(best_metric=0.6)
+        # 50 trials, all metric 0.4 → first_decile_max = 0.4, lift = 0.2 > 0.005 → ENQUEUE
+        trials = [_trial(num=i, metric=0.4) for i in range(50)]
+        outcome = evaluate_chain_gate(parent, trials)
+        assert outcome.epsilon == AUTO_FOLLOWUP_LIFT_EPSILON
+        assert outcome.epsilon == 0.005
