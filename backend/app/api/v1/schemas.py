@@ -30,6 +30,7 @@ from backend.app.adapters.protocol import TargetInfo
 from backend.app.core.settings import get_settings
 from backend.app.domain.study.chain_summary import ChainStopReason as ChainStopReason
 from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
+from backend.app.domain.study.convergence import ConvergenceShape as ConvergenceShape
 from backend.app.domain.study.followups import FollowupItem as FollowupItem
 
 # ``ConfidenceShape`` is defined in :mod:`backend.app.domain.study.confidence`
@@ -823,6 +824,20 @@ class StudyDetail(BaseModel):
     ``best_trial_id`` points at a deleted row — AC-3a). Otherwise a partial
     or full :class:`ConfidenceShape` per FR-7's graceful-degradation
     contract."""
+    convergence: ConvergenceShape | None = None
+    """Per-study convergence verdict (feat_study_convergence_indicator FR-4).
+
+    ``None`` for in-flight studies (``queued`` / ``running``), studies whose
+    usable Optuna-trial count is below ``CONVERGENCE_FLAT_MIN_COMPLETE`` (5),
+    or the graceful-degrade null paths emitted by ``fetch_study_convergence``
+    (invalid persisted ``direction``; classifier exception). Otherwise a
+    populated :class:`ConvergenceShape` carrying the verdict
+    (``converged`` / ``still_improving`` / ``too_few_trials``), the
+    best-so-far curve, the trailing-window numerics, and the comparison
+    constants (epsilon, warmup floor) for the UI panel and the digest
+    narrative. Distinct from ``confidence.convergence.regime`` — that field
+    classifies *winner-trial timing* (early_held / late_rising / noisy),
+    while this field classifies *metric plateau*."""
 
 
 class StudyChainLink(BaseModel):

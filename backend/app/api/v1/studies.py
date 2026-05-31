@@ -77,6 +77,7 @@ from backend.app.domain.study.search_space import (
 )
 from backend.app.services import study_state
 from backend.app.services.study_confidence import fetch_study_confidence
+from backend.app.services.study_convergence import fetch_study_convergence
 from backend.app.services.study_preflight import MIN_OVERLAP, probe_judgment_overlap
 
 router = APIRouter()
@@ -133,6 +134,7 @@ def _decode_trial_cursor(raw: str, sort_key: str) -> tuple[Any, str]:
 async def _detail(db: AsyncSession, row: Study) -> StudyDetail:
     summary = await repo.aggregate_trials_summary(db, row.id)
     confidence = await fetch_study_confidence(db, row)
+    convergence = await fetch_study_convergence(db, row)
     return StudyDetail(
         id=row.id,
         name=row.name,
@@ -163,6 +165,7 @@ async def _detail(db: AsyncSession, row: Study) -> StudyDetail:
             best_primary_metric=summary.best_primary_metric,
         ),
         confidence=confidence,
+        convergence=convergence,
     )
 
 
