@@ -20,7 +20,8 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **0 / 1** (0%) — feat_/infra_/chore_/epic_ past idea stage |
+| Filed under BACKLOG | **3** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **0 / 1** (0%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **3** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |

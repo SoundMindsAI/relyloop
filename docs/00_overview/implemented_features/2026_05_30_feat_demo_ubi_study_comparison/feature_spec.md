@@ -414,7 +414,7 @@ These are install-side Python literals; they do not appear in any DB table or AP
 - `backend/tests/integration/services/test_demo_seeding_ubi_fast.py` — fast-lane integration test (<60s, always-on; FR-11).
 - `backend/tests/integration/services/test_demo_seeding_ubi_full.py` — heavy-lane integration test (full reseed, gated by `SKIP_HEAVY_CI`; FR-11).
 - `ui/tests/e2e/demo-ubi.spec.ts` — E2E spec (FR-12).
-- `docs/00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison/phase2_idea.md` — phase 2 tracking artifact (spec-finalization Step 10).
+- Phase 2 (side-by-side study-comparison view) was split out at finalization to [`feat_ubi_llm_study_comparison`](../../planned_features/02_mvp2/feat_ubi_llm_study_comparison/idea.md) (originally a `phase2_idea.md` tracking artifact, spec-finalization Step 10).
 
 ### Required invariants
 
