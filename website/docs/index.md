@@ -70,12 +70,16 @@ search-serving path.
 ## How it compares
 
 RelyLoop is not the first tool in this space and doesn't try to replace the
-ones already there. Quepid is the strongest interactive workbench for
-human-rated judgment management; the OpenSearch Relevance Agent does
-conversational, in-cluster tuning for OpenSearch-only shops. What neither
-does — and what RelyLoop owns — is **autonomous, full-search-space Bayesian
-optimization across all three major OSS engines, with a Git-PR apply path**.
-OpenSearch's own optimizer is a 66-cell grid restricted to hybrid weights and
-has no apply path by explicit RFC decision. The full, citation-backed matrix
-lives in the repo's [comparison
+ones already there. The difference is **the loop itself**. Quepid is a superb
+interactive workbench — but a human drives every iteration. The OpenSearch
+Relevance Agent recommends configurations conversationally — but doesn't run
+multi-thousand-trial sweeps. OpenSearch's Hybrid Search Optimizer is a fixed
+66-cell grid over hybrid weights, with no apply path by explicit RFC decision.
+
+RelyLoop instead runs a **[Karpathy-style optimization loop](concepts/optimization-loop.md)** —
+propose, evaluate, select, repeat — *autonomously*, across thousands of
+Bayesian trials over the full query-time search space, on all three major OSS
+engines, ending each run as a reviewable Pull Request. None of the others
+close that loop and hand off through Git; that combination is what RelyLoop
+owns. The full, citation-backed matrix lives in the repo's [comparison
 doc](https://github.com/SoundMindsAI/relyloop/blob/main/docs/07_research/comparison.md).
