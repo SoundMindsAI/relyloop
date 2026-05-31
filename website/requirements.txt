@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Build dependencies for the RelyLoop public site (https://relyloop.com).
+# Pinned to exact versions for reproducible CI builds (see
+# .github/workflows/deploy-docs.yml). Bump deliberately, not via `>=`.
+#
+# The [imaging] extra (Pillow + CairoSVG) is included so social cards are a
+# one-line opt-in, but the `social` plugin is intentionally NOT enabled in
+# mkdocs.yml — it needs system Cairo libraries that the CI runner lacks.
+# The `blog` and `tags` plugins ship inside mkdocs-material; no extra package.
+
+mkdocs-material[imaging]==9.7.6
+pymdown-extensions==10.21.3
