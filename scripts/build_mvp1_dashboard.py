@@ -1640,6 +1640,11 @@ def _classify_kpi(features: list[Feature]) -> dict[str, int]:
     kpi["total_pending"] = (
         kpi["priority_p0"] + kpi["priority_p1"] + kpi["priority_p2"] + kpi["priority_backlog"]
     )
+    # Every folder filed under this release regardless of stage (done + specced
+    # not-done + idea backlog + bugs). This is the denominator most operators
+    # mean by "scoped into MVP2" — surfaced so the specced-features ratio (which
+    # excludes the idea backlog) can't be misread as release completion.
+    kpi["total_features"] = len(features)
     return kpi
 
 
@@ -1925,9 +1930,9 @@ def render_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
   <h2>{release_label} Progress</h2>
   <div class="kpi-row">
     <div class="kpi {"complete" if pct == 100 else ""}">
-      <div class="label">Scoped items done</div>
+      <div class="label">Specced features done</div>
       <div class="value">{kpi["done_features"]} / {kpi["scoped_features"]}</div>
-      <div class="sub">{pct}% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="sub">{pct}% specced · {kpi["total_features"]} filed under {release_label}</div>
       <div class="bar"><span style="width:{pct}%"></span></div>
     </div>
     <div class="kpi {"warn" if kpi["total_pending"] else "complete"}">
@@ -2220,9 +2225,15 @@ def render_markdown(features: list[Feature], release: str = DEFAULT_RELEASE) -> 
     lines.append("| Metric | Value |")
     lines.append("|---|---|")
     lines.append(
-        f"| Scoped items done | "
+        f"| Filed under {release_label} | "
+        f"**{kpi['total_features']}** folders total "
+        "(done + specced not-done + idea backlog + bugs) |"
+    )
+    lines.append(
+        f"| Specced features done | "
         f"**{kpi['done_features']} / {kpi['scoped_features']}** ({pct}%) "
-        f"— feat_/infra_/chore_/epic_ past idea stage |"
+        "— of features *past the idea stage* (those with a spec); the idea "
+        "backlog below is NOT in this denominator, so 100% ≠ release complete |"
     )
     lines.append(
         f"| Pending work | **{kpi['total_pending']}** items "

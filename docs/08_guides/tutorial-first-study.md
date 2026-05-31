@@ -431,8 +431,8 @@ instrumented cluster:
 Every UBI surface on the three synthetic clusters carries a
 **"Synthetic demo data"** chip with a tooltip explaining the data was
 fabricated by the demo reseed. The chip never appears on real operator
-clusters or on `news-search-staging`. Phase 2 of
-[`feat_demo_ubi_study_comparison`](../00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison/phase2_idea.md)
+clusters or on `news-search-staging`. The deferred Phase 2 feature
+[`feat_ubi_llm_study_comparison`](../00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison/idea.md)
 will add a side-by-side **Compare two studies** view so you can see
 the LLM-vs-UBI study output diff for the same query set.
 
