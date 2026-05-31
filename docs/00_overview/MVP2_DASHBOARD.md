@@ -6,24 +6,30 @@ _Reflects feature-folder state as of **2026-05-31** (latest mtime of any planned
 
 ## Next up
 
-All scoped MVP2 features shipped 🎉
+**[feat_overnight_autopilot](planned_features/02_mvp2/feat_overnight_autopilot/feature_spec.md)** — Feature, currently in **Plan**
 
-Pull from the Idea backlog or capture a new feature spec.
+> an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled "🌙 Run overnight (compound automatically)" toggle with explicit copy about the human-merge boundary, and (b) wake up
+
+Plan approved; run /impl-execute to ship
+
+```bash
+/impl-execute docs/00_overview/planned_features/02_mvp2/feat_overnight_autopilot/implementation_plan.md --all
+```
 
 ## MVP2 Progress
 
 | Metric | Value |
 |---|---|
-| Filed under MVP2 | **20** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **5 / 5** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **15** items (every not-done feat/infra/chore/bug across all priorities) |
+| Filed under MVP2 | **24** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **5 / 10** (50%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **19** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 11 important to file, not blocking |
+| → P2 (default) | 15 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 3 |
-| Legacy "Path to MVP2" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 6 idea-only feat/infra (not yet scoped into MVP2) |
+| Legacy "Path to MVP2" | 14 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -42,33 +48,38 @@ Pull from the Idea backlog or capture a new feature spec.
 
 _None._
 
-### Plan (0)
+### Plan (5)
 
-_None._
+| # | Priority | Feature | Type | One-liner | Depends on | Status |
+|---|---|---|---|---|---|---|
+| 1 | P2 | [feat_overnight_autopilot](planned_features/02_mvp2/feat_overnight_autopilot/feature_spec.md) | Feature | an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled "🌙 Run overnight (compound automatically)" toggle with explicit copy about th | — | [PR #223](https://github.com/SoundMindsAI/relyloop/pull/223) |
+| 2 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
+| 3 | P2 | [feat_study_convergence_indicator](planned_features/02_mvp2/feat_study_convergence_indicator/feature_spec.md) | Feature | Every completed study carries a plain-language **convergence verdict** — `converged` / `still_improving` / `too_few_trials` — backed by a best-metric-so-far curve. | — | [PR #316](https://github.com/SoundMindsAI/relyloop/pull/316) |
+| 4 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 5 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
 
 ### Spec (0)
 
 _None._
 
-### Idea (15)
+### Idea (14)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [feat_overnight_autopilot](planned_features/02_mvp2/feat_overnight_autopilot/idea.md) | Feature | The "Karpathy overnight loop" is already implemented and already autonomous, but an operator has no way to discover or trust it: | — | Idea — surfaced from an operator dogfooding review (2026-05-29). The autonomous-chaining *engine* already shipped; this is the ergonomics layer that makes it discoverable. |
-| 2 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/idea.md) | Feature | A relevance pipeline runs in stages: (1) query understanding / normalization → (2) retrieval → (3) ranking / boosting → (4) re-ranking. RelyLoop tunes **stage 3 only**. But stage 1 is often where the  | — | Idea — scoped to MVP2 (moved from `00_unsure/` 2026-05-29). The core capability is small and fits the existing parameter model. One **gating design fork remains** — the prod-reproducibility question (below) — which `/spec-gen` must resolve; if no clean deployment path exists, this idea may be deferred out of MVP2 at spec time. Tracked as a release item rather than parked because the operator has a clear MVP2 intent and the theme fits the "Real Signals" / relevance-quality story. |
-| 3 | P2 | [feat_study_convergence_indicator](planned_features/02_mvp2/feat_study_convergence_indicator/idea.md) | Feature | After a study completes, the UI shows the best metric and a trials table, but **nothing tells the operator whether the metric had plateaued or was still climbing when the study stopped.** This is the  | — | Idea — surfaced from an operator dogfooding review (2026-05-29). The feedback half of the "overnight autopilot ergonomics" theme. |
-| 4 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/idea.md) | Feature | A demo operator who wants to compare the UBI-derived study against the LLM-derived study on the same scenario must open both study detail pages in two browser tabs and mentally diff: | — | Idea — split out from `feat_demo_ubi_study_comparison` Phase 1 at finalization (PR #320) |
-| 5 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/idea.md) | Chore | The async flow's contract: | — | Idea — chore captured during PR #286 |
-| 6 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
-| 7 | P2 | [chore_template_library_expansion](planned_features/02_mvp2/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
-| 8 | P2 | [chore_ubi_hybrid_template_render](planned_features/02_mvp2/chore_ubi_hybrid_template_render/idea.md) | Chore | Idea — contract decision deferred (NOT a worker bug) | — | Idea — contract decision deferred (NOT a worker bug) |
-| 9 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/idea.md) | Chore | `UbiReader._scan_ubi_events` / `_scan_ubi_queries` each issue ONE `search_batch` (a `size`-limited query). To stay under the engine result-window they now cap at 10000 rows per (target, window).… | — | Idea — deferred from `feat_ubi_judgments` (found during the rung-3 E2E) |
-| 10 | P2 | [bug_seed_meaningful_demos_silent_bulk_errors](planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep |
-| 11 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 12 | Backlog | [feat_fts_rank_ordering](planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
-| 13 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| 14 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 15 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
+| 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/idea.md) | Feature | Phase 1 ships option (b) of the prod-reproducibility fork — the PR body documents the chosen normalizer and embeds a Python snippet, and the operator's merge contract is "you must replicate this norma | — | Idea — deferred Phase 3 of [`feat_query_normalization_tuning`](../feat_query_normalization_tuning/feature_spec.md) (§3 Phase boundaries, §19 D-1). Split into its own planned-features folder 2026-05-31 (was `feat_query_normalization_tuning/phase3_idea.md`). |
+| 2 | P2 | [feat_overnight_studies_summary_card](planned_features/02_mvp2/feat_overnight_studies_summary_card/idea.md) | Feature | Phase 1 makes the overnight chain reviewable from the study detail page — but the operator has to know to go to *some* study in the chain. If they wake up and load `/studies`, the list looks identical | — | Idea — deferred Phase 2 work from [`feat_overnight_autopilot/feature_spec.md`](../feat_overnight_autopilot/feature_spec.md) §3 Phase boundaries. Split into its own planned-features folder 2026-05-31 (was `feat_overnight_autopilot/phase2_idea.md`). |
+| 3 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/idea.md) | Feature | Phase 1 ships four built-in Categorical bundles, an English-only ASCII-apostrophe contraction dictionary, and a Python-only PR-body snippet. Three follow-on capabilities are deferred until operator si | — | Idea — deferred Phase 2 of [`feat_query_normalization_tuning`](../feat_query_normalization_tuning/feature_spec.md) (§3 Phase boundaries, §19 D-4 / D-6 / D-7). Split into its own planned-features folder 2026-05-31 (was `feat_query_normalization_tuning/phase2_idea.md`). |
+| 4 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/idea.md) | Chore | The `<UbiRungBadge>` component ([`ui/src/components/clusters/ubi-rung-badge.tsx`](../ui/src/components/clusters/ubi-rung-badge.tsx)) renders the UBI-readiness rung (rung_0 → rung_3) for a cluster, but | — | Idea — split out from `feat_ubi_llm_study_comparison` §3 (out-of-scope decision) at spec generation |
+| 5 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/idea.md) | Chore | The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper  | — | Idea — surfaced during `feat_study_preflight_overlap_probe` (PR ___) phase-gate review |
+| 6 | P2 | [chore_template_library_expansion](planned_features/02_mvp2/chore_template_library_expansion/idea.md) | Chore | Three connected gaps: | — | Idea — surfaced during a UX review of parameter-tuning ergonomics on 2026-05-19. |
+| 7 | P2 | [chore_ubi_hybrid_template_render](planned_features/02_mvp2/chore_ubi_hybrid_template_render/idea.md) | Chore | Idea — contract decision deferred (NOT a worker bug) | — | Idea — contract decision deferred (NOT a worker bug) |
+| 8 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/idea.md) | Chore | `UbiReader._scan_ubi_events` / `_scan_ubi_queries` each issue ONE `search_batch` (a `size`-limited query). To stay under the engine result-window they now cap at 10000 rows per (target, window).… | — | Idea — deferred from `feat_ubi_judgments` (found during the rung-3 E2E) |
+| 9 | P2 | [bug_seed_meaningful_demos_silent_bulk_errors](planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep |
+| 10 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 11 | Backlog | [feat_fts_rank_ordering](planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
+| 12 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
+| 13 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
+| 14 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
 
 ## Dependency graph
 
@@ -81,6 +92,16 @@ graph LR
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_demo_seeding_integration_tests_rewrite["demo seeding integration tests rewrite"]
+  class chore_demo_seeding_integration_tests_rewrite plan;
+  feat_overnight_autopilot["overnight autopilot"]
+  class feat_overnight_autopilot plan;
+  feat_query_normalization_tuning["query normalization tuning"]
+  class feat_query_normalization_tuning plan;
+  feat_study_convergence_indicator["study convergence indicator"]
+  class feat_study_convergence_indicator plan;
+  feat_ubi_llm_study_comparison["ubi llm study comparison"]
+  class feat_ubi_llm_study_comparison plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard["study sub warmup guard"]

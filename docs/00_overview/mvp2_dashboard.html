@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up done">
-    <div class="eyebrow">Next up</div>
-    <div class="title">All scoped MVP2 features shipped 🎉</div>
-    <div class="one-liner">
-      Pull from the Idea backlog or capture a new feature spec.
-    </div>
+  <div class="next-up">
+    <div class="eyebrow">Next up — Feature, currently in <strong>Plan</strong></div>
+    <div class="title"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_autopilot/feature_spec.md">Overnight Autopilot</a></div>
+    <div class="one-liner">an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled &quot;🌙 Run overnight (compound automatically)&quot; toggle with explicit copy about the human-merge boundary, and (b) wake up </div>
+    <div class="stage-hint">Plan approved; run /impl-execute to ship</div>
+    <code class="cmd">/impl-execute docs/00_overview/planned_features/02_mvp2/feat_overnight_autopilot/implementation_plan.md --all</code>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP2 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi complete">
+    <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">5 / 5</div>
-      <div class="sub">100% specced · 20 filed under MVP2</div>
-      <div class="bar"><span style="width:100%"></span></div>
+      <div class="value">5 / 10</div>
+      <div class="sub">50% specced · 24 filed under MVP2</div>
+      <div class="bar"><span style="width:50%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">15</div>
+      <div class="value">19</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">11</div>
+      <div class="value">15</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">9</div>
+      <div class="value">14</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      6 idea-only feat/infra folders (not yet scoped into MVP2)
+      5 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,68 +463,55 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">15</span></h3>
+  <h3>Idea <span class="count">14</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_autopilot">Overnight Autopilot</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration">Apply Path Normalizer Declaration</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">The &quot;Karpathy overnight loop&quot; is already implemented and already autonomous, but an operator has no way to discover or trust it:</div>
+  <div class="one-liner">Phase 1 ships option (b) of the prod-reproducibility fork — the PR body documents the chosen normalizer and embeds a Python snippet, and the operator&#x27;s merge contract is &quot;you must replicate this norma</div>
 
 
 </div>
 
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning">Query Normalization Tuning</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_studies_summary_card">Overnight Studies Summary Card</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">A relevance pipeline runs in stages: (1) query understanding / normalization → (2) retrieval → (3) ranking / boosting → (4) re-ranking. RelyLoop tunes **stage 3 only**. But stage 1 is often where the </div>
+  <div class="one-liner">Phase 1 makes the overnight chain reviewable from the study detail page — but the operator has to know to go to *some* study in the chain. If they wake up and load `/studies`, the list looks identical</div>
 
 
 </div>
 
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_study_convergence_indicator">Study Convergence Indicator</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline">Query Normalizer Typed Pipeline</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">After a study completes, the UI shows the best metric and a trials table, but **nothing tells the operator whether the metric had plateaued or was still climbing when the study stopped.** This is the </div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison">Ubi Llm Study Comparison</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">A demo operator who wants to compare the UBI-derived study against the LLM-derived study on the same scenario must open both study detail pages in two browser tabs and mentally diff:</div>
+  <div class="one-liner">Phase 1 ships four built-in Categorical bundles, an English-only ASCII-apostrophe contraction dictionary, and a Python-only PR-body snippet. Three follow-on capabilities are deferred until operator si</div>
 
 
 </div>
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite">Demo Seeding Integration Tests Rewrite</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_cluster_detail_rung_badge">Cluster Detail Rung Badge</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
     <span class="badge priority" data-priority="P2">P2</span>
 
   </div>
-  <div class="one-liner">The async flow&#x27;s contract:</div>
+  <div class="one-liner">The `&lt;UbiRungBadge&gt;` component ([`ui/src/components/clusters/ubi-rung-badge.tsx`](../ui/src/components/clusters/ubi-rung-badge.tsx)) renders the UBI-readiness rung (rung_0 → rung_3) for a cluster, but</div>
 
 
 </div>
@@ -667,7 +654,71 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">0</span></h3>
+  <h3>Plan <span class="count">5</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_autopilot/feature_spec.md">Overnight Autopilot</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/223">PR #223</a>
+  </div>
+  <div class="one-liner">an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled &quot;🌙 Run overnight (compound automatically)&quot; toggle with explicit copy about th</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md">Query Normalization Tuning</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator&#x27;s judgment set — whether lowercasing, trimming, or contractio</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_study_convergence_indicator/feature_spec.md">Study Convergence Indicator</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/316">PR #316</a>
+  </div>
+  <div class="one-liner">Every completed study carries a plain-language **convergence verdict** — `converged` / `still_improving` / `too_few_trials` — backed by a best-metric-so-far curve.</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md">Ubi Llm Study Comparison</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/320">PR #320</a>
+  </div>
+  <div class="one-liner">A single dedicated route `/studies/compare?a={id}&amp;b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md">Demo Seeding Integration Tests Rewrite</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/286">PR #286</a>
+  </div>
+  <div class="one-liner">The 9 skipped cases are rewritten to the async &quot;POST + poll-until-terminal&quot; shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran</div>
+
+
+</div>
 
 </div>
 
@@ -756,6 +807,16 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_demo_seeding_integration_tests_rewrite[&quot;demo seeding integration tests rewrite&quot;]
+  class chore_demo_seeding_integration_tests_rewrite plan;
+  feat_overnight_autopilot[&quot;overnight autopilot&quot;]
+  class feat_overnight_autopilot plan;
+  feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
+  class feat_query_normalization_tuning plan;
+  feat_study_convergence_indicator[&quot;study convergence indicator&quot;]
+  class feat_study_convergence_indicator plan;
+  feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
+  class feat_ubi_llm_study_comparison plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -773,6 +834,16 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
+  chore_demo_seeding_integration_tests_rewrite[&quot;demo seeding integration tests rewrite&quot;]
+  class chore_demo_seeding_integration_tests_rewrite plan;
+  feat_overnight_autopilot[&quot;overnight autopilot&quot;]
+  class feat_overnight_autopilot plan;
+  feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
+  class feat_query_normalization_tuning plan;
+  feat_study_convergence_indicator[&quot;study convergence indicator&quot;]
+  class feat_study_convergence_indicator plan;
+  feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
+  class feat_ubi_llm_study_comparison plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
