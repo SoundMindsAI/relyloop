@@ -59,6 +59,32 @@ If your local model lacks structured output, judgment generation will surface
 > Both paths are first-class. The rest of the tutorial is identical regardless
 > of which one you pick.
 
+### Path C — Run the tutorial against Apache Solr (MVP2)
+
+The tutorial defaults to Elasticsearch, but every step works against
+Apache Solr. The local Compose stack brings up `solr:10.0` on
+`127.0.0.1:8983` alongside the Elasticsearch + OpenSearch containers.
+To pick Solr instead:
+
+1. `make up` — `bootstrap-security.sh` generates the Solr admin credentials
+   on first boot.
+2. `make seed-solr` — creates the `products` collection (UBI + LTR enabled
+   via the `relyloop_products` configset) + the `ubi_queries` / `ubi_events`
+   UBI collections, then bulk-indexes `samples/products.json`.
+3. `make seed-clusters` — registers `local-solr` as a cluster row alongside
+   `local-es` and `local-opensearch`.
+4. In the create-study modal, pick `local-solr` from the cluster dropdown
+   and pick the `products_edismax` template (or `products_dismax` /
+   `products_lucene`). Search-space dimensions match the ES path
+   (`title_boost`, `description_boost`, `bullet_points_boost`, `tie`,
+   `mm`).
+
+The Optuna loop runs unchanged — the engine difference is hidden behind
+the `SolrAdapter`. See
+[`solr-cluster-registration.md`](../03_runbooks/solr-cluster-registration.md)
+for the runbook covering `/reprobe`, LTR model upload, and the optional
+UBI on-ramp.
+
 ---
 
 ## Step 1 — Clone + `make up`

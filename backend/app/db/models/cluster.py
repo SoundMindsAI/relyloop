@@ -31,7 +31,7 @@ class Cluster(Base):
     __tablename__ = "clusters"
     __table_args__ = (
         CheckConstraint(
-            "engine_type IN ('elasticsearch', 'opensearch')",
+            "engine_type IN ('elasticsearch', 'opensearch', 'solr')",
             name="clusters_engine_type_check",
         ),
         CheckConstraint(
@@ -39,7 +39,8 @@ class Cluster(Base):
             name="clusters_environment_check",
         ),
         CheckConstraint(
-            "auth_kind IN ('es_apikey', 'es_basic', 'opensearch_basic', 'opensearch_sigv4')",
+            "auth_kind IN ('es_apikey', 'es_basic', 'opensearch_basic', "
+            "'opensearch_sigv4', 'solr_basic', 'solr_apikey')",
             name="clusters_auth_kind_check",
         ),
     )
@@ -51,7 +52,7 @@ class Cluster(Base):
     """Operator-supplied stable identifier, e.g. ``local-es``."""
 
     engine_type: Mapped[str] = mapped_column(String, nullable=False)
-    """One of ``elasticsearch | opensearch`` (CHECK enforced)."""
+    """One of ``elasticsearch | opensearch | solr`` (CHECK enforced)."""
 
     environment: Mapped[str] = mapped_column(String, nullable=False)
     """One of ``prod | staging | dev`` (CHECK enforced)."""
@@ -60,7 +61,8 @@ class Cluster(Base):
     """Cluster HTTP root, e.g. ``http://elasticsearch:9200``."""
 
     auth_kind: Mapped[str] = mapped_column(String, nullable=False)
-    """One of ``es_apikey | es_basic | opensearch_basic | opensearch_sigv4``."""
+    """One of ``es_apikey | es_basic | opensearch_basic | opensearch_sigv4 |
+    solr_basic | solr_apikey`` (CHECK enforced)."""
 
     credentials_ref: Mapped[str] = mapped_column(String, nullable=False)
     """Key into the mounted ``cluster_credentials.yaml``."""

@@ -79,6 +79,16 @@ ES_AUTH = ("elastic", "changeme")
 OS = "http://localhost:9201"
 OS_AUTH = ("admin", "admin")
 
+# infra_adapter_solr Story A13: local Solr container.
+# The local Compose Solr runs security-disabled (no security.json — same
+# posture as the local ES/OpenSearch services). It accepts unauthenticated
+# admin + query calls, so the BasicAuth tuple below is nominal: a
+# security-disabled Solr simply ignores the Authorization header. The
+# well-known "solr"/"solr" dev default matches install.sh's
+# cluster_credentials.yaml entry.
+SOLR = "http://localhost:8983"
+SOLR_AUTH = ("solr", "solr")
+
 # Postgres tables wiped before reseeding. TRUNCATE clusters CASCADE handles
 # the FK fanout but we list every table explicitly so the operator sees the
 # blast radius on stdout.
@@ -109,6 +119,16 @@ DEMO_ES_INDICES = (
     "ubi_events",
 )
 DEMO_OS_INDICES = ("news-articles",)
+
+# infra_adapter_solr Story A13: Solr-side demo collections. The reseed
+# orchestrator drops + recreates these alongside the ES/OS indices so
+# repeated reseeds stay clean. ubi_queries + ubi_events are shared with the
+# ES side conceptually but live in Solr as separate physical collections.
+DEMO_SOLR_COLLECTIONS = (
+    "acme-kb-docs",
+    "ubi_queries",
+    "ubi_events",
+)
 
 # Rich-scenario tunables. Five queries × top-K LLM judgments per query keeps
 # the LLM-judgment-generation step under ~60s and ~$0.05 with gpt-4o-mini.
@@ -638,6 +658,146 @@ SCENARIOS: list[dict[str, Any]] = [
         "ubi_target_rung": "rung_2",
         "ubi_converter": "hybrid_ubi_llm",
     },
+    # infra_adapter_solr Story A13 / spec §19 decision log: the 5th demo
+    # scenario showcases the MVP2 Apache Solr adapter. KB-search use case
+    # fits Solr's traditional enterprise-search positioning and
+    # differentiates from the ES product-search scenarios. UBI on rung_2
+    # + hybrid converter demonstrates the UBI judgment path on Solr (events
+    # are synthesized directly into the ubi_queries/ubi_events collections —
+    # the stock solr image ships no live solr.UBIComponent; the spec
+    # recommends rung_2 + hybrid_ubi_llm — see spec §19).
+    {
+        "slug": "acme-kb-docs-solr",
+        "engine_type": "solr",
+        "base_url": "http://solr:8983",
+        "auth_kind": "solr_basic",
+        "credentials_ref": "local-solr",
+        "environment": "prod",
+        "target_filter": "acme-kb-*",
+        "host_base_url": SOLR,
+        "host_auth": SOLR_AUTH,
+        "target": "acme-kb-docs",
+        # Solr collections are created from configsets, not from a JSON
+        # mapping. The reseed dispatcher uses this hint to call the
+        # /admin/collections?action=CREATE endpoint instead of the ES
+        # PUT /<index> path. The configset name lives in the Solr Compose
+        # service's /etc/solr-bootstrap mount.
+        "solr_configset": "relyloop_products",
+        "docs": [
+            {
+                "id": "kb101",
+                "doc": {
+                    "title": "Configuring SSO with Okta",
+                    "description": "Step-by-step guide to wire ACME's identity provider through Okta SAML.",
+                    "bullet_points": [
+                        "Create the Okta app",
+                        "Upload metadata to ACME",
+                        "Test the redirect URL",
+                    ],
+                    "category": "Authentication",
+                    "in_stock": True,
+                },
+            },
+            {
+                "id": "kb102",
+                "doc": {
+                    "title": "Resetting a forgotten admin password",
+                    "description": "Recovery flow when the primary admin loses access to their account.",
+                    "bullet_points": [
+                        "Use the recovery email",
+                        "Contact support if email lapsed",
+                    ],
+                    "category": "Authentication",
+                    "in_stock": True,
+                },
+            },
+            {
+                "id": "kb201",
+                "doc": {
+                    "title": "Rate-limit policy for the public API",
+                    "description": "Quotas, burst windows, and how to request a higher tier.",
+                    "bullet_points": [
+                        "Default 60 req/min",
+                        "Burst window 5s",
+                        "Higher-tier request form",
+                    ],
+                    "category": "API",
+                    "in_stock": True,
+                },
+            },
+            {
+                "id": "kb202",
+                "doc": {
+                    "title": "Authenticating with the public REST API",
+                    "description": "Generating an API key + scoping it to a single project.",
+                    "bullet_points": ["Generate key", "Scope to project", "Rotate quarterly"],
+                    "category": "API",
+                    "in_stock": True,
+                },
+            },
+            {
+                "id": "kb301",
+                "doc": {
+                    "title": "Billing FAQ — invoices, refunds, and proration",
+                    "description": "Common billing questions with worked examples and links to support.",
+                    "bullet_points": ["Invoice cadence", "Refund eligibility", "Proration math"],
+                    "category": "Billing",
+                    "in_stock": True,
+                },
+            },
+        ],
+        "template_name": "products_edismax",
+        # Reuse the same edismax template the tutorial uses — declared
+        # params map to title / description / bullet_points boosts +
+        # tie + mm. Templates are loaded by name from
+        # samples/templates/solr/.
+        "template_body": (
+            "{\n"
+            '  "defType": "edismax",\n'
+            '  "q": "{{ query_text }}",\n'
+            '  "field_boosts": {\n'
+            '    "title": {{ title_boost }},\n'
+            '    "description": {{ description_boost }},\n'
+            '    "bullet_points": {{ bullet_points_boost }}\n'
+            "  },\n"
+            '  "tie_breaker": {{ tie }},\n'
+            '  "min_should_match": "{{ mm }}",\n'
+            '  "fl": "*,score"\n'
+            "}\n"
+        ),
+        "template_declared_params": {
+            "title_boost": "float",
+            "description_boost": "float",
+            "bullet_points_boost": "float",
+            "tie": "float",
+            "mm": "string",
+        },
+        "query_set_name": "acme-kb-top-queries-q4-2025",
+        "queries": [
+            {"query_text": "okta sso setup"},
+            {"query_text": "forgot admin password"},
+            {"query_text": "api rate limits"},
+            {"query_text": "rest api authentication"},
+            {"query_text": "billing refund policy"},
+        ],
+        "judgment_list_name": "acme-kb-relevance-2025-12",
+        "rubric": "Rate articles by how directly they answer the operator question. 0=off-topic, 1=tangential, 2=on-topic, 3=lead answer.",
+        "judgments_map": [
+            (0, "kb101", 3),
+            (1, "kb102", 3),
+            (2, "kb201", 3),
+            (3, "kb202", 3),
+            (4, "kb301", 3),
+        ],
+        "study_name": "tune-kb-title-vs-bullet-boosts-solr",
+        # FR-8 / spec §19 recommendation: Solr scenario gets rung_2 +
+        # hybrid_ubi_llm so the demo exercises the UBI judgment read-path on
+        # Solr (synthesized events in ubi_queries/ubi_events — no live
+        # solr.UBIComponent in the stock image) AND demonstrates the hybrid
+        # UBI+LLM converter on the new engine.
+        "ubi_target_rung": "rung_2",
+        "ubi_converter": "hybrid_ubi_llm",
+    },
 ]
 
 # FR-8 invariant: ubi_converter is None iff ubi_target_rung is None. A single
@@ -821,6 +981,56 @@ def _create_one_study(
     return study_id
 
 
+def _seed_solr_scenario_minimum(s: dict) -> list[dict]:
+    """Minimum-viable Solr scenario: register the cluster + DB rows; assume
+    `make seed-solr` already created the Solr collection out-of-band.
+
+    infra_adapter_solr Story A13. Returns the same `list[dict]` shape as the
+    main `seed_scenario` so the caller's accumulation logic is unchanged;
+    items without a corresponding UBI study return a single-element list.
+
+    Operators who haven't run `make seed-solr` yet see the registration
+    fail with `CLUSTER_UNREACHABLE` (probe couldn't reach the collection) —
+    the error message points at the `make seed-solr` command.
+    """
+    cluster = post(
+        "/clusters",
+        {
+            "name": s["slug"],
+            "engine_type": s["engine_type"],
+            "environment": s["environment"],
+            "base_url": s["base_url"],
+            "auth_kind": s["auth_kind"],
+            "credentials_ref": s["credentials_ref"],
+            "target_filter": s["target_filter"],
+        },
+    )
+    cluster_id = cluster["id"]
+    print(f"  cluster: {cluster_id}")
+    # Create the query template + query set + judgment list rows. The study
+    # itself isn't created here — operators kick that off via the UI once
+    # they've verified the collection contents in /clusters/<id>.
+    template = post(
+        "/query-templates",
+        {
+            "name": s["template_name"],
+            "engine_type": s["engine_type"],
+            "body": s["template_body"],
+            "declared_params": s["template_declared_params"],
+        },
+    )
+    print(f"  template: {template['id']}")
+    return [
+        {
+            "scenario": s["slug"],
+            "cluster_id": cluster_id,
+            "template_id": template["id"],
+            "skipped_index_path": True,
+            "next_step": "Run `make seed-solr`, then create the demo study via the UI.",
+        }
+    ]
+
+
 def seed_scenario(s: dict) -> list[dict]:
     """Seed one scenario. Returns 1 result for non-UBI, 2 for UBI-enabled.
 
@@ -832,6 +1042,21 @@ def seed_scenario(s: dict) -> list[dict]:
     suffixes so the rename step disambiguates them in the tutorial.
     """
     print(f"\n=== {s['slug']} ({s['engine_type']}) ===")
+
+    # infra_adapter_solr Story A13: Solr's per-engine seeding path
+    # (configset CREATE + bulk update) lives in
+    # backend/app/scripts/seed_solr_products.py + `make seed-solr`. The
+    # home-button reseed orchestrator doesn't drive that path yet —
+    # operators run `make seed-solr` separately, then this orchestrator
+    # registers the local-solr cluster + study/judgments rows. Skip the
+    # ES-style index creation for Solr scenarios with a clear message;
+    # the cluster row + DB rows still get created below.
+    if s["engine_type"] == "solr":
+        print(
+            "  Solr scenario — collection creation handled by `make seed-solr`. "
+            "Skipping index PUT + doc upserts."
+        )
+        return _seed_solr_scenario_minimum(s)
 
     # 1. Create ES/OS index with mapping
     http("PUT", f"{s['host_base_url']}/{s['target']}", body=s["index_mapping"], auth=s["host_auth"])

@@ -141,6 +141,21 @@ class Settings(BaseSettings):
         default="dev",
         description="Build-time git SHA injected via Docker ARG; surfaced in /healthz.version",
     )
+    # infra_adapter_solr Story A10 — local Apache Solr container.
+    solr_host: str | None = Field(
+        default=None,
+        description=(
+            "Hostname for the local Apache Solr container (set to ``solr`` in "
+            "the Compose .env). When None the /healthz probe reports "
+            "subsystems.solr=not_configured and skips the HTTP call. "
+            "Opt-in by design — operators who don't want to run the Solr "
+            "service leave this unset."
+        ),
+    )
+    solr_port: int = Field(
+        default=8983,
+        description="Port for the local Apache Solr container (default 8983).",
+    )
     # feat_github_pr_worker Story 1.3 — operator-configured URL used to
     # construct study-detail links in PR bodies. None → links omitted.
     relyloop_base_url: str | None = Field(

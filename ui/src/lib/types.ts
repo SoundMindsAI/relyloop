@@ -1249,7 +1249,7 @@ export interface components {
        * Engine Type
        * @enum {string}
        */
-      engine_type: 'elasticsearch' | 'opensearch';
+      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
       /**
        * Environment
        * @enum {string}
@@ -1261,7 +1261,13 @@ export interface components {
        * Auth Kind
        * @enum {string}
        */
-      auth_kind: 'es_apikey' | 'es_basic' | 'opensearch_basic' | 'opensearch_sigv4';
+      auth_kind:
+        | 'es_apikey'
+        | 'es_basic'
+        | 'opensearch_basic'
+        | 'opensearch_sigv4'
+        | 'solr_basic'
+        | 'solr_apikey';
       /** Engine Config */
       engine_config?: {
         [key: string]: unknown;
@@ -1302,7 +1308,7 @@ export interface components {
        * Engine Type
        * @enum {string}
        */
-      engine_type: 'elasticsearch' | 'opensearch';
+      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
       /**
        * Environment
        * @enum {string}
@@ -1314,7 +1320,13 @@ export interface components {
        * Auth Kind
        * @enum {string}
        */
-      auth_kind: 'es_apikey' | 'es_basic' | 'opensearch_basic' | 'opensearch_sigv4';
+      auth_kind:
+        | 'es_apikey'
+        | 'es_basic'
+        | 'opensearch_basic'
+        | 'opensearch_sigv4'
+        | 'solr_basic'
+        | 'solr_apikey';
       /** Target Filter */
       target_filter?: string | null;
       /**
@@ -1599,7 +1611,7 @@ export interface components {
        * Engine Type
        * @enum {string}
        */
-      engine_type: 'elasticsearch' | 'opensearch';
+      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
       /** Body */
       body: string;
       /** Declared Params */
@@ -2441,7 +2453,7 @@ export interface components {
        * Engine Type
        * @enum {string}
        */
-      engine_type: 'elasticsearch' | 'opensearch';
+      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
       /** Body */
       body: string;
       /** Declared Params */
@@ -2483,7 +2495,7 @@ export interface components {
        * Engine Type
        * @enum {string}
        */
-      engine_type: 'elasticsearch' | 'opensearch';
+      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
       /** Version */
       version: number;
       /**
@@ -3280,7 +3292,7 @@ export interface operations {
               | 'environment:desc'
             )
           | null;
-        engine_type?: ('elasticsearch' | 'opensearch') | null;
+        engine_type?: ('elasticsearch' | 'opensearch' | 'solr') | null;
         environment?: ('prod' | 'staging' | 'dev') | null;
       };
       header?: never;
@@ -3522,7 +3534,7 @@ export interface operations {
               | 'version:desc'
             )
           | null;
-        engine_type?: ('elasticsearch' | 'opensearch') | null;
+        engine_type?: ('elasticsearch' | 'opensearch' | 'solr') | null;
       };
       header?: never;
       path?: never;

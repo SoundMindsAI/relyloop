@@ -232,11 +232,21 @@ class TestQueryTemplate:
         )
         assert qt.engine_type == "elasticsearch"
 
+    def test_solr_engine_type_now_valid(self) -> None:
+        # ``solr`` joined the EngineType Literal in infra_adapter_solr (Story A6).
+        qt = QueryTemplate(
+            name="x",
+            engine_type="solr",
+            body="{}",
+            declared_params={},
+        )
+        assert qt.engine_type == "solr"
+
     def test_invalid_engine_type(self) -> None:
         with pytest.raises(ValidationError):
             QueryTemplate(
                 name="x",
-                engine_type="solr",
+                engine_type="fusion",  # not a supported engine
                 body="{}",
                 declared_params={},
             )
@@ -296,6 +306,66 @@ class TestDocumentPage:
         """The cycle-2 F1 fix removed `last_sort` — per-hit sort replaces it."""
         p = DocumentPage(hits=[], total=0)
         assert not hasattr(p, "last_sort")
+
+
+class TestSolrAdapterProtocolBranch:
+    """infra_adapter_solr Story A1 — SolrAdapter passes the same Protocol shape.
+
+    Behavioral coverage (probe parsing, health_check status mapping,
+    list_query_parsers static return) lives in
+    ``test_solr_protocol.py`` + ``test_solr_capability_probe.py``. This
+    branch belongs in ``test_protocol.py`` because the Protocol shape is
+    cross-adapter; symmetrical to the ES stub above.
+    """
+
+    async def test_solr_adapter_satisfies_protocol(self, tmp_path, monkeypatch) -> None:
+        # Import deferred so the module-level Protocol-shape assertions for
+        # the stub adapter above stay independent of SolrAdapter's own
+        # import-time side effects (resolve_credentials uses Settings).
+        import httpx as _httpx
+
+        from backend.app.adapters.solr import SolrAdapter
+        from backend.app.core.settings import get_settings
+
+        creds = tmp_path / "creds.yaml"
+        creds.write_text("ref:\n  username: u\n  password: p\n")
+        monkeypatch.setenv("DATABASE_URL_FILE", str(tmp_path / "db_url"))
+        monkeypatch.setenv("POSTGRES_PASSWORD_FILE", str(tmp_path / "pg_pw"))
+        monkeypatch.setenv("CLUSTER_CREDENTIALS_FILE", str(creds))
+        (tmp_path / "db_url").write_text("postgresql+asyncpg://u:p@h/d")
+        (tmp_path / "pg_pw").write_text("p")
+        get_settings.cache_clear()
+
+        adapter = SolrAdapter(
+            cluster_id="id",
+            engine_type="solr",
+            base_url="http://solr:8983",
+            auth_kind="solr_basic",
+            credentials_ref="ref",
+            engine_config=None,
+            client=_httpx.AsyncClient(
+                transport=_httpx.MockTransport(lambda r: _httpx.Response(404))
+            ),
+        )
+        try:
+            assert isinstance(adapter, SearchAdapter)
+            assert adapter.engine_type == "solr"
+            # Symmetrical async/sync-shape check to the stub above.
+            for name in (
+                "health_check",
+                "list_targets",
+                "get_schema",
+                "search_batch",
+                "explain",
+                "get_document",
+                "list_documents",
+            ):
+                assert inspect.iscoroutinefunction(getattr(adapter, name))
+            for name in ("render", "list_query_parsers"):
+                assert not inspect.iscoroutinefunction(getattr(adapter, name))
+        finally:
+            await adapter.aclose()
+            get_settings.cache_clear()
 
 
 class TestAdapterErrors:

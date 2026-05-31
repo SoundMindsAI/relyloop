@@ -81,3 +81,17 @@ path = [
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 soundminds.ai"
 SPDX-License-Identifier = "Apache-2.0"
+
+# --- Vendored upstream Apache Solr ref-guide pages ---------------------------
+# Snapshots of Apache Solr's reference guide, pinned for grounding (upstream
+# URLs noted in docs/06_vendor_docs/README.md). These are THIRD-PARTY Apache
+# Software Foundation content under Apache-2.0 — attributed to the ASF, NOT
+# soundminds.ai. The .adoc files carry the ASF's own license header inline, but
+# reuse needs an explicit SPDX expression. Both the recursive `**` glob and an
+# explicit one-level `*/` glob are listed so the match does not depend on `**`
+# recursion semantics across reuse versions.
+[[annotations]]
+path = ["docs/06_vendor_docs/**/*.adoc", "docs/06_vendor_docs/*/*.adoc"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The Apache Software Foundation"
+SPDX-License-Identifier = "Apache-2.0"

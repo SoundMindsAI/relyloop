@@ -51,11 +51,19 @@ describe('wire-value arrays match documented spec table', () => {
         'optuna_trial_number_asc',
       ],
     ],
-    ['ENGINE_TYPE_VALUES', ENGINE_TYPE_VALUES, ['elasticsearch', 'opensearch']],
+    // infra_adapter_solr Story A11 widens both to include 'solr' variants.
+    ['ENGINE_TYPE_VALUES', ENGINE_TYPE_VALUES, ['elasticsearch', 'opensearch', 'solr']],
     [
       'AUTH_KIND_VALUES',
       AUTH_KIND_VALUES,
-      ['es_apikey', 'es_basic', 'opensearch_basic', 'opensearch_sigv4'],
+      [
+        'es_apikey',
+        'es_basic',
+        'opensearch_basic',
+        'opensearch_sigv4',
+        'solr_basic',
+        'solr_apikey',
+      ],
     ],
     ['ENVIRONMENT_VALUES', ENVIRONMENT_VALUES, ['prod', 'staging', 'dev']],
     ['HEALTH_STATUS_VALUES', HEALTH_STATUS_VALUES, ['green', 'yellow', 'red', 'unreachable']],

@@ -36,16 +36,20 @@ from backend.app.domain.study.followups import FollowupItem as FollowupItem
 # above keeps it importable via ``from backend.app.api.v1.schemas import
 # ConfidenceShape`` under mypy strict's ``no_implicit_reexport``.
 
-EngineType = Literal["elasticsearch", "opensearch"]
+EngineType = Literal["elasticsearch", "opensearch", "solr"]
 """Response-only: values are guaranteed by service-layer validation before the
-DB write, so the response model is safe to lock down with ``Literal``."""
+DB write, so the response model is safe to lock down with ``Literal``.
+``solr`` added by ``infra_adapter_solr`` (Story A6/A11)."""
 
 Environment = Literal["prod", "staging", "dev"]
 """Both request- and response-side: spec §8.5 has no ENVIRONMENT_NOT_SUPPORTED
 domain code, so invalid values surface as 422 VALIDATION_ERROR via Pydantic."""
 
-AuthKind = Literal["es_apikey", "es_basic", "opensearch_basic", "opensearch_sigv4"]
-"""Response-only — see EngineType note."""
+AuthKind = Literal[
+    "es_apikey", "es_basic", "opensearch_basic", "opensearch_sigv4", "solr_basic", "solr_apikey"
+]
+"""Response-only — see EngineType note. ``solr_basic`` / ``solr_apikey`` added
+by ``infra_adapter_solr``."""
 
 HealthStatusValue = Literal["green", "yellow", "red", "unreachable"]
 
@@ -130,6 +134,70 @@ class CreateClusterRequest(BaseModel):
                 f"and RELYLOOP_ALLOW_PRIVATE_CLUSTERS is false"
             )
         return v
+
+
+class ConnectionTestRequest(BaseModel):
+    """Body for ``POST /api/v1/clusters/test-connection`` (infra_adapter_solr Story A9).
+
+    Same shape as ``CreateClusterRequest`` minus the persisted-only fields
+    (``name``, ``environment``, ``notes``, ``target_filter``). ``engine_type``
+    + ``auth_kind`` are typed as ``str`` (not Literal) so a bad value yields
+    the project-standard 400 envelope rather than a raw 422 — same convention
+    as ``CreateClusterRequest``.
+    """
+
+    engine_type: str = Field(min_length=1, max_length=64)
+    base_url: str = Field(min_length=1, max_length=512)
+    auth_kind: str = Field(min_length=1, max_length=64)
+    credentials_ref: str = Field(min_length=1, max_length=128)
+    engine_config: dict[str, Any] | None = None
+
+    @field_validator("base_url")
+    @classmethod
+    def validate_base_url(cls, v: str) -> str:
+        """Same base_url validation as CreateClusterRequest — see that class for rationale."""
+        parsed = urlparse(v)
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError("base_url must use http or https scheme")
+        if not parsed.hostname:
+            raise ValueError("base_url must include a host")
+        try:
+            ip = ip_address(parsed.hostname)
+        except ValueError:
+            return v
+        if (ip.is_private or ip.is_loopback) and not get_settings().relyloop_allow_private_clusters:
+            raise ValueError(
+                f"base_url host {parsed.hostname} is a private-range IP "
+                f"and RELYLOOP_ALLOW_PRIVATE_CLUSTERS is false"
+            )
+        return v
+
+
+class ConnectionTestResult(BaseModel):
+    """Response for ``POST /api/v1/clusters/test-connection``.
+
+    Always 200 — reachable vs unreachable surfaces via ``reachable`` +
+    ``status`` fields. The endpoint is a diagnostic, never a mutation,
+    so it never returns 503; invalid engine×auth pairings 400 BEFORE the
+    network call. (Cycle-delta F1.)
+    """
+
+    reachable: bool
+    """True when the cluster responded green/yellow within timeout."""
+
+    status: Literal["green", "yellow", "red", "unreachable"]
+    """Mirrors HealthStatus.status — green/yellow when reachable, unreachable otherwise."""
+
+    version: str | None = None
+    """Engine version when reachable; None when unreachable."""
+
+    engine_capabilities: dict[str, Any] | None = None
+    """For Solr clusters: probe summary (mode + ubi_component_present +
+    ltr_module_present + ltr_models + unique_key_per_target). None for ES/OS
+    or for unreachable clusters."""
+
+    error: str | None = None
+    """Human-readable diagnostic when not reachable."""
 
 
 class ClusterDetail(BaseModel):
@@ -247,8 +315,8 @@ class DocumentListResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-# Values must match backend/app/adapters/elastic.py SUPPORTED_ENGINE_TYPES.
-EngineTypeWire = Literal["elasticsearch", "opensearch"]
+# Values must match backend/app/adapters/registry.py SUPPORTED_ENGINE_TYPES.
+EngineTypeWire = Literal["elasticsearch", "opensearch", "solr"]
 
 # Values must match backend/app/db/models/study.py CHECK constraint AND
 # backend/app/db/repo/study.py StudyStatusFilter Literal.

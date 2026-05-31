@@ -127,6 +127,10 @@ services:
       # samples/products.json from the host repo without baking the operator
       # data into the image. chore_tutorial_polish Story 2.1.
       - ./samples:/app/samples:ro
+      # docker/solr/configsets is read by seed_solr_products.py (run inside
+      # this container via `make seed-solr`) to upload Solr configsets to
+      # ZooKeeper before creating collections.
+      - ./docker/solr/configsets:/app/docker/solr/configsets:ro
     healthcheck:
       # `worker` waits for api healthy before starting (so it doesn't enqueue
       # against a not-yet-started API). `curl` is in the runtime image.
@@ -175,6 +179,10 @@ services:
       # process. Mount the directory read-only (matches the API service's
       # mount above).
       - ./samples:/app/samples:ro
+      # docker/solr/configsets is read by seed_solr_products.py (run inside
+      # this container via `make seed-solr`) to upload Solr configsets to
+      # ZooKeeper before creating collections.
+      - ./docker/solr/configsets:/app/docker/solr/configsets:ro
 
   ui:
     # NEXT_PUBLIC_API_BASE_URL is build-time (Next.js bakes NEXT_PUBLIC_*
@@ -237,6 +245,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
+
+  # Apache Solr (MVP2 / infra_adapter_solr Story A10).
+  #
+  # Security is OFF for local dev — the same posture as the local
+  # elasticsearch (xpack.security.enabled=false) and opensearch
+  # (DISABLE_SECURITY_PLUGIN=true) services above, per CLAUDE.md
+  # "Common Pitfalls": local Compose runs the engines security-disabled;
+  # production-mode auth is a separate (MVP3+) concern. Solr's default is
+  # no `security.json` => no authentication, so we just run the stock
+  # image. The SolrAdapter's solr_basic/solr_apikey support still works
+  # against real operator clusters that DO enable auth; a security-disabled
+  # Solr simply ignores the Authorization header the adapter sends.
+  #
+  # seed_solr_products.py (run via `make seed-solr`) uploads the
+  # relyloop_products / relyloop_ubi configsets to ZooKeeper, then creates
+  # the collections.
+  #
+  # SOLR_MODULES=ltr loads the Learning-to-Rank module so the products
+  # configset's LTR queryParser resolves (Solr 10 dropped the old `<lib>`
+  # directive in solrconfig.xml — modules MUST come from this env var). The
+  # stock image ships no `ubi` module, so UBI is NOT listed here; the demo
+  # synthesizes UBI events directly into the ubi_queries/ubi_events
+  # collections rather than relying on the live solr.UBIComponent.
+  solr:
+    image: solr:10.0
+    environment:
+      SOLR_HEAP: ${SOLR_HEAP_SIZE:-512m}
+      SOLR_MODULES: ltr
+    volumes:
+      - ./data/solr:/var/solr
+    ports:
+      - "127.0.0.1:8983:8983"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8983/solr/admin/info/system || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
 
 secrets:
   postgres_password:

@@ -41,6 +41,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.adapters.errors import (
     ClusterUnreachableError,
     InvalidQueryDSLError,
+    LtrModelNotFoundError,
     QueryTimeoutError,
     TargetNotFoundError,
     TargetsForbiddenError,
@@ -60,6 +61,8 @@ from backend.app.api.v1.schemas import (
     ClusterListResponse,
     ClusterSortKey,
     ClusterSummary,
+    ConnectionTestRequest,
+    ConnectionTestResult,
     CreateClusterRequest,
     DocumentListResponse,
     DocumentSummary,
@@ -166,6 +169,69 @@ def _detail(cluster: Cluster, health: HealthStatus) -> ClusterDetail:
 # ---------------------------------------------------------------------------
 # POST / GET-list / GET-detail / DELETE
 # ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/clusters/test-connection",
+    response_model=ConnectionTestResult,
+    tags=["clusters"],
+)
+async def test_connection(body: ConnectionTestRequest) -> ConnectionTestResult:
+    """Probe a cluster config WITHOUT persisting (infra_adapter_solr Story A9).
+
+    Powers the registration modal's "Test connection" button. Always 200 —
+    transport failures surface as ``reachable=false`` with ``error`` set.
+    Invalid engine×auth pairings 400 BEFORE the network call.
+    """
+    try:
+        result = await cluster_svc.test_cluster_connection(
+            engine_type=body.engine_type,
+            base_url=body.base_url,
+            auth_kind=body.auth_kind,
+            credentials_ref=body.credentials_ref,
+            engine_config=body.engine_config,
+        )
+    except EngineTypeNotSupported as exc:
+        raise _err(400, "ENGINE_NOT_SUPPORTED", str(exc), False) from exc
+    except AuthKindNotSupported as exc:
+        raise _err(400, "AUTH_KIND_NOT_SUPPORTED", str(exc), False) from exc
+    except ClusterUnreachable as exc:
+        # Credential resolution failure — surface as a 400 envelope (the
+        # operator can fix it before submitting).
+        raise _err(400, "CREDENTIALS_INVALID", str(exc), False) from exc
+    return ConnectionTestResult(
+        reachable=result.reachable,
+        status=result.status,
+        version=result.version,
+        engine_capabilities=result.engine_capabilities,
+        error=result.error,
+    )
+
+
+@router.post(
+    "/clusters/{cluster_id}/reprobe",
+    response_model=ClusterDetail,
+    status_code=status.HTTP_202_ACCEPTED,
+    tags=["clusters"],
+)
+async def reprobe_cluster(
+    cluster_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    redis: Annotated[Redis, Depends(get_redis_client)],
+) -> ClusterDetail:
+    """Re-run cluster capability probe (Story A9 / spec FR-2 + AC-14).
+
+    Concurrent calls serialize on ``SELECT … FOR UPDATE``. On probe failure
+    the row's engine_config is NOT updated (the transaction rolls back).
+    """
+    try:
+        cluster = await cluster_svc.reprobe_cluster(db, redis, cluster_id)
+    except cluster_svc.ClusterNotFound as exc:
+        raise _err(404, "CLUSTER_NOT_FOUND", str(exc), False) from exc
+    except ClusterUnreachable as exc:
+        raise _err(503, "CLUSTER_UNREACHABLE", str(exc), True) from exc
+    health = await cluster_svc.get_or_probe_health(redis, cluster)
+    return _detail(cluster, health)
 
 
 @router.post(
@@ -497,6 +563,12 @@ async def run_query(
                 top_k=body.top_k,
                 timeout_s=timeout_s,
             )
+    except LtrModelNotFoundError as exc:
+        # infra_adapter_solr Story A7: surface as 400 LTR_MODEL_NOT_FOUND so
+        # operators see the missing-model id + the list of available models
+        # (spec §8.5). Distinct from INVALID_QUERY_DSL — the query parsed,
+        # the requested LTR model just isn't loaded.
+        raise _err(400, "LTR_MODEL_NOT_FOUND", str(exc), False) from exc
     except InvalidQueryDSLError as exc:
         raise _err(400, "INVALID_QUERY_DSL", str(exc), False) from exc
     except QueryTimeoutError as exc:

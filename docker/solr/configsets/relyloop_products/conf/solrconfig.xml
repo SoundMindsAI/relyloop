@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 soundminds.ai
+
+SPDX-License-Identifier: Apache-2.0
+
+infra_adapter_solr Story A10: configset for the `products` demo collection.
+
+Module loading (Solr 10): the LTR query parser + model-store are provided by
+the `ltr` module, which is enabled via the SOLR_MODULES=ltr env var on the
+Solr service (see docker-compose.yml) — NOT via `<lib>` directives, which
+Solr 10 dropped ("<lib/> entries no longer supported"). With the module on
+the classpath, the LTR queryParser below resolves and the capability probe
+reports ltr_module_present=true.
+
+Schema: no <schemaFactory> is declared, so Solr uses the default managed mode
+and reads conf/managed-schema.xml (the file checked in beside this one).
+
+UBI note: the stock solr:10.0 image does NOT ship a `ubi` module, so there
+is no `solr.UBIComponent` here. The RelyLoop UBI demo path does not need the
+live component — it synthesizes UBI events directly into the ubi_queries /
+ubi_events collections, which UbiReader reads back. (The live component is
+what captures real clicks in production; the probe reports
+ubi_component_present=false for this local image, which is accurate.)
+-->
+<config>
+  <luceneMatchVersion>10.0.0</luceneMatchVersion>
+
+  <dataDir>${solr.data.dir:}</dataDir>
+  <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}" />
+  <codecFactory class="solr.SchemaCodecFactory" />
+
+  <indexConfig>
+    <lockType>${solr.lock.type:native}</lockType>
+  </indexConfig>
+
+  <updateHandler class="solr.DirectUpdateHandler2">
+    <autoCommit>
+      <maxTime>15000</maxTime>
+      <openSearcher>false</openSearcher>
+    </autoCommit>
+    <autoSoftCommit>
+      <maxTime>1000</maxTime>
+    </autoSoftCommit>
+  </updateHandler>
+
+  <query>
+    <maxBooleanClauses>1024</maxBooleanClauses>
+    <filterCache size="512" initialSize="512" autowarmCount="0" />
+    <queryResultCache size="512" initialSize="512" autowarmCount="0" />
+    <documentCache size="512" initialSize="512" autowarmCount="0" />
+    <enableLazyFieldLoading>true</enableLazyFieldLoading>
+    <queryResultWindowSize>20</queryResultWindowSize>
+    <queryResultMaxDocsCached>200</queryResultMaxDocsCached>
+    <useColdSearcher>false</useColdSearcher>
+
+    <!-- LTR feature-vector cache. Solr 10's running binary (and its shipped
+         sample_techproducts_configs/conf/solrconfig.xml) uses a dedicated
+         <featureVectorCache> element here, NOT a generic <cache name=...> with
+         an fvCacheName ref on the transformer. The 10.0 ref-guide still shows
+         the old fvCacheName form, but the binary rejects it with "No setter
+         corresponding to 'fvCacheName'" — verified live against solr:10.0.
+         IDs are transient, so the cache does not auto-warm. -->
+    <featureVectorCache class="solr.CaffeineCache"
+                        size="4096"
+                        initialSize="2048"
+                        autowarmCount="0" />
+  </query>
+
+  <requestDispatcher>
+    <requestParsers enableRemoteStreaming="false" />
+    <httpCaching never304="true" />
+  </requestDispatcher>
+
+  <!-- Default /select handler -->
+  <requestHandler name="/select" class="solr.SearchHandler">
+    <lst name="defaults">
+      <str name="defType">edismax</str>
+      <str name="echoParams">explicit</str>
+      <int name="rows">10</int>
+      <str name="qf">title^2.0 description^1.0 bullet_points^0.5</str>
+    </lst>
+  </requestHandler>
+
+  <!-- RealTime Get handler (used by SolrAdapter.get_document, Story A8). -->
+  <requestHandler name="/get" class="solr.RealTimeGetHandler">
+    <lst name="defaults">
+      <str name="omitHeader">true</str>
+      <str name="wt">json</str>
+    </lst>
+  </requestHandler>
+
+  <!-- LTR query parser (Story A7). Requires SOLR_MODULES=ltr. -->
+  <queryParser name="ltr" class="org.apache.solr.ltr.search.LTRQParserPlugin" />
+
+  <!-- LTR [features] transformer — logs the feature vector into the response.
+       It reads/writes the <featureVectorCache> declared in <query> above. The
+       transformer takes NO fvCacheName child in Solr 10's binary (matches the
+       shipped sample_techproducts_configs); the 10.0 ref-guide's fvCacheName
+       snippet is stale and the binary rejects it with "No setter corresponding
+       to 'fvCacheName'" — verified live against solr:10.0. -->
+  <transformer name="features"
+               class="org.apache.solr.ltr.response.transform.LTRFeatureLoggerTransformerFactory" />
+</config>

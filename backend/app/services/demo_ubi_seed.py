@@ -56,6 +56,11 @@ DEMO_UBI_SCENARIO_ALLOWLIST: Final[frozenset[tuple[str, str]]] = frozenset(
         ("acme-products-prod", "products"),
         ("corp-docs-search", "docs-articles"),
         ("jobs-marketplace-prod", "job-listings"),
+        # infra_adapter_solr Story A13: Solr KB scenario gets synthetic UBI
+        # (rung_2 + hybrid_ubi_llm) so the demo exercises Solr's first-party
+        # solr.UBIComponent path. See spec §19 decision log + the slug parity
+        # CI guard at scripts/ci/verify_demo_slug_parity.sh.
+        ("acme-kb-docs-solr", "acme-kb-docs"),
     }
 )
 

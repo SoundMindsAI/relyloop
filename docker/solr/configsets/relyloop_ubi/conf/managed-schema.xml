@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+SPDX-FileCopyrightText: 2026 soundminds.ai
+
+SPDX-License-Identifier: Apache-2.0
+
+infra_adapter_solr Story A10: managed-schema for ubi_queries + ubi_events
+collections. Mirrors the field shape of samples/ubi_index_mappings.json so
+the ES + OpenSearch + Solr UBI seed paths produce equivalent semantics.
+-->
+<schema name="relyloop_ubi" version="1.7">
+  <uniqueKey>id</uniqueKey>
+
+  <fieldType name="string" class="solr.StrField" sortMissingLast="true" docValues="true" />
+  <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
+    <analyzer><tokenizer class="solr.StandardTokenizerFactory" /><filter class="solr.LowerCaseFilterFactory" /></analyzer>
+  </fieldType>
+  <fieldType name="pint" class="solr.IntPointField" docValues="true" />
+  <fieldType name="pfloat" class="solr.FloatPointField" docValues="true" />
+  <fieldType name="pdate" class="solr.DatePointField" docValues="true" />
+
+  <field name="id" type="string" indexed="true" stored="true" required="true" />
+  <field name="query_id" type="string" indexed="true" stored="true" />
+  <field name="user_query" type="text_general" indexed="true" stored="true" />
+  <field name="application" type="string" indexed="true" stored="true" />
+  <field name="action_name" type="string" indexed="true" stored="true" />
+  <field name="object_id" type="string" indexed="true" stored="true" />
+  <field name="position" type="pint" indexed="true" stored="true" />
+  <field name="dwell_seconds" type="pfloat" indexed="true" stored="true" />
+  <field name="timestamp" type="pdate" indexed="true" stored="true" />
+  <field name="_version_" type="pint" indexed="true" stored="true" />
+</schema>
