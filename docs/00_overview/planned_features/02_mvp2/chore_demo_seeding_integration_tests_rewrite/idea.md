@@ -11,10 +11,10 @@ PR #286 (`bug_demo_reseed_fake_metric_regression`) converted `POST /api/v1/_test
 
 To unblock the merge I marked both files skip:
 
-- `backend/tests/integration/test_demo_seeding.py` — 9 cases (AC-1 through AC-16) skipped with reason "Sync-flow tests paused — bug_demo_reseed_fake_metric_regression converted the reseed handler to async enqueue + poll".
+- `backend/tests/integration/test_demo_seeding.py` — 9 cases (AC-1 through AC-16) skipped via a module-level `pytestmark = [pytest.mark.skip(...)]` at line 53 with reason "Sync-flow tests paused — bug_demo_reseed_fake_metric_regression converted the reseed handler to async enqueue + poll".
 - `backend/tests/integration/test_demo_seeding_timeout.py` — 1 case (AC-4 per-call timeout) skipped with reason "The per-call HTTP timeout assertion no longer applies to the POST handler; the timeout now lives in the worker".
 
-Unit coverage at `backend/tests/unit/services/test_demo_seeding_status.py` (14 cases) covers the Redis status helpers + Pydantic shape + search_space builder, but does NOT cover end-to-end flow against real Postgres + Arq.
+Unit coverage at `backend/tests/unit/services/test_demo_seeding_status.py` (11 test functions, several parametrized) covers the Redis status helpers + Pydantic shape + search_space builder, but does NOT cover end-to-end flow against real Postgres + Arq.
 
 ## Problem
 

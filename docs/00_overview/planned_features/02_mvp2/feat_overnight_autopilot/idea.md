@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-29
 **Status:** Idea — surfaced from an operator dogfooding review (2026-05-29). The autonomous-chaining *engine* already shipped; this is the ergonomics layer that makes it discoverable.
-**Priority:** P2 — high operator value, but the underlying capability already works; this is surfacing + a morning summary, not new core machinery. Pairs with [`feat_study_sub_warmup_guard`](../feat_study_sub_warmup_guard/idea.md) (the P1 of the theme).
+**Priority:** P2 — high operator value, but the underlying capability already works; this is surfacing + a morning summary, not new core machinery. Pairs with [`feat_study_sub_warmup_guard`](../../../implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md) (shipped 2026-05-29, PR #316 — the warm-up-floor sibling of this overnight-ergonomics theme).
 **Origin:** Operator's stated goal: "set a study in motion, come back in a few hours (overnight), and wake up to a few results I could review and potentially turn into a PR." Tracing the live DB (2026-05-29) showed **zero** studies have ever used `auto_followup_depth` and zero are chain children — the feature that delivers exactly this goal is shipped but invisible.
 **Depends on:** [`feat_auto_followup_studies`](../../../implemented_features/2026_05_24_feat_auto_followup_studies/) (shipped 2026-05-24, PR #223) — the autonomous chaining engine. This idea is purely the surfacing + summary layer on top of it.
 
@@ -10,7 +10,7 @@
 
 The "Karpathy overnight loop" is already implemented and already autonomous, but an operator has no way to discover or trust it:
 
-1. **`auto_followup_depth` is a hidden config key.** When set (the validator accepts `0–5`, where `0` = no chaining, so `1–5` enables it — [`schemas.py:645`](../../../../../backend/app/api/v1/schemas.py#L645)), a completed study automatically narrows the search space around its winner, decrements the depth, and spawns a child study — **zero human intervention between iterations** ([`backend/workers/auto_followup.py`](../../../../../backend/workers/auto_followup.py)). The chain self-terminates on depth exhaustion, sub-epsilon lift (<0.5%), budget at 80%, or parent failure. This is exactly the operator's "wake up to a few results" ask. But it is not exposed as a first-class control in the create-study wizard — the operator never knew it existed, so all 7 studies ran one-shot.
+1. **`auto_followup_depth` is a hidden config key.** Operators leave it `None` to opt out; setting `1–5` enables chaining. (Internally `0` is the worker's leaf marker, not a value operators set — see [`schemas.py:690`](../../../../../backend/app/api/v1/schemas.py#L690) for the field and `_validate_auto_followup_depth` immediately below for the bounds check.) When enabled, a completed study automatically narrows the search space around its winner, decrements the depth, and spawns a child study — **zero human intervention between iterations** ([`backend/workers/auto_followup.py`](../../../../../backend/workers/auto_followup.py)). The chain self-terminates on depth exhaustion, sub-epsilon lift (<0.5%), budget at 80%, or parent failure. This is exactly the operator's "wake up to a few results" ask. But it is not exposed as a first-class control in the create-study wizard — the operator never knew it existed, so all 7 studies ran one-shot.
 
 2. **No "what happened overnight" surface.** Even with chaining on, there is no single place that says "here are the 3 studies that ran while you slept, here's the best config each found, here's the cumulative lift, here's the one that's ready to become a PR." The operator would have to piece it together from the studies list + individual proposals.
 
@@ -26,7 +26,7 @@ Promote `auto_followup_depth` from a hidden config key to a labeled wizard contr
 >
 > Compound up to **[3]** times. (1–5)
 
-Pairs naturally with the "Thorough (overnight)" budget preset from [`feat_study_sub_warmup_guard`](../feat_study_sub_warmup_guard/idea.md): selecting the overnight preset could default the chain depth on. Sets the existing `config.auto_followup_depth` field — no schema change.
+Pairs naturally with the "Thorough (overnight)" budget preset from [`feat_study_sub_warmup_guard`](../../../implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md) (shipped): selecting the overnight preset could default the chain depth on. Sets the existing `config.auto_followup_depth` field — no schema change.
 
 ### Morning results summary ("the overnight digest")
 
@@ -58,12 +58,17 @@ The capability is real but the *trust and discoverability* gap is the whole barr
 ## Relationship to other work
 
 - **Surfaces** [`feat_auto_followup_studies`](../../../implemented_features/2026_05_24_feat_auto_followup_studies/) (the engine).
-- **Sibling theme:** [`feat_study_sub_warmup_guard`](../feat_study_sub_warmup_guard/idea.md) (the overnight preset feeds this) + [`feat_study_convergence_indicator`](../feat_study_convergence_indicator/idea.md) (each chain link's convergence display).
-- **Composes with the MVP2 UBI anchor** ([`feat_ubi_judgments`](../feat_ubi_judgments/idea.md)): overnight compounding is dramatically more valuable against a continuously-fresh UBI judgment list than a static LLM snapshot — the `feat_ubi_judgments` idea already notes this composition. This is the operator-facing payoff of that pairing.
+- **Sibling theme:** [`feat_study_sub_warmup_guard`](../../../implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md) (shipped — the overnight preset feeds this) + [`feat_study_convergence_indicator`](../feat_study_convergence_indicator/idea.md) (idea-stage sibling — each chain link's convergence display; coordinate on the study-detail panel layout).
+- **Composes with the MVP2 UBI anchor** ([`feat_ubi_judgments`](../../../implemented_features/2026_05_29_feat_ubi_judgments/feature_spec.md), shipped): overnight compounding is dramatically more valuable against a continuously-fresh UBI judgment list than a static LLM snapshot — the shipped `feat_ubi_judgments` spec already notes this composition. This is the operator-facing payoff of that pairing.
 - **Respects** the human-merge invariant (umbrella spec §6) — autopilot runs the *exploration* side unattended; the *deployment* side stays a deliberate human click.
 
 ## Open questions for /spec-gen
 
-1. Where the morning summary lives: study-detail chain panel, a `/studies` "ran while away" card, or both.
-2. Whether selecting the "Thorough (overnight)" budget preset auto-enables compounding (and at what default depth), or whether they stay independent toggles.
-3. Whether to add an optional notification hook (the spec backlog already lists "outgoing webhooks for resource lifecycle events" — a chain-complete webhook would be the real "wake up to results" trigger, but that's likely a separate backlog item, not MVP2).
+1. **Where the morning summary lives** — study-detail chain panel, a `/studies` "ran while away" card, or both.
+   **Recommended default:** Ship the **study-detail chain-summary panel** as the canonical surface (every chain has a deterministic anchor study and the panel composes naturally with [`feat_study_convergence_indicator`](../feat_study_convergence_indicator/idea.md)). Treat the `/studies` "ran while away" card as a P2 stretch — pull it forward only if Story-shaped work allows; otherwise defer to a follow-on idea so MVP2 ships the trust-restoring panel without the discoverability magic.
+2. **Whether the "Thorough (overnight)" budget preset auto-enables compounding** (and at what default depth), or whether they stay independent toggles.
+   **Recommended default:** Keep the toggles **independent**, but render an inline hint when "Thorough (overnight)" is selected and depth is still unset ("💡 Want this to chain overnight? Enable compounding below."). Coupling adds invisible magic; the hint preserves operator agency while restoring discoverability.
+3. **Whether to add an optional notification hook** (the spec backlog already lists "outgoing webhooks for resource lifecycle events" — a chain-complete webhook would be the real "wake up to results" trigger, but that's likely a separate backlog item, not MVP2).
+   **Recommended default:** **Out of scope for this feature.** File the chain-complete webhook as a backlog idea (`feat_webhook_chain_complete` or roll into the broader outgoing-webhooks backlog); the morning chain-summary panel + the operator's existing notification rhythm (slack, email, calendar reminder) covers the MVP2 "wake up to results" promise without dragging webhook plumbing forward.
+4. **What endpoint shape carries the chain summary** — `GET /api/v1/studies/{id}/chain` returning the rolled-up ordered list, or extend the existing study-detail payload with a `chain_summary` nested object.
+   **Recommended default:** A **new dedicated endpoint** (`GET /api/v1/studies/{id}/chain`) per [`api-conventions.md`](../../../../01_architecture/api-conventions.md) — cleaner caching boundary, avoids bloating the study-detail payload for non-chained studies (which today are 100% of studies), composes with cursor pagination if a chain ever grows beyond a screenful.

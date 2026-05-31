@@ -3,7 +3,7 @@
 **Date:** 2026-05-30
 **Status:** Idea — split out from `feat_demo_ubi_study_comparison` Phase 1 at finalization (PR #320)
 **Priority:** P2
-**Origin:** Deferred Phase 2 capability of [`feat_demo_ubi_study_comparison`](../../implemented_features/2026_05_30_feat_demo_ubi_study_comparison/) (Phase 1 merged via PR #320, 2026-05-30). Phase 1 shipped the *data* — dual judgment lists + dual (LLM)/(UBI) studies on three demo scenarios; this feature wraps the cross-tab manual comparison in a dedicated single-page view. Defined originally in that feature's `feature_spec.md` §3 "Phase boundaries" / "Out of scope (deferred to Phase 2)".
+**Origin:** Deferred Phase 2 capability of [`feat_demo_ubi_study_comparison`](../../../implemented_features/2026_05_30_feat_demo_ubi_study_comparison/feature_spec.md) (Phase 1 merged via PR #320, 2026-05-30). Phase 1 shipped the *data* — dual judgment lists + dual (LLM)/(UBI) studies on three demo scenarios; this feature wraps the cross-tab manual comparison in a dedicated single-page view. Defined originally in that feature's `feature_spec.md` §3 "Phase boundaries" / "Out of scope (deferred to Phase 2)".
 **Depends on:** `feat_demo_ubi_study_comparison` Phase 1 merged (synthetic UBI + dual studies in the demo dataset — **done**, PR #320). Independent of any other in-flight MVP2 feature.
 
 ## Problem
@@ -121,3 +121,20 @@ PR whose primary value is data infrastructure.
   own right.
 - Independent of `chore_ubi_reader_search_after_pagination` and
   `chore_ubi_hybrid_template_render`.
+
+## Open questions for /spec-gen
+
+1. **Cluster-detail rung badge — in scope here, or a standalone chore?**
+   **Recommended default: standalone chore (out of scope for this feature).** The rung-badge work needs its own UX decisions (query-set/target picker affordance, default-pick heuristic, where the badge sits in the cluster-detail layout) that don't share design surface with the side-by-side study comparison view. Spinning a separate `chore_cluster_detail_rung_badge` idea keeps this feature's PR scoped to "the comparison view" and unblocks shipping it without coupling to a placement-decision exercise. The originally-misplaced FR-7 #3 chip stays put under Phase 1's wording until the chore lands and moves it.
+
+2. **Diff library — `diff-match-patch`, `diff-words`, or a hand-rolled sentence splitter?**
+   **Recommended default: `diff` (the `jsdiff` library)** — it ships sentence-level `diffSentences()` which is exactly what the digest-narrative panel needs and avoids the prose-level word-by-word noise that `diff-match-patch` produces. Already in the npm ecosystem with permissive license; no native module. If the visual result is too coarse during implementation, fall back to `diffWordsWithSpace`. Hand-rolled is rejected — sentence detection is full of edge cases (abbreviations, ellipses, code blocks) that a maintained library handles.
+
+3. **Pre-aggregated comparison endpoint shape — return both digests + both best-trials + both convergence curves in one payload, or return a thin "pairing" object and let the page fetch the two `/studies/{id}` payloads in parallel?**
+   **Recommended default: thin pairing endpoint (`GET /api/v1/studies/compare?a={id}&b={id}`)** that validates the pair (same `query_set_id`, both `status='completed'`, one LLM judgment list + one UBI judgment list), returns the pair's metadata (`pair_kind`, validity warnings if any), and lets the page fetch the two existing `/studies/{id}` payloads via the existing TanStack Query cache (warm if the operator clicked from a detail page). Avoids duplicating the existing study-detail serializer, gets cache reuse for free, keeps the new endpoint single-purpose.
+
+4. **What's the entry-point copy when the LLM study has no paired UBI study?**
+   **Recommended default: hide the "Compare with UBI list" button entirely** (rather than disabled-with-tooltip). The button is a discovery affordance; surfacing it as disabled creates expectation friction on clusters that genuinely don't have UBI. The judgment-list "View matched study comparison" button behaves the same way.
+
+5. **Mobile / narrow-viewport layout — stack panels vertically, or hide the comparison view below a min-width breakpoint with a "comparison requires a wider screen" message?**
+   **Recommended default: stack vertically** (study A above study B, both above the per-row diff column rendered as inline annotations). Reachability matters more than visual parallelism on a phone; the digest narrative diff degrades gracefully to two stacked rendered blocks with the change-summary count above each.
