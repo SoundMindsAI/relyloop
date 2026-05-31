@@ -1932,8 +1932,7 @@ def render_html(features: list[Feature], release: str = DEFAULT_RELEASE) -> str:
     <div class="kpi {"complete" if pct == 100 else ""}">
       <div class="label">Specced features done</div>
       <div class="value">{kpi["done_features"]} / {kpi["scoped_features"]}</div>
-      <div class="sub">{pct}% past idea stage · {kpi["total_features"]} filed under {release_label}
-      (idea backlog excluded from this %)</div>
+      <div class="sub">{pct}% specced · {kpi["total_features"]} filed under {release_label}</div>
       <div class="bar"><span style="width:{pct}%"></span></div>
     </div>
     <div class="kpi {"warn" if kpi["total_pending"] else "complete"}">
