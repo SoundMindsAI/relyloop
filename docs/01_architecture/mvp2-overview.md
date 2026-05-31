@@ -152,7 +152,7 @@ Story stubs:
 **Migration:** one (D1 only). **Independent of the anchors.**
 
 Story stubs:
-- **D1 — Long-conversation summarization.** [`bug_chat_long_conversation_truncation/bug_fix.md`](../00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md): wrap the existing position-based truncation with a summarization pre-step that condenses the dropped portion into a system-prefix message (additive — preserves the tool-call-group boundary invariant). Latent bug (fires only >100 messages). Adds a `conversations.summary` JSONB column (migration, reversible) + a summarization prompt template. Three forks (sync vs async timing; budget line; trigger threshold) have recommended defaults; lock them at `/bug-fix` Default-mode entry.
+- **D1 — Long-conversation summarization.** [`bug_chat_long_conversation_truncation/bug_fix.md`](../00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation/bug_fix.md): wrap the existing position-based truncation with a summarization pre-step that condenses the dropped portion into a system-prefix message (additive — preserves the tool-call-group boundary invariant). Latent bug (fires only >100 messages). Adds a `conversations.summary` JSONB column (migration, reversible) + a summarization prompt template. Three forks (sync vs async timing; budget line; trigger threshold) have recommended defaults; lock them at `/bug-fix` Default-mode entry.
 
 ### Workstream E — Search UX · Backlog→P2
 
@@ -231,8 +231,7 @@ Story stubs:
 | C | C2 | Per-engine tunable-params cheatsheets (ES/OS/Solr) | docs | — | P2 |
 | C | C3 | Wizard + tutorial linkage | feat | — | P2 |
 | C | C4 | Cross-engine render smoke tests | infra | — | P2 |
-| D | D1 | Chat last-message preview | feat | — | P2 |
-| D | D2 | Long-conversation summarization | bug | **1** | P2 |
+| D | D1 | Long-conversation summarization | bug | **1** | P2 |
 | E | E1 | Rank-ordered FTS ordering | feat | — | P2 |
 | E | E2 | Float-safe cursor encoding | feat | 0–1 | P2 |
 | E | E3 | Cursor invalidation + relevance pill | feat | — | P2 |
@@ -245,7 +244,7 @@ Story stubs:
 | G | G2 | One-click overnight autopilot + morning chain summary | feat | — | P2 |
 | G | G3 | Study convergence indicator + "re-run deeper" nudge | feat | — | P2 |
 
-**Migration budget:** **two** new Alembic migrations total (A6 Solr CHECK constraints; D2 `conversations.summary`) — plus possibly one for E2 depending on the cursor approach chosen at spec time. UBI (the headline judgment work) and all of Workstream G require **zero** schema change.
+**Migration budget:** **two** new Alembic migrations total (A6 Solr CHECK constraints; D1 `conversations.summary`) — plus possibly one for E2 depending on the cursor approach chosen at spec time. UBI (the headline judgment work) and all of Workstream G require **zero** schema change.
 
 ## 9. Non-goals (explicitly NOT in MVP2)
 
@@ -268,7 +267,7 @@ Resolve these when each feature's spec is authored:
 2. **(B) `UBI_QUERY_MAPPING_AMBIGUOUS` tiebreaker** — when one UBI `user_query` string maps to multiple `query_set` entries, what's the operator-facing disambiguation contract?
 3. **(B) Hybrid converter cost accounting** — does the LLM-fill tail draw from the same `openai_daily_budget_usd` line as `generate_judgments_llm`, or its own?
 4. **(C) `feat_` vs `chore_` for the template library** — it ships user-visible content; confirm the rename per the naming convention.
-5. **(D2) Summarization timing/budget/trigger** — accept the three recommended defaults (sync; same budget line; message-count primary + token-count safety), or revisit?
+5. **(D1) Summarization timing/budget/trigger** — accept the three recommended defaults (sync; same budget line; message-count primary + token-count safety), or revisit?
 6. **(E2) Cursor strategy** — rank-bucketed integer cursor vs transient materialized rank column (drives whether E needs a migration).
 7. **(B10–B11) Nudge persistence + cadence** — where is "dismissed" state stored (per-cluster row? client localStorage like other contextual-help dismissals?), and does the nudge re-surface on a schedule or only while the underlying readiness rung is unchanged?
 8. **(B10) Readiness thresholds** — what impression counts define the rung 1→2→3 boundaries, and are they operator-configurable or fixed defaults for MVP2?
