@@ -160,9 +160,9 @@ Walking the absolute-rules list before /spec-gen takes over:
   [`docs/00_overview/implemented_features/2026_05_12_feat_chat_agent/`](../../../implemented_features/2026_05_12_feat_chat_agent/);
   operator runbook at
   [`docs/03_runbooks/agent-debugging.md`](../../../../03_runbooks/agent-debugging.md).
-- Future PR cleanup paired with
-  [`feat_chat_last_message_preview`](../feat_chat_last_message_preview/idea.md)
-  if MVP2's chat polish bundles together.
+- Companion chat-polish item [`chore_chat_last_message_preview`](../../../implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md)
+  already shipped (PR #117, 2026-05-14), so this bug now stands alone in
+  MVP2's chat-polish workstream — no co-shipping coordination needed.
 - MVP2 observability work (Langfuse + ClickHouse traces) is the natural
   shipping window — summarization prompt calibration benefits directly
   from per-turn trace visibility.

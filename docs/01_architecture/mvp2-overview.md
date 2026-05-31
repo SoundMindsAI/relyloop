@@ -148,12 +148,11 @@ Story stubs:
 
 ### Workstream D — Chat polish · P2
 
-**Goal:** two deferred chat-UX items that pair naturally and were explicitly held for MVP2.
-**Migration:** one (D2 only). **Independent of the anchors.**
+**Goal:** one deferred chat-UX item (long-conversation summarization). The companion "last-message preview" item was originally bundled here as D1 but shipped early as `chore_chat_last_message_preview` (PR #117, 2026-05-14) during the MVP1 polish window — see [`implemented_features/2026_05_14_chore_chat_last_message_preview/`](../00_overview/implemented_features/2026_05_14_chore_chat_last_message_preview/). The duplicate `feat_chat_last_message_preview/` planned-features folder was a rename-shadow of that same work and has been retired.
+**Migration:** one (D1 only). **Independent of the anchors.**
 
 Story stubs:
-- **D1 — Last-message preview.** [`feat_chat_last_message_preview/idea.md`](../00_overview/planned_features/02_mvp2/feat_chat_last_message_preview/idea.md): add `last_message_preview` (120-char, markdown-stripped) + `last_message_at` to `ConversationSummary` via a correlated subquery (no migration, no denormalize); render a muted preview line in `ConversationList`. Open forks (which role, markdown strip, content extraction) have recommended defaults locked in the idea.
-- **D2 — Long-conversation summarization.** [`bug_chat_long_conversation_truncation/bug_fix.md`](../00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md): wrap the existing position-based truncation with a summarization pre-step that condenses the dropped portion into a system-prefix message (additive — preserves the tool-call-group boundary invariant). Latent bug (fires only >100 messages). Adds a `conversations.summary` JSONB column (migration, reversible) + a summarization prompt template. Three forks (sync vs async timing; budget line; trigger threshold) have recommended defaults; lock them at `/bug-fix` Default-mode entry.
+- **D1 — Long-conversation summarization.** [`bug_chat_long_conversation_truncation/bug_fix.md`](../00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md): wrap the existing position-based truncation with a summarization pre-step that condenses the dropped portion into a system-prefix message (additive — preserves the tool-call-group boundary invariant). Latent bug (fires only >100 messages). Adds a `conversations.summary` JSONB column (migration, reversible) + a summarization prompt template. Three forks (sync vs async timing; budget line; trigger threshold) have recommended defaults; lock them at `/bug-fix` Default-mode entry.
 
 ### Workstream E — Search UX · Backlog→P2
 
