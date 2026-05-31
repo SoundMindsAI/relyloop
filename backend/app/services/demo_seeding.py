@@ -1325,11 +1325,16 @@ async def reseed_demo_state(
     # wall-clock jumps; for the ISO timestamp we use `datetime.now(UTC)`.
     started_at_dt = datetime.now(UTC)
     seed_anchor_iso = started_at_dt.isoformat()
-    # Per-invocation gate so `ensure_ubi_indices` runs at most once across
-    # the scenario loop. Local (NOT module-level) because the cleanup pass
-    # DELETEs both ubi_queries + ubi_events at start of every reseed —
-    # caching across invocations would skip the PUT on the second reseed.
-    ubi_indices_ready: bool = False
+    # Per-invocation gate so `ensure_ubi_indices` runs at most once PER
+    # ENGINE BASE across the scenario loop. Tracking the set of engine bases
+    # already ensured (not a single bool) is required because the loop spans
+    # multiple engines (ES on :9200, OpenSearch on :9201, Solr on :8983):
+    # a bare bool flipped True by the first ES scenario would skip
+    # `ensure_ubi_indices` for the Solr scenario, leaving its ubi_queries /
+    # ubi_events collections uncreated. Local (NOT module-level) because the
+    # cleanup pass DELETEs both UBI indices at start of every reseed —
+    # caching across invocations would skip the create on the second reseed.
+    ubi_indices_ready: set[str] = set()
     # scenarios_total counts the 4 small SCENARIOS + the rich ESCI scenario
     # (matches the CLI's 5-study output from ``make seed-demo``).
     progress = ReseedStatusResponse(
@@ -1538,13 +1543,15 @@ async def reseed_demo_state(
             # handler catches Exception), but the operator loses the
             # ubi_seed/{slug} attribution. Per GPT-5.5 final review on PR #320.
             try:
-                if not ubi_indices_ready:
+                ubi_engine_type = cast("str", scenario["engine_type"])
+                if engine_base not in ubi_indices_ready:
                     await ensure_ubi_indices(
                         engine_client=engine_client,
                         engine_base_url=engine_base,
                         host_auth=host_auth,
+                        engine_type=ubi_engine_type,
                     )
-                    ubi_indices_ready = True
+                    ubi_indices_ready.add(engine_base)
                 query_id_by_index: dict[int, str] = dict(enumerate(qid_by_idx))
                 query_text_by_index: dict[int, str] = {
                     i: cast("str", q["query_text"]) for i, q in enumerate(scenario_queries)
@@ -1574,6 +1581,7 @@ async def reseed_demo_state(
                     engine_client=engine_client,
                     engine_base_url=engine_base,
                     host_auth=host_auth,
+                    engine_type=ubi_engine_type,
                     scenario_slug=slug,
                     target_application=target,
                     queries=ubi_queries,

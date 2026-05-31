@@ -144,6 +144,7 @@ async def test_synthetic_ubi_seed_round_trip_hits_rung_3() -> None:
                 engine_client=fake_engine_client,
                 engine_base_url=es_base_url,
                 host_auth=host_auth,
+                engine_type="elasticsearch",
                 scenario_slug="acme-products-prod",
                 target_application=target_application,  # not products → reject
                 queries=queries,
@@ -166,12 +167,14 @@ async def test_synthetic_ubi_seed_round_trip_hits_rung_3() -> None:
                 engine_client=engine_client,
                 engine_base_url=es_base_url,
                 host_auth=host_auth,
+                engine_type="elasticsearch",
                 mapping_path=_REPO_ROOT_MAPPING,
             )
             event_count = await seed_synthetic_ubi(
                 engine_client=engine_client,
                 engine_base_url=es_base_url,
                 host_auth=host_auth,
+                engine_type="elasticsearch",
                 scenario_slug="acme-products-prod",
                 target_application=target_application,
                 queries=queries,
