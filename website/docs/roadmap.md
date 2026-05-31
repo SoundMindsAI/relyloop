@@ -169,11 +169,11 @@
 
 - ✅ [Contextual Help](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2) · [#124](https://github.com/SoundMindsAI/relyloop/pull/124)
 - ✅ [Demo UBI Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_30_feat_demo_ubi_study_comparison) · [#320](https://github.com/SoundMindsAI/relyloop/pull/320)
+- ✅ [Overnight Autopilot](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_31_feat_overnight_autopilot) · [#343](https://github.com/SoundMindsAI/relyloop/pull/343)
 - ✅ [Study Sub Warmup Guard](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_feat_study_sub_warmup_guard) · [#316](https://github.com/SoundMindsAI/relyloop/pull/316)
 - ✅ [UBI Judgments](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_feat_ubi_judgments) · [#317](https://github.com/SoundMindsAI/relyloop/pull/317)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
 - 🟡 [FTS Rank Ordering](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering)
-- 🟡 [Overnight Autopilot](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_overnight_autopilot)
 - 🟡 [Overnight Studies Summary Card](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_overnight_studies_summary_card)
 - 🟡 [Query Normalization Tuning](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning)
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
