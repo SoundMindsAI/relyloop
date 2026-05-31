@@ -19,9 +19,11 @@ import pytest
 from backend.app.services.demo_seeding import (
     DEMO_RESEED_STATUS_KEY,
     DEMO_RESEED_STATUS_TTL_S,
+    DEMO_RESEED_STEP_HISTORY_CAP,
     ReseedStatusResponse,
     ReseedSummary,
     _build_search_space,
+    append_step_history,
     status_get,
     status_set,
 )
@@ -53,6 +55,7 @@ def test_reseed_status_shape_required_fields() -> None:
     assert s.current_step is None
     assert s.failed_reason is None
     assert s.summary is None
+    assert s.steps == []
 
 
 def test_reseed_status_rejects_extra_fields() -> None:
@@ -150,6 +153,82 @@ async def test_status_get_handles_malformed_json_as_idle() -> None:
     redis.store[DEMO_RESEED_STATUS_KEY] = b"not-json-{"
     s = await status_get(redis)  # type: ignore[arg-type]
     assert s.status == "idle"
+
+
+def test_reseed_status_steps_defaults_to_empty_list() -> None:
+    """``steps`` is a fresh empty list per instance (no shared mutable default)."""
+    a = ReseedStatusResponse(status="idle")
+    b = ReseedStatusResponse(status="idle")
+    assert a.steps == []
+    a.steps.append("x")
+    assert b.steps == [], "default_factory must give each instance its own list"
+
+
+async def test_status_set_get_roundtrips_steps_history() -> None:
+    """The ``steps`` history survives the JSON round-trip through Redis."""
+    redis = _StubRedis()
+    original = ReseedStatusResponse(
+        status="running",
+        scenarios_total=5,
+        scenarios_completed=1,
+        current_step="acme: creating study",
+        steps=[
+            "wiping demo state",
+            "acme: indexing docs",
+            "acme: creating study",
+        ],
+    )
+    await status_set(redis, original)  # type: ignore[arg-type]
+    payload = json.loads(redis.store[DEMO_RESEED_STATUS_KEY])
+    assert payload["steps"] == original.steps
+    fetched = await status_get(redis)  # type: ignore[arg-type]
+    assert fetched.steps == original.steps
+    assert fetched.steps[-1] == "acme: creating study"
+
+
+def test_append_step_history_appends_in_order() -> None:
+    steps: list[str] = []
+    append_step_history(steps, "one")
+    append_step_history(steps, "two")
+    append_step_history(steps, "three")
+    assert steps == ["one", "two", "three"]
+
+
+def test_append_step_history_skips_none() -> None:
+    """The terminal idle reset sets ``current_step=None`` — nothing to log."""
+    steps = ["one"]
+    append_step_history(steps, None)
+    assert steps == ["one"]
+
+
+def test_append_step_history_dedupes_consecutive_duplicates() -> None:
+    """The poll loop re-persists the same step; only transitions are logged."""
+    steps: list[str] = []
+    append_step_history(steps, "polling")
+    append_step_history(steps, "polling")
+    append_step_history(steps, "polling")
+    assert steps == ["polling"]
+    # A non-adjacent repeat IS appended (the step genuinely recurred).
+    append_step_history(steps, "next")
+    append_step_history(steps, "polling")
+    assert steps == ["polling", "next", "polling"]
+
+
+def test_append_step_history_caps_at_bound_keeping_most_recent() -> None:
+    steps: list[str] = []
+    for i in range(DEMO_RESEED_STEP_HISTORY_CAP + 50):
+        append_step_history(steps, f"step-{i}")
+    assert len(steps) == DEMO_RESEED_STEP_HISTORY_CAP
+    # Oldest dropped, newest retained, order preserved.
+    assert steps[0] == "step-50"
+    assert steps[-1] == f"step-{DEMO_RESEED_STEP_HISTORY_CAP + 49}"
+
+
+def test_append_step_history_respects_custom_cap() -> None:
+    steps: list[str] = []
+    for i in range(10):
+        append_step_history(steps, f"s{i}", cap=3)
+    assert steps == ["s7", "s8", "s9"]
 
 
 def test_build_search_space_emits_log_uniform_floats_for_each_param() -> None:
