@@ -1,5 +1,7 @@
 # Pipeline Status — Study Budget Sub-Warmup Guard
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: idea.md (preflight-refreshed 2026-05-29)

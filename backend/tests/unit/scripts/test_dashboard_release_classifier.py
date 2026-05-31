@@ -25,6 +25,8 @@ from scripts.build_mvp1_dashboard import (  # noqa: E402
     DEFAULT_RELEASE,
     Feature,
     _dashboard_paths,
+    _extract_explicit_release,
+    _load_implemented,
     _load_planned,
     _release_filename_safe,
     _target_release,
@@ -131,6 +133,95 @@ class TestTargetReleaseStatusLine:
         # the body would, if scanned. Default applies.
         line = "Idea — surfaced when /pipeline status ranked X as #1"
         assert _target_release("foo", line) == DEFAULT_RELEASE
+
+
+class TestExtractExplicitRelease:
+    """The explicit ``**Release:** mvpN`` marker — the deterministic,
+    flat-folder-surviving release signal stamped at finalization. Closes the
+    gap where a shipped MVP2 feature (e.g. ``feat_ubi_judgments``,
+    ``infra_adapter_solr``) moved into the bucket-less ``implemented_features/``
+    tree fell back to MVP1 because its only release cue lived in idea-body prose
+    that the status-line-scoped classifier deliberately ignores.
+    """
+
+    def test_parses_integer_release(self) -> None:
+        assert _extract_explicit_release("**Release:** mvp2") == "mvp2"
+        assert _extract_explicit_release("foo\n**Release:** mvp3\nbar") == "mvp3"
+
+    def test_normalizes_half_step_underscore_to_dot(self) -> None:
+        assert _extract_explicit_release("**Release:** mvp1_5") == "mvp1.5"
+
+    def test_case_insensitive_and_backtick_tolerant(self) -> None:
+        assert _extract_explicit_release("**Release:** MVP2") == "mvp2"
+        assert _extract_explicit_release("**Release:** `mvp2`") == "mvp2"
+
+    def test_sentinel_tags(self) -> None:
+        assert _extract_explicit_release("**Release:** backlog") == "backlog"
+        assert _extract_explicit_release("**Release:** ga") == "ga"
+
+    def test_absent_marker_returns_none(self) -> None:
+        assert _extract_explicit_release("no marker here") is None
+        assert _extract_explicit_release("") is None
+
+    def test_body_prose_mention_does_not_match(self) -> None:
+        """Only the dedicated ``**Release:**`` line matches — a prose sentence
+        mentioning a release in passing must NOT be picked up (mirrors the
+        status-line-only discipline of the rest of the classifier)."""
+        assert _extract_explicit_release("This ships in the MVP2 release.") is None
+        assert _extract_explicit_release("Release of mvp2 is imminent") is None
+
+
+class TestTargetReleaseExplicitMarker:
+    def test_explicit_release_wins_over_suffix_and_status(self) -> None:
+        """The explicit marker is the flat-folder equivalent of the bucket:
+        it overrides both the folder suffix and the prose status line."""
+        assert _target_release("foo", "Held for MVP3", explicit_release="mvp2") == "mvp2"
+        assert _target_release("foo_mvp3", "", explicit_release="mvp2") == "mvp2"
+
+    def test_bucket_still_wins_over_explicit(self) -> None:
+        """A live bucket (operator-curated, most recent) beats the explicit
+        marker — only flattened implemented features lose their bucket."""
+        assert _target_release("foo", "", bucket="01_mvp1", explicit_release="mvp2") == "mvp1"
+
+    def test_no_explicit_marker_preserves_legacy_cascade(self) -> None:
+        assert _target_release("foo_mvp2", "", explicit_release=None) == "mvp2"
+        assert _target_release("foo", "Held for MVP3", explicit_release=None) == "mvp3"
+        assert _target_release("foo", "", explicit_release=None) == DEFAULT_RELEASE
+
+
+class TestLoadImplementedRelease:
+    """End-to-end at the ``_load_implemented`` caller: a shipped feature with a
+    bucket-less folder name, a ``Complete`` stage line, and a ``**Release:**``
+    marker in its pipeline_status must classify to the marked release — the
+    exact infra_adapter_solr / feat_ubi_judgments case.
+    """
+
+    def _make(self, tmp_path: Path, *, pipeline_extra: str = "") -> Feature | None:
+        folder = tmp_path / "2026_05_31_feat_some_shipped"
+        folder.mkdir()
+        (folder / "pipeline_status.md").write_text(
+            "# Pipeline Status — Some Shipped Feature\n"
+            f"{pipeline_extra}"
+            "\n## Implementation\n- Status: Complete (PR #999)\n"
+        )
+        (folder / "feature_spec.md").write_text(
+            "# Some Shipped Feature\n**Status:** Approved\nOne-liner here.\n"
+        )
+        return _load_implemented(folder)
+
+    def test_explicit_release_marker_classifies_mvp2(self, tmp_path: Path) -> None:
+        f = self._make(tmp_path, pipeline_extra="\n**Release:** mvp2\n")
+        assert f is not None
+        assert f.release == "mvp2"
+        # The release marker drives classification only — it must NOT leak into
+        # the human-facing display status line.
+        assert "mvp2" not in f.status_line.lower()
+        assert "Release" not in f.status_line
+
+    def test_no_marker_falls_back_to_mvp1(self, tmp_path: Path) -> None:
+        f = self._make(tmp_path)
+        assert f is not None
+        assert f.release == DEFAULT_RELEASE
 
 
 class TestDashboardPaths:

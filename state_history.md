@@ -4,6 +4,92 @@
 
 ---
 
+### infra_adapter_solr — Apache Solr adapter, MVP2 three-engine reach (PR #336 + #337, 2026-05-31)
+
+MVP2's headliner and the feature that completes the project's three-engine
+promise: alongside the existing `ElasticAdapter` (ES + OpenSearch), a single
+`SolrAdapter` now implements the full `SearchAdapter` Protocol against Apache
+Solr 9.x and 10.x, both SolrCloud and standalone, pivoting on a
+construction-time capability probe. Squash-merged via
+[PR #336](https://github.com/SoundMindsAI/relyloop/pull/336) (merge commit
+`60aec9af`), with a demo-seed follow-up in
+[PR #337](https://github.com/SoundMindsAI/relyloop/pull/337). The planned-feature
+folder moved to `implemented_features/2026_05_31_infra_adapter_solr/`.
+
+**Thirteen stories (A1–A13), single-phase delivery:**
+- **A1** — `SolrAdapter` skeleton + `probe_capabilities()` (version, mode,
+  targets, uniqueKey-per-target, LTR module/models, UBI component) +
+  `health_check()` + `list_query_parsers()`; `protocol.py` `DocumentPage` gains
+  an additive optional `next_cursor_token: str | None`.
+- **A2** — `render()` for `edismax`/`dismax`/`lucene` with unified→native param
+  pivots (`field_boosts`→`qf`, `phrase_field_boosts`→`pf`, `tie_breaker`→`tie`,
+  `min_should_match`→`mm`, `slop`→`ps`, `boost_fn`→`bf|boost`,
+  `rerank_model`→`rq={!ltr}`); 3 sample templates at `samples/templates/solr/`.
+- **A3** — `search_batch()` parallel `/select` via `asyncio.gather`, uniqueKey
+  resolution + cache, strict/lenient error modes.
+- **A4** — `list_targets()` (cloud collections + standalone cores, system-target
+  exclusion before glob) + `get_schema()`.
+- **A5** — `explain()` via `debugQuery=true` with Lucene-metachar escaping.
+- **A6** — **allowlist relocation**: `SUPPORTED_AUTH_KINDS`,
+  `ALLOWED_AUTH_PER_ENGINE`, `SUPPORTED_ENGINE_TYPES`, `RESERVED_AUTH_KINDS`
+  moved from `elastic.py` to a new `registry.py` (bare re-export shim, no
+  DeprecationWarning); migration **0022** extends `clusters.engine_type` +
+  `clusters.auth_kind` CHECK constraints (round-trip + Solr-row downgrade-abort
+  verified vs real Postgres). **Alembic head is now `0022_solr_engine_auth_check`.**
+- **A7** — LTR rescore + pre-flight `LtrModelNotFoundError` → 400
+  `LTR_MODEL_NOT_FOUND`.
+- **A8** — `get_document()` (RealTime Get) + `list_documents()` (cursorMark
+  pagination, terminal-page rule sets `next_cursor_token=None`).
+- **A9** — `POST /clusters/{id}/reprobe` (SELECT FOR UPDATE serialized, persists
+  probe into engine_config) + `POST /clusters/test-connection` (probe without
+  persist, always 200).
+- **A10** — Compose `solr:10.0` service (`127.0.0.1:8983`), checked-in
+  configsets, sample seed (`make seed-solr`), `Settings.solr_host/solr_port`
+  (opt-in), `/healthz` `subsystems.solr`.
+- **A11** — frontend: `enums.ts` + `cluster-auth.ts` (drift-guarded mirror of
+  `registry.py`), new 3-engine `<EngineBadge>`, per-engine auth dropdown
+  filtering + invalid-auth reset on engine change, pre-submit Test-connection
+  button.
+- **A12** — Guide 01 (3-engine), `docs/03_runbooks/solr-cluster-registration.md`,
+  tutorial Step 0 Path C, `adapters.md` SolrAdapter section rewritten to
+  past-tense, `comparison.md` engine-support row.
+- **A13** — 5th `acme-kb-docs-solr` demo scenario in the home-button reseed
+  (KB-search use case, `products_edismax`, rung_2 + hybrid_ubi_llm).
+
+**The live-Solr rework (the load-bearing correction).** The originally-built
+branch shipped against wrong assumptions and didn't actually run. A 2026-05-30
+re-verification session against a LIVE `solr:10.0` binary corrected four facts,
+all folded into the squash-merged PR:
+1. **No `solr.UBIComponent` ships in stock Solr** (no module, no class, no
+   ref-guide page). UBI on Solr is therefore **read-path only** — the demo
+   synthesizes events directly into `ubi_queries`/`ubi_events` and the
+   capability probe accurately reports `ubi_component_present=false`. The
+   engine-neutral `UbiReader` from `feat_ubi_judgments` reads those collections
+   on Solr unchanged, so UBI *judgment generation* still works everywhere.
+2. **No auth bootstrap.** `bootstrap-security.sh` deleted, `solr_admin_*`
+   secrets removed — local Solr runs **security-disabled** (parity with the
+   local ES/OpenSearch services). The adapter's `solr_basic`/`solr_apikey`
+   support is retained for real operator clusters that enable auth.
+3. **LTR loads via `SOLR_MODULES=ltr`** (not `<lib>`); the `[features]`
+   transformer takes no `fvCacheName`; the feature-vector cache is a
+   `<featureVectorCache>` inside `<query>` (the 10.0 ref-guide snippet is stale
+   and the binary rejects it).
+4. **Solr 10 boots SolrCloud by default** — no `-c` flag; configsets live in
+   ZooKeeper, uploaded with conf files at the ZIP root.
+
+**Cross-model review.** GPT-5.5 review (F1 auth hash, F2 param validation, F3
+cursor guard) + 6 Gemini Code Assist findings (2 High, 3 Medium + 1) all
+adjudicated in-PR. Spec converged at GPT-5.5 cycle 3 ("ready"); plan ran 3
+cycles (24/25 accepted, 1 rejected with cited counter-evidence).
+
+**Post-pipeline followups** (captured during the run, none blocking):
+`00_unsure/chore_solr_post_pipeline_followups` (first-`make up` verification +
+deferred live-Solr integration tests), `00_unsure/chore_solr_cred_backfill_needs_api_restart`,
+plus the pre-existing demo-seed `UBI_INSUFFICIENT_DATA` failures that #337 fixed
+(originally captured as `00_unsure/bug_demo_seed_ubi_insufficient_data`).
+**SolrCloud coverage is cassette + mocked-HTTP only** by design — no SolrCloud
+Compose profile; the maintainer re-records cassettes per the runbook.
+
 ### chore_oss_public_launch_punchlist — OSS launch gates (PRs #322, #330, + history-audit PR, 2026-05-30)
 
 Closed out the three-capability OSS public-launch punchlist (folder

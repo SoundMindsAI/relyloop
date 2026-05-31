@@ -1,5 +1,7 @@
 # Pipeline Status — UBI Judgments (engine-neutral User Behavior Insights)
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: [`idea.md`](idea.md)
