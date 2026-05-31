@@ -701,6 +701,13 @@ export const glossary = {
     short:
       'AWS SigV4 for OpenSearch on AWS managed service. Uses IAM roles, not username/password.',
   },
+  'cluster.auth_kind.solr_basic': {
+    short: 'Apache Solr HTTP basic via the BasicAuthPlugin. Configure users in security.json.',
+  },
+  'cluster.auth_kind.solr_apikey': {
+    short:
+      'Apache Solr 9+ JWT through the JWTAuthPlugin. The credential file holds the bearer token.',
+  },
 
   'cluster.environment': {
     short:

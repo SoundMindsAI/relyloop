@@ -51,11 +51,17 @@ fi
 # 4. Create empty placeholder files for optional secrets (Compose mounts them).
 [[ -e ./secrets/openai_key ]]     || { touch ./secrets/openai_key;     chmod 600 ./secrets/openai_key;     }
 if [[ ! -e ./secrets/cluster_credentials.yaml ]]; then
-  # Seed default credentials for the local Compose ES + OpenSearch containers
-  # (well-known dev defaults — not production secrets). The seed-clusters
-  # script (`make seed-clusters`) reads these refs to register the two
-  # containers as cluster rows. Operators add real production credentials
-  # by editing this file before `make seed-clusters` for non-local clusters.
+  # Seed default credentials for the local Compose ES + OpenSearch + Solr
+  # containers (well-known dev defaults — not production secrets). The
+  # seed-clusters script (`make seed-clusters`) reads these refs to register
+  # the three containers as cluster rows. Operators add real production
+  # credentials by editing this file before `make seed-clusters` for
+  # non-local clusters.
+  #
+  # All three local engines run security-disabled (see docker-compose.yml),
+  # so these credentials are never actually checked — the adapter sends an
+  # Authorization header the engine ignores. They exist only so the
+  # credentials_ref resolution succeeds with a well-formed entry.
   cat > ./secrets/cluster_credentials.yaml <<'CLUSTER_CREDS_EOF'
 local-es:
   username: elastic
@@ -63,8 +69,23 @@ local-es:
 local-opensearch:
   username: admin
   password: admin
+local-solr:
+  username: solr
+  password: solr
 CLUSTER_CREDS_EOF
   chmod 600 ./secrets/cluster_credentials.yaml
+fi
+
+# 5a. Backfill the local-solr credentials entry into a PRE-EXISTING
+#     cluster_credentials.yaml. The block above only writes the file when it
+#     doesn't exist, so operators whose file predates the Solr feature
+#     (local-es + local-opensearch only) would otherwise hit
+#     `credentials_ref 'local-solr' not found` when `make seed-clusters` /
+#     `make seed-demo` tries to register the local-solr cluster. Append the
+#     entry idempotently if the key is absent.
+if [[ -s ./secrets/cluster_credentials.yaml ]] && ! grep -q '^local-solr:' ./secrets/cluster_credentials.yaml; then
+  echo "Backfilling local-solr entry into existing ./secrets/cluster_credentials.yaml..."
+  printf '\nlocal-solr:\n  username: solr\n  password: solr\n' >> ./secrets/cluster_credentials.yaml
 fi
 
 # 5. Validate Compose config (catches typos before pulling images).

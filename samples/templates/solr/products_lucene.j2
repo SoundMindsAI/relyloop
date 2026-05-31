@@ -1,0 +1,20 @@
+{#-
+  products_lucene.j2 — Solr lucene-parser variant for the ``products``
+  demo collection. The lucene parser has NO `qf`/`pf`/`tie`/`mm` —
+  it parses the `q` string as a literal Lucene expression. The demo
+  uses it as a baseline ("what does the engine do without query-time
+  field weighting?"); the search-space dimensions are intentionally
+  thin.
+
+  Declared params:
+    field_query                  string   the rendered Lucene expression
+                                          (e.g. "title:laptop description:laptop")
+
+  Operators typically compose ``field_query`` upstream by joining the
+  ``query_text`` with the candidate fields the search-space configures.
+-#}
+{
+  "defType": "lucene",
+  "q": "{{ field_query }}",
+  "fl": "*,score"
+}

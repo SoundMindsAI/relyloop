@@ -14,11 +14,15 @@ const ENGINE_NUDGE_COPY: Record<EngineType, string> = {
     'Install the o19s ES UBI fork to start capturing click + dwell behavior — RelyLoop reads it as click-derived judgments without needing the LLM.',
   opensearch:
     'Install the OpenSearch UBI plugin to start capturing click + dwell behavior — RelyLoop reads it as click-derived judgments without needing the LLM.',
+  // infra_adapter_solr Story A11: Solr ships UBI first-party — operators
+  // just need to enable the searchComponent in solrconfig.xml.
+  solr: 'Enable the first-party solr.UBIComponent in solrconfig.xml to capture click + dwell behavior — RelyLoop reads it as click-derived judgments without needing the LLM.',
 };
 
 const ENGINE_RUNBOOK_LINKS: Record<EngineType, string> = {
   elasticsearch: '/guide/runbooks/ubi-judgment-generation#elasticsearch',
   opensearch: '/guide/runbooks/ubi-judgment-generation#opensearch',
+  solr: '/guide/runbooks/solr-cluster-registration#enable-ubi',
 };
 
 interface UbiOnrampNudgeProps {

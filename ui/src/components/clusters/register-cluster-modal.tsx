@@ -3,13 +3,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
 import { HelpPopover } from '@/components/common/help-popover';
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { EntitySelect } from '@/components/common/entity-select';
+import { ENGINE_LABELS } from '@/components/clusters/engine-badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -31,14 +32,29 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useRegisterCluster } from '@/lib/api/clusters';
 import { useConfigRepos } from '@/lib/api/config-repos';
+import { ALLOWED_AUTH_PER_ENGINE } from '@/lib/cluster-auth';
 import {
-  AUTH_KIND_VALUES,
   ENGINE_TYPE_VALUES,
   ENVIRONMENT_VALUES,
   type AuthKind,
   type EngineType,
   type Environment,
 } from '@/lib/enums';
+
+// Result of POST /api/v1/clusters/test-connection (Story A9 backend).
+interface ConnectionTestResult {
+  reachable: boolean;
+  status: 'green' | 'yellow' | 'red' | 'unreachable';
+  version: string | null;
+  engine_capabilities: Record<string, unknown> | null;
+  error: string | null;
+}
+
+type TestStatus =
+  | { kind: 'idle' }
+  | { kind: 'probing' }
+  | { kind: 'result'; result: ConnectionTestResult }
+  | { kind: 'error'; code: string; message: string };
 
 interface RegisterClusterFormValues {
   name: string;
@@ -61,6 +77,7 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
   const register = useRegisterCluster();
   const configRepos = useConfigRepos({ limit: 100 });
   const [submitting, setSubmitting] = useState(false);
+  const [testStatus, setTestStatus] = useState<TestStatus>({ kind: 'idle' });
   const form = useForm<RegisterClusterFormValues>({
     defaultValues: {
       name: '',
@@ -74,6 +91,73 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
       target_filter: '',
     },
   });
+
+  // Watch every field that contributes to the connection-test payload and
+  // reset the test result whenever any of them change. Without this, an
+  // operator who passes the test then edits the URL keeps seeing a stale
+  // green "reachable" pip even though the new URL was never probed.
+  const watchedEngine = form.watch('engine_type');
+  const watchedBaseUrl = form.watch('base_url');
+  const watchedAuthKind = form.watch('auth_kind');
+  const watchedCredentials = form.watch('credentials_ref');
+  useEffect(() => {
+    setTestStatus({ kind: 'idle' });
+  }, [watchedEngine, watchedBaseUrl, watchedAuthKind, watchedCredentials]);
+
+  // When the engine changes, drop an invalid auth_kind onto the first
+  // valid choice for the new engine. The dropdown's filtered options
+  // would also visually drop it, but react-hook-form keeps the previous
+  // value until we explicitly setValue.
+  function onEngineChange(next: EngineType): void {
+    form.setValue('engine_type', next);
+    const allowed = ALLOWED_AUTH_PER_ENGINE[next];
+    const current = form.watch('auth_kind');
+    if (!allowed.includes(current)) {
+      // tsc --noUncheckedIndexedAccess: allowed[0] is widened to T | undefined
+      // but allowed is non-empty by construction (drift-guarded by
+      // cluster-auth.test.ts). Narrow explicitly.
+      const first = allowed[0];
+      if (first) {
+        form.setValue('auth_kind', first);
+      }
+    }
+  }
+
+  async function onTestConnection(): Promise<void> {
+    setTestStatus({ kind: 'probing' });
+    try {
+      const res = await fetch('/api/v1/clusters/test-connection', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          engine_type: form.watch('engine_type'),
+          base_url: form.watch('base_url'),
+          auth_kind: form.watch('auth_kind'),
+          credentials_ref: form.watch('credentials_ref'),
+        }),
+      });
+      if (res.ok) {
+        const result = (await res.json()) as ConnectionTestResult;
+        setTestStatus({ kind: 'result', result });
+        return;
+      }
+      // Project-standard error envelope: { detail: { error_code, message, retryable } }
+      const body = (await res.json().catch(() => ({}))) as {
+        detail?: { error_code?: string; message?: string };
+      };
+      setTestStatus({
+        kind: 'error',
+        code: body.detail?.error_code ?? `HTTP_${res.status}`,
+        message: body.detail?.message ?? `Probe failed (HTTP ${res.status})`,
+      });
+    } catch (err) {
+      setTestStatus({
+        kind: 'error',
+        code: 'NETWORK',
+        message: err instanceof Error ? err.message : 'Network error',
+      });
+    }
+  }
 
   function submit(values: RegisterClusterFormValues) {
     setSubmitting(true);
@@ -106,8 +190,11 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
         <DialogHeader>
           <DialogTitle>Register cluster</DialogTitle>
           <DialogDescription>
-            Configure connection + auth. ES uses <code>es_apikey</code> or <code>es_basic</code>;
-            OpenSearch uses <code>opensearch_basic</code> or <code>opensearch_sigv4</code>.
+            Configure connection + auth. Elasticsearch uses <code>es_apikey</code> or{' '}
+            <code>es_basic</code>; OpenSearch uses <code>opensearch_basic</code>; Apache Solr uses{' '}
+            <code>solr_basic</code> (<code>BasicAuthPlugin</code>) or <code>solr_apikey</code> (
+            <code>JWTAuthPlugin</code>). The Test-connection button probes the cluster before
+            registration.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -136,7 +223,7 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
               <Label htmlFor="cl-engine">Engine</Label>
               <Select
                 value={form.watch('engine_type')}
-                onValueChange={(v) => form.setValue('engine_type', v as EngineType)}
+                onValueChange={(v) => onEngineChange(v as EngineType)}
               >
                 <SelectTrigger id="cl-engine">
                   <SelectValue />
@@ -144,7 +231,7 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
                 <SelectContent>
                   {ENGINE_TYPE_VALUES.map((v) => (
                     <SelectItem key={v} value={v}>
-                      {v}
+                      {ENGINE_LABELS[v]}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -184,7 +271,10 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AUTH_KIND_VALUES.map((v) => (
+                  {/* Per-engine filtering: only show auth kinds valid for the */}
+                  {/* selected engine — invalid combos can no longer be picked. */}
+                  {/* Values must match backend/app/adapters/registry.py ALLOWED_AUTH_PER_ENGINE */}
+                  {ALLOWED_AUTH_PER_ENGINE[form.watch('engine_type')].map((v) => (
                     <SelectItem key={v} value={v}>
                       {v}
                     </SelectItem>
@@ -252,6 +342,56 @@ export function RegisterClusterModal({ open, onOpenChange }: RegisterClusterModa
               expansion (<code>{'{a,b}'}</code>) is NOT supported — register two clusters if you
               need OR-of-globs. Leave blank to show every user-facing index.
             </p>
+          </div>
+          {/* infra_adapter_solr Story A11: pre-submit "Test connection" button
+              + inline result panel. Calls POST /api/v1/clusters/test-connection
+              and renders the diagnostic result before the operator commits
+              to the registration. Resets to idle on any field change so a
+              stale "green" can't survive form edits. */}
+          <div
+            className="flex flex-col gap-2 sm:flex-row sm:items-center"
+            data-testid="test-connection-row"
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                void onTestConnection();
+              }}
+              disabled={
+                testStatus.kind === 'probing' ||
+                !form.watch('base_url') ||
+                !form.watch('credentials_ref')
+              }
+              data-testid="test-connection-button"
+            >
+              {testStatus.kind === 'probing' ? 'Testing…' : 'Test connection'}
+            </Button>
+            {testStatus.kind === 'result' && testStatus.result.reachable && (
+              <span
+                className="text-sm text-emerald-600 dark:text-emerald-400"
+                data-testid="test-connection-result"
+              >
+                ✓ {testStatus.result.status}
+                {testStatus.result.version ? ` · ${testStatus.result.version}` : ''}
+              </span>
+            )}
+            {testStatus.kind === 'result' && !testStatus.result.reachable && (
+              <span
+                className="text-sm text-rose-600 dark:text-rose-400"
+                data-testid="test-connection-result"
+              >
+                ✗ {testStatus.result.error ?? 'unreachable'}
+              </span>
+            )}
+            {testStatus.kind === 'error' && (
+              <span
+                className="text-sm text-rose-600 dark:text-rose-400"
+                data-testid="test-connection-result"
+              >
+                ✗ {testStatus.code}: {testStatus.message}
+              </span>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>

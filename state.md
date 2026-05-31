@@ -14,9 +14,9 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 
 ## Current branch / execution context
 
-- **Branch:** `docs/finalize-demo-ubi-study-comparison` — Phase 1 finalization (folder move + status flips); feature PR #320 squash-merged to `main` 2026-05-30 (merge commit `853a5053`). See `/pipeline status` for the next MVP2 item.
-- **Active feature:** none in flight.
-- **Alembic head:** `0021_judgment_lists_generation_params` (added by `feat_ubi_judgments` Story 1.1 — JSONB column for UBI worker resume payload).
+- **Branch:** `feature/infra-adapter-solr` — all 13 stories (A1–A13) implemented and committed locally; PR not yet opened. See the implementation_plan.md execution tracker for per-story DONE notes and deferred-to-operator items.
+- **Active feature:** `infra_adapter_solr` (MVP2 headliner — Apache Solr adapter, capability probe + LTR + UBI on Solr).
+- **Alembic head:** `0022_solr_engine_auth_check` (added by `infra_adapter_solr` Story A6 — extends `clusters.engine_type` + `clusters.auth_kind` CHECK constraints for Solr).
 - **Python:** 3.13. **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat), TypeScript 6, Playwright (chromium, single worker) for E2E.
 - **Coverage gates:** backend 80% (`fail_under` in pyproject), UI vitest + tsc + ESLint + Next build, plus a full-stack smoke E2E job. Live pass counts: see the latest `pr.yml` run (the historical per-feature counts moved to `state_history.md`).
 

@@ -74,3 +74,39 @@ def test_empty_yaml_body_raises(tmp_path, monkeypatch) -> None:
     # cluster_credentials_yaml as None, so the "not mounted" branch fires.
     with pytest.raises(CredentialsMissing, match="not mounted"):
         resolve_credentials("es_basic", "any-ref")
+
+
+# --- infra_adapter_solr Story A6: Solr credential shapes ---
+
+
+def test_solr_basic_returns_username_password(tmp_path, monkeypatch) -> None:
+    _stub_settings(
+        monkeypatch,
+        tmp_path,
+        body="local-solr:\n  username: solr\n  password: SolrRocks\n",
+    )
+    creds = resolve_credentials("solr_basic", "local-solr")
+    assert creds == {"username": "solr", "password": "SolrRocks"}
+
+
+def test_solr_basic_missing_password_raises(tmp_path, monkeypatch) -> None:
+    _stub_settings(monkeypatch, tmp_path, body="local-solr:\n  username: solr\n")
+    with pytest.raises(CredentialsMissing, match="missing required"):
+        resolve_credentials("solr_basic", "local-solr")
+
+
+def test_solr_apikey_returns_jwt_token(tmp_path, monkeypatch) -> None:
+    _stub_settings(
+        monkeypatch,
+        tmp_path,
+        body="solr-jwt:\n  jwt_token: eyJhbGc.payload.sig\n  refresh_url: http://x/refresh\n",
+    )
+    creds = resolve_credentials("solr_apikey", "solr-jwt")
+    # refresh_url is carried through but the adapter ignores it (MVP2 out of scope).
+    assert creds["jwt_token"] == "eyJhbGc.payload.sig"
+
+
+def test_solr_apikey_missing_token_raises(tmp_path, monkeypatch) -> None:
+    _stub_settings(monkeypatch, tmp_path, body="solr-jwt:\n  refresh_url: http://x\n")
+    with pytest.raises(CredentialsMissing, match="missing required"):
+        resolve_credentials("solr_apikey", "solr-jwt")

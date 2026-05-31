@@ -54,43 +54,33 @@ from backend.app.adapters.protocol import (
     TargetInfo,
 )
 
+# Engine + auth allowlists relocated to ``backend/app/adapters/registry.py`` by
+# ``infra_adapter_solr`` Story A6 (spec FR-3). These ``as X`` re-exports are a
+# transitional shim for one release so existing imports
+# (``from backend.app.adapters.elastic import SUPPORTED_AUTH_KINDS``) keep
+# working; new code imports from ``registry`` directly. The ``as X`` aliasing
+# makes them explicit re-exports under mypy strict's ``no_implicit_reexport``.
+from backend.app.adapters.registry import (
+    ALLOWED_AUTH_PER_ENGINE as ALLOWED_AUTH_PER_ENGINE,
+)
+from backend.app.adapters.registry import (
+    RESERVED_AUTH_KINDS as RESERVED_AUTH_KINDS,
+)
+from backend.app.adapters.registry import (
+    SUPPORTED_AUTH_KINDS as SUPPORTED_AUTH_KINDS,
+)
+from backend.app.adapters.registry import (
+    SUPPORTED_ENGINE_TYPES as SUPPORTED_ENGINE_TYPES,
+)
+from backend.app.adapters.registry import (
+    SUPPORTED_ENVIRONMENTS as SUPPORTED_ENVIRONMENTS,
+)
+
 ES_MIN_VERSION: tuple[int, int] = (8, 11)
 """Elasticsearch minimum supported version (per spec §11)."""
 
 OPENSEARCH_MIN_VERSION: tuple[int, int] = (2, 0)
 """OpenSearch minimum supported version (per spec §11)."""
-
-SUPPORTED_ENGINE_TYPES: frozenset[str] = frozenset({"elasticsearch", "opensearch"})
-"""Wire-value source of truth for cluster registration. Mirrors the
-``clusters_engine_type_check`` CHECK constraint in migration 0002."""
-
-SUPPORTED_ENVIRONMENTS: frozenset[str] = frozenset({"prod", "staging", "dev"})
-"""Mirrors ``clusters_environment_check``."""
-
-SUPPORTED_AUTH_KINDS: frozenset[str] = frozenset({"es_apikey", "es_basic", "opensearch_basic"})
-"""``auth_kind`` values implemented in MVP1."""
-
-RESERVED_AUTH_KINDS: frozenset[str] = frozenset({"opensearch_sigv4"})
-"""Wire values that pass the DB CHECK constraint but are not implemented in MVP1.
-
-The cluster service raises ``AuthKindNotSupported`` for these so the operator
-gets a 400 with a clear message rather than a 500 from the adapter."""
-
-ALLOWED_AUTH_PER_ENGINE: dict[str, frozenset[str]] = {
-    "elasticsearch": frozenset({"es_apikey", "es_basic"}),
-    "opensearch": frozenset({"opensearch_basic"}),  # + opensearch_sigv4 at MVP3
-}
-"""Cross-product allowlist enforced at registration time.
-
-The DB ``auth_kind`` CHECK constraint accepts any of the four wire values for
-any engine, but pairing ``engine_type=opensearch`` with ``auth_kind=es_apikey``
-(or vice versa) is operator misconfiguration: the labels exist precisely to
-distinguish which auth method goes with which engine. The service layer rejects
-mismatched pairings with 400 ``AUTH_KIND_NOT_SUPPORTED`` so the error surfaces
-at request time rather than at the first probe.
-
-Reserved kinds (``opensearch_sigv4``) are NOT enumerated here — they're rejected
-earlier in ``register_cluster`` via ``RESERVED_AUTH_KINDS`` regardless of engine."""
 
 
 class ElasticAdapter:

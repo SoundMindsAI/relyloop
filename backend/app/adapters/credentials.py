@@ -30,10 +30,11 @@ def resolve_credentials(auth_kind: str, credentials_ref: str) -> dict[str, Any]:
     """Resolve a ``credentials_ref`` to its credential dict.
 
     Args:
-        auth_kind: One of ``es_apikey | es_basic | opensearch_basic | opensearch_sigv4``.
-            Used by callers to validate the returned dict's shape. This function
-            does not check it — the dict shape is validated where it's consumed
-            (``ElasticAdapter._build_auth_headers``).
+        auth_kind: One of ``es_apikey | es_basic | opensearch_basic |
+            opensearch_sigv4 | solr_basic | solr_apikey``. Used by callers to
+            validate the returned dict's shape. The adapter that consumes the
+            dict (``ElasticAdapter`` / ``SolrAdapter._build_auth_headers``)
+            validates the inner shape.
         credentials_ref: The key into the mounted YAML mapping.
 
     Returns:
@@ -71,8 +72,13 @@ def resolve_credentials(auth_kind: str, credentials_ref: str) -> dict[str, Any]:
     required: tuple[str, ...]
     if auth_kind == "es_apikey":
         required = ("api_key",)
-    elif auth_kind in ("es_basic", "opensearch_basic"):
+    elif auth_kind in ("es_basic", "opensearch_basic", "solr_basic"):
         required = ("username", "password")
+    elif auth_kind == "solr_apikey":
+        # Solr 9+ JWT through JWTAuthPlugin: the credential file holds the
+        # bearer token. ``refresh_url`` is out of scope for MVP2 (infra_adapter_solr
+        # spec FR-3) — the file may carry it as metadata but the adapter ignores it.
+        required = ("jwt_token",)
     else:
         # Unknown / reserved auth_kind — adapter constructor rejects before
         # this branch is reachable, but be defensive.

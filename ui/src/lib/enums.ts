@@ -37,15 +37,19 @@ export const TRIAL_SORT_VALUES = [
 export type TrialSort = (typeof TRIAL_SORT_VALUES)[number];
 
 // Values must match backend/app/api/v1/schemas.py EngineTypeWire.
-export const ENGINE_TYPE_VALUES = ['elasticsearch', 'opensearch'] as const;
+// `solr` added by infra_adapter_solr Story A11.
+export const ENGINE_TYPE_VALUES = ['elasticsearch', 'opensearch', 'solr'] as const;
 export type EngineType = (typeof ENGINE_TYPE_VALUES)[number];
 
 // Values must match backend/app/api/v1/schemas.py AuthKind.
+// `solr_basic` / `solr_apikey` added by infra_adapter_solr Story A11.
 export const AUTH_KIND_VALUES = [
   'es_apikey',
   'es_basic',
   'opensearch_basic',
   'opensearch_sigv4',
+  'solr_basic',
+  'solr_apikey',
 ] as const;
 export type AuthKind = (typeof AUTH_KIND_VALUES)[number];
 

@@ -12,6 +12,8 @@ export const DEMO_CLUSTER_SLUGS = [
   'corp-docs-search',
   'news-search-staging',
   'jobs-marketplace-prod',
+  // infra_adapter_solr Story A13: KB-search demo backed by Apache Solr.
+  'acme-kb-docs-solr',
 ] as const;
 
 export type DemoClusterSlug = (typeof DEMO_CLUSTER_SLUGS)[number];
@@ -40,6 +42,10 @@ export const DEMO_SYNTHETIC_UBI_CLUSTER_SLUGS = [
   'acme-products-prod',
   'corp-docs-search',
   'jobs-marketplace-prod',
+  // infra_adapter_solr Story A13: Solr scenario also receives synthetic UBI
+  // (rung_2 + hybrid_ubi_llm) so the demo exercises Solr's first-party
+  // solr.UBIComponent path.
+  'acme-kb-docs-solr',
 ] as const;
 
 export type DemoSyntheticUbiClusterSlug = (typeof DEMO_SYNTHETIC_UBI_CLUSTER_SLUGS)[number];

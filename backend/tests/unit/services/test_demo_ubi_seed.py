@@ -212,9 +212,13 @@ async def test_seed_synthetic_ubi_rejects_non_allowlisted_pairs(
 
 
 def test_allowlist_is_frozenset() -> None:
-    """The allowlist MUST be a frozenset (immutable, hashable)."""
+    """The allowlist MUST be a frozenset (immutable, hashable).
+
+    infra_adapter_solr Story A13 expanded to 4 entries (adds the Solr KB
+    demo scenario).
+    """
     assert isinstance(DEMO_UBI_SCENARIO_ALLOWLIST, frozenset)
-    assert len(DEMO_UBI_SCENARIO_ALLOWLIST) == 3
+    assert len(DEMO_UBI_SCENARIO_ALLOWLIST) == 4
 
 
 # --- NDJSON shape ---

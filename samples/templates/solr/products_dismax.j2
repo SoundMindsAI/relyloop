@@ -1,0 +1,26 @@
+{#-
+  products_dismax.j2 — Solr dismax variant for the ``products`` demo
+  collection. Identical search-space surface to the edismax variant
+  minus the edismax-only `mm` features (dismax accepts `mm` but the
+  arithmetic syntax is edismax-only — the demo defaults stick to
+  simple percentage strings).
+
+  Declared params:
+    title_boost                  float   range 0.5–10
+    description_boost            float   range 0.5–10
+    bullet_points_boost          float   range 0.5–10
+    tie                          float   range 0.0–1.0
+    mm                           string  e.g. "75%"
+-#}
+{
+  "defType": "dismax",
+  "q": "{{ query_text }}",
+  "field_boosts": {
+    "title": {{ title_boost }},
+    "description": {{ description_boost }},
+    "bullet_points": {{ bullet_points_boost }}
+  },
+  "tie_breaker": {{ tie }},
+  "min_should_match": "{{ mm }}",
+  "fl": "*,score"
+}

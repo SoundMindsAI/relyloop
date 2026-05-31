@@ -62,3 +62,23 @@ class InvalidQueryDSLError(Exception):
 
 class QueryTimeoutError(Exception):
     """Read timeout while waiting on the engine. Maps to 504 QUERY_TIMEOUT."""
+
+
+class LtrModelNotFoundError(LookupError):
+    """A query references an LTR model the cluster doesn't have loaded.
+
+    Maps to 400 ``LTR_MODEL_NOT_FOUND`` at the router (spec §8.5 / Story A7).
+    Raised by ``SolrAdapter._render_rerank_model`` when ``rerank_model.id``
+    is not present in ``cluster.engine_config.ltr_models[]`` (populated by
+    the capability probe). The ``model_id`` + ``available`` attrs let the
+    router format the 400 envelope's ``message`` field with the list of
+    available models so the operator can correct the request.
+    """
+
+    def __init__(self, model_id: str, available: list[str]) -> None:
+        """Capture the missing ``model_id`` + the list of ``available`` models."""
+        self.model_id = model_id
+        self.available = available
+        super().__init__(
+            f"LTR model {model_id!r} is not loaded on the cluster; available: {available}"
+        )

@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 'use client';
+import { EngineBadge } from '@/components/clusters/engine-badge';
 import { DemoBadge } from '@/components/common/demo-badge';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ClusterDetail } from '@/lib/api/clusters';
 import { isDemoSyntheticUbiClusterName } from '@/lib/demo-data';
+import type { EngineType } from '@/lib/enums';
 
 export interface ClusterDetailSummaryProps {
   cluster: ClusterDetail;
@@ -32,7 +34,15 @@ export function ClusterDetailSummary({ cluster }: ClusterDetailSummaryProps) {
         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm md:grid-cols-3">
           <div>
             <dt className="text-xs uppercase text-muted-foreground">Engine</dt>
-            <dd>{cluster.engine_type}</dd>
+            <dd>
+              <EngineBadge
+                engine={cluster.engine_type as EngineType}
+                mode={
+                  (cluster.engine_config as { mode?: 'cloud' | 'standalone' } | undefined)?.mode
+                }
+                version={cluster.health_check.version}
+              />
+            </dd>
           </div>
           <div>
             <dt className="text-xs uppercase text-muted-foreground">Environment</dt>

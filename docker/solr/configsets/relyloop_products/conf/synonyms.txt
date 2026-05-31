@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+#
+# Synonyms for the products demo configset. Placeholder; operators extend
+# at registration time per the runbook.
+laptop, notebook
+phone, smartphone, mobile
+tv, television

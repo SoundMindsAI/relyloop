@@ -22,7 +22,7 @@ tool for your job than pick ours by default.
 | [**Elasticsearch Ranking Evaluation API**](https://www.elastic.co/docs/reference/elasticsearch/rest-apis/search-rank-eval) | ES-native endpoint that computes IR metrics from judgments | Elasticsearch only | No (single-metric request) | API response | A low-level primitive. RelyLoop's adapter could call it for in-engine metric computation; today RelyLoop computes metrics off-engine via `ir_measures` for engine-agnosticism |
 | [**Elasticsearch LTR plugin / Solr LTR**](https://github.com/o19s/elasticsearch-learning-to-rank) | Learning-to-Rank reranker model training + serving | ES, Solr | n/a (LTR-specific) | Trained reranker model on cluster | **Downstream of RelyLoop.** RelyLoop tunes query-time params (BM25 stage); LTR layers a reranker on top. Tune the base first, train the reranker second. LTR is explicitly out of RelyLoop's v1 scope (spec §4 non-goal) |
 | [**Splainer**](https://splainer.io/) (o19s) | Single-query `_explain` visualizer | Solr + ES | No | Diagnostic UI | RelyLoop is the telescope; Splainer is the microscope. Use Splainer when one query is broken; use RelyLoop when the whole template needs systematic improvement |
-| [**OpenSearch UBI plugin**](https://github.com/opensearch-project/user-behavior-insights) | Server-side click / event capture | OpenSearch (via plugin); the o19s ES fork + Solr's first-party `solr.UBIComponent` use the same schema | n/a (signals only, no tuning) | UBI tables (`ubi_queries`, `ubi_events`) | **Strongest pairing.** RelyLoop MVP2 ships a `UbiReader` + `SignalsConverter` that turn UBI events into judgments via position-bias-corrected CTR, dwell-time, or **hybrid UBI+LLM** mode (UBI rates the dense head; LLM fills the long tail). Works across all three OSS engines via the standardized schema. SRW also has UBI judgments GA via COEC, but no hybrid mode and no full-search-space optimizer to feed |
+| [**OpenSearch UBI plugin**](https://github.com/opensearch-project/user-behavior-insights) | Server-side click / event capture | OpenSearch (via plugin); the o19s ES fork uses the same schema; on Solr the same schema is read back even though stock Solr ships no live capture component (RelyLoop's demo synthesizes it) | n/a (signals only, no tuning) | UBI tables (`ubi_queries`, `ubi_events`) | **Strongest pairing.** RelyLoop MVP2 ships a `UbiReader` + `SignalsConverter` that turn UBI events into judgments via position-bias-corrected CTR, dwell-time, or **hybrid UBI+LLM** mode (UBI rates the dense head; LLM fills the long tail). Works across all three OSS engines via the standardized schema. SRW also has UBI judgments GA via COEC, but no hybrid mode and no full-search-space optimizer to feed |
 | [**Algolia, Coveo, Vespa Cloud, Elastic Cloud, etc.**](https://www.algolia.com/) (proprietary SaaS) | Hosted search engines with built-in relevance tooling | Their own engine | Varies; some include automated tuning | Vendor dashboard | **Different market.** These replace the engine itself. If you're on Algolia or Coveo, your relevance tuning is in their console — RelyLoop is not for you. RelyLoop is for shops that operate their own Elasticsearch / OpenSearch / Apache Solr |
 
 ## Where the overlap is, and why RelyLoop exists
@@ -51,7 +51,7 @@ is fundamentally better than theirs on OpenSearch's own turf.
 **RelyLoop is the better choice for your shop when one or more of these is
 true:**
 
-1. **You operate Elasticsearch** (or Apache Solr, or any mix of ES + OpenSearch + Solr). The Relevance Agent only helps on OpenSearch. RelyLoop's single adapter spans ES 8.11+/9.x and OpenSearch 2.x/3.x today, with Apache Solr 9.x/10.x arriving at MVP2 (bundled with UBI judgments via Solr's first-party `solr.UBIComponent`). These three OSS engines are the only supported targets.
+1. **You operate Elasticsearch** (or Apache Solr, or any mix of ES + OpenSearch + Solr). The Relevance Agent only helps on OpenSearch. RelyLoop's single adapter spans ES 8.11+/9.x and OpenSearch 2.x/3.x today, with Apache Solr 9.x/10.x arriving at MVP2 (bundled with UBI judgments — `UbiReader` reads the same UBI schema on Solr; stock Solr ships no live capture component, so RelyLoop's demo synthesizes the events). These three OSS engines are the only supported targets.
 
 2. **You require Git-as-source-of-truth for production search-config changes.**
    RelyLoop opens Pull Requests against a central config repo where named
@@ -96,9 +96,12 @@ multiple tools.
 ### RelyLoop + OpenSearch UBI — the strongest single pairing
 
 - **UBI** captures real user search behavior (queries, clicks, dwell,
-  refinements) server-side. The schema is standardized across all three OSS
-  engines: OpenSearch UBI plugin, o19s Elasticsearch UBI fork, Solr's
-  first-party `solr.UBIComponent`.
+  refinements) server-side. The schema (`ubi_queries` / `ubi_events`) is
+  standardized: the OpenSearch UBI plugin and the o19s Elasticsearch UBI fork
+  emit it natively; on Solr there is no live capture component in the stock
+  distribution yet, so RelyLoop's local demo synthesizes the same schema
+  directly into those collections (an operator running a UBI component on their
+  own Solr gets live capture).
 - **RelyLoop MVP2** ships a `UbiReader` (engine-agnostic; reads `ubi_queries`
   + `ubi_events`) and a pluggable `SignalsConverter` Protocol with built-in
   position-bias-corrected CTR, dwell-time, and hybrid UBI+LLM converters.
