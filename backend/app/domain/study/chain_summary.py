@@ -31,9 +31,26 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from backend.app.domain.study.auto_followup import (
+    AUTO_FOLLOWUP_LIFT_EPSILON,
     _direction_normalized_lift,
     compute_first_decile_max,
 )
+
+#: Lift gate epsilon. Re-exported from
+#: :data:`backend.app.domain.study.auto_followup.AUTO_FOLLOWUP_LIFT_EPSILON`
+#: via the redeclaration below so the chain-summary derivation and
+#: ``evaluate_chain_gate`` (and the convergence classifier in
+#: ``backend.app.domain.study.convergence``) agree on "no meaningful
+#: improvement" without three modules carrying drift-prone duplicates of
+#: ``0.005``. The AST/grep guard in
+#: ``backend/tests/unit/domain/study/test_convergence.py`` enforces this —
+#: any bare ``0.005`` literal in a lift/epsilon-shaped context outside
+#: ``AUTO_FOLLOWUP_LIFT_EPSILON``'s declaration fails the test suite. The
+#: explicit ``CHAIN_LIFT_EPSILON: float = AUTO_FOLLOWUP_LIFT_EPSILON``
+#: redeclaration (vs. an ``as CHAIN_LIFT_EPSILON`` import alias) satisfies
+#: mypy's ``no_implicit_reexport`` rule, matching the ``ConvergenceShape``
+#: re-export pattern used by ``backend.app.api.v1.schemas``.
+CHAIN_LIFT_EPSILON: float = AUTO_FOLLOWUP_LIFT_EPSILON
 
 ChainStopReason = Literal[
     "depth_exhausted",
@@ -58,11 +75,6 @@ CHAIN_STOP_REASONS: frozenset[ChainStopReason] = frozenset(
         "in_flight",
     }
 )
-
-#: Lift gate epsilon. Matches ``evaluate_chain_gate``'s default
-#: (``auto_followup.py`` ``epsilon=0.005``) so the chain-summary derivation
-#: and the gate agree on "no meaningful improvement."
-CHAIN_LIFT_EPSILON: float = 0.005
 
 
 def _direction_of(link: Any) -> Literal["maximize", "minimize"]:
