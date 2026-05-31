@@ -9,6 +9,7 @@ Engine-, provider-, or vendor-specific references, adapter notes, version quirks
 | [`github-branch-protection.md`](github-branch-protection.md) | Two procedures (modern Rulesets + classic Branch Protection) for requiring CI status checks before merge to `main`; the three exact check names for the `relyloop` repo; verification + gotchas | `infra_foundation` plan §7.5 manual handoff #3; every operator who needs to update branch rules |
 | [`solr-10/`](solr-10/) | Apache Solr 10.0 ref-guide pages (asciidoc source, tag `releases/solr/10.0.0`) — matches the `solr:10.0` image. Module loading (`SOLR_MODULES`, no `<lib>`), configsets + UPLOAD API, LTR, auth | `infra_adapter_solr` (MVP2 Solr adapter + Compose infra) |
 | [`solr-9/`](solr-9/) | Apache Solr 9.9 ref-guide pages (asciidoc source, tag `releases/solr/9.9.0`) for cross-version comparison | `infra_adapter_solr` — confirm which behaviours differ between 9.x and 10 |
+| [`relevance-tools/`](relevance-tools/) | Distilled capability snapshots (with upstream URLs + access dates) of the adjacent/competing relevance tools — OpenSearch SRW + Relevance Agent, Quepid, RRE, Chorus, Elasticsearch native, Splainer. Competitive-landscape references, not integration targets | Evidence base for [`docs/07_research/comparison.md`](../07_research/comparison.md); refresh when a tool ships a release that flips a comparison cell |
 
 ### Solr docs detail
 
