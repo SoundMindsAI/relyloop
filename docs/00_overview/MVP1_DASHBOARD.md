@@ -14,7 +14,8 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **94 / 94** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Filed under MVP1 | **129** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **94 / 94** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
