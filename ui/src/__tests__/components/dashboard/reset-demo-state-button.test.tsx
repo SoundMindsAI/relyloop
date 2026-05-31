@@ -69,6 +69,7 @@ const STATUS_IDLE: ReseedStatusResponse = {
   current_step: null,
   failed_reason: null,
   summary: null,
+  steps: [],
 };
 
 const STATUS_RUNNING: ReseedStatusResponse = {
@@ -80,6 +81,12 @@ const STATUS_RUNNING: ReseedStatusResponse = {
   current_step: 'seeding acme-products-prod (trial 7/12)',
   failed_reason: null,
   summary: null,
+  steps: [
+    'wiping demo state',
+    'acme-products-prod: indexing 200 docs',
+    'acme-products-prod: creating study (max_trials=12)',
+    'seeding acme-products-prod (trial 7/12)',
+  ],
 };
 
 const STATUS_COMPLETE: ReseedStatusResponse = {
@@ -97,6 +104,7 @@ const STATUS_COMPLETE: ReseedStatusResponse = {
     proposals_created: 4,
     duration_ms: 217000,
   },
+  steps: ['wiping demo state', 'renaming studies to tutorial names'],
 };
 
 const STATUS_FAILED: ReseedStatusResponse = {
@@ -108,6 +116,7 @@ const STATUS_FAILED: ReseedStatusResponse = {
   current_step: null,
   failed_reason: 'DemoSeedingError: acme/post_study: HTTP 503',
   summary: null,
+  steps: ['wiping demo state', 'acme-products-prod: creating study (max_trials=12)'],
 };
 
 describe('<ResetDemoStateButton />', () => {
@@ -242,5 +251,42 @@ describe('<ResetDemoStateButton />', () => {
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     expect(await screen.findByText('Demo state reset complete')).toBeInTheDocument();
     expect(screen.getByTestId('reset-demo-state-done')).toBeInTheDocument();
+  });
+
+  it('running status: renders the full step history as a scrolling log', async () => {
+    mockStatusData = STATUS_RUNNING;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const list = await screen.findByTestId('reset-demo-state-log-list');
+    const items = list.querySelectorAll('li');
+    // One <li> per step, in order, oldest-first.
+    expect(items).toHaveLength(STATUS_RUNNING.steps.length);
+    expect(items[0]?.textContent).toBe('wiping demo state');
+    expect(items[items.length - 1]?.textContent).toBe('seeding acme-products-prod (trial 7/12)');
+    // Every step string is rendered.
+    for (const step of STATUS_RUNNING.steps) {
+      expect(list.textContent).toContain(step);
+    }
+  });
+
+  it('idle status: omits the step-log panel when there are no steps', async () => {
+    mockStatusData = STATUS_IDLE;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    expect(await screen.findByRole('alertdialog')).toBeInTheDocument();
+    expect(screen.queryByTestId('reset-demo-state-log')).toBeNull();
+  });
+
+  it('complete status: the step log remains visible after the run terminates', async () => {
+    mockStatusData = STATUS_COMPLETE;
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const list = await screen.findByTestId('reset-demo-state-log-list');
+    expect(list.querySelectorAll('li')).toHaveLength(STATUS_COMPLETE.steps.length);
+    expect(list.textContent).toContain('renaming studies to tutorial names');
   });
 });
