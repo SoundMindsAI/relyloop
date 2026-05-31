@@ -875,6 +875,21 @@ export const glossary = {
     ].join('\n'),
     ariaLabel: 'More information about auto-followup depth',
   },
+  // feat_overnight_autopilot FR-6 — wizard control reframed as the overnight
+  // autopilot path; `short` ≤ 120 chars, contains the verbatim human-merge
+  // phrase "you still open every PR".
+  overnight_autopilot: {
+    short:
+      'Run additional studies overnight, each narrowing in on the previous winner. Stops on its own; you still open every PR.',
+    long: [
+      'When you enable this, RelyLoop runs follow-up studies automatically after each study completes — every follow-up narrows the search space around the previous winner and runs deterministically while you sleep.',
+      '',
+      'The chain stops on its own: when there is no further improvement, when the daily LLM budget caps out, when a study fails, or when the depth counter hits zero.',
+      '',
+      'RelyLoop never opens a pull request automatically. The chain ends with a proposal you review — you still open every PR.',
+    ].join('\n'),
+    ariaLabel: 'More information about the overnight autopilot',
+  },
   auto_followup_chain: {
     short:
       'RelyLoop ran follow-up studies automatically based on this study’s winner. Each follow-up narrowed the search bounds.',

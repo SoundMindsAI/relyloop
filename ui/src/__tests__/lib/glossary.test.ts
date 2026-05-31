@@ -201,6 +201,22 @@ describe('AC-12 — no backend references in user-visible copy', () => {
   });
 });
 
+describe('feat_overnight_autopilot Story 3.1 — overnight_autopilot glossary key (AC-14)', () => {
+  it('overnight_autopilot.short is a string ≤120 chars containing "you still open every PR"', () => {
+    const entry = glossary.overnight_autopilot;
+    expect(entry).toBeDefined();
+    expect(typeof entry.short).toBe('string');
+    expect(entry.short.length).toBeLessThanOrEqual(120);
+    expect(entry.short).toContain('you still open every PR');
+  });
+
+  it('overnight_autopilot.long is a non-empty string', () => {
+    const entry = glossary.overnight_autopilot;
+    expect(typeof entry.long).toBe('string');
+    expect(entry.long.length).toBeGreaterThan(0);
+  });
+});
+
 describe('listGlossaryKeysWithPrefix helper', () => {
   it('returns per-wire-value keys but excludes the aggregate prefix-only key', () => {
     const studyMetricKeys = listGlossaryKeysWithPrefix('study.metric');

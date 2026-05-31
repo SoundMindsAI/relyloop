@@ -1411,6 +1411,21 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
               <p className="text-xs text-muted-foreground">
                 Provide either max trials or a time budget — both gates apply when both are set.
               </p>
+              {/* feat_overnight_autopilot FR-2: inline hint coupling the Deep
+                  preset with the overnight toggle — text only, no auto-set.
+                  Shows when the Deep preset is active AND the overnight depth
+                  is still Off (undefined or 0); hides as soon as depth ≥ 1. */}
+              {activePreset === 'deep' &&
+                (values.auto_followup_depth === undefined || values.auto_followup_depth === 0) && (
+                  <p
+                    role="note"
+                    data-testid="cs-overnight-hint"
+                    className="text-xs text-muted-foreground"
+                  >
+                    💡 Tip — this is a long study. Enable &#39;🌙 Run overnight (compound
+                    automatically)&#39; below to chain follow-up runs while you&#39;re away.
+                  </p>
+                )}
               {/*
                 feat_auto_followup_studies Story 3.2 — wizard depth selector (FR-11).
                 Source-of-truth: backend/app/api/v1/schemas.py StudyConfigSpec.auto_followup_depth
@@ -1419,8 +1434,10 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
               */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-1">
-                  <Label htmlFor="cs-auto-followup">Auto-followup chain</Label>
-                  <InfoTooltip glossaryKey="auto_followup_depth" />
+                  <Label htmlFor="cs-auto-followup">
+                    🌙 Run overnight (compound automatically)
+                  </Label>
+                  <InfoTooltip glossaryKey="overnight_autopilot" />
                 </div>
                 <Select
                   value={String(values.auto_followup_depth ?? 0)}
@@ -1445,8 +1462,10 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Run additional studies overnight, each narrowing around the previous winner. Halts
-                  on no lift, exhausted budget, or failed parent.
+                  When this study finishes, automatically start a follow-up that narrows in on the
+                  best result, then repeat. Stops on its own when it stops improving, hits the daily
+                  budget, or runs out of depth. No production changes happen without your review —
+                  you still open every PR by hand.
                 </p>
               </div>
             </div>
