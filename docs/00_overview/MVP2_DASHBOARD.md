@@ -6,30 +6,24 @@ _Reflects feature-folder state as of **2026-05-31** (latest mtime of any planned
 
 ## Next up
 
-**[infra_adapter_solr](planned_features/02_mvp2/infra_adapter_solr/feature_spec.md)** — Infra, currently in **Implementing**
+All scoped MVP2 features shipped 🎉
 
-> A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.
-
-Implementation in progress — resume to finish
-
-```bash
-/impl-execute docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/implementation_plan.md --all  # resume in-progress
-```
+Pull from the Idea backlog or capture a new feature spec.
 
 ## MVP2 Progress
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **2 / 3** (67%) — feat_/infra_/chore_/epic_ past idea stage |
-| Pending work | **17** items (every not-done feat/infra/chore/bug across all priorities) |
+| Scoped items done | **2 / 2** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **1** high-value, ready when P0 clears |
+| → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 12 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 3 |
-| Legacy "Path to MVP2" | 10 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 7 idea-only feat/infra (not yet scoped into MVP2) |
-| In flight | 1 feature(s) actively shipping |
+| In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
@@ -40,11 +34,9 @@ Implementation in progress — resume to finish
 | [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study: | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) merged 2026-05-15 |
 | [feat_demo_ubi_study_comparison](planned_features/02_mvp2/feat_demo_ubi_study_comparison/feature_spec.md) | Feature | After this feature, the home-button reseed (and the | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) merged 2026-05-30 |
 
-### Implementing (1)
+### Implementing (0)
 
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P1 | [infra_adapter_solr](planned_features/02_mvp2/infra_adapter_solr/feature_spec.md) | Infra | A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time. | `feat_ubi_judgments` | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) merged 2026-05-15 |
+_None._
 
 ### Plan (0)
 
@@ -88,8 +80,6 @@ graph LR
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_demo_ubi_study_comparison["demo ubi study comparison"]
   class feat_demo_ubi_study_comparison done;
-  infra_adapter_solr["adapter solr"]
-  class infra_adapter_solr implement;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
 ```

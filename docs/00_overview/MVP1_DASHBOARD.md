@@ -14,7 +14,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **96 / 96** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **97 / 97** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -27,7 +27,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (131)
+### Done (132)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -64,6 +64,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [feat_study_target_judgment_mismatch_guard](implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard/feature_spec.md) | Feature | `POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422). | — | [PR #184](https://github.com/SoundMindsAI/relyloop/pull/184) merged 2026-05-21 |
 | [feat_ubi_judgments](implemented_features/2026_05_29_feat_ubi_judgments/feature_spec.md) | Feature | Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic | — | [PR #317](https://github.com/SoundMindsAI/relyloop/pull/317) merged 2026-05-29 |
 | [infra_adapter_elastic](implemented_features/2026_05_10_infra_adapter_elastic/feature_spec.md) | Infra | A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column. | — | [PR #16](https://github.com/SoundMindsAI/relyloop/pull/16) merged 2026-05-10 |
+| [infra_adapter_solr](implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md) | Infra | A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time. | `feat_ubi_judgments` | [PR #336](https://github.com/SoundMindsAI/relyloop/pull/336) merged 2026-05-31 |
 | [infra_ci_smoke_makeup](implemented_features/2026_05_13_infra_ci_smoke_makeup/idea.md) | Infra | CI runs `make test-unit && make test-integration && make test-contract` against a service-container Postgres on `localhost:5432` — a synthetic environment that masks every real-world `make up` failure | — | Complete |
 | [infra_dashboard_regen_pre_commit_conflict](implemented_features/2026_05_14_infra_dashboard_regen_pre_commit_conflict/idea.md) | Infra | The pre-commit pipeline does: | — | Complete |
 | [infra_dockerfile_invariant_smoke_in_ci](implemented_features/2026_05_26_infra_dockerfile_invariant_smoke_in_ci/idea.md) | Infra | CI's `docker buildx (relyloop/api)` job at [.github/workflows/pr.yml:481-503](../../.github/workflows/pr.yml#L481-L503) builds the runtime image with `push: false` and `cache-to: type=gha,mode=max` —  | — | Complete |
@@ -382,6 +383,8 @@ graph LR
   class feat_study_sub_warmup_guard done;
   feat_ubi_judgments["ubi judgments"]
   class feat_ubi_judgments done;
+  infra_adapter_solr["adapter solr"]
+  class infra_adapter_solr done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
@@ -429,6 +432,7 @@ graph LR
   feat_study_lifecycle --> feat_query_inline_crud
   feat_llm_judgments --> feat_query_inline_crud
   feat_studies_ui --> feat_query_inline_crud
+  feat_ubi_judgments --> infra_adapter_solr
 ```
 
 ---
