@@ -26,7 +26,7 @@ const BASE_LIST: JudgmentListDetail = {
   status: 'complete',
   failed_reason: null,
   judgment_count: 12,
-  source_breakdown: { llm: 10, human: 2 },
+  source_breakdown: { llm: 10, human: 2, click: 0 },
   calibration: null,
   created_at: '2026-05-12T00:00:00Z',
   // generation_params is JSONB on the backend and the FR-7 page-level

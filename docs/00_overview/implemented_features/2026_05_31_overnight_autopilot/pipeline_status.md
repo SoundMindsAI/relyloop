@@ -1,5 +1,7 @@
 # Pipeline Status — Overnight autopilot
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: idea.md
@@ -20,4 +22,10 @@
 - Phases covered: Phase 1 (Phase 2 captured in sibling folder `feat_overnight_studies_summary_card`)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-05-31
+- PR: [#343](https://github.com/SoundMindsAI/relyloop/pull/343) (squash-merged `fe146950`)
+- Stories: 7/7 across 4 epics (1.1–1.3, 2.1, 3.1, 4.1, 4.2)
+- CI: green (fast-lane unit + static-checks + license/DCO/secrets; heavy jobs skipped under SKIP_HEAVY_CI). Full backend suite (1992 unit + 24 chain integration/contract) + frontend (980 vitest + build) + E2E (1 Playwright) verified locally / in worktree container.
+- Cross-model review: GPT-5.5 Epic 1 (1 Low accepted+fixed) + Epics 2+3 (clean) + final (1 Medium rejected w/ counter-evidence); Gemini (1 High accepted+fixed `9b1d894f`).
+- Deferred: Phase 2 ("ran while away" card) tracked in sibling folder `feat_overnight_studies_summary_card`.

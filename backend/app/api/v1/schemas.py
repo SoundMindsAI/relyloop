@@ -28,6 +28,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from backend.app.adapters.protocol import TargetInfo
 from backend.app.core.settings import get_settings
+from backend.app.domain.study.chain_summary import ChainStopReason as ChainStopReason
 from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
 from backend.app.domain.study.followups import FollowupItem as FollowupItem
 
@@ -822,6 +823,42 @@ class StudyDetail(BaseModel):
     ``best_trial_id`` points at a deleted row — AC-3a). Otherwise a partial
     or full :class:`ConfidenceShape` per FR-7's graceful-degradation
     contract."""
+
+
+class StudyChainLink(BaseModel):
+    """One link in the rolled-up overnight-chain summary (feat_overnight_autopilot §8.3)."""
+
+    id: str
+    name: str
+    status: StudyStatusWire
+    best_metric: float | None
+    baseline_metric: float | None
+    direction: ObjectiveDirection
+    delta_from_prev: float | None
+    """null for the anchor OR when either side's best_metric is null; else
+    direction-normalized ``this.best_metric - prev.best_metric``."""
+    proposal_id: str | None
+    auto_followup_depth_remaining: int | None
+    """``studies.config.get('auto_followup_depth')`` — null when key absent,
+    0 when the post-decrement leaf."""
+    failed_reason: str | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
+class StudyChainResponse(BaseModel):
+    """``GET /api/v1/studies/{id}/chain`` response (feat_overnight_autopilot §8.3)."""
+
+    anchor_study_id: str
+    best_link_id: str | None
+    best_metric: float | None
+    cumulative_lift: float | None
+    direction: ObjectiveDirection
+    stop_reason: ChainStopReason
+    """Derived per spec §9. Values must match
+    backend/app/domain/study/chain_summary.py CHAIN_STOP_REASONS."""
+    proposal_id_for_best_link: str | None
+    links: list[StudyChainLink]
 
 
 class StudySummary(BaseModel):

@@ -44,6 +44,53 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clusters/test-connection': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Test Connection
+     * @description Probe a cluster config WITHOUT persisting (infra_adapter_solr Story A9).
+     *
+     *     Powers the registration modal's "Test connection" button. Always 200 —
+     *     transport failures surface as ``reachable=false`` with ``error`` set.
+     *     Invalid engine×auth pairings 400 BEFORE the network call.
+     */
+    post: operations['test_connection_api_v1_clusters_test_connection_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusters/{cluster_id}/reprobe': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Reprobe Cluster
+     * @description Re-run cluster capability probe (Story A9 / spec FR-2 + AC-14).
+     *
+     *     Concurrent calls serialize on ``SELECT … FOR UPDATE``. On probe failure
+     *     the row's engine_config is NOT updated (the transaction rolls back).
+     */
+    post: operations['reprobe_cluster_api_v1_clusters__cluster_id__reprobe_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clusters': {
     parameters: {
       query?: never;
@@ -119,6 +166,43 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/clusters/{cluster_id}/ubi-readiness': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Cluster Ubi Readiness
+     * @description Classify ``(cluster, query_set, target)`` on the UBI rung ladder.
+     *
+     *     feat_ubi_judgments FR-7.
+     *
+     *     Required query params: ``query_set_id`` + ``target`` (Spec FR-7 +
+     *     cycle-3 D-10c: the endpoint MUST 422 without them — the classifier
+     *     can't compute a per-target rung without an application filter).
+     *
+     *     Error envelopes (all per spec §7.5):
+     *     * ``404 CLUSTER_NOT_FOUND`` — cluster row missing or soft-deleted.
+     *     * ``404 QUERY_SET_NOT_FOUND`` — query set row missing.
+     *     * ``422 VALIDATION_ERROR`` — missing required query params (FastAPI's
+     *       built-in handler, surfaces via ``api/errors.py``).
+     *     * ``503 CLUSTER_UNREACHABLE`` — adapter cannot reach the cluster.
+     *
+     *     The result is cached for 60 s in Redis per
+     *     ``(cluster_id, query_set_id, target)`` so back-to-back dialog-open
+     *     and dialog-submit calls don't re-probe.
+     */
+    get: operations['get_cluster_ubi_readiness_api_v1_clusters__cluster_id__ubi_readiness_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/clusters/{cluster_id}/targets': {
     parameters: {
       query?: never;
@@ -165,6 +249,57 @@ export interface paths {
      * @description Execute one query DSL fragment against the cluster (FR-6 / AC-3).
      */
     post: operations['run_query_api_v1_clusters__cluster_id__run_query_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusters/{cluster_id}/targets/{target}/documents': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Target Documents
+     * @description Paginated _id + truncated _source preview for a target (FR-3).
+     *
+     *     The endpoint asks the adapter for ``limit + 1`` rows so it can detect
+     *     end-of-data exactly (no extra round-trip). Only the first ``limit`` rows
+     *     are returned; ``next_cursor`` encodes the ES ``hits[i].sort`` of the
+     *     last visible row when ``has_more`` is True. ``X-Total-Count`` header
+     *     carries the engine's ``hits.total.value``.
+     */
+    get: operations['list_target_documents_api_v1_clusters__cluster_id__targets__target__documents_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/clusters/{cluster_id}/targets/{target}/documents/{doc_id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Target Document
+     * @description Fetch one document by ``_id`` (FR-4).
+     *
+     *     FastAPI's ``{doc_id:path}`` converter round-trips slashes verbatim, so
+     *     operator IDs containing ``/`` are supported (D-17 / AC-16). Returns the
+     *     adapter ``Document`` shape directly; on ``found: false`` returns 404
+     *     ``DOCUMENT_NOT_FOUND`` (distinct from ``TARGET_NOT_FOUND``).
+     */
+    get: operations['get_target_document_api_v1_clusters__cluster_id__targets__target__documents__doc_id__get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -342,6 +477,10 @@ export interface paths {
      *     FTS match against ``search_vector`` (name + target). ``?sort=`` is a
      *     :data:`StudySortKey` value (``<col>:<asc|desc>``); the cursor is
      *     sort-aware (feat_data_table_primitive Stories 1.2 + 1.3).
+     *
+     *     ``?target=`` (feat_index_document_browser FR-5) scopes the list to
+     *     studies targeting a single index/collection. Composes with all other
+     *     filters via AND.
      */
     get: operations['list_studies_api_v1_studies_get'];
     put?: never;
@@ -461,6 +600,31 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/api/v1/studies/{study_id}/chain': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Study Chain
+     * @description Return the rolled-up chain summary for the study and its lineage (FR-3).
+     *
+     *     Walks to the chain anchor, aggregates the completed-link subset into a
+     *     best link + cumulative lift + derived stop reason, and emits per-link
+     *     deltas. The anchor's ``delta_from_prev`` is always ``None`` (spec §8.3).
+     *     Returns ``404 STUDY_NOT_FOUND`` when the study does not exist.
+     */
+    get: operations['get_study_chain_api_v1_studies__study_id__chain_get'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/api/v1/judgments/generate': {
     parameters: {
       query?: never;
@@ -481,6 +645,35 @@ export interface paths {
      *     codes, same status codes, same response shape.
      */
     post: operations['generate_judgments_api_v1_judgments_generate_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/judgments/generate-from-ubi': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Judgments From Ubi
+     * @description Start a UBI-derived judgment generation job.
+     *
+     *     Delegates to
+     *     :func:`backend.app.services.agent_judgments_dispatch.start_ubi_judgment_generation`
+     *     which runs the full FR-4 preflight (U-A..U-H) before INSERT + Arq
+     *     enqueue. The Pydantic ``model_validator`` on
+     *     :class:`CreateJudgmentListFromUbiRequest` already enforces the
+     *     hybrid conditional (``current_template_id`` + ``rubric`` required
+     *     iff ``converter == 'hybrid_ubi_llm'``); the dispatcher trusts the
+     *     validated request.
+     */
+    post: operations['generate_judgments_from_ubi_api_v1_judgments_generate_from_ubi_post'];
     delete?: never;
     options?: never;
     head?: never;
@@ -1090,10 +1283,32 @@ export interface paths {
     get?: never;
     put?: never;
     /**
-     * Wipe + reseed all 4 demo scenarios (dev-only)
-     * @description Wipes the demo Postgres tables and ES/OS indices, then re-seeds the 4 demo scenarios from ``scripts/seed_meaningful_demos.py``. Gated by ``ENVIRONMENT=development`` — 404 RESOURCE_NOT_FOUND outside dev. Per feat_home_demo_reseed_endpoint spec.
+     * Enqueue a demo-state reseed (dev-only, async)
+     * @description Enqueues an Arq job that wipes the demo Postgres tables + ES/OS indices, then re-seeds the 4 demo scenarios from ``scripts/seed_meaningful_demos.py`` using REAL studies (real Optuna trials, real metrics per scenario). Returns 202 + an initial ``ReseedStatusResponse`` immediately; the frontend polls ``GET /api/v1/_test/demo/reseed/status`` for progress.
+     *
+     *     Per ``bug_demo_reseed_fake_metric_regression``. Replaces the previous synchronous path that called ``/_test/studies/seed-completed`` and produced identical ``best_metric=0.487`` rows for every scenario.
      */
     post: operations['reseed_demo_api_v1__test_demo_reseed_post'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/api/v1/_test/demo/reseed/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Poll the current demo-reseed progress (dev-only)
+     * @description Returns the current reseed status from Redis. When no reseed has ever run (or the result TTL'd out), returns ``{status: 'idle'}`` rather than 404 so the frontend's polling loop is trivially safe.
+     */
+    get: operations['reseed_demo_status_api_v1__test_demo_reseed_status_get'];
+    put?: never;
+    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1399,6 +1614,56 @@ export interface components {
       has_more: boolean;
     };
     /**
+     * ConnectionTestRequest
+     * @description Body for ``POST /api/v1/clusters/test-connection`` (infra_adapter_solr Story A9).
+     *
+     *     Same shape as ``CreateClusterRequest`` minus the persisted-only fields
+     *     (``name``, ``environment``, ``notes``, ``target_filter``). ``engine_type``
+     *     + ``auth_kind`` are typed as ``str`` (not Literal) so a bad value yields
+     *     the project-standard 400 envelope rather than a raw 422 — same convention
+     *     as ``CreateClusterRequest``.
+     */
+    ConnectionTestRequest: {
+      /** Engine Type */
+      engine_type: string;
+      /** Base Url */
+      base_url: string;
+      /** Auth Kind */
+      auth_kind: string;
+      /** Credentials Ref */
+      credentials_ref: string;
+      /** Engine Config */
+      engine_config?: {
+        [key: string]: unknown;
+      } | null;
+    };
+    /**
+     * ConnectionTestResult
+     * @description Response for ``POST /api/v1/clusters/test-connection``.
+     *
+     *     Always 200 — reachable vs unreachable surfaces via ``reachable`` +
+     *     ``status`` fields. The endpoint is a diagnostic, never a mutation,
+     *     so it never returns 503; invalid engine×auth pairings 400 BEFORE the
+     *     network call. (Cycle-delta F1.)
+     */
+    ConnectionTestResult: {
+      /** Reachable */
+      reachable: boolean;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'green' | 'yellow' | 'red' | 'unreachable';
+      /** Version */
+      version?: string | null;
+      /** Engine Capabilities */
+      engine_capabilities?: {
+        [key: string]: unknown;
+      } | null;
+      /** Error */
+      error?: string | null;
+    };
+    /**
      * ConvergenceShape
      * @description Where the winner sits in the Optuna trial sequence + the classified regime.
      */
@@ -1544,6 +1809,65 @@ export interface components {
     CreateConversationRequest: {
       /** Title */
       title?: string | null;
+    };
+    /**
+     * CreateJudgmentListFromUbiRequest
+     * @description Body for ``POST /api/v1/judgments/generate-from-ubi`` (Story 3.2 / FR-3).
+     *
+     *     Mirrors :class:`backend.app.services.agent_judgments_dispatch.UbiJudgmentGenerationRequest`.
+     *     The ``@model_validator(mode="after")`` enforces the conditional
+     *     requiredness of ``current_template_id`` + ``rubric`` per the hybrid
+     *     converter: REQUIRED when ``converter == 'hybrid_ubi_llm'`` (the LLM-
+     *     fill path needs both); FORBIDDEN otherwise (pure UBI never calls
+     *     the LLM so accepting them silently would mask operator error).
+     */
+    CreateJudgmentListFromUbiRequest: {
+      /** Name */
+      name: string;
+      /** Description */
+      description?: string | null;
+      /** Query Set Id */
+      query_set_id: string;
+      /** Cluster Id */
+      cluster_id: string;
+      /** Target */
+      target: string;
+      /**
+       * Since
+       * Format: date-time
+       */
+      since: string;
+      /** Until */
+      until?: string | null;
+      /**
+       * Converter
+       * @enum {string}
+       */
+      converter: 'ctr_threshold' | 'dwell_time' | 'hybrid_ubi_llm';
+      /** Converter Config */
+      converter_config?: {
+        [key: string]: unknown;
+      } | null;
+      /**
+       * Llm Fill Threshold
+       * @default 20
+       */
+      llm_fill_threshold: number | null;
+      /**
+       * Min Impressions Threshold
+       * @default 100
+       */
+      min_impressions_threshold: number | null;
+      /**
+       * Mapping Strategy
+       * @default reject
+       * @enum {string}
+       */
+      mapping_strategy: 'reject' | 'first_match' | 'most_recent';
+      /** Current Template Id */
+      current_template_id?: string | null;
+      /** Rubric */
+      rubric?: string | null;
     };
     /**
      * CreateJudgmentListGenerateRequest
@@ -1694,6 +2018,54 @@ export interface components {
        * Format: date-time
        */
       generated_at: string;
+    };
+    /**
+     * Document
+     * @description A single document by ID — return shape of ``SearchAdapter.get_document``.
+     *
+     *     Mirrors :class:`ScoredHit` minus ``score`` (browsing doesn't need scoring).
+     *     ``source`` is ``None`` when the engine's index has ``_source: false`` mapping.
+     */
+    Document: {
+      /** Doc Id */
+      doc_id: string;
+      /** Source */
+      source?: {
+        [key: string]: unknown;
+      } | null;
+    };
+    /**
+     * DocumentListResponse
+     * @description ``GET /api/v1/clusters/{cluster_id}/targets/{target}/documents`` response.
+     *
+     *     ``next_cursor`` opaque-encodes the ES ``hits[-1].sort`` array of the
+     *     last visible row when ``has_more`` is True (see
+     *     ``backend.app.api.v1._documents_cursor``). The ``X-Total-Count`` header
+     *     on the response carries the engine's ``hits.total.value``.
+     */
+    DocumentListResponse: {
+      /** Data */
+      data: components['schemas']['DocumentSummary'][];
+      /** Next Cursor */
+      next_cursor: string | null;
+      /** Has More */
+      has_more: boolean;
+    };
+    /**
+     * DocumentSummary
+     * @description One row in the documents list (per FR-3 / FR-8).
+     *
+     *     ``source`` is the *truncated* preview emitted by
+     *     ``backend.app.services.documents.truncate_source_for_list``. The detail
+     *     endpoint returns the untruncated ``Document.source``.
+     */
+    DocumentSummary: {
+      /** Doc Id */
+      doc_id: string;
+      /** Source */
+      source: {
+        [key: string]: unknown;
+      } | null;
     };
     /**
      * FieldSpec
@@ -1879,6 +2251,13 @@ export interface components {
     /**
      * JudgmentListDetail
      * @description ``GET /api/v1/judgment-lists/{id}`` response.
+     *
+     *     Note: ``generation_params`` is populated for UBI lists (feat_ubi_judgments
+     *     Story 1.1's JSONB column) and NULL for LLM lists. The Story 4.3 UI
+     *     (``<ValueDeltaCard>`` + ``<AmbiguousSkipRecoveryCard>``) reads the
+     *     payload to discriminate UBI/hybrid lists and to reconstruct the
+     *     original request for the ambiguous-skip "Re-run with most_recent"
+     *     affordance.
      */
     JudgmentListDetail: {
       /** Id */
@@ -1909,6 +2288,10 @@ export interface components {
       source_breakdown: components['schemas']['_SourceBreakdown'];
       /** Calibration */
       calibration: {
+        [key: string]: unknown;
+      } | null;
+      /** Generation Params */
+      generation_params: {
         [key: string]: unknown;
       } | null;
       /**
@@ -2535,6 +2918,40 @@ export interface components {
       reason?: string | null;
     };
     /**
+     * ReseedStatusResponse
+     * @description Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
+     *
+     *     Per ``bug_demo_reseed_fake_metric_regression`` D-2. Lives in Redis as a
+     *     single JSON blob keyed by :data:`DEMO_RESEED_STATUS_KEY` so the
+     *     handler reads it in one round-trip.
+     */
+    ReseedStatusResponse: {
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'idle' | 'running' | 'complete' | 'failed';
+      /** Started At */
+      started_at?: string | null;
+      /** Finished At */
+      finished_at?: string | null;
+      /**
+       * Scenarios Total
+       * @default 0
+       */
+      scenarios_total: number;
+      /**
+       * Scenarios Completed
+       * @default 0
+       */
+      scenarios_completed: number;
+      /** Current Step */
+      current_step?: string | null;
+      /** Failed Reason */
+      failed_reason?: string | null;
+      summary?: components['schemas']['ReseedSummary'] | null;
+    };
+    /**
      * ReseedSummary
      * @description Returned by :func:`reseed_demo_state` on success.
      *
@@ -2782,6 +3199,79 @@ export interface components {
       text: string;
     };
     /**
+     * StudyChainLink
+     * @description One link in the rolled-up overnight-chain summary (feat_overnight_autopilot §8.3).
+     */
+    StudyChainLink: {
+      /** Id */
+      id: string;
+      /** Name */
+      name: string;
+      /**
+       * Status
+       * @enum {string}
+       */
+      status: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
+      /** Best Metric */
+      best_metric: number | null;
+      /** Baseline Metric */
+      baseline_metric: number | null;
+      /**
+       * Direction
+       * @enum {string}
+       */
+      direction: 'maximize' | 'minimize';
+      /** Delta From Prev */
+      delta_from_prev: number | null;
+      /** Proposal Id */
+      proposal_id: string | null;
+      /** Auto Followup Depth Remaining */
+      auto_followup_depth_remaining: number | null;
+      /** Failed Reason */
+      failed_reason: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Completed At */
+      completed_at: string | null;
+    };
+    /**
+     * StudyChainResponse
+     * @description ``GET /api/v1/studies/{id}/chain`` response (feat_overnight_autopilot §8.3).
+     */
+    StudyChainResponse: {
+      /** Anchor Study Id */
+      anchor_study_id: string;
+      /** Best Link Id */
+      best_link_id: string | null;
+      /** Best Metric */
+      best_metric: number | null;
+      /** Cumulative Lift */
+      cumulative_lift: number | null;
+      /**
+       * Direction
+       * @enum {string}
+       */
+      direction: 'maximize' | 'minimize';
+      /**
+       * Stop Reason
+       * @enum {string}
+       */
+      stop_reason:
+        | 'depth_exhausted'
+        | 'no_lift'
+        | 'budget'
+        | 'parent_failed'
+        | 'cancelled'
+        | 'in_flight';
+      /** Proposal Id For Best Link */
+      proposal_id_for_best_link: string | null;
+      /** Links */
+      links: components['schemas']['StudyChainLink'][];
+    };
+    /**
      * StudyConfigSpec
      * @description Wire shape of ``studies.config`` (write-side).
      *
@@ -2959,6 +3449,13 @@ export interface components {
        * @enum {string}
        */
       opensearch: 'reachable' | 'unreachable';
+      /**
+       * Solr
+       * @description Local Apache Solr container reachability. 'not_configured' when SOLR_HOST is unset (operator opted out of running the Solr service). Added by infra_adapter_solr Story A10 / spec FR-12a.
+       * @default not_configured
+       * @enum {string}
+       */
+      solr: 'reachable' | 'unreachable' | 'not_configured';
       /** @description Aggregate health of user-registered clusters (infra_adapter_elastic Story 3.5 / spec §2). registered=0 → all-zero counts; informational only — does NOT trigger overall `degraded`. */
       elasticsearch_clusters: components['schemas']['ClusterAggregateHealth'];
     };
@@ -3095,6 +3592,33 @@ export interface components {
       best_primary_metric: number | null;
     };
     /**
+     * UbiReadinessResponse
+     * @description ``GET /api/v1/clusters/{cluster_id}/ubi-readiness`` response (FR-7).
+     *
+     *     ``covered_pairs_pct`` and ``head_covered`` are nullable — MVP2's
+     *     rung classifier uses event-count thresholds (the SearchAdapter
+     *     Protocol doesn't expose an exact ``_count`` endpoint). The fields
+     *     are reserved on the wire so a future ``infra_adapter_count_method``
+     *     can fill them without breaking the contract. See
+     *     :mod:`backend.app.services.ubi_readiness` for the rationale.
+     */
+    UbiReadinessResponse: {
+      /**
+       * Rung
+       * @enum {string}
+       */
+      rung: 'rung_0' | 'rung_1' | 'rung_2' | 'rung_3';
+      /** Covered Pairs Pct */
+      covered_pairs_pct: number | null;
+      /** Head Covered */
+      head_covered: boolean | null;
+      /**
+       * Checked At
+       * Format: date-time
+       */
+      checked_at: string;
+    };
+    /**
      * UpdateQueryRequest
      * @description ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}`` body.
      *
@@ -3189,15 +3713,19 @@ export interface components {
      * _SourceBreakdown
      * @description Source-breakdown sub-shape on :class:`JudgmentListDetail`.
      *
-     *     Per spec FR-6 the response names only ``llm`` and ``human`` (GPT-5.5
-     *     cycle 1 F6). Reserved ``click`` rows fold into ``human`` per the cycle 2
-     *     F6 invariant ``llm + human == judgment_count``.
+     *     Evolved 2026-05-29 by ``feat_ubi_judgments`` FR-10 — now three terms
+     *     (``llm + human + click == judgment_count``). The cycle-2 F6
+     *     "click folds into human" contract is superseded the moment UBI ships
+     *     click rows; the UI's source-breakdown card now renders all three
+     *     buckets separately so operators see the mix at a glance.
      */
     _SourceBreakdown: {
       /** Llm */
       llm: number;
       /** Human */
       human: number;
+      /** Click */
+      click: number;
     };
     /**
      * _StudySummary
@@ -3271,6 +3799,70 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['HealthResponse'];
+        };
+      };
+    };
+  };
+  test_connection_api_v1_clusters_test_connection_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ConnectionTestRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ConnectionTestResult'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  reprobe_cluster_api_v1_clusters__cluster_id__reprobe_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cluster_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ClusterDetail'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
         };
       };
     };
@@ -3447,6 +4039,40 @@ export interface operations {
       };
     };
   };
+  get_cluster_ubi_readiness_api_v1_clusters__cluster_id__ubi_readiness_get: {
+    parameters: {
+      query: {
+        query_set_id: string;
+        target: string;
+      };
+      header?: never;
+      path: {
+        cluster_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['UbiReadinessResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   list_cluster_targets_api_v1_clusters__cluster_id__targets_get: {
     parameters: {
       query?: never;
@@ -3502,6 +4128,75 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['RunQueryResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  list_target_documents_api_v1_clusters__cluster_id__targets__target__documents_get: {
+    parameters: {
+      query?: {
+        cursor?: string | null;
+        limit?: number;
+        fields?: string | null;
+      };
+      header?: never;
+      path: {
+        cluster_id: string;
+        target: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DocumentListResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  get_target_document_api_v1_clusters__cluster_id__targets__target__documents__doc_id__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        cluster_id: string;
+        target: string;
+        doc_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Document'];
         };
       };
       /** @description Validation Error */
@@ -3874,6 +4569,7 @@ export interface operations {
         since?: string | null;
         status?: ('queued' | 'running' | 'completed' | 'cancelled' | 'failed') | null;
         cluster_id?: string | null;
+        target?: string | null;
         q?: string | null;
         sort?:
           | (
@@ -4080,6 +4776,37 @@ export interface operations {
       };
     };
   };
+  get_study_chain_api_v1_studies__study_id__chain_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        study_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['StudyChainResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
   generate_judgments_api_v1_judgments_generate_post: {
     parameters: {
       query?: never;
@@ -4090,6 +4817,39 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['CreateJudgmentListGenerateRequest'];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['GenerateJudgmentsResponse'];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['HTTPValidationError'];
+        };
+      };
+    };
+  };
+  generate_judgments_from_ubi_api_v1_judgments_generate_from_ubi_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateJudgmentListFromUbiRequest'];
       };
     };
     responses: {
@@ -4227,7 +4987,7 @@ export interface operations {
   list_judgments_endpoint_api_v1_judgment_lists__judgment_list_id__judgments_get: {
     parameters: {
       query?: {
-        source?: ('llm' | 'human') | null;
+        source?: ('llm' | 'human' | 'click') | null;
         cursor?: string | null;
         limit?: number;
         sort?:
@@ -5057,12 +5817,32 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ReseedStatusResponse'];
+        };
+      };
+    };
+  };
+  reseed_demo_status_api_v1__test_demo_reseed_status_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
       200: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['ReseedSummary'];
+          'application/json': components['schemas']['ReseedStatusResponse'];
         };
       };
     };

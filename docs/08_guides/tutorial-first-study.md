@@ -438,6 +438,29 @@ the LLM-vs-UBI study output diff for the same query set.
 
 ---
 
+## Step 12 — Run the loop overnight
+
+A wide search space is more than one study can sample in a single run.
+Overnight autopilot makes each next study start where the last one left
+off — every follow-up narrows around the previous winner, runs
+deterministically, and stops on its own when the lift plateaus.
+
+1. Open the **Create study** wizard. Pick the **Deep (1000)** preset.
+2. Set **🌙 Run overnight (compound automatically)** to **depth 3**.
+3. Click **Create study** before you log off.
+4. In the morning, open the study detail page. The **Overnight chain**
+   panel summarises what ran, the cumulative lift across the chain, which
+   link won, and why the chain stopped.
+5. The summary points at a proposal — click it, review the diff, open the
+   PR. (You can also cancel any mid-chain study with `?cascade=true` (the
+   default) to halt pending children.)
+
+**RelyLoop runs the exploration overnight unattended, but it never opens a
+PR on your behalf. The chain ends with a proposal you review and merge —
+your one decision.**
+
+---
+
 ## Where to next
 
 - The full feature set is in [`docs/02_product/mvp1-user-stories.md`](../02_product/mvp1-user-stories.md).

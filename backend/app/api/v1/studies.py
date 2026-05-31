@@ -48,6 +48,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1.schemas import (
     CreateStudyRequest,
+    StudyChainLink,
+    StudyChainResponse,
     StudyDetail,
     StudyListResponse,
     StudySortKey,
@@ -60,6 +62,12 @@ from backend.app.api.v1.schemas import (
 from backend.app.db import repo
 from backend.app.db.models import Study
 from backend.app.db.session import get_db
+from backend.app.domain.study.chain_summary import (
+    _direction_normalized_delta_from_prev,
+    compute_cumulative_lift,
+    derive_chain_stop_reason,
+    select_best_link,
+)
 from backend.app.domain.study.followups import parse_followup_list
 from backend.app.domain.study.search_space import (
     MissingDeclaredParamError,
@@ -753,4 +761,74 @@ async def list_study_trials(
         ],
         next_cursor=next_cursor,
         has_more=has_more,
+    )
+
+
+@router.get(
+    "/studies/{study_id}/chain",
+    response_model=StudyChainResponse,
+    tags=["studies"],
+)
+async def get_study_chain(
+    study_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> StudyChainResponse:
+    """Return the rolled-up chain summary for the study and its lineage (FR-3).
+
+    Walks to the chain anchor, aggregates the completed-link subset into a
+    best link + cumulative lift + derived stop reason, and emits per-link
+    deltas. The anchor's ``delta_from_prev`` is always ``None`` (spec §8.3).
+    Returns ``404 STUDY_NOT_FOUND`` when the study does not exist.
+    """
+    traversal = await repo.get_chain_for_study(db, study_id)
+    if traversal is None:
+        raise _err(404, "STUDY_NOT_FOUND", f"study {study_id} not found", False)
+
+    anchor = traversal.links[0]
+    direction = anchor.objective.get("direction", "maximize")
+    stop_reason = derive_chain_stop_reason(traversal.links, traversal.anchor_trials)
+    cumulative_lift = compute_cumulative_lift(traversal.links, traversal.anchor_trials)
+    best_link_id = select_best_link(traversal.links)
+    best_metric = next((lk.best_metric for lk in traversal.links if lk.id == best_link_id), None)
+    proposal_id_for_best_link = (
+        traversal.proposal_id_by_link_id.get(best_link_id) if best_link_id else None
+    )
+
+    link_entries: list[StudyChainLink] = []
+    prev_metric: float | None = None
+    for lk in traversal.links:
+        link_direction = lk.objective.get("direction", "maximize")
+        # Anchor MUST emit delta_from_prev = None per spec §8.3.
+        delta = (
+            None
+            if not link_entries
+            else _direction_normalized_delta_from_prev(lk.best_metric, prev_metric, link_direction)
+        )
+        link_entries.append(
+            StudyChainLink(
+                id=lk.id,
+                name=lk.name,
+                status=lk.status,
+                best_metric=lk.best_metric,
+                baseline_metric=lk.baseline_metric,
+                direction=link_direction,
+                delta_from_prev=delta,
+                proposal_id=traversal.proposal_id_by_link_id.get(lk.id),
+                auto_followup_depth_remaining=lk.config.get("auto_followup_depth"),
+                failed_reason=lk.failed_reason,
+                created_at=lk.created_at,
+                completed_at=lk.completed_at,
+            )
+        )
+        prev_metric = lk.best_metric
+
+    return StudyChainResponse(
+        anchor_study_id=traversal.anchor_id,
+        best_link_id=best_link_id,
+        best_metric=best_metric,
+        cumulative_lift=cumulative_lift,
+        direction=direction,
+        stop_reason=stop_reason,
+        proposal_id_for_best_link=proposal_id_for_best_link,
+        links=link_entries,
     )

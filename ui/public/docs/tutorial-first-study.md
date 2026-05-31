@@ -59,6 +59,32 @@ If your local model lacks structured output, judgment generation will surface
 > Both paths are first-class. The rest of the tutorial is identical regardless
 > of which one you pick.
 
+### Path C — Run the tutorial against Apache Solr (MVP2)
+
+The tutorial defaults to Elasticsearch, but every step works against
+Apache Solr. The local Compose stack brings up `solr:10.0` on
+`127.0.0.1:8983` alongside the Elasticsearch + OpenSearch containers.
+To pick Solr instead:
+
+1. `make up` — `bootstrap-security.sh` generates the Solr admin credentials
+   on first boot.
+2. `make seed-solr` — creates the `products` collection (UBI + LTR enabled
+   via the `relyloop_products` configset) + the `ubi_queries` / `ubi_events`
+   UBI collections, then bulk-indexes `samples/products.json`.
+3. `make seed-clusters` — registers `local-solr` as a cluster row alongside
+   `local-es` and `local-opensearch`.
+4. In the create-study modal, pick `local-solr` from the cluster dropdown
+   and pick the `products_edismax` template (or `products_dismax` /
+   `products_lucene`). Search-space dimensions match the ES path
+   (`title_boost`, `description_boost`, `bullet_points_boost`, `tie`,
+   `mm`).
+
+The Optuna loop runs unchanged — the engine difference is hidden behind
+the `SolrAdapter`. See
+[`solr-cluster-registration.md`](../03_runbooks/solr-cluster-registration.md)
+for the runbook covering `/reprobe`, LTR model upload, and the optional
+UBI on-ramp.
+
 ---
 
 ## Step 1 — Clone + `make up`
@@ -405,10 +431,33 @@ instrumented cluster:
 Every UBI surface on the three synthetic clusters carries a
 **"Synthetic demo data"** chip with a tooltip explaining the data was
 fabricated by the demo reseed. The chip never appears on real operator
-clusters or on `news-search-staging`. Phase 2 of
-[`feat_demo_ubi_study_comparison`](../00_overview/planned_features/02_mvp2/feat_demo_ubi_study_comparison/phase2_idea.md)
+clusters or on `news-search-staging`. The deferred Phase 2 feature
+[`feat_ubi_llm_study_comparison`](../00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison/idea.md)
 will add a side-by-side **Compare two studies** view so you can see
 the LLM-vs-UBI study output diff for the same query set.
+
+---
+
+## Step 12 — Run the loop overnight
+
+A wide search space is more than one study can sample in a single run.
+Overnight autopilot makes each next study start where the last one left
+off — every follow-up narrows around the previous winner, runs
+deterministically, and stops on its own when the lift plateaus.
+
+1. Open the **Create study** wizard. Pick the **Deep (1000)** preset.
+2. Set **🌙 Run overnight (compound automatically)** to **depth 3**.
+3. Click **Create study** before you log off.
+4. In the morning, open the study detail page. The **Overnight chain**
+   panel summarises what ran, the cumulative lift across the chain, which
+   link won, and why the chain stopped.
+5. The summary points at a proposal — click it, review the diff, open the
+   PR. (You can also cancel any mid-chain study with `?cascade=true` (the
+   default) to halt pending children.)
+
+**RelyLoop runs the exploration overnight unattended, but it never opens a
+PR on your behalf. The chain ends with a proposal you review and merge —
+your one decision.**
 
 ---
 
