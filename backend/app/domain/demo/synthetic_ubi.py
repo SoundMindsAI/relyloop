@@ -292,10 +292,26 @@ def fabricate_ubi_for_scenario(
     window_span_s = (seed_anchor - window_start).total_seconds()
 
     def _pick_ts() -> str:
-        offset = rng.uniform(0.0, window_span_s)
+        # Half-open ``[0, span)`` via ``random()`` (NOT ``uniform(0, span)``,
+        # which is inclusive of the upper bound): events must stay strictly
+        # BELOW ``seed_anchor`` so the UbiReader's half-open ``timestamp <
+        # until`` scan (``until = seed_anchor``) never drops an event that
+        # happened to jitter to exactly the upper bound.
+        offset = rng.random() * window_span_s  # noqa: S311 — synthetic demo data
         return (window_start + timedelta(seconds=offset)).isoformat()
 
     # ---- 1. ubi_queries rows (one per query) ----
+    # Stamp query rows at ``window_start`` (the INCLUSIVE lower bound), NOT at
+    # ``seed_anchor`` (the upper bound). The UbiReader's ``ubi_queries`` scan
+    # filters ``timestamp >= since AND timestamp < until`` (half-open), and the
+    # demo dispatches ``until = seed_anchor``. A query row stamped at exactly
+    # ``seed_anchor`` lands ON the exclusive upper bound and is dropped — which
+    # made ``read_features`` return ``{}`` and the worker fail every UBI demo
+    # scenario with UBI_INSUFFICIENT_DATA even though hundreds of events were
+    # written (the sync count gate only inspects ``ubi_events``, which ARE
+    # in-window, so it passed while the worker's query-first scan came up
+    # empty). ``window_start`` is inside ``[since, until)`` for any window the
+    # dispatcher derives from this same anchor.
     queries: list[UbiQueryRow] = []
     for query_index, query_id in sorted(query_id_by_index.items()):
         queries.append(
@@ -303,7 +319,7 @@ def fabricate_ubi_for_scenario(
                 query_id=query_id,
                 user_query=query_text_by_index.get(query_index, f"query-{query_index}"),
                 application=target_application,
-                timestamp=seed_anchor.isoformat(),
+                timestamp=window_start.isoformat(),
             )
         )
 
