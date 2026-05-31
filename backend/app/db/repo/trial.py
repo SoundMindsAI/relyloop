@@ -90,6 +90,31 @@ async def list_trials_for_study(db: AsyncSession, study_id: str) -> Sequence[Tri
     return list((await db.execute(stmt)).scalars().all())
 
 
+async def list_complete_optuna_trials_for_study(db: AsyncSession, study_id: str) -> Sequence[Trial]:
+    """List trials usable by the convergence classifier.
+
+    Returns only complete, non-baseline Optuna trials whose
+    ``primary_metric`` is set, ordered by ``optuna_trial_number ASC``.
+    Pushes the same filter into SQL that
+    :func:`backend.app.domain.study.convergence.classify_convergence`
+    re-applies defensively at the domain layer.
+
+    Added for ``feat_study_convergence_indicator`` Story 2.1. Distinct
+    from :func:`list_trials_for_study` (returns *every* row including
+    failed/pruned/baseline) and :func:`list_trials_paginated` (cursor +
+    sort variants for the trials API).
+    """
+    stmt = (
+        select(Trial)
+        .where(Trial.study_id == study_id)
+        .where(Trial.status == "complete")
+        .where(Trial.is_baseline.is_(False))
+        .where(Trial.primary_metric.is_not(None))
+        .order_by(Trial.optuna_trial_number)
+    )
+    return list((await db.execute(stmt)).scalars().all())
+
+
 async def list_trials_paginated(
     db: AsyncSession,
     study_id: str,
