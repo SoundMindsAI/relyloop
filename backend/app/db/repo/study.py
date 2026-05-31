@@ -324,6 +324,13 @@ async def get_chain_for_study(
 
     # --- 3. Hydrate link rows; reorder client-side by (created_at, id). ---
     rows = list((await db.execute(select(Study).where(Study.id.in_(link_ids)))).scalars().all())
+    if not rows:
+        # Every walked link was hard-deleted between the existence check and
+        # this hydration (concurrent-delete race — reachable via the _test
+        # hard-delete teardown path). Return None so the router renders a clean
+        # 404 STUDY_NOT_FOUND rather than letting the caller hit IndexError on
+        # links[0].
+        return None
     links = sorted(rows, key=lambda s: (s.created_at, s.id))
 
     # --- 4. Proposal lookup: newest non-rejected per link. ---------------
