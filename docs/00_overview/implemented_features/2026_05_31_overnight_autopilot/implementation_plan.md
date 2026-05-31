@@ -1,7 +1,7 @@
 # Implementation Plan — Overnight autopilot (surface the autonomous study chain)
 
 **Date:** 2026-05-31
-**Status:** Approved
+**Status:** Complete (PR #343, squash-merged `fe146950` 2026-05-31)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy sources:** [`CLAUDE.md`](../../../../../CLAUDE.md) · [`docs/01_architecture/api-conventions.md`](../../../../01_architecture/api-conventions.md) · [`docs/01_architecture/ui-architecture.md`](../../../../01_architecture/ui-architecture.md)
 

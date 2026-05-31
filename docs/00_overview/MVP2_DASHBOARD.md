@@ -6,29 +6,29 @@ _Reflects feature-folder state as of **2026-05-31** (latest mtime of any planned
 
 ## Next up
 
-**[feat_overnight_autopilot](planned_features/02_mvp2/feat_overnight_autopilot/feature_spec.md)** — Feature, currently in **Plan**
+**[feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md)** — Feature, currently in **Plan**
 
-> an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled "🌙 Run overnight (compound automatically)" toggle with explicit copy about the human-merge boundary, and (b) wake up
+> A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contraction expansion improves nDCG/MAP/MRR.
 
 Plan approved; run /impl-execute to ship
 
 ```bash
-/impl-execute docs/00_overview/planned_features/02_mvp2/feat_overnight_autopilot/implementation_plan.md --all
+/impl-execute docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning/implementation_plan.md --all
 ```
 
 ## MVP2 Progress
 
 | Metric | Value |
 |---|---|
-| Filed under MVP2 | **24** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **5 / 10** (50%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **19** items (every not-done feat/infra/chore/bug across all priorities) |
+| Filed under MVP2 | **23** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **5 / 9** (56%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **18** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 15 important to file, not blocking |
+| → P2 (default) | 14 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 3 |
-| Legacy "Path to MVP2" | 14 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 13 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -48,15 +48,14 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (5)
+### Plan (4)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [feat_overnight_autopilot](planned_features/02_mvp2/feat_overnight_autopilot/feature_spec.md) | Feature | an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled "🌙 Run overnight (compound automatically)" toggle with explicit copy about th | — | [PR #223](https://github.com/SoundMindsAI/relyloop/pull/223) |
-| 2 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
-| 3 | P2 | [feat_study_convergence_indicator](planned_features/02_mvp2/feat_study_convergence_indicator/feature_spec.md) | Feature | Every completed study carries a plain-language **convergence verdict** — `converged` / `still_improving` / `too_few_trials` — backed by a best-metric-so-far curve. | — | [PR #316](https://github.com/SoundMindsAI/relyloop/pull/316) |
-| 4 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
-| 5 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+| 1 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
+| 2 | P2 | [feat_study_convergence_indicator](planned_features/02_mvp2/feat_study_convergence_indicator/feature_spec.md) | Feature | Every completed study carries a plain-language **convergence verdict** — `converged` / `still_improving` / `too_few_trials` — backed by a best-metric-so-far curve. | — | [PR #316](https://github.com/SoundMindsAI/relyloop/pull/316) |
+| 3 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 4 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
 
 ### Spec (0)
 
@@ -94,8 +93,6 @@ graph LR
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   chore_demo_seeding_integration_tests_rewrite["demo seeding integration tests rewrite"]
   class chore_demo_seeding_integration_tests_rewrite plan;
-  feat_overnight_autopilot["overnight autopilot"]
-  class feat_overnight_autopilot plan;
   feat_query_normalization_tuning["query normalization tuning"]
   class feat_query_normalization_tuning plan;
   feat_study_convergence_indicator["study convergence indicator"]
