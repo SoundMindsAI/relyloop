@@ -257,6 +257,13 @@ _ENGINE_BASE_URL_MAPPING: Final[dict[str, str]] = {
     # would attempt to reach a port that's not bound and fail with
     # ``ConnectError`` (GPT-5.5 final-review High).
     "http://localhost:9201": "http://opensearch:9200",
+    # Host-published Solr port (Compose ``"127.0.0.1:8983:8983"``) → in-container
+    # Solr service port. Unlike OpenSearch, Solr's host and container ports
+    # match (8983:8983) — there's no ES collision to avoid — so this maps
+    # straight through to ``solr:8983``. Added with the MVP2 ``acme-kb-docs-solr``
+    # demo scenario (``scripts/seed_meaningful_demos.py`` SCENARIOS); without it
+    # the reseed raises ``Unrecognized engine host URL`` on the Solr scenario.
+    "http://localhost:8983": "http://solr:8983",
 }
 
 
@@ -265,10 +272,11 @@ def _resolve_engine_base_url(host_base_url: str) -> str:
 
     The imported :data:`SCENARIOS` constant from
     ``scripts/seed_meaningful_demos.py`` carries ``host_base_url`` values
-    like ``"http://localhost:9200"`` (ES) and ``"http://localhost:9201"``
-    (OS) — correct from the host shell, wrong from inside the API
-    container where ``localhost`` is the API itself. This function
-    transparently maps to the Compose service DNS names.
+    like ``"http://localhost:9200"`` (ES), ``"http://localhost:9201"``
+    (OS), and ``"http://localhost:8983"`` (Solr) — correct from the host
+    shell, wrong from inside the API container where ``localhost`` is the
+    API itself. This function transparently maps to the Compose service
+    DNS names.
 
     Pure / deterministic / no I/O. No env hooks (per cycle-4 plan review
     A1 — AC-5's test injection lives in the test harness, not here).
@@ -276,7 +284,7 @@ def _resolve_engine_base_url(host_base_url: str) -> str:
     Per FR-1d.
 
     Raises:
-        ValueError: when ``host_base_url`` is not one of the two
+        ValueError: when ``host_base_url`` is not one of the three
             recognized CLI URLs. The orchestrator unwraps this to a
             :class:`DemoSeedingError` so the route handler returns a
             503 ``SEED_FAILED`` envelope.

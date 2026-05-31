@@ -47,6 +47,14 @@ def test_resolve_engine_base_url_os() -> None:
     assert _resolve_engine_base_url("http://localhost:9201") == "http://opensearch:9200"
 
 
+def test_resolve_engine_base_url_solr() -> None:
+    # Regression: the MVP2 ``acme-kb-docs-solr`` demo scenario carries
+    # ``host_base_url = http://localhost:8983``; without the mapping entry the
+    # reseed raised ``Unrecognized engine host URL`` on the Solr scenario.
+    # Solr's host and container ports match (8983:8983) — no remap.
+    assert _resolve_engine_base_url("http://localhost:8983") == "http://solr:8983"
+
+
 def test_resolve_engine_base_url_unknown_raises() -> None:
     """An unrecognized URL must raise ``ValueError`` — the orchestrator
     unwraps this to a :class:`DemoSeedingError` for the 503 path."""
