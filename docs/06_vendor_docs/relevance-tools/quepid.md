@@ -15,7 +15,7 @@ and watch them move as you tweak the query configuration by hand.
 - **LLM-as-judge — built into the OSS core.** Quepid ships an **"AI Judge"**
   ("LLM as a Judge") feature, added in **v8.0.0 (2025-02-14)** in the
   open-source repo (not a paid/hosted-only feature). You set an LLM key, supply
-  a customizable judgement prompt, and the AI Judge rates query/document pairs.
+  a customizable judgment prompt, and the AI Judge rates query/document pairs.
   Later releases added Ollama support and encrypted key storage (8.2.0). →
   **This corrects the earlier comparison claim that Quepid's LLM-judge was a
   "community plugin, not in the OSS core."**
