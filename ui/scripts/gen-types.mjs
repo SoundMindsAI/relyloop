@@ -23,7 +23,14 @@ const UI_ROOT = resolve(__dirname, '..');
 const OUTPUT = resolve(UI_ROOT, 'src/lib/types.ts');
 const SOURCE_URL = process.env.OPENAPI_URL ?? 'http://localhost:8000/openapi.json';
 
-const BANNER = `// GENERATED FILE — do not edit. Regenerate via: cd ui && pnpm types:gen
+// SPDX header first so the file stays REUSE-compliant (the reuse-lint
+// pre-commit hook rejects any tracked file without it); openapi-typescript
+// strips it on every regen, so the wrapper re-prepends it here.
+const BANNER = `// SPDX-FileCopyrightText: 2026 soundminds.ai
+//
+// SPDX-License-Identifier: Apache-2.0
+
+// GENERATED FILE — do not edit. Regenerate via: cd ui && pnpm types:gen
 // Source: ${SOURCE_URL}
 //
 // Prerequisite: the backend must be running (make up) so /openapi.json is reachable.
@@ -39,7 +46,7 @@ execSync(`npx openapi-typescript ${SOURCE_URL} -o ${OUTPUT}`, {
 });
 
 const generated = readFileSync(OUTPUT, 'utf8');
-if (generated.startsWith('// GENERATED FILE')) {
+if (generated.startsWith('// SPDX-FileCopyrightText')) {
   // Banner already present (shouldn't happen, but be idempotent).
   console.log('Banner already present; skipping prepend.');
 } else {

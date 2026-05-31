@@ -1041,7 +1041,7 @@ N/A — this feature uses no `localStorage` / `sessionStorage` / cookies.
 - [x] Story 1.1 — Pure-domain chain summary helpers
 - [x] Story 1.2 — Chain traversal repo helper
 - [x] Story 1.3 — `GET /api/v1/studies/{id}/chain` router
-- [ ] Story 2.1 — Extend `AutoFollowupChainPanel` + `useStudyChain` hook
+- [x] Story 2.1 — Extend `AutoFollowupChainPanel` + `useStudyChain` hook
 - [x] Story 3.1 — Wizard relabel + Deep hint + glossary key
 - [ ] Story 4.1 — Tutorial + 3 docs/01_architecture updates + state.md
 - [ ] Story 4.2 — E2E spec `overnight-chain.spec.ts`
