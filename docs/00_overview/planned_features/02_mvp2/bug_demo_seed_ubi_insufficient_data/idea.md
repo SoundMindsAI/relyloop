@@ -2,6 +2,7 @@
 
 **Type:** bug
 **Priority:** P2 (demo-only; does not affect the product/adapter code paths)
+**Re-verify (2026-05-31):** the **async** home-button reseed (`demo_seeding.py`, the UI path) now completes **6/6 incl. UBI judgment generation on all scenarios** after `feat_demo_reseed_solr_and_steplog` (PR #348). This bug is about the **sync CLI** path (`make seed-demo FORCE=1` → `seed_meaningful_demos.py`) + the synthetic-event-count vs readiness-threshold, which #348 did not directly touch — but re-run the sync CLI to confirm the symptom persists before scoping; it may now be stale/resolved. Moved from `00_unsure/` to `02_mvp2/` 2026-05-31.
 **Origin:** Surfaced during the infra_adapter_solr rework (2026-05-30), Phase 8, while
 running `make seed-demo FORCE=1` to investigate pre-existing UBI demo failures.
 **NOT caused by the Solr adapter** — the failing scenarios are all
