@@ -1278,6 +1278,12 @@ def seed_scenario(s: dict) -> list[dict]:
             "until": seed_anchor_iso,
             "converter": ubi_converter,
             "mapping_strategy": "reject",
+            # The sync count gate defaults to 100 events; the sparse rung_1
+            # scenario (corp-docs) only seeds ~50 by design — it exists to
+            # demo hybrid LLM-fill on thin UBI. Derive the floor from the
+            # actually-seeded count so the demo's own data always clears the
+            # gate, while dense rungs (240/640 events) keep the 100 default.
+            "min_impressions_threshold": min(100, event_count),
         }
         if ubi_converter == "hybrid_ubi_llm":
             ubi_dispatch_body["current_template_id"] = template_id
