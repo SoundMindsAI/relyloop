@@ -757,20 +757,24 @@ SCENARIOS: list[dict[str, Any]] = [
             '  "q": "{{ query_text }}",\n'
             '  "field_boosts": {\n'
             '    "title": {{ title_boost }},\n'
-            '    "description": {{ description_boost }},\n'
+            '    "description": 1.0,\n'
             '    "bullet_points": {{ bullet_points_boost }}\n'
             "  },\n"
-            '  "tie_breaker": {{ tie }},\n'
-            '  "min_should_match": "{{ mm }}",\n'
+            '  "tie_breaker": 0.3,\n'
+            '  "min_should_match": "50%",\n'
             '  "fl": "*,score"\n'
             "}\n"
         ),
+        # The reseed builds a study search-space from these declared params,
+        # and ``estimate_cardinality`` counts every float as 100 → the demo's
+        # ``> 10^6`` guard allows at most 3 floats. The Solr scenario tunes the
+        # two boosts named in ``study_name`` (title vs bullet); description /
+        # tie / min_should_match are fixed in the template above so the study
+        # stays at 100^2 = 10^4 (comfortably under the cap). See the demo-seed
+        # cardinality note in feat_demo_reseed_solr_and_steplog.
         "template_declared_params": {
             "title_boost": "float",
-            "description_boost": "float",
             "bullet_points_boost": "float",
-            "tie": "float",
-            "mm": "string",
         },
         "query_set_name": "acme-kb-top-queries-q4-2025",
         "queries": [
