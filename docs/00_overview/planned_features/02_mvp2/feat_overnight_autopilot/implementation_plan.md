@@ -1044,7 +1044,7 @@ N/A — this feature uses no `localStorage` / `sessionStorage` / cookies.
 - [x] Story 2.1 — Extend `AutoFollowupChainPanel` + `useStudyChain` hook
 - [x] Story 3.1 — Wizard relabel + Deep hint + glossary key
 - [x] Story 4.1 — Tutorial + 3 docs/01_architecture updates + state.md
-- [ ] Story 4.2 — E2E spec `overnight-chain.spec.ts`
+- [x] Story 4.2 — E2E spec `overnight-chain.spec.ts`
 
 ### Blocked items
 - None.
