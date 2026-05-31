@@ -1,0 +1,141 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# RelyLoop public site — https://relyloop.com
+# Preview locally: pip install -r requirements.txt && mkdocs serve
+# (run from this directory). CI builds with `mkdocs build --strict`.
+
+site_name: RelyLoop
+site_url: https://relyloop.com
+site_description: >-
+  Autonomous relevance optimization for enterprise search — Bayesian
+  search-space tuning across Elasticsearch, OpenSearch, and Apache Solr,
+  shipped as Pull Requests.
+site_author: soundminds.ai
+copyright: Copyright &copy; 2026 soundminds.ai — Apache License 2.0
+
+repo_url: https://github.com/SoundMindsAI/relyloop
+repo_name: SoundMindsAI/relyloop
+edit_uri: edit/main/website/docs/
+
+theme:
+  name: material
+  language: en
+  logo: assets/logo.png
+  favicon: assets/favicon.png
+  font:
+    text: Inter
+    code: JetBrains Mono
+  icon:
+    repo: fontawesome/brands/github
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - content.code.copy
+    - content.code.annotate
+    - content.tabs.link
+    - content.tooltips
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+    - announce.dismiss
+
+plugins:
+  - search
+  - tags
+  - blog:
+      blog_dir: blog
+      post_url_format: "{slug}"
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      # Auto-append the glossary to every page so `abbr` turns defined terms
+      # into hover tooltips site-wide. The file lives outside docs/ so it is
+      # never treated as a standalone page (no --strict nav warning).
+      auto_append:
+        - includes/abbreviations.md
+      base_path:
+        - .
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/SoundMindsAI/relyloop
+      name: RelyLoop on GitHub
+  # analytics:
+  #   provider: google
+  #   property: G-XXXXXXXXXX
+
+nav:
+  - Home: index.md
+  - Roadmap: roadmap.md
+  - Getting Started:
+      - Install: getting-started/install.md
+      - Quickstart: getting-started/quickstart.md
+      - First Optimization Loop: getting-started/first-loop.md
+  - Concepts:
+      - The Optimization Loop: concepts/optimization-loop.md
+      - Query Sets & Judgments: concepts/query-sets.md
+      - Search Space: concepts/search-space.md
+      - Optimization Trials: concepts/trials.md
+      - Git-as-Source-of-Truth: concepts/git-source-of-truth.md
+  - Engines:
+      - Elasticsearch: engines/elasticsearch.md
+      - OpenSearch: engines/opensearch.md
+      - Apache Solr: engines/solr.md
+  - API Reference: api/index.md
+  - Blog:
+      - blog/index.md
+  - Changelog: changelog.md
+  - Community:
+      - Contributing: community/contributing.md
+      - Contributing with AI agents: community/contributing-with-agents.md
+      - Governance: community/governance.md
+      - Security: community/security.md

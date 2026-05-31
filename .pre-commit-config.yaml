@@ -110,6 +110,18 @@ repos:
         files: ^(docs/00_overview/planned_features/|docs/00_overview/implemented_features/|scripts/build_mvp1_dashboard\.py$)
         pass_filenames: false
 
+      # Public website roadmap (website/docs/roadmap.md). Regenerated from the
+      # same feature tree as the internal dashboards (it imports the classifier
+      # in build_mvp1_dashboard.py) but renders a public-safe view. Keeps the
+      # marketing site's roadmap from drifting. Same abort-on-modify UX as the
+      # dashboard hook above: re-`git add` the file and re-commit.
+      - id: public-roadmap-regen
+        name: Regenerate public website roadmap if feature folders changed
+        entry: python3 scripts/build_public_roadmap.py
+        language: system
+        files: ^(docs/00_overview/planned_features/|docs/00_overview/implemented_features/|scripts/build_(mvp1_dashboard|public_roadmap)\.py$)
+        pass_filenames: false
+
       # Per chore_state_md_size_compression: keep state.md a one-page snapshot
       # loadable in a single Read call. Fails the commit if it exceeds 60 KB —
       # the fix is to move history into state_history.md, never to raise the cap.
@@ -155,7 +167,9 @@ repos:
         exclude: \.md$  # markdown allows trailing whitespace for line breaks
       - id: end-of-file-fixer
       - id: check-yaml
-        exclude: ^docker-compose\.ya?ml$  # docker-compose YAML uses non-standard tags
+        # docker-compose + mkdocs.yml use non-standard YAML tags (custom merge
+        # tags / `!!python/name:` for Mermaid + emoji) the safe loader rejects.
+        exclude: ^(docker-compose\.ya?ml|website/mkdocs\.yml)$
       - id: check-json
       - id: check-toml
       - id: check-merge-conflict

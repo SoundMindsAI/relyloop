@@ -1,0 +1,50 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# OpenSSF Scorecard — supply-chain security posture scoring.
+# Results publish to the Security tab (code-scanning) and the public
+# Scorecard API (badge in the root README).
+name: Scorecard supply-chain security
+
+on:
+  # Weekly run keeps the score fresh as actions/deps drift.
+  schedule:
+    - cron: "27 4 * * 1" # Mondays 04:27 UTC
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # upload SARIF to code-scanning
+      id-token: write # publish results to the public API (badge)
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@v2.4.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SARIF file
+          path: results.sarif
+          retention-days: 5
+
+      - name: Upload to code-scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif

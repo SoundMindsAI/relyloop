@@ -1,5 +1,7 @@
 # RelyLoop
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/SoundMindsAI/relyloop/badge)](https://scorecard.dev/viewer/?uri=github.com/SoundMindsAI/relyloop)
+
 > **Status: alpha (MVP1, v0.1.0).** The only open-source tool that runs automated Bayesian search-space optimization across thousands of trials, on every major open-source search engine (Elasticsearch, OpenSearch, Apache Solr at MVP2), and ships winning configs as Pull Requests for your existing approval workflow.
 
 A conversational LLM agent describes the problem and proposes the search
@@ -88,6 +90,7 @@ where RelyLoop fits, and the pairing patterns we recommend — is in
 
 ## Links
 
+- Documentation: https://relyloop.com
 - Tutorial: [`docs/08_guides/tutorial-first-study.md`](docs/08_guides/tutorial-first-study.md)
 - Umbrella spec: [`docs/00_overview/relyloop-spec.md`](docs/00_overview/relyloop-spec.md)
 - Architecture index: [`docs/01_architecture/`](docs/01_architecture/)
