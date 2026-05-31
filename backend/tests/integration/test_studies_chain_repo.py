@@ -257,6 +257,50 @@ class TestGetChainForStudy:
         assert result is not None  # terminates, no infinite loop
         assert any("cap or cycle" in rec.message for rec in caplog.records)
 
+    async def test_upward_linear_chain_hits_ten_hop_cap(
+        self, db_session: AsyncSession, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """An ACYCLIC linear ancestry deeper than the 10-hop cap must stop at
+        the cap (not climb to the true root) and WARN with ``hop_count == 10``.
+
+        The sibling ``test_upward_cycle_caps_at_ten_hops`` seeds a 2-node cycle,
+        which exits via the visited-set guard after one hop — so it proves the
+        cycle guard, NOT the defensive hop cap. This test seeds a strictly
+        acyclic 12-deep chain so the WARN can ONLY originate from the
+        ``hops >= _CHAIN_UPWARD_HOP_CAP`` branch, exercising the cap bound,
+        its ``hop_count`` telemetry, and the cap-stop-as-anchor semantics.
+        """
+        fx = await _seed_fixtures(db_session)
+        # Seed S0 (root) → S1 → … → S11 (12 nodes, 11 parent links).
+        prev: str | None = None
+        ids: list[str] = []
+        for i in range(12):
+            sid = await _seed_study(
+                db_session,
+                cluster_id=fx.cluster_id,
+                template_id=fx.template_id,
+                query_set_id=fx.query_set_id,
+                judgment_list_id=fx.judgment_list_id,
+                parent_study_id=prev,
+                best_metric=0.5 + i * 0.01,
+                baseline_metric=0.5 if i == 0 else None,
+                created_at=_BASE + timedelta(hours=i),
+            )
+            ids.append(sid)
+            prev = sid
+        deepest = ids[-1]  # S11
+
+        with caplog.at_level(logging.WARNING):
+            result = await repo.get_chain_for_study(db_session, deepest)
+
+        assert result is not None  # terminates, no infinite loop
+        # WARN fired specifically via the hop cap (acyclic → cycle guard cannot
+        # fire), and the telemetry records exactly the cap value.
+        assert any(getattr(rec, "hop_count", None) == 10 for rec in caplog.records)
+        # Cap-stop anchor is S1 (10 hops above S11), NOT the true root S0.
+        assert result.anchor_id == ids[1]
+        assert result.anchor_id != ids[0]
+
     async def test_fanout_takes_first_and_warns(
         self, db_session: AsyncSession, caplog: pytest.LogCaptureFixture
     ) -> None:
