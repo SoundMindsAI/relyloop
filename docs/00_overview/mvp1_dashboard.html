@@ -397,7 +397,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">97 / 97</div>
+      <div class="value">94 / 94</div>
       <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">132</span></h3>
+  <h3>Done <span class="count">129</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -863,19 +863,6 @@ footer {
 
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md">Study Sub Warmup Guard</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/316">PR #316</a> <span>merged 2026-05-29</span>
-  </div>
-  <div class="one-liner">A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials &lt; STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard/feature_spec.md">Study Target Judgment Mismatch Guard</a></div>
   <div class="meta">
     <span class="badge feat">Feature</span>
@@ -883,19 +870,6 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/184">PR #184</a> <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">`POST /api/v1/studies` rejects the mismatch at create time with a specific machine-readable error code (`JUDGMENT_TARGET_MISMATCH`, 422).</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_29_feat_ubi_judgments/feature_spec.md">Ubi Judgments</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/317">PR #317</a> <span>merged 2026-05-29</span>
-  </div>
-  <div class="one-liner">Operators with the OpenSearch / ES UBI plugin installed (today; Solr&#x27;s first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic</div>
 
 
 </div>
@@ -911,19 +885,6 @@ footer {
   <div class="one-liner">A single `ElasticAdapter` implements the `SearchAdapter` Protocol and serves both Elasticsearch (8.11+ / 9.x) and OpenSearch (2.x / 3.x), distinguished by a `engine_type` column.</div>
 
 
-</div>
-
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/336">PR #336</a> <span>merged 2026-05-31</span>
-  </div>
-  <div class="one-liner">A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.</div>
-
-  <div class="deps">depends on: <span class="dep-chip">feat_ubi_judgments</span></div>
 </div>
 
 
@@ -2401,12 +2362,6 @@ footer {
   class chore_e2e_api_base_url_construction done;
   chore_state_md_size_compression[&quot;state md size compression&quot;]
   class chore_state_md_size_compression done;
-  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
-  class feat_study_sub_warmup_guard done;
-  feat_ubi_judgments[&quot;ubi judgments&quot;]
-  class feat_ubi_judgments done;
-  infra_adapter_solr[&quot;adapter solr&quot;]
-  class infra_adapter_solr done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2453,8 +2408,7 @@ footer {
   infra_adapter_elastic --&gt; feat_query_inline_crud
   feat_study_lifecycle --&gt; feat_query_inline_crud
   feat_llm_judgments --&gt; feat_query_inline_crud
-  feat_studies_ui --&gt; feat_query_inline_crud
-  feat_ubi_judgments --&gt; infra_adapter_solr</div>
+  feat_studies_ui --&gt; feat_query_inline_crud</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
   classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
@@ -2649,12 +2603,6 @@ footer {
   class chore_e2e_api_base_url_construction done;
   chore_state_md_size_compression[&quot;state md size compression&quot;]
   class chore_state_md_size_compression done;
-  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
-  class feat_study_sub_warmup_guard done;
-  feat_ubi_judgments[&quot;ubi judgments&quot;]
-  class feat_ubi_judgments done;
-  infra_adapter_solr[&quot;adapter solr&quot;]
-  class infra_adapter_solr done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2701,8 +2649,7 @@ footer {
   infra_adapter_elastic --&gt; feat_query_inline_crud
   feat_study_lifecycle --&gt; feat_query_inline_crud
   feat_llm_judgments --&gt; feat_query_inline_crud
-  feat_studies_ui --&gt; feat_query_inline_crud
-  feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
+  feat_studies_ui --&gt; feat_query_inline_crud</pre></noscript>
   </div>
 </section>
 

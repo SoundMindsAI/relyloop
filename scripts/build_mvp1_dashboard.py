@@ -155,6 +155,24 @@ _RELEASE_STATUS_RE = re.compile(
 Capture group is the version number; supports integer (``"2"``) and decimal
 (``"1.5"``) forms."""
 
+_EXPLICIT_RELEASE_RE = re.compile(
+    r"^\*\*Release:\*\*\s*`?(mvp\d+(?:[._]\d+)?|backlog|ga|unsure)`?\s*$",
+    flags=re.IGNORECASE | re.MULTILINE,
+)
+"""Match an explicit, operator-authored ``**Release:** mvp2`` metadata line in
+a feature's pipeline_status / spec / idea block.
+
+This is the **flat-folder equivalent of the MVP-bucket** (:data:`_BUCKET_TO_RELEASE`):
+once a feature is finalized and moved into the FLAT ``implemented_features/``
+tree, its ``02_mvp2/`` bucket is gone and the only release signals left are the
+fragile ``_mvpN`` folder suffix or a prose status-line marker (three different
+phrasings exist in the wild — ``Held for MVP2``, ``anchor for MVP2``, ``bundled
+into MVP2`` — and :data:`_RELEASE_STATUS_RE` only catches the first two). The
+explicit ``**Release:**`` line is deterministic and survives the flatten, so the
+finalization step stamps it and the classifier reads it with high precedence
+(just below the live bucket). Capture is normalized to dot-form (``mvp1_5`` →
+``mvp1.5``) to match the suffix/status-line forms."""
+
 
 _BUCKET_TO_RELEASE: dict[str, str] = {
     "01_mvp1": "mvp1",
@@ -174,10 +192,15 @@ default-MVP1 fallback. Operators promote them by moving the folder into
 an ``NN_mvpN`` / ``04_ga`` bucket when scope is locked."""
 
 
-def _target_release(short_name: str, status_line: str, bucket: str | None = None) -> str:
+def _target_release(
+    short_name: str,
+    status_line: str,
+    bucket: str | None = None,
+    explicit_release: str | None = None,
+) -> str:
     """Classify a feature's target release tag.
 
-    Three signals, in precedence order:
+    Four signals, in precedence order:
 
     1. **Bucket folder** (``01_mvp1`` / ``02_mvp2`` / ``03_mvp3`` / ``04_ga``
        / ``99_backlog`` / ``00_unsure``). The authoritative operator-curated
@@ -189,23 +212,31 @@ def _target_release(short_name: str, status_line: str, bucket: str | None = None
        filing it under ``99_backlog/`` is the more recent, authoritative
        deferral signal. Promotion is done by moving the folder, not by
        editing the status line.
-    2. Folder ``_mvpN`` or ``_mvpN_M`` suffix on ``short_name`` (e.g.,
+    2. **Explicit ``**Release:** mvpN`` marker** (:data:`_EXPLICIT_RELEASE_RE`,
+       pre-extracted by the caller into ``explicit_release``). The flat-folder
+       equivalent of the bucket — once a feature ships into the bucket-less
+       ``implemented_features/`` tree its bucket is gone, so the finalization
+       step stamps this deterministic marker. Wins over the fragile suffix /
+       prose signals below.
+    3. Folder ``_mvpN`` or ``_mvpN_M`` suffix on ``short_name`` (e.g.,
        ``arq_subprocess_test_mvp2`` → ``mvp2``; ``foo_mvp1_5`` →
        ``mvp1.5``). Legacy per-folder hold marker — preserved so older
        folders that predate the bucket migration still classify
        correctly when handed in via a synthetic ``bucket=None`` path.
-    3. ``**Status:** Held for MVPN`` / ``anchor feature for MVPN.M`` line
+    4. ``**Status:** Held for MVPN`` / ``anchor feature for MVPN.M`` line
        in the idea/spec body. Recognizes both integer and decimal
        release tags.
 
     Falls back to :data:`DEFAULT_RELEASE` (``"mvp1"``) when no signal
     fires. Implemented features always carry their shipped release in
-    git history; for dashboard purposes they belong to the release whose
-    folder name they live under (suffix-detected first), or MVP1 if
+    git history; for dashboard purposes they belong to the release named
+    by their explicit marker (or the suffix / status line), or MVP1 if
     they shipped before the per-release tagging convention.
     """
     if bucket and bucket in _BUCKET_TO_RELEASE:
         return _BUCKET_TO_RELEASE[bucket]
+    if explicit_release:
+        return explicit_release
     m = _RELEASE_SUFFIX_RE.search(short_name)
     if m:
         # Normalize underscore-form half-step (``"1_5"``) → dot-form
@@ -249,6 +280,20 @@ def _extract_status_line(text: str) -> str:
     """Pull the `**Status:**` value from a markdown header block."""
     m = re.search(r"^\*\*Status:\*\*\s*(.+)$", text, flags=re.MULTILINE)
     return m.group(1).strip() if m else ""
+
+
+def _extract_explicit_release(text: str) -> str | None:
+    """Pull an explicit ``**Release:** mvp2`` marker, normalized to dot-form.
+
+    Returns the release tag (e.g. ``"mvp2"``, ``"mvp1.5"``, ``"backlog"``) when a
+    ``**Release:**`` line is present, else ``None``. See :data:`_EXPLICIT_RELEASE_RE`
+    for why this marker exists (deterministic release signal that survives the
+    move into the flat ``implemented_features/`` tree).
+    """
+    m = _EXPLICIT_RELEASE_RE.search(text or "")
+    if not m:
+        return None
+    return m.group(1).lower().replace("_", ".")
 
 
 def _extract_priority(text: str) -> str | None:
@@ -891,12 +936,17 @@ def _load_planned(folder_path: Path) -> Feature | None:
         pr_number=_extract_pr_number(pipe, plan, spec, idea),
         merged_date=_extract_merged_date(pipe + plan + spec),
         deferred_phase=deferred,
-        # Release classifier precedence: bucket > folder-name suffix > status_line.
-        # The bucket (`01_mvp1` / `02_mvp2` / ...) is the operator-curated
-        # authoritative signal. Suffix + status_line remain as fallbacks for
-        # folders without a bucket (00_unsure / 99_backlog) or that predate
-        # the bucket migration.
-        release=_target_release(short, status_line, bucket=bucket),
+        # Release classifier precedence: bucket > explicit `**Release:**` marker
+        # > folder-name suffix > status_line. The bucket (`01_mvp1` / `02_mvp2`
+        # / ...) is the operator-curated authoritative signal; the explicit
+        # marker + suffix + status_line remain as fallbacks for folders without
+        # a bucket (00_unsure / 99_backlog) or that predate the bucket migration.
+        release=_target_release(
+            short,
+            status_line,
+            bucket=bucket,
+            explicit_release=_extract_explicit_release(pipe + plan + spec + idea),
+        ),
         priority=priority,
         bucket=bucket,
     )
@@ -932,6 +982,11 @@ def _load_implemented(folder_path: Path) -> Feature | None:
         merged = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
 
     status_line = _extract_status_line(pipe + plan + spec) or "Complete"
+    # Release: the bucket is gone once a feature is flattened into
+    # implemented_features/, so honor an explicit `**Release:**` marker
+    # (finalization stamps it) before falling back to the suffix / status line.
+    # Display `status_line` stays the pipe+plan+spec "Complete" stage line.
+    explicit_release = _extract_explicit_release(pipe + plan + spec + idea)
     return Feature(
         folder=short_with_prefix,
         prefix=prefix,
@@ -944,7 +999,7 @@ def _load_implemented(folder_path: Path) -> Feature | None:
         depends_on=_extract_depends_on(spec),
         pr_number=pr,
         merged_date=merged,
-        release=_target_release(short, status_line),
+        release=_target_release(short, status_line, explicit_release=explicit_release),
     )
 
 

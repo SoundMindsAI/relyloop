@@ -14,7 +14,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Scoped items done | **2 / 2** (100%) — feat_/infra_/chore_/epic_ past idea stage |
+| Scoped items done | **5 / 5** (100%) — feat_/infra_/chore_/epic_ past idea stage |
 | Pending work | **16** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -27,12 +27,15 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (2)
+### Done (5)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
 | [feat_contextual_help_mvp2](implemented_features/2026_05_15_feat_contextual_help_mvp2/idea.md) | Feature | Phase 1 covered the create-study modal + study-detail surface — the steepest onboarding cliff. Two clusters of surfaces remain that a relevance engineer encounters after running their first study: | — | [PR #124](https://github.com/SoundMindsAI/relyloop/pull/124) merged 2026-05-15 |
 | [feat_demo_ubi_study_comparison](planned_features/02_mvp2/feat_demo_ubi_study_comparison/feature_spec.md) | Feature | After this feature, the home-button reseed (and the | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) merged 2026-05-30 |
+| [feat_study_sub_warmup_guard](implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md) | Feature | A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials < STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme | — | [PR #316](https://github.com/SoundMindsAI/relyloop/pull/316) merged 2026-05-29 |
+| [feat_ubi_judgments](implemented_features/2026_05_29_feat_ubi_judgments/feature_spec.md) | Feature | Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic | — | [PR #317](https://github.com/SoundMindsAI/relyloop/pull/317) merged 2026-05-29 |
+| [infra_adapter_solr](implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md) | Infra | A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time. | `feat_ubi_judgments` | [PR #336](https://github.com/SoundMindsAI/relyloop/pull/336) merged 2026-05-31 |
 
 ### Implementing (0)
 
@@ -82,6 +85,13 @@ graph LR
   class feat_demo_ubi_study_comparison done;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
+  feat_study_sub_warmup_guard["study sub warmup guard"]
+  class feat_study_sub_warmup_guard done;
+  feat_ubi_judgments["ubi judgments"]
+  class feat_ubi_judgments done;
+  infra_adapter_solr["adapter solr"]
+  class infra_adapter_solr done;
+  feat_ubi_judgments --> infra_adapter_solr
 ```
 
 ---

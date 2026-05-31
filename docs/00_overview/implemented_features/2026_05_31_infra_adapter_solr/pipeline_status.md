@@ -1,5 +1,7 @@
 # Pipeline Status — infra_adapter_solr
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete (preflighted 2026-05-30 — `/idea-preflight` patched 12 staleness items; UBI-shipped reframe + locked template path + arch-doc drift flags)
 - File: [`idea.md`](idea.md)
