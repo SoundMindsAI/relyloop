@@ -3,11 +3,18 @@
 // SPDX-License-Identifier: Apache-2.0
 
 'use client';
+import { useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { StudyDetail, StudySummary } from '@/lib/api/studies';
+import {
+  useStudyChain,
+  type StudyChainResponse,
+  type StudyDetail,
+  type StudySummary,
+} from '@/lib/api/studies';
 
 export interface AutoFollowupChainPanelProps {
   study: StudyDetail;
@@ -21,23 +28,67 @@ export interface AutoFollowupChainPanelProps {
   chainChildren: StudySummary[];
 }
 
+// feat_overnight_autopilot FR-4 — wire stop_reason → human phrase.
+// Source-of-truth: backend/app/domain/study/chain_summary.py CHAIN_STOP_REASONS
+const CHAIN_STOP_REASON_PHRASE: Record<NonNullable<StudyChainResponse['stop_reason']>, string> = {
+  depth_exhausted: 'depth budget exhausted',
+  no_lift: 'no further improvement',
+  budget: 'daily LLM budget reached',
+  parent_failed: 'parent study failed or was cancelled',
+  cancelled: 'operator cancelled the chain',
+  in_flight: 'chain still running',
+};
+
+const TERMINAL_STUDY_STATUSES: ReadonlySet<string> = new Set(['completed', 'cancelled', 'failed']);
+
+/**
+ * Format a signed lift/delta value with a leading `+`/`-` and 4 decimals.
+ * Returns '—' for null (matches the children-table empty-cell convention).
+ */
+function formatSignedLift(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(4)}`;
+}
+
+/** Per-link delta string: '' (empty) for the anchor / in-flight links. */
+function formatDelta(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '';
+  return `${value >= 0 ? '+' : ''}${value.toFixed(4)}`;
+}
+
 /**
  * Auto-followup chain panel (feat_auto_followup_studies Story 3.1, FR-10
- * frontend).
+ * frontend; extended by feat_overnight_autopilot FR-4).
  *
  * Renders the parent link (when this study is itself a chain child) +
- * the remaining-depth indicator + the direct-children table. Per D-13,
- * children are direct-only — operators navigate to a child's detail
- * page to see ITS children (depth ≤ 5 means at most 5 navigations).
+ * the remaining-depth indicator + the direct-children table, plus a
+ * rolled-up overnight-chain summary (ordered link list, cumulative lift,
+ * best config, stop reason) sourced from GET /studies/{id}/chain.
  *
- * The panel is invisible when there's no chain context: no parent_study_id,
- * no auto_followup_depth set, and no children. This prevents noise on
- * studies that didn't opt into chaining.
+ * The panel is invisible only when there's no chain context AND the
+ * operator never opted into chaining: no parent_study_id, no
+ * auto_followup_depth set, no children, and the summary predicate (D-13)
+ * does not hold.
  */
 export function AutoFollowupChainPanel({
   study,
   chainChildren,
 }: AutoFollowupChainPanelProps): React.ReactNode {
+  const queryClient = useQueryClient();
+  const chainQ = useStudyChain(study.id);
+
+  // feat_overnight_autopilot D-10: when the viewed study flips from running
+  // to a terminal status, the chain summary may settle (best subset / stop
+  // reason change) — invalidate so it refetches.
+  const prevStatusRef = useRef(study.status);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    if (prev === 'running' && TERMINAL_STUDY_STATUSES.has(study.status)) {
+      queryClient.invalidateQueries({ queryKey: ['studies', study.id, 'chain'] });
+    }
+    prevStatusRef.current = study.status;
+  }, [study.status, study.id, queryClient]);
+
   const parentId = study.parent_study_id;
   const depth =
     typeof study.config?.auto_followup_depth === 'number' ? study.config.auto_followup_depth : null;
@@ -45,10 +96,25 @@ export function AutoFollowupChainPanel({
   const hasDepth = depth !== null && depth > 0;
   const hasChildren = chainChildren.length > 0;
 
-  // Hide the panel when there's no chain context at all.
-  if (!hasParent && !hasDepth && !hasChildren) {
+  const chain = chainQ.data;
+  // D-13 render predicate: show the rolled-up summary when there's a real
+  // multi-link chain, OR the local study is a descendant, OR the anchor
+  // explicitly opted into chaining (depth_remaining set) even if no child
+  // has spawned yet.
+  const showSummary =
+    (chain?.links.length ?? 0) >= 2 ||
+    hasParent ||
+    chain?.links[0]?.auto_followup_depth_remaining != null;
+
+  // Hide the panel only when there's no chain context AND no summary to show.
+  if (!hasParent && !hasDepth && !hasChildren && !showSummary) {
     return null;
   }
+
+  const bestLink =
+    chain && chain.best_link_id !== null
+      ? (chain.links.find((l) => l.id === chain.best_link_id) ?? null)
+      : null;
 
   return (
     <Card data-testid="auto-followup-chain-panel">
@@ -112,6 +178,72 @@ export function AutoFollowupChainPanel({
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+        {showSummary && chain && (
+          <div data-testid="chain-summary" className="space-y-2 border-t pt-3">
+            <h3 className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+              Overnight chain — {chain.links.length}{' '}
+              {chain.links.length === 1 ? 'study' : 'studies'}
+              <InfoTooltip glossaryKey="auto_followup_chain" />
+            </h3>
+            <ol className="space-y-1" data-testid="chain-summary-links">
+              {chain.links.map((link) => {
+                const delta = formatDelta(link.delta_from_prev);
+                return (
+                  <li key={link.id} data-testid="chain-summary-link">
+                    <Link
+                      href={`/studies/${link.id}`}
+                      className="text-blue-600 underline-offset-4 hover:underline"
+                    >
+                      {link.name}
+                    </Link>{' '}
+                    — <span className="capitalize">{link.status}</span> — best:{' '}
+                    {link.best_metric !== null && link.best_metric !== undefined
+                      ? link.best_metric.toFixed(4)
+                      : '—'}
+                    {delta && <span className="ml-1 text-muted-foreground">({delta})</span>}
+                  </li>
+                );
+              })}
+            </ol>
+            <p data-testid="chain-summary-cumulative-lift">
+              Cumulative lift:{' '}
+              <span className="font-medium">{formatSignedLift(chain.cumulative_lift)}</span>
+              <span className="ml-2 inline-flex">
+                <InfoTooltip glossaryKey="lift_gate" />
+              </span>
+            </p>
+            <p data-testid="chain-summary-best-config">
+              {chain.proposal_id_for_best_link !== null && bestLink ? (
+                <>
+                  Best config:{' '}
+                  <Link
+                    href={`/proposals/${chain.proposal_id_for_best_link}`}
+                    className="text-blue-600 underline-offset-4 hover:underline"
+                  >
+                    {bestLink.name}
+                  </Link>
+                </>
+              ) : chain.best_link_id !== null && bestLink ? (
+                <>Best config: {bestLink.name} (Awaiting proposal)</>
+              ) : (
+                <>Best config: —</>
+              )}
+            </p>
+            <p data-testid="chain-summary-stop-reason">
+              Stop reason: {CHAIN_STOP_REASON_PHRASE[chain.stop_reason]}
+              {chain.stop_reason === 'depth_exhausted' && (
+                <span className="ml-2 inline-flex">
+                  <InfoTooltip glossaryKey="auto_followup_depth" />
+                </span>
+              )}
+              {chain.stop_reason === 'budget' && (
+                <span className="ml-2 inline-flex">
+                  <InfoTooltip glossaryKey="auto_followup_budget_skip" />
+                </span>
+              )}
+            </p>
           </div>
         )}
       </CardContent>

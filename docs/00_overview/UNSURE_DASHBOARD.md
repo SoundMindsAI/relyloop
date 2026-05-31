@@ -14,16 +14,16 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under UNSURE | **5** folders total (done + specced not-done + idea backlog + bugs) |
+| Filed under UNSURE | **9** folders total (done + specced not-done + idea backlog + bugs) |
 | Specced features done | **0 / 0** (0%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **5** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **9** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 5 important to file, not blocking |
+| → P2 (default) | 9 important to file, not blocking |
 | → Backlog | 0 captured for record, not planned |
-| Open bugs | 3 |
-| Legacy "Path to UNSURE" | 5 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
-| Backlog ideas | 0 idea-only feat/infra (not yet scoped into UNSURE) |
+| Open bugs | 5 |
+| Legacy "Path to UNSURE" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Backlog ideas | 1 idea-only feat/infra (not yet scoped into UNSURE) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
@@ -44,15 +44,19 @@ _None._
 
 _None._
 
-### Idea (5)
+### Idea (9)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P2 | [chore_solr_cred_backfill_needs_api_restart](planned_features/00_unsure/chore_solr_cred_backfill_needs_api_restart/idea.md) | Chore | `scripts/install.sh` step 5a backfills a `local-solr:` entry into a **pre-existing** `./secrets/cluster_credentials.yaml`. That write is correct and idempotent. But the `api` (and `worker`) process re | — | — |
-| 2 | P2 | [chore_solr_post_pipeline_followups](planned_features/00_unsure/chore_solr_post_pipeline_followups/idea.md) | Chore | The 13-story `infra_adapter_solr` execution surfaced several follow-on items that fit neither the original spec nor any sister feature folder. None block the MVP2 Solr release — they're operator-exper | — | Idea — tangential observations from `infra_adapter_solr` end-to-end |
-| 3 | P2 | [bug_baseline_phase_test_isolation](planned_features/00_unsure/bug_baseline_phase_test_isolation/idea.md) | Bug | `backend/tests/unit/workers/test_orchestrator_baseline_phase.py::TestComputeBaselineWaitS::*` fail when run in isolation with: | — | Idea — pre-existing bug surfaced during `feat_ubi_judgments` PR #317 |
-| 4 | P2 | [bug_demo_seed_ubi_insufficient_data](planned_features/00_unsure/bug_demo_seed_ubi_insufficient_data/idea.md) | Bug |  | — | — |
-| 5 | P2 | [bug_relyloop_spec_ubi_section_drift](planned_features/00_unsure/bug_relyloop_spec_ubi_section_drift/idea.md) | Bug | [`docs/00_overview/relyloop-spec.md`](relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 releas | — | Idea — captured during `feat_ubi_judgments` preflight (2026-05-29) |
+| 1 | P2 | [infra_generated_artifact_freshness_gate](planned_features/00_unsure/infra_generated_artifact_freshness_gate/idea.md) | Infra | - `ui/src/lib/types.ts` — regenerated from `http://localhost:8000/openapi.json` via `pnpm types:gen` (`ui/scripts/gen-types.mjs`). Nothing fails CI when a backend schema change lands without a matchin | — | Idea — tangential discovery during `feat_overnight_autopilot` (Story 2.1 + 4.1, PR forthcoming) |
+| 2 | P2 | [chore_arq_pool_aclose_deprecation](planned_features/00_unsure/chore_arq_pool_aclose_deprecation/idea.md) | Chore | [`backend/app/main.py`](../backend/app/main.py) (~line 144, the FastAPI lifespan/shutdown that closes the Arq Redis pool) calls `arq_pool.close()`. arq deprecated the sync-named `close()` in favor of  | — | Idea — tangential discovery during `feat_overnight_autopilot` (Epic 1 integration tests, PR forthcoming) |
+| 3 | P2 | [chore_solr_cred_backfill_needs_api_restart](planned_features/00_unsure/chore_solr_cred_backfill_needs_api_restart/idea.md) | Chore | `scripts/install.sh` step 5a backfills a `local-solr:` entry into a **pre-existing** `./secrets/cluster_credentials.yaml`. That write is correct and idempotent. But the `api` (and `worker`) process re | — | — |
+| 4 | P2 | [chore_solr_post_pipeline_followups](planned_features/00_unsure/chore_solr_post_pipeline_followups/idea.md) | Chore | The 13-story `infra_adapter_solr` execution surfaced several follow-on items that fit neither the original spec nor any sister feature folder. None block the MVP2 Solr release — they're operator-exper | — | Idea — tangential observations from `infra_adapter_solr` end-to-end |
+| 5 | P2 | [bug_baseline_phase_test_isolation](planned_features/00_unsure/bug_baseline_phase_test_isolation/idea.md) | Bug | `backend/tests/unit/workers/test_orchestrator_baseline_phase.py::TestComputeBaselineWaitS::*` fail when run in isolation with: | — | Idea — pre-existing bug surfaced during `feat_ubi_judgments` PR #317 |
+| 6 | P2 | [bug_demo_seed_ubi_insufficient_data](planned_features/00_unsure/bug_demo_seed_ubi_insufficient_data/idea.md) | Bug |  | — | — |
+| 7 | P2 | [bug_e2e_teardown_chain_node_delete_500](planned_features/00_unsure/bug_e2e_teardown_chain_node_delete_500/idea.md) | Bug | The E2E global-teardown deletes seeded rows in a fixed order (per `chore_e2e_test_rows_isolation` Story 1.2 cleanup registration). For auto-followup **chains**, the seeded nodes are `queued` studies c | — | Idea — tangential discovery during `feat_overnight_autopilot` (Story 4.2 E2E, PR forthcoming) |
+| 8 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/00_unsure/bug_judgment_header_omits_click_bucket/idea.md) | Bug | A judgment list generated from UBI (or hybrid UBI+LLM) carries non-zero `source_breakdown.click`, but the header's source-breakdown card silently drops it. Operators reviewing a UBI list see only the  | — | Idea — tangential discovery during `feat_overnight_autopilot` (Story 2.1, PR forthcoming) |
+| 9 | P2 | [bug_relyloop_spec_ubi_section_drift](planned_features/00_unsure/bug_relyloop_spec_ubi_section_drift/idea.md) | Bug | [`docs/00_overview/relyloop-spec.md`](relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 releas | — | Idea — captured during `feat_ubi_judgments` preflight (2026-05-29) |
 
 ## Dependency graph
 

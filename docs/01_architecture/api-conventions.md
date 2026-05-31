@@ -14,7 +14,7 @@
 | Webhooks | Unversioned; live under `/webhooks/<provider>` (e.g., `/webhooks/github`) | Active for GitHub (added by `feat_github_webhook`) |
 | Resource naming | Plural nouns: `/clusters`, `/studies`, `/proposals`, `/judgment-lists` | Active |
 | ID-in-path | UUIDv7 in canonical hyphenated form: `/clusters/{cluster_id}` | Active |
-| Sub-resources | Nest under parent: `/clusters/{cluster_id}/schema`, `/studies/{study_id}/trials` | Active |
+| Sub-resources | Nest under parent: `/clusters/{cluster_id}/schema`, `/studies/{study_id}/trials`, `/studies/{study_id}/chain` (rolled-up auto-followup chain summary, read-only — `feat_overnight_autopilot`) | Active |
 
 Do not invent alternative prefixes (`/api/`, `/v1/`, `/relyloop/`). The single canonical prefix is `/api/v1/`.
 

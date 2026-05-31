@@ -21,6 +21,8 @@ export type StudyListResponse = components['schemas']['StudyListResponse'];
 export type TrialDetail = components['schemas']['TrialDetail'];
 export type TrialListResponse = components['schemas']['TrialListResponse'];
 export type CreateStudyRequest = components['schemas']['CreateStudyRequest'];
+export type StudyChainResponse = components['schemas']['StudyChainResponse'];
+export type StudyChainLink = components['schemas']['StudyChainLink'];
 
 /** Single-page list response augmented with the parsed `X-Total-Count` header. */
 export type StudyListPage = StudyListResponse & { totalCount: number };
@@ -157,6 +159,10 @@ export function useCancelStudy(
       qc.invalidateQueries({ queryKey: ['studies', id] });
       qc.invalidateQueries({ queryKey: ['studies', id, 'trials'] });
       qc.invalidateQueries({ queryKey: ['studies', id, 'children'] });
+      // feat_overnight_autopilot D-10: a cancel may change the chain's tail
+      // stop_reason (→ cancelled) and the completed-link subset, so the
+      // rolled-up chain summary must refetch.
+      qc.invalidateQueries({ queryKey: ['studies', id, 'chain'] });
       qc.invalidateQueries({ queryKey: ['studies'] });
     },
   });
@@ -179,5 +185,55 @@ export function useStudyChildren(studyId: string): UseQueryResult<StudyListPage,
       );
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? data.data.length) };
     },
+  });
+}
+
+export interface UseStudyChainOptions {
+  /** Override the default D-10 refetch contract — primarily for tests. */
+  refetchInterval?: number | false;
+}
+
+/**
+ * Rolled-up overnight-chain summary for a study and its lineage
+ * (feat_overnight_autopilot FR-3 / FR-4). Hits GET
+ * /api/v1/studies/{id}/chain. The panel consumes this to render the
+ * ordered link list + cumulative-lift + best-config + stop-reason rows.
+ *
+ * Refetch contract (D-10):
+ *   - poll every 15s while the chain tail is `in_flight`;
+ *   - for `no_lift` / `budget`, poll 15s only inside a 120s grace window
+ *     after the tail completed (the chain may still settle), then stop;
+ *   - all other stop reasons (depth_exhausted, parent_failed, cancelled)
+ *     stop polling immediately;
+ *   - refetch on window focus + reconnect.
+ * Cancel + status-transition invalidation are wired by `useCancelStudy`
+ * and a `useEffect` in the panel respectively.
+ */
+export function useStudyChain(
+  studyId: string,
+  options: UseStudyChainOptions = {},
+): UseQueryResult<StudyChainResponse, ApiError> {
+  return useQuery<StudyChainResponse, ApiError>({
+    queryKey: ['studies', studyId, 'chain'],
+    queryFn: async () => {
+      const { data } = await apiClient.get<StudyChainResponse>(`/api/v1/studies/${studyId}/chain`);
+      return data;
+    },
+    refetchInterval:
+      options.refetchInterval ??
+      ((query) => {
+        const data = query.state.data;
+        if (!data) return false;
+        if (data.stop_reason === 'in_flight') return 15_000;
+        if (data.stop_reason === 'no_lift' || data.stop_reason === 'budget') {
+          const tail = data.links[data.links.length - 1];
+          if (!tail?.completed_at) return false;
+          const ageMs = Date.now() - new Date(tail.completed_at).getTime();
+          return ageMs < 120_000 ? 15_000 : false;
+        }
+        return false;
+      }),
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 }
