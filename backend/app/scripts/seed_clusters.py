@@ -57,11 +57,13 @@ LOCAL_OS = dict(
 )
 
 # infra_adapter_solr Story A10: register the local Apache Solr container too.
-# Requires the bootstrap-security.sh script to have generated the admin
-# credentials AND the seed_solr_products.py script to have created the
-# `products` collection. When the credentials_ref isn't present in
-# cluster_credentials.yaml the registration fails — captured as a single
-# best-effort entry.
+# The local Solr runs security-disabled (no security.json — same posture as
+# the local ES/OpenSearch services), so auth_kind=solr_basic is nominal: the
+# adapter sends an Authorization header the engine ignores. Requires the
+# `local-solr` entry in cluster_credentials.yaml (install.sh writes the
+# well-known solr/solr dev default) AND seed_solr_products.py to have created
+# the `products` collection. When the credentials_ref isn't present the
+# registration fails — captured as a single best-effort entry.
 LOCAL_SOLR = dict(
     name="local-solr",
     engine_type="solr",

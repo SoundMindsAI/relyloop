@@ -29,13 +29,24 @@ script can index directly.
   <fieldType name="pint" class="solr.IntPointField" docValues="true" />
   <fieldType name="boolean" class="solr.BoolField" sortMissingLast="true" />
 
+  <!-- Fields below mirror the exact shape of samples/products.json
+       (id, title, description, bullet_points[list], brand, color). price /
+       category / in_stock are kept as optional declared fields for operator
+       data that includes them, but are absent from the demo sample. -->
   <field name="id" type="string" indexed="true" stored="true" required="true" />
   <field name="title" type="text_general" indexed="true" stored="true" />
   <field name="description" type="text_general" indexed="true" stored="true" />
   <field name="bullet_points" type="text_general" indexed="true" stored="true" multiValued="true" />
-  <field name="price" type="pfloat" indexed="true" stored="true" />
   <field name="brand" type="string" indexed="true" stored="true" />
+  <field name="color" type="string" indexed="true" stored="true" />
+  <field name="price" type="pfloat" indexed="true" stored="true" />
   <field name="category" type="string" indexed="true" stored="true" />
   <field name="in_stock" type="boolean" indexed="true" stored="true" />
   <field name="_version_" type="pint" indexed="true" stored="true" />
+
+  <!-- Catch-all: any field not declared above is accepted as a stored,
+       searchable text field. Mirrors the ES/OpenSearch seed's dynamic
+       mapping (seed_es.py) so a new column in products.json never 400s the
+       Solr seed with "unknown field". -->
+  <dynamicField name="*" type="text_general" indexed="true" stored="true" multiValued="true" />
 </schema>

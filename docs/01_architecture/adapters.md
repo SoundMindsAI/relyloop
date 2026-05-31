@@ -167,9 +167,11 @@ Summary of the implementation:
   `POST /clusters/test-connection` (probes an unsaved config; always 200
   with a diagnostic result) and the reprobe itself (concurrent calls
   serialize on `SELECT ... FOR UPDATE`).
-- UBI on Solr: Solr's first-party `solr.UBIComponent` writes the same
-  `ubi_queries` + `ubi_events` schema as the OpenSearch UBI plugin —
-  the MVP2 `UbiReader` works on Solr unchanged.
+- UBI on Solr: the MVP2 `UbiReader` reads the `ubi_queries` + `ubi_events`
+  collections on Solr unchanged, so UBI judgment generation works on Solr
+  from day one. The live capture component `solr.UBIComponent` does NOT ship
+  in stock Solr images (verified), so the local demo synthesizes those events
+  directly; the capability probe reports `ubi_component_present=false`.
 - Supported versions: Solr 9.x and 10.x; SolrCloud and standalone
   auto-detected via `/admin/zookeeper/status`.
 

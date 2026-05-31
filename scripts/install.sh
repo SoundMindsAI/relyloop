@@ -50,27 +50,18 @@ fi
 
 # 4. Create empty placeholder files for optional secrets (Compose mounts them).
 [[ -e ./secrets/openai_key ]]     || { touch ./secrets/openai_key;     chmod 600 ./secrets/openai_key;     }
-
-# 4a. Generate Solr admin credentials (infra_adapter_solr Story A10). Required
-#     non-empty: the bootstrap-security.sh script reads these from the mounted
-#     secrets and refuses to start if either is empty. The default username is
-#     "solr"; the password is a generated random base64 string.
-if [[ ! -s ./secrets/solr_admin_username ]]; then
-  echo "Generating ./secrets/solr_admin_username (default 'solr')..."
-  printf 'solr' > ./secrets/solr_admin_username
-  chmod 600 ./secrets/solr_admin_username
-fi
-if [[ ! -s ./secrets/solr_admin_password ]]; then
-  echo "Generating ./secrets/solr_admin_password (random base64)..."
-  openssl rand -base64 32 | tr -d '\n' > ./secrets/solr_admin_password
-  chmod 600 ./secrets/solr_admin_password
-fi
 if [[ ! -e ./secrets/cluster_credentials.yaml ]]; then
-  # Seed default credentials for the local Compose ES + OpenSearch containers
-  # (well-known dev defaults — not production secrets). The seed-clusters
-  # script (`make seed-clusters`) reads these refs to register the two
-  # containers as cluster rows. Operators add real production credentials
-  # by editing this file before `make seed-clusters` for non-local clusters.
+  # Seed default credentials for the local Compose ES + OpenSearch + Solr
+  # containers (well-known dev defaults — not production secrets). The
+  # seed-clusters script (`make seed-clusters`) reads these refs to register
+  # the three containers as cluster rows. Operators add real production
+  # credentials by editing this file before `make seed-clusters` for
+  # non-local clusters.
+  #
+  # All three local engines run security-disabled (see docker-compose.yml),
+  # so these credentials are never actually checked — the adapter sends an
+  # Authorization header the engine ignores. They exist only so the
+  # credentials_ref resolution succeeds with a well-formed entry.
   cat > ./secrets/cluster_credentials.yaml <<'CLUSTER_CREDS_EOF'
 local-es:
   username: elastic
@@ -79,15 +70,22 @@ local-opensearch:
   username: admin
   password: admin
 local-solr:
-  # infra_adapter_solr Story A10: the bootstrap-security.sh script generates
-  # the actual Solr admin password and writes it to security.json on first
-  # boot. seed_solr_products.py reads the secret files directly; this entry
-  # exists so `make seed-clusters` can register the local-solr cluster row
-  # with the same credentials_ref pattern as ES/OpenSearch.
   username: solr
-  password: PLACEHOLDER_OVERWRITTEN_BY_SEED_CLUSTERS
+  password: solr
 CLUSTER_CREDS_EOF
   chmod 600 ./secrets/cluster_credentials.yaml
+fi
+
+# 5a. Backfill the local-solr credentials entry into a PRE-EXISTING
+#     cluster_credentials.yaml. The block above only writes the file when it
+#     doesn't exist, so operators whose file predates the Solr feature
+#     (local-es + local-opensearch only) would otherwise hit
+#     `credentials_ref 'local-solr' not found` when `make seed-clusters` /
+#     `make seed-demo` tries to register the local-solr cluster. Append the
+#     entry idempotently if the key is absent.
+if [[ -s ./secrets/cluster_credentials.yaml ]] && ! grep -q '^local-solr:' ./secrets/cluster_credentials.yaml; then
+  echo "Backfilling local-solr entry into existing ./secrets/cluster_credentials.yaml..."
+  printf '\nlocal-solr:\n  username: solr\n  password: solr\n' >> ./secrets/cluster_credentials.yaml
 fi
 
 # 5. Validate Compose config (catches typos before pulling images).

@@ -5,12 +5,16 @@ SPDX-FileCopyrightText: 2026 soundminds.ai
 SPDX-License-Identifier: Apache-2.0
 
 infra_adapter_solr Story A10: configset for the ubi_queries / ubi_events
-collections. Same shape as relyloop_products but trimmed (no LTR module —
-UBI collections are pure event sinks; not searched against an LTR rescore).
+collections.
+
+These are plain document stores: the RelyLoop UBI demo synthesizes events
+directly into them and UbiReader reads them back. The stock solr:10.0 image
+ships no `ubi` module, so there is no `solr.UBIComponent` here (and none is
+needed — the live component only matters for real production click capture).
+No `<lib>` directives — Solr 10 dropped them.
 -->
 <config>
   <luceneMatchVersion>10.0.0</luceneMatchVersion>
-  <lib dir="${solr.install.dir:../../../..}/modules/ubi/lib" regex=".*\.jar" />
 
   <dataDir>${solr.data.dir:}</dataDir>
   <directoryFactory name="DirectoryFactory" class="${solr.directoryFactory:solr.NRTCachingDirectoryFactory}" />
@@ -49,6 +53,4 @@ UBI collections are pure event sinks; not searched against an LTR rescore).
       <str name="wt">json</str>
     </lst>
   </requestHandler>
-
-  <searchComponent name="ubi" class="solr.UBIComponent" />
 </config>

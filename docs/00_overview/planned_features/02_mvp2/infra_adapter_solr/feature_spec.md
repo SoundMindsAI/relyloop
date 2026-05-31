@@ -16,6 +16,38 @@
 
 ---
 
+> ## ⚠️ Post-implementation correction (2026-05-30) — read before trusting the FRs below
+>
+> The live `make up` verification of the shipped feature found three spec
+> assumptions **factually wrong against the real Solr binary**. The text below is
+> preserved as the original intent; these corrections are authoritative:
+>
+> 1. **No `solr.UBIComponent` exists.** The stock `solr:10.0` / `solr:9.x` images
+>    ship no live UBI search component (verified: no module, no class, no
+>    ref-guide page). UBI on Solr is **read-path only** — the demo synthesizes
+>    events into `ubi_queries`/`ubi_events` and `UbiReader` reads them; the
+>    capability probe correctly reports `ubi_component_present=false`. The
+>    configsets ship **no** `<searchComponent class="solr.UBIComponent">`.
+> 2. **No `bootstrap-security.sh` / BasicAuth.** The "Compose-side bootstrap for
+>    `solr_basic` testing" (entrypoint generating `security.json` from
+>    `SOLR_ADMIN_*` secrets) was **removed**. Local Compose Solr runs
+>    **security-disabled** — identical to local ES/OpenSearch (CLAUDE.md "Common
+>    Pitfalls"). No `bootstrap-security.sh`, no `solr_admin_*` secrets, no
+>    `BasicAuthPlugin` locally. `auth_kind=solr_basic`/`solr_apikey` remain in the
+>    adapter for real operator clusters that DO enable auth.
+> 3. **LTR config form.** Solr 10 loads LTR via `SOLR_MODULES=ltr` (not `<lib>`),
+>    and the `[features]` transformer takes **no** `fvCacheName` child — the
+>    feature-vector cache is a `<featureVectorCache>` element inside `<query>`
+>    (matches Solr's shipped techproducts config; the 10.0 ref-guide's
+>    `fvCacheName` snippet is stale and the binary rejects it).
+>
+> See the active docs ([adapters.md](../../../../01_architecture/adapters.md),
+> [mvp2-overview.md](../../../../01_architecture/mvp2-overview.md),
+> [solr-cluster-registration.md](../../../../03_runbooks/solr-cluster-registration.md))
+> for the corrected, authoritative descriptions.
+
+---
+
 ## 1) Purpose
 
 - **Problem:** RelyLoop's "engine-neutral" positioning is rhetorical until a third OSS engine ships. Today the loop runs on Elasticsearch and OpenSearch (`ElasticAdapter` per [`elastic.py`](../../../../../backend/app/adapters/elastic.py)). Apache Solr is the third canonical OSS search engine (OSC + Sease + Querqy + Haystack reference stack); without it, "all three OSS engines" is a marketing claim no operator can verify against the codebase. The just-shipped UBI path (`feat_ubi_judgments`, PR #317, 2026-05-29) extends to a third engine the moment a Protocol-conformant Solr adapter lands — Solr ships `solr.UBIComponent` in core writing the same `ubi_queries`/`ubi_events` schema the live `UbiReader` already consumes, so zero new UBI code is in scope here.

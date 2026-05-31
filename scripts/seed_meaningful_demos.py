@@ -79,29 +79,15 @@ ES_AUTH = ("elastic", "changeme")
 OS = "http://localhost:9201"
 OS_AUTH = ("admin", "admin")
 
-# infra_adapter_solr Story A13: local Solr container's admin BasicAuth.
-# bootstrap-security.sh writes the password to ./secrets/solr_admin_password;
-# the username is the literal "solr" by install.sh convention. The reseed
-# script reads the same file so the demo Solr collection can be created
-# without an extra prompt.
+# infra_adapter_solr Story A13: local Solr container.
+# The local Compose Solr runs security-disabled (no security.json — same
+# posture as the local ES/OpenSearch services). It accepts unauthenticated
+# admin + query calls, so the BasicAuth tuple below is nominal: a
+# security-disabled Solr simply ignores the Authorization header. The
+# well-known "solr"/"solr" dev default matches install.sh's
+# cluster_credentials.yaml entry.
 SOLR = "http://localhost:8983"
-
-
-def _read_solr_admin_password() -> str:
-    """Read the bootstrap-generated Solr admin password from ./secrets/."""
-    from pathlib import Path
-
-    p = Path("./secrets/solr_admin_password")
-    if not p.is_file() or p.stat().st_size == 0:
-        # Operator hasn't generated the Solr secret yet — return a sentinel so
-        # the Solr scenario fails fast with a clear error rather than getting
-        # a confusing 401 from Solr. install.sh generates the file on first
-        # `make up`.
-        return "<solr-admin-password-not-yet-generated>"
-    return p.read_text(encoding="utf-8").strip()
-
-
-SOLR_AUTH = ("solr", _read_solr_admin_password())
+SOLR_AUTH = ("solr", "solr")
 
 # Postgres tables wiped before reseeding. TRUNCATE clusters CASCADE handles
 # the FK fanout but we list every table explicitly so the operator sees the
@@ -676,8 +662,10 @@ SCENARIOS: list[dict[str, Any]] = [
     # scenario showcases the MVP2 Apache Solr adapter. KB-search use case
     # fits Solr's traditional enterprise-search positioning and
     # differentiates from the ES product-search scenarios. UBI on rung_2
-    # + hybrid converter demonstrates Solr's first-party solr.UBIComponent
-    # path (the spec recommends rung_2 + hybrid_ubi_llm — see spec §19).
+    # + hybrid converter demonstrates the UBI judgment path on Solr (events
+    # are synthesized directly into the ubi_queries/ubi_events collections —
+    # the stock solr image ships no live solr.UBIComponent; the spec
+    # recommends rung_2 + hybrid_ubi_llm — see spec §19).
     {
         "slug": "acme-kb-docs-solr",
         "engine_type": "solr",
@@ -803,9 +791,10 @@ SCENARIOS: list[dict[str, Any]] = [
         ],
         "study_name": "tune-kb-title-vs-bullet-boosts-solr",
         # FR-8 / spec §19 recommendation: Solr scenario gets rung_2 +
-        # hybrid_ubi_llm so the demo exercises Solr's first-party
-        # solr.UBIComponent path AND demonstrates the hybrid UBI+LLM
-        # converter on the new engine.
+        # hybrid_ubi_llm so the demo exercises the UBI judgment read-path on
+        # Solr (synthesized events in ubi_queries/ubi_events — no live
+        # solr.UBIComponent in the stock image) AND demonstrates the hybrid
+        # UBI+LLM converter on the new engine.
         "ubi_target_rung": "rung_2",
         "ubi_converter": "hybrid_ubi_llm",
     },

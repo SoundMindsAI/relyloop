@@ -30,7 +30,7 @@ Each individual capability above has at least one OSS comparable. The combinatio
 - OpenSearch SRW is the closest competitor and ships GA query sets, judgment lists, A/B comparison, LLM-as-judge, scheduled experiments, and UBI judgments — but its optimizer is a 66-cell grid restricted to hybrid weights, and it has no apply path by explicit RFC decision.
 - Quepid is the closest *workbench* (manual A/B with judgments) and is the strongest tool for human-rated judgment management; it does not run automated sweeps and is not LLM-driven.
 - Elasticsearch ships `_rank_eval` (an API primitive) and deprecated its higher-level Behavioral Analytics and Search Applications products in 9.0 ([release notes](https://www.elastic.co/guide/en/elastic-stack/9.0/release-notes-elasticsearch-9.0.0.html)). There is no native ES equivalent to SRW or RelyLoop.
-- Solr's ecosystem (Quepid + Chorus + RRE) is mature for manual evaluation but has no auto-optimizer. UBI ships first-party on Solr as `solr.UBIComponent` ([reference guide](https://solr.apache.org/guide/solr/latest/query-guide/learning-to-rank.html); [UBI tools](https://www.ubisearch.dev/tools/)).
+- Solr's ecosystem (Quepid + Chorus + RRE) is mature for manual evaluation but has no auto-optimizer. The UBI schema (`ubi_queries` / `ubi_events`) is standardized across engines, so RelyLoop reads behavioral signals on Solr the same way it reads them on ES/OpenSearch ([UBI tools](https://www.ubisearch.dev/tools/)). (A live `solr.UBIComponent` capture plugin is not yet part of the stock Solr distribution; RelyLoop's read-path is identical regardless of how the events were captured.)
 
 ## What RelyLoop deliberately does NOT do
 

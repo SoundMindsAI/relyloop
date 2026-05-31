@@ -94,12 +94,21 @@ override these defaults at trial time via the `samples/templates/solr/`
 templates. The defaults exist so a freshly-created collection responds
 to a bare `/select?q=*` query without 400-ing on missing `qf`.
 
-## 4. Enable `solr.UBIComponent`
+## 4. UBI on Solr
 
-`solr.UBIComponent` is shipped first-party in Solr 9+ (no plugin
-install required). The `relyloop_products` configset already loads
-it; if you start from a stock configset, add to your
-`solrconfig.xml`:
+**Important:** the live event-capture component `solr.UBIComponent` does **not**
+ship in the stock `solr:10.0` / `solr:9.x` Docker images (verified: no module,
+no class, no ref-guide page as of 2026-05). RelyLoop's local demo therefore
+**synthesizes** UBI events directly into the `ubi_queries` / `ubi_events`
+collections — `UbiReader` reads them back identically to how it reads UBI on
+ES/OpenSearch, so UBI **judgment generation** works on Solr out of the box. The
+capability probe reports `ubi_component_present=false`, which is accurate.
+
+If you run a Solr build that *does* provide a UBI search component, register it
+in your `solrconfig.xml` and the probe will flip to `true` after a `/reprobe`.
+The historical example below (a `<searchComponent class="solr.UBIComponent">`
+wired into `/select`) is what such a configuration would look like — it is **not**
+active in the shipped `relyloop_products` configset:
 
 ```xml
 <searchComponent name="ubi" class="solr.UBIComponent" />
@@ -171,15 +180,13 @@ RELYLOOP_RECORD_CASSETTES=1 .venv/bin/pytest \
 | `CLUSTER_UNREACHABLE` (503) | Solr returned 5xx, connection refused, or version below 9.0 | Check `docker logs solr`; verify Solr 9+ is running. |
 | `CREDENTIALS_INVALID` (400) on /test-connection | YAML resolution failed before the network call | Add the `credentials_ref` entry to `cluster_credentials.yaml`. |
 | `LTR_MODEL_NOT_FOUND` (400) | Study or run_query references an LTR model not in `engine_config.ltr_models` | Upload the model OR rerun `/reprobe` after upload. |
-| Authentication failed (HTTP 401/403) | Solr's BasicAuthPlugin denied the request | Check the `credentials_ref` username + password match `security.json`. |
-| Bootstrap script exits non-zero in container logs | Missing or unreadable `*_FILE` secrets | Verify `./secrets/solr_admin_*` exist and are readable. |
+| Authentication failed (HTTP 401/403) | A real operator Solr with auth enabled denied the request | Check the `credentials_ref` username + password match the cluster's `security.json`. (The local Compose Solr runs security-disabled, so this never fires locally.) |
 
 ## 8. Where things live
 
-- Compose service: [`docker-compose.yml`](../../docker-compose.yml) → `solr`.
-- Bootstrap entrypoint: [`docker/solr/bootstrap-security.sh`](../../docker/solr/bootstrap-security.sh).
+- Compose service: [`docker-compose.yml`](../../docker-compose.yml) → `solr` (SolrCloud, `SOLR_MODULES=ltr`, security disabled for local dev).
 - Configsets:
-  - [`docker/solr/configsets/relyloop_products/`](../../docker/solr/configsets/relyloop_products/) — UBI + LTR enabled.
+  - [`docker/solr/configsets/relyloop_products/`](../../docker/solr/configsets/relyloop_products/) — LTR queryParser + `[features]` transformer + feature-vector cache.
   - [`docker/solr/configsets/relyloop_ubi/`](../../docker/solr/configsets/relyloop_ubi/) — ubi_queries/ubi_events.
 - Adapter: [`backend/app/adapters/solr.py`](../../backend/app/adapters/solr.py).
 - Templates: [`samples/templates/solr/`](../../samples/templates/solr/).

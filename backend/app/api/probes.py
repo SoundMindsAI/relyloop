@@ -86,11 +86,13 @@ async def probe_solr(
 ) -> Literal["reachable", "unreachable"]:
     """GET {base_url}/solr/admin/info/system for Solr (infra_adapter_solr Story A10).
 
-    The bootstrap-security.sh script anonymously allowlists this endpoint so
-    /healthz can probe reachability without credentials (spec FR-3 + FR-12a).
-    Returns 'reachable' on 2xx/3xx/4xx (so an auth-misconfigured cluster still
-    reports as up-but-failing rather than down) — only 5xx and connection
-    failures → 'unreachable'.
+    The local Compose Solr runs security-disabled, so this admin endpoint
+    needs no credentials. On a real operator cluster with auth enabled, an
+    admin endpoint like this is typically allowlisted for unauthenticated
+    reachability probes (spec FR-3 + FR-12a). Returns 'reachable' on
+    2xx/3xx/4xx (so an auth-misconfigured cluster still reports as
+    up-but-failing rather than down) — only 5xx and connection failures →
+    'unreachable'.
     """
     try:
         resp = await client.get(f"{base_url.rstrip('/')}/solr/admin/info/system")
