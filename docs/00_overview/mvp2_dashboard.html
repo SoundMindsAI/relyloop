@@ -382,12 +382,12 @@ footer {
 <main>
 
 <section>
-  <div class="next-up">
-    <div class="eyebrow">Next up — Infra, currently in <strong>Implementing</strong></div>
-    <div class="title"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
-    <div class="one-liner">A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.</div>
-    <div class="stage-hint">Implementation in progress — resume to finish</div>
-    <code class="cmd">/impl-execute docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/implementation_plan.md --all  # resume in-progress</code>
+  <div class="next-up done">
+    <div class="eyebrow">Next up</div>
+    <div class="title">All scoped MVP2 features shipped 🎉</div>
+    <div class="one-liner">
+      Pull from the Idea backlog or capture a new feature spec.
+    </div>
   </div>
 </section>
 
@@ -395,15 +395,15 @@ footer {
 <section>
   <h2>MVP2 Progress</h2>
   <div class="kpi-row">
-    <div class="kpi ">
+    <div class="kpi complete">
       <div class="label">Scoped items done</div>
-      <div class="value">2 / 3</div>
-      <div class="sub">67% of feat_/infra_/chore_/epic_ items past idea stage</div>
-      <div class="bar"><span style="width:67%"></span></div>
+      <div class="value">5 / 5</div>
+      <div class="sub">100% of feat_/infra_/chore_/epic_ items past idea stage</div>
+      <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">17</div>
+      <div class="value">16</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">10</div>
+      <div class="value">9</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -446,7 +446,7 @@ footer {
     </span>
     <span>
       <strong>In flight:</strong>
-      1 feature(s) actively shipping
+      0 feature(s) actively shipping
     </span>
   </div>
 </section>
@@ -685,24 +685,12 @@ footer {
 </div>
 
 <div class="col implement">
-  <h3>Implementing <span class="count">1</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/320">PR #320</a> <span>merged 2026-05-15</span>
-  </div>
-  <div class="one-liner">A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.</div>
-
-  <div class="deps">depends on: <span class="dep-chip">feat_ubi_judgments</span></div>
-</div>
+  <h3>Implementing <span class="count">0</span></h3>
 
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">2</span></h3>
+  <h3>Done <span class="count">5</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -729,6 +717,45 @@ footer {
 
 </div>
 
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md">Study Sub Warmup Guard</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/316">PR #316</a> <span>merged 2026-05-29</span>
+  </div>
+  <div class="one-liner">A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials &lt; STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_29_feat_ubi_judgments/feature_spec.md">Ubi Judgments</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/317">PR #317</a> <span>merged 2026-05-29</span>
+  </div>
+  <div class="one-liner">Operators with the OpenSearch / ES UBI plugin installed (today; Solr&#x27;s first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/336">PR #336</a> <span>merged 2026-05-31</span>
+  </div>
+  <div class="one-liner">A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.</div>
+
+  <div class="deps">depends on: <span class="dep-chip">feat_ubi_judgments</span></div>
+</div>
+
 </div>
 </div>
 </section>
@@ -744,10 +771,15 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_demo_ubi_study_comparison[&quot;demo ubi study comparison&quot;]
   class feat_demo_ubi_study_comparison done;
-  infra_adapter_solr[&quot;adapter solr&quot;]
-  class infra_adapter_solr implement;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
-  class feat_contextual_help_mvp2 done;</div>
+  class feat_contextual_help_mvp2 done;
+  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
+  class feat_study_sub_warmup_guard done;
+  feat_ubi_judgments[&quot;ubi judgments&quot;]
+  class feat_ubi_judgments done;
+  infra_adapter_solr[&quot;adapter solr&quot;]
+  class infra_adapter_solr done;
+  feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
   classDef implement fill:#ffedd5,stroke:#9a3412,color:#9a3412;
@@ -756,10 +788,15 @@ footer {
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   feat_demo_ubi_study_comparison[&quot;demo ubi study comparison&quot;]
   class feat_demo_ubi_study_comparison done;
-  infra_adapter_solr[&quot;adapter solr&quot;]
-  class infra_adapter_solr implement;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
-  class feat_contextual_help_mvp2 done;</pre></noscript>
+  class feat_contextual_help_mvp2 done;
+  feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
+  class feat_study_sub_warmup_guard done;
+  feat_ubi_judgments[&quot;ubi judgments&quot;]
+  class feat_ubi_judgments done;
+  infra_adapter_solr[&quot;adapter solr&quot;]
+  class infra_adapter_solr done;
+  feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>
 

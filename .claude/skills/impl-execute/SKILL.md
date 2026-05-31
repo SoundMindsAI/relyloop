@@ -857,6 +857,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 3. **Update pipeline_status.md:**
    - Change `## Implementation` status from `PR created` to `Complete`.
    - Add: date, PR number, CI status, stories completed count, Gemini review status.
+   - **Stamp the release marker** when the source bucket is a release bucket other than `01_mvp1` (i.e. `02_mvp2`, `03_mvp3`, `04_ga`): add a top-of-file `**Release:** <tag>` line (e.g. `**Release:** mvp2`) right under the `# Pipeline Status — …` H1. The dashboard classifier reads this as the **flat-folder equivalent of the bucket** — once Step 7 moves the folder into the bucket-less `implemented_features/` tree, this line is the only durable release signal, so without it the shipped feature falls back to MVP1 on the dashboards (see `scripts/build_mvp1_dashboard.py` `_EXPLICIT_RELEASE_RE` / `_target_release`). `01_mvp1` features need no marker — MVP1 is the classifier's default.
 
 4. **Update implementation_plan.md:**
    - Change the `**Status:**` field in the header from `Ready for Execution` / `In Progress` to `Complete (PR #<number>, merged <date>)`.

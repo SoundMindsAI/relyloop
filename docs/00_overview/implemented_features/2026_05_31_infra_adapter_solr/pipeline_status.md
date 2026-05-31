@@ -1,5 +1,7 @@
 # Pipeline Status — infra_adapter_solr
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete (preflighted 2026-05-30 — `/idea-preflight` patched 12 staleness items; UBI-shipped reframe + locked template path + arch-doc drift flags)
 - File: [`idea.md`](idea.md)
@@ -43,11 +45,10 @@ After a parallel codebase audit of the demo, guide, and cluster-registration-UX 
 - Focused GPT-5.5 delta review: 5 findings (4 Medium + 1 Low), all accepted + patched. Full history in spec §19 decision log.
 
 ## Implementation
-- Status: In progress — Story A6 done (1 of 13). Branch `feature/infra-adapter-solr`.
-- **Resume point:** Story A1 (SolrAdapter skeleton + capability probe + health_check + list_query_parsers). Run `/impl-execute docs/00_overview/planned_features/02_mvp2/infra_adapter_solr/implementation_plan.md A1` (or `--all` to continue the batch). The plan §9 execution tracker has the per-story DONE markers.
-- **Completed:**
-  - A6 (commit `157e0b9f`) — registry.py relocation + migration 0022 + auth/wire Literal extension. Round-trip + Solr-row downgrade-abort verified vs real Postgres. 1789 unit + 12 contract green.
-- **Durable state:** branch has 5 commits (idea-preflight, spec, plan, plan-expansion, A6). All execution detail is in `implementation_plan.md`; per-story progress in §9 + this file.
+- Status: **Complete** — all 13 stories (A1–A13) shipped. Squash-merged via [PR #336](https://github.com/SoundMindsAI/relyloop/pull/336) (merge commit `60aec9af`, 2026-05-31). Demo-seed follow-up fix [PR #337](https://github.com/SoundMindsAI/relyloop/pull/337).
+- **Rework note:** the originally-shipped branch assumed a security-enabled local Solr with a stock `solr.UBIComponent`. A live-Solr re-verification session (2026-05-30) corrected this: local Solr runs security-DISABLED (parity with local ES/OpenSearch), `bootstrap-security.sh` deleted, LTR loaded via `SOLR_MODULES=ltr`, and `solr.UBIComponent` confirmed absent from stock images → UBI on Solr is read-path only (demo synthesizes events; probe reports `ubi_component_present=false`). The rework is folded into the squash-merged PR #336.
+- **Completed (all 13):** A1 (adapter skeleton + capability probe + health_check + list_query_parsers), A2 (render edismax/dismax/lucene + templates), A3 (search_batch parallel /select), A4 (get_schema + list_targets), A5 (explain), A6 (registry.py relocation + migration 0022 + auth/wire Literal extension), A7 (LTR rescore + LTR_MODEL_NOT_FOUND), A8 (get_document + list_documents w/ cursorMark), A9 (/reprobe + /test-connection), A10 (Compose + configsets + sample seed + /healthz), A11 (frontend wire literals + per-engine auth + EngineBadge + test-connection), A12 (Guide 01 + runbook + tutorial Path C + arch-doc patches), A13 (Solr demo scenario). Per-story DONE notes in `implementation_plan.md` §9 execution tracker.
+- Cross-model review: GPT-5.5 review F1/F2/F3 + 6 Gemini Code Assist findings adjudicated (commits in PR #336).
 
 ## Notes for downstream skills
 
