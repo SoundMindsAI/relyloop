@@ -54,6 +54,7 @@ theme:
     - content.code.copy
     - content.code.annotate
     - content.tabs.link
+    - content.tooltips
     - content.action.edit
     - search.suggest
     - search.highlight
@@ -67,6 +68,7 @@ plugins:
       post_url_format: "{slug}"
 
 markdown_extensions:
+  - abbr
   - admonition
   - attr_list
   - def_list
@@ -90,7 +92,14 @@ markdown_extensions:
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      # Auto-append the glossary to every page so `abbr` turns defined terms
+      # into hover tooltips site-wide. The file lives outside docs/ so it is
+      # never treated as a standalone page (no --strict nav warning).
+      auto_append:
+        - includes/abbreviations.md
+      base_path:
+        - .
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
