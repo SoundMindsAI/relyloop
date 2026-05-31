@@ -14,15 +14,15 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under UNSURE | **9** folders total (done + specced not-done + idea backlog + bugs) |
+| Filed under UNSURE | **10** folders total (done + specced not-done + idea backlog + bugs) |
 | Specced features done | **0 / 0** (0%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **9** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **10** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 9 important to file, not blocking |
+| → P2 (default) | 10 important to file, not blocking |
 | → Backlog | 0 captured for record, not planned |
-| Open bugs | 5 |
-| Legacy "Path to UNSURE" | 8 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 6 |
+| Legacy "Path to UNSURE" | 9 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 1 idea-only feat/infra (not yet scoped into UNSURE) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -44,7 +44,7 @@ _None._
 
 _None._
 
-### Idea (9)
+### Idea (10)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -57,6 +57,7 @@ _None._
 | 7 | P2 | [bug_e2e_teardown_chain_node_delete_500](planned_features/00_unsure/bug_e2e_teardown_chain_node_delete_500/idea.md) | Bug | The E2E global-teardown deletes seeded rows in a fixed order (per `chore_e2e_test_rows_isolation` Story 1.2 cleanup registration). For auto-followup **chains**, the seeded nodes are `queued` studies c | — | Idea — tangential discovery during `feat_overnight_autopilot` (Story 4.2 E2E, PR forthcoming) |
 | 8 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/00_unsure/bug_judgment_header_omits_click_bucket/idea.md) | Bug | A judgment list generated from UBI (or hybrid UBI+LLM) carries non-zero `source_breakdown.click`, but the header's source-breakdown card silently drops it. Operators reviewing a UBI list see only the  | — | Idea — tangential discovery during `feat_overnight_autopilot` (Story 2.1, PR forthcoming) |
 | 9 | P2 | [bug_relyloop_spec_ubi_section_drift](planned_features/00_unsure/bug_relyloop_spec_ubi_section_drift/idea.md) | Bug | [`docs/00_overview/relyloop-spec.md`](relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 releas | — | Idea — captured during `feat_ubi_judgments` preflight (2026-05-29) |
+| 10 | P2 | [bug_reseed_failure_blocks_retry_arq_singleton_dedup](planned_features/00_unsure/bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md) | Bug | `run_demo_reseed` is enqueued with a fixed Arq job id `demo_reseed:singleton` (the singleton concurrency guard). When a run reaches a terminal state, Arq stores its **result** under `arq:result:demo_r | — | Idea — tangential discovery while verifying `fix(demo): add Solr (8983) to the reseed engine host-URL mapping` (branch `feat_demo_reseed_solr_and_steplog`) |
 
 ## Dependency graph
 
