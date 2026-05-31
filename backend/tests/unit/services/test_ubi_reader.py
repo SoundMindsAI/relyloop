@@ -547,6 +547,92 @@ async def test_read_features_no_writes_in_search_body() -> None:
 
 
 # ----------------------------------------------------------------------------
+# Solr engine-aware read path — UBI judgment generation works on Solr
+# (regression: the reader used to hand ES query DSL to the SolrAdapter, which
+# rejects it with InvalidQueryDSLError).
+# ----------------------------------------------------------------------------
+
+_ES_ONLY_BODY_KEYS = {"query", "_source", "size", "track_total_hits"}
+
+
+async def test_read_features_builds_solr_native_bodies() -> None:
+    adapter = _StubUbiAdapter(
+        engine_type="solr",
+        canned_query_hits=[_query_hit("q-1", "red shoes")],
+        # Solr docs are flat (object_id top-level) — _flat_event mirrors that.
+        canned_event_hits=[_flat_event(query_id="q-1", doc_id="d-a", action="click")],
+    )
+    since = datetime(2026, 4, 1, tzinfo=UTC)
+    until = datetime(2026, 5, 1, tzinfo=UTC)
+    out = await UbiReader(adapter).read_features(target="articles", since=since, until=until)
+
+    # The client-side join still produces the same normalized result.
+    assert ("q-1", "d-a") in out
+
+    # ubi_queries scan — Solr request params, no ES DSL.
+    qcall = next(c for c in adapter.search_batch_calls if c["query_id"] == "ubi_queries_scan")
+    qbody = qcall["body"]
+    assert _ES_ONLY_BODY_KEYS.isdisjoint(qbody.keys()), qbody
+    assert qbody["q"] == "*:*"
+    assert qbody["rows"] == str(qcall["top_k"])
+    assert qbody["fl"] == "query_id,user_query,application,timestamp"
+    assert isinstance(qbody["fq"], list)
+    # Z-format range (inclusive lower, exclusive upper) + quoted application.
+    assert "timestamp:[2026-04-01T00:00:00Z TO 2026-05-01T00:00:00Z}" in qbody["fq"]
+    assert 'application:"articles"' in qbody["fq"]
+    # No query_id filter on the queries scan.
+    assert not any(f.startswith("query_id:") for f in qbody["fq"])
+
+    # ubi_events scan — Solr request params + query_id OR-clause, fl="*".
+    ecall = next(c for c in adapter.search_batch_calls if c["query_id"] == "ubi_events_scan")
+    ebody = ecall["body"]
+    assert _ES_ONLY_BODY_KEYS.isdisjoint(ebody.keys()), ebody
+    assert ebody["q"] == "*:*"
+    assert ebody["fl"] == "*"
+    assert ebody["rows"] == str(ecall["top_k"])
+    assert "timestamp:[2026-04-01T00:00:00Z TO 2026-05-01T00:00:00Z}" in ebody["fq"]
+    assert 'application:"articles"' in ebody["fq"]
+    assert 'query_id:("q-1")' in ebody["fq"]
+
+
+async def test_read_features_solr_query_filter_adds_user_query_fq() -> None:
+    adapter = _StubUbiAdapter(
+        engine_type="solr",
+        canned_query_hits=[_query_hit("q-1", "red running shoes")],
+        canned_event_hits=[_flat_event(query_id="q-1", doc_id="d-a", action="click")],
+    )
+    await UbiReader(adapter).read_features(
+        target="products",
+        since=datetime(2026, 5, 1, tzinfo=UTC),
+        query_filter="running",
+    )
+    qcall = next(c for c in adapter.search_batch_calls if c["query_id"] == "ubi_queries_scan")
+    assert "user_query:*running*" in qcall["body"]["fq"]
+
+
+async def test_read_features_es_path_unchanged_when_not_solr() -> None:
+    """The ES/OpenSearch branch still emits bool/filter DSL byte-for-byte."""
+    adapter = _StubUbiAdapter(
+        engine_type="elasticsearch",
+        canned_query_hits=[_query_hit("q-1", "red shoes")],
+        canned_event_hits=[_nested_event(query_id="q-1", doc_id="d-a", action="click")],
+    )
+    since = datetime(2026, 4, 1, tzinfo=UTC)
+    until = datetime(2026, 5, 1, tzinfo=UTC)
+    await UbiReader(adapter).read_features(target="articles", since=since, until=until)
+
+    qcall = next(c for c in adapter.search_batch_calls if c["query_id"] == "ubi_queries_scan")
+    assert "query" in qcall["body"]
+    qfilters = qcall["body"]["query"]["bool"]["filter"]
+    assert {"range": {"timestamp": {"gte": since.isoformat(), "lt": until.isoformat()}}} in qfilters
+    assert {"term": {"application": "articles"}} in qfilters
+
+    ecall = next(c for c in adapter.search_batch_calls if c["query_id"] == "ubi_events_scan")
+    efilters = ecall["body"]["query"]["bool"]["filter"]
+    assert {"terms": {"query_id": ["q-1"]}} in efilters
+
+
+# ----------------------------------------------------------------------------
 # Position-bias prior reaches aggregate_features
 # ----------------------------------------------------------------------------
 

@@ -105,6 +105,70 @@ pagination is a documented future enhancement
 """
 
 
+def _to_solr_instant(value: datetime) -> str:
+    """Render a UTC ``datetime`` as Solr's ``DatePointField`` instant (``...Z``).
+
+    ``datetime.isoformat()`` renders the UTC offset as ``+00:00``; Solr's
+    ``DatePointField`` only accepts the canonical ``...Z`` form (and rejects
+    ``+00:00`` with "Invalid Date String"). Mirrors the write-path helper
+    ``backend.app.services.demo_ubi_seed._to_solr_date`` so the read-path
+    range bounds match the stored ``timestamp`` field format. ES/OpenSearch's
+    ``date`` type tolerates both, so this conversion is Solr-only.
+    """
+    iso = value.isoformat()
+    if iso.endswith("+00:00"):
+        return iso[: -len("+00:00")] + "Z"
+    return iso
+
+
+def _build_solr_ubi_body(
+    *,
+    target: str,
+    since: datetime,
+    until: datetime,
+    query_ids: list[str] | None,
+    rows: int,
+    fl: str,
+) -> dict[str, Any]:
+    """Build a Solr ``/select`` request-param body for a UBI scan/count.
+
+    The ES/OpenSearch path hands ``search_batch`` an Elasticsearch query DSL
+    body (``{"query": {"bool": {"filter": [...]}}}``); the SolrAdapter rejects
+    that shape (``_validate_solr_param_values`` requires scalars / lists of
+    scalars). This builder emits the equivalent Solr request params instead:
+
+    * ``q="*:*"`` — match all; all filtering is via ``fq``.
+    * ``fq`` — a list of filter-query strings (list-of-scalars is allowed):
+        - timestamp range ``timestamp:[<since> TO <until>}`` (inclusive lower,
+          exclusive upper — matches the ES ``gte``/``lt`` half-open intent;
+          Solr supports the ``}`` exclusive-upper bound).
+        - ``application:"<target>"`` (quoted).
+        - when ``query_ids`` is non-empty, ``query_id:(<id> OR <id> ...)``.
+    * ``rows`` — ``str(rows)``.
+    * ``fl`` — the caller's field list (``_normalize_fl`` will inject ``score``
+      + the uniqueKey).
+
+    Deliberately omits ES-only keys (``query``, ``_source``,
+    ``track_total_hits``, ``size``) — they would fail
+    ``_validate_solr_param_values`` or be meaningless to Solr.
+    """
+    since_solr = _to_solr_instant(since)
+    until_solr = _to_solr_instant(until)
+    fq: list[str] = [
+        f"timestamp:[{since_solr} TO {until_solr}}}",
+        f'application:"{target}"',
+    ]
+    if query_ids:
+        joined = " OR ".join(f'"{qid}"' for qid in query_ids)
+        fq.append(f"query_id:({joined})")
+    return {
+        "q": "*:*",
+        "fq": fq,
+        "rows": str(rows),
+        "fl": fl,
+    }
+
+
 class UbiReader:
     """Engine-neutral UBI scan + client-side join.
 
@@ -331,25 +395,38 @@ class UbiReader:
         ``user_query`` (string). Hits missing either field are dropped
         (logged at DEBUG) — defensive against operator UBI mis-config.
         """
-        filters: list[dict[str, Any]] = [
-            {
-                "range": {
-                    "timestamp": {
-                        "gte": since.isoformat(),
-                        "lt": until.isoformat(),
+        scan_rows = min(max_queries, ES_MAX_RESULT_WINDOW)
+        if self._adapter.engine_type == "solr":
+            body: dict[str, Any] = _build_solr_ubi_body(
+                target=target,
+                since=since,
+                until=until,
+                query_ids=None,
+                rows=scan_rows,
+                fl="query_id,user_query,application,timestamp",
+            )
+            if query_filter:
+                body["fq"].append(f"user_query:*{query_filter}*")
+        else:
+            filters: list[dict[str, Any]] = [
+                {
+                    "range": {
+                        "timestamp": {
+                            "gte": since.isoformat(),
+                            "lt": until.isoformat(),
+                        }
                     }
-                }
-            },
-            {"term": {"application": target}},
-        ]
-        if query_filter:
-            filters.append({"wildcard": {"user_query": f"*{query_filter}*"}})
+                },
+                {"term": {"application": target}},
+            ]
+            if query_filter:
+                filters.append({"wildcard": {"user_query": f"*{query_filter}*"}})
 
-        body: dict[str, Any] = {
-            "query": {"bool": {"filter": filters}},
-            "_source": ["query_id", "user_query", "application", "timestamp"],
-            "track_total_hits": False,
-        }
+            body = {
+                "query": {"bool": {"filter": filters}},
+                "_source": ["query_id", "user_query", "application", "timestamp"],
+                "track_total_hits": False,
+            }
         native = NativeQuery(query_id="ubi_queries_scan", body=body)
 
         result = await self._adapter.search_batch(
@@ -357,7 +434,7 @@ class UbiReader:
             queries=[native],
             # Clamp to the engine result-window — search_batch is size-limited,
             # not scrolling; a larger size makes the engine reject the query.
-            top_k=min(max_queries, ES_MAX_RESULT_WINDOW),
+            top_k=scan_rows,
             request_id=request_id,
         )
         hits = result.get("ubi_queries_scan", [])
@@ -382,34 +459,49 @@ class UbiReader:
         if not query_ids:
             return []
 
-        body: dict[str, Any] = {
-            "query": {
-                "bool": {
-                    "filter": [
-                        {
-                            "range": {
-                                "timestamp": {
-                                    "gte": since.isoformat(),
-                                    "lt": until.isoformat(),
+        scan_rows = min(max_events, ES_MAX_RESULT_WINDOW)
+        if self._adapter.engine_type == "solr":
+            # Solr UBI event docs are flat (object_id / position /
+            # dwell_seconds — see demo_ubi_seed._to_solr_docs), so fl="*"
+            # returns every field _extract_event reads via its top-level
+            # fallback path.
+            body: dict[str, Any] = _build_solr_ubi_body(
+                target=target,
+                since=since,
+                until=until,
+                query_ids=query_ids,
+                rows=scan_rows,
+                fl="*",
+            )
+        else:
+            body = {
+                "query": {
+                    "bool": {
+                        "filter": [
+                            {
+                                "range": {
+                                    "timestamp": {
+                                        "gte": since.isoformat(),
+                                        "lt": until.isoformat(),
+                                    }
                                 }
-                            }
-                        },
-                        {"term": {"application": target}},
-                        {"terms": {"query_id": query_ids}},
-                    ]
-                }
-            },
-            "_source": [
-                "query_id",
-                "action_name",
-                "event_attributes",
-                "object_id",
-                "position",
-                "dwell_seconds",
-                "timestamp",
-            ],
-            "track_total_hits": False,
-        }
+                            },
+                            {"term": {"application": target}},
+                            {"terms": {"query_id": query_ids}},
+                        ]
+                    }
+                },
+                "_source": [
+                    "query_id",
+                    "action_name",
+                    "event_attributes",
+                    "object_id",
+                    "position",
+                    "dwell_seconds",
+                    "timestamp",
+                ],
+                "track_total_hits": False,
+            }
         native = NativeQuery(query_id="ubi_events_scan", body=body)
 
         result = await self._adapter.search_batch(
@@ -418,7 +510,7 @@ class UbiReader:
             # Clamp to the engine result-window (see ES_MAX_RESULT_WINDOW) —
             # exceeding it makes the engine fail the query ("all shards
             # failed"), which the adapter swallows to an empty result.
-            top_k=min(max_events, ES_MAX_RESULT_WINDOW),
+            top_k=scan_rows,
             request_id=request_id,
         )
         return [hit.source for hit in result.get("ubi_events_scan", []) if hit.source is not None]
