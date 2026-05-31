@@ -222,7 +222,7 @@ CREATE TABLE studies (
     status              TEXT NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'cancelled', 'failed')),
     failed_reason       TEXT,                          -- populated when status='failed'
     optuna_study_name   TEXT NOT NULL UNIQUE,          -- convention: optuna_study_name = str(studies.id)
-    parent_study_id     UUID REFERENCES studies(id),   -- for forks (MVP2)
+    parent_study_id     UUID REFERENCES studies(id),   -- for forks (MVP2); chain lineage is the linear walk through this self-FK. Rolled-up chain summaries (best link, cumulative lift, stop reason) are computed on-read at GET /api/v1/studies/{id}/chain — no schema change (feat_overnight_autopilot)
     parent_proposal_id  VARCHAR(36) REFERENCES proposals(id),  -- feat_digest_executable_followups (0018) — set when this study was spawned from a digest "Run this followup"
     parent_proposal_followup_index INT,                -- 0-based index into the parent digest's suggested_followups; paired with parent_proposal_id (CHECK enforces both-NULL or both-set-with-index>=0); BEFORE DELETE trigger on proposals atomically NULLs both columns on parent hard-delete
     baseline_metric     REAL,                          -- single non-Optuna trial run before Optuna starts; populated by orchestrator + worker self-stamp via services.study_state.stamp_baseline_trial (feat_study_baseline_trial 0020)

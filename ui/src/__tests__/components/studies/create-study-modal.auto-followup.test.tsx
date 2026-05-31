@@ -285,3 +285,79 @@ describe('CreateStudyModal — auto-followup depth selector (FR-11, Story 3.2)',
     ]);
   });
 });
+
+describe('CreateStudyModal — overnight autopilot relabel + hint (feat_overnight_autopilot, Story 3.1)', () => {
+  afterEach(() => server.resetHandlers());
+
+  // AC-1: the wizard label is reframed to the canonical overnight string.
+  it('AC-1: wizard label reads "🌙 Run overnight (compound automatically)" verbatim', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    const label = screen.getByText('🌙 Run overnight (compound automatically)');
+    expect(label).toBeInTheDocument();
+    expect(label.tagName.toLowerCase()).toBe('label');
+    expect(label).toHaveAttribute('for', 'cs-auto-followup');
+  });
+
+  it('AC-1: helper text reads the FR-1 paragraph verbatim', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    expect(
+      screen.getByText(
+        /When this study finishes, automatically start a follow-up that narrows in on the best result, then repeat\. Stops on its own when it stops improving, hits the daily budget, or runs out of depth\. No production changes happen without your review — you still open every PR by hand\./,
+      ),
+    ).toBeInTheDocument();
+  });
+
+  // AC-2 (show): Deep preset + depth Off → hint renders with exact copy.
+  it('AC-2: Deep preset with depth Off shows the overnight hint', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    // Default depth is Off (0). Select the Deep preset.
+    fireEvent.click(screen.getByRole('button', { name: 'Deep (1000)' }));
+
+    const hint = await screen.findByTestId('cs-overnight-hint');
+    expect(hint).toHaveAttribute('role', 'note');
+    expect(hint).toHaveTextContent(
+      "💡 Tip — this is a long study. Enable '🌙 Run overnight (compound automatically)' below to chain follow-up runs while you're away.",
+    );
+  });
+
+  // AC-2 (hide): setting depth ≥ 1 removes the hint within the same render cycle.
+  it('AC-2: selecting depth ≥ 1 hides the overnight hint', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deep (1000)' }));
+    expect(await screen.findByTestId('cs-overnight-hint')).toBeInTheDocument();
+
+    fireEvent.change(getDepthSelect(), { target: { value: '1' } });
+    await waitFor(() => expect(getDepthSelect().value).toBe('1'));
+
+    expect(screen.queryByTestId('cs-overnight-hint')).not.toBeInTheDocument();
+  });
+
+  // The hint must NOT show for a non-Deep preset even with depth Off.
+  it('AC-2: hint absent for non-Deep presets', async () => {
+    mockBackend();
+    wrap(<CreateStudyModal open={true} onOpenChange={() => {}} />);
+    await walkToStep5();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Focused (50)' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Focused (50)' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+
+    expect(screen.queryByTestId('cs-overnight-hint')).not.toBeInTheDocument();
+  });
+});

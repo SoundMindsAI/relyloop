@@ -304,3 +304,7 @@ release-notes-*.md
 # only ignore lock files + the local-settings overlay.
 .claude/*.lock
 .claude/settings.local.json
+# Sibling git worktrees the agent harness checks out under .claude/worktrees/
+# are full nested checkouts — never part of the main repo's tracked tree, and
+# must be excluded from REUSE/license scans + status noise.
+.claude/worktrees/

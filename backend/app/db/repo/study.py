@@ -16,14 +16,16 @@ for portability across Postgres / SQLite.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.db.models import Study
+from backend.app.db.models import Proposal, Study, Trial
 from backend.app.db.repo._fts import fts_predicate
 from backend.app.db.repo._sort import (
     ParsedSort,
@@ -31,6 +33,8 @@ from backend.app.db.repo._sort import (
     order_by_clauses,
     parse_sort,
 )
+
+logger = logging.getLogger(__name__)
 
 # Allowlist for ``?sort=<col>:<dir>`` on ``/api/v1/studies``. Keys mirror
 # ``StudySortKey`` Literal in ``backend.app.api.v1.schemas``.
@@ -206,6 +210,166 @@ async def list_children_of_study(
         .order_by(Study.created_at.asc(), Study.id.asc())
     )
     return list((await db.execute(stmt)).scalars().all())
+
+
+# ---------------------------------------------------------------------------
+# feat_overnight_autopilot Story 1.2 — chain traversal for the rolled-up
+# overnight-chain summary (FR-3). Pure read; the router (Story 1.3) feeds the
+# result into the chain_summary.py domain helpers (Story 1.1).
+# ---------------------------------------------------------------------------
+
+#: Defensive cap on the upward ``parent_study_id`` walk. The chaining engine
+#: enforces ``auto_followup_depth <= 5`` (max chain length 6), so a healthy
+#: chain never exceeds 6 hops; 10 leaves slack while still terminating on a
+#: cyclic graph that should be impossible (spec §9 invariant).
+_CHAIN_UPWARD_HOP_CAP = 10
+
+#: Max descendants below the anchor (anchor + 5 = 6 rows max, per D-7).
+_CHAIN_MAX_DESCENDANTS = 5
+
+
+@dataclass(frozen=True)
+class ChainTraversalResult:
+    """Hydrated linear chain anchored at the root ancestor of a study.
+
+    ``links`` is ordered ``created_at ASC, id ASC`` (anchor first) and is
+    length 1..6 under the D-7 linear-chain invariant.
+    ``proposal_id_by_link_id`` maps a link id to its selected (newest
+    non-rejected) proposal id — a missing key means no surfaceable proposal
+    for that link. ``anchor_trials`` is populated ONLY when the anchor's
+    ``baseline_metric IS NULL`` (the first-decile fallback input for
+    ``compute_cumulative_lift`` / ``derive_chain_stop_reason``).
+    """
+
+    anchor_id: str
+    links: list[Study]
+    proposal_id_by_link_id: dict[str, str]
+    anchor_trials: list[Trial] | None
+
+
+async def get_chain_for_study(
+    db: AsyncSession,
+    study_id: str,
+) -> ChainTraversalResult | None:
+    """Traverse the linear study chain anchored at ``study_id``'s root (FR-3).
+
+    Returns ``None`` when ``study_id`` does not exist. Otherwise walks up
+    ``parent_study_id`` to the anchor (defensively capped at 10 hops with a
+    visited-set cycle guard + WARN log), then walks down one child per parent
+    (``LIMIT 1`` ordered ``created_at ASC, id ASC``, capped at 5 descendants,
+    WARN-logging any fan-out), hydrates the link rows, resolves each link's
+    newest non-rejected proposal, and — only when the anchor lacks an
+    explicit baseline — loads the anchor's complete trials for the
+    first-decile fallback. Pure read; no mutation.
+    """
+    # --- 1. Upward walk to the anchor (root ancestor). -----------------
+    head = await db.execute(select(Study.id, Study.parent_study_id).where(Study.id == study_id))
+    head_row = head.first()
+    if head_row is None:
+        return None
+
+    anchor_id: str = head_row.id
+    parent_id: str | None = head_row.parent_study_id
+    visited: set[str] = {anchor_id}
+    hops = 0
+    while parent_id is not None:
+        if hops >= _CHAIN_UPWARD_HOP_CAP or parent_id in visited:
+            logger.warning(
+                "chain upward walk hit defensive cap or cycle; treating walk-stop point as anchor",
+                extra={"study_id": study_id, "hop_count": hops, "stopped_at": anchor_id},
+            )
+            break
+        row = (
+            await db.execute(select(Study.id, Study.parent_study_id).where(Study.id == parent_id))
+        ).first()
+        if row is None:
+            break  # dangling parent FK — treat current as anchor
+        anchor_id = row.id
+        visited.add(anchor_id)
+        parent_id = row.parent_study_id
+        hops += 1
+
+    # --- 2. Downward walk: one child per parent, capped at 5 descendants.
+    # Fresh visited set seeded only with the anchor — the upward-walk
+    # ``visited`` set includes the original start node, which IS a legitimate
+    # descendant of the anchor and must not be cycle-guarded out.
+    link_ids: list[str] = [anchor_id]
+    down_visited: set[str] = {anchor_id}
+    cur = anchor_id
+    descendants = 0
+    while descendants < _CHAIN_MAX_DESCENDANTS:
+        children = (
+            await db.execute(
+                select(Study.id)
+                .where(Study.parent_study_id == cur)
+                .order_by(Study.created_at.asc(), Study.id.asc())
+                .limit(2)
+            )
+        ).all()
+        if not children:
+            break
+        if len(children) > 1:
+            logger.warning(
+                "chain downward walk found a fan-out (>1 child); taking the first "
+                "by (created_at, id) and dropping siblings (linear-chain invariant)",
+                extra={"parent_study_id": cur, "child_count": len(children)},
+            )
+        next_id = children[0].id
+        if next_id in down_visited:
+            break  # cycle guard on the downward side too
+        link_ids.append(next_id)
+        down_visited.add(next_id)
+        cur = next_id
+        descendants += 1
+
+    # --- 3. Hydrate link rows; reorder client-side by (created_at, id). ---
+    rows = list((await db.execute(select(Study).where(Study.id.in_(link_ids)))).scalars().all())
+    if not rows:
+        # Every walked link was hard-deleted between the existence check and
+        # this hydration (concurrent-delete race — reachable via the _test
+        # hard-delete teardown path). Return None so the router renders a clean
+        # 404 STUDY_NOT_FOUND rather than letting the caller hit IndexError on
+        # links[0].
+        return None
+    links = sorted(rows, key=lambda s: (s.created_at, s.id))
+
+    # --- 4. Proposal lookup: newest non-rejected per link. ---------------
+    proposal_rows = (
+        await db.execute(
+            select(Proposal.id, Proposal.study_id)
+            .where(Proposal.study_id.in_(link_ids), Proposal.status != "rejected")
+            .order_by(
+                Proposal.study_id,
+                Proposal.created_at.desc(),
+                Proposal.id.desc(),
+            )
+            .distinct(Proposal.study_id)
+        )
+    ).all()
+    proposal_id_by_link_id: dict[str, str] = {
+        row.study_id: row.id for row in proposal_rows if row.study_id is not None
+    }
+
+    # --- 5. Anchor-trials lookup: ONLY when anchor baseline IS NULL. ------
+    anchor = links[0]
+    anchor_trials: list[Trial] | None = None
+    if anchor.baseline_metric is None:
+        anchor_trials = list(
+            (
+                await db.execute(
+                    select(Trial).where(Trial.study_id == anchor.id, Trial.status == "complete")
+                )
+            )
+            .scalars()
+            .all()
+        )
+
+    return ChainTraversalResult(
+        anchor_id=anchor.id,
+        links=links,
+        proposal_id_by_link_id=proposal_id_by_link_id,
+        anchor_trials=anchor_trials,
+    )
 
 
 # ---------------------------------------------------------------------------

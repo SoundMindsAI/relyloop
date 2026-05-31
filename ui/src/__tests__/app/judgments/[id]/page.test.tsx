@@ -45,7 +45,7 @@ function makeList() {
     status: 'complete' as const,
     failed_reason: null,
     judgment_count: 12,
-    source_breakdown: { llm: 10, human: 2 },
+    source_breakdown: { llm: 10, human: 2, click: 0 },
     calibration: null,
     created_at: '2026-05-12T00:00:00Z',
   };
