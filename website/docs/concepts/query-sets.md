@@ -33,10 +33,10 @@ produce a score. Two ways to build them:
     `openai:gpt-4o-2024-08-06`) so a judgment is always traceable to the model
     that produced it.
 
-!!! tip "UBI-derived judgments (MVP2)"
+!!! tip "UBI-derived judgments (shipped in MVP2)"
     RelyLoop reads the standardized UBI schema (`ubi_queries` + `ubi_events`)
     identically across all three engines, turning real click/dwell signals
-    into judgments — including a hybrid UBI + LLM mode. This lands at MVP2.
+    into judgments — including a hybrid UBI + LLM mode. Shipped in MVP2.
 
 ## How they feed the loop
 

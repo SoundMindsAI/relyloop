@@ -20,10 +20,11 @@ tie-breakers, and hybrid weights together, scored against your judgments with
 `ir_measures`. The loop ends at the PR: RelyLoop never sits on the live
 search-serving path.
 
-This is MVP1 (`v0.1.0`, alpha). The loop runs end-to-end on Elasticsearch and
-OpenSearch today; Solr and UBI-derived judgments arrive at MVP2. We're
-single-vendor-stewarded for now and [actively looking to broaden the
-maintainer team](../../community/governance.md).
+RelyLoop is alpha. MVP1 — the full loop — shipped, and MVP2 is already
+underway: the **Apache Solr adapter** and **UBI-derived judgments** (including
+the hybrid UBI + LLM mode) have landed. The [Roadmap](../../roadmap.md) tracks
+live status. We're single-vendor-stewarded for now and [actively looking to
+broaden the maintainer team](../../community/governance.md).
 
 Try the [Quickstart](../../getting-started/quickstart.md), and tell us what
 breaks on [GitHub](https://github.com/SoundMindsAI/relyloop).

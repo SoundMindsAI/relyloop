@@ -46,9 +46,9 @@ doc](https://github.com/SoundMindsAI/relyloop/blob/main/docs/07_research/compari
     local development. Operator clusters with auth are configured per
     `cluster` with credentials from mounted secret files.
 
-- **UBI judgments arrive at MVP2.** OpenSearch's COEC click model is GA
+- **UBI judgments shipped (MVP2).** OpenSearch's COEC click model is GA
   upstream; RelyLoop's own UBI-derived judgments (read from `ubi_queries` +
-  `ubi_events`) land at MVP2, with a hybrid UBI + LLM mode.
+  `ubi_events`) landed in MVP2, with a hybrid UBI + LLM mode.
 
 ## See also
 

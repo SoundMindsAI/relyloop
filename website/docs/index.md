@@ -17,9 +17,12 @@ search-serving path.
 [Get started :material-arrow-right:](getting-started/install.md){ .md-button .md-button--primary }
 [View on GitHub :fontawesome-brands-github:](https://github.com/SoundMindsAI/relyloop){ .md-button }
 
-!!! info "Status: alpha (MVP1, `v0.1.0`), Apache-2.0"
-    The loop runs end-to-end on Elasticsearch + OpenSearch today; Apache Solr
-    lands at MVP2. APIs and schemas are still evolving — expect breaking
+!!! info "Status: alpha · MVP2 in progress · Apache-2.0"
+    MVP1 (the full loop) shipped, and MVP2 is underway — the **Apache Solr
+    adapter** and **UBI judgments** have already landed. See the
+    [Roadmap](roadmap.md) for live status and
+    [GitHub Releases](https://github.com/SoundMindsAI/relyloop/releases) for the
+    current version. APIs and schemas are still evolving — expect breaking
     changes between minor releases until v1.0.
 
 ---

@@ -24,7 +24,7 @@ a large corpus, bump `ES_HEAP_SIZE` in `.env`.
 |---|---|---|
 | Elasticsearch | 8.11+ / 9.x | shipped (MVP1) |
 | OpenSearch | 2.x / 3.x | shipped (MVP1) |
-| Apache Solr | 9.x / 10.x | MVP2 |
+| Apache Solr | 9.x / 10.x | shipped (MVP2) |
 
 All three are reached through a single `SearchAdapter` Protocol — the same
 study workflow runs unchanged across engines.

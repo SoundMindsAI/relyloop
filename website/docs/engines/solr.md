@@ -1,7 +1,7 @@
 # Apache Solr
 
 !!! abstract "Summary"
-    Apache Solr is the third supported engine, landing at **MVP2**. It runs
+    Apache Solr is the third supported engine, **shipped in MVP2**. It runs
     behind the same `SearchAdapter` Protocol as Elasticsearch and OpenSearch —
     one workflow, one schema, three engines.
 
@@ -9,8 +9,8 @@
 
 | Versions | Status |
 |---|---|
-| 9.x | MVP2 |
-| 10.x | MVP2 |
+| 9.x | supported (shipped in MVP2) |
+| 10.x | supported (shipped in MVP2) |
 
 The bundled local Solr runs in SolrCloud mode with embedded ZooKeeper and the
 LTR module loaded (`SOLR_MODULES=ltr`).
@@ -27,7 +27,7 @@ with `ir_measures`, so the metric is comparable across all three.
 
 RelyLoop reads the standardized UBI schema (`ubi_queries` + `ubi_events`)
 **identically** across all three engines, so UBI-derived judgment generation
-(MVP2) works on Solr from day one.
+(shipped in MVP2) works on Solr from day one.
 
 !!! note "Live UBI capture vs. read-path"
     The live event-capture component (`solr.UBIComponent`) does **not** ship
