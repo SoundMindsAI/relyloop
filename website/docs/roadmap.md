@@ -186,10 +186,11 @@
     - 🟡 [Arq Subprocess Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test)
     - 🟡 [Generated Artifact Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_generated_artifact_freshness_gate)
 
-??? note "Maintenance & fixes (19)"
+??? note "Maintenance & fixes (20)"
 
     - 🟡 [Arq Pool Aclose Deprecation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_arq_pool_aclose_deprecation)
     - 🟡 [Auto Followup Parent Advisory Lock](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock)
+    - 🟡 [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_backend_suite_nondeterministic_caplog_isolation)
     - 🟡 [Baseline Phase Test Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_baseline_phase_test_isolation)
     - 🟡 [Chat Long Conversation Truncation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation)
     - 🟡 [Cluster Detail Rung Badge](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_cluster_detail_rung_badge)
