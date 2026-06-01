@@ -54,6 +54,15 @@ Phase 3 closes the loop: the winning normalizer ships as a structured field in t
 
 Option (b) (documentation hand-off) is genuinely adequate for the operator workflow today. Apply-path extension is a sizable scope expansion — new payload shape, new manifest spec, new operator-side CI contract — and may not be needed at all if operators tolerate the manual snippet copy. The right time to ship Phase 3 is when MVP2 + MVP3 adoption signal proves the friction. Spec time at that point can audit the actual failure mode and pick the right manifest shape, instead of guessing now.
 
+## Preflight note (2026-06-01)
+
+Audited against the live tree before spec generation:
+
+- **Claims verified accurate.** [`docs/01_architecture/apply-path.md`](../../../../01_architecture/apply-path.md) (7.4 KB) and the apply-path worker [`backend/workers/git_pr.py`](../../../../../backend/workers/git_pr.py) (44 KB) exist as cited. No `query_normalizer` / `NormalizerStep` / `NormalizerPipelineParam` symbol exists in `backend/app/` yet — consistent with Phase 1 being unmerged.
+- **Dependency status:** Phase 1 (`feat_query_normalization_tuning`) is in the **Plan** stage — its [`feature_spec.md`](../feat_query_normalization_tuning/feature_spec.md) (82 KB) and [`implementation_plan.md`](../feat_query_normalization_tuning/implementation_plan.md) (77 KB) exist, so Phase 3's design CAN reference Phase 1's documented shape, but Phase 1 has **not merged**. The Phase 2 sibling [`feat_query_normalizer_typed_pipeline`](../feat_query_normalizer_typed_pipeline/idea.md) is idea-only.
+- **Implementation gate (unchanged, still a product call):** this Phase 3 ships only after (a) Phase 1 merges and (b) operator-friction evidence materializes. **The spec/plan generated now are design-ahead artifacts — do not `/impl-execute` until both gates clear.** spec-gen should reference Phase 1's `feature_spec.md` §3 + §19 D-1 and the Phase 2 step-vocabulary idea as the foundation for the manifest shape.
+- **Open forks remain spec-time decisions** (manifest shape: inline vs separate `query_normalizer.yaml`; step vocabulary source; back-compat env gate) — recommended defaults are in Capability B above; none can be unilaterally locked at preflight.
+
 ## Relationship to other work
 
 - Extends Phase 1 of `feat_query_normalization_tuning`.

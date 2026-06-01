@@ -4,7 +4,7 @@
 **Status:** Idea — deferred Phase 2 of [`feat_query_normalization_tuning`](../feat_query_normalization_tuning/feature_spec.md) (§3 Phase boundaries, §19 D-4 / D-6 / D-7). Split into its own planned-features folder 2026-05-31 (was `feat_query_normalization_tuning/phase2_idea.md`).
 **Priority:** P2 — picked up if MVP2 adoption shows the four built-in bundles are insufficient OR operators ask for a JS snippet alongside Python OR smart-quote contractions cause measurable miss-rates.
 **Origin:** Phase 2 carve-out from `feature_spec.md` §3 "Phase boundaries" + decision-log entries D-4 (search-space shape), D-6 (snippet language), D-7 (smart-quote handling).
-**Depends on:** Phase 1 of [`feat_query_normalization_tuning`](../feat_query_normalization_tuning/feature_spec.md) merged.
+**Depends on:** Phase 1 of [`feat_query_normalization_tuning`](../feat_query_normalization_tuning/feature_spec.md) merged. **Phase 1 is currently UNMERGED — still at the plan stage** (its `feature_spec.md` + `implementation_plan.md` exist; no normalization code has landed: `backend/app/domain/study/normalizers.py`, `NORMALIZER_CHOICES`, `_CONTRACTIONS`, and `_PR_BODY_NORMALIZER_SNIPPETS` do not yet exist in the tree, verified 2026-06-01). Every symbol this idea extends (`normalize`, `NORMALIZER_CHOICES`, the pre-render hook, `_PR_BODY_NORMALIZER_SNIPPETS`, `_CONTRACTIONS`, `_PATTERN`) is **defined by Phase 1's spec, not by shipped code**. The spec + plan generated from this idea are therefore **design-ahead artifacts: NOT ready to `/impl-execute` until Phase 1 merges.**
 
 ## Problem
 
@@ -18,9 +18,9 @@ Phase 1 ships four built-in Categorical bundles, an English-only ASCII-apostroph
 
 ### Capability A — Typed `NormalizerPipelineParam` search-space type
 
-- New discriminated-union member of `ParamSpec` in `backend/app/domain/study/search_space.py`: `NormalizerPipelineParam` with `type: Literal["normalizer_pipeline"]` and `steps: list[NormalizerStep]`.
+- New discriminated-union member of `ParamSpec` in `backend/app/domain/study/search_space.py`: `NormalizerPipelineParam` with `type: Literal["normalizer_pipeline"]` and `steps: list[NormalizerStep]`. (`ParamSpec` is the `Annotated[... , Field(discriminator="type")]` union at [`search_space.py:87`](../../../../../backend/app/domain/study/search_space.py); current members are `FloatParam` / `IntParam` / `CategoricalParam` at L35/L58/L74.)
 - New domain enum `NormalizerStep`: `lowercase | trim | expand_contractions_en | expand_contractions_custom | strip_punctuation | collapse_whitespace`.
-- The Optuna sampler treats it as a categorical over the powerset of `steps` (subject to the cardinality cap from §FR-1 of Phase 1's spec).
+- The Optuna sampler treats it as a categorical over the powerset of `steps` — bounded by the existing search-space cardinality cap (`estimate_cardinality` / `SearchSpace._check_cardinality`, 10^6 limit at [`backend/app/domain/study/search_space.py:115-181`](../../../../../backend/app/domain/study/search_space.py)). The powerset of N steps is 2^N choices, so the typed pipeline must contribute its 2^N to `estimate_cardinality` (currently the function counts `CategoricalParam.choices` directly — `estimate_cardinality` MUST be extended to account for the new discriminated-union member).
 - Migration: NONE if rolled out as additive in `SearchSpace` parsing; the JSONB column shape is forward-compatible.
 - The pre-render hook generalizes from "pick a named bundle" to "apply step sequence in order"; the four Phase 1 bundles become aliases the validator desugars into step sequences.
 

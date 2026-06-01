@@ -97,7 +97,7 @@ def test_resolve_literal_int_args() -> None:
 
 def test_resolve_engine_type_wire() -> None:
     values = resolve_values("backend.app.api.v1.schemas", "EngineTypeWire")
-    assert set(values) == {"elasticsearch", "opensearch"}
+    assert set(values) == {"elasticsearch", "opensearch", "solr"}
 
 
 def test_resolve_unknown_symbol_raises() -> None:

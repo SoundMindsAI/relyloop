@@ -33,10 +33,38 @@ from backend.app.domain.ubi.position_bias_prior import load_position_bias_prior
 @pytest.fixture
 def capture_logs() -> Iterator[LogCapture]:
     cap = LogCapture()
-    structlog.configure(processors=[cap])
-    yield cap
-    # Reset to defaults so other tests aren't affected.
-    structlog.reset_defaults()
+    # Mutate the configured processors list IN PLACE (and restore it the same
+    # way) rather than swapping it via structlog.configure(processors=[cap]) +
+    # reset_defaults(). Replacing the list instance leaves any module-level
+    # logger that was bound (cached) against the prior instance pointing at a
+    # stale list, so a *later* test's structlog.testing.capture_logs() — which
+    # mutates the current instance — captures nothing. That cross-test poison
+    # is bug_backend_suite_nondeterministic_caplog_isolation; here we mirror
+    # structlog.testing.capture_logs()'s own "keep the list instance intact"
+    # discipline so this fixture can't be a polluter.
+    configured = structlog.get_config()["processors"]
+    # structlog 25.5.0 returns a mutable list here (verified), so the in-place
+    # path is the live one. Guard with isinstance anyway — mirroring the same
+    # guard in backend.app.core.logging.configure_logging — so a future
+    # structlog that hands back an immutable tuple falls back to a clean
+    # configure/restore instead of raising AttributeError on .clear().
+    if isinstance(configured, list):
+        saved = list(configured)
+        configured.clear()
+        configured.append(cap)
+        structlog.configure(processors=configured)
+        try:
+            yield cap
+        finally:
+            configured.clear()
+            configured.extend(saved)
+            structlog.configure(processors=configured)
+    else:
+        structlog.configure(processors=[cap])
+        try:
+            yield cap
+        finally:
+            structlog.configure(processors=configured)
 
 
 class TestLoaderTrivialFallbacks:
