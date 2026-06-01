@@ -369,7 +369,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP2 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-05-31 (latest mtime of any
+    Reflects feature-folder state as of 2026-06-01 (latest mtime of any
     <code>docs/00_overview/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -398,17 +398,17 @@ footer {
     <div class="kpi ">
       <div class="label">Specced features done</div>
       <div class="value">6 / 10</div>
-      <div class="sub">60% specced · 33 filed under MVP2</div>
+      <div class="sub">60% specced · 34 filed under MVP2</div>
       <div class="bar"><span style="width:60%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">27</div>
+      <div class="value">28</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">8</div>
+      <div class="value">9</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">23</div>
+      <div class="value">24</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">21</div>
+      <div class="value">22</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">23</span></h3>
+  <h3>Idea <span class="count">24</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration">Apply Path Normalizer Declaration</a></div>
@@ -629,6 +629,19 @@ footer {
 
   </div>
   <div class="one-liner">`backend/tests/unit/workers/test_orchestrator_baseline_phase.py::TestComputeBaselineWaitS::*` fail when run in isolation with:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_contract_allowlists_outdated_after_mvp2_features">Contract Allowlists Outdated After Mvp2 Features</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">Three separate contract-test allowlists were not updated as features shipped through MVP2. Each is a &quot;hand-maintained canonical list of valid values&quot; that drifts when a feature adds new entries to the</div>
 
 
 </div>

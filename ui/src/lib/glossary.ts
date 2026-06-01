@@ -870,7 +870,7 @@ export const glossary = {
   // ---------------------------------------------------------------------------
   convergence_verdict: {
     short:
-      'Did the optimizer actually finish learning? Converged = plateau held; Still improving = stopped mid-climb; Too few trials = below the warmup floor.',
+      'Did the optimizer finish learning? Converged = plateau held; Still improving = stopped mid-climb; Too few trials = below the warmup floor.',
     long: [
       '**Converged** — the best-so-far metric improved by less than 0.005 over the last 20 completed trials. The optimizer settled; more trials would not meaningfully help.',
       '',
