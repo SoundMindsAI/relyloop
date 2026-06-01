@@ -72,6 +72,22 @@ CONVERGENCE_FLAT_WINDOW: int = 20
 CONVERGENCE_FLAT_MIN_COMPLETE: int = 5
 
 ConvergenceVerdict = Literal["converged", "still_improving", "too_few_trials"]
+"""Three-value Literal that classifies a study's metric-plateau state.
+
+**Cross-PR contract** (feat_study_convergence_indicator FR-7 / Story 6.1):
+the autopilot ``StudyChainLink`` Pydantic model gains an additive optional
+``convergence_verdict: ConvergenceVerdict | None = None`` field in its own
+PR. That wiring is asserted by AC-16 in the autopilot CI lane — NOT this
+spec's. This module exports the type symbol; the autopilot PR consumes it.
+
+The frontend ``CONVERGENCE_VERDICT_VALUES`` array in
+``ui/src/lib/enums.ts`` mirrors this Literal character-for-character; the
+value-lock vitest at
+``ui/src/__tests__/lib/enums-convergence-discipline.test.ts`` + the
+backend pair in
+``backend/tests/unit/domain/study/test_convergence.py::TestConvergenceVerdictLiteral``
+catch silent drift on either side.
+"""
 
 
 class CurvePoint(BaseModel):
