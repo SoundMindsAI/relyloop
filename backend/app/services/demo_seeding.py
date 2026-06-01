@@ -236,8 +236,12 @@ def _is_all_engines_unreachable(scenarios_skipped: list[str]) -> bool:
     reachable but its LLM judgment step failed) as engine absence — in that case
     the rich slug is NOT in ``scenarios_skipped``, so the count is < the total
     and this returns ``False`` (GPT-5.5 phase-gate Finding 4).
+
+    ``>=`` (not ``==``) defensively: each slug is appended at most once today, so
+    the two are equivalent, but ``>=`` can never under-detect the all-unreachable
+    state if a future change ever double-appended a slug (Gemini PR #367 G1).
     """
-    return len(scenarios_skipped) == len(SCENARIOS) + 1
+    return len(scenarios_skipped) >= len(SCENARIOS) + 1
 
 
 # ---------------------------------------------------------------------------
@@ -491,16 +495,25 @@ async def snapshot_engine_reachability(
     Elasticsearch scenario) — so the returned map has 6 keys, matching
     ``scenarios_total = len(SCENARIOS) + 1``. (infra_solr_ci_readiness FR-2/FR-4.)
     """
+    # Cache by resolved URL: multiple scenarios share an engine (the 3 ES
+    # scenarios + rich all resolve to elasticsearch:9200), so probing per-URL
+    # once avoids 3-4x redundant probes — which matters most when an engine is
+    # down (each redundant probe burns the full timeout). Gemini PR #367 G2.
+    url_cache: dict[str, bool] = {}
+
+    async def _probe(url: str, etype: _EngineType) -> bool:
+        if url not in url_cache:
+            url_cache[url] = await is_engine_reachable(url, etype)
+        return url_cache[url]
+
     result: dict[str, bool] = {}
     for scenario in scenarios:
         slug = cast("str", scenario["slug"])
         engine_type = cast("_EngineType", scenario["engine_type"])
         resolved = _resolve_engine_base_url(cast("str", scenario["host_base_url"]))
-        result[slug] = await is_engine_reachable(resolved, engine_type)
+        result[slug] = await _probe(resolved, engine_type)
     # Rich ESCI scenario is seeded outside the SCENARIOS loop and is always ES.
-    result[_RICH_SCENARIO_SLUG] = await is_engine_reachable(
-        _resolve_engine_base_url(ES), "elasticsearch"
-    )
+    result[_RICH_SCENARIO_SLUG] = await _probe(_resolve_engine_base_url(ES), "elasticsearch")
     return result
 
 
@@ -1484,6 +1497,19 @@ async def reseed_demo_state(
     )
     await _emit_progress(status_callback, progress)
 
+    # Per-reseed reachability cache, keyed by resolved engine URL. The pre-loop
+    # wipes, the per-scenario gates, and the rich gate all probe the same few
+    # engine URLs; probing each once avoids redundant probes (and redundant
+    # full-timeout waits when an engine is down). Caching for the duration of a
+    # single reseed is correct — an engine that flaps mid-reseed surfaces as a
+    # mid-scenario DemoSeedingError, not a silent skip. Gemini PR #367 G3.
+    reachability_cache: dict[str, bool] = {}
+
+    async def _check_reachable(url: str, etype: _EngineType) -> bool:
+        if url not in reachability_cache:
+            reachability_cache[url] = await is_engine_reachable(url, etype)
+        return reachability_cache[url]
+
     # ---- Step 1a: TRUNCATE demo tables, COMMIT before any self-call. ----
     await db.execute(text(_TRUNCATE_DEMO_TABLES_SQL))
     await db.commit()
@@ -1501,7 +1527,7 @@ async def reseed_demo_state(
     # required `all_engines_unreachable` token. A reachable engine that then
     # returns a non-2xx/404 on DELETE is still a hard error (unchanged).
     es_base = _resolve_engine_base_url(ES)
-    if await is_engine_reachable(es_base, "elasticsearch"):
+    if await _check_reachable(es_base, "elasticsearch"):
         for idx in DEMO_ES_INDICES:
             _log_call_started("DELETE", f"{es_base}/{idx}", "engine")
             response = await engine_client.delete(
@@ -1513,7 +1539,7 @@ async def reseed_demo_state(
                 )
 
     os_base = _resolve_engine_base_url(OS)
-    if await is_engine_reachable(os_base, "opensearch"):
+    if await _check_reachable(os_base, "opensearch"):
         for idx in DEMO_OS_INDICES:
             _log_call_started("DELETE", f"{os_base}/{idx}", "engine")
             response = await engine_client.delete(
@@ -1543,7 +1569,7 @@ async def reseed_demo_state(
         # slug rather than ConnectError-ing the whole reseed. A transient error
         # mid-scenario (after this gate) still surfaces as DemoSeedingError.
         # (infra_solr_ci_readiness FR-2.)
-        if not await is_engine_reachable(engine_base, engine_type):
+        if not await _check_reachable(engine_base, engine_type):
             logger.info(
                 "demo_reseed_scenario_skipped_engine_unreachable",
                 extra={"slug": slug, "engine_type": engine_type, "engine_base": engine_base},
@@ -1925,7 +1951,7 @@ async def reseed_demo_state(
     # raise on the first DELETE. (infra_solr_ci_readiness FR-2.)
     rich_study_id: str | None = None
     rich_engine_base = _resolve_engine_base_url(ES)
-    if not await is_engine_reachable(rich_engine_base, "elasticsearch"):
+    if not await _check_reachable(rich_engine_base, "elasticsearch"):
         logger.info(
             "demo_reseed_scenario_skipped_engine_unreachable",
             extra={
