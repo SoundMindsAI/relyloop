@@ -226,7 +226,9 @@ async def test_happy_path_ac1_ac6(monkeypatch: pytest.MonkeyPatch) -> None:
 
         # AC-6 — every judgment has source='llm' + rater_ref starting with 'openai:'.
         breakdown = await repo.source_breakdown_for_list(db, jl_id)
-        assert breakdown == {"llm": 25, "human": 0}
+        # Three-term shape since feat_ubi_judgments FR-10 (2026-05-29): the
+        # breakdown reports click separately rather than folding it into human.
+        assert breakdown == {"llm": 25, "human": 0, "click": 0}
 
         # qrels round-trip via the real loader — confirm the worker output
         # is shaped right for downstream run_trial consumption.
