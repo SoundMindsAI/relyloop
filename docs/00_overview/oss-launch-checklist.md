@@ -46,7 +46,7 @@ Solr shipped 2026-05-31 (`infra_adapter_solr` PR #336 + #348), so every
 "ships at MVP2 / at MVP2 / arrives with MVP2" reference now reads as stale.
 Each item below is a concrete edit with the location.
 
-- [x] **README.md** — status line, engine list (line 5), "What's coming" block (line 50), and "Engine-neutral" bullet (line 61) updated to "all three engines live." *(Done this session on branch `docs/solr-shipped-reconcile`.)*
+- [x] **README.md** — status line, engine list (line 5), "What's coming" block (line 99), and "Engine-neutral" bullet (line 115) updated to "all three engines live." *(Done this session on branch `docs/solr-shipped-reconcile`. Line numbers shifted after the "## The loop" section was added.)*
 - [x] **CLAUDE.md** line 17 — "(Solr ships at MVP2)" → "(all three engines shipped)"; release-matrix MVP2 row reframed to "in progress; Solr + UBI shipped" with dates.
 - [x] **tech-stack.md** (canonical matrix) — MVP1 row no longer says "no Solr yet" (now notes it shipped in MVP2); MVP2 row reframed past-tense with ship dates + the `solr.UBIComponent`-not-in-stock caveat; engine-targets row + "Reserved for later releases" both updated.
 - [x] **architecture.md** line 11 — now "Elasticsearch, OpenSearch, and Apache Solr — all three shipped."

@@ -52,7 +52,7 @@ flowchart LR
 
     C ==>|judgment list = ground truth| D
     G ==>|best trial of the study| H
-    K -.->|live behaviour reveals the next bottleneck| B
+    K -.->|live behavior reveals the next bottleneck| B
 ```
 
 **How to read it:** **(1)** you set up a cluster, the queries you care about, and a
@@ -62,7 +62,7 @@ adapter, scores the results against your judgments, and the score steers the
 next proposal; this repeats for thousands of trials with no human in the seat.
 **(3)** the best trial becomes a digest and a Pull Request — and that's where
 RelyLoop stops: **your** approvers merge and **your** CI deploys. The dotted
-arrow closes the loop: production behaviour surfaces the next bottleneck to tune.
+arrow closes the loop: production behavior surfaces the next bottleneck to tune.
 
 A conversational LLM agent is the front door that sets this up and explains the
 results — but the engineering moat is the loop itself, the Git-PR posture, and
