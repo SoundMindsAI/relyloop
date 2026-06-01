@@ -76,7 +76,7 @@ N/A — this feature adds **no HTTP endpoints**. The only backend addition is a 
 - **Phase 1 (ships first): `copy-docs` freshness gate.** Pure-filesystem, no API, no service container, no new backend code. A CI job (in its own workflow file to escape `pr.yml`'s `docs/**` + `*.md` `paths-ignore`) runs `node ui/scripts/copy-docs.mjs` then `git diff --exit-code ui/public/docs/`. Rationale: zero infra dependency; immediately catches the recurring guide-sync drift; small, reviewable, low-risk.
 - **Phase 2 (follows): offline OpenAPI export + `types.ts` freshness gate.** Adds the backend `openapi.json` exporter, the committed `ui/openapi.json` snapshot, and the `types.ts` regenerate-and-diff gate. Rationale: requires the import-cleanliness investigation (FR-4) and the banner-determinism fix (FR-5); larger surface; depends on Phase 1's gate-step pattern as a template.
 
-**Deferred phase tracking:** Phase 2 is tracked in [`phase2_idea.md`](phase2_idea.md) (created with this spec). If the pipeline runs both phases in one implementation pass, the `phase2_idea.md` is folded into the plan and may be retired at finalization; if Phase 1 ships alone, `phase2_idea.md` remains the discoverable record of the deferred work.
+**Deferred phase tracking:** Phase 2 is tracked in [`infra_openapi_types_freshness_gate`](../infra_openapi_types_freshness_gate/idea.md) (created with this spec). If the pipeline runs both phases in one implementation pass, the `infra_openapi_types_freshness_gate` is folded into the plan and may be retired at finalization; if Phase 1 ships alone, `infra_openapi_types_freshness_gate` remains the discoverable record of the deferred work.
 
 ## 4) Product principles and constraints
 

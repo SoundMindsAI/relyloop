@@ -1,15 +1,15 @@
-# Phase 2 Idea — offline OpenAPI export + `types.ts` freshness gate
+# infra_openapi_types_freshness_gate — offline OpenAPI export + `types.ts` freshness gate
 
 **Date:** 2026-06-01
-**Status:** Deferred phase (tracked) — Phase 2 of [`feature_spec.md`](feature_spec.md)
+**Status:** Idea — Phase 2 of [`infra_generated_artifact_freshness_gate`](../infra_generated_artifact_freshness_gate/feature_spec.md), extracted to its own folder
 **Type:** `infra_`
 **Priority:** P2 (same as parent)
 
 ## Origin
 
-Defined as Phase 2 in [`feature_spec.md`](feature_spec.md) §3 "Phase boundaries". Phase 1 (the `copy-docs` freshness gate — FR-1, FR-3, FR-9) ships first because it is pure-filesystem and zero-infra. Phase 2 carries the OpenAPI-export + `types.ts` work, which has a real import-cleanliness investigation and a banner-determinism fix.
+Defined as Phase 2 in [`infra_generated_artifact_freshness_gate/feature_spec.md`](../infra_generated_artifact_freshness_gate/feature_spec.md) §3 "Phase boundaries". Phase 1 (the `copy-docs` freshness gate — FR-1, FR-3, FR-9) ships first because it is pure-filesystem and zero-infra. This work carries the OpenAPI-export + `types.ts` half, which has a real import-cleanliness investigation and a banner-determinism fix.
 
-> If the `/pipeline` run implements both phases in one pass, this file is folded into the implementation plan and may be retired at finalization. If Phase 1 ships alone, this file remains the discoverable record of the deferred work.
+> The parent's [`implementation_plan.md`](../infra_generated_artifact_freshness_gate/implementation_plan.md) covers both phases (Epic 1 = Phase 1, Epic 2 = Phase 2). This standalone folder is the discoverable idea-stage record of the Phase 2 half if Phase 1 ships alone; if both phases ship in one pass, this folder is retired at finalization.
 
 ## Deferred functional requirements (from the spec)
 

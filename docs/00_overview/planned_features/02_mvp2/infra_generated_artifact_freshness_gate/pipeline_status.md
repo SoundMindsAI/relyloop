@@ -9,7 +9,7 @@
 - Date: 2026-06-01
 - File: feature_spec.md
 - Cross-model review: GPT-5.5 passed (3 cycles — cycle 1: 8 findings accepted; cycle 2: 4 findings accepted; cycle 3: 2 findings accepted; all consistency/hardening, converged at max cycles)
-- Phases: 2 total, 2 covered by spec (Phase 1 = copy-docs gate; Phase 2 tracked in phase2_idea.md)
+- Phases: 2 total, 2 covered by spec (Phase 1 = copy-docs gate; Phase 2 tracked in infra_openapi_types_freshness_gate)
 
 ## Plan
 - Status: Approved
