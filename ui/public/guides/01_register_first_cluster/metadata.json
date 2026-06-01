@@ -1,6 +1,6 @@
 {
   "title": "Register your first cluster",
-  "description": "Add an Elasticsearch or OpenSearch cluster to RelyLoop, scope its index picker with the optional Target filter, and verify the connection probe succeeds.",
+  "description": "Add an Elasticsearch, OpenSearch, or Apache Solr cluster to RelyLoop, scope its index picker with the optional Target filter, and verify the connection probe succeeds.",
   "order": 1,
   "tags": [
     "getting-started",
@@ -11,7 +11,7 @@
   "screenshots": [
     {
       "file": "01-clusters-list.png",
-      "caption": "Open the Clusters page. The list shows every registered Elasticsearch and OpenSearch cluster — here, four meaningful demo scenarios already seeded by `make seed-demo`. Click 'Register cluster' in the top right to add your own."
+      "caption": "Open the Clusters page. The list shows every registered cluster across all three supported engines — Elasticsearch, OpenSearch, and Apache Solr — each with its own engine badge, health probe result, and base URL. The filter chips (all / elasticsearch / opensearch / solr) scope the list by engine. Click 'Register cluster' in the top right to add your own."
     },
     {
       "file": "02-register-modal-empty.png",
