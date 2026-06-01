@@ -1,0 +1,32 @@
+cff-version: 1.2.0
+message: "If you use RelyLoop in your research, please cite it as below."
+title: "RelyLoop: automated Bayesian search-relevance tuning for Elasticsearch, OpenSearch, and Apache Solr"
+abstract: >-
+  RelyLoop is an open-source tool that runs automated Bayesian search-space
+  optimization (Optuna/TPE) across the full query-time search space on
+  Elasticsearch, OpenSearch, and Apache Solr, and ships winning configurations
+  as Pull Requests to a central search-config Git repository for human review
+  and merge. A conversational LLM agent describes the loop and proposes the
+  search space.
+type: software
+authors:
+  - given-names: Eric
+    family-names: Starr
+    affiliation: "soundminds.ai"
+    email: eric.starr@soundminds.ai
+repository-code: "https://github.com/SoundMindsAI/relyloop"
+url: "https://github.com/SoundMindsAI/relyloop"
+license: Apache-2.0
+version: v0.1.3
+date-released: "2026-05-29"
+keywords:
+  - search relevance
+  - information retrieval
+  - Bayesian optimization
+  - Optuna
+  - Elasticsearch
+  - OpenSearch
+  - Apache Solr
+  - learning to rank
+  - relevance engineering
+  - LLM as judge
