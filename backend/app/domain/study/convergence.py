@@ -144,7 +144,13 @@ def _usable(trial: Any) -> bool:
     """
     return (
         getattr(trial, "status", None) == "complete"
-        and getattr(trial, "is_baseline", False) is False
+        # ``not ...`` (rather than ``is False``) so a ``None`` is_baseline —
+        # possible if a trial-like object reaches the classifier with the
+        # nullable column unset — is treated as non-baseline (included),
+        # matching the stated "include non-baseline trials" intent. The SQL
+        # repo helper already filters ``is_baseline IS FALSE`` upstream, so
+        # this is the defense-in-depth path. (Gemini PR #352 finding.)
+        and not getattr(trial, "is_baseline", False)
         and getattr(trial, "primary_metric", None) is not None
     )
 

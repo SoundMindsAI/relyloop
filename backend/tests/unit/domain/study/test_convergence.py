@@ -209,6 +209,18 @@ class TestFilteringInvariants:
         assert shape is not None
         assert shape.total_complete_trials == 50
 
+    def test_none_is_baseline_treated_as_non_baseline(self) -> None:
+        # Gemini PR #352 regression: a trial-like object whose nullable
+        # is_baseline is None must be INCLUDED (treated as non-baseline),
+        # not silently dropped. The old ``is False`` check excluded these
+        # because ``None is False`` evaluates to False; ``not None`` is True.
+        seed = [_trial(num=i, metric=0.5, is_baseline=None) for i in range(50)]  # type: ignore[arg-type]
+        shape = classify_convergence(seed, direction="maximize")
+        assert shape is not None
+        assert shape.total_complete_trials == 50
+        # All 50 rows made it into the curve.
+        assert len(shape.best_so_far_curve) == 50
+
 
 # ---------------------------------------------------------------------------
 # Window-clamp boundary cases (plan Story 1.2 Task 3, list of N values)
