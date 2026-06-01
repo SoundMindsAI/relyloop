@@ -42,6 +42,7 @@ from backend.app.services.demo_seeding import (
 )
 from backend.app.services.demo_seeding import (
     DEMO_RESEED_LOCK_KEY,
+    AllEnginesUnreachableError,
     DemoSeedingError,
     ReseedStatusResponse,
     _now_iso,
@@ -58,6 +59,34 @@ logger = structlog.get_logger(__name__)
 # without importing from the workers package. Per
 # ``bug_demo_reseed_button_silent_enqueue_failure``.
 DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = _DEMO_RESEED_JOB_TIMEOUT_S
+
+
+def _build_failed_status(exc: BaseException) -> ReseedStatusResponse:
+    """Map a reseed-execution exception to the failed ``ReseedStatusResponse``.
+
+    All-engines-unreachable is a distinct, recoverable failure: write the stable
+    ``all_engines_unreachable`` token + the skipped-slug list so the GET-status
+    payload tells the operator exactly which engines to start
+    (infra_solr_ci_readiness FR-5 / AC-10). Every other failure keeps the
+    generic ``f"{type}: {msg}"`` reason. Pure + total so it's unit-testable
+    without a live worker/Redis/DB.
+    """
+    now = _now_iso()
+    if isinstance(exc, AllEnginesUnreachableError):
+        return ReseedStatusResponse(
+            status="failed",
+            started_at=now,
+            finished_at=now,
+            failed_reason=str(exc),
+            scenarios_completed=0,
+            scenarios_skipped=exc.scenarios_skipped,
+        )
+    return ReseedStatusResponse(
+        status="failed",
+        started_at=now,
+        finished_at=now,
+        failed_reason=f"{type(exc).__name__}: {str(exc)[:200]}",
+    )
 
 
 async def run_demo_reseed(ctx: dict[str, Any]) -> None:
@@ -181,16 +210,24 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                             # Best-effort cleanup so the system isn't left
                             # half-seeded. Holding the advisory lock keeps
                             # concurrent reseeds 409'd until we release.
-                            await run_demo_reseed_cleanup(engine_client)
-                            await status_set(
-                                redis,
-                                ReseedStatusResponse(
-                                    status="failed",
-                                    started_at=_now_iso(),
-                                    finished_at=_now_iso(),
-                                    failed_reason=(f"{type(exc).__name__}: {str(exc)[:200]}"),
-                                ),
-                            )
+                            #
+                            # Cleanup is wrapped so a raise here can NEVER block
+                            # the failed-status write below. This matters most
+                            # for AllEnginesUnreachableError: the engines are
+                            # unreachable by definition, so the cleanup's engine
+                            # calls are the most likely to raise — and that's
+                            # exactly the case whose `all_engines_unreachable`
+                            # token + skip list MUST reach the Redis status for
+                            # the operator/UI/tests to see it. (GPT-5.5
+                            # phase-gate Finding 2.)
+                            try:
+                                await run_demo_reseed_cleanup(engine_client)
+                            except Exception:  # noqa: BLE001 — cleanup is best-effort
+                                logger.warning(
+                                    "demo_reseed_cleanup_failed_after_error",
+                                    original_exc=type(exc).__name__,
+                                )
+                            await status_set(redis, _build_failed_status(exc))
                             # Swallow — Arq retries would re-run the entire
                             # destructive wipe + reseed, which is the wrong
                             # behavior. The operator can re-click after

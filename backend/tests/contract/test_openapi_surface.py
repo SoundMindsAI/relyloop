@@ -227,3 +227,63 @@ def test_openapi_has_no_orphan_endpoints(openapi_spec: dict[str, Any]) -> None:
         f"OpenAPI endpoints (method, path) missing from EXPECTED_ENDPOINTS: "
         f"{sorted(orphans)}. Add entries to keep the surface canonically tracked."
     )
+
+
+# ---------------------------------------------------------------------------
+# ReseedStatusResponse contract (infra_solr_ci_readiness Story 1.5 / FR-5).
+# Guards the additive `scenarios_skipped` field + the UNCHANGED status enum.
+# ---------------------------------------------------------------------------
+
+
+def _reseed_status_schema(openapi_spec: dict[str, Any]) -> dict[str, Any]:
+    schemas = openapi_spec.get("components", {}).get("schemas", {})
+    assert "ReseedStatusResponse" in schemas, (
+        "ReseedStatusResponse missing from OpenAPI components — the reseed "
+        "status endpoint's response_model is not wired."
+    )
+    return schemas["ReseedStatusResponse"]
+
+
+def test_reseed_status_has_scenarios_skipped_optional_string_array(
+    openapi_spec: dict[str, Any],
+) -> None:
+    """`scenarios_skipped` is an optional array<string> (default_factory -> not required).
+
+    Pydantic v2's `Field(default_factory=list)` makes the field optional (absent
+    from `required`) but does NOT emit a JSON-Schema `default: []` — so we assert
+    presence + type + non-required, NOT a schema default. The runtime `[]` default
+    is verified by the model unit tests.
+    """
+    schema = _reseed_status_schema(openapi_spec)
+    props = schema.get("properties", {})
+    assert "scenarios_skipped" in props, (
+        "ReseedStatusResponse.scenarios_skipped missing from schema"
+    )
+    field = props["scenarios_skipped"]
+    assert field.get("type") == "array", f"scenarios_skipped should be array, got {field!r}"
+    assert field.get("items", {}).get("type") == "string", (
+        f"scenarios_skipped items should be string, got {field.get('items')!r}"
+    )
+    assert "scenarios_skipped" not in schema.get("required", []), (
+        "scenarios_skipped has a default_factory — it must NOT be in `required`."
+    )
+
+
+def test_reseed_status_enum_is_unchanged_four_values(openapi_spec: dict[str, Any]) -> None:
+    """ReseedStatusLiteral stays exactly {idle, running, complete, failed}.
+
+    Guards against accidental enum expansion (the dropped `succeeded_partial`
+    idea — partial completion is encoded via scenarios_skipped, not a new status).
+    """
+    schema = _reseed_status_schema(openapi_spec)
+    status_prop = schema.get("properties", {}).get("status", {})
+    # The Literal may be inlined as `enum` or referenced; resolve both shapes.
+    enum_values = status_prop.get("enum")
+    if enum_values is None and "allOf" in status_prop:
+        ref = status_prop["allOf"][0].get("$ref", "")
+        ref_name = ref.rsplit("/", 1)[-1]
+        enum_values = openapi_spec["components"]["schemas"].get(ref_name, {}).get("enum")
+    assert enum_values is not None, f"could not resolve status enum from {status_prop!r}"
+    assert set(enum_values) == {"idle", "running", "complete", "failed"}, (
+        f"ReseedStatusLiteral drifted: {sorted(enum_values)}"
+    )

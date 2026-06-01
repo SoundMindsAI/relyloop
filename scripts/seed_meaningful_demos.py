@@ -1731,6 +1731,25 @@ def count_existing_clusters(*, max_attempts: int = 30, backoff_s: float = 1.0) -
     return None
 
 
+def _engine_reachable(host_base_url: str, engine_type: str) -> bool:
+    """Sync wrapper around the async ``is_engine_reachable`` probe.
+
+    The CLI runs on the HOST and uses each scenario's ``host_base_url`` directly
+    (no Compose-DNS resolution — that's the in-container orchestrator's job).
+
+    The import of ``is_engine_reachable`` is LOCAL/late on purpose:
+    ``backend.app.services.demo_seeding`` imports ``SCENARIOS`` from THIS module,
+    so a top-level import here would create a circular import. Matches the
+    existing deferred-import pattern in ``_async_seed_synthetic_ubi``.
+    (infra_solr_ci_readiness FR-3.)
+    """
+    import asyncio
+
+    from backend.app.services.demo_seeding import is_engine_reachable
+
+    return asyncio.run(is_engine_reachable(host_base_url, engine_type))  # type: ignore[arg-type]
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument(
@@ -1779,7 +1798,21 @@ def main() -> int:
 
     results: list[dict] = []
     failures: list[tuple[str, Exception]] = []
+    # Slugs skipped because their engine wasn't reachable at probe time (engine
+    # container not running). Distinct from `failures` — a skip is not an error.
+    # (infra_solr_ci_readiness FR-3.)
+    skipped: list[str] = []
     for s in SCENARIOS:
+        # Skip-on-unreachable: probe the scenario's engine BEFORE attempting to
+        # seed. A down engine (e.g. Solr not started locally) yields a logged
+        # skip instead of a ConnectError that aborts the whole reseed.
+        if not _engine_reachable(str(s["host_base_url"]), str(s["engine_type"])):
+            print(
+                f"[skip] {s['slug']} — {s['engine_type']} unreachable at {s['host_base_url']}",
+                file=sys.stderr,
+            )
+            skipped.append(str(s["slug"]))
+            continue
         try:
             # seed_scenario returns a list — 1 entry for non-UBI scenarios,
             # 2 entries for UBI-enabled (LLM + UBI studies, Story 2.5 / FR-9).
@@ -1828,22 +1861,51 @@ def main() -> int:
     # the small scenarios are useful on their own, so a rich-scenario
     # crash (LLM rate limit, ES unreachable, judgment-gen timeout) leaves the
     # rest of the seed valid. The operator gets a warning + retry instruction.
-    try:
-        rich_result = seed_rich_scenario()
-        if rich_result.get("study_id"):
-            results.append(rich_result)
-    except Exception as exc:  # noqa: BLE001 — deliberately broad; see comment
+    # The rich scenario is an Elasticsearch scenario; gate it on ES reachability
+    # the same way the loop gates each scenario (infra_solr_ci_readiness FR-3).
+    if not _engine_reachable(ES, "elasticsearch"):
         print(
-            f"\n!! rich scenario FAILED: {exc!r}\n"
-            "   The small-data scenarios above are still valid.\n"
-            "   Re-run `make seed-demo FORCE=1` once the cause is resolved.",
+            f"[skip] acme-products-rich-prod — elasticsearch unreachable at {ES}",
             file=sys.stderr,
         )
+        skipped.append("acme-products-rich-prod")
+    else:
+        try:
+            rich_result = seed_rich_scenario()
+            if rich_result.get("study_id"):
+                results.append(rich_result)
+        except Exception as exc:  # noqa: BLE001 — deliberately broad; see comment
+            print(
+                f"\n!! rich scenario FAILED: {exc!r}\n"
+                "   The small-data scenarios above are still valid.\n"
+                "   Re-run `make seed-demo FORCE=1` once the cause is resolved.",
+                file=sys.stderr,
+            )
 
     print("\n=== seed complete ===")
     for r in results:
         print(f"  {r['slug']}: study={r['study_id']} ({r['study_name']})")
 
+    # Engine-unreachable skips are a distinct, non-error outcome — list them in
+    # their own summary section so an operator who didn't start every engine
+    # knows what's missing (and that it's recoverable by starting the engine +
+    # re-running). (infra_solr_ci_readiness FR-3.)
+    if skipped:
+        print(
+            f"\n=== {len(skipped)} scenario(s) SKIPPED (engine unreachable) ===",
+            file=sys.stderr,
+        )
+        for slug in skipped:
+            print(f"  {slug}", file=sys.stderr)
+        print(
+            "Start the missing engine(s) (ES :9200 / OpenSearch :9201 / "
+            "Solr :8983) and re-run `make seed-demo FORCE=1` to seed them — "
+            "see docs/03_runbooks/demo-reseed-engine-tolerance.md.",
+            file=sys.stderr,
+        )
+
+    # Exit-code order matters: check real failures FIRST so a mid-flight error
+    # (plus some skips) is never mislabeled as "all engines unreachable".
     # If any small scenario failed in explicit-force mode we still seeded the
     # rest, but the demo is incomplete — surface a loud summary and exit
     # non-zero so the operator (and any caller checking the exit code) knows.
@@ -1860,6 +1922,16 @@ def main() -> int:
             "FORBIDDEN/.../cluster create-index blocked, the engine hit its disk "
             "flood-stage watermark — see docs/03_runbooks/local-dev.md → "
             "'Demo seed produced fewer studies than expected'.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # No real failures, but nothing seeded AND something was skipped → every
+    # engine was unreachable. That's a hard failure (not a no-op success):
+    # mirrors the orchestrator's AllEnginesUnreachableError invariant.
+    if not results and skipped:
+        print(
+            "\nERROR: all engines unreachable — start at least one engine (ES/OS/Solr) and retry.",
             file=sys.stderr,
         )
         return 1

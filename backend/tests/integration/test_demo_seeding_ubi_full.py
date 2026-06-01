@@ -9,14 +9,20 @@ in the heavy-lane CI job and on operator demand. Exercises the full
 :func:`reseed_demo_state` orchestrator against real Postgres + ES +
 Redis + OpenAI, asserting the Story 4.2 DoD:
 
-- **AC-1**: exactly 8 judgment lists + 8 studies (3 UBI scenarios ×
-  (LLM + UBI) = 6, + news LLM-only = 7, + rich scenario = 8). The three
-  UBI lists carry ``generation_params.generation_kind = "ubi"`` and the
-  per-scenario ``converter``.
+- **AC-1 / AC-4 / AC-5** (engine-tolerant counts, infra_solr_ci_readiness):
+  judgment-list + study counts are computed from the REACHABLE scenarios.
+  In CI (Solr absent) that's **8/8** — 3 UBI scenarios × (LLM + UBI) = 6,
+  + news LLM-only = 7, + rich = 8, with the Solr scenario skipped. On a full
+  local stack (Solr up) it's **10/10** (+ Solr's LLM + UBI lists). The
+  per-scenario reachability is taken from ``snapshot_engine_reachability``
+  (the same probe the orchestrator uses), and ``scenarios_skipped`` is asserted
+  to match the snapshot's unreachable set. UBI lists carry
+  ``generation_params.generation_kind = "ubi"`` and the per-scenario
+  ``converter``.
 - **AC-2**: the rung classifier (via the real
   ``GET /clusters/{id}/ubi-readiness`` operator path) returns the
-  expected rung per scenario (acme=rung_3, jobs=rung_2, corp=rung_1,
-  news=rung_0, rich=rung_0).
+  expected rung for every REACHABLE scenario (acme=rung_3, jobs=rung_2,
+  corp=rung_1, news=rung_0, rich=rung_0, solr=rung_2-when-reachable).
 - **AC-8**: full-reseed wall-clock < 1140s (hard assert per spec cycle-3
   patch — NOT a p95 calculation).
 - **AC-10**: a subsequent cleanup pass deletes both ``ubi_queries`` and
@@ -68,12 +74,16 @@ pytestmark = [
 
 # Per-scenario rung expectations (AC-2 / D-2). `acme-products-rich-prod`
 # is the rich scenario — LLM-only, no synthetic UBI (D-12), so rung_0.
+# `acme-kb-docs-solr` is the MVP2 Solr scenario (rung_2 + hybrid converter,
+# per seed_meaningful_demos.py); covered only when Solr is reachable
+# (infra_solr_ci_readiness Story 1.4 / AC-5).
 _EXPECTED_RUNGS: dict[str, str] = {
     "acme-products-prod": "rung_3",
     "corp-docs-search": "rung_1",
     "jobs-marketplace-prod": "rung_2",
     "news-search-staging": "rung_0",
     "acme-products-rich-prod": "rung_0",
+    "acme-kb-docs-solr": "rung_2",
 }
 
 # Per-scenario target index (the UBI `application` filter).
@@ -83,6 +93,7 @@ _SCENARIO_TARGET: dict[str, str] = {
     "jobs-marketplace-prod": "job-listings",
     "news-search-staging": "news-articles",
     "acme-products-rich-prod": "acme-products-rich",
+    "acme-kb-docs-solr": "acme-kb-docs",
 }
 
 # Per-scenario UBI converter expectations (AC-1 / D-2).
@@ -90,6 +101,7 @@ _EXPECTED_UBI_CONVERTERS: dict[str, str] = {
     "acme-products-prod": "ctr_threshold",
     "corp-docs-search": "hybrid_ubi_llm",
     "jobs-marketplace-prod": "hybrid_ubi_llm",
+    "acme-kb-docs-solr": "hybrid_ubi_llm",
 }
 
 
@@ -113,8 +125,10 @@ async def _discover_query_set_id(api_client: Any, cluster_id: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None:
-    """Drive the orchestrator end-to-end + assert AC-1, AC-2, AC-8, AC-10.
+async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Drive the orchestrator end-to-end + assert AC-1, AC-2, AC-7, AC-8, AC-10.
 
     Note: this test is intentionally long (13-19 minutes). It uses the
     SAME public surface the route handler does — calling
@@ -128,18 +142,48 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None
 
     from backend.app.core.settings import get_settings
     from backend.app.services.demo_seeding import (
+        _RICH_SCENARIO_SLUG,
+        SCENARIOS,
+        ReseedStatusResponse,
         reseed_demo_state,
         run_demo_reseed_cleanup,
+        snapshot_engine_reachability,
     )
     from backend.tests.integration.fixtures.es_overlap_probe import (
         _check_local_es_credentials_or_skip,
-        _es_base_url,
     )
 
     _check_local_es_credentials_or_skip()
-    es_base_url = _es_base_url()
-    if not es_base_url:
-        pytest.skip("Elasticsearch unreachable; see docs/03_runbooks/local-dev.md")
+
+    # Engine-tolerance (infra_solr_ci_readiness Story 1.4): probe which engines
+    # are reachable using the SAME helper + resolved URLs the orchestrator uses,
+    # so the test's predicted skip-set/counts match what the reseed actually
+    # does. The snapshot is slug-keyed and includes the rich ESCI scenario.
+    snapshot = await snapshot_engine_reachability(SCENARIOS)
+    expected_skipped = {slug for slug, ok in snapshot.items() if not ok}
+
+    # ES is the dominant engine — every ES-backed scenario (incl. rich) plus the
+    # cluster-credential plumbing depends on it. Without ANY ES-backed scenario
+    # reachable there's nothing meaningful to validate, so skip the whole test
+    # (this replaces the former host-first _es_base_url() gate). In CI ES is
+    # always up, so only Solr skips.
+    es_backed_reachable = any(
+        snapshot.get(scenario["slug"])
+        for scenario in SCENARIOS
+        if scenario["engine_type"] == "elasticsearch"
+    ) or snapshot.get(_RICH_SCENARIO_SLUG, False)
+    if not es_backed_reachable:
+        pytest.skip("No Elasticsearch-backed scenario reachable; see docs/03_runbooks/local-dev.md")
+
+    # Expected judgment-list / study counts from the REACHABLE scenarios only.
+    # Each SCENARIOS entry contributes 2 (LLM + UBI) when it carries a
+    # ubi_target_rung, else 1 (LLM-only); the rich scenario is LLM-only (1).
+    expected_count = 0
+    for scenario in SCENARIOS:
+        if snapshot[str(scenario["slug"])]:
+            expected_count += 2 if scenario.get("ubi_target_rung") else 1
+    if snapshot[_RICH_SCENARIO_SLUG]:
+        expected_count += 1
 
     settings = get_settings()
     pg_engine = create_async_engine(settings.database_url, future=True)
@@ -151,39 +195,65 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None
                 httpx.AsyncClient(base_url="http://localhost:8000", timeout=60.0) as api_client,
                 httpx.AsyncClient(timeout=60.0) as engine_client,
             ):
+                # Capture the latest progress so we can assert scenarios_skipped
+                # (it lives on the progress ReseedStatusResponse, not the summary).
+                last_progress: list[ReseedStatusResponse] = []
 
-                async def status_callback(_progress: object) -> None:
-                    return None
+                async def status_callback(progress: object) -> None:
+                    if isinstance(progress, ReseedStatusResponse):
+                        last_progress.append(progress)
 
-                summary = await reseed_demo_state(
-                    db=db,
-                    api_client=api_client,
-                    engine_client=engine_client,
-                    status_callback=status_callback,
-                )
+                with caplog.at_level("WARNING", logger="backend.app.services.demo_seeding"):
+                    summary = await reseed_demo_state(
+                        db=db,
+                        api_client=api_client,
+                        engine_client=engine_client,
+                        status_callback=status_callback,
+                    )
                 duration_s = time.monotonic() - started_at
 
-                # AC-1: exactly 8 judgment lists + 8 studies. 3 UBI
-                # scenarios × (LLM + UBI) = 6, + news LLM-only = 7, + rich
-                # = 8. A count of 7 means the rich scenario silently
-                # failed (it's tolerated by the orchestrator) — surface
-                # that loudly rather than passing on a degraded demo.
-                jl_count = await db.scalar(text("SELECT COUNT(*) FROM judgment_lists"))
-                study_count = await db.scalar(text("SELECT COUNT(*) FROM studies"))
-                assert jl_count == 8, (
-                    f"expected exactly 8 judgment lists; got {jl_count} "
-                    "(7 usually means the rich scenario failed — check OpenAI "
-                    "key + samples/products.json)"
-                )
-                assert study_count == 8, (
-                    f"expected exactly 8 studies; got {study_count} "
-                    "(7 usually means the rich scenario failed)"
+                # AC-7: when any scenario was skipped (CI posture: Solr absent),
+                # exactly one partial-completion WARN is emitted. When all engines
+                # are reachable (full local stack), no such WARN.
+                partial_warns = [
+                    r
+                    for r in caplog.records
+                    if r.getMessage() == "demo_reseed_partial_completion_engines_unreachable"
+                ]
+                if expected_skipped:
+                    assert len(partial_warns) == 1, (
+                        f"AC-7: expected exactly one partial-completion WARN; "
+                        f"got {len(partial_warns)}"
+                    )
+                else:
+                    assert not partial_warns, "no partial WARN expected when all engines reachable"
+
+                # The reseed's actual skip-set must match the test's prediction.
+                assert last_progress, "status_callback never received a progress update"
+                actual_skipped = set(last_progress[-1].scenarios_skipped)
+                assert actual_skipped == expected_skipped, (
+                    f"reseed skip-set {actual_skipped} != predicted {expected_skipped}"
                 )
 
-                # AC-1 (continued): per UBI-enabled scenario, two lists —
-                # one LLM (NULL generation_params) + one UBI with the
+                # AC-1 / AC-4 / AC-5: judgment-list + study counts equal the
+                # per-reachable-scenario computation (8/8 in CI without Solr,
+                # 10/10 with Solr up).
+                jl_count = await db.scalar(text("SELECT COUNT(*) FROM judgment_lists"))
+                study_count = await db.scalar(text("SELECT COUNT(*) FROM studies"))
+                assert jl_count == expected_count, (
+                    f"expected exactly {expected_count} judgment lists; got {jl_count} "
+                    f"(reachable scenarios: {sorted(s for s, ok in snapshot.items() if ok)})"
+                )
+                assert study_count == expected_count, (
+                    f"expected exactly {expected_count} studies; got {study_count}"
+                )
+
+                # AC-1 (continued): per UBI-enabled REACHABLE scenario, two
+                # lists — one LLM (NULL generation_params) + one UBI with the
                 # right converter.
                 for slug, expected_converter in _EXPECTED_UBI_CONVERTERS.items():
+                    if not snapshot.get(slug, False):
+                        continue  # scenario's engine was unreachable -> not seeded
                     rows = (
                         await db.execute(
                             text(
@@ -212,8 +282,10 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None
                 # AC-2: the rung classifier (via the real operator
                 # endpoint, which acquires the per-cluster adapter
                 # internally — works for the OpenSearch news cluster too)
-                # returns the expected rung for every scenario.
+                # returns the expected rung for every REACHABLE scenario.
                 for slug, expected_rung in _EXPECTED_RUNGS.items():
+                    if not snapshot.get(slug, False):
+                        continue  # unreachable engine -> scenario was skipped
                     cluster_id = await _discover_cluster_id(api_client, slug)
                     qs_id = await _discover_query_set_id(api_client, cluster_id)
                     readiness = await api_client.get(
@@ -233,7 +305,13 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None
                 )
                 print(f"\nfull-reseed duration: {duration_s:.1f}s (AC-8 ceiling 1140s)")
 
-                # AC-10: cleanup pass deletes both UBI indices.
+                # AC-10: cleanup pass deletes both UBI indices. The UBI
+                # collections live on ES; resolve the same in-container ES URL
+                # the orchestrator uses.
+                from backend.app.services.demo_seeding import _resolve_engine_base_url
+                from scripts.seed_meaningful_demos import ES
+
+                es_base_url = _resolve_engine_base_url(ES)
                 await run_demo_reseed_cleanup(engine_client)
                 for index in ("ubi_queries", "ubi_events"):
                     resp = await engine_client.get(f"{es_base_url}/{index}")
@@ -244,4 +322,4 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None
         await pg_engine.dispose()
 
     assert summary.duration_ms > 0
-    assert summary.studies_completed == 8
+    assert summary.studies_completed == expected_count
