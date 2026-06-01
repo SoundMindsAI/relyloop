@@ -4,6 +4,82 @@
 
 ---
 
+### infra_solr_ci_readiness Phase 1 — engine-tolerant demo reseed unblocks the pr.yml backend job (PR #367, 2026-06-01)
+
+The `pr.yml` **backend** job had been red on every branch since Apache Solr
+shipped: the heavy-lane `test_demo_seeding_ubi_full` drives `reseed_demo_state`,
+which (since PR #348) seeds a Solr scenario unconditionally — and the CI backend
+job has no Solr service container, so the reseed `ConnectError`ed on `solr:8983`
+("Temporary failure in name resolution"). Squash-merged via
+[PR #367](https://github.com/SoundMindsAI/relyloop/pull/367) (merge commit
+`214cdfcd`). **No migration** — Alembic head stays `0022`. The feature folder
+**stays in `planned_features/02_mvp2/`** because Phase 2 (smoke Solr stability)
+is unbuilt (`phase2_idea.md`).
+
+**The fix: probe-before-dispatch, skip the unreachable.** A new total
+(never-raises) `is_engine_reachable(url, engine_type)` probes each engine's
+health path (Solr `/solr/admin/info/system` → `responseHeader.status==0` +
+`lucene`; ES/OS `/` → `version`); any exception → `False` + WARN, so a transient
+DNS hiccup can never break the reseed. `snapshot_engine_reachability(SCENARIOS)`
+returns a slug-keyed reachability map covering the 5 `SCENARIOS` **plus** the
+separately-seeded rich ESCI scenario (`acme-products-rich-prod`, always ES) — 6
+keys — caching by resolved URL so the three ES scenarios + rich collapse to one
+probe. The orchestrator gates the pre-loop ES/OS index wipes, each scenario-loop
+iteration, and the rich block on reachability; skipped scenarios accumulate into
+a new additive `ReseedStatusResponse.scenarios_skipped` field (the
+`ReseedStatusLiteral` enum is **unchanged** — partial completion is
+`status="complete"` + non-empty `scenarios_skipped`, not a new wire value).
+
+**All-engines-unreachable is a hard failure, not a no-op success.** When every
+scenario skips, the orchestrator raises a typed
+`AllEnginesUnreachableError(DemoSeedingError)` carrying the skip list; the Arq
+worker special-cases it to write `status="failed"` + stable
+`failed_reason="all_engines_unreachable"` token + the skip list +
+`scenarios_completed=0` to the Redis status (the reseed is async — there is no
+synchronous error envelope; the signal travels through the polled status). This
+avoids the Arq `keep_result` retry wedge documented in
+`bug_reseed_failure_blocks_retry_arq_singleton_dedup`. The verdict fires only
+when all 6 scenarios skipped, so a reachable-but-tolerated rich failure isn't
+misclassified as engine absence.
+
+**CLI parity + UI + docs.** `make seed-demo` got the same per-scenario + rich
+gate (via a late import to avoid a `demo_seeding` ↔ `seed_meaningful_demos`
+circular dep), a distinct "SKIPPED (engine unreachable)" summary, and exit-code
+order = failures first → all-unreachable hard-fail → else 0. The heavy-lane test
+computes counts dynamically from the snapshot (8/8 with Solr absent, 10/10 with
+Solr) and asserts the AC-7 partial WARN via `caplog`. The dashboard reseed dialog
+shows a "Partial completion — N scenario(s) skipped" hint → a new
+`docs/03_runbooks/demo-reseed-engine-tolerance.md` runbook (+ CLAUDE.md pitfall +
+Key Runbooks row).
+
+**6 stories / 1 epic.** Tests: 2095 backend unit + 327 contract + 998 UI vitest;
+the heavy-lane integration test runs in the CI backend job. **Cross-model
+review** was unusually productive: GPT-5.5's phase-gate pass caught that the
+first cut of the all-engines-unreachable path *wasn't actually reachable* — the
+pre-loop ES/OS index wipes ran before any reachability gate, so a genuine
+all-down run would `ConnectError` there and surface as a generic failure; the fix
+gates the wipes too (and wraps the worker cleanup so it can't block the
+failed-status write). Gemini added 3 probe-caching findings (all accepted);
+GPT-5.5's final review landed a UI "engine(s)"→"scenario(s)" relabel and an AC-7
+WARN assertion, and I rejected its structlog finding with counter-evidence
+(`demo_seeding.py` uses stdlib `logging`, where `extra={}` is correct). CI also
+caught a regression the §3.5 audit missed — a pre-existing CLI test started doing
+real localhost probes through the new gate — fixed by stubbing `_engine_reachable`
+in it. Captured `chore_demo_reseed_partial_completion_fast_test` (the partial path
+has no fast assertion; it rides the 13-19min heavy-lane test).
+
+**Phase 2 (deferred):** the `smoke` job's `relyloop-solr-1` container still
+`exited (1)` during `make up` on the runner — tracked in `phase2_idea.md` (needs
+`docker compose logs solr` evidence to pick between heap-cap / longer
+`start_period` / smoke-job tolerance). The `smoke` job stays red on every PR
+until Phase 2 ships; merge on the fast lane as before.
+
+This pipeline run was driven end-to-end by `/pipeline … --auto` (idea-preflight →
+spec-gen → impl-plan-gen → impl-execute), with GPT-5.5 cross-model review at every
+stage and the operator merging the final PR manually.
+
+---
+
 ### feat_study_convergence_indicator — "did the optimizer finish learning?" verdict (PR #352, 2026-06-01)
 
 An MVP2 ergonomics feature for the overnight-study workflow: every completed
