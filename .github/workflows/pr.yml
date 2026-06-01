@@ -640,7 +640,20 @@ jobs:
           # ES_JAVA_OPTS: "-Xms256m -Xmx256m" precedent at line 287.
           # See infra_solr_smoke_stability spec FR-2 + decision log D-1, D-5.
           SOLR_HEAP_SIZE: "256m"
-        run: make up
+        # Pre-create ./data/solr with Solr's container UID (8983) so the
+        # bind-mount target is writable from inside the container. The
+        # solr:10.0 image runs as UID/GID 8983; on the GHA runner the
+        # bind-mount target defaults to root ownership, which makes Solr's
+        # boot script fail at "Cannot write to /var/solr as 8983:8983" and
+        # exit(1) within ~500ms (verified empirically on PR #383 run
+        # 26788939356 — diagnostics fold-in caught this; lever cascade did
+        # not anticipate it because all three locked levers assumed
+        # JVM-internal crash modes, not filesystem permissions).
+        # CI-only; never edit docker-compose.yml's defaults for this.
+        run: |
+          mkdir -p ./data/solr
+          sudo chown 8983:8983 ./data/solr
+          make up
 
       - name: Wait for /healthz
         run: |

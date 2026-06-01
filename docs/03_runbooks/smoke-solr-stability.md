@@ -41,7 +41,7 @@ gh run list --workflow pr.yml --branch <feature-branch> --limit 1
 gh run download <run_id> --name smoke-logs --dir /tmp/smoke-artifacts
 
 # 3. Read the Solr container output
-grep -E '^relyloop-solr-1 \|' /tmp/smoke-artifacts/smoke-logs.txt | head -50
+grep -E '^solr-1 \|' /tmp/smoke-artifacts/smoke-logs.txt | head -50
 
 # 4. Read the docker inspect exit-state line for Solr
 grep 'relyloop-solr-1 exit=' /tmp/smoke-artifacts/smoke-logs.txt
@@ -55,7 +55,9 @@ The `oom=true|false` field is the **most diagnostic signal** — it tells you wh
 
 ## §3 The lever cascade (evidence-mapped, not symptom-mapped)
 
-**Lever 1 (CURRENT baseline — `infra_solr_smoke_stability`):** Solr heap capped to 256m via `SOLR_HEAP_SIZE: "256m"` step-env on the smoke job's "Bring up the stack" step + `COMPOSE_PROJECT_NAME: "relyloop"` at job-level env. **Already shipped — do NOT re-apply.**
+**Lever 0 (CURRENT baseline — `infra_solr_smoke_stability` data-dir-perms fix):** `mkdir -p ./data/solr && sudo chown 8983:8983 ./data/solr` runs BEFORE `make up` on the smoke job. The `solr:10.0` image runs as UID/GID 8983; on the GHA runner the bind-mount target `./data/solr` defaults to root ownership, so without the pre-create-and-chown step the container's boot script fails at "Cannot write to /var/solr as 8983:8983" and exit(1) within ~500ms. **This is what the diagnostics fold-in actually caught on PR #383's first CI run** — the heap-cap lever was applied at the same time but didn't fix this because the failure mode is filesystem, not memory. Already shipped — do NOT re-apply.
+
+**Lever 1 (CURRENT baseline — `infra_solr_smoke_stability`):** Solr heap capped to 256m via `SOLR_HEAP_SIZE: "256m"` step-env on the smoke job's "Bring up the stack" step + `COMPOSE_PROJECT_NAME: "relyloop"` at job-level env. **Already shipped — do NOT re-apply.** Note: Lever 1 was the spec's locked default but was the WRONG lever for the actual PR #383 failure (FS-perms, not memory); Lever 0 is what fixed it. Lever 1 stays in place as defense against future JVM heap pressure.
 
 **If Lever 1 didn't fix the crash, the smoke artifact tells you which escalation to pick.** Read the Solr logs + `oom=` field first, then choose:
 

@@ -268,8 +268,8 @@ N/A.
      ```
    - Run AC-2 verification on the downloaded `$LOGS` — mechanical assertion (per cycle-2 plan findings #5):
      ```bash
-     grep -Eq '^relyloop-solr-1[[:space:]]+\|' "$LOGS" || { echo "AC-2 FAILED: no relyloop-solr-1 log lines" >&2; exit 1; }
-     grep -Eq '^relyloop-opensearch-1[[:space:]]+\|' "$LOGS" || { echo "AC-2 FAILED: no relyloop-opensearch-1 log lines" >&2; exit 1; }
+     grep -Eq '^solr-1[[:space:]]+\|' "$LOGS" || { echo "AC-2 FAILED: no relyloop-solr-1 log lines" >&2; exit 1; }
+     grep -Eq '^opensearch-1[[:space:]]+\|' "$LOGS" || { echo "AC-2 FAILED: no relyloop-opensearch-1 log lines" >&2; exit 1; }
      grep -Eq 'relyloop-solr-1 exit=[0-9-]+ oom=(true|false) error=' "$LOGS" || { echo "FAILED: missing solr docker inspect exit-state line (Story 1.1 adjunct)" >&2; exit 1; }
      echo "AC-2 ok"
      ```
@@ -302,8 +302,8 @@ N/A.
      ```
      If the script exits non-zero, STOP. Auth-failure case: re-authenticate (`gh auth status` / `gh auth refresh`); only proceed once status is unambiguous. Smoke-required case: apply Lever 2 as a follow-up commit on this same branch BEFORE merge, OR split into two PRs.
    - **Read the captured Solr logs** to determine the failure mode (per FR-4 runbook trigger mapping in Story 2.1 §3):
-     - `oom=true` in the inspect line OR a JVM heap/metaspace/native-memory OOM trace in `^relyloop-solr-1 |` lines → **memory-pressure escalation** (revisit heap sizing across ES + OpenSearch + Solr together — the §13 Known Risk path; NOT just reapplying the Solr cap).
-     - Solr listening successfully (boot succeeded per `^relyloop-solr-1 |` log lines) but the artifact's inspect line shows `health=unhealthy` or `health=starting` past the effective healthcheck tolerance (`start_period: 30s` + `interval: 10s` × `retries: 6` with `timeout: 5s` per docker-compose.yml — up to ~95s; do NOT use a flat 30s cutoff per cycle-2 plan finding #8 + cycle-3 plan finding #4) → **Lever 2** (healthcheck-timing escalation via a CI-only override mechanism — details locked in the Lever 2 follow-up spec; per cycle-1 finding #7, do NOT presume the exact YAML shape now).
+     - `oom=true` in the inspect line OR a JVM heap/metaspace/native-memory OOM trace in `^solr-1 |` lines → **memory-pressure escalation** (revisit heap sizing across ES + OpenSearch + Solr together — the §13 Known Risk path; NOT just reapplying the Solr cap).
+     - Solr listening successfully (boot succeeded per `^solr-1 |` log lines) but the artifact's inspect line shows `health=unhealthy` or `health=starting` past the effective healthcheck tolerance (`start_period: 30s` + `interval: 10s` × `retries: 6` with `timeout: 5s` per docker-compose.yml — up to ~95s; do NOT use a flat 30s cutoff per cycle-2 plan finding #8 + cycle-3 plan finding #4) → **Lever 2** (healthcheck-timing escalation via a CI-only override mechanism — details locked in the Lever 2 follow-up spec; per cycle-1 finding #7, do NOT presume the exact YAML shape now).
      - Solr unavailable AND the tutorial-path smoke test genuinely doesn't depend on Solr (requires a full smoke-path audit, NOT just a one-file grep, per cycle-1 finding #8) → **Lever 3** (smoke-tolerance — multi-file scope, full spec).
    - **File the follow-up artifact** at `docs/00_overview/planned_features/02_mvp2/infra_solr_smoke_<lever-name>/idea.md` (the slug picks per the chosen escalation: `_memory_pressure_revisit`, `_start_period_lever2`, or `_tolerance_lever3`). Per the spec's relaxed FR-3 / DoD wording: an **idea-stage file** is the minimum bar (acceptable for one-line lever YAML edits); a full spec is warranted if the scope is multi-file (e.g., Lever 3 tolerance audit). The idea file should be ~30-50 lines: Origin (this PR run URL + captured Solr exit reason + `oom=` value), Problem (one paragraph), Proposed lever (one of the three above), Why deferred (waiting on the data we just captured = now captured), Relationship to this work (cite this PR).
    - **Link the new artifact from this PR's body** by editing the PR via `gh pr edit <pr> --body-file <new-body.md>`. The link is the mechanical forcing function — the PR body MUST contain a "Follow-up" section pointing at the new artifact's path BEFORE merge. **After editing, verify mechanically (per cycle-2 plan finding #7):**
