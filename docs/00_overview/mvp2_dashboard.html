@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">7 / 16</div>
-      <div class="sub">44% specced · 36 filed under MVP2</div>
-      <div class="bar"><span style="width:44%"></span></div>
+      <div class="value">7 / 17</div>
+      <div class="sub">41% specced · 37 filed under MVP2</div>
+      <div class="bar"><span style="width:41%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">29</div>
+      <div class="value">30</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">23</div>
+      <div class="value">24</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">26</div>
+      <div class="value">28</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      3 idea-only feat/infra folders (not yet scoped into MVP2)
+      2 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -465,19 +465,6 @@ footer {
 <div class="col idea">
   <h3>Idea <span class="count">20</span></h3>
 
-<div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_solr_ci_readiness">Solr Ci Readiness</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">Solr shipped (`infra_adapter_solr`, PR #336, 2026-05-31) and the demo reseed was extended to seed a Solr scenario (`feat_demo_reseed_solr_and_steplog`, PR #348, 2026-05-31). But the CI plumbing was ne</div>
-
-
-</div>
-
-
 <div class="card bug" data-prefix="bug" data-priority="P1">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_backend_suite_nondeterministic_caplog_isolation">Backend Suite Nondeterministic Caplog Isolation</a></div>
   <div class="meta">
@@ -486,6 +473,19 @@ footer {
 
   </div>
   <div class="one-liner">Many backend unit tests assert on captured log records (`caplog` / a structlog capture fixture) and fail with empty-capture shapes (`assert []`, `assert &#x27;x&#x27; in []`) when run in the full randomized sui</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_demo_reseed_partial_completion_fast_test">Demo Reseed Partial Completion Fast Test</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">`infra_solr_ci_readiness` made the demo reseed engine-tolerant: when an engine is unreachable, its scenario is skipped, the reseed completes with `status=&quot;complete&quot;` and a non-empty `scenarios_skipped</div>
 
 
 </div>
@@ -732,7 +732,20 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">9</span></h3>
+  <h3>Plan <span class="count">10</span></h3>
+
+<div class="card infra" data-prefix="infra" data-priority="P1">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_solr_ci_readiness/feature_spec.md">Solr Ci Readiness</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/367">PR #367</a>
+  </div>
+  <div class="one-liner">Post-2026-05-31, no full `pr.yml` run can go green on any branch.</div>
+  <div class="deferred">deferred: Phase 2</div>
+
+</div>
+
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -981,6 +994,8 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
+  infra_solr_ci_readiness[&quot;solr ci readiness&quot;]
+  class infra_solr_ci_readiness plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1020,6 +1035,8 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
+  infra_solr_ci_readiness[&quot;solr ci readiness&quot;]
+  class infra_solr_ci_readiness plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]

@@ -70,6 +70,7 @@ const STATUS_IDLE: ReseedStatusResponse = {
   failed_reason: null,
   summary: null,
   steps: [],
+  scenarios_skipped: [],
 };
 
 const STATUS_RUNNING: ReseedStatusResponse = {
@@ -87,6 +88,7 @@ const STATUS_RUNNING: ReseedStatusResponse = {
     'acme-products-prod: creating study (max_trials=12)',
     'seeding acme-products-prod (trial 7/12)',
   ],
+  scenarios_skipped: [],
 };
 
 const STATUS_COMPLETE: ReseedStatusResponse = {
@@ -105,6 +107,29 @@ const STATUS_COMPLETE: ReseedStatusResponse = {
     duration_ms: 217000,
   },
   steps: ['wiping demo state', 'renaming studies to tutorial names'],
+  scenarios_skipped: [],
+};
+
+// Partial completion — Solr was unreachable (e.g. running in the pr.yml backend
+// job with no Solr service container). status stays 'complete'; the skip list is
+// non-empty (infra_solr_ci_readiness FR-5 / AC-11).
+const STATUS_COMPLETE_PARTIAL: ReseedStatusResponse = {
+  status: 'complete',
+  started_at: '2026-05-27T16:50:00Z',
+  finished_at: '2026-05-27T16:53:42Z',
+  scenarios_total: 6,
+  scenarios_completed: 5,
+  current_step: null,
+  failed_reason: null,
+  summary: {
+    clusters_created: 5,
+    query_sets_created: 5,
+    studies_completed: 8,
+    proposals_created: 8,
+    duration_ms: 217000,
+  },
+  steps: ['wiping demo state', 'renaming studies to tutorial names'],
+  scenarios_skipped: ['acme-kb-docs-solr'],
 };
 
 const STATUS_FAILED: ReseedStatusResponse = {
@@ -117,6 +142,7 @@ const STATUS_FAILED: ReseedStatusResponse = {
   failed_reason: 'DemoSeedingError: acme/post_study: HTTP 503',
   summary: null,
   steps: ['wiping demo state', 'acme-products-prod: creating study (max_trials=12)'],
+  scenarios_skipped: [],
 };
 
 describe('<ResetDemoStateButton />', () => {
@@ -198,6 +224,31 @@ describe('<ResetDemoStateButton />', () => {
     const errorMessage = mockToastError.mock.calls[0]?.[0] as string;
     expect(errorMessage).toContain('DemoSeedingError');
     expect(errorMessage).toContain('HTTP 503');
+  });
+
+  it('partial-complete status: renders the skipped-engine hint + runbook link (AC-11)', async () => {
+    mockStatusData = STATUS_COMPLETE_PARTIAL;
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    const hint = await screen.findByTestId('reset-demo-state-partial');
+    expect(hint).toHaveTextContent('Partial completion');
+    expect(hint).toHaveTextContent('1 scenario skipped');
+    expect(hint).toHaveTextContent('acme-kb-docs-solr');
+    // "Why?" link points at the engine-tolerance runbook + is keyboard-focusable.
+    const why = screen.getByRole('link', { name: 'Why?' });
+    expect(why).toHaveAttribute('href', expect.stringContaining('demo-reseed-engine-tolerance'));
+  });
+
+  it('non-partial complete status: does NOT render the skipped-engine hint', async () => {
+    mockStatusData = STATUS_COMPLETE;
+    mockStatusUpdatedAt = 1234567890;
+    const user = userEvent.setup();
+    render(<ResetDemoStateButton />);
+    await user.click(screen.getByTestId('reset-demo-state-trigger'));
+    expect(await screen.findByText('Demo state reset complete')).toBeInTheDocument();
+    expect(screen.queryByTestId('reset-demo-state-partial')).not.toBeInTheDocument();
   });
 
   it('409 SEED_IN_PROGRESS shows info toast + continues polling', async () => {

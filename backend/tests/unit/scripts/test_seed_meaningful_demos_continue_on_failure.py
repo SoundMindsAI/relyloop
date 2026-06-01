@@ -59,6 +59,13 @@ def patched_io(monkeypatch: pytest.MonkeyPatch) -> _Calls:
     monkeypatch.setattr(sm, "truncate_demo_state", _truncate)
     monkeypatch.setattr(sm, "apply_study_renames", _renames)
     monkeypatch.setattr(sm, "seed_rich_scenario", _rich)
+    # Stub the engine-reachability gate to always-reachable. This test exercises
+    # the mid-seed *failure* continue-on-failure contract, NOT the engine-skip
+    # path (covered by test_seed_meaningful_demos_engine_tolerance.py). Without
+    # this stub the real probe runs against localhost and skips any engine that
+    # isn't up (e.g. Solr on :8983 in the unit/fast-lane CI env), breaking the
+    # "every scenario attempted" assertion. (infra_solr_ci_readiness.)
+    monkeypatch.setattr(sm, "_engine_reachable", lambda _host, _engine_type: True)
     return calls
 
 
