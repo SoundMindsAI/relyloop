@@ -72,10 +72,12 @@ test.describe('Walkthrough: Register your first cluster', () => {
     ];
     for (const c of preSeed) {
       const r = await apiCtx.post('/api/v1/clusters', { data: c });
-      if (r.status() === 201) {
-        const body = (await r.json()) as { id: string };
-        appendForCleanup('cluster', body.id);
-      }
+      // Assert success — a silent pre-seed failure (e.g. a wrong
+      // credentials_ref that 503s the probe) would otherwise leave the
+      // landing screenshot missing an engine while the test still passes.
+      expect(r.status(), `pre-seed ${c.engine_type} cluster should 201`).toBe(201);
+      const body = (await r.json()) as { id: string };
+      appendForCleanup('cluster', body.id);
     }
     await apiCtx.dispose();
 
