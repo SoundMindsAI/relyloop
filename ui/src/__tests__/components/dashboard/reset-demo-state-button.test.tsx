@@ -234,7 +234,7 @@ describe('<ResetDemoStateButton />', () => {
     await user.click(screen.getByTestId('reset-demo-state-trigger'));
     const hint = await screen.findByTestId('reset-demo-state-partial');
     expect(hint).toHaveTextContent('Partial completion');
-    expect(hint).toHaveTextContent('1 engine skipped');
+    expect(hint).toHaveTextContent('1 scenario skipped');
     expect(hint).toHaveTextContent('acme-kb-docs-solr');
     // "Why?" link points at the engine-tolerance runbook + is keyboard-focusable.
     const why = screen.getByRole('link', { name: 'Why?' });

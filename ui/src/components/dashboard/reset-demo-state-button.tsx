@@ -198,7 +198,10 @@ export function ResetDemoStateButton(): React.ReactElement {
                   className="text-xs italic text-muted-foreground"
                   data-testid="reset-demo-state-partial"
                 >
-                  Partial completion — {status.scenarios_skipped.length} engine
+                  {/* "scenario(s)", not "engine(s)": scenarios_skipped is
+                      slug-keyed, and one down engine (e.g. ES) can skip several
+                      scenario slugs. GPT-5.5 PR #367 final review. */}
+                  Partial completion — {status.scenarios_skipped.length} scenario
                   {status.scenarios_skipped.length === 1 ? '' : 's'} skipped:{' '}
                   {status.scenarios_skipped.join(', ')}.{' '}
                   <a

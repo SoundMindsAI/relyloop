@@ -125,8 +125,10 @@ async def _discover_query_set_id(api_client: Any, cluster_id: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None:
-    """Drive the orchestrator end-to-end + assert AC-1, AC-2, AC-8, AC-10.
+async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Drive the orchestrator end-to-end + assert AC-1, AC-2, AC-7, AC-8, AC-10.
 
     Note: this test is intentionally long (13-19 minutes). It uses the
     SAME public surface the route handler does — calling
@@ -201,13 +203,30 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct() -> None
                     if isinstance(progress, ReseedStatusResponse):
                         last_progress.append(progress)
 
-                summary = await reseed_demo_state(
-                    db=db,
-                    api_client=api_client,
-                    engine_client=engine_client,
-                    status_callback=status_callback,
-                )
+                with caplog.at_level("WARNING", logger="backend.app.services.demo_seeding"):
+                    summary = await reseed_demo_state(
+                        db=db,
+                        api_client=api_client,
+                        engine_client=engine_client,
+                        status_callback=status_callback,
+                    )
                 duration_s = time.monotonic() - started_at
+
+                # AC-7: when any scenario was skipped (CI posture: Solr absent),
+                # exactly one partial-completion WARN is emitted. When all engines
+                # are reachable (full local stack), no such WARN.
+                partial_warns = [
+                    r
+                    for r in caplog.records
+                    if r.getMessage() == "demo_reseed_partial_completion_engines_unreachable"
+                ]
+                if expected_skipped:
+                    assert len(partial_warns) == 1, (
+                        f"AC-7: expected exactly one partial-completion WARN; "
+                        f"got {len(partial_warns)}"
+                    )
+                else:
+                    assert not partial_warns, "no partial WARN expected when all engines reachable"
 
                 # The reseed's actual skip-set must match the test's prediction.
                 assert last_progress, "status_callback never received a progress update"
