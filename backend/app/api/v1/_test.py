@@ -163,6 +163,19 @@ class SeedCompletedStudyRequest(BaseModel):
             "drive the per-card Run button + modal prefill flow."
         ),
     )
+    extra_trial_metrics: list[float] | None = Field(
+        default=None,
+        description=(
+            "Optional list of additional complete-trial `primary_metric` values "
+            "(numbered from 2 upward) seeded on top of the default winner (0.487) "
+            "+ runner-up (0.412). Used to push the study past the convergence "
+            "classifier's usable-trial floor (5) so the `<ConvergencePanel>` "
+            "renders a real verdict + curve instead of the too_few_trials null "
+            "state (feat_study_convergence_indicator). Every value MUST be < 0.487 "
+            "so the winner / best_metric / proposal / digest stay anchored to the "
+            "unchanged 0.412 -> 0.487 story. Omit for the default 2-trial shape."
+        ),
+    )
 
 
 class SeedCompletedStudyResponse(BaseModel):
@@ -214,6 +227,7 @@ async def seed_completed_study(  # pragma: no cover  - integration only
         winner_per_query=body.winner_per_query,
         runner_up_per_query=body.runner_up_per_query,
         suggested_followups=body.suggested_followups,
+        extra_trial_metrics=body.extra_trial_metrics,
     )
     await db.commit()
     return SeedCompletedStudyResponse(

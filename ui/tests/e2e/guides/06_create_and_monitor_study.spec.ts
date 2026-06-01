@@ -73,23 +73,28 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
 
-    // 04: Monitor the seeded study.
+    // 04: The completed study's detail page — the core monitoring surface.
     //
-    // Wait for the orchestrator to complete the 2 real trials so the
-    // `<ConfidencePanel>` renders into the screenshot. Best-effort with a
-    // 45s ceiling — if the panel doesn't appear (older study with
-    // per_query_metrics NULL, or orchestrator slow / failed), we still
-    // capture whatever state the page is in. The `.catch(() => null)`
-    // keeps the test alive in that case.
+    // The study is seeded COMPLETED (via the test endpoint) with 50 trials and
+    // per-query metrics, so both headline panels render deterministically with
+    // no orchestrator wait: <ConfidencePanel> (per-query CI) and
+    // <ConvergencePanel> (a real `converged` verdict + best-so-far curve — the
+    // 50-trial count clears STUDIES_TPE_WARMUP_FLOOR). See seedAcmeProductsChain.
     await page.goto(`/studies/${chain.studyId}`);
     await expect(page.getByTestId('study-name')).toContainText(chain.studyName, {
       timeout: 10_000,
     });
-    await page
-      .waitForSelector('[data-testid="confidence-panel"]', { timeout: 45_000 })
-      .catch(() => null);
-    // Brief settle for any in-flight animations / fonts.
-    await page.waitForTimeout(700);
+    await page.waitForSelector('[data-testid="confidence-panel"]', { timeout: 15_000 });
+    await page.waitForSelector('[data-testid="convergence-panel"]', { timeout: 15_000 });
+    // The convergence-curve <details> auto-collapses when the verdict is
+    // `converged`; expand it so the best-so-far curve is visible in the shot.
+    const curveDetails = page.getByTestId('convergence-curve-details');
+    if (!(await curveDetails.evaluate((el) => (el as HTMLDetailsElement).open).catch(() => true))) {
+      await curveDetails.getByText(/show convergence curve/i).click();
+    }
+    await expect(page.getByTestId('convergence-curve')).toBeVisible({ timeout: 5_000 });
+    // Brief settle for the Recharts render + any in-flight animations / fonts.
+    await page.waitForTimeout(900);
     await page.screenshot({
       path: path.join(SCREENSHOTS, '04-study-detail.png'),
       fullPage: true,

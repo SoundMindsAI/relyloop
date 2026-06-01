@@ -27,9 +27,12 @@
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
-import { expect, test } from '@playwright/test';
+import { expect, test, request as pwRequest } from '@playwright/test';
+
+import { appendForCleanup } from '../helpers/seed';
 
 const SCREENSHOTS = path.resolve(__dirname, '../../../public/guides/01_register_first_cluster');
+const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8000';
 
 test.describe('Walkthrough: Register your first cluster', () => {
   test('captures the full cluster-registration journey', async ({ page }) => {
@@ -40,6 +43,43 @@ test.describe('Walkthrough: Register your first cluster', () => {
     const name = `acme-products-prod-${randomUUID().slice(0, 6)}`;
     const notes = 'Production Elasticsearch cluster — e-commerce product search.';
     const targetFilter = 'products*';
+
+    // Pre-seed one OpenSearch + one Solr cluster (via API) so the landing
+    // clusters-list screenshot demonstrates RelyLoop's three-engine reach —
+    // the engine filter chips (all / elasticsearch / opensearch / solr) and
+    // the per-engine <EngineBadge> only tell the multi-engine story when rows
+    // of each engine actually exist. The walkthrough itself still registers an
+    // Elasticsearch cluster step-by-step below; these two just enrich the list.
+    const sfx = randomUUID().slice(0, 6);
+    const apiCtx = await pwRequest.newContext({ baseURL: API_URL });
+    const preSeed: Array<{ name: string; engine_type: string; base_url: string; auth_kind: string; credentials_ref: string; environment: string }> = [
+      {
+        name: `news-search-staging-${sfx}`,
+        engine_type: 'opensearch',
+        base_url: 'http://opensearch:9200',
+        auth_kind: 'opensearch_basic',
+        credentials_ref: 'local-opensearch',
+        environment: 'staging',
+      },
+      {
+        name: `acme-kb-docs-solr-${sfx}`,
+        engine_type: 'solr',
+        base_url: 'http://solr:8983',
+        auth_kind: 'solr_basic',
+        credentials_ref: 'local-solr',
+        environment: 'prod',
+      },
+    ];
+    for (const c of preSeed) {
+      const r = await apiCtx.post('/api/v1/clusters', { data: c });
+      // Assert success — a silent pre-seed failure (e.g. a wrong
+      // credentials_ref that 503s the probe) would otherwise leave the
+      // landing screenshot missing an engine while the test still passes.
+      expect(r.status(), `pre-seed ${c.engine_type} cluster should 201`).toBe(201);
+      const body = (await r.json()) as { id: string };
+      appendForCleanup('cluster', body.id);
+    }
+    await apiCtx.dispose();
 
     // ── 01: Land on /clusters list ─────────────────────────────────────
     await page.goto('/clusters');

@@ -53,8 +53,21 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
     winner_per_query: dict[str, dict[str, Any]] | None = None,
     runner_up_per_query: dict[str, dict[str, Any]] | None = None,
     suggested_followups: list[dict[str, Any]] | None = None,
+    extra_trial_metrics: list[float] | None = None,
 ) -> SeededStudyTriple:
-    """Insert a complete study + 2 trials + digest (+ optional pending proposal).
+    """Insert a complete study + trials + digest (+ optional pending proposal).
+
+    Inserts a winner trial (``primary_metric=0.487``) and a runner-up
+    (``0.412``) by default. When ``extra_trial_metrics`` is supplied, each
+    value seeds an **additional** complete, non-baseline Optuna trial
+    (numbered 2, 3, …) so the study carries enough usable trials to drive
+    the ``<ConvergencePanel>`` (``feat_study_convergence_indicator``: the
+    classifier needs ``>= CONVERGENCE_FLAT_MIN_COMPLETE`` (5) usable
+    trials, and the default 2 fall below that floor). Every extra value
+    MUST be ``< 0.487`` so the winner, ``best_metric``, the recommended
+    config, the proposal diff, and the digest narrative all stay anchored
+    to the unchanged ``0.412 -> 0.487`` story other E2E specs assert on.
+    ``None`` (default) preserves the exact pre-feature 2-trial behaviour.
 
     Drives the study through the legal state-machine transitions
     (``queued → running → completed``) via :mod:`study_state` so the
@@ -152,6 +165,33 @@ async def seed_study_completed_with_digest(  # pragma: no cover  - integration o
         ended_at=started + timedelta(milliseconds=2400),
         **runner_up_kwargs,
     )
+
+    # Optional extra exploration trials so the study clears the convergence
+    # classifier's usable-trial floor (CONVERGENCE_FLAT_MIN_COMPLETE = 5).
+    # Numbered from 2 upward, timestamped after the runner-up, and each kept
+    # strictly below the winner's 0.487 so best_metric / proposal / digest are
+    # untouched. The classifier's trailing-flat check converges when the tail
+    # values cluster, so callers that want a "converged" verdict should pass a
+    # flat-ish tail (e.g. [0.470, 0.472, 0.471]).
+    if extra_trial_metrics:
+        cursor = started + timedelta(milliseconds=2500)
+        for offset, metric in enumerate(extra_trial_metrics):
+            trial_number = 2 + offset
+            await repo.create_trial(
+                db,
+                id=str(uuid_utils.uuid7()),
+                study_id=study_id,
+                optuna_trial_number=trial_number,
+                params={"boost": round(1.5 + 0.1 * offset, 2)},
+                primary_metric=metric,
+                metrics={"ndcg@10": metric},
+                duration_ms=1100,
+                status="complete",
+                error=None,
+                started_at=cursor,
+                ended_at=cursor + timedelta(milliseconds=1100),
+            )
+            cursor = cursor + timedelta(milliseconds=1200)
 
     await study_state.complete_study(
         db,
