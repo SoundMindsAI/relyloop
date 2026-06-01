@@ -43,16 +43,28 @@ def capture_logs() -> Iterator[LogCapture]:
     # structlog.testing.capture_logs()'s own "keep the list instance intact"
     # discipline so this fixture can't be a polluter.
     configured = structlog.get_config()["processors"]
-    saved = configured.copy()
-    configured.clear()
-    configured.append(cap)
-    structlog.configure(processors=configured)
-    try:
-        yield cap
-    finally:
+    # structlog 25.5.0 returns a mutable list here (verified), so the in-place
+    # path is the live one. Guard with isinstance anyway — mirroring the same
+    # guard in backend.app.core.logging.configure_logging — so a future
+    # structlog that hands back an immutable tuple falls back to a clean
+    # configure/restore instead of raising AttributeError on .clear().
+    if isinstance(configured, list):
+        saved = list(configured)
         configured.clear()
-        configured.extend(saved)
+        configured.append(cap)
         structlog.configure(processors=configured)
+        try:
+            yield cap
+        finally:
+            configured.clear()
+            configured.extend(saved)
+            structlog.configure(processors=configured)
+    else:
+        structlog.configure(processors=[cap])
+        try:
+            yield cap
+        finally:
+            structlog.configure(processors=configured)
 
 
 class TestLoaderTrivialFallbacks:
