@@ -70,9 +70,11 @@ dev = [
     "pytest-mock>=3.14",
     "pytest-recording>=0.13",
     # pytest-xdist enables `-n auto` parallel test execution. CI-perf only:
-    # the workflow passes `-n auto` to the backend full pytest call, cutting
-    # backend job time roughly in half. Local devs can opt in similarly.
-    # See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
+    # `-n auto` was ATTEMPTED on the backend full pytest call and REVERTED
+    # (FK collisions in the integration layer — see pr.yml's note near the
+    # `uv run pytest backend/tests/` step); the workflow no longer passes it.
+    # Kept in dev deps for local opt-in (`pytest -n auto` is safe on the unit
+    # layer). See chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md.
     "pytest-xdist>=3.6",
     # NB: the parity test at backend/tests/unit/eval/test_scoring_parity.py
     # does `import pytrec_eval` and compares its output side-by-side with

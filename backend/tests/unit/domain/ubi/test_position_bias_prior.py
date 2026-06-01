@@ -33,10 +33,26 @@ from backend.app.domain.ubi.position_bias_prior import load_position_bias_prior
 @pytest.fixture
 def capture_logs() -> Iterator[LogCapture]:
     cap = LogCapture()
-    structlog.configure(processors=[cap])
-    yield cap
-    # Reset to defaults so other tests aren't affected.
-    structlog.reset_defaults()
+    # Mutate the configured processors list IN PLACE (and restore it the same
+    # way) rather than swapping it via structlog.configure(processors=[cap]) +
+    # reset_defaults(). Replacing the list instance leaves any module-level
+    # logger that was bound (cached) against the prior instance pointing at a
+    # stale list, so a *later* test's structlog.testing.capture_logs() — which
+    # mutates the current instance — captures nothing. That cross-test poison
+    # is bug_backend_suite_nondeterministic_caplog_isolation; here we mirror
+    # structlog.testing.capture_logs()'s own "keep the list instance intact"
+    # discipline so this fixture can't be a polluter.
+    configured = structlog.get_config()["processors"]
+    saved = configured.copy()
+    configured.clear()
+    configured.append(cap)
+    structlog.configure(processors=configured)
+    try:
+        yield cap
+    finally:
+        configured.clear()
+        configured.extend(saved)
+        structlog.configure(processors=configured)
 
 
 class TestLoaderTrivialFallbacks:
