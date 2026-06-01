@@ -52,6 +52,17 @@ export interface ReseedStatusResponse {
    * ``backend.app.services.demo_seeding.ReseedStatusResponse.steps``.
    */
   steps: string[];
+  /**
+   * Slugs of demo scenarios skipped because their engine wasn't reachable at
+   * probe time (engine container not running). When `status === 'complete'`
+   * and this is non-empty, the reseed is a legitimate PARTIAL completion (some
+   * engines were absent — e.g. Solr not started). When `status === 'failed'`
+   * with `failed_reason === 'all_engines_unreachable'`, NO engine was
+   * reachable. Always present (defaults to `[]`). Matches
+   * ``backend.app.services.demo_seeding.ReseedStatusResponse.scenarios_skipped``.
+   * Per infra_solr_ci_readiness FR-5.
+   */
+  scenarios_skipped: string[];
 }
 
 const STATUS_PATH = '/api/v1/_test/demo/reseed/status';

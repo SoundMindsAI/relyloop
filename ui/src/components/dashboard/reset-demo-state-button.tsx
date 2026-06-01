@@ -192,6 +192,26 @@ export function ResetDemoStateButton(): React.ReactElement {
                 {status.summary.studies_completed} studies seeded with distinct real metrics.
               </AlertDialogDescription>
             )}
+            {isTerminal && status?.status === 'complete' && status.scenarios_skipped.length > 0 && (
+              <AlertDialogDescription asChild>
+                <p
+                  className="text-xs italic text-muted-foreground"
+                  data-testid="reset-demo-state-partial"
+                >
+                  Partial completion — {status.scenarios_skipped.length} engine
+                  {status.scenarios_skipped.length === 1 ? '' : 's'} skipped:{' '}
+                  {status.scenarios_skipped.join(', ')}.{' '}
+                  <a
+                    href="https://github.com/SoundMindsAI/relyloop/blob/main/docs/03_runbooks/demo-reseed-engine-tolerance.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    Why?
+                  </a>
+                </p>
+              </AlertDialogDescription>
+            )}
           </AlertDialogHeader>
           {steps.length > 0 && (
             <div className="space-y-1" data-testid="reset-demo-state-log">
