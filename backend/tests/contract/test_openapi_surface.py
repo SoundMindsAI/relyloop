@@ -50,6 +50,11 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("delete", "/api/v1/clusters/{cluster_id}", "204"),
     ("get", "/api/v1/clusters/{cluster_id}/schema", "200"),
     ("get", "/api/v1/clusters/{cluster_id}/targets", "200"),
+    # feat_ubi_judgments (PR #317) — UBI readiness probe.
+    ("get", "/api/v1/clusters/{cluster_id}/ubi-readiness", "200"),
+    # infra_adapter_solr Story A8 (PR #336) — connection test + capability reprobe.
+    ("post", "/api/v1/clusters/test-connection", "200"),
+    ("post", "/api/v1/clusters/{cluster_id}/reprobe", "202"),
     # feat_index_document_browser FR-3 / FR-4 — documents browse.
     ("get", "/api/v1/clusters/{cluster_id}/targets/{target}/documents", "200"),
     ("get", "/api/v1/clusters/{cluster_id}/targets/{target}/documents/{doc_id}", "200"),
@@ -73,6 +78,8 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("delete", "/api/v1/query-sets/{query_set_id}/queries/{query_id}", "204"),
     # ----- /api/v1/judgments + /api/v1/judgment-lists -----
     ("post", "/api/v1/judgments/generate", "202"),
+    # feat_ubi_judgments (PR #317) — generate judgments from UBI events.
+    ("post", "/api/v1/judgments/generate-from-ubi", "202"),
     ("post", "/api/v1/judgment-lists/import", "201"),
     ("get", "/api/v1/judgment-lists", "200"),
     ("get", "/api/v1/judgment-lists/{judgment_list_id}", "200"),
@@ -86,6 +93,8 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("post", "/api/v1/studies/{study_id}/cancel", "200"),
     ("get", "/api/v1/studies/{study_id}/children", "200"),
     ("get", "/api/v1/studies/{study_id}/trials", "200"),
+    # feat_overnight_autopilot (PR #343) — auto-followup chain rollup.
+    ("get", "/api/v1/studies/{study_id}/chain", "200"),
     # ----- /api/v1/proposals (feat_digest_proposal + feat_github_pr_worker) -----
     ("get", "/api/v1/studies/{study_id}/digest", "200"),
     ("post", "/api/v1/proposals", "201"),

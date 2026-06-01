@@ -158,12 +158,14 @@ class TestHealthOpenAPISchema:
         }
         assert required.issubset(body.keys()), f"missing keys: {required - body.keys()}"
         # subsystems shape matches spec §7.4 + Story 3.5 elasticsearch_clusters
+        # + infra_adapter_solr Story A12 (solr subsystem probe).
         assert set(body["subsystems"].keys()) == {
             "db",
             "redis",
             "openai",
             "elasticsearch",
             "opensearch",
+            "solr",
             "elasticsearch_clusters",
         }
         assert set(body["subsystems"]["elasticsearch_clusters"].keys()) == {
