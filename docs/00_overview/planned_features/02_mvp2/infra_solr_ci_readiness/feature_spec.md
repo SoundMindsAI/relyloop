@@ -62,7 +62,7 @@
 - (FR-2) Add an `is_engine_reachable(...)` reachability gate to the demo-reseed orchestrator that runs once per scenario at dispatch time; on `False`, skip the scenario with a structured info log + accumulate the skipped slug into the progress summary; emit a single WARN line at end-of-reseed if any scenarios were skipped.
 - (FR-3) Update the CLI counterpart in `scripts/seed_meaningful_demos.py` to use the same gate so `make seed-demo` is engine-tolerant.
 - (FR-4) Update `test_demo_seeding_ubi_full.py` to compute expected counts and per-scenario assertions based on which engines were reachable at orchestrator-start. Add the missing `acme-kb-docs-solr` entries to `_EXPECTED_RUNGS`, `_SCENARIO_TARGET`, and `_EXPECTED_UBI_CONVERTERS`.
-- (FR-5) Surface skipped engines in `ReseedStatusResponse.scenarios_skipped: list[str]` (top-level field, NOT inside the nested `summary` object) so the route handler + UI can report partial-reseed cleanly (closes the contract with Capability C / sibling `bug_reseed_failure_blocks_retry_arq_singleton_dedup`). Also: the route handler's `DemoSeedingError`-to-envelope mapping gains the new `SEED_NO_ENGINES_REACHABLE` error code for the all-engines-unreachable case.
+- (FR-5) Surface skipped engines in `ReseedStatusResponse.scenarios_skipped: list[str]` (top-level field, NOT inside the nested `summary` object) so the GET status endpoint + UI can report partial-reseed cleanly (closes the contract with Capability C / sibling `bug_reseed_failure_blocks_retry_arq_singleton_dedup`). Also: the **worker** (`backend/workers/demo_reseed.py`) special-cases the all-engines-unreachable marker to write the stable `failed_reason="all_engines_unreachable"` token (the reseed is async — there is no synchronous error envelope; the signal travels through the Redis status).
 - (FR-6) Documentation update: data-model.md (no — N/A), runbook addition at `docs/03_runbooks/demo-reseed-engine-tolerance.md`, CLAUDE.md "Common Pitfalls" line.
 
 **Phase 2 (separate PR, tracked as `phase2_idea.md`):**
@@ -78,12 +78,13 @@
 
 ### API convention check
 
-This feature does **not** add new endpoints or change any path/method. It modifies one service-layer function (`reseed_demo_state`), one Pydantic response model (`ReseedStatusResponse` — adds the top-level `scenarios_skipped: list[str]` field), the route handler's `DemoSeedingError`-to-envelope mapping (to recognize the new `SEED_NO_ENGINES_REACHABLE` error code), one test file, one CLI script, and one UI component (`reset-demo-state-button.tsx` + its type mirror).
+This feature does **not** add new endpoints or change any path/method. It modifies one service-layer function (`reseed_demo_state`), one Pydantic response model (`ReseedStatusResponse` — adds the top-level `scenarios_skipped: list[str]` field), the Arq worker (`backend/workers/demo_reseed.py` — special-cases the all-engines-unreachable marker to write the stable `failed_reason` token), one CLI script, the heavy-lane integration test, and one UI component (`reset-demo-state-button.tsx` + its type mirror).
 
 - **Endpoint prefix convention:** N/A — no new endpoints.
-- **Router namespace:** N/A — existing `_test.py` handler for `POST /api/v1/_test/demo/reseed` + `GET /api/v1/_test/demo/reseed/status`.
+- **Router namespace:** N/A — existing `_test.py` handlers for `POST /api/v1/_test/demo/reseed` (202, async enqueue) + `GET /api/v1/_test/demo/reseed/status` (200, Redis-backed poll).
 - **HTTP methods for CRUD:** N/A — paths + methods unchanged.
-- **Non-auth error envelope shape:** the existing `DemoSeedingError` → 503 envelope shape is preserved; the only change is that the all-engines-unreachable case carries error code `SEED_NO_ENGINES_REACHABLE` instead of the generic `SEED_FAILED` (mid-scenario failures keep `SEED_FAILED`). Both use the same `{"detail": {"error_code", "message", "retryable"}}` envelope.
+- **Async architecture (critical):** the reseed POST enqueues an Arq job and returns `202` immediately with an initial `ReseedStatusResponse(status="running")`. The orchestrator runs in the worker. Therefore **failures do NOT surface as a synchronous error envelope on the POST body** — they surface via the worker writing `status="failed"` + `failed_reason` to the Redis status key, which the GET status endpoint returns. The only synchronous error envelopes on these endpoints are the pre-enqueue guards `ARQ_POOL_UNAVAILABLE` (503) and `SEED_IN_PROGRESS` (409), both unchanged by this spec.
+- **All-engines-unreachable signal:** travels through `ReseedStatusResponse.status == "failed"` + `failed_reason == "all_engines_unreachable"` (a stable machine-readable token), NOT through a wire `error_code`. No new HTTP error code is introduced.
 - **Auth error shape:** N/A (MVP1–3, no auth).
 
 ### Phase boundaries
@@ -145,11 +146,11 @@ N/A — `audit_log` table has not yet shipped (latest migration is `0022_solr_en
 
 - Requirement:
   - `backend/app/services/demo_seeding.py` **MUST** add a new helper `async def is_engine_reachable(engine_base_url: str, engine_type: Literal["elasticsearch", "opensearch", "solr"], *, timeout_s: float = 2.0) -> bool` that issues a single GET to the engine's standard health path (Solr: `/solr/admin/info/system`; ES/OS: `/`) and returns `True` iff HTTP 200 and the body has the expected engine-shape (Solr: `lucene` key + `responseHeader.status == 0`; ES/OS: `version` key). On any `httpx.HTTPError`, `httpx.TimeoutException`, or unexpected exception, the probe MUST return `False` (and log the unexpected-exception class at WARN per AC-9). The probe is **unauthenticated by design** — matches the local Compose engine security posture per §4.
-  - `reseed_demo_state(...)` **MUST** call `is_engine_reachable` ONCE per scenario at scenario-dispatch time (immediately after `_resolve_engine_base_url(...)` resolves the in-container URL). If `False`, the orchestrator **MUST** skip the scenario, emit a structured log event `demo_reseed_scenario_skipped_engine_unreachable` carrying `{slug, engine_type, engine_base}`, and accumulate the slug into a new `scenarios_skipped: list[str]` field on the running `ReseedStatusResponse`.
+  - `reseed_demo_state(...)` **MUST** call `is_engine_reachable` ONCE per scenario at scenario-dispatch time (immediately after `_resolve_engine_base_url(...)` resolves the in-container URL). If `False`, the orchestrator **MUST** skip the scenario, emit a structured log event `demo_reseed_scenario_skipped_engine_unreachable` carrying `{slug, engine_type, engine_base}`, and accumulate the slug into a new `scenarios_skipped: list[str]` field on the running `ReseedStatusResponse`. **This gate MUST also cover the rich ESCI scenario** (`acme-products-rich-prod`, an Elasticsearch scenario seeded separately from the `SCENARIOS` loop via `_resolve_engine_base_url(ES)` at [`demo_seeding.py:990`](../../../../../backend/app/services/demo_seeding.py#L990)): when ES is unreachable, the rich scenario is skipped and its slug appended to `scenarios_skipped`, same as any `SCENARIOS` entry. The reachability-relevant scenario set is therefore the 5 `SCENARIOS` entries **plus** the rich scenario (6 total — matching `scenarios_total = len(SCENARIOS) + 1`).
   - If at least one scenario was skipped AND at least one scenario completed successfully, the orchestrator **MUST** emit one WARN-level summary line at end-of-reseed: `demo_reseed_partial_completion_engines_unreachable`, with `{scenarios_skipped, scenarios_completed}` as structured fields.
   - **The existing `ReseedStatusLiteral` enum (`Literal["idle", "running", "complete", "failed"]` at [`demo_seeding.py:220`](../../../../../backend/app/services/demo_seeding.py#L220)) is NOT extended.** Partial-completion runs surface via `status == "complete"` AND `scenarios_skipped` non-empty. The new field is additive; the enum stays closed. See D-4 (flipped) in §19.
-  - **Invariant — all engines unreachable is a failure, not a partial.** If `scenarios_completed == 0` AND `scenarios_skipped` is non-empty (i.e., nothing succeeded), the orchestrator **MUST** raise `DemoSeedingError` with the new error code `SEED_NO_ENGINES_REACHABLE`, leaving the reseed in `status="failed"` and `failed_reason="all_engines_unreachable"`. This prevents Arq's `keep_result` cache from masquerading a no-op reseed as a success and locking out retries for the dedup window (see sibling [`bug_reseed_failure_blocks_retry_arq_singleton_dedup`](../bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md)).
-- Notes: the gate is BEFORE dispatch — so transient mid-scenario `httpx` errors still surface as `DemoSeedingError` (unchanged). The skip path distinguishes "Solr not present" from "Solr crashed mid-seed."
+  - **Invariant — all engines unreachable is a failure, not a partial.** If `scenarios_completed == 0` AND `scenarios_skipped` is non-empty (i.e., nothing succeeded), the orchestrator **MUST** raise a typed exception `AllEnginesUnreachableError(DemoSeedingError)` that (a) carries the skipped slugs as an attribute (`exc.scenarios_skipped: list[str]`) and (b) has `str(exc) == "all_engines_unreachable"`. The reseed is async (the POST `/api/v1/_test/demo/reseed` returns 202 and an Arq worker runs the orchestrator), so this exception is caught by the worker's existing `except (DemoSeedingError, httpx.HTTPError, Exception)` barrier at [`backend/workers/demo_reseed.py:175`](../../../../../backend/workers/demo_reseed.py#L175), which currently writes a fresh `ReseedStatusResponse(status="failed", ...)` that drops the skip list. **The worker MUST be updated to special-case `isinstance(exc, AllEnginesUnreachableError)`** and write a failed status that carries `failed_reason="all_engines_unreachable"` (the stable token, NOT the generic `f"{type(exc).__name__}: {str(exc)[:200]}"`), `scenarios_skipped=exc.scenarios_skipped` (all slugs), and `scenarios_completed=0`. This is what makes the §8.3 all-engines-unreachable GET-status example reproducible. Routing this case through `status="failed"` (rather than `status="complete"` with `scenarios_completed == 0`) prevents Arq's `keep_result` cache from masquerading a no-op reseed as a success and locking out retries for the dedup window (see sibling [`bug_reseed_failure_blocks_retry_arq_singleton_dedup`](../bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md)).
+- Notes: the gate is BEFORE dispatch — so transient mid-scenario `httpx` errors still surface as `DemoSeedingError` (unchanged) and produce the generic `failed_reason`. The skip path distinguishes "Solr not present" from "Solr crashed mid-seed." **There is NO synchronous error envelope for the all-engines-unreachable case** — the reseed is async, the POST already returned 202 before the orchestrator ran. The signal travels entirely through the Redis-backed `ReseedStatusResponse` (`status` + `failed_reason`).
 
 ### FR-3: CLI parity in `make seed-demo`
 
@@ -208,10 +209,9 @@ No new endpoints. The existing `POST /api/v1/_test/demo/reseed` + `GET /api/v1/_
 
 - The new `scenarios_skipped: list[str]` field on `ReseedStatusResponse` MUST default to `[]` (never `None`).
 - `ReseedStatusLiteral` is NOT extended by this spec — partial-completion is `status == "complete" AND len(scenarios_skipped) > 0`. No new wire-value enum members.
-- **Two distinct surfaces carry the all-engines-unreachable signal, and the `error_code` lives on only ONE of them:**
-  - The **GET `/api/v1/_test/demo/reseed/status`** response (the `ReseedStatusResponse` model, which has `model_config = ConfigDict(extra="forbid")` and NO `error_code` field) surfaces the failure as `status == "failed"` + `failed_reason == "all_engines_unreachable"` + `scenarios_skipped` = all slugs. It does NOT carry `error_code` — the model has no such field and MUST NOT gain one (keeping the status model minimal).
-  - The **synchronous error envelope** returned when the reseed fails (the route handler / job mapping of `DemoSeedingError` → `{"detail": {"error_code", "message", "retryable"}}`) carries `error_code == "SEED_NO_ENGINES_REACHABLE"`.
-  - This split mirrors the existing pattern: today, a mid-scenario failure surfaces as `status == "failed"` + `failed_reason` on the polled status AND `error_code == "SEED_FAILED"` on the synchronous envelope. The new code is just a more specific envelope `error_code` for the no-engines case; the status model is unchanged except for the additive `scenarios_skipped` field.
+- **The all-engines-unreachable signal travels ONLY through the Redis-backed status** (`ReseedStatusResponse`), because the reseed is async (POST returns 202; the orchestrator runs in the Arq worker). There is no synchronous error envelope for this case.
+  - The **GET `/api/v1/_test/demo/reseed/status`** response (the `ReseedStatusResponse` model, which has `model_config = ConfigDict(extra="forbid")`) surfaces the failure as `status == "failed"` + `failed_reason == "all_engines_unreachable"` (a stable machine-readable token) + `scenarios_skipped` = all slugs. The model has NO `error_code` field and MUST NOT gain one.
+  - **No new HTTP wire `error_code` is introduced.** `failed_reason` is the machine-readable discriminator. This mirrors how mid-scenario failures already surface: `status == "failed"` + a `failed_reason` string written by the worker's exception barrier ([`demo_reseed.py:185-193`](../../../../../backend/workers/demo_reseed.py#L185)). The only change is that the all-engines-unreachable case writes the STABLE token `"all_engines_unreachable"` instead of the generic `f"{type(exc).__name__}: {str(exc)[:200]}"`.
 
 ### 7.3 Response examples
 
@@ -249,7 +249,7 @@ No new endpoints. The existing `POST /api/v1/_test/demo/reseed` + `GET /api/v1/_
 }
 ```
 
-All-engines-unreachable failure example (new — surfaces via the existing `failed` status + new error code):
+All-engines-unreachable failure example (new — surfaces via the existing `failed` status + the stable `failed_reason` token; this is the GET-status payload, NOT a synchronous envelope, because the reseed is async):
 
 ```json
 {
@@ -266,17 +266,24 @@ All-engines-unreachable failure example (new — surfaces via the existing `fail
 }
 ```
 
-Mid-scenario failure example (unchanged — same shape as today; the route handler wraps `DemoSeedingError` in the standard `SEED_FAILED` envelope):
+Mid-scenario failure example (GET status; unchanged — same shape as today; the worker writes the generic `failed_reason` string for non-no-engines failures):
 
 ```json
 {
-  "detail": {
-    "error_code": "SEED_FAILED",
-    "message": "acme-products-prod/put_index: HTTP 503 …",
-    "retryable": true
-  }
+  "status": "failed",
+  "scenarios_total": 6,
+  "scenarios_completed": 2,
+  "scenarios_skipped": [],
+  "current_step": "acme-products-prod: indexing",
+  "started_at": "2026-06-01T15:42:00Z",
+  "finished_at": "2026-06-01T15:43:10Z",
+  "failed_reason": "DemoSeedingError: acme-products-prod/put_index: HTTP 503 …",
+  "summary": null,
+  "steps": ["..."]
 }
 ```
+
+Pre-enqueue guard envelopes (synchronous, on the POST — unchanged by this spec): `ARQ_POOL_UNAVAILABLE` (503) and `SEED_IN_PROGRESS` (409) use the standard `{"detail": {"error_code", "message", "retryable"}}` envelope. These are the ONLY synchronous error envelopes on the reseed endpoints; reseed-execution failures (including all-engines-unreachable) surface via the GET status payload above.
 
 ### 7.4 Enumerated value contracts
 
@@ -288,11 +295,13 @@ Mid-scenario failure example (unchanged — same shape as today; the route handl
 
 ### 7.5 Error code catalog
 
-| Code | HTTP Status | Meaning |
-|------|-------------|---------|
-| `SEED_NO_ENGINES_REACHABLE` | `503` | All scenarios skipped because no engine was reachable at probe time. New — emitted only when `scenarios_completed == 0 AND scenarios_skipped` is non-empty. The route handler MUST map this to the standard `SEED_FAILED`-style envelope shape (consistent with other reseed failures) but with the new error code so operators can distinguish "engine startup needed" from a mid-scenario crash. Mid-scenario `httpx` errors continue to surface as `SEED_FAILED` (existing). |
+**No new HTTP error code is introduced.** The reseed is async — execution failures never produce a synchronous error envelope (see §8 "Async architecture"). Instead, the all-engines-unreachable case is discriminated by a stable `failed_reason` **token** on the GET-status payload:
 
-The existing `SEED_FAILED` envelope is preserved for non-no-engines failures.
+| Discriminator | Surface | Value | Meaning |
+|---|---|---|---|
+| `failed_reason` token | `GET /api/v1/_test/demo/reseed/status` body (`status == "failed"`) | `"all_engines_unreachable"` | All scenarios skipped because no engine was reachable at probe time. Written by the worker special-casing the `AllEnginesUnreachableError(DemoSeedingError)` raised by the orchestrator when `scenarios_completed == 0 AND scenarios_skipped` is non-empty. The failed status also carries `scenarios_skipped` (all slugs) + `scenarios_completed=0` (from the exception's `scenarios_skipped` attribute). Stable (never reworded) so tests + operators can match on it, distinct from the generic `f"{type}: {msg}"` reason written for mid-scenario failures. |
+
+The synchronous pre-enqueue guards `ARQ_POOL_UNAVAILABLE` (503) and `SEED_IN_PROGRESS` (409) are unchanged and remain the only synchronous error envelopes on the reseed endpoints.
 
 ## 9) Data model and state transitions
 
@@ -300,8 +309,8 @@ No schema changes. No new tables. No new columns. Alembic head stays at `0022_so
 
 ### Required invariants
 
-- **Partial-completion is encoded in `scenarios_skipped`, not in `status`.** `status == "complete" AND scenarios_skipped non-empty` is a legitimate terminal state ("partial completion — some engines were not reachable"). `status == "complete" AND scenarios_completed == 0` MUST be unreachable (the orchestrator MUST raise `SEED_NO_ENGINES_REACHABLE` instead).
-- **All-engines-unreachable is a hard failure.** When `scenarios_completed == 0`, the orchestrator MUST raise `DemoSeedingError("all_engines_unreachable")` and the route handler MUST emit `status = "failed"` with `failed_reason = "all_engines_unreachable"` and error code `SEED_NO_ENGINES_REACHABLE` (FR-2 + FR-5).
+- **Partial-completion is encoded in `scenarios_skipped`, not in `status`.** `status == "complete" AND scenarios_skipped non-empty` is a legitimate terminal state ("partial completion — some engines were not reachable"). `status == "complete" AND scenarios_completed == 0` MUST be unreachable (the orchestrator MUST raise the all-engines-unreachable marker instead, yielding `status == "failed"`).
+- **All-engines-unreachable is a hard failure.** When `scenarios_completed == 0`, the orchestrator MUST raise `AllEnginesUnreachableError(DemoSeedingError)` carrying `scenarios_skipped`; the worker special-cases it to write `status = "failed"` + `failed_reason = "all_engines_unreachable"` (stable token) + `scenarios_skipped` (all slugs) + `scenarios_completed = 0` to the Redis status (FR-2 + FR-5). No HTTP wire error code — the reseed is async.
 - **The `is_engine_reachable` probe is called BEFORE `_seed_solr_scenario` (or any ES scenario seed) — never after.** A scenario that begins dispatch and then errors is a `DemoSeedingError`, not a skip.
 - **Probe is total** — it never raises. Any unexpected exception is treated as "unreachable" (AC-9). This prevents a transient DNS hiccup from breaking the whole reseed.
 
@@ -422,10 +431,10 @@ Unchanged. The existing Arq-singleton dedup on `demo_reseed:singleton` is indepe
 
 - **Given** every engine (ES + OS + Solr) is unreachable at probe time (extreme misconfiguration / all engines down)
 - **When** `reseed_demo_state(...)` runs
-- **Then** the orchestrator MUST raise `DemoSeedingError("all_engines_unreachable")`. The polled GET status MUST show `status = "failed"` + `failed_reason = "all_engines_unreachable"` (no `error_code` on the status model). The synchronous error envelope (route handler / job `DemoSeedingError` mapping) MUST carry `error_code == "SEED_NO_ENGINES_REACHABLE"`. The orchestrator MUST NOT return `status = "complete"` with `scenarios_completed == 0` (§8.2 two-surface split)
+- **Then** the orchestrator MUST raise `AllEnginesUnreachableError(DemoSeedingError)` carrying `scenarios_skipped`. The worker special-cases it and writes to Redis; the polled GET status MUST show `status = "failed"` + `failed_reason = "all_engines_unreachable"` (the stable token, NOT the generic `f"{type}: {msg}"`) + `scenarios_skipped` = all 6 slugs + `scenarios_completed = 0`. There is no synchronous error envelope (the reseed is async — POST already returned 202). The orchestrator MUST NOT return `status = "complete"` with `scenarios_completed == 0`
 - Example values:
-  - `snapshot_engine_reachability(SCENARIOS)` result (slug-keyed): every slug maps to `False`
-  - Expected response status: `failed`, `failed_reason: "all_engines_unreachable"`, `scenarios_completed: 0`, `scenarios_skipped: ["acme-products-prod", ...]` (all 6 slugs)
+  - `snapshot_engine_reachability(<all 6 scenarios incl. rich>)` result (slug-keyed): every slug maps to `False`
+  - Expected response status: `failed`, `failed_reason: "all_engines_unreachable"`, `scenarios_completed: 0`, `scenarios_skipped: ["acme-products-prod", "corp-docs-search", "news-search-staging", "jobs-marketplace-prod", "acme-products-rich-prod", "acme-kb-docs-solr"]` (all 6 slugs incl. rich)
   - Rationale: per GPT-5.5 cycle-1 Finding 4 — a successful zero-scenario reseed would cache in Arq's `keep_result` window and lock out retries for ~1h via the singleton-dedup wedge documented in [`bug_reseed_failure_blocks_retry_arq_singleton_dedup`](../bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md). Surfacing as `failed` keeps retry behavior correct.
 
 ### AC-11: UI surfaces the partial-completion hint
@@ -446,11 +455,11 @@ Unchanged. The existing Arq-singleton dedup on `demo_reseed:singleton` is indepe
 - **Unit tests** (`backend/tests/unit/`):
   - New file `backend/tests/unit/services/test_demo_seeding_engine_reachability.py` — tests `is_engine_reachable` for: Solr 200 + valid body → True; Solr 200 + invalid body → False; Solr 404 → False; httpx.ConnectError → False; httpx.TimeoutException → False; unexpected exception → False + log emitted (AC-9).
   - New file `backend/tests/unit/services/test_demo_seeding_partial_completion.py` — tests the orchestrator's per-scenario loop with `is_engine_reachable` **monkeypatched** to return `False` for solr (driver-level unit). Asserts: `scenarios_skipped` accumulates the slug; structured `demo_reseed_scenario_skipped_engine_unreachable` log fires per skip; one summary WARN at end; `status = "complete"` with non-empty `scenarios_skipped`. Per GPT-5.5 cycle-1 Finding 5: this is labeled as a UNIT test (monkeypatched), not integration — the real reachability path is exercised by the heavy-lane test.
-  - New file `backend/tests/unit/services/test_demo_seeding_no_engines_reachable.py` — covers AC-10: monkeypatch `is_engine_reachable` to return `False` for all three engines; assert `DemoSeedingError("all_engines_unreachable")` raised; `status = "failed"`; new error code surfaces.
+  - New file `backend/tests/unit/services/test_demo_seeding_no_engines_reachable.py` — covers AC-10: monkeypatch `is_engine_reachable` to return `False` for all three engines; assert `reseed_demo_state` raises `DemoSeedingError` whose `str(exc)` is the stable marker `"all_engines_unreachable"` AND `scenarios_completed == 0`. Plus a worker-level unit (extend or add to the worker test) asserting the worker maps that marker to `status="failed"` + `failed_reason="all_engines_unreachable"` (the stable token, not the generic reason).
 - **Integration tests** (`backend/tests/integration/`):
   - Extend `backend/tests/integration/test_demo_seeding_ubi_full.py` per FR-4 — dynamic count computation based on the **real `is_engine_reachable` probe** at test setup time, Solr-aware skip + assertion gating. This is the heavy-lane integration assertion that exercises the genuine no-Solr-service-container CI path (per F5 — the real probe, not a monkeypatch).
 - **Contract tests** (`backend/tests/contract/`):
-  - Locate the existing reseed-status contract test via `grep -rn 'demo/reseed/status\|ReseedStatusResponse' backend/tests/contract/`. Extend it to assert (a) the new `scenarios_skipped: list[str]` field is in the OpenAPI schema for the response model, (b) the `ReseedStatusLiteral` allowlist is exactly `{"idle", "running", "complete", "failed"}` (unchanged — guards against accidental enum expansion), (c) the new `SEED_NO_ENGINES_REACHABLE` error code shows up in the error-shape catalog where the route handler maps `DemoSeedingError`.
+  - Extend the OpenAPI-surface contract test ([`backend/tests/contract/test_openapi_surface.py`](../../../../../backend/tests/contract/test_openapi_surface.py), which already references `ReseedStatusResponse`). Assert (a) the new `scenarios_skipped: list[str]` field is in the `ReseedStatusResponse` schema with a non-null default, and (b) the `ReseedStatusLiteral` enum in the schema is exactly `{"idle", "running", "complete", "failed"}` (guards against accidental enum expansion). NO error-code assertion — the all-engines-unreachable case has no wire error code (async architecture); it's covered by the unit/worker test asserting the `failed_reason` token.
 - **E2E tests** (`ui/tests/e2e/`):
   - None in Phase 1. The dashboard button render under partial-completion is covered by the vitest unit test fixture `STATUS_COMPLETE_PARTIAL` extension to `reset-demo-state-button.test.tsx`.
 
@@ -479,7 +488,7 @@ Unchanged. The existing Arq-singleton dedup on `demo_reseed:singleton` is indepe
 | FR-2 | AC-1, AC-2, AC-3, AC-7, AC-9, AC-10 | Story 1.2: orchestrator `is_engine_reachable` + skip + WARN log + all-engines-unreachable failure path | `backend/tests/unit/services/test_demo_seeding_engine_reachability.py` (new) + `test_demo_seeding_partial_completion.py` (new) + `test_demo_seeding_no_engines_reachable.py` (new) + extend `test_demo_seeding_ubi_full.py` | — |
 | FR-3 | AC-6, AC-6b | Story 1.3: CLI parity (skip + all-unreachable hard-fail) | `backend/tests/unit/scripts/test_seed_meaningful_demos_engine_tolerance.py` (new) | — |
 | FR-4 | AC-4, AC-5 | Story 1.4: heavy-lane test dynamic-count | `backend/tests/integration/test_demo_seeding_ubi_full.py` (extend) | — |
-| FR-5 | AC-8, AC-11 | Story 1.5: `ReseedStatusResponse.scenarios_skipped` field + TypeScript mirror + UI hint + `SEED_NO_ENGINES_REACHABLE` error code | `backend/tests/contract/...` (locate + extend), `ui/src/__tests__/components/dashboard/reset-demo-state-button.test.tsx` (extend with `STATUS_COMPLETE_PARTIAL`) | — |
+| FR-5 | AC-8, AC-10, AC-11 | Story 1.5: `ReseedStatusResponse.scenarios_skipped` field + TypeScript mirror + UI hint + worker `failed_reason="all_engines_unreachable"` token | `backend/tests/contract/test_openapi_surface.py` (extend), `ui/src/__tests__/components/dashboard/reset-demo-state-button.test.tsx` (extend with `STATUS_COMPLETE_PARTIAL`) | — |
 | FR-6 | — | Story 1.6: runbook + CLAUDE.md edit | — | `docs/03_runbooks/demo-reseed-engine-tolerance.md`, `CLAUDE.md` |
 | FR-7 | — | (Phase 2 — separate PR) | — | — |
 
@@ -510,4 +519,5 @@ _None._ Q-1 and Q-2 from the idea have been resolved during cycle-1 review:
 - **2026-06-01 — D-3: heavy-lane test uses dynamic count computation by reachability, not "skip the whole test"** — Rationale: when Solr is the only unreachable engine, the test still has meaningful work to do (validate the 5 ES+OS scenarios). The dynamic-count approach is a small deviation from the binary ES skip precedent at line 142 (ES unreachable still skips the whole test — without ES there's no fallback) but it's the right design for the Solr case. Answers idea Q-3.
 - **2026-06-01 — D-4 (REVISED after GPT-5.5 cycle-1 Finding 3): skipped engines surface as an additive `scenarios_skipped: list[str]` field on `ReseedStatusResponse`, NOT as a new wire-value status.** Original draft proposed `succeeded_partial`. Flipped because (a) the actual `ReseedStatusLiteral` is `Literal["idle", "running", "complete", "failed"]` at [`demo_seeding.py:220`](../../../../../backend/app/services/demo_seeding.py#L220) (NOT `"succeeded"` as the draft assumed — a wire-value typo); (b) Q-2's grep surfaced a real UI consumer at `reset-demo-state-button.tsx` + the type mirror at `demo-reseed.ts:27`, making the enum change a multi-file contract churn for marginal benefit; (c) the additive field encodes the same information with less wire surface and lets the existing polling-stop logic at `demo-reseed.ts:85-94` work unmodified. UI gets a small inline "partial completion" hint inside the existing `complete`-state render (AC-11).
 - **2026-06-01 — D-5: Capability B (smoke stability) ships in a separate PR (Phase 2)** — Rationale: needs `docker compose logs solr` from a runner failure to commit to the right lever; bundling unknowns into a Phase-1-unblocks-CI PR slows both halves.
-- **2026-06-01 — D-6 (added after GPT-5.5 cycle-1 Finding 4): all-engines-unreachable is a hard `failed`, not a partial-complete.** Even though `len(scenarios_skipped) == N AND scenarios_completed == 0` is internally consistent, encoding it as `status = "complete"` would cache a no-op success in Arq's `keep_result` window and lock out retries for ~1h (per sibling [`bug_reseed_failure_blocks_retry_arq_singleton_dedup`](../bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md)). Routing this case through `status = "failed"` with new error code `SEED_NO_ENGINES_REACHABLE` keeps retry behavior correct and prevents misconfiguration from masquerading as success. See AC-10 + FR-2 invariant.
+- **2026-06-01 — D-6 (added after GPT-5.5 cycle-1 Finding 4): all-engines-unreachable is a hard `failed`, not a partial-complete.** Even though `len(scenarios_skipped) == N AND scenarios_completed == 0` is internally consistent, encoding it as `status = "complete"` would cache a no-op success in Arq's `keep_result` window and lock out retries for ~1h (per sibling [`bug_reseed_failure_blocks_retry_arq_singleton_dedup`](../bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md)). Routing this case through `status = "failed"` keeps retry behavior correct and prevents misconfiguration from masquerading as success. See AC-10 + FR-2 invariant.
+- **2026-06-01 — D-7 (added during plan-gen codebase audit): the all-engines-unreachable signal is a `failed_reason` TOKEN, not an HTTP wire `error_code`.** The plan-gen pass discovered the reseed is async — the POST `/api/v1/_test/demo/reseed` returns 202 and the orchestrator runs in the Arq worker ([`backend/workers/demo_reseed.py:165`](../../../../../backend/workers/demo_reseed.py#L165)). There is therefore NO synchronous error envelope for execution failures; the worker's exception barrier writes `status="failed"` + `failed_reason` to Redis, which the GET status endpoint returns. The earlier draft's `SEED_NO_ENGINES_REACHABLE` HTTP error code was architecturally impossible — replaced with the stable `failed_reason="all_engines_unreachable"` token written by special-casing the marker in the worker. §7.5, §8, §8.2, AC-10, FR-2, FR-5 all corrected.

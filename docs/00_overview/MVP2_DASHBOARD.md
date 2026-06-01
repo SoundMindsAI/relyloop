@@ -50,25 +50,24 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (9)
-
-| # | Priority | Feature | Type | One-liner | Depends on | Status |
-|---|---|---|---|---|---|---|
-| 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 2 | P2 | [feat_overnight_studies_summary_card](planned_features/02_mvp2/feat_overnight_studies_summary_card/feature_spec.md) | Feature | A "ran while you were away" card surfaces at the top of `/studies` when at least one overnight chain has completed since the operator's last visit. | — | [PR #343](https://github.com/SoundMindsAI/relyloop/pull/343) |
-| 3 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
-| 4 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | — |
-| 5 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
-| 6 | P2 | [infra_generated_artifact_freshness_gate](planned_features/02_mvp2/infra_generated_artifact_freshness_gate/feature_spec.md) | Infra | CI fails a PR whose committed `types.ts` does not match what the live OpenAPI schema would produce, and whose `ui/public/docs/*` copies do not match their `docs/08_guides/*` sources. | — | deferred: Phase 2 |
-| 7 | P2 | [chore_arq_pool_aclose_deprecation](planned_features/02_mvp2/chore_arq_pool_aclose_deprecation/feature_spec.md) | Chore | Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close( | — | — |
-| 8 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
-| 9 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
-
-### Spec (1)
+### Plan (10)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P1 | [infra_solr_ci_readiness](planned_features/02_mvp2/infra_solr_ci_readiness/feature_spec.md) | Infra | Post-2026-05-31, no full `pr.yml` run can go green on any branch. | — | [PR #364](https://github.com/SoundMindsAI/relyloop/pull/364) |
+| 2 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
+| 3 | P2 | [feat_overnight_studies_summary_card](planned_features/02_mvp2/feat_overnight_studies_summary_card/feature_spec.md) | Feature | A "ran while you were away" card surfaces at the top of `/studies` when at least one overnight chain has completed since the operator's last visit. | — | [PR #343](https://github.com/SoundMindsAI/relyloop/pull/343) |
+| 4 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
+| 5 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | — |
+| 6 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 7 | P2 | [infra_generated_artifact_freshness_gate](planned_features/02_mvp2/infra_generated_artifact_freshness_gate/feature_spec.md) | Infra | CI fails a PR whose committed `types.ts` does not match what the live OpenAPI schema would produce, and whose `ui/public/docs/*` copies do not match their `docs/08_guides/*` sources. | — | deferred: Phase 2 |
+| 8 | P2 | [chore_arq_pool_aclose_deprecation](planned_features/02_mvp2/chore_arq_pool_aclose_deprecation/feature_spec.md) | Chore | Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close( | — | — |
+| 9 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 10 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+
+### Spec (0)
+
+_None._
 
 ### Idea (19)
 
@@ -124,7 +123,7 @@ graph LR
   infra_generated_artifact_freshness_gate["generated artifact freshness gate"]
   class infra_generated_artifact_freshness_gate plan;
   infra_solr_ci_readiness["solr ci readiness"]
-  class infra_solr_ci_readiness spec;
+  class infra_solr_ci_readiness plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard["study sub warmup guard"]
