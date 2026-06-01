@@ -43,9 +43,10 @@
     </div>
   {% endif %}
 </div>
-{% if build and build.time %}
+{% if build and build.sha and build.sha != "dev" and build.time %}
 <script>
   (function () {
+    if (typeof Intl === "undefined" || !Intl.RelativeTimeFormat) return;
     var el = document.querySelector("time.md-build-time");
     if (!el) return;
     var built = new Date(el.getAttribute("datetime"));
