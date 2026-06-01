@@ -27,7 +27,6 @@ from backend.app.api.v1.schemas import (
     BulkQueriesResponse,
     BulkQueryItem,
     ConfidenceShape,
-    ConvergenceShape,
     CreateQuerySetRequest,
     CreateQueryTemplateRequest,
     CreateStudyRequest,
@@ -39,6 +38,7 @@ from backend.app.api.v1.schemas import (
     QueryTemplateListResponse,
     QueryTemplateSummary,
     StudyConfigSpec,
+    StudyConvergenceShape,
     StudyDetail,
     StudyListResponse,
     StudySummary,
@@ -55,7 +55,7 @@ def test_phase2_schemas_importable() -> None:
         BulkQueriesResponse,
         BulkQueryItem,
         ConfidenceShape,
-        ConvergenceShape,
+        StudyConvergenceShape,
         CreateQuerySetRequest,
         CreateQueryTemplateRequest,
         CreateStudyRequest,
@@ -112,7 +112,7 @@ def test_confidence_shape_has_six_subfields() -> None:
 
 
 def test_study_detail_includes_convergence_field() -> None:
-    """``StudyDetail`` exposes ``convergence: ConvergenceShape | None`` (FR-4).
+    """``StudyDetail`` exposes ``convergence: StudyConvergenceShape | None`` (FR-4).
 
     The field is additive (defaults to ``None``) and distinct from
     ``confidence.convergence.regime`` (winner-trial timing — a separate
@@ -125,14 +125,14 @@ def test_study_detail_includes_convergence_field() -> None:
     prop = schema["properties"]["convergence"]
     refs_or_anyof = prop.get("anyOf") or [prop]
     assert any(
-        "$ref" in entry and "ConvergenceShape" in entry["$ref"] for entry in refs_or_anyof
-    ), f"StudyDetail.convergence is not typed as Optional[ConvergenceShape]; got {prop!r}"
+        "$ref" in entry and "StudyConvergenceShape" in entry["$ref"] for entry in refs_or_anyof
+    ), f"StudyDetail.convergence is not typed as Optional[StudyConvergenceShape]; got {prop!r}"
 
 
 def test_convergence_shape_has_all_eight_subfields() -> None:
-    """``ConvergenceShape`` carries the eight sub-fields per spec §8.3."""
+    """``StudyConvergenceShape`` carries the eight sub-fields per spec §8.3."""
 
-    schema = ConvergenceShape.model_json_schema()
+    schema = StudyConvergenceShape.model_json_schema()
     expected = {
         "verdict",
         "direction",
@@ -144,28 +144,30 @@ def test_convergence_shape_has_all_eight_subfields() -> None:
         "best_so_far_curve",
     }
     actual = set(schema["properties"].keys())
-    assert expected == actual, f"ConvergenceShape fields drifted: expected {expected}, got {actual}"
+    assert expected == actual, (
+        f"StudyConvergenceShape fields drifted: expected {expected}, got {actual}"
+    )
 
 
 def test_convergence_verdict_is_three_string_literal() -> None:
-    """``ConvergenceShape.verdict`` is exactly the three-value Literal —
+    """``StudyConvergenceShape.verdict`` is exactly the three-value Literal —
     matches the source-of-truth in ``backend.app.domain.study.convergence``
     that the frontend ``CONVERGENCE_VERDICT_VALUES`` array mirrors."""
 
-    schema = ConvergenceShape.model_json_schema()
+    schema = StudyConvergenceShape.model_json_schema()
     verdict = schema["properties"]["verdict"]
     # Pydantic emits Literal[...] as {"enum": [...], "type": "string"} OR
     # {"const": "..."} for single-value Literals. Accept either rendering.
     assert verdict.get("enum") == ["converged", "still_improving", "too_few_trials"], (
-        f"ConvergenceShape.verdict enum drifted: {verdict!r}"
+        f"StudyConvergenceShape.verdict enum drifted: {verdict!r}"
     )
 
 
 def test_convergence_direction_is_two_string_literal() -> None:
-    schema = ConvergenceShape.model_json_schema()
+    schema = StudyConvergenceShape.model_json_schema()
     direction = schema["properties"]["direction"]
     assert direction.get("enum") == ["maximize", "minimize"], (
-        f"ConvergenceShape.direction enum drifted: {direction!r}"
+        f"StudyConvergenceShape.direction enum drifted: {direction!r}"
     )
 
 

@@ -88,7 +88,7 @@ class CurvePoint(BaseModel):
     best_so_far: float
 
 
-class ConvergenceShape(BaseModel):
+class StudyConvergenceShape(BaseModel):
     """Verdict + supporting numerics for the UI panel and the digest narrative.
 
     Mirrors the ``ConfidenceShape`` pattern from ``confidence.py``: the
@@ -96,6 +96,16 @@ class ConvergenceShape(BaseModel):
     re-exports it for the ``StudyDetail.convergence`` field. The
     ``best_so_far_curve`` is the chart's data series; ``verdict`` is the
     badge label.
+
+    **Name discipline (plan §0).** The bare class name ``ConvergenceShape``
+    is already taken by :class:`backend.app.domain.study.confidence.ConvergenceShape`
+    (a different concept — winner-trial *timing*, not metric plateau).
+    ``StudyConvergenceShape`` is the study-level analogue; the confidence
+    sub-shape stays on its inner module. The two coexist on ``StudyDetail``
+    (``confidence.convergence`` is the inner one; ``convergence`` is this
+    one), and FastAPI emits both under their bare class names in the
+    OpenAPI schema — no fully-qualified disambiguation noise leaks to the
+    frontend.
     """
 
     verdict: ConvergenceVerdict
@@ -127,7 +137,7 @@ def classify_convergence(
     complete_trials: Sequence[Any],
     *,
     direction: Literal["maximize", "minimize"],
-) -> ConvergenceShape | None:
+) -> StudyConvergenceShape | None:
     """Deterministically classify a study's convergence state.
 
     Returns ``None`` when the trial count is below
@@ -194,7 +204,7 @@ def classify_convergence(
     else:
         verdict = "still_improving"
 
-    return ConvergenceShape(
+    return StudyConvergenceShape(
         verdict=verdict,
         direction=direction,
         window_size=window_size,
@@ -210,8 +220,8 @@ __all__ = [
     "CONVERGENCE_FLAT_EPSILON",
     "CONVERGENCE_FLAT_MIN_COMPLETE",
     "CONVERGENCE_FLAT_WINDOW",
-    "ConvergenceShape",
     "ConvergenceVerdict",
     "CurvePoint",
+    "StudyConvergenceShape",
     "classify_convergence",
 ]

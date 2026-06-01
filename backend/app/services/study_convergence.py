@@ -44,7 +44,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.app.db import repo
 from backend.app.db.models import Study
 from backend.app.domain.study.convergence import (
-    ConvergenceShape,
+    StudyConvergenceShape,
     classify_convergence,
 )
 
@@ -82,7 +82,9 @@ def _resolve_direction(
     return None
 
 
-async def fetch_study_convergence(db: AsyncSession, study_row: Study) -> ConvergenceShape | None:
+async def fetch_study_convergence(
+    db: AsyncSession, study_row: Study
+) -> StudyConvergenceShape | None:
     """Build the ``ConvergenceShape`` for a single study or return ``None``.
 
     Decision flow (matches plan Story 2.2 logic / spec FR-3):
