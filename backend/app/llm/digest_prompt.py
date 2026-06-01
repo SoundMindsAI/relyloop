@@ -85,6 +85,7 @@ def render_digest_user_prompt(
     dropped_template_params: Sequence[str],
     include_recommendation: bool = True,
     confidence: Mapping[str, Any] | None = None,
+    convergence: Mapping[str, Any] | None = None,
     parent_search_space: Mapping[str, Any] | None = None,
     parent_template_declared_params: Mapping[str, str] | None = None,
     available_templates: Sequence[Mapping[str, Any]] | None = None,
@@ -119,6 +120,16 @@ def render_digest_user_prompt(
             ``<per_query_outcomes>`` jinja blocks; a partial shape (some
             sub-fields ``None``) emits only the populated sub-lines via the
             template's per-sub-field ``{% if %}`` guards.
+        convergence: serialized ``StudyConvergenceShape`` (via
+            ``StudyConvergenceShape.model_dump()``) per
+            feat_study_convergence_indicator FR-6. ``None`` (default —
+            in-flight studies, sub-MIN trial counts, or any FR-3 graceful-
+            degrade path) skips the ``<convergence>`` jinja block. When
+            populated, the system prompt's "Convergence-aware lead
+            recommendation" rule fires: ``still_improving`` /
+            ``too_few_trials`` verdicts lead with "re-run with a larger
+            trial budget" and demote any ``narrow`` / ``widen`` follow-ups
+            to secondary.
         parent_search_space: feat_digest_executable_followups Story 2.2 —
             the parent study's ``search_space`` JSONB body, rendered into
             ``<parent_search_space>`` so the LLM can transform it into
@@ -161,6 +172,7 @@ def render_digest_user_prompt(
         dropped_template_params=dropped_template_params,
         include_recommendation=include_recommendation,
         confidence=confidence,
+        convergence=convergence,
         parent_search_space=parent_search_space,
         parent_template_declared_params=parent_template_declared_params,
         available_templates=available_templates,

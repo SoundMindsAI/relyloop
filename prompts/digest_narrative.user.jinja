@@ -21,6 +21,14 @@ ci_high: {{ confidence.ci_95.high }}
 {% endif %}{% if confidence.convergence %}convergence: {{ confidence.convergence.regime }} (best at trial {{ confidence.convergence.best_at_trial }} of {{ confidence.convergence.total_trials }})
 {% endif %}</confidence>
 
+{% endif %}{% if convergence %}<convergence>
+<verdict>{{ convergence.verdict }}</verdict>
+<direction>{{ convergence.direction }}</direction>
+<window_size>{{ convergence.window_size }}</window_size>
+<total_complete_trials>{{ convergence.total_complete_trials }}</total_complete_trials>
+<improvement_in_window>{{ convergence.improvement_in_window }}</improvement_in_window>
+</convergence>
+
 {% endif %}{% if confidence and confidence.per_query_outcomes %}<per_query_outcomes>
 improved: {{ confidence.per_query_outcomes.improved }}
 unchanged: {{ confidence.per_query_outcomes.unchanged }}
