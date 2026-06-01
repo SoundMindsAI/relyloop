@@ -545,22 +545,55 @@ export async function seedAcmeProductsChain(): Promise<AcmeProductsChainSeed> {
   });
   appendForCleanup('judgment_list', jl.id);
 
-  const study = await post<{ id: string; name: string }>('/api/v1/studies', {
-    name: studyName,
-    cluster_id: cluster.id,
-    target: 'products',
-    template_id: tpl.id,
-    query_set_id: qset.id,
-    judgment_list_id: jl.id,
-    search_space: {
-      params: {
-        title_boost: { type: 'float', low: 0.5, high: 10.0, log: true },
-      },
-    },
-    objective: { metric: 'ndcg', k: 10, direction: 'maximize' },
-    config: { max_trials: 2, sampler: 'tpe', pruner: 'none' },
+  // Seed a COMPLETED study via the test-only endpoint rather than running a
+  // real Optuna study. Two reasons the guide needs this:
+  //   1. The headline study-detail surfaces — <ConfidencePanel> (needs
+  //      per-query metrics) and <ConvergencePanel> (needs >= 50 usable trials
+  //      to clear STUDIES_TPE_WARMUP_FLOOR and emit a real `converged` verdict
+  //      + best-so-far curve, per feat_study_convergence_indicator) — can't be
+  //      produced by a real study here: the seeded judgments reference doc IDs
+  //      that aren't in the local ES `products` index, so real trials score
+  //      0.0 across the board (flat-zero curve + `too_few_trials`).
+  //   2. The guide teaches *reading* the completed detail page, not proving
+  //      the optimizer runs (that's the tutorial's job).
+  //
+  // 48 extra trials (+ winner 0.487 + runner-up 0.412 = 50 total) clears the
+  // warmup floor. Every extra value is < 0.487 so best-so-far stays pinned to
+  // the winner from trial 0 — a flat plateau, i.e. a legitimate "converged
+  // early" curve — and best_metric / proposal / digest stay anchored to the
+  // unchanged 0.412 -> 0.487 story.
+  const winnerPerQuery: Record<string, Record<string, number>> = {};
+  const runnerUpPerQuery: Record<string, Record<string, number>> = {};
+  queryIds.forEach((qid, i) => {
+    winnerPerQuery[qid] = { 'ndcg@10': i === 0 ? 0.4 : 0.85 - 0.01 * i };
+    runnerUpPerQuery[qid] = { 'ndcg@10': i === 0 ? 0.95 : 0.84 - 0.01 * i };
   });
-  appendForCleanup('study', study.id);
+  // 48 exploration values: a small spread that drifts but never reaches the
+  // winner's 0.487 (so best-so-far is flat at the plateau).
+  const extraTrialMetrics = Array.from({ length: 48 }, (_, i) =>
+    Number((0.30 + 0.0035 * i).toFixed(4)),
+  );
+  const seeded = await post<{ study_id: string; digest_id: string; proposal_id: string | null }>(
+    '/api/v1/_test/studies/seed-completed',
+    {
+      cluster_id: cluster.id,
+      query_set_id: qset.id,
+      template_id: tpl.id,
+      judgment_list_id: jl.id,
+      with_pending_proposal: true,
+      winner_per_query: winnerPerQuery,
+      runner_up_per_query: runnerUpPerQuery,
+      extra_trial_metrics: extraTrialMetrics,
+    },
+  );
+  appendForCleanup('study', seeded.study_id);
+  appendForCleanup('digest', seeded.digest_id);
+  if (seeded.proposal_id !== null) {
+    appendForCleanup('proposal', seeded.proposal_id);
+  }
+  // The test endpoint names the study `e2e-seed-<id8>`; the guide's captions
+  // refer to the acme scenario, so surface the intended display name too.
+  const study = await get<{ id: string; name: string }>(`/api/v1/studies/${seeded.study_id}`);
 
   return {
     clusterId: cluster.id,

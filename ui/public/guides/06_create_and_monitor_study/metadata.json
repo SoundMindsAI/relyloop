@@ -11,11 +11,11 @@
   "screenshots": [
     {
       "file": "01-studies-list.png",
-      "caption": "Open the Studies page. Every study you create lands here with its name, cluster, status, best-so-far metric, and timestamps. The newly seeded `tune-product-title-boost-baseline-{suffix}` study sits at the top while earlier completed studies (`tune-jobtitle-vs-company-boost`, `add-7day-freshness-decay-news`, `reduce-fuzziness-helpcenter-search`) anchor the rest of the list. The filter chips along the top scope by lifecycle stage."
+      "caption": "Open the Studies page. Every study you create lands here with its name, cluster, status, best-so-far metric, and timestamps. The seeded completed study sits at the top with its `completed` status badge and best metric. The filter chips along the top scope the list by lifecycle stage (all / queued / running / completed / cancelled / failed)."
     },
     {
       "file": "02-studies-status-filter.png",
-      "caption": "Click 'queued' to filter the list to studies waiting for the orchestrator. The URL updates to `?status=queued` so the filter is sharable + bookmarkable. The empty state here is an expected timing artifact — every seeded study completed before this screenshot was taken (max_trials=2 ran in under a second). Studies move queued → running → (completed | failed | cancelled) as the orchestrator processes them."
+      "caption": "Click 'queued' to filter the list to studies waiting for the orchestrator. The URL updates to `?status=queued` so the filter is sharable + bookmarkable. The empty state here is expected — the seeded study is already `completed`, so nothing matches the `queued` filter. Studies move queued → running → (completed | failed | cancelled) as the orchestrator processes them."
     },
     {
       "file": "03-create-study-modal.png",
@@ -23,7 +23,7 @@
     },
     {
       "file": "04-study-detail.png",
-      "caption": "The detail page is where the operator spends real time. Above the header card, a short summary paragraph explains what a study is. Below the header, the **linked-entities row** shows named, clickable links to the cluster, query set, judgment list, and template the study ran against — so operators don't have to grep UUIDs. When a proposal has been promoted from this study, a **view-proposal** link appears below the linked entities for the round-trip from study → proposal. The **Confidence** panel between the header and the trials table answers *'is this winner statistically reliable?'* — it surfaces the headline metric with a 95% CI band, per-query outcome chips (Improved / Unchanged / Regressed vs. the runner-up or baseline), named *Queries that improved* and *Queries that regressed* tables when those counts are > 0, and three secondary callouts (runner-up gap, late-trial 1σ, convergence regime). Every `(i)` icon opens a glossary definition. The trials table below auto-polls every 3 seconds while the study is running."
+      "caption": "The detail page is where the operator spends real time. Above the header card, a short summary paragraph explains what a study is. Below the header, the **linked-entities row** shows named, clickable links to the cluster, query set, judgment list, and template the study ran against — so operators don't have to grep UUIDs. When a proposal has been promoted from this study, a **view-proposal** link appears below the linked entities for the round-trip from study → proposal. The **Confidence** panel between the header and the trials table answers *'is this winner statistically reliable?'* — it surfaces the headline metric with a 95% CI band, per-query outcome chips (Improved / Unchanged / Regressed vs. the runner-up or baseline), named *Queries that improved* and *Queries that regressed* tables when those counts are > 0, and three secondary callouts (runner-up gap, late-trial 1σ, convergence regime). Below it, the **Convergence** panel answers a different question — *'did the optimizer finish learning, or did I stop too early?'* — with a plain-language verdict (here: **Converged**), an 'improved by N in the last W trials' summary, and an expandable best-so-far metric curve. Every `(i)` icon opens a glossary definition. The trials table below auto-polls every 3 seconds while the study is running."
     },
     {
       "file": "05-study-terminal-state.png",

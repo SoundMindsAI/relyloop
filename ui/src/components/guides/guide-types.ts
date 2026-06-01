@@ -105,7 +105,7 @@ export const GUIDE_REGISTRY: GuideRegistryEntry[] = [
     id: '01_register_first_cluster',
     title: 'Register your first cluster',
     description:
-      'Add an Elasticsearch or OpenSearch cluster to RelyLoop, scope its index picker with the optional Target filter, and verify the connection probe succeeds.',
+      'Add an Elasticsearch, OpenSearch, or Apache Solr cluster to RelyLoop, scope its index picker with the optional Target filter, and verify the connection probe succeeds.',
     estimatedTime: '3 minutes',
   },
   {
