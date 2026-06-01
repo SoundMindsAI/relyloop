@@ -25,9 +25,9 @@
 | FR-4 | Epic 1 / Story 1.4 | Heavy-lane test dynamic-count via shared slug-keyed snapshot (6 scenarios incl. rich) |
 | FR-5 | Epic 1 / Story 1.5 | TS mirror `scenarios_skipped` + UI hint + contract/vitest (backend field + worker token are in Story 1.2) |
 | FR-6 | Epic 1 / Story 1.6 | Runbook + CLAUDE.md edits |
-| FR-7 | **Phase 2 — deferred** | Smoke Solr stability. Tracked in [`phase2_idea.md`](phase2_idea.md). NOT in this plan. |
+| FR-7 | **Phase 2 — deferred** | Smoke Solr stability. Tracked in [`phase2_idea.md`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md). NOT in this plan. |
 
-**Deferred work tracking:** FR-7 (smoke stability) is Phase 2; tracking artifact [`phase2_idea.md`](phase2_idea.md) already exists in this directory (verified). No new tracking file needed.
+**Deferred work tracking:** FR-7 (smoke stability) is Phase 2; tracking artifact [`phase2_idea.md`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) already exists in this directory (verified). No new tracking file needed.
 
 ## 2) Delivery structure
 

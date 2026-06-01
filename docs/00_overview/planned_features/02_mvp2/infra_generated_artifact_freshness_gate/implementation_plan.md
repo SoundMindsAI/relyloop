@@ -30,7 +30,7 @@
 | FR-8 (canonical fix command — Phase 2 chained half) | Epic 2 / Story 2.4 | `scripts/regen-generated-artifacts.sh` + wiring |
 | FR-6 (determinism verification) | Epic 1 Story 1.2 + Epic 2 Story 2.4 | clean-tree assertion in each gate's negative-test harness |
 
-All spec FRs (FR-1 … FR-9) are covered. The spec defines two phases; **this plan covers both** (Epic 1 = Phase 1, Epic 2 = Phase 2). [`phase2_idea.md`](phase2_idea.md) remains as the standalone record if execution ships Epic 1 alone.
+All spec FRs (FR-1 … FR-9) are covered. The spec defines two phases; **this plan covers both** (Epic 1 = Phase 1, Epic 2 = Phase 2). [`phase2_idea.md`](../infra_openapi_types_freshness_gate/idea.md) remains as the standalone record if execution ships Epic 1 alone.
 
 ## 2) Delivery structure
 

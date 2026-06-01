@@ -2,7 +2,7 @@
 
 > Read this first. A one-page snapshot: current focus, the last few merges, what's in flight, what's queued, and where the project sits in the MVP1 → MVP2 → MVP3 → GA roadmap. **Historical feature-merge narrative + chained execution context lives in [`state_history.md`](state_history.md)** — new merge entries land there, not here (per `chore_state_md_size_compression`, 2026-05-29). Keep this file loadable in a single `Read` call.
 
-**Last updated:** 2026-06-01 (`infra_solr_ci_readiness` Phase 1 merged, PR #367 `214cdfcd` — the demo reseed is now engine-tolerant, so the `pr.yml` **backend** job is GREEN again without a Solr service container. The `smoke` job still crashes on the Solr container (`relyloop-solr-1 exited (1)`) — deferred to Phase 2 (`phase2_idea.md`). The feature folder stays in `planned_features/` until Phase 2 ships.)
+**Last updated:** 2026-06-01 (`infra_solr_ci_readiness` Phase 1 merged, PR #367 `214cdfcd` — the demo reseed is now engine-tolerant, so the `pr.yml` **backend** job is GREEN again without a Solr service container. The `smoke` job still crashes on the Solr container (`relyloop-solr-1 exited (1)`). Phase 1 is now **finalized** to `implemented_features/2026_06_01_infra_solr_ci_readiness/`; the deferred Phase 2 (smoke Solr stability) was extracted to its own standalone idea folder `02_mvp2/infra_solr_smoke_stability/`.)
 
 ## Where the roadmap sits
 
@@ -15,7 +15,7 @@ MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer
 ## Current branch / execution context
 
 - **Branch:** `main` (PR #367 `infra_solr_ci_readiness` Phase 1 just merged, `214cdfcd`). The `pr.yml` backend job is green again; the `smoke` job stays red on the deferred Phase-2 Solr-container crash.
-- **Active feature:** _None in flight._ `infra_solr_ci_readiness` Phase 1 shipped — the demo reseed skips unreachable engines, so the backend CI job no longer needs a Solr service container. Phase 2 (smoke Solr stability) is tracked in `infra_solr_ci_readiness/phase2_idea.md`; the folder stays in `planned_features/` until it ships. Next: pull from the MVP2 Idea backlog (run `/pipeline status`).
+- **Active feature:** _None in flight._ `infra_solr_ci_readiness` Phase 1 shipped + finalized to `implemented_features/2026_06_01_infra_solr_ci_readiness/`. The deferred Phase 2 (smoke Solr stability) is now a standalone idea folder, `02_mvp2/infra_solr_smoke_stability/` (P1 — `smoke` stays red until it ships). Next: pull from the MVP2 Idea backlog (run `/pipeline status`).
 - **Alembic head:** `0022_solr_engine_auth_check` (added by `infra_adapter_solr` Story A6 — extends `clusters.engine_type` + `clusters.auth_kind` CHECK constraints for Solr).
 - **Python:** 3.13. **Frontend stack:** Next 16 (App Router + Turbopack), React 19, Tailwind 4 (CSS-first), Vitest 4, ESLint 9 (flat), TypeScript 6, Playwright (chromium, single worker) for E2E.
 - **Coverage gates:** backend 80% (`fail_under` in pyproject), UI vitest + tsc + ESLint + Next build, plus a full-stack smoke E2E job. Live pass counts: see the latest `pr.yml` run (the historical per-feature counts moved to `state_history.md`).
@@ -33,7 +33,7 @@ _(older entries — full narrative in [`state_history.md`](state_history.md): `i
 
 ## In flight
 
-- _None._ `infra_solr_ci_readiness` Phase 1 (PR #367) merged 2026-06-01; its Phase 2 (smoke Solr stability) is Idea-stage in `02_mvp2/infra_solr_ci_readiness/phase2_idea.md`. The 6 spec/plan pairs from PR #364 remain at **Plan** stage in `02_mvp2/` (two are design-ahead: `feat_apply_path_normalizer_declaration` + `feat_query_normalizer_typed_pipeline`, both gated on `feat_query_normalization_tuning` Phase 1 merging — do not `/impl-execute` until then).
+- _None._ `infra_solr_ci_readiness` Phase 1 (PR #367) merged + finalized 2026-06-01; its Phase 2 (smoke Solr stability) is Idea-stage in the standalone folder `02_mvp2/infra_solr_smoke_stability/`. The 6 spec/plan pairs from PR #364 remain at **Plan** stage in `02_mvp2/` (two are design-ahead: `feat_apply_path_normalizer_declaration` + `feat_query_normalizer_typed_pipeline`, both gated on `feat_query_normalization_tuning` Phase 1 merging — do not `/impl-execute` until then).
 
 ## Queued (priority-ordered by dashboard / dep graph)
 
@@ -49,7 +49,7 @@ _(older entries — full narrative in [`state_history.md`](state_history.md): `i
 
 ## Known debt / fragility
 
-- ~~**Solr is not CI-ready (P1) — `pr.yml` backend + smoke are red on every branch.**~~ — **Backend half RESOLVED** (`infra_solr_ci_readiness` Phase 1, PR #367, 2026-06-01). The demo reseed is now engine-tolerant — it probes each engine and skips unreachable ones — so the `backend` job's `test_demo_seeding_ubi_full` passes (8/8 with Solr absent) and the backend job is green again. **Smoke half still open (Phase 2):** the `smoke` job's `solr` container still crashes (`relyloop-solr-1 exited (1)`) during `make up`; deferred to [`infra_solr_ci_readiness/phase2_idea.md`](docs/00_overview/planned_features/02_mvp2/infra_solr_ci_readiness/phase2_idea.md) (needs `docker compose logs solr` runner evidence to pick the stabilization lever — heap-cap / start_period / smoke-tolerance). Until Phase 2, `smoke` stays red on every PR; merge on the fast lane as before.
+- ~~**Solr is not CI-ready (P1) — `pr.yml` backend + smoke are red on every branch.**~~ — **Backend half RESOLVED** (`infra_solr_ci_readiness` Phase 1, PR #367, 2026-06-01). The demo reseed is now engine-tolerant — it probes each engine and skips unreachable ones — so the `backend` job's `test_demo_seeding_ubi_full` passes (8/8 with Solr absent) and the backend job is green again. **Smoke half still open (Phase 2):** the `smoke` job's `solr` container still crashes (`relyloop-solr-1 exited (1)`) during `make up`; tracked as the standalone idea folder [`infra_solr_smoke_stability`](docs/00_overview/planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) (needs `docker compose logs solr` runner evidence to pick the stabilization lever — heap-cap / start_period / smoke-tolerance). Until it ships, `smoke` stays red on every PR; merge on the fast lane as before.
 
 - ~~**`backend/app/eval/qrels_loader.py` is an MVP1 stub.**~~ — **Resolved.** PR #35 replaced the stub with a real `SELECT query_id, doc_id, rating FROM judgments WHERE judgment_list_id = :id`. The legacy `JudgmentsTableMissing` symbol is retained as a no-op compat shim for any imported reference in older tests. Integration tests now seed real `judgments` rows; `run_trial` consumes the loader directly.
 - **`infra_optuna_orphan_reaper`** — Phase 2 orchestrator can die between `study.ask()` and the enqueue commit, leaving orphan Optuna RUNNING trials. Operationally tolerated for MVP1 per spec §11 "Operational tolerance"; periodic reaper deferred to MVP3 ([`03_mvp3/infra_optuna_orphan_reaper`](docs/00_overview/planned_features/03_mvp3/infra_optuna_orphan_reaper/idea.md)).
