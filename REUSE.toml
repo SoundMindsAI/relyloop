@@ -20,7 +20,7 @@ SPDX-License-Identifier = "Apache-2.0"
 
 # --- Structured data with no comment syntax ----------------------------------
 [[annotations]]
-path = ["**/*.json", "**/*.csv", "**/*.ndjson"]
+path = ["**/*.json", "**/*.csv", "**/*.ndjson", "**/*.cff"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 soundminds.ai"
 SPDX-License-Identifier = "Apache-2.0"

@@ -58,7 +58,7 @@ Each item below is a concrete edit with the location.
 - [x] **docs/07_research/comparison.md** — already read "(MVP2 shipped)" / "(MVP2)" correctly in the competitive matrix; no edit needed (verified current).
 - [x] **release-notes-v0.1.0-draft.md** — Fusion line removed; stale six-release roadmap corrected to the current four-stop matrix. *(File is gitignored/maintainer-local, so this fix is local-only and won't appear in the PR diff.)*
 - [x] **Verified no stragglers** — `grep` for "ships at MVP2 / arrives with MVP2 / Solr in MVP2 / Solr (MVP2)" across all active tracked docs returns clean; "Lucidworks Fusion / Fusion adapter / Fusion Signals" across active tracked docs returns clean. (Remaining Fusion strings live only in the historical record: `implemented_features/`, `state_history.md`, the auto-generated dashboards, and test fixtures using `"fusion"` as a deliberately-invalid engine value — these are the *record of dropping Fusion*, not advertisements for it.)
-- [ ] **Ship it** — commit on `docs/solr-shipped-reconcile`, push, open the single PR, watch CI, merge. (Docs-only; no migration, no coverage impact.)
+- [x] **Ship it** — shipped via PR #354 (docs reconcile + README loop diagram) plus follow-on MVP2 doc PRs. Verified clean: no active tracked doc says Solr "ships at MVP2" / "arrives with MVP2", and Fusion is gone from all active docs (only the historical record retains it).
 
 ---
 
@@ -85,9 +85,9 @@ Most of this is already done — pre-checked with evidence.
 - [x] Issue templates (bug, feature, config) + PR template + `CODEOWNERS`.
 - [x] CI on PR (`pr.yml`) + OpenSSF Scorecard + a secrets-defense workflow (ahead of the baseline plan).
 - [x] Dependabot configured.
-- [ ] 🟡 `CHANGELOG.md` — missing. Add one (Keep a Changelog, or generate from conventional commits).
+- [x] 🟡 `CHANGELOG.md` — added (Keep a Changelog 1.1.0 format). Covers v0.1.0–v0.1.3 plus an `[Unreleased]` section tracking the MVP2 work on `main` (Solr adapter, UBI judgments, convergence indicator, overnight autopilot). Tagging `v0.2.0` closes the `[Unreleased]` section.
 - [ ] 🟡 `release.yml` workflow — missing; releases are hand-cut today. Automate before cadence picks up.
-- [ ] 🟢 `CITATION.cff` — cheap academic-credibility win in the relevance/IR community.
+- [x] 🟢 `CITATION.cff` — added (CFF 1.2.0). Title/abstract/keywords for the relevance-IR community; version pinned to the latest release (`v0.1.3`). Bump `version` + `date-released` at each tag.
 - [ ] (See Section 0) Branch protection on `main`; Discussions; labels.
 
 **Make it runnable fast**
