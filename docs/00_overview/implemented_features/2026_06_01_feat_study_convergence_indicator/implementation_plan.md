@@ -1,7 +1,7 @@
 # Implementation Plan — Study convergence indicator
 
 **Date:** 2026-05-31
-**Status:** Ready for Execution
+**Status:** Complete (PR #352, merged 2026-06-01)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../../CLAUDE.md), [`docs/01_architecture/api-conventions.md`](../../../../01_architecture/api-conventions.md), [`docs/01_architecture/ui-architecture.md`](../../../../01_architecture/ui-architecture.md)
 
