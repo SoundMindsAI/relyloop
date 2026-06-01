@@ -1,0 +1,73 @@
+{#-
+  RelyLoop override of Material's default copyright partial.
+  Preserves the upstream copyright + generator line, then appends a
+  build stamp (short commit SHA + merged PR number) so the deployed site
+  records exactly which change produced it — independent of the Material
+  repo-info widget, which shows the latest GitHub *release*, not this deploy.
+  Values come from `extra.build.*` in mkdocs.yml, populated by the
+  deploy-docs.yml workflow via BUILD_SHA / BUILD_PR env vars.
+-#}
+<div class="md-copyright">
+  {% if config.copyright %}
+    <div class="md-copyright__highlight">
+      {{ config.copyright }}
+    </div>
+  {% endif %}
+  {% if not config.extra.generator == false %}
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  {% endif %}
+  {% set build = config.extra.build %}
+  {% if build and build.sha and build.sha != "dev" %}
+    <div class="md-copyright__build">
+      build
+      <a href="{{ config.repo_url }}/commit/{{ build.sha }}" target="_blank" rel="noopener">{{ build.sha }}</a>
+      {% if build.pr %}
+        &middot;
+        <a href="{{ config.repo_url }}/pull/{{ build.pr }}" target="_blank" rel="noopener">#{{ build.pr }}</a>
+      {% endif %}
+      {% if build.time %}
+        &middot;
+        {#- `!ENV` in mkdocs.yml coerces an ISO string into a Python datetime,
+            whose default str() is space-separated (invalid for <time datetime>
+            and Safari's Date parser). Force a canonical ISO 8601 string with
+            the `T` separator via isoformat(); fall back to the raw value if it
+            is already a string. Absolute UTC is the no-JS fallback + hover
+            tooltip; the script below rewrites the text to a live "built N hours
+            ago" at view time, so freshness is computed when read, not frozen. -#}
+        {% set bt = build.time.isoformat() if build.time.isoformat is defined else build.time %}
+        <time class="md-build-time" datetime="{{ bt }}" title="built {{ bt }} UTC">built {{ bt }} UTC</time>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+{% if build and build.sha and build.sha != "dev" and build.time %}
+<script>
+  (function () {
+    if (typeof Intl === "undefined" || !Intl.RelativeTimeFormat) return;
+    var el = document.querySelector("time.md-build-time");
+    if (!el) return;
+    var built = new Date(el.getAttribute("datetime"));
+    if (isNaN(built)) return;
+    function rel() {
+      var secs = Math.round((Date.now() - built.getTime()) / 1000);
+      var rtf = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+      var units = [
+        ["year", 31536000], ["month", 2592000], ["day", 86400],
+        ["hour", 3600], ["minute", 60], ["second", 1]
+      ];
+      for (var i = 0; i < units.length; i++) {
+        var name = units[i][0], size = units[i][1];
+        if (Math.abs(secs) >= size || name === "second") {
+          el.textContent = "built " + rtf.format(-Math.round(secs / size), name);
+          return;
+        }
+      }
+    }
+    rel();
+    setInterval(rel, 60000);
+  })();
+</script>
+{% endif %}
