@@ -28,7 +28,7 @@ defaults, enabling `solr.UBIComponent`, and uploading LTR models.
   > accessor that memoizes its value at process start. If you edit the
   > file on a running stack (or run step 5a of `scripts/install.sh` after
   > `docker compose up -d`), the API keeps serving the *old* credentials
-  > until you restart: `docker compose restart api worker`.
+  > until you restart: `docker compose restart API worker`.
   > The same caching applies to Elasticsearch and OpenSearch credentials.
 
 - For SolrCloud: the operator-supplied URL must point at a Solr node
