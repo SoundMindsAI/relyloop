@@ -8,9 +8,9 @@
 
 MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer, Git-PR apply path, conversational agent, ES + OpenSearch adapters, LLM judgments, local-first stack). The release matrix was compressed to four stops on 2026-05-27 — MVP1 → MVP2 (Three-Engine + Real Signals: Solr adapter + UBI judgments) → MVP3 (Observable) → GA v1 (hardening). Multi-tenant + multi-LLM + multi-Git + LTR + Path B are backlog. Canonical matrix: [`docs/01_architecture/tech-stack.md`](docs/01_architecture/tech-stack.md); full reshuffle rationale archived in [`state_history.md`](state_history.md).
 
-## ⚠️ Active CI note — heavy jobs temporarily skipped
+## CI note — full suite active
 
-**`SKIP_HEAVY_CI=true` repo variable is set (2026-05-29, ~3-day GitHub Actions budget measure; PR #307).** The 5 `pr.yml` jobs over 1 min — `backend` (lint+typecheck+tests+coverage), `frontend`, `smoke`, both `docker buildx` — are **skipped** on every PR. Only the 4 sub-minute checks run (backend fast-lane unit tests, DCO, secrets guard, gitleaks). **While this is active, lean on local `make test` / `pnpm test` + review before merging — CI is not validating the full suite, coverage gate, smoke, or builds.** Scheduled to auto-restore on ~2026-06-01 (routine deletes the variable); restore manually anytime with `gh variable delete SKIP_HEAVY_CI`. The `if:` kill-switch stays in `pr.yml` as documented infra.
+**Heavy CI is ON.** `SKIP_HEAVY_CI` was deleted 2026-05-31 — the full `pr.yml` suite (backend lint/typecheck/tests/coverage, frontend, smoke, both `docker buildx`) runs on every PR again. The earlier ~3-day skip (2026-05-29, PR #307) was a private-repo GHA-budget measure; it no longer applies now that the repo is **public** — standard GitHub-hosted runners (`ubuntu-latest`/`ubuntu-24.04`, all jobs) are unlimited-free on public repos. The `if:` kill-switch stays in `pr.yml` as documented infra; re-enable only with a fresh budget reason by setting `SKIP_HEAVY_CI=true`.
 
 ## Current branch / execution context
 
