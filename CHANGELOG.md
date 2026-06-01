@@ -63,6 +63,10 @@ items are in progress. This will be tagged `v0.2.0` once the MVP2 scope closes.
 - **Release matrix compressed** to four stops: MVP1 → MVP2 (Three-Engine + Real
   Signals) → MVP3 (Observable) → GA v1 (hardening). Multi-tenant, multi-LLM,
   multi-Git, LTR, and production-monitoring are backlog.
+- **Solr Compose service** added (SolrCloud + embedded ZooKeeper,
+  `SOLR_MODULES=ltr`) on `127.0.0.1:8983`; UI primitive groundwork continued
+  (see v0.1.2). Alembic head advanced to `0022_solr_engine_auth_check` (Solr
+  `engine_type` + `auth_kind` CHECK-constraint extensions).
 
 ### Fixed
 
@@ -70,14 +74,6 @@ items are in progress. This will be tagged `v0.2.0` once the MVP2 scope closes.
   structlog processor list instance on every call, blinding cached loggers to
   `capture_logs()` and making the full randomized suite nondeterministically
   red; fixed by mutating the list in place. (#364)
-
-### Infrastructure
-
-- UI primitive groundwork continued (see v0.1.2); MVP2 added the Solr Compose
-  service (SolrCloud + embedded ZooKeeper, `SOLR_MODULES=ltr`) on
-  `127.0.0.1:8983`.
-- Alembic head advanced to `0022_solr_engine_auth_check` (Solr `engine_type` +
-  `auth_kind` CHECK-constraint extensions).
 
 ## [0.1.3] - 2026-05-29
 
