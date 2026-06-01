@@ -70,6 +70,17 @@ export type SamplerKind = (typeof SAMPLER_VALUES)[number];
 export const PRUNER_VALUES = ['median', 'none'] as const;
 export type PrunerKind = (typeof PRUNER_VALUES)[number];
 
+// Values must match backend/app/domain/study/convergence.py ConvergenceVerdict.
+// Ordering matters — the value-lock vitest in
+// ui/src/__tests__/lib/enums-convergence-discipline.test.ts asserts the exact
+// array contents AND order to catch any silent drift on either side.
+export const CONVERGENCE_VERDICT_VALUES = [
+  'converged',
+  'still_improving',
+  'too_few_trials',
+] as const;
+export type ConvergenceVerdict = (typeof CONVERGENCE_VERDICT_VALUES)[number];
+
 // Values must match backend/app/api/v1/schemas.py ObjectiveMetric.
 // ERR@k is deferred to MVP2 per infra_optuna_eval feature_spec.md §3 / §FR-3 / §13;
 // add it back here when scoring.py SUPPORTED_METRICS grows the entry.

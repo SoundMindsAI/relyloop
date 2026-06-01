@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AutoFollowupChainPanel } from '@/components/studies/auto-followup-chain-panel';
 import { ConfidencePanel } from '@/components/studies/confidence-panel';
+import { ConvergencePanel } from '@/components/studies/convergence-panel';
 import { LinkedEntitiesRow } from '@/components/studies/linked-entities-row';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
@@ -108,6 +109,11 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
             )}
             <AutoFollowupChainPanel study={study} chainChildren={childrenQ.data?.data ?? []} />
             <ConfidencePanel confidence={study.confidence} />
+            <ConvergencePanel
+              convergence={study.convergence ?? null}
+              studyStatus={study.status}
+              trialsSummary={study.trials_summary}
+            />
             <TrialsCard trialsQ={trialsQ} urlState={urlState} tableId={`trials-${studyId}`} />
             {study.status === 'completed' && digestQ.data && (
               <DigestPanel
