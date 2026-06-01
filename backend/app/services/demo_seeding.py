@@ -195,6 +195,34 @@ class DemoSeedingError(RuntimeError):
     """
 
 
+# Stable machine-readable token written into ``ReseedStatusResponse.failed_reason``
+# when every demo engine is unreachable. Tests + operators match on this exact
+# string; never reword it. (infra_solr_ci_readiness FR-2 / D-7.)
+ALL_ENGINES_UNREACHABLE_MARKER: Final[str] = "all_engines_unreachable"
+
+
+class AllEnginesUnreachableError(DemoSeedingError):
+    """Raised when no demo engine (ES / OpenSearch / Solr) is reachable.
+
+    Carries the full skipped-slug list so the worker can write it into the
+    failed ``ReseedStatusResponse`` (the reseed is async — the orchestrator
+    runs in the Arq worker, so this is the only channel the skip list reaches
+    the GET-status payload). ``str(exc)`` is the stable
+    :data:`ALL_ENGINES_UNREACHABLE_MARKER` token, distinct from the generic
+    ``f"{type}: {msg}"`` reason written for mid-scenario failures.
+
+    Routing all-engines-unreachable through ``status="failed"`` (rather than a
+    no-op ``status="complete"``) prevents Arq's ``keep_result`` cache from
+    masquerading a zero-scenario reseed as a success and locking out retries —
+    see ``bug_reseed_failure_blocks_retry_arq_singleton_dedup``.
+    """
+
+    def __init__(self, scenarios_skipped: list[str]) -> None:
+        """Store the skipped slugs; stringify to the stable marker token."""
+        self.scenarios_skipped = scenarios_skipped
+        super().__init__(ALL_ENGINES_UNREACHABLE_MARKER)
+
+
 # ---------------------------------------------------------------------------
 # Response model
 # ---------------------------------------------------------------------------
@@ -246,6 +274,14 @@ class ReseedStatusResponse(BaseModel):
     # via the :func:`_emit_progress` choke point. Per
     # ``feat_demo_reseed_solr_and_steplog``.
     steps: list[str] = Field(default_factory=list)
+    # Slugs of demo scenarios skipped because their engine was unreachable at
+    # probe time (engine container not running). A non-empty list with
+    # ``status="complete"`` is a legitimate PARTIAL completion (some engines
+    # were absent); with ``status="failed"`` + ``failed_reason=
+    # "all_engines_unreachable"`` it means NO engine was reachable. Additive +
+    # defaulted so existing constructions stay valid under ``extra="forbid"``.
+    # Per ``infra_solr_ci_readiness`` FR-5.
+    scenarios_skipped: list[str] = Field(default_factory=list)
 
 
 # Status callback receives an in-progress ReseedStatusResponse and persists
@@ -364,6 +400,91 @@ def _resolve_engine_base_url(host_base_url: str) -> str:
             f"Expected one of {sorted(_ENGINE_BASE_URL_MAPPING)}."
         )
     return resolved
+
+
+# ---------------------------------------------------------------------------
+# Engine reachability probe (infra_solr_ci_readiness FR-1 / FR-2)
+#
+# A single, total (never-raises) reachability check reused by the orchestrator
+# (skip-on-unreachable), the CLI (engine-tolerance), and the heavy-lane test
+# (dynamic expected-count snapshot). Unauthenticated by design — the local
+# Compose engines all run security-disabled (CLAUDE.md "Common Pitfalls"); this
+# probe is scoped to those local engines and does not negotiate auth.
+# ---------------------------------------------------------------------------
+
+
+_EngineType = Literal["elasticsearch", "opensearch", "solr"]
+
+
+async def is_engine_reachable(
+    engine_base_url: str,
+    engine_type: _EngineType,
+    *,
+    timeout_s: float = 2.0,
+) -> bool:
+    """Return ``True`` iff a healthy engine of ``engine_type`` answers at the URL.
+
+    Issues ONE GET to the engine's standard health path and validates the body
+    shape so an accidental hit on a wrong service does not false-positive:
+
+    - Solr: ``GET /solr/admin/info/system`` -> ``responseHeader.status == 0`` and
+      a ``lucene`` block.
+    - Elasticsearch / OpenSearch: ``GET /`` -> a ``version`` key.
+
+    Total by contract: any ``httpx`` error, timeout, or unexpected exception is
+    treated as "unreachable" (returns ``False`` + WARN log). This guarantees a
+    transient DNS hiccup can never break the reseed — the worst case is a
+    scenario being skipped (FR-2 / AC-9).
+    """
+    health_path = "/solr/admin/info/system" if engine_type == "solr" else "/"
+    try:
+        async with httpx.AsyncClient(timeout=timeout_s) as client:
+            response = await client.get(f"{engine_base_url}{health_path}")
+            if response.status_code != 200:
+                return False
+            body = response.json()
+            if engine_type == "solr":
+                return body.get("responseHeader", {}).get("status") == 0 and "lucene" in body
+            return "version" in body
+    except Exception as exc:  # noqa: BLE001 — probe is total; any failure => unreachable
+        logger.warning(
+            "demo_reseed_engine_probe_failed",
+            extra={
+                "engine_type": engine_type,
+                "engine_base": engine_base_url,
+                "error_type": type(exc).__name__,
+            },
+        )
+        return False
+
+
+async def snapshot_engine_reachability(
+    scenarios: list[dict[str, Any]],
+) -> dict[str, bool]:
+    """Probe every reseed scenario's engine once; return a slug -> reachable map.
+
+    Keyed by scenario **slug** (not engine name) because multiple scenarios can
+    share an engine and the orchestrator's ``scenarios_skipped`` is slug-keyed.
+    Resolves each scenario's host URL to the in-container Compose-DNS URL via
+    :func:`_resolve_engine_base_url` so the snapshot probes the SAME URL the
+    orchestrator dispatches against (avoids host-vs-Compose namespace drift).
+
+    Covers the ``scenarios`` passed (the 5 ``SCENARIOS`` entries) PLUS the
+    separately-seeded rich ESCI scenario (``_RICH_SCENARIO_SLUG``, an
+    Elasticsearch scenario) — so the returned map has 6 keys, matching
+    ``scenarios_total = len(SCENARIOS) + 1``. (infra_solr_ci_readiness FR-2/FR-4.)
+    """
+    result: dict[str, bool] = {}
+    for scenario in scenarios:
+        slug = cast("str", scenario["slug"])
+        engine_type = cast("_EngineType", scenario["engine_type"])
+        resolved = _resolve_engine_base_url(cast("str", scenario["host_base_url"]))
+        result[slug] = await is_engine_reachable(resolved, engine_type)
+    # Rich ESCI scenario is seeded outside the SCENARIOS loop and is always ES.
+    result[_RICH_SCENARIO_SLUG] = await is_engine_reachable(
+        _resolve_engine_base_url(ES), "elasticsearch"
+    )
+    return result
 
 
 # ---------------------------------------------------------------------------
@@ -1379,11 +1500,26 @@ async def reseed_demo_state(
     for scenario in SCENARIOS:
         slug: str = cast("str", scenario["slug"])
         engine_base = _resolve_engine_base_url(cast("str", scenario["host_base_url"]))
+        engine_type: _EngineType = cast("_EngineType", scenario["engine_type"])
         target: str = cast("str", scenario["target"])
         host_auth: _AuthTuple = cast("_AuthTuple", scenario["host_auth"])
         scenario_docs = cast("list[dict[str, Any]]", scenario["docs"])
         scenario_queries = cast("list[dict[str, Any]]", scenario["queries"])
         scenario_judgments_map = cast("list[tuple[int, str, int]]", scenario["judgments_map"])
+
+        # Skip-on-unreachable: probe the scenario's engine BEFORE any dispatch.
+        # A False here means the engine container isn't running (e.g. Solr is
+        # absent in the pr.yml backend job) — skip the scenario and record the
+        # slug rather than ConnectError-ing the whole reseed. A transient error
+        # mid-scenario (after this gate) still surfaces as DemoSeedingError.
+        # (infra_solr_ci_readiness FR-2.)
+        if not await is_engine_reachable(engine_base, engine_type):
+            logger.info(
+                "demo_reseed_scenario_skipped_engine_unreachable",
+                extra={"slug": slug, "engine_type": engine_type, "engine_base": engine_base},
+            )
+            progress.scenarios_skipped.append(slug)
+            continue
 
         progress.current_step = f"{slug}: indexing {len(scenario_docs)} docs into {target}"
         await _emit_progress(status_callback, progress)
@@ -1752,23 +1888,57 @@ async def reseed_demo_state(
     # LLM-generated judgments + 15-trial study. Failures here are
     # tolerated (the 4 small scenarios are still valuable on their own,
     # per the CLI's policy at line 878-880).
+    #
+    # The rich scenario is an Elasticsearch scenario seeded outside the
+    # SCENARIOS loop, so it needs its own reachability gate: when ES is
+    # unreachable, skip + record the slug rather than letting _seed_rich_scenario
+    # raise on the first DELETE. (infra_solr_ci_readiness FR-2.)
     rich_study_id: str | None = None
-    try:
-        rich_study_id = await _seed_rich_scenario(
-            api_client,
-            engine_client,
-            status_callback=status_callback,
-            progress=progress,
+    rich_engine_base = _resolve_engine_base_url(ES)
+    if not await is_engine_reachable(rich_engine_base, "elasticsearch"):
+        logger.info(
+            "demo_reseed_scenario_skipped_engine_unreachable",
+            extra={
+                "slug": _RICH_SCENARIO_SLUG,
+                "engine_type": "elasticsearch",
+                "engine_base": rich_engine_base,
+            },
         )
-    except DemoSeedingError as exc:
+        progress.scenarios_skipped.append(_RICH_SCENARIO_SLUG)
+    else:
+        try:
+            rich_study_id = await _seed_rich_scenario(
+                api_client,
+                engine_client,
+                status_callback=status_callback,
+                progress=progress,
+            )
+        except DemoSeedingError as exc:
+            logger.warning(
+                "demo_reseed_rich_scenario_failed_tolerated",
+                extra={"exc": str(exc)[:200]},
+            )
+            rich_study_id = None
+        if rich_study_id is not None:
+            progress.scenarios_completed += 1
+            await _emit_progress(status_callback, progress)
+
+    # ---- Step 2c: engine-tolerance verdict. ----
+    # If NOTHING seeded (every engine unreachable), this is a hard failure, not
+    # a partial — surfacing it as a no-op success would cache in Arq's
+    # keep_result window and wedge retries (bug_reseed_failure_blocks_retry_…).
+    # Otherwise, if any scenario was skipped, emit one WARN summarizing the
+    # partial completion. (infra_solr_ci_readiness FR-2 / AC-7 / AC-10.)
+    if not results and rich_study_id is None and progress.scenarios_skipped:
+        raise AllEnginesUnreachableError(progress.scenarios_skipped)
+    if progress.scenarios_skipped:
         logger.warning(
-            "demo_reseed_rich_scenario_failed_tolerated",
-            extra={"exc": str(exc)[:200]},
+            "demo_reseed_partial_completion_engines_unreachable",
+            extra={
+                "scenarios_skipped": progress.scenarios_skipped,
+                "scenarios_completed": progress.scenarios_completed,
+            },
         )
-        rich_study_id = None
-    if rich_study_id is not None:
-        progress.scenarios_completed += 1
-        await _emit_progress(status_callback, progress)
 
     # ---- Step 3: rename the 4 small studies. ----
     progress.current_step = "renaming studies to tutorial names"
@@ -1787,8 +1957,12 @@ async def reseed_demo_state(
     # so the cluster / query-set counts stay at the SCENARIOS cardinality.
     # Studies and proposals scale with `results` (each entry is one
     # completed study + one digest + one proposal).
+    # Count actually-created clusters/query-sets, NOT len(SCENARIOS): a scenario
+    # skipped for engine-unreachability creates nothing, so `results` (one entry
+    # per COMPLETED scenario) is the correct cardinality. With no skips
+    # len(results) == len(SCENARIOS), so the happy path is unchanged.
     rich_count = 1 if rich_study_id is not None else 0
-    clusters_and_qsets = len(SCENARIOS) + rich_count
+    clusters_and_qsets = len(results) + rich_count
     studies_and_proposals = len(results) + rich_count
     summary = ReseedSummary(
         clusters_created=clusters_and_qsets,
