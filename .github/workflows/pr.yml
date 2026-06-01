@@ -715,8 +715,16 @@ jobs:
 
       - name: Collect docker compose logs on failure
         if: failure()
+        # `infra_solr_smoke_stability` FR-1: include solr + opensearch in the
+        # log collect list (both were missing — opensearch is a pre-existing
+        # gap), and append per-container `docker inspect` exit-state with
+        # OOMKilled / Health.Status / StartedAt / FinishedAt so total-runner
+        # memory pressure and slow-boot vs healthcheck-window failures are
+        # diagnosable from the artifact alone. All three lines `|| true` —
+        # intentionally best-effort.
         run: |
-          docker compose logs --no-color api worker postgres redis elasticsearch ui > smoke-logs.txt 2>&1 || true
+          docker compose logs --no-color api worker postgres redis elasticsearch opensearch solr ui > smoke-logs.txt 2>&1 || true
+          docker compose ps -aq | xargs -r docker inspect --format '{{.Name}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{.State.Error}} health={{with .State.Health}}{{.Status}}{{end}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' >> smoke-logs.txt 2>&1 || true
           curl -s http://127.0.0.1:8000/healthz >> smoke-logs.txt 2>&1 || true
 
       - name: Upload failure diagnostics
