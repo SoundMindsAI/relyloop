@@ -180,11 +180,12 @@
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
 - 🟡 [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison)
 
-??? note "Infrastructure & tooling (3)"
+??? note "Infrastructure & tooling (4)"
 
     - ✅ [Adapter Solr](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr) · [#336](https://github.com/SoundMindsAI/relyloop/pull/336)
     - 🟡 [Arq Subprocess Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test)
     - 🟡 [Generated Artifact Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_generated_artifact_freshness_gate)
+    - 🟡 [Solr CI Readiness](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_solr_ci_readiness)
 
 ??? note "Maintenance & fixes (20)"
 

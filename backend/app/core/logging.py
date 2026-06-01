@@ -51,6 +51,23 @@ def configure_logging(*, level: int = logging.INFO, json_output: bool = True) ->
 
     Idempotent — safe to call multiple times. Tests that need a fresh logger
     can call this with custom args.
+
+    **List-instance preservation (test-isolation correctness).** structlog
+    binds each logger against the *same list instance* that
+    ``structlog.get_config()["processors"]`` returns, and
+    ``cache_logger_on_first_use=True`` freezes that reference on the bound
+    logger. ``structlog.testing.capture_logs()`` deliberately *mutates that
+    list in place* ("keep the list instance intact to not break references
+    held by bound loggers"). If this function handed structlog a brand-new
+    list on every call, a second ``configure_logging()`` (e.g. a later
+    integration test's FastAPI lifespan) would swap the config's list for a
+    fresh instance — and any module-level logger cached against the previous
+    instance would go blind to ``capture_logs()``, which mutates the *new*
+    instance. That is the exact mechanism behind the order-dependent
+    ``assert []`` failures in
+    ``bug_backend_suite_nondeterministic_caplog_isolation``. We therefore
+    mutate the existing processors list in place instead of replacing it, so
+    every bound logger — cached or not — always observes the current chain.
     """
     # Shared processors that run for both structlog-native and stdlib-routed records.
     # RedactTokensProcessor sits AFTER format_exc_info so tracebacks (which
@@ -75,12 +92,22 @@ def configure_logging(*, level: int = logging.INFO, json_output: bool = True) ->
     else:
         final_processor = structlog.dev.ConsoleRenderer(colors=True)
 
-    # Configure structlog itself.
+    # Configure structlog itself. Mutate the existing processors list in place
+    # (preserving its instance identity) rather than handing structlog a fresh
+    # list — see the docstring's "List-instance preservation" note. A bound
+    # logger cached against the prior instance would otherwise be invisible to
+    # capture_logs() after a subsequent configure_logging() call.
+    structlog_processors: list[Processor] = [
+        *shared_processors,
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ]
+    existing_processors = structlog.get_config().get("processors")
+    if isinstance(existing_processors, list):
+        existing_processors[:] = structlog_processors
+        structlog_processors = existing_processors
+
     structlog.configure(
-        processors=[
-            *shared_processors,
-            structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
-        ],
+        processors=structlog_processors,
         wrapper_class=structlog.stdlib.BoundLogger,
         logger_factory=structlog.stdlib.LoggerFactory(),
         cache_logger_on_first_use=True,

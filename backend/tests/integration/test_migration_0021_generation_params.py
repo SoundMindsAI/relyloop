@@ -116,7 +116,12 @@ class TestGenerationParamsMigration:
 
     def test_downgrade_drops_column_then_round_trip(self, restore_head: None) -> None:
         _alembic("upgrade", "head")
-        _alembic("downgrade", "-1")
+        # Downgrade to the revision BELOW 0021 (0020) rather than a relative
+        # "-1": 0021 is no longer the head (0022_solr_engine_auth_check and
+        # later revisions sit above it), so "downgrade -1" would only reverse
+        # the current head and leave 0021's generation_params column intact.
+        # Targeting 0020 absolutely runs 0021's downgrade regardless of head.
+        _alembic("downgrade", "0020")
         engine = create_engine(_sync_database_url(), future=True)
         try:
             with engine.connect() as conn:
