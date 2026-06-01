@@ -140,6 +140,7 @@ from backend.app.db.repo.trial import (
     count_trials,
     create_trial,
     get_trial,
+    list_complete_optuna_trials_for_study,
     list_trials_for_study,
     list_trials_paginated,
 )
@@ -272,4 +273,7 @@ __all__ = [
     # create-time overlap probe.
     "find_first_judged_query",
     "list_doc_ids_for_list_and_query",
+    # feat_study_convergence_indicator Story 2.1 — read-side helper feeding
+    # the trailing-window-flat convergence classifier.
+    "list_complete_optuna_trials_for_study",
 ]

@@ -38,6 +38,7 @@ from backend.app.api.v1.schemas import (
     QueryTemplateListResponse,
     QueryTemplateSummary,
     StudyConfigSpec,
+    StudyConvergenceShape,
     StudyDetail,
     StudyListResponse,
     StudySummary,
@@ -54,6 +55,7 @@ def test_phase2_schemas_importable() -> None:
         BulkQueriesResponse,
         BulkQueryItem,
         ConfidenceShape,
+        StudyConvergenceShape,
         CreateQuerySetRequest,
         CreateQueryTemplateRequest,
         CreateStudyRequest,
@@ -102,6 +104,71 @@ def test_confidence_shape_has_six_subfields() -> None:
     }
     actual = set(schema["properties"].keys())
     assert expected == actual, f"ConfidenceShape fields drifted: expected {expected}, got {actual}"
+
+
+# ---------------------------------------------------------------------------
+# feat_study_convergence_indicator Story 3.1 — StudyDetail.convergence + shape
+# ---------------------------------------------------------------------------
+
+
+def test_study_detail_includes_convergence_field() -> None:
+    """``StudyDetail`` exposes ``convergence: StudyConvergenceShape | None`` (FR-4).
+
+    The field is additive (defaults to ``None``) and distinct from
+    ``confidence.convergence.regime`` (winner-trial timing — a separate
+    concept that lives under ``confidence``)."""
+
+    schema = StudyDetail.model_json_schema()
+    assert "convergence" in schema["properties"], (
+        "StudyDetail.convergence missing — see feat_study_convergence_indicator Story 3.1."
+    )
+    prop = schema["properties"]["convergence"]
+    refs_or_anyof = prop.get("anyOf") or [prop]
+    assert any(
+        "$ref" in entry and "StudyConvergenceShape" in entry["$ref"] for entry in refs_or_anyof
+    ), f"StudyDetail.convergence is not typed as Optional[StudyConvergenceShape]; got {prop!r}"
+
+
+def test_convergence_shape_has_all_eight_subfields() -> None:
+    """``StudyConvergenceShape`` carries the eight sub-fields per spec §8.3."""
+
+    schema = StudyConvergenceShape.model_json_schema()
+    expected = {
+        "verdict",
+        "direction",
+        "window_size",
+        "epsilon",
+        "warmup_floor",
+        "total_complete_trials",
+        "improvement_in_window",
+        "best_so_far_curve",
+    }
+    actual = set(schema["properties"].keys())
+    assert expected == actual, (
+        f"StudyConvergenceShape fields drifted: expected {expected}, got {actual}"
+    )
+
+
+def test_convergence_verdict_is_three_string_literal() -> None:
+    """``StudyConvergenceShape.verdict`` is exactly the three-value Literal —
+    matches the source-of-truth in ``backend.app.domain.study.convergence``
+    that the frontend ``CONVERGENCE_VERDICT_VALUES`` array mirrors."""
+
+    schema = StudyConvergenceShape.model_json_schema()
+    verdict = schema["properties"]["verdict"]
+    # Pydantic emits Literal[...] as {"enum": [...], "type": "string"} OR
+    # {"const": "..."} for single-value Literals. Accept either rendering.
+    assert verdict.get("enum") == ["converged", "still_improving", "too_few_trials"], (
+        f"StudyConvergenceShape.verdict enum drifted: {verdict!r}"
+    )
+
+
+def test_convergence_direction_is_two_string_literal() -> None:
+    schema = StudyConvergenceShape.model_json_schema()
+    direction = schema["properties"]["direction"]
+    assert direction.get("enum") == ["maximize", "minimize"], (
+        f"StudyConvergenceShape.direction enum drifted: {direction!r}"
+    )
 
 
 def test_study_config_requires_at_least_one_stop_condition() -> None:
@@ -195,10 +262,15 @@ def test_objective_spec_accepts_mrr_without_k() -> None:
 
 
 def test_create_query_template_rejects_unknown_engine_type() -> None:
+    # Until infra_adapter_solr shipped (2026-05-31, PR #336), this test
+    # used ``engine_type="solr"`` as the canonical "unknown engine" sentinel.
+    # Solr is now a first-class engine, so the sentinel had to move to a
+    # truly-invalid string. Any value outside the
+    # {"elasticsearch", "opensearch", "solr"} allowlist works.
     with pytest.raises(ValidationError):
         CreateQueryTemplateRequest(
             name="qt",
-            engine_type="solr",
+            engine_type="vespa",  # not a supported engine
             body='{"query": {}}',
         )
 

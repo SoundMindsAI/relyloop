@@ -44,6 +44,16 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, Literal
 
+# Single source of truth for the lift epsilon used by the chain gate and
+# re-exported as ``CONVERGENCE_FLAT_EPSILON`` by
+# ``backend.app.domain.study.convergence`` (feat_study_convergence_indicator
+# Story 1.1 / FR-2). Value MUST stay 0.005 to preserve auto-followup behavior
+# and to keep the post-completion "re-run" recommendation in lockstep with
+# what the chain gate would have decided. The AST/grep guard in
+# ``backend/tests/unit/domain/study/test_convergence.py`` allows exactly ONE
+# bare 0.005 literal under ``backend/app/`` — this declaration line.
+AUTO_FOLLOWUP_LIFT_EPSILON: float = 0.005
+
 
 class ChainGateDecision(StrEnum):
     """What :func:`evaluate_chain_gate` decided.
@@ -71,7 +81,7 @@ class ChainGateOutcome:
     decision: ChainGateDecision
     lift: float | None = None
     first_decile_max: float | None = None
-    epsilon: float = 0.005
+    epsilon: float = AUTO_FOLLOWUP_LIFT_EPSILON
 
 
 def compute_first_decile_max(
@@ -118,7 +128,7 @@ def evaluate_chain_gate(
     parent: Any,
     complete_trials: Iterable[Any],
     *,
-    epsilon: float = 0.005,
+    epsilon: float = AUTO_FOLLOWUP_LIFT_EPSILON,
     direction: Literal["maximize", "minimize"] = "maximize",
 ) -> ChainGateOutcome:
     """Decide whether to enqueue a follow-up study for ``parent``.

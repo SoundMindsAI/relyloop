@@ -858,6 +858,42 @@ export const glossary = {
   },
 
   // ---------------------------------------------------------------------------
+  // feat_study_convergence_indicator Story 4.1 — 3 convergence-panel entries.
+  // Text from feature_spec.md §11 tooltip inventory (FR-8). Distinct from the
+  // `confidence.convergence_regime` entry above — that classifies the
+  // *winner-trial timing*, these classify the *metric plateau*. Both surfaces
+  // coexist on /studies/[id].
+  // Source-of-truth: backend/app/domain/study/convergence.py
+  //   - convergence_verdict → ConvergenceVerdict Literal
+  //   - convergence_window  → CONVERGENCE_FLAT_WINDOW
+  //   - convergence_curve   → classify_convergence algorithm
+  // ---------------------------------------------------------------------------
+  convergence_verdict: {
+    short:
+      'Did the optimizer finish learning? Converged = plateau held; Still improving = stopped mid-climb; Too few trials = below the warmup floor.',
+    long: [
+      '**Converged** — the best-so-far metric improved by less than 0.005 over the last 20 completed trials. The optimizer settled; more trials would not meaningfully help.',
+      '',
+      '**Still improving when it stopped** — the best-so-far metric was still climbing in the last 20 trials. The study is likely under-budgeted; consider re-running with the next-larger preset (Standard 200 → Deep 1000).',
+      '',
+      '**Too few trials to tell** — the study ran below the TPE warmup floor (50 trials). The optimizer never left random-search; treat the result as preliminary and re-run with at least Standard.',
+      '',
+      'See [`docs/03_runbooks/convergence-verdict.md`](/docs/03_runbooks/convergence-verdict.md) for the full interpretation guide.',
+    ].join('\n'),
+    ariaLabel: 'More information about the convergence verdict',
+  },
+  convergence_curve: {
+    short:
+      'Best-metric-so-far plotted against trial number. Flat tail = converged; rising tail = still improving when the study stopped.',
+    ariaLabel: 'More information about the best-so-far convergence curve',
+  },
+  convergence_window: {
+    short:
+      'The last 20 completed trials the verdict compares against. Smaller for short studies (clamps to max(5, total/5)).',
+    ariaLabel: 'More information about the trailing-window comparison',
+  },
+
+  // ---------------------------------------------------------------------------
   // feat_auto_followup_studies Story 3.1 — 4 chain-panel + wizard entries.
   // Text from feature_spec.md §11 tooltip inventory. Mirrors the FR-9
   // catalog (auto_followup_* events) where the chain semantics are

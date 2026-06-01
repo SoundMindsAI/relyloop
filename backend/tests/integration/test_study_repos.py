@@ -314,6 +314,187 @@ class TestTrialRepo:
 
 
 @pytest.mark.integration
+class TestListCompleteOptunaTrialsForStudy:
+    """Story 2.1 — convergence-classifier read helper.
+
+    Seeds a mixed trial set and verifies the SQL filter drops baseline,
+    failed, pruned, and complete-but-null-metric rows; the returned
+    sequence is sorted by ``optuna_trial_number ASC``.
+    """
+
+    async def test_filters_and_orders_correctly(self, db_session: AsyncSession) -> None:
+        cluster_id = await _seed_cluster(db_session)
+        template = await repo.create_query_template(
+            db_session,
+            id=_uuid(),
+            name=f"qt-{_uuid()[:8]}",
+            engine_type="elasticsearch",
+            body="{}",
+            declared_params={},
+        )
+        query_set = await repo.create_query_set(
+            db_session,
+            id=_uuid(),
+            name=f"qs-{_uuid()[:8]}",
+            cluster_id=cluster_id,
+        )
+        judgment_list = await repo.create_judgment_list(
+            db_session,
+            id=_uuid(),
+            name=f"jl-{_uuid()[:8]}",
+            query_set_id=query_set.id,
+            cluster_id=cluster_id,
+            target="products",
+            rubric="rate",
+            status="complete",
+        )
+        sid = _uuid()
+        await repo.create_study(
+            db_session,
+            id=sid,
+            name="study-convergence-helper-test",
+            cluster_id=cluster_id,
+            target="products",
+            template_id=template.id,
+            query_set_id=query_set.id,
+            judgment_list_id=judgment_list.id,
+            search_space={},
+            objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            config={},
+            status="completed",
+            optuna_study_name=sid,
+        )
+
+        # 50 usable Optuna trials. Insert in reverse order so the SQL ORDER
+        # BY is doing real work; expect ascending numbers in the result.
+        for trial_num in reversed(range(50)):
+            await repo.create_trial(
+                db_session,
+                id=_uuid(),
+                study_id=sid,
+                optuna_trial_number=trial_num,
+                params={"boost": 1.0},
+                metrics={"ndcg@10": 0.5},
+                primary_metric=0.5,
+                status="complete",
+            )
+
+        # 1 baseline row — must be excluded (is_baseline=True).
+        await repo.create_trial(
+            db_session,
+            id=_uuid(),
+            study_id=sid,
+            optuna_trial_number=-1,
+            params={},
+            metrics={"ndcg@10": 0.99},
+            primary_metric=0.99,
+            status="complete",
+            is_baseline=True,
+        )
+
+        # 2 failed Optuna rows — must be excluded (status != complete).
+        for trial_num in (100, 101):
+            await repo.create_trial(
+                db_session,
+                id=_uuid(),
+                study_id=sid,
+                optuna_trial_number=trial_num,
+                params={},
+                metrics={},
+                primary_metric=None,
+                status="failed",
+                error="boom",
+            )
+
+        # 1 pruned Optuna row — must be excluded (status != complete).
+        await repo.create_trial(
+            db_session,
+            id=_uuid(),
+            study_id=sid,
+            optuna_trial_number=102,
+            params={},
+            metrics={},
+            primary_metric=None,
+            status="pruned",
+        )
+
+        # 1 complete-but-null-metric row — must be excluded by the
+        # primary_metric IS NOT NULL SQL filter.
+        await repo.create_trial(
+            db_session,
+            id=_uuid(),
+            study_id=sid,
+            optuna_trial_number=103,
+            params={},
+            metrics={},
+            primary_metric=None,
+            status="complete",
+        )
+        await db_session.commit()
+
+        usable = await repo.list_complete_optuna_trials_for_study(db_session, sid)
+
+        # Exactly 50 trials — the usable Optuna ones.
+        assert len(usable) == 50
+        # Numbers are 0..49 ASC; baseline (-1), failed (100, 101), pruned
+        # (102), and the null-metric complete row (103) are all dropped.
+        assert [t.optuna_trial_number for t in usable] == list(range(50))
+        # Every row carries a non-null primary_metric.
+        assert all(t.primary_metric is not None for t in usable)
+        # Every row is non-baseline.
+        assert all(t.is_baseline is False for t in usable)
+        # Every row is status=complete.
+        assert all(t.status == "complete" for t in usable)
+
+    async def test_empty_study_returns_empty_sequence(self, db_session: AsyncSession) -> None:
+        cluster_id = await _seed_cluster(db_session)
+        template = await repo.create_query_template(
+            db_session,
+            id=_uuid(),
+            name=f"qt-{_uuid()[:8]}",
+            engine_type="elasticsearch",
+            body="{}",
+            declared_params={},
+        )
+        query_set = await repo.create_query_set(
+            db_session,
+            id=_uuid(),
+            name=f"qs-{_uuid()[:8]}",
+            cluster_id=cluster_id,
+        )
+        judgment_list = await repo.create_judgment_list(
+            db_session,
+            id=_uuid(),
+            name=f"jl-{_uuid()[:8]}",
+            query_set_id=query_set.id,
+            cluster_id=cluster_id,
+            target="products",
+            rubric="rate",
+            status="complete",
+        )
+        sid = _uuid()
+        await repo.create_study(
+            db_session,
+            id=sid,
+            name="empty-study",
+            cluster_id=cluster_id,
+            target="products",
+            template_id=template.id,
+            query_set_id=query_set.id,
+            judgment_list_id=judgment_list.id,
+            search_space={},
+            objective={"metric": "ndcg", "k": 10, "direction": "maximize"},
+            config={},
+            status="queued",
+            optuna_study_name=sid,
+        )
+        await db_session.commit()
+
+        result = await repo.list_complete_optuna_trials_for_study(db_session, sid)
+        assert list(result) == []
+
+
+@pytest.mark.integration
 class TestProposalRepo:
     """2 functions: create, get."""
 

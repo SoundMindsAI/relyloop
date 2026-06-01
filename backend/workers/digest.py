@@ -89,6 +89,7 @@ from backend.app.llm.cost_model import (
 )
 from backend.app.llm.digest_prompt import load_digest_prompts, render_digest_user_prompt
 from backend.app.services.study_confidence import fetch_study_confidence
+from backend.app.services.study_convergence import fetch_study_convergence
 
 logger = structlog.get_logger(__name__)
 
@@ -945,6 +946,16 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                 confidence_payload = (
                     confidence_shape.model_dump() if confidence_shape is not None else None
                 )
+                # feat_study_convergence_indicator Story 5.1 (FR-6): assemble
+                # the per-study StudyConvergenceShape and serialize for the
+                # jinja ``<convergence>`` block. Returns ``None`` whole-object
+                # on in-flight studies, sub-MIN trial counts, or any graceful-
+                # degrade path from FR-3; the block skips cleanly via
+                # ``{% if convergence %}`` in the template.
+                convergence_shape = await fetch_study_convergence(db, study)
+                convergence_payload = (
+                    convergence_shape.model_dump() if convergence_shape is not None else None
+                )
                 user_prompt = render_digest_user_prompt(
                     study_name=study.name,
                     cluster_name=cluster_name,
@@ -961,6 +972,7 @@ async def generate_digest(ctx: dict[str, Any], study_id: str) -> None:
                     dropped_template_params=dropped,
                     include_recommendation=structured_output_enabled and not all_dropped,
                     confidence=confidence_payload,
+                    convergence=convergence_payload,
                     # feat_digest_executable_followups Story 2.2 — the LLM
                     # needs the parent search-space to author narrow / widen
                     # follow-ups (FR-8).
