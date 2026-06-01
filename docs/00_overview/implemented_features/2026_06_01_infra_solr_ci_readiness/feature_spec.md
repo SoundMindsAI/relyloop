@@ -18,7 +18,7 @@
 ## 1) Purpose
 
 - **Problem:** Post-2026-05-31, no full `pr.yml` run can go green on any branch. The `backend` job has no Solr service container, so the heavy-lane reseed test `test_demo_seeding_ubi_full::test_full_reseed_produces_8_lists_8_studies_per_rung_correct` `ConnectError`s when the orchestrator at [`demo_seeding.py:1379`](../../../../../backend/app/services/demo_seeding.py#L1379) tries to seed the `acme-kb-docs-solr` scenario. Independently, the `smoke` job's `solr` container `exit(1)`s during `make up`, failing the smoke gate. PR #364 had to merge over both reds; further PRs land on the same red baseline.
-- **Outcome (Phase 1, this spec):** The `pr.yml` **backend** job goes green on any branch that touches code by making the reseed orchestrator skip-on-unreachable for any engine scenario whose engine isn't reachable (test + product, in lock-step). The smoke job **remains red** until Phase 2 ships separately (smoke healthboot — see [`phase2_idea.md`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) + FR-7 / D-5). This is intentional: bundling Phase 2 into this PR would block a clean Phase 1 fix on log evidence we don't yet have from a smoke-job failure run. After both phases ship, every job in `pr.yml` is green on any branch. The Phase 1 fix mirrors the existing Elasticsearch skip pattern at [`test_demo_seeding_ubi_full.py:142`](../../../../../backend/tests/integration/test_demo_seeding_ubi_full.py#L142), so the engine-reachability handling is uniform across all three engines.
+- **Outcome (Phase 1, this spec):** The `pr.yml` **backend** job goes green on any branch that touches code by making the reseed orchestrator skip-on-unreachable for any engine scenario whose engine isn't reachable (test + product, in lock-step). The smoke job **remains red** until Phase 2 ships separately (smoke healthboot — see [`infra_solr_smoke_stability`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) + FR-7 / D-5). This is intentional: bundling Phase 2 into this PR would block a clean Phase 1 fix on log evidence we don't yet have from a smoke-job failure run. After both phases ship, every job in `pr.yml` is green on any branch. The Phase 1 fix mirrors the existing Elasticsearch skip pattern at [`test_demo_seeding_ubi_full.py:142`](../../../../../backend/tests/integration/test_demo_seeding_ubi_full.py#L142), so the engine-reachability handling is uniform across all three engines.
 - **Non-goal:** Adding a Solr service container to the GHA `backend` job. The configset-upload step that real Solr needs (`make seed-solr` posts to ZooKeeper) is not trivially reproducible from a GHA `services:` container, and the skip-on-unreachable approach gives operators who don't run Solr locally the same behavior CI sees. Also non-goal: changing the on-Solr UBI demo-data shape, the Solr adapter, or any product feature. Also non-goal in Phase 1: stabilizing the Solr container on the smoke runner (Phase 2).
 
 ## 2) Current state audit
@@ -65,7 +65,7 @@
 - (FR-5) Surface skipped engines in `ReseedStatusResponse.scenarios_skipped: list[str]` (top-level field, NOT inside the nested `summary` object) so the GET status endpoint + UI can report partial-reseed cleanly (closes the contract with Capability C / sibling `bug_reseed_failure_blocks_retry_arq_singleton_dedup`). Also: the **worker** (`backend/workers/demo_reseed.py`) special-cases the all-engines-unreachable marker to write the stable `failed_reason="all_engines_unreachable"` token (the reseed is async — there is no synchronous error envelope; the signal travels through the Redis status).
 - (FR-6) Documentation update: data-model.md (no — N/A), runbook addition at `docs/03_runbooks/demo-reseed-engine-tolerance.md`, CLAUDE.md "Common Pitfalls" line.
 
-**Phase 2 (separate PR, tracked as `phase2_idea.md`):**
+**Phase 2 (separate PR, tracked as `infra_solr_smoke_stability`):**
 - (FR-7) Smoke job: stabilize the Solr container. Path TBD pending log evidence — default lean is `SOLR_HEAP_SIZE=256m` in the smoke job environment first, then `start_period` extension, then smoke-job tolerance for Solr-down as last resort. Q-1 in §19 captures the diagnostic protocol.
 
 ### Out of scope
@@ -90,7 +90,7 @@ This feature does **not** add new endpoints or change any path/method. It modifi
 ### Phase boundaries
 
 - **Phase 1 (this spec):** FR-1 → FR-6. Unblocks `backend` CI immediately; smoke remains red until Phase 2. Rationale: Phase 1 is pure-code work with no external dependency. Ship now.
-- **Phase 2 (separate PR — tracked as [`phase2_idea.md`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md)):** FR-7. Rationale: needs log evidence from a smoke-job failure (`docker compose logs solr`) to commit to the right stabilization lever. Treating it as a separate PR keeps Phase 1 reviewable in isolation and lets the smoke-stabilization work be driven by data rather than guesswork.
+- **Phase 2 (separate PR — tracked as [`infra_solr_smoke_stability`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md)):** FR-7. Rationale: needs log evidence from a smoke-job failure (`docker compose logs solr`) to commit to the right stabilization lever. Treating it as a separate PR keeps Phase 1 reviewable in isolation and lets the smoke-stabilization work be driven by data rather than guesswork.
 
 ## 4) Product principles and constraints
 
@@ -197,7 +197,7 @@ N/A — `audit_log` table has not yet shipped (latest migration is `0022_solr_en
     1. `SOLR_HEAP_SIZE=256m` in the smoke job's `env:` block, matching the backend job's `ES_JAVA_OPTS: -Xms256m -Xmx256m` pattern at [`pr.yml:287`](../../../../../.github/workflows/pr.yml#L287).
     2. Extended `start_period` for the Solr healthcheck (currently `30s` at [`docker-compose.yml:285`](../../../../../docker-compose.yml#L285)) — bump to `60s` or `90s`.
     3. Smoke-job tolerance for Solr being down: drop `solr` from the failure-log collection at [`pr.yml:719`](../../../../../.github/workflows/pr.yml#L719) and skip any Solr-specific smoke assertion (the current tutorial-path smoke at `backend/tests/smoke/test_tutorial_path.py` is ES-only — verify before relying on this).
-- Notes: this FR ships in a follow-up PR — Phase 2. The Phase 2 spec / impl-plan will be generated from `phase2_idea.md` once log evidence is in hand.
+- Notes: this FR ships in a follow-up PR — Phase 2. The Phase 2 spec / impl-plan will be generated from `infra_solr_smoke_stability` once log evidence is in hand.
 
 ## 8) API and data contract baseline
 
@@ -471,13 +471,13 @@ Unchanged. The existing Arq-singleton dedup on `demo_reseed:singleton` is indepe
 - `docs/04_security/` — no change.
 - `docs/05_quality/` — no change.
 - `CLAUDE.md` — one-line "Common Pitfalls" entry + "Key Runbooks" table row (per FR-6).
-- `state.md` — known-debt entry for `infra_solr_ci_readiness` updates from "P1 — pr.yml red on every branch" → "Phase 1 shipped, Phase 2 in progress (smoke stability — see `phase2_idea.md`)".
+- `state.md` — known-debt entry for `infra_solr_ci_readiness` updates from "P1 — pr.yml red on every branch" → "Phase 1 shipped, Phase 2 in progress (smoke stability — see `infra_solr_smoke_stability`)".
 
 ## 16) Rollout and migration readiness
 
 - **Feature flags / staged rollout:** N/A. The change is in test + service + UI code, not a runtime feature surface. The new `scenarios_skipped` field is additive; no enum change.
 - **Migration/backfill expectations:** N/A. No schema changes (Alembic head stays `0022_solr_engine_auth_check`).
-- **Operational readiness gates:** `pr.yml` backend job must go green on this PR (the test the change fixes must pass). Smoke remains red — explicitly acknowledged and tracked as Phase 2 ([`phase2_idea.md`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md)).
+- **Operational readiness gates:** `pr.yml` backend job must go green on this PR (the test the change fixes must pass). Smoke remains red — explicitly acknowledged and tracked as Phase 2 ([`infra_solr_smoke_stability`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md)).
 - **Release gate:** `pr.yml` backend + frontend + both docker buildx + static-checks + license jobs green; **smoke explicitly exempted (Phase 2)**; Gemini adjudication clean. Heavy CI is ON (per `state.md` 2026-05-31 note). The PR is mergeable with smoke red because (a) the smoke failure is pre-existing and tracked, (b) `main` no longer enforces heavy-CI required-status-checks (per `state.md` known-state: the ruleset's `required_status_checks` rule was removed 2026-05-31), so the operator merges on judgment with the smoke-red rationale documented in the PR body.
 
 ## 17) Traceability matrix
@@ -498,10 +498,10 @@ This feature is complete when:
 
 - [ ] All Phase 1 acceptance criteria (AC-1 through AC-11, incl. AC-6b) pass in CI.
 - [ ] `pr.yml` **backend** job is green on this PR (the count-drift fix unblocks the heavy-lane test).
-- [ ] `pr.yml` **smoke** job **remains red** (acknowledged — Phase 2 territory). The PR description MUST cite [`phase2_idea.md`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) and the rationale for the split. The `static-checks-backend`, `static-checks-frontend`, `frontend`, `docker buildx (relyloop/api)`, `docker buildx (relyloop/ui)`, `backend-unit-fast`, `license-headers`, and `license-inventory` jobs MUST all be green.
+- [ ] `pr.yml` **smoke** job **remains red** (acknowledged — Phase 2 territory). The PR description MUST cite [`infra_solr_smoke_stability`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) and the rationale for the split. The `static-checks-backend`, `static-checks-frontend`, `frontend`, `docker buildx (relyloop/api)`, `docker buildx (relyloop/ui)`, `backend-unit-fast`, `license-headers`, and `license-inventory` jobs MUST all be green.
 - [ ] All test layers (unit/integration/contract + UI vitest) are green; no new E2E in Phase 1.
 - [ ] `docs/03_runbooks/demo-reseed-engine-tolerance.md` is added and linked from CLAUDE.md.
-- [ ] `phase2_idea.md` is added and references this spec.
+- [ ] `infra_solr_smoke_stability` is added and references this spec.
 - [ ] No open questions remain in §19.
 
 ## 19) Open questions and decision log
@@ -509,7 +509,7 @@ This feature is complete when:
 ### Open questions
 
 _None._ Q-1 and Q-2 from the idea have been resolved during cycle-1 review:
-- **Q-1 (Phase 2 lever choice)** moved to [`phase2_idea.md`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) per D-5 — Phase 2 is a separate PR and the lever choice is gated on log evidence captured then.
+- **Q-1 (Phase 2 lever choice)** moved to [`infra_solr_smoke_stability`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) per D-5 — Phase 2 is a separate PR and the lever choice is gated on log evidence captured then.
 - **Q-2 (UI consumer)** resolved by grep — there IS a real UI consumer at [`ui/src/components/dashboard/reset-demo-state-button.tsx`](../../../../../ui/src/components/dashboard/reset-demo-state-button.tsx) + the type mirror at [`ui/src/lib/api/demo-reseed.ts:27`](../../../../../ui/src/lib/api/demo-reseed.ts#L27). The wire-value design was flipped to additive-field-only (no new enum value) — see D-4 revised below.
 
 ### Decision log
