@@ -25,9 +25,9 @@
 | FR-4 | Epic 1 / Story 1.4 | Heavy-lane test dynamic-count via shared slug-keyed snapshot (6 scenarios incl. rich) |
 | FR-5 | Epic 1 / Story 1.5 | TS mirror `scenarios_skipped` + UI hint + contract/vitest (backend field + worker token are in Story 1.2) |
 | FR-6 | Epic 1 / Story 1.6 | Runbook + CLAUDE.md edits |
-| FR-7 | **Phase 2 — deferred** | Smoke Solr stability. Tracked in [`phase2_idea.md`](phase2_idea.md). NOT in this plan. |
+| FR-7 | **Phase 2 — deferred** | Smoke Solr stability. Tracked in [`infra_solr_smoke_stability`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md). NOT in this plan. |
 
-**Deferred work tracking:** FR-7 (smoke stability) is Phase 2; tracking artifact [`phase2_idea.md`](phase2_idea.md) already exists in this directory (verified). No new tracking file needed.
+**Deferred work tracking:** FR-7 (smoke stability) is Phase 2; tracking artifact [`infra_solr_smoke_stability`](../../planned_features/02_mvp2/infra_solr_smoke_stability/idea.md) already exists in this directory (verified). No new tracking file needed.
 
 ## 2) Delivery structure
 
@@ -342,7 +342,7 @@ def _engine_reachable(host_base_url: str, engine_type: str) -> bool:
 ## 4) Documentation update workstream
 
 ### 4.0 Core context files
-- [ ] `state.md` — update the known-debt "Solr is not CI-ready (P1)" entry: backend job unblocked (Phase 1 shipped); smoke still red (Phase 2, `phase2_idea.md`). Add the merge one-liner to "Last 5 merges" at finalization.
+- [ ] `state.md` — update the known-debt "Solr is not CI-ready (P1)" entry: backend job unblocked (Phase 1 shipped); smoke still red (Phase 2, `infra_solr_smoke_stability`). Add the merge one-liner to "Last 5 merges" at finalization.
 - [ ] `architecture.md` — no change (no new layer / data flow).
 - [ ] `CLAUDE.md` — Common Pitfalls line + Key Runbooks row (Story 1.6).
 
@@ -415,7 +415,7 @@ Other docs/01,02,04,05: no change.
 ## 8) Rollout and cutover plan
 
 - No feature flag. Additive field + new skip behavior. Ships in one PR.
-- The PR merges with the `smoke` CI job still red (Phase 2 territory) — documented in the PR body citing `phase2_idea.md`. `main` no longer enforces heavy-CI required-status-checks (per `state.md`), so the operator merges on judgment.
+- The PR merges with the `smoke` CI job still red (Phase 2 territory) — documented in the PR body citing `infra_solr_smoke_stability`. `main` no longer enforces heavy-CI required-status-checks (per `state.md`), so the operator merges on judgment.
 - No migration, no cutover steps.
 
 ## 9) Execution tracker

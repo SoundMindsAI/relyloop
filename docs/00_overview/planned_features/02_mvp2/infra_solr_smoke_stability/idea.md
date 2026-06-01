@@ -1,9 +1,9 @@
-# infra_solr_ci_readiness — Phase 2: stabilize Solr in the smoke job
+# infra_solr_smoke_stability — stabilize Solr in the smoke job
 
 **Date:** 2026-06-01
-**Status:** Idea — deferred from Phase 1 because the right stabilization lever depends on log evidence from a smoke-runner failure
-**Priority:** P1 — the `smoke` CI job stays red on every branch until this ships (paired with Phase 1, which only addressed the `backend` job's `pr.yml` failure)
-**Origin:** Deferred Phase 2 work from [`feature_spec.md`](feature_spec.md) §3 / FR-7 / D-5. Phase 1 ships test-skip + orchestrator skip-on-unreachable for the backend job; Phase 2 makes the smoke job's Solr container reliably boot.
+**Status:** Idea — deferred from `infra_solr_ci_readiness` Phase 1 because the right stabilization lever depends on log evidence from a smoke-runner failure
+**Priority:** P1 — the `smoke` CI job stays red on every branch until this ships (`infra_solr_ci_readiness` Phase 1 only addressed the `backend` job's `pr.yml` failure)
+**Origin:** Extracted from `infra_solr_ci_readiness` Phase 2 (FR-7 / D-5) — see [`feature_spec.md`](../../../implemented_features/2026_06_01_infra_solr_ci_readiness/feature_spec.md) §3. Phase 1 (shipped, PR #367) added test-skip + orchestrator skip-on-unreachable for the backend job; this work makes the smoke job's Solr container reliably boot.
 **Depends on:** Phase 1 merged (so the contract of "Solr is allowed to be missing in CI" is established) + at least one captured smoke-runner failure log (`docker compose logs solr` from a smoke-job failure run; cite the run URL in the spec).
 
 ## Problem
@@ -41,6 +41,6 @@ The lever choice depends on log evidence that doesn't exist yet. Bundling a "we 
 
 ## Relationship to other work
 
-- Pairs with Phase 1 (this folder's `feature_spec.md`). Phase 1 fixes the `backend` job; Phase 2 fixes the `smoke` job. Together they take `pr.yml` from "red on every branch" to "green on every branch."
+- Pairs with `infra_solr_ci_readiness` Phase 1 ([shipped spec](../../../implemented_features/2026_06_01_infra_solr_ci_readiness/feature_spec.md)). Phase 1 fixed the `backend` job; this work fixes the `smoke` job. Together they take `pr.yml` from "red on every branch" to "green on every branch."
 - Sibling [`chore_solr_post_pipeline_followups`](../chore_solr_post_pipeline_followups/idea.md) tracks the live-Solr integration tests scaffolded but not exercised when Solr shipped. Phase 2 doesn't touch those — it's purely about runner stability.
 - Independent of [`bug_reseed_failure_blocks_retry_arq_singleton_dedup`](../bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md) — that bug is in the reseed Arq-dedup path, not the smoke/CI path.
