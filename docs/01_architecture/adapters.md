@@ -1,6 +1,6 @@
 # Adapters
 
-**Status:** Adopted for MVP1. ElasticAdapter (handling ES + OpenSearch) is the only implementation in MVP1; SolrAdapter ships at MVP2 alongside UBI judgments. The supported engines are Elasticsearch, OpenSearch, and Apache Solr. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
+**Status:** Adopted. Two implementations ship today: `ElasticAdapter` (handling ES + OpenSearch, MVP1) and `SolrAdapter` (Apache Solr, shipped MVP2 / 2026-05-31 alongside UBI judgments). The supported engines are Elasticsearch, OpenSearch, and Apache Solr. Per-release timing per [`tech-stack.md` §"Canonical release matrix"](tech-stack.md).
 **Source of truth for product context:** [docs/00_overview/relyloop-spec.md §8](../00_overview/relyloop-spec.md) ("Engine adapter specification") and §11 ("Search space & parameters").
 
 ---
@@ -64,7 +64,7 @@ The asymmetry on 401/403 (`list_targets` distinguishes; `get_schema` conflates w
 
 **`list_targets` filter semantics** (added by [`feat_cluster_target_filter`](../00_overview/implemented_features/2026_05_20_feat_cluster_target_filter/)). When the caller passes `target_filter="<glob>"`, the adapter restricts the result to names where `fnmatch.fnmatchcase(name, glob)` returns True. Glob syntax: `*`, `?`, `[seq]`, `[!seq]` — no brace expansion. Case-sensitive via `fnmatchcase` (avoids platform-dependent `os.path.normcase` in `fnmatch.fnmatch`). **Order of operations:** the engine's system-index `.` exclusion runs FIRST; the glob filter runs SECOND. Operators cannot re-expose `.kibana_1` or similar via a permissive filter. The router resolves `cluster.target_filter` from the DB row before calling the adapter — `target_filter` is per-cluster metadata, not a per-request query parameter.
 
-The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py` today; `backend/app/adapters/solr.py` arrives with MVP2).
+The Protocol lives in `backend/app/adapters/protocol.py`. Adapter implementations live as siblings (`backend/app/adapters/elastic.py` and `backend/app/adapters/solr.py`).
 
 ## ElasticAdapter (MVP1)
 
@@ -167,7 +167,7 @@ Summary of the implementation:
   `POST /clusters/test-connection` (probes an unsaved config; always 200
   with a diagnostic result) and the reprobe itself (concurrent calls
   serialize on `SELECT ... FOR UPDATE`).
-- UBI on Solr: the MVP2 `UbiReader` reads the `ubi_queries` + `ubi_events`
+- UBI on Solr: the `UbiReader` reads the `ubi_queries` + `ubi_events`
   collections on Solr unchanged, so UBI judgment generation works on Solr
   from day one. The live capture component `solr.UBIComponent` does NOT ship
   in stock Solr images (verified), so the local demo synthesizes those events

@@ -8,7 +8,7 @@ RelyLoop is an **off-line** relevance-tuning tool for enterprise search
 platforms. The architecture has four cooperating layers:
 
 1. **Adapter** — a thin Protocol behind which engine differences
-   (Elasticsearch / OpenSearch in MVP1; Apache Solr in MVP2) and LLM
+   (Elasticsearch, OpenSearch, and Apache Solr — all three shipped) and LLM
    provider differences (OpenAI-compatible endpoints today; Anthropic /
    Bedrock / Vertex / Azure OpenAI in the backlog) are isolated.
 2. **Domain** — pure Python (no I/O): study state machine, search-space
