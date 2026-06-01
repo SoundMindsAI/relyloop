@@ -27,7 +27,7 @@ defaults, enabling `solr.UBIComponent`, and uploading LTR models.
   > `cluster_credentials.yaml` is read through a cached `Settings`
   > accessor that memoizes its value at process start. If you edit the
   > file on a running stack (or run step 5a of `scripts/install.sh` after
-  > `docker compose up -d`), the api keeps serving the *old* credentials
+  > `docker compose up -d`), the API keeps serving the *old* credentials
   > until you restart: `docker compose restart api worker`.
   > The same caching applies to Elasticsearch and OpenSearch credentials.
 
