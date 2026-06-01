@@ -22,6 +22,15 @@ defaults, enabling `solr.UBIComponent`, and uploading LTR models.
 - BasicAuth credentials stored in `./secrets/cluster_credentials.yaml`
   under a `credentials_ref` you'll reference in registration. For local
   Solr the install script seeds `local-solr`.
+
+  > **Credential edits require an API restart.**
+  > `cluster_credentials.yaml` is read through a cached `Settings`
+  > accessor that memoizes its value at process start. If you edit the
+  > file on a running stack (or run step 5a of `scripts/install.sh` after
+  > `docker compose up -d`), the API keeps serving the *old* credentials
+  > until you restart: `docker compose restart api worker`.
+  > The same caching applies to Elasticsearch and OpenSearch credentials.
+
 - For SolrCloud: the operator-supplied URL must point at a Solr node
   that exposes `/admin/zookeeper/status` — the probe uses that
   endpoint to auto-detect cloud vs. standalone.
