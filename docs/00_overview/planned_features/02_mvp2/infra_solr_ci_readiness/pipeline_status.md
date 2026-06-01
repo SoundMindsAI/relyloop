@@ -1,5 +1,7 @@
 # Pipeline Status — infra_solr_ci_readiness (unblock pr.yml against Solr)
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: idea.md (preflighted 2026-06-01)
@@ -20,4 +22,20 @@
 - Phases covered: Phase 1 of 2 (Phase 2 = smoke healthboot, tracked in phase2_idea.md)
 
 ## Implementation
-- Status: Not started
+- Status: Phase 1 complete — PR #367 open, awaiting manual merge
+- Date: 2026-06-01
+- PR: https://github.com/SoundMindsAI/relyloop/pull/367
+- CI: `backend` job + all jobs **green** except `smoke` (the pre-existing
+  `relyloop-solr-1 exited (1)` runner crash — deferred to Phase 2,
+  `phase2_idea.md`). This PR's goal (unblock the backend job) is achieved.
+- Stories: 6/6 (Epic 1) complete
+- Cross-model: GPT-5.5 phase-gate (5 findings) + Gemini (3) + GPT-5.5 final
+  (2 fixed, 1 rejected) — all adjudicated, fixes CI-verified.
+- Tests: 2095 backend unit + 327 contract + 998 UI vitest pass; heavy-lane
+  integration runs in the CI backend job.
+- **Folder stays in `planned_features/`** until Phase 2 (`phase2_idea.md`,
+  smoke healthboot) also ships — do NOT move to `implemented_features/` yet.
+- Captured tangential: `chore_demo_reseed_partial_completion_fast_test`.
+
+## Phase 2 (deferred)
+- Status: Not started — tracked in `phase2_idea.md` (smoke-job Solr stability).

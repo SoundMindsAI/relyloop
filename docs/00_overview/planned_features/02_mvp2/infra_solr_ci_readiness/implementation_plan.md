@@ -1,7 +1,7 @@
 # Implementation Plan — infra_solr_ci_readiness (Phase 1: unblock pr.yml against Solr)
 
 **Date:** 2026-06-01
-**Status:** Ready for Execution
+**Status:** Phase 1 Complete — PR #367 open (CI green except deferred Phase-2 smoke), awaiting merge
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Absolute Rules, Common Pitfalls), [`docs/01_architecture/data-model.md`](../../../../01_architecture/data-model.md) (audit_log forthcoming — N/A here)
 
