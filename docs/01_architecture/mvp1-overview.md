@@ -25,13 +25,13 @@ A single `make up` (which auto-generates required secrets on first run, then inv
 
 These appear in the topical arch docs because the docs cover all releases — but they're **not MVP1 work**. Skip them while building MVP1. Per-release timing is the canonical [`tech-stack.md` §"Canonical release matrix"](tech-stack.md); the lists below are derived from it.
 
-### Reserved for MVP2 ("Three-Engine + Real Signals")
-- **`SolrAdapter`** + `solr` Compose service (Apache Solr 9.x / 10.x; `edismax` + `{!ltr}` rescoring)
-- **UBI judgments**: `UbiReader` (engine-agnostic) + `SignalsConverter` Protocol with three impls (CTR threshold, dwell-time, hybrid UBI+LLM)
+### Shipped in MVP2 ("Three-Engine + Real Signals")
+- **`SolrAdapter`** + `solr` Compose service (Apache Solr 9.x / 10.x; `edismax` + `{!ltr}` rescoring) — shipped 2026-05-31
+- **UBI judgments**: `UbiReader` (engine-agnostic) + `SignalsConverter` Protocol with three impls (CTR threshold, dwell-time, hybrid UBI+LLM) — shipped 2026-05-29
 - `POST /api/v1/judgment-lists/generate-from-ubi` endpoint + `generate_judgments_from_ubi` agent tool
 - Templates under `templates/solr/` mirroring the `templates/elasticsearch/` shape
 - Tutorial extensions (Step 0 Path C "Run against Solr"; Step 7 "Swap LLM judgments for UBI-derived")
-- One migration extending `clusters.engine_type` + `auth_kind` CHECK constraints
+- One migration (`0022`) extending `clusters.engine_type` + `auth_kind` CHECK constraints
 
 ### Reserved for MVP3 ("Observable")
 - `langfuse-web`, `langfuse-worker`, `clickhouse` — LLM observability stack
@@ -62,9 +62,6 @@ These appear in the topical arch docs because the docs cover all releases — bu
 - LTR training (cross-engine model training; MVP2's LTR support is consume-only)
 - Path B (production monitoring, bandits, shadow validation)
 - Helm chart maturity; Kubernetes-native operator
-
-### Reserved for v2+
-- `SolrAdapter` (pure Apache Solr support)
 
 ## MVP1 feature sequencing (locked)
 

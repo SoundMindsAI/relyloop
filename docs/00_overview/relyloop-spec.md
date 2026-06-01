@@ -54,7 +54,7 @@ The current OSS landscape (May 2026):
 - **Elasticsearch** deprecated Behavioral Analytics + Search Applications in 9.0 and offers only the `_rank_eval` API primitive. The implicit Elastic message is "DIY through query DSL + retrievers."
 - **The Solr ecosystem** (Quepid + Chorus + RRE) is mature for manual evaluation but has no auto-optimizer.
 
-RelyLoop is the tool that **fills the gap none of the above closes**: automated Bayesian/TPE optimization across the full search space, on every major OSS engine (Elasticsearch + OpenSearch today; Apache Solr at MVP2), with a Git-PR apply path. The conversational agent is the front door that makes the loop accessible; the Bayesian loop and the Git-PR posture are the actual engineering moat. See [`docs/07_research/comparison.md`](../07_research/comparison.md) for the citation-backed comparison matrix and [`adjacent-tools.md`](../00_overview/adjacent-tools.md) for the narrative tool-by-tool breakdown with pairing patterns.
+RelyLoop is the tool that **fills the gap none of the above closes**: automated Bayesian/TPE optimization across the full search space, on every major OSS engine (Elasticsearch, OpenSearch, and Apache Solr — all three shipped), with a Git-PR apply path. The conversational agent is the front door that makes the loop accessible; the Bayesian loop and the Git-PR posture are the actual engineering moat. See [`docs/07_research/comparison.md`](../07_research/comparison.md) for the citation-backed comparison matrix and [`adjacent-tools.md`](../00_overview/adjacent-tools.md) for the narrative tool-by-tool breakdown with pairing patterns.
 
 ## 3. Goals
 
@@ -149,14 +149,14 @@ The tool will not:
             │ Adapters  │  │ ir_      │ │ Git provider│
             │ - ES/OS   │  │ measures │ │ - GitHub    │
             │ - Solr    │  │          │ │ - PR API    │
-            │   (MVP2)  │  │          │ │             │
+            │           │  │          │ │             │
             └─┬─────────┘  └──────────┘ └────────────┘
               │
    ┌──────────▼──────────────────────────┐
    │  Tuned clusters                     │
    │  - ES: products-prod, products-staging, products-dev
    │  - OpenSearch: catalog-prod, catalog-staging
-   │  - Solr: archive-prod (MVP2)
+   │  - Solr: archive-prod
    └─────────────────────────────────────┘
 ```
 
@@ -237,9 +237,9 @@ Implementation notes:
 
 Why this matters for licensing and OSS positioning: Elasticsearch's Basic license is free for self-hosting but is not OSI-approved OSS. OpenSearch is Apache 2.0. Supporting both means RelyLoop adopters who care about the licensing distinction can choose OpenSearch without losing functionality, and adopters already on ES don't need to migrate.
 
-### SolrAdapter (MVP2, bundled with UBI judgments)
+### SolrAdapter (shipped MVP2, bundled with UBI judgments)
 
-Apache Solr ships in MVP2 alongside the UBI judgments feature; together they complete RelyLoop's three-engine sweep with UBI on every engine. See [`infra_adapter_solr/idea.md`](../../00_overview/planned_features/infra_adapter_solr/idea.md) for the full scope.
+Apache Solr shipped in MVP2 (2026-05-31) alongside the UBI judgments feature; together they completed RelyLoop's three-engine sweep with UBI on every engine. See [`implemented_features/2026_05_31_infra_adapter_solr/`](implemented_features/2026_05_31_infra_adapter_solr/) for the full scope as shipped.
 
 - `search_batch` uses parallel `/select` requests with a small connection pool. Solr has no `_msearch` equivalent; the JSON Request API allows multi-query but is awkward and undertested across versions.
 - `render` produces a Solr request parameter dict (later URL-encoded). Supports `edismax` (primary), `dismax`, and `lucene` parsers. Templates live under `templates/solr/` as Jinja templates that emit parameter maps, mirroring `templates/elasticsearch/` shape.
@@ -249,7 +249,7 @@ Apache Solr ships in MVP2 alongside the UBI judgments feature; together they com
 - Engine support: Solr 9.x (current widely-deployed) and Solr 10.x (released 2026-03 with `modules/ltr` stable + new LTR cache). SolrCloud and standalone modes both supported. Solr 8.x and earlier explicitly out of scope.
 - Authentication: `auth_kind` extended to include `solr_basic` (HTTP Basic) and `solr_apikey` (Solr 9+ JWT via the security.json `JWTAuthPlugin`).
 - LTR rescoring: applies a pre-existing `MultipleAdditiveTreesModel` (XGBoost-compatible) loaded via Solr's `/schema/model-store` as a rescore stage in a trial. Training is out of scope; the adapter consumes models the operator uploads separately.
-- UBI on Solr: Solr ships `<searchComponent class="solr.UBIComponent">` in core ([reference guide](https://solr.apache.org/guide/solr/latest/query-guide/learning-to-rank.html); [UBI tools index](https://www.ubisearch.dev/tools/)) writing the same `ubi_queries` + `ubi_events` schema as the OpenSearch UBI plugin. The MVP2 `UbiReader` works on Solr unchanged.
+- UBI on Solr: the standardized `ubi_queries` + `ubi_events` schema is the same one the OpenSearch UBI plugin writes, so the `UbiReader` works on Solr unchanged. Note: the live capture component `solr.UBIComponent` is **not** present in the stock `solr:9.x`/`solr:10.0` images (verified — no module, no class, no ref-guide page), so RelyLoop's local demo synthesizes those events directly into the collections and the capability probe reports `ubi_component_present=false`. An operator who installs a UBI-capture component on their own Solr gets live capture; the read path RelyLoop consumes is identical either way ([UBI tools index](https://www.ubisearch.dev/tools/)).
 
 ### Cross-engine parameter naming
 
@@ -569,7 +569,7 @@ Templates are Jinja2 source files. Storage: rows in `query_templates`, body is t
 }
 ```
 
-### Example: Solr template (edismax) — MVP2
+### Example: Solr template (edismax)
 
 ```jinja
 {
@@ -1030,7 +1030,7 @@ The apply path is uniform across all three supported engines — the tool edits 
 
 **Elasticsearch / OpenSearch.** The `*.params.json` file is read by the operator's deployment pipeline and injected into the index template / search application configuration at deploy time. The tool does not interact with the cluster directly during apply.
 
-**Apache Solr (MVP2).** The `*.params.json` file is consumed by the operator's CI which writes the updated parameters into Solr via the Request Parameters API (`POST /api/config/params`) or by editing `solrconfig.xml` `<requestHandler>` defaults and reposting. The tool does not push to Solr directly — same principle as the ES/OpenSearch case, the tool stops at the PR and CI handles deployment.
+**Apache Solr.** The `*.params.json` file is consumed by the operator's CI which writes the updated parameters into Solr via the Request Parameters API (`POST /api/config/params`) or by editing `solrconfig.xml` `<requestHandler>` defaults and reposting. The tool does not push to Solr directly — same principle as the ES/OpenSearch case, the tool stops at the PR and CI handles deployment.
 
 ### PR creation flow
 
@@ -1737,7 +1737,7 @@ A four-layer test pyramid. Each layer has a distinct purpose, runtime profile, a
 - **Scope**: full system, **no mocking, real external services**. Run against a dedicated test environment.
 - **Live services used**:
   - Real OpenAI-compatible API endpoint (separate budget-capped key for E2E)
-  - Compose ES + OpenSearch + Solr (MVP2+) service containers
+  - Compose ES + OpenSearch + Solr service containers
   - A test config repo on GitHub (separate from any production config repo)
 - **Examples**:
   - Run a 10-trial study against each of the three engines, verify metrics improve
@@ -2157,7 +2157,7 @@ Sizing rule of thumb: one VM with 8 vCPU + 32 GB RAM handles 10 concurrent studi
 
 All three supported engines (Elasticsearch, OpenSearch, Apache Solr) are free and open source, so the development model runs entirely on a laptop with no external dependencies, eval licenses, or vendor accounts.
 
-**Local docker-compose.** The default `docker-compose.yml` adds three engine containers and the supporting services. New engineers clone, `make up`, and are productive against the full three-engine stack from day one. MVP1 ships with the ES + OpenSearch containers live; the Solr container activates with MVP2 alongside the `SolrAdapter`.
+**Local docker-compose.** The default `docker-compose.yml` adds three engine containers and the supporting services. New engineers clone, `make up`, and are productive against the full three-engine stack from day one. All three engine containers (ES, OpenSearch, and — since MVP2 — Solr) are live, each behind its `SearchAdapter`.
 
 ```yaml
 # docker-compose.yml additions for local dev
@@ -2480,7 +2480,7 @@ This section consolidates every implementation-level decision that shapes how Re
 | Database (app) | Postgres 16 | Primary application state + Optuna RDBStorage (single instance) |
 | Cache / queue | Redis 7 | Arq queue + LangChain cache (MVP4+) |
 | Trace storage (LLM) | ClickHouse 24 | Required by Langfuse (MVP2+) |
-| Search engines (targets) | Elasticsearch 8.11+/9.x; OpenSearch 2.x/3.x (MVP1); Apache Solr 9.x/10.x (MVP2) | Per-engine version support documented in §8 |
+| Search engines (targets) | Elasticsearch 8.11+/9.x; OpenSearch 2.x/3.x; Apache Solr 9.x/10.x (all three shipped — ES + OpenSearch in MVP1, Solr in MVP2) | Per-engine version support documented in §8 |
 | Reverse proxy | Caddy 2 | TLS termination, SSO via oauth2-proxy or Authelia |
 | Container runtime | Docker 24+ with Compose | MVP1 deployment target |
 | Helm chart (v1.5+) | Helm 3 | Kubernetes deployment for adopters that prefer it |
