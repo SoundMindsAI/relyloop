@@ -99,6 +99,15 @@ async def list_complete_optuna_trials_for_study(db: AsyncSession, study_id: str)
     :func:`backend.app.domain.study.convergence.classify_convergence`
     re-applies defensively at the domain layer.
 
+    Baseline predicate is ``is_baseline IS NOT TRUE`` (matches FALSE
+    *and* NULL) rather than ``IS FALSE`` so it mirrors the domain
+    classifier's ``not getattr(trial, "is_baseline", False)`` semantics
+    exactly — only an explicit ``TRUE`` is excluded. The column is
+    ``NOT NULL DEFAULT FALSE`` in practice (no NULL rows exist), so this
+    is behaviourally identical today; the change keeps the two layers
+    genuinely consistent and future-proofs a hypothetical nullable
+    column (GPT-5.5 PR #352 finding).
+
     Added for ``feat_study_convergence_indicator`` Story 2.1. Distinct
     from :func:`list_trials_for_study` (returns *every* row including
     failed/pruned/baseline) and :func:`list_trials_paginated` (cursor +
@@ -108,7 +117,7 @@ async def list_complete_optuna_trials_for_study(db: AsyncSession, study_id: str)
         select(Trial)
         .where(Trial.study_id == study_id)
         .where(Trial.status == "complete")
-        .where(Trial.is_baseline.is_(False))
+        .where(Trial.is_baseline.is_not(True))
         .where(Trial.primary_metric.is_not(None))
         .order_by(Trial.optuna_trial_number)
     )
