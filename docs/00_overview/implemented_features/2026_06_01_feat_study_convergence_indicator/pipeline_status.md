@@ -1,5 +1,7 @@
 # Pipeline Status — feat_study_convergence_indicator
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: idea.md
@@ -21,4 +23,9 @@
 - Phases covered: single-phase delivery (FR-1 through FR-9 all in this plan; no deferred phases)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-01
+- PR: #352 (squash-merged `0eee17a9`)
+- CI: green (pr + DCO + secrets-defense; SKIP_HEAVY_CI fast lane)
+- Stories: 11/11 complete
+- Cross-model review: Gemini (1 Medium accepted+fixed `644feeed`) + GPT-5.5 final (4 findings: 2 accepted+fixed `644feeed`/`ad72e297`, 3 rejected as review-window truncation artifacts)

@@ -4,6 +4,118 @@
 
 ---
 
+### feat_study_convergence_indicator — "did the optimizer finish learning?" verdict (PR #352, 2026-06-01)
+
+An MVP2 ergonomics feature for the overnight-study workflow: every completed
+study now carries a plain-language **convergence verdict** —
+`converged` / `still_improving` / `too_few_trials` — backed by a best-so-far
+metric curve. It answers the question the operator asks the morning after a
+study (or an overnight chain) finishes: *did the optimizer actually finish
+learning, or did I stop it too early?* Squash-merged via
+[PR #352](https://github.com/SoundMindsAI/relyloop/pull/352) (merge commit
+`0eee17a9`); the planned-feature folder moved to
+`implemented_features/2026_06_01_feat_study_convergence_indicator/`.
+**No migration** — the classifier reads existing `trials` columns only;
+Alembic head stays `0022_solr_engine_auth_check`.
+
+**Eleven stories across seven epics:**
+
+- **1.1 — Epsilon hoist.** The lift epsilon `0.005` was inlined at two sites in
+  `auto_followup.py`. Hoisted to a single module-level
+  `AUTO_FOLLOWUP_LIFT_EPSILON`, re-exported as `CONVERGENCE_FLAT_EPSILON` by the
+  new convergence module so all three modules (`auto_followup`, `chain_summary`,
+  `convergence`) share one source of truth. A value-lock test asserts
+  `== 0.005` via value-equality (never `is`).
+- **1.2 — Pure-domain classifier.** `backend/app/domain/study/convergence.py`'s
+  `classify_convergence(...)` → `StudyConvergenceShape | None`. Trailing-window-
+  flat algorithm: filter to (complete, non-baseline, non-null-metric) → sort by
+  `optuna_trial_number` → direction-aware running max/min best-so-far curve →
+  `window_size = min(20, max(5, total // 5))` → improvement over the window →
+  verdict via the §9 decision matrix (warmup-floor-50 first → flat-vs-epsilon →
+  still_improving). 39 unit tests (later 40) covering every branch, direction-
+  aware minimize, all filters, 9 window-clamp boundary cases, slow-drift /
+  single-late-jump / noisy-tail shapes, monotonicity invariant, determinism.
+  The story also shipped an **AST/grep guard** that walks every `*.py` under
+  `backend/app/` and fails CI on any bare `0.005` in a lift/epsilon-shaped
+  context outside the canonical declaration — which immediately surfaced and let
+  us collapse a pre-existing duplicate `CHAIN_LIFT_EPSILON = 0.005` in
+  `chain_summary.py`.
+- **2.1 — Repo helper.** `list_complete_optuna_trials_for_study` pushes the
+  `status='complete' AND is_baseline IS NOT TRUE AND primary_metric IS NOT NULL`
+  filter into SQL, ordered by `optuna_trial_number ASC`. (`IS NOT TRUE` rather
+  than `IS FALSE` was a GPT-5.5-review fix — see below.)
+- **2.2 — Async service.** `fetch_study_convergence` owns the three
+  orchestration concerns the pure layer can't: in-flight short-circuit
+  (`queued`/`running` → `None`, classifier never invoked); direction resolution
+  honoring the `studies.py:173` `objective.get("direction", "maximize")`
+  precedent with a `convergence_invalid_direction` WARN on a malformed value;
+  and `try/except Exception` shielding so a classifier bug can never 500 the
+  GET (emits `convergence_classifier_exception` WARN, returns `None`). 12
+  integration tests using `structlog.testing.capture_logs` (RelyLoop's structlog
+  config writes through its own ConsoleRenderer, so `caplog` can't see the WARN
+  events).
+- **3.1 — API.** Additive `StudyDetail.convergence: StudyConvergenceShape | None`
+  on the GET + cancel responses. The Pydantic class is named
+  **`StudyConvergenceShape`** (not bare `ConvergenceShape`) to coexist with
+  `confidence.py`'s existing `ConvergenceShape` — a *different* concept
+  (winner-trial timing vs metric plateau) that also rides on `StudyDetail`.
+  Tried `ConfigDict(title=...)` first; it only renames the inner JSON Schema
+  title, not the OpenAPI components key, so a clean class rename was the fix.
+  Inline-fixed a pre-existing contract test that asserted `engine_type="solr"`
+  was invalid (Solr shipped as first-class in `infra_adapter_solr`) — moved the
+  sentinel to `"vespa"`.
+- **4.1 / 4.2 — Frontend.** `<ConvergencePanel>` (shadcn Card + verdict badge +
+  improvement-summary line + collapsible Recharts curve with a `ReferenceArea`
+  shading the trailing window + AC-20 aria-label + three null-state badges:
+  still_running / not_enough_trials / unavailable). 3 new glossary entries
+  (`convergence_verdict` with a long-form + deep link to the runbook,
+  `convergence_curve`, `convergence_window`). Mounted on `/studies/[id]` between
+  `<ConfidencePanel>` and the trials table. `CONVERGENCE_VERDICT_VALUES`
+  enum-discipline pair value-locked on both sides (frontend vitest +
+  backend Literal-membership test). 13 vitest + 1 real-backend Playwright smoke
+  (covers the AC-13b null-state path, since `seed-completed` only inserts 2
+  trials — below the MIN-5 floor).
+- **5.1 / 5.2 — Digest.** Worker fetches the shape + `model_dump()`s it into
+  `render_digest_user_prompt(convergence=...)`; the user template gains a
+  `{% if convergence %}<convergence>...</convergence>{% endif %}` block (verdict
+  + small numerics only — the curve would inflate tokens). The system prompt
+  gains a "Convergence-aware lead recommendation" section: `still_improving` /
+  `too_few_trials` lead the suggested follow-ups with "re-run with a larger
+  trial budget" and demote `narrow`/`widen` to secondary. 11 prompt unit tests
+  (8 user-block + 3 system-prompt AC-15 substring assertions).
+- **6.1 — Autopilot soft contract.** `ConvergenceVerdict` Literal is exported
+  for the autopilot PR's `StudyChainLink.convergence_verdict` field; AC-16 lives
+  in the autopilot CI lane, NOT this PR. Verified by the import + Literal-
+  membership test; `git diff --stat` confirms zero autopilot/`StudyChainLink`
+  mutations.
+- **7.1 — Docs.** Operator runbook
+  [`docs/03_runbooks/convergence-verdict.md`](docs/03_runbooks/convergence-verdict.md)
+  (verdict meanings, plain-language algorithm, re-run framing with wizard preset
+  names, null-state interpretation, minimize example, noisy-tail
+  troubleshooting), CLAUDE.md Key Runbooks row, `data-model.md` +
+  `ui-architecture.md` patches, and 5 docs-assertion tests.
+
+**Cross-model review.** Gemini posted one Medium: `getattr(..., "is_baseline",
+False) is False` excludes a `None` flag (`None is False` → `False`),
+contradicting the "include non-baseline trials" intent — accepted, switched to
+`not getattr(...)` + regression test (`644feeed`). GPT-5.5's final review
+returned four findings: one genuine (after the Gemini fix, the SQL helper's
+`is_(False)` no longer mirrored the domain `not is_baseline` semantics on NULL
+rows — changed to `is_not(True)`, `ad72e297`), and three review-window
+truncation artifacts (the diff was capped at 90 KB and git path-ordering pushed
+`ui/`, `prompts/`, and `docs/` past the cut, so the reviewer reported them
+"absent" when they exist and pass CI — rejected with commit citations).
+
+**Tangential discovery.** `bug_contract_allowlists_outdated_after_mvp2_features`
+(P2): three pre-existing contract failures surfaced on a clean tree during the
+pre-push gate (`test_resolve_engine_type_wire`, the `/healthz` subsystems
+schema, and `test_openapi_has_no_orphan_endpoints`) — all from prior MVP2
+features (`infra_adapter_solr`, `feat_ubi_judgments`, `feat_overnight_autopilot`)
+not updating their hand-maintained allowlists. Confirmed pre-existing via
+`git stash`; out of scope for this PR.
+
+---
+
 ### infra_adapter_solr — Apache Solr adapter, MVP2 three-engine reach (PR #336 + #337, 2026-05-31)
 
 MVP2's headliner and the feature that completes the project's three-engine
