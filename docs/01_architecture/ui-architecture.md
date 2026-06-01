@@ -38,7 +38,7 @@ Per umbrella spec §22, MVP1 ships these top-level routes:
 | `/templates` | Templates list | `feat_studies_ui` |
 | `/templates/{id}` | Template editor | `feat_studies_ui` |
 | `/studies` | Studies list | `feat_studies_ui` |
-| `/studies/{id}` | Study detail (live trial table + digest; the `AutoFollowupChainPanel` renders a rolled-up **Overnight chain** summary — ordered links, cumulative lift, best-config, stop reason — fed by `useStudyChain` against `GET /studies/{id}/chain`. Refetch contract per `feat_overnight_autopilot` D-10; render predicate D-13; best-config 3-branch D-11) | `feat_studies_ui` |
+| `/studies/{id}` | Study detail (live trial table + digest; the `AutoFollowupChainPanel` renders a rolled-up **Overnight chain** summary — ordered links, cumulative lift, best-config, stop reason — fed by `useStudyChain` against `GET /studies/{id}/chain`. Refetch contract per `feat_overnight_autopilot` D-10; render predicate D-13; best-config 3-branch D-11. The `ConvergencePanel` mounts between `ConfidencePanel` and the trials table — verdict badge + best-so-far Recharts curve fed by `StudyDetail.convergence`, with three null-state branches (still_running / not_enough_trials / unavailable) per `feat_study_convergence_indicator` AC-13/13b/13c. The `ConvergenceVerdict` Literal flows via the FR-7 soft contract to the autopilot chain panel's per-link summary — the autopilot PR consumes the type symbol; AC-16 lives in the autopilot CI lane) | `feat_studies_ui` |
 | `/proposals` | Proposals list | `feat_proposals_ui` |
 | `/proposals/{id}` | Proposal detail (config diff + metric delta + PR link) | `feat_proposals_ui` |
 

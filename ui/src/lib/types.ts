@@ -1985,6 +1985,22 @@ export interface components {
       parent_study_id?: string | null;
     };
     /**
+     * CurvePoint
+     * @description One point on the best-so-far curve.
+     *
+     *     ``trial_number`` is the trial's ``optuna_trial_number`` (the canonical
+     *     "trial order within the study" field — see ``auto_followup.py`` module
+     *     docstring for why we sort by this rather than ``started_at``).
+     *     ``best_so_far`` is the running extremum of ``primary_metric`` over all
+     *     earlier trials, sign-corrected to the study's optimization direction.
+     */
+    CurvePoint: {
+      /** Trial Number */
+      trial_number: number;
+      /** Best So Far */
+      best_so_far: number;
+    };
+    /**
      * DigestResponse
      * @description Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
      *
@@ -2950,6 +2966,8 @@ export interface components {
       /** Failed Reason */
       failed_reason?: string | null;
       summary?: components['schemas']['ReseedSummary'] | null;
+      /** Steps */
+      steps?: string[];
     };
     /**
      * ReseedSummary
@@ -3309,6 +3327,50 @@ export interface components {
       auto_followup_depth?: number | null;
     };
     /**
+     * StudyConvergenceShape
+     * @description Verdict + supporting numerics for the UI panel and the digest narrative.
+     *
+     *     Mirrors the ``ConfidenceShape`` pattern from ``confidence.py``: the
+     *     domain module owns the Pydantic model, and ``backend.app.api.v1.schemas``
+     *     re-exports it for the ``StudyDetail.convergence`` field. The
+     *     ``best_so_far_curve`` is the chart's data series; ``verdict`` is the
+     *     badge label.
+     *
+     *     **Name discipline (plan §0).** The bare class name ``ConvergenceShape``
+     *     is already taken by :class:`backend.app.domain.study.confidence.ConvergenceShape`
+     *     (a different concept — winner-trial *timing*, not metric plateau).
+     *     ``StudyConvergenceShape`` is the study-level analogue; the confidence
+     *     sub-shape stays on its inner module. The two coexist on ``StudyDetail``
+     *     (``confidence.convergence`` is the inner one; ``convergence`` is this
+     *     one), and FastAPI emits both under their bare class names in the
+     *     OpenAPI schema — no fully-qualified disambiguation noise leaks to the
+     *     frontend.
+     */
+    StudyConvergenceShape: {
+      /**
+       * Verdict
+       * @enum {string}
+       */
+      verdict: 'converged' | 'still_improving' | 'too_few_trials';
+      /**
+       * Direction
+       * @enum {string}
+       */
+      direction: 'maximize' | 'minimize';
+      /** Window Size */
+      window_size: number;
+      /** Epsilon */
+      epsilon: number;
+      /** Warmup Floor */
+      warmup_floor: number;
+      /** Total Complete Trials */
+      total_complete_trials: number;
+      /** Improvement In Window */
+      improvement_in_window: number;
+      /** Best So Far Curve */
+      best_so_far_curve: components['schemas']['CurvePoint'][];
+    };
+    /**
      * StudyDetail
      * @description ``GET /api/v1/studies/{id}`` response + ``POST/cancel`` response.
      */
@@ -3369,6 +3431,7 @@ export interface components {
       completed_at: string | null;
       trials_summary: components['schemas']['TrialsSummaryShape'];
       confidence?: components['schemas']['ConfidenceShape'] | null;
+      convergence?: components['schemas']['StudyConvergenceShape'] | null;
     };
     /**
      * StudyListResponse

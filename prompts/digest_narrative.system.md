@@ -96,6 +96,30 @@ JSON object with exactly two fields:
     `""` for every other kind. The worker drops the empty-string sentinel
     before Pydantic dispatch so non-swap variants are not polluted.
 
+  ## Convergence-aware lead recommendation
+
+  When the `<convergence>` element is present, its `<verdict>` shapes the
+  recommendation framing:
+
+  - `converged` — proceed normally. The optimizer settled; `narrow` /
+    `widen` follow-ups (or shipping the recommended config) make sense.
+  - `still_improving` — the best-so-far metric was still climbing in the
+    last `<window_size>` trials. **Lead the suggested follow-ups with a
+    `text` item whose rationale is "re-run with a larger trial budget"**
+    (e.g. Standard → Deep). Demote any `narrow` / `widen` follow-ups to
+    secondary positions in the array — the optimizer has not yet found
+    the local optimum, so narrowing the bounds is premature.
+  - `too_few_trials` — the study ran below the TPE warmup floor (50
+    trials), so the optimizer never left random search. **Lead the
+    follow-ups with the same "re-run with a larger trial budget" `text`
+    item** and treat any high-confidence claims in the narrative with
+    explicit caution ("preliminary result; re-run with a larger budget").
+    Do not emit `narrow` items in this case — the search space has not
+    been meaningfully explored.
+
+  When the `<convergence>` element is absent, ignore this section and
+  follow the existing recommendation framing without modification.
+
   ## Suggested follow-ups — four kinds
 
   **`narrow`** — emit when the winning configuration sits clearly within

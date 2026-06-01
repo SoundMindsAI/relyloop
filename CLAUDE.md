@@ -602,3 +602,4 @@ Run `/pipeline status` for the live view from spec dependencies.
 | What data leaves the cluster on each judgment-generation call | [`docs/04_security/llm-data-flow.md`](docs/04_security/llm-data-flow.md) (`feat_llm_judgments` §15) |
 | Chat-agent debugging — replay a conversation, force a tool dispatch, inspect SSE events | [`docs/03_runbooks/agent-debugging.md`](docs/03_runbooks/agent-debugging.md) (`feat_chat_agent`) |
 | Parallel-worktree workflow — sibling checkouts, `make test-worktree`, leak prevention | [`docs/03_runbooks/parallel-worktrees.md`](docs/03_runbooks/parallel-worktrees.md) (`infra_agent_sibling_worktree_isolation` Phase 2) |
+| Interpreting the convergence verdict (converged / still_improving / too_few_trials) | [`docs/03_runbooks/convergence-verdict.md`](docs/03_runbooks/convergence-verdict.md) (`feat_study_convergence_indicator`) |
