@@ -67,3 +67,9 @@ async def test_all_engines_unreachable_raises_with_every_slug(
     assert len(skipped) == len(SCENARIOS) + 1  # 6: no duplicates
     # api_client must never have been touched (every scenario skipped pre-dispatch).
     api_client.post.assert_not_called()
+    # GPT-5.5 phase-gate Finding 1: the pre-loop ES/OS index DELETEs are gated on
+    # reachability, so with every engine unreachable they're SKIPPED entirely —
+    # engine_client.delete is never called. This is what makes the
+    # all-engines-unreachable verdict reachable in a genuine all-down run (the
+    # un-gated deletes would have ConnectError'd first -> generic failure).
+    engine_client.delete.assert_not_called()

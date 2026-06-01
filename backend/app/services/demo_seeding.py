@@ -223,6 +223,23 @@ class AllEnginesUnreachableError(DemoSeedingError):
         super().__init__(ALL_ENGINES_UNREACHABLE_MARKER)
 
 
+def _is_all_engines_unreachable(scenarios_skipped: list[str]) -> bool:
+    """True iff EVERY reachability-relevant scenario was skipped.
+
+    The reachability-relevant set is the ``len(SCENARIOS)`` entries in the
+    scenario loop PLUS the separately-seeded rich ESCI scenario, so the total
+    is ``len(SCENARIOS) + 1``. Each slug is appended to ``scenarios_skipped`` at
+    most once, so equality means nothing seeded because no engine was reachable.
+
+    Using the full-coverage count (rather than "no studies completed") avoids
+    misclassifying a reachable-but-tolerated-failure (e.g. the rich scenario was
+    reachable but its LLM judgment step failed) as engine absence — in that case
+    the rich slug is NOT in ``scenarios_skipped``, so the count is < the total
+    and this returns ``False`` (GPT-5.5 phase-gate Finding 4).
+    """
+    return len(scenarios_skipped) == len(SCENARIOS) + 1
+
+
 # ---------------------------------------------------------------------------
 # Response model
 # ---------------------------------------------------------------------------
@@ -1476,23 +1493,36 @@ async def reseed_demo_state(
     )
 
     # ---- Step 1b: DELETE ES + OS demo indices. ----
+    # Each engine's wipe is gated on reachability FIRST (infra_solr_ci_readiness
+    # FR-2): an unreachable engine has no demo indices to wipe, and probing
+    # before the DELETEs is what keeps the all-engines-unreachable path total —
+    # otherwise a genuine all-down run would ConnectError here (before any
+    # scenario-skip accounting) and surface as a generic failure instead of the
+    # required `all_engines_unreachable` token. A reachable engine that then
+    # returns a non-2xx/404 on DELETE is still a hard error (unchanged).
     es_base = _resolve_engine_base_url(ES)
-    for idx in DEMO_ES_INDICES:
-        _log_call_started("DELETE", f"{es_base}/{idx}", "engine")
-        response = await engine_client.delete(f"{es_base}/{idx}", auth=_httpx_auth(_ES_DELETE_AUTH))
-        if response.status_code not in (200, 204, 404):
-            raise DemoSeedingError(
-                f"step1b_es_delete: HTTP {response.status_code} {response.text[:200]}"
+    if await is_engine_reachable(es_base, "elasticsearch"):
+        for idx in DEMO_ES_INDICES:
+            _log_call_started("DELETE", f"{es_base}/{idx}", "engine")
+            response = await engine_client.delete(
+                f"{es_base}/{idx}", auth=_httpx_auth(_ES_DELETE_AUTH)
             )
+            if response.status_code not in (200, 204, 404):
+                raise DemoSeedingError(
+                    f"step1b_es_delete: HTTP {response.status_code} {response.text[:200]}"
+                )
 
     os_base = _resolve_engine_base_url(OS)
-    for idx in DEMO_OS_INDICES:
-        _log_call_started("DELETE", f"{os_base}/{idx}", "engine")
-        response = await engine_client.delete(f"{os_base}/{idx}", auth=_httpx_auth(_OS_DELETE_AUTH))
-        if response.status_code not in (200, 204, 404):
-            raise DemoSeedingError(
-                f"step1b_os_delete: HTTP {response.status_code} {response.text[:200]}"
+    if await is_engine_reachable(os_base, "opensearch"):
+        for idx in DEMO_OS_INDICES:
+            _log_call_started("DELETE", f"{os_base}/{idx}", "engine")
+            response = await engine_client.delete(
+                f"{os_base}/{idx}", auth=_httpx_auth(_OS_DELETE_AUTH)
             )
+            if response.status_code not in (200, 204, 404):
+                raise DemoSeedingError(
+                    f"step1b_os_delete: HTTP {response.status_code} {response.text[:200]}"
+                )
 
     # ---- Step 2: loop scenarios. ----
     results: list[tuple[str, str, str]] = []  # (slug, study_id, study_name)
@@ -1924,12 +1954,12 @@ async def reseed_demo_state(
             await _emit_progress(status_callback, progress)
 
     # ---- Step 2c: engine-tolerance verdict. ----
-    # If NOTHING seeded (every engine unreachable), this is a hard failure, not
-    # a partial — surfacing it as a no-op success would cache in Arq's
-    # keep_result window and wedge retries (bug_reseed_failure_blocks_retry_…).
+    # If EVERY engine was unreachable (all 6 scenarios skipped), this is a hard
+    # failure, not a partial — surfacing it as a no-op success would cache in
+    # Arq's keep_result window and wedge retries (bug_reseed_failure_blocks_…).
     # Otherwise, if any scenario was skipped, emit one WARN summarizing the
     # partial completion. (infra_solr_ci_readiness FR-2 / AC-7 / AC-10.)
-    if not results and rich_study_id is None and progress.scenarios_skipped:
+    if _is_all_engines_unreachable(progress.scenarios_skipped):
         raise AllEnginesUnreachableError(progress.scenarios_skipped)
     if progress.scenarios_skipped:
         logger.warning(
@@ -1957,12 +1987,17 @@ async def reseed_demo_state(
     # so the cluster / query-set counts stay at the SCENARIOS cardinality.
     # Studies and proposals scale with `results` (each entry is one
     # completed study + one digest + one proposal).
-    # Count actually-created clusters/query-sets, NOT len(SCENARIOS): a scenario
-    # skipped for engine-unreachability creates nothing, so `results` (one entry
-    # per COMPLETED scenario) is the correct cardinality. With no skips
-    # len(results) == len(SCENARIOS), so the happy path is unchanged.
+    # One cluster + one query set per COMPLETED scenario (a UBI scenario reuses
+    # its cluster/query-set across the LLM + UBI studies, so `results` — which
+    # has one entry PER STUDY, i.e. two per UBI scenario — overcounts clusters).
+    # Count DISTINCT completed scenario slugs instead. Studies + proposals scale
+    # with `results` (each entry = one completed study + digest + proposal).
+    # A scenario skipped for engine-unreachability creates nothing, so it
+    # contributes to neither count. With no skips this equals the pre-feature
+    # len(SCENARIOS) + rich. (GPT-5.5 phase-gate Finding 3.)
     rich_count = 1 if rich_study_id is not None else 0
-    clusters_and_qsets = len(results) + rich_count
+    completed_scenario_slugs = {slug for slug, _study_id, _name in results}
+    clusters_and_qsets = len(completed_scenario_slugs) + rich_count
     studies_and_proposals = len(results) + rich_count
     summary = ReseedSummary(
         clusters_created=clusters_and_qsets,

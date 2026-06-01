@@ -210,7 +210,23 @@ async def run_demo_reseed(ctx: dict[str, Any]) -> None:
                             # Best-effort cleanup so the system isn't left
                             # half-seeded. Holding the advisory lock keeps
                             # concurrent reseeds 409'd until we release.
-                            await run_demo_reseed_cleanup(engine_client)
+                            #
+                            # Cleanup is wrapped so a raise here can NEVER block
+                            # the failed-status write below. This matters most
+                            # for AllEnginesUnreachableError: the engines are
+                            # unreachable by definition, so the cleanup's engine
+                            # calls are the most likely to raise — and that's
+                            # exactly the case whose `all_engines_unreachable`
+                            # token + skip list MUST reach the Redis status for
+                            # the operator/UI/tests to see it. (GPT-5.5
+                            # phase-gate Finding 2.)
+                            try:
+                                await run_demo_reseed_cleanup(engine_client)
+                            except Exception:  # noqa: BLE001 — cleanup is best-effort
+                                logger.warning(
+                                    "demo_reseed_cleanup_failed_after_error",
+                                    original_exc=type(exc).__name__,
+                                )
                             await status_set(redis, _build_failed_status(exc))
                             # Swallow — Arq retries would re-run the entire
                             # destructive wipe + reseed, which is the wrong
