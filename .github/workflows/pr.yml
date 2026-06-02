@@ -491,7 +491,14 @@ jobs:
     # those skip too, so this stays consistent either way.)
     if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Bumped 15 → 25 min after infra_solr_smoke_stability PR #383: the
+    # demo-ubi.spec.ts beforeAll hook drives a reseed that AC-8 bounds at
+    # 24 min, and with Solr actually booting now (PR #383's Lever-0 perms
+    # fix unblocked it) the reseed actually exercises the Solr scenario
+    # — so total wall-clock for the smoke job's Playwright E2E step
+    # crossed 15 min and started hitting the job-level cap. 25 covers
+    # the reseed bound + setup/teardown headroom.
+    timeout-minutes: 25
     # Depend on the parallel `docker` (API) + `docker-ui` jobs so both image
     # artifacts are ready before `make up`. Pre-bumps this PR was paying ~10min
     # for `docker compose up -d` (image pulls + API + UI builds inside the
