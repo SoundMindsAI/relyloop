@@ -20,15 +20,15 @@ Plan approved; run /impl-execute to ship
 
 | Metric | Value |
 |---|---|
-| Filed under MVP2 | **41** folders total (done + specced not-done + idea backlog + bugs) |
+| Filed under MVP2 | **42** folders total (done + specced not-done + idea backlog + bugs) |
 | Specced features done | **10 / 22** (45%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **29** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **30** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 24 important to file, not blocking |
+| → P2 (default) | 25 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
-| Open bugs | 8 |
-| Legacy "Path to MVP2" | 24 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Open bugs | 9 |
+| Legacy "Path to MVP2" | 25 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -78,7 +78,7 @@ _None._
 
 _None._
 
-### Idea (15)
+### Idea (16)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -92,11 +92,12 @@ _None._
 | 8 | P2 | [bug_relyloop_spec_ubi_section_drift](planned_features/02_mvp2/bug_relyloop_spec_ubi_section_drift/idea.md) | Bug | [`docs/00_overview/relyloop-spec.md`](relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 releas | — | Idea — captured during `feat_ubi_judgments` preflight (2026-05-29) |
 | 9 | P2 | [bug_reseed_failure_blocks_retry_arq_singleton_dedup](planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup/idea.md) | Bug | `run_demo_reseed` is enqueued with a fixed Arq job id `demo_reseed:singleton` (the singleton concurrency guard). When a run reaches a terminal state, Arq stores its **result** under `arq:result:demo_r | — | Idea — tangential discovery while verifying `fix(demo): add Solr (8983) to the reseed engine host-URL mapping` (branch `feat_demo_reseed_solr_and_steplog`) |
 | 10 | P2 | [bug_seed_meaningful_demos_silent_bulk_errors](planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:917-935`](../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Idea — captured during `bug_smoke_seed_es_unavailable_shards_race` Phase 2.5 tangential sweep |
-| 11 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
-| 12 | Backlog | [feat_fts_rank_ordering](planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
-| 13 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
-| 14 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
-| 15 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
+| 11 | P2 | [bug_studies_detail_vitest_intermittent_timeout](planned_features/02_mvp2/bug_studies_detail_vitest_intermittent_timeout/idea.md) | Bug | Under the full `pnpm test` run (`vitest run`, default worker pool), the Study-detail-page render test sometimes blocks past the 5 s `testTimeout` default — but the test itself is data-driven from mock | — | Idea — captured during `chore_template_library_expansion` post-impl tangential sweep |
+| 12 | P2 | [bug_webhook_concurrent_merge_race_timing_sensitive](planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive/idea.md) | Bug | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. | — | Idea — surfaced during `bug_demo_clusters_unreachable_in_healthz` PR #236 CI. |
+| 13 | Backlog | [feat_fts_rank_ordering](planned_features/02_mvp2/feat_fts_rank_ordering/idea.md) | Feature | `feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery('english', 'foo')` is true but orders results by `created_at DESC, id DESC` (the def | — | Idea — deferred from `feat_data_table_primitive` (MVP1) per spec §16. |
+| 14 | Backlog | [infra_arq_subprocess_test](planned_features/02_mvp2/infra_arq_subprocess_test/idea.md) | Infra | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly;  | — | Idea (deferred from `feat_study_lifecycle` Phase 2 / PR #25 final GPT-5.5 review). Still applicable as of 2026-05-14: the three in-process tests cited below still cover the resume contract correctly; a subprocess test would add a narrow Arq-version-regression guard. |
+| 15 | Backlog | [chore_auto_followup_parent_advisory_lock](planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock/idea.md) | Chore | The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme: | — | Idea — captured as a standalone file to resolve broken cross-references in `feat_auto_followup_studies` D-11 + plan F2 + `bug_auto_followup_completed_parent_stop_chain_race/idea.md`. The slug was coined 2026-05-24 in D-11 but only existed as descriptive prose across other documents until now. |
+| 16 | Backlog | [bug_chat_long_conversation_truncation](planned_features/02_mvp2/bug_chat_long_conversation_truncation/idea.md) | Bug | [`backend/app/services/agent_chat.send_user_message`](../../backend/app/services/agent_chat.py) defensively caps the OpenAI history at the most recent `HISTORY_MAX_MESSAGES = 100` messages… | — | Held for MVP2 (decided 2026-05-13). Folder renamed with `_mvp2` suffix to make the deferral visible at-a-glance in `ls docs/00_overview/planned_features/`. Resume work when MVP2 starts — no technical dependency on MVP2 infra (audit_log is N/A; Langfuse is convenience only); the deferral is scope discipline + zero current impact (latent bug, no operator has hit the 100-message cap). |
 
 ## Dependency graph
 

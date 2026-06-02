@@ -1,0 +1,44 @@
+{#-
+  boost_decay.j2 — Apache Solr edismax with a recency/proximity boost
+  function. Combines lexical edismax with a `recip(ms(NOW,created_at),...)`
+  decay applied as an additive boost (Solr's `bf` semantics).
+
+  Declared (tunable) params, EXACT set:
+    title_boost                  float        per-field boost on `title`
+    description_boost            float        per-field boost on `description`
+    bullet_points_boost          categorical  discrete float choices
+    boost_weight                 categorical  overall additive boost strength
+    decay_scale                  categorical  recip slope (smaller = slower decay)
+
+  Baked-in literals (NOT declared / NOT tunable):
+    defType                      "edismax"
+    qf field names               "title", "description", "bullet_points"
+                                 (via field_boosts → qf pivot)
+    bf function skeleton         "recip(ms(NOW,created_at), <decay_scale>,
+                                  <boost_weight>, <boost_weight>)"
+    decay field name             "created_at"
+    fl                           "*,score"
+
+  Solr's `recip(x, m, a, b) = a / (m*x + b)`. With `a = b = 1` and
+  `x = ms(NOW, created_at)`:
+    age=0    → recip(...) = 1/1 = 1.0  (max)
+    age large → recip(...) → 0
+  `product(boost_weight, recip(...))` then scales that 0→1 decay curve by
+  `boost_weight`, so the MAXIMUM additive boost (at age 0) is exactly
+  `boost_weight` — the knob controls boost magnitude as documented, instead
+  of cancelling out at age 0 (which is what `recip(...,boost_weight,boost_weight)`
+  would do). Smaller `decay_scale` (the `m` slope) = slower decay.
+
+  Recommended registration name: `boost-decay-v1`.
+-#}
+{
+  "defType": "edismax",
+  "q": {{ query_text | tojson }},
+  "field_boosts": {
+    "title": {{ title_boost }},
+    "description": {{ description_boost }},
+    "bullet_points": {{ bullet_points_boost }}
+  },
+  "bf": "product({{ boost_weight }},recip(ms(NOW,created_at),{{ decay_scale }},1,1))",
+  "fl": "*,score"
+}

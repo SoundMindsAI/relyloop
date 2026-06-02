@@ -1,0 +1,44 @@
+{#-
+  edismax_basic.j2 — Apache Solr edismax lexical template (library shape,
+  wider tunable surface than the demo ``products_edismax.j2``).
+
+  Declared (tunable) params:
+    title_boost                  float     per-field boost on `title`
+    description_boost            categorical  discrete float choices for description
+    bullet_points_boost          categorical  discrete float choices for bullet_points
+    tie                          categorical  edismax tie-breaker, 0.0–1.0
+    mm                           categorical  Solr `mm` arithmetic syntax
+    ps                           int       phrase-slop tolerance (0–3)
+
+  Baked-in literals (NOT declared / NOT tunable):
+    defType                      "edismax"
+    qf field names               "title", "description", "bullet_points"
+      (via field_boosts → qf pivot)
+    pf                           "title description"  — Solr's phrase-fields
+      param. Baked-in because the declared-tunable `ps` (phrase slop) ONLY
+      affects phrase queries generated from `pf`; without any `pf` the `ps`
+      knob would be a silent no-op (Gemini finding on PR #413 spec — accepted).
+    fl                           "*,score"
+
+  Output dict mixes Solr-native + unified-pivot keys:
+    defType / q / pf / ps / fl   — Solr-native (passed through unchanged).
+    field_boosts                 — pivoted to qf by SolrAdapter.render.
+    tie_breaker                  — pivoted to tie.
+    min_should_match             — pivoted to mm.
+
+  Recommended registration name: `edismax-basic-v1`.
+-#}
+{
+  "defType": "edismax",
+  "q": {{ query_text | tojson }},
+  "field_boosts": {
+    "title": {{ title_boost }},
+    "description": {{ description_boost }},
+    "bullet_points": {{ bullet_points_boost }}
+  },
+  "pf": "title description",
+  "tie_breaker": {{ tie }},
+  "min_should_match": "{{ mm }}",
+  "slop": {{ ps }},
+  "fl": "*,score"
+}

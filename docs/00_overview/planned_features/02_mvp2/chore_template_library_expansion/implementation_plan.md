@@ -1,7 +1,7 @@
 # Implementation Plan — Curated query-template library + per-engine tunable-params cheatsheets
 
 **Date:** 2026-06-02
-**Status:** Ready for Execution
+**Status:** In Progress (PR open; 8 of 8 stories complete, gates green; finalize on merge)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`docs/01_architecture/adapters.md`](../../../../01_architecture/adapters.md) §"Cross-engine parameter naming"; [`samples/templates/README.md`](../../../../../samples/templates/README.md); [`docs/06_vendor_docs/README.md`](../../../../06_vendor_docs/README.md)
 
@@ -405,14 +405,14 @@ from backend.app.domain.study.search_space import SearchSpace  # parse .search_s
 ## 9) Execution tracker
 
 ### Current sprint
-- [ ] Story 1.1 — ES/OS templates + starter spaces + README registration blocks
-- [ ] Story 1.2 — Solr templates + starter spaces + solr/README.md
-- [ ] Story 1.3 — render-validation + doc-consistency tests
-- [ ] Story 2.1 — ES cheatsheet (+ kNN/hybrid ref snippets)
-- [ ] Story 2.2 — OpenSearch cheatsheet (+ normalization-processor hybrid snippet)
-- [ ] Story 2.3 — Solr cheatsheet
-- [ ] Story 2.4 — vendor README index + samples README + tutorial
-- [ ] Story 3.1 — FR-7 (conditional: ship or cut with decision-log note)
+- [x] Story 1.1 — ES/OS templates + starter spaces + README registration blocks
+- [x] Story 1.2 — Solr templates + starter spaces + solr/README.md
+- [x] Story 1.3 — render-validation + doc-consistency tests
+- [x] Story 2.1 — ES cheatsheet (+ kNN/hybrid ref snippets)
+- [x] Story 2.2 — OpenSearch cheatsheet (+ normalization-processor hybrid snippet)
+- [x] Story 2.3 — Solr cheatsheet
+- [x] Story 2.4 — vendor README index + samples README + tutorial
+- [x] Story 3.1 — FR-7 **SHIPPED** (feasibility gate passed: client-side `template-descriptions.ts` + `cheatsheetUrlFor` resolver + optional `learnMoreHref` prop on `InfoTooltip` — no migration, no new endpoint, no shared-tooltip refactor)
 
 ### Blocked items
 - None.
