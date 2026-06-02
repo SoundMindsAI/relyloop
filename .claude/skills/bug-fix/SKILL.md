@@ -219,14 +219,19 @@ artifact first then the code.
    (`fix(<scope>): <subject>` for the fix; `test(<scope>): <subject>`
    for the regression test if you split commits).
 7. **Tangential-observations sweep.** Per CLAUDE.md
-   "Tangential discoveries", capture every unrelated issue you noticed
-   while tracing — as `bug_<slug>` / `chore_<slug>` / `infra_<slug>`
-   idea files in the same branch. Bug fixes routinely surface adjacent
-   bugs; if you don't capture them now, they're gone.
+   "Tangential discoveries — fix inline by default, defer rarely",
+   resolve every unrelated issue you noticed while tracing — either
+   fix it inline on this same branch (the default, when the path is
+   <60 min + same subsystem + no product/operator decision needed) or,
+   when inline fix genuinely fails the rubric, capture as
+   `bug_<slug>` / `chore_<slug>` / `infra_<slug>` idea files in the
+   same branch. Bug fixes routinely surface adjacent bugs; the inline
+   fix is almost always cheaper than the deferred-and-never-fixed
+   idea file. Don't carry noticings in conversation memory.
 
 **Phase 5 gate:** `bug_fix.md` is written, the fix is committed, the
 regression test fails on `main` and passes on the branch, the test
-suite is green locally, tangential issues are captured.
+suite is green locally, tangential issues are resolved (inline or captured).
 
 ### Phase 6 — Handoff (default) OR auto-ship (--ship)
 
