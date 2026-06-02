@@ -4,6 +4,77 @@
 
 ---
 
+### Planning-docs batch — 5 idea-only MVP2 folders advanced Idea→Plan (PR #413, 2026-06-02)
+
+Squash-merged via [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413)
+(merge commit `69af77eb`). A pure planning-docs PR — **no source code, no
+migration** (Alembic head stays `0022`) — mirroring the PR #364 precedent of
+landing several cross-model-reviewed spec/plan pairs in one docs PR. Five
+previously idea-only folders under `02_mvp2/` were each taken through the full
+`idea-preflight → spec-gen → impl-plan-gen` pipeline, with the mandatory GPT-5.5
+cross-model review run on **both** the spec and the plan for each (full
+adjudication logs live in the artifacts). Generated in parallel via five
+subagents, each scoped to its own folder; bundled + reviewed + merged by the
+main loop.
+
+The five, with plan shape and review intensity:
+
+- **`chore_studies_post_arq_spy_fixture`** — an `arq_pool_spy` fixture so
+  studies-POST integration tests can positively assert "no Arq job enqueued" on
+  rejection paths. 2 stories / 1 epic, no migration. The load-bearing
+  preflight correction: the studies-POST tests do NOT run without a pool — the
+  `async_client` fixture builds the real Arq pool via `LifespanManager` against
+  CI Redis, so the spy must **replace** the pool *after* lifespan, not supply a
+  missing one. GPT-5.5: spec 3 cycles 4/4 accepted, plan 3 cycles 4/4 accepted.
+- **`bug_judgment_header_omits_click_bucket`** — render the `click` (UBI)
+  source bucket in the judgment-list header (it currently shows only
+  `llm`/`human`). Pure render gap — the `click` bucket is already on the wire
+  (`schemas.py` `_SourceBreakdown`) and in `types.ts`. 2 stories / 1 epic,
+  frontend-only (vitest + real-backend Playwright). GPT-5.5: spec 2 cycles 4/4
+  accepted, plan 1 clean cycle.
+- **`bug_baseline_phase_test_isolation`** — fix the suite-ordering dependency
+  in `test_orchestrator_baseline_phase.py::TestComputeBaselineWaitS`
+  (passes in the full run, fails in isolation). Confirmed two-layer root cause:
+  (1) `_compute_baseline_wait_s` calls `get_settings()` even when an explicit
+  `trial_timeout_s` is present; (2) `test_main_lifespan.py` leaks
+  `DATABASE_URL_FILE`/`POSTGRES_PASSWORD_FILE` into `os.environ` at collection
+  time. Durable fix = lazy settings read; the env leak is documented but left
+  out of scope. 2 stories / 1 epic + a regression test that fails pre-fix.
+  GPT-5.5: spec 2 cycles 2/2 accepted, plan 2 cycles (1 finding rejected with
+  counter-evidence — `Any` already imported).
+- **`chore_template_library_expansion`** — a curated 6-template library +
+  3 per-engine tunable-params cheatsheets. 8 stories / 3 epics, no migration.
+  The two High GPT-5.5 findings reshaped the feature: a single ES-native hybrid
+  template is invalid on OpenSearch, and the render context injects no query
+  vector — so kNN + hybrid-RRF were demoted from runnable templates to
+  engine-correct **reference snippets** in the cheatsheets. Locked runnable set:
+  ES/OS `multi_match_basic`/`function_score_decay`/`bool_boosted`/`rescore_phrase`
+  + Solr `edismax_basic`/`boost_decay`. GPT-5.5: spec 7 cycles 12/12 accepted,
+  plan 5 cycles 8/8 accepted.
+- **`chore_ubi_reader_search_after_pagination`** — exact full-traffic UBI
+  aggregation via a new engine-neutral `SearchAdapter.scan_all` + `close_scan`
+  returning an opaque round-tripped cursor (ES/OS: PIT + `search_after` over
+  `[timestamp,_shard_doc]`, one impl with internal PIT-endpoint branch; Solr:
+  `cursorMark` via `POST /select`) — replacing the 10k-sample cap. Keeps
+  Absolute Rule #4 intact (reader never branches on engine for pagination).
+  5 stories / 3 epics, no migration. GPT-5.5: spec 5 cycles 16/16 accepted,
+  plan 5 cycles 14/14 accepted.
+
+Gemini Code Assist left 4 line-level findings on the planning docs; adjudicated
+3 accepted + 1 rejected (in fix commit `56a888ab`): (1) bake `pf` into Solr
+`edismax_basic.j2` so the tunable `ps` is not a no-op [accept]; (2) the reader
+sketch's bare `settings.X` is out of scope — fixed via constructor injection
+rather than the suggested `get_settings()`, preserving `UbiReader`'s deliberate
+decoupling from `Settings` [accept, remedy adjusted]; (3) byte-length chunking
+measures the fully-serialized filter fragment, not summed raw id lengths
+[accept]; (4) `UBI_EVENTS_INDEX` "NameError" [reject — it's a module-level
+constant at `ubi_reader.py:75`, already used directly at L515]. Heavy `pr.yml`
+is path-filtered out for docs-only changes; merged on the docs fast lane with
+DCO + secrets-defense green. All five are now `/impl-execute`-ready follow-ups
+(none gated, unlike PR #364's two design-ahead pairs).
+
+---
+
 ### infra_solr_ci_readiness Phase 1 — engine-tolerant demo reseed unblocks the pr.yml backend job (PR #367, 2026-06-01)
 
 The `pr.yml` **backend** job had been red on every branch since Apache Solr
