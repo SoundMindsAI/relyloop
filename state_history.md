@@ -4,6 +4,103 @@
 
 ---
 
+### `bug_llm_capability_cache_no_refresh` — recompute the OpenAI capability cache on miss to recover from 24h TTL expiry (PR #426, 2026-06-02)
+
+**The bug.** The OpenAI capability check (`infra_foundation` Story 3.3 / FR-7)
+runs exactly once at api startup — a fire-and-forget task in the FastAPI
+`lifespan` hook (`main.py:94`, `run_capability_check_background`) — and caches
+its `CapabilityResult` in Redis with a 24h TTL (`capability_check.py:48`,
+`CACHE_TTL_SECONDS = 86_400`). Nothing repopulates the cache for the api
+process's remaining lifetime. Every LLM-gated endpoint reads the cache and
+refuses on a miss: `_check_llm_preflight` treats `cap is None` as
+`LLM_PROVIDER_INCAPABLE` (503, `retryable=False`). So any stack up >24h
+silently loses all LLM-dependent capability — UBI hybrid + LLM judgment
+generation, digest narrative, chat tool dispatch — until the api process
+restarts. Surfaced live 2026-06-02 on an operator stack at 34h uptime: the
+original symptom was a `DemoSeedingError: ... HTTP 503 LLM_PROVIDER_INCAPABLE
+"cache miss"`; `redis-cli --scan --pattern 'openai:capabilities:*'` returned
+zero keys, and `docker compose restart api` (re-running the lifespan check)
+immediately fixed it. The behavior was self-contradictory: the check is gentle
+on *transient* failures (caches a degraded result, logs WARN, never crashes)
+but brittle on *expiry* (a healthy endpoint becomes "incapable" purely because
+wall-clock crossed 24h).
+
+**The fix (Option A, locked at preflight).** New helper
+`read_or_recompute_capability_result()` in `capability_check.py`: read the
+cache; on miss with a configured `api_key`, recompute inline via
+`check_capabilities()` (which writes the result back); on miss with an empty
+key, return `None` (preserves the existing "no key → no capability" semantic
+that `/healthz` relies on to distinguish an unset key from an unreachable
+endpoint). `agent_judgments_dispatch._check_llm_preflight` swaps from
+`read_capability_result` → the new helper. `/healthz` stays read-only because
+its 200ms SLO (CLAUDE.md Absolute Rule #11) is incompatible with a synchronous
+1-4s recompute — it correctly reports cache-miss as a degraded `openai`
+subsystem rather than trying to self-heal; the chat orchestrator stays
+read-only too (no live 503 reported from that path), with a one-line opt-in
+available if the symptom ever surfaces. The recompute trigger consolidates in
+`capability_check.py` (single source of truth) per D-5.
+
+**Design forks.** D-1 Option A (recompute-on-miss) chosen over D-2 Option B
+(periodic background refresh — rejected: another always-on task, scheduling
+skew across replicas, disproportionate to a once-per-stack-per-24h problem) and
+D-3 Option C (stale-but-usable — rejected: trades a real correctness property
+for a latency win A already gets, serves stale "ok" exactly when the endpoint
+went bad). D-4 (single-flight) was the interesting one: the preflight
+recommended a Redis `SET NX EX` mutex; fix-time analysis initially locked "no
+lock — bounded by `WEB_CONCURRENCY × probes`"; then the **GPT-5.5 final review
+on PR #426 caught that bound undercounts** — a single uvicorn worker runs
+multiple concurrent request coroutines that can all observe the same cache miss
+between read and write, so the true bound was `concurrent_requests × probes`,
+not workers × probes. Refined to a module-global `asyncio.Lock` + an in-lock
+double-checked read: the cache-hit fast path is uncontended, and any coroutine
+that loses the race sees the just-populated cache instead of re-probing. Per-
+worker bound is now exactly 1 probe per cold expiry; cross-worker bound stays
+at `WEB_CONCURRENCY` (Redis-level lock still rejected — `check_capabilities` is
+deterministic + last-write-wins). The asyncio.Lock is ~6 LOC vs. the Redis
+lock's ~30 (token generation, EX-timeout tuning, loser-poll, cleanup), which is
+what cleared the CLAUDE.md "minimal change" bar the no-lock option also met but
+less safely. GPT-5.5's second finding — the helper exposed an unhandled-
+exception surface — was accepted too: a try/except now mirrors
+`run_capability_check_background`'s defensive posture (return `None` on
+unexpected failure → caller's existing 503 envelope, not a bare 500;
+`asyncio.CancelledError` re-raised for shutdown).
+
+**Tests.** 7 unit cases in `TestReadOrRecomputeCapabilityResult` (cache-miss
+recomputes + writes back; cache-hit short-circuits with no HTTP work; empty-key
+→ None; degraded cache-hit returned as-is; `check_capabilities` raising → None;
+10 concurrent in-worker callers collapse to 1 probe; `None` api_key → None) +
+1 integration case (`test_generate_recovers_after_capability_cache_expiry` — a
+cleared cache POST returns 202 not 503, and a follow-up POST short-circuits;
+the original test asserted the *bug's* 503 behavior and was rewritten). The
+existing `test_agent_judgments_dispatch{,_ubi}.py` `_patch_cap` fixtures were
+updated to monkeypatch the new symbol at the dispatch import site — the old
+monkeypatch silently no-op'd post-rename and would have let the preflight fall
+through to real Redis. 2191 → 2194 unit pass; 330 contract pass.
+
+**Process.** This shipped via the new `/bug-fix --ship` skill (not `/pipeline`)
+— the operator asked "is `/pipeline` overkill?" mid-flow and it was: a
+1-subsystem bug with the design fork locked at preflight, ~3 backend files, no
+migration. As a ride-along, the `/idea-preflight` SKILL.md was fixed to stop
+hard-coding `/pipeline --auto` for every "ready" verdict — it now routes among
+`/pipeline`, `/bug-fix --ship`, and `/impl-execute --ad-hoc` by folder prefix +
+scope (committed inside PR #426 as the explicit ask that produced the PR). The
+folder was also renamed `bug_llm_capability_cache_no_refresh_after_ttl_expiry`
+→ `bug_llm_capability_cache_no_refresh` (9 → 6 tokens). One CI correction: the
+first push had an integration test that POSTed twice with the same `name` and
+409'd on `JUDGMENT_LIST_NAME_TAKEN` before reaching the cache code — fixed by
+using distinct names. Cross-model: Gemini 4 findings (1 accepted —
+`api_key: str | None`; 3 rejected as hunk-isolated false positives claiming
+`AsyncMock.assert_not_awaited` is non-stdlib — it's been stdlib since 3.8 and
+the tests + CI were green on the reviewed SHA), GPT-5.5 final 2 (both accepted,
+each with a new regression test). No `backend/app/` source beyond the helper +
+call-site swap; no migration (head stays `0022`). All 12 `pr.yml` checks green;
+squash-merged `432dcf59`. Also filed a P2 follow-up on a separate branch:
+`chore_pr_yml_parallelize_backend_job` (PR #427) — the slow 8m20s backend CI
+job that made the operator wait through two cycles, with three parallelization
+wins captured.
+
+---
+
 ### `infra_smoke_reseed_runtime_budget` — exclude demo-ubi.spec.ts from CI to clear the smoke runtime budget (PR #424, 2026-06-02)
 
 The third and final PR of the Solr-CI debt chain. `infra_solr_ci_readiness`
