@@ -4,6 +4,74 @@
 
 ---
 
+### `infra_smoke_reseed_runtime_budget` — exclude demo-ubi.spec.ts from CI to clear the smoke runtime budget (PR #424, 2026-06-02)
+
+The third and final PR of the Solr-CI debt chain. `infra_solr_ci_readiness`
+(PR #367) made the backend job's reseed engine-tolerant; `infra_solr_smoke_stability`
+(PR #383) fixed the Solr container's boot crash (filesystem perms + heap cap).
+But PR #383's Lever-0 perms fix had a second-order effect: once Solr *actually
+booted* on the runner, the demo reseed's engine-tolerant skip stopped firing,
+so `demo-ubi.spec.ts`'s `beforeAll` reseed ran the full 6-scenario set instead
+of 5-on-2-engines. AC-8 of `feat_demo_ubi_study_comparison` bounds the in-flight
+reseed at 1140s (~19 min hard ceiling), with §14 estimating ~28 min worst case
+once Solr lights up — and adding Playwright + smoke-job setup overhead pushed
+total wall-clock past the smoke job's 25-min `timeout-minutes` cap (run
+26790636716 hit it at 25:18, cancelled). The smoke job was turned OFF by default
+(`SMOKE_TEST` repo var, 2026-06-02) naming this idea as the reason.
+
+**The fix (Option A, locked at idea-preflight, operator-confirmed):** extend
+`ui/playwright.config.ts`'s `testIgnore` CI-gated branch by one entry —
+`'**/demo-ubi.spec.ts'`, the 7th alongside the 6 pre-existing demo-data-dependent
+specs (`dashboard*`, `auto-followup`, `index-document-browser`, `studies-create-*`).
+The `process.env.CI ? [...] : []` ternary gates the exclusion to GHA runs, so
+local `make up` smoke (`CI=` unset) retains full demo-ubi coverage — the spec
+file itself is never edited, never deleted, never file-level-skipped. The fix
+lives in one file; there's no parallel `--grep-invert` flag in `pr.yml` (which
+also dissolved the D-4 collision risk with the sibling `infra_smoke_fork_pr_secret_skip`,
+since that idea edits `pr.yml` and this one no longer does to anything functional).
+
+**Rejected alternatives.** Option B (bump `timeout-minutes` 25 → 35) rejected at
+D-3: §14's ~28 min worst case leaves <7 min margin that erodes with each future
+demo scenario — papering over the budget, not fixing it. Option C (env-var reseed
+scenario filter that preserves per-PR demo-ubi smoke coverage at ~2-3h multi-file
+cost) deferred at D-2 per the operator's explicit choice; captured in runbook §5
+as the path forward if per-PR demo-ubi coverage is ever wanted.
+
+**Supporting work.** New vitest regression guard
+`ui/src/__tests__/playwright-config-test-ignore.test.ts` — reads
+`playwright.config.ts` as text (resolved via `import.meta.url`, CRLF-normalized)
+and asserts (a) demo-ubi is in the CI ternary branch, (b) all 7 expected entries
+present, (c) demo-ubi NOT outside the ternary (local-coverage guard). Runbook
+`docs/03_runbooks/smoke-solr-stability.md` gains §5 "Reseed runtime (demo-ubi
+exclusion)" — explains the AC-8-vs-cap mismatch, where the exclusion lives, the
+local-coverage promise, the nightly-CI caveat (a future nightly-on-GHA job would
+also exclude demo-ubi unless it overrides `CI`), and a relationship table
+distinguishing the reseed-runtime concern from the §1–§4 Solr-stability lever
+cascade. `pr.yml` (two comment blocks) + `state.md` (CI note + debt entry) had
+their stale "demo-ubi reseed exceeds the cap" framing refreshed to "runtime block
+cleared; flip `SMOKE_TEST=true` after the §16 verification" — comments-only diff
+on `pr.yml` (verified zero non-comment changed lines; YAML structure byte-identical).
+
+**§16 manual verification** (Playwright discovery isn't covered by the vitest
+text-grep): `CI=true pnpm --dir ui exec playwright test --list` → 86 tests in 30
+files, 0 demo-ubi matches (AC-1); `CI=` unset → 110 tests in 37 files, demo-ubi
+discovered (AC-2). The 7-file / 24-test delta matches the 7 CI-gated testIgnore
+entries exactly.
+
+5 stories / 1 epic, no `backend/app/` source, no migration (head stays `0022`).
+Cross-model review trail: spec GPT-5.5 3 cycles (13 findings — 1 H + 5 M + 7 L,
+all applied), plan GPT-5.5 3 cycles (11 findings — 0 H + 4 M + 7 L, all applied),
+Gemini Code Assist 2 findings (both accepted: `import.meta.url` path resolution +
+CRLF normalization), GPT-5.5 final review 3 findings (2 accepted: a broken
+`§4`→`§5` config-comment pointer + converting runbook inline-code mentions to
+markdown cross-links per FR-3; 1 rejected with counter-evidence: an AC-7
+file-shape re-raise that the PR body already addressed — recent PRs all ship the
+pipeline-trail + dashboard regen is a pre-commit hook output). All 12 `pr.yml`
+checks green; squash-merged `035d7941`. The Solr-CI debt chain is now fully
+drained; the `smoke` job stays OFF by operator preference.
+
+---
+
 ### `feat_studies_convergence_visibility` — studies-list convergence visibility + real demo data (Epic 1 PR #421, Epic 2 PR #422, 2026-06-02)
 
 Two epics, one single-phase plan. **Epic 1** (studies-list trial count +
