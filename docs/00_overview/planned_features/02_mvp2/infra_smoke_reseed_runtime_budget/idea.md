@@ -61,6 +61,7 @@ Per CLAUDE.md "fix inline by default" rule, options A and B are both inline-chea
 
 - **Sibling of** `infra_solr_smoke_stability` ([PR #383](https://github.com/SoundMindsAI/relyloop/pull/383), merged with smoke red per D-6). The smoke-solr-stability runbook (`docs/03_runbooks/smoke-solr-stability.md`) needs a new lever-cascade entry after this work ships, OR a section noting that reseed-runtime is a separate concern from Solr stability.
 - **Independent of** `infra_solr_ci_readiness` Phase 1 (backend half — shipped, unaffected).
+- **Sibling "smoke job stays red" issue:** [`infra_smoke_fork_pr_secret_skip`](../infra_smoke_fork_pr_secret_skip/idea.md) — a **separate, independent** smoke-red failure mode (external-fork PRs can't read `OPENAI_API_KEY_TEST`, so smoke hard-fails at the secret sanity-check). Neither fix resolves the other: this idea fixes the reseed wall-clock; that one fixes the fork-secret gate. Both must ship for `smoke` to be green on every PR — and both edit the same `pr.yml` smoke-test job, so coordinate the YAML changes to avoid collisions.
 
 ## Scope signals
 
