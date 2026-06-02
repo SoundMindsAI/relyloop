@@ -222,7 +222,7 @@ async def on_shutdown(ctx: dict[str, Any]) -> None:
 
     arq_pool: ArqRedis | None = ctx.get("arq_pool")
     if arq_pool is not None:
-        await arq_pool.close()
+        await arq_pool.aclose()
 
 
 class WorkerSettings:
