@@ -126,14 +126,14 @@ Before `infra_solr_smoke_stability` PR #383 (Lever-0 perms fix), Solr crashed in
 
 The fix is a config-level test exclusion, NOT a Compose change and NOT a `pr.yml` YAML change:
 
-- **`ui/playwright.config.ts`** — the `testIgnore` array's CI-gated branch lists `'**/demo-ubi.spec.ts'` alongside the 6 pre-existing demo-data-dependent specs. The CI ternary (`process.env.CI ? [...] : []`) gates the exclusion to runs where `CI=true` (the GHA default).
-- **`ui/src/__tests__/playwright-config-test-ignore.test.ts`** — vitest regression guard asserts the entry is in the CI branch (not outside it) and all 7 expected entries are present. Catches accidental removal or accidental promotion outside the CI ternary on every commit.
+- [`ui/playwright.config.ts`](../../ui/playwright.config.ts) — the `testIgnore` array's CI-gated branch lists `'**/demo-ubi.spec.ts'` alongside the 6 pre-existing demo-data-dependent specs. The CI ternary (`process.env.CI ? [...] : []`) gates the exclusion to runs where `CI=true` (the GHA default).
+- [`ui/src/__tests__/playwright-config-test-ignore.test.ts`](../../ui/src/__tests__/playwright-config-test-ignore.test.ts) — vitest regression guard asserts the entry is in the CI branch (not outside it) and all 7 expected entries are present. Catches accidental removal or accidental promotion outside the CI ternary on every commit.
 
-The exclusion lives in one file — there is no parallel `--grep-invert` CLI flag in `pr.yml`. Anyone reading `playwright.config.ts` sees the full list of CI-excluded specs with rationale; the pr.yml smoke-test job doesn't duplicate the spec name in YAML.
+The exclusion lives in one file — there is no parallel `--grep-invert` CLI flag in `pr.yml`. Anyone reading [`ui/playwright.config.ts`](../../ui/playwright.config.ts) sees the full list of CI-excluded specs with rationale; the pr.yml smoke-test job doesn't duplicate the spec name in YAML.
 
 ### Local-coverage promise
 
-`demo-ubi.spec.ts` is **NOT deleted**, **NOT renamed**, and **NOT skipped at the file level** by this work. The spec file is unchanged. Local `pnpm test:e2e` (with `CI=` unset) discovers and runs it normally, the same as it did before this fix. The exclusion fires only when `CI=true` (every GHA runner).
+[`ui/tests/e2e/demo-ubi.spec.ts`](../../ui/tests/e2e/demo-ubi.spec.ts) is **NOT deleted**, **NOT renamed**, and **NOT skipped at the file level** by this work. The spec file is unchanged. Local `pnpm test:e2e` (with `CI=` unset) discovers and runs it normally, the same as it did before this fix. The exclusion fires only when `CI=true` (every GHA runner).
 
 ### Nightly-CI caveat
 
