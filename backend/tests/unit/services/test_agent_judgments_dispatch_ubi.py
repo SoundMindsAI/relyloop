@@ -8,7 +8,7 @@ Story 2.2 / FR-4).
 Mirrors :mod:`test_agent_judgments_dispatch` (LLM-side dispatcher) so the
 two preflight chains read side-by-side. Mocks adapter + Redis via
 ``monkeypatch.setattr`` at module-level attribute paths
-(``read_capability_result``, ``peek_daily_total``, ``repo.<fn>``,
+(``read_or_recompute_capability_result``, ``peek_daily_total``, ``repo.<fn>``,
 ``build_adapter``, ``count_ubi_events_in_window``).
 
 Lives in ``backend/tests/unit/services/`` (matches the layer convention
@@ -128,8 +128,11 @@ def _patch_count(monkeypatch: pytest.MonkeyPatch, observed: int) -> None:
 
 
 def _patch_cap(monkeypatch: pytest.MonkeyPatch, value: Any = None) -> None:
+    # bug_llm_capability_cache_no_refresh swapped read_capability_result →
+    # read_or_recompute_capability_result at the dispatch import site;
+    # patching the new symbol so monkeypatch actually intercepts the call.
     monkeypatch.setattr(
-        "backend.app.services.agent_judgments_dispatch.read_capability_result",
+        "backend.app.services.agent_judgments_dispatch.read_or_recompute_capability_result",
         AsyncMock(return_value=value if value is not None else _cap()),
     )
 
