@@ -298,10 +298,26 @@ N/A — service layer, no HTTP surface.
 async def _scan_ubi_events(self, *, target, since, until, query_ids, max_events, request_id):
     out: list[dict] = []
     remaining = max_events
-    # _chunk bounds each batch by BOTH id-count (settings.ubi_query_id_batch_size)
-    # AND encoded byte-length (so a Solr {!terms} fq / ES terms list stays under
-    # engine limits regardless of id length) — P1-B1.
-    for batch in _chunk(query_ids, settings.ubi_query_id_batch_size):
+    # _chunk bounds each batch by BOTH id-count (self._ubi_query_id_batch_size)
+    # AND encoded byte-length (self._ubi_query_id_batch_max_bytes), where the
+    # byte budget is measured on the FULLY-SERIALIZED filter fragment — i.e. the
+    # wrapper + separators (Solr `{!terms f=query_id}a,b,c` / ES terms-list JSON),
+    # NOT just the summed raw id lengths — so the request body/URL stays under
+    # engine limits regardless of id length (P1-B1; Gemini PR #413 finding #3 —
+    # accepted, serialization-overhead clarification).
+    #
+    # NOTE (Gemini PR #413 finding #2 — accepted, remedy adjusted): `UbiReader`
+    # is deliberately decoupled from `Settings` (ctor takes only `adapter` +
+    # injected values, mirroring `position_bias_prior` — see ubi_reader.py
+    # docstring ~L189-190). So these two ceilings are resolved by the CALLER from
+    # `Settings` and INJECTED via `__init__` (stored as `self._ubi_query_id_batch_size`
+    # / `self._ubi_query_id_batch_max_bytes`); the sketch references the instance
+    # attrs, never a module-level `settings` (which is out of scope here and would
+    # NameError). Do NOT call `get_settings()` inside the reader — that breaks the
+    # established decoupling. (`UBI_EVENTS_INDEX` below is correct as-is: it is a
+    # module-level constant at ubi_reader.py:75, already used directly at L515 —
+    # not an instance attr; Gemini finding #4 rejected as stale.)
+    for batch in _chunk(query_ids, self._ubi_query_id_batch_size, self._ubi_query_id_batch_max_bytes):
         body = self._build_events_filter(target, since, until, batch)  # existing per-engine builder
         cursor = None
         try:
@@ -358,7 +374,7 @@ None.
 | File | Change |
 |---|---|
 | `backend/app/core/settings.py` | Add non-secret config fields: `ubi_max_events_scan: int` (high finite default), `ubi_max_queries_scan: int`, `ubi_query_id_batch_size: int` (id-count ceiling per batch), `ubi_query_id_batch_max_bytes: int` (encoded byte-length hard ceiling per batch — P2-B1), `ubi_no_pit_tiebreaker_field: str \| None = None`. Bare env vars are fine (non-secret config — Absolute Rule #2 applies only to secrets). |
-| `backend/app/services/ubi_reader.py` | `UbiReader.__init__` resolves the ceiling defaults from `get_settings()` (or accepts them as constructor args defaulting to the settings values), so `read_features`/`read_user_query_map` `max_events`/`max_queries` kwargs default to the shared ceiling, not a hardcoded constant. Per-call kwargs still override. |
+| `backend/app/services/ubi_reader.py` | `UbiReader.__init__` accepts the four ceilings (`max_events`/`max_queries`/`ubi_query_id_batch_size`/`ubi_query_id_batch_max_bytes`) as **constructor args injected by the caller** (mirroring how `position_bias_prior` is already injected — the reader stays decoupled from `Settings` per its docstring ~L189-190; it does **not** import or call `get_settings()`). The caller (worker/service) resolves the defaults from `Settings` and passes them in; `read_features`/`read_user_query_map` `max_events`/`max_queries` kwargs then default to the injected ceiling, not a hardcoded constant. Per-call kwargs still override. (Gemini PR #413 finding #2 — accepted; remedy adjusted to injection rather than in-reader `get_settings()` to preserve the decoupling.) |
 | `backend/tests/unit/services/test_ubi_reader.py` | AC-12: construct `UbiReader` without an explicit `max_events` kwarg (as dispatcher/readiness do) + a configured `Settings.ubi_max_events_scan`; assert the scan truncates at the `Settings` ceiling, not 10k. |
 
 **Endpoints**

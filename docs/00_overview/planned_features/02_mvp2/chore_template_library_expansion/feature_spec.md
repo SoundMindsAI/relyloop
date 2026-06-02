@@ -166,11 +166,11 @@ N/A — this chore adds no state-mutating endpoint or service function. Template
 
 - Requirement:
   - The system **MUST** ship the following Solr templates under `samples/templates/solr/`, each rendering to a valid flat Solr request-parameter dict:
-    1. `edismax_basic.j2` — edismax lexical (mirrors the existing `products_edismax.j2` shape with a wider tunable surface). **Declared (tunable):** `tie`, `mm` (categorical string choices), `ps`, plus the per-field boosts. **Baked-in literals:** `defType: edismax`, `fl`, the qf field names.
+    1. `edismax_basic.j2` — edismax lexical (mirrors the existing `products_edismax.j2` shape with a wider tunable surface). **Declared (tunable):** `tie`, `mm` (categorical string choices), `ps`, plus the per-field boosts. **Baked-in literals:** `defType: edismax`, `fl`, the qf field names, **and `pf` (phrase fields)**. `pf` MUST be baked in so the declared-tunable `ps` actually takes effect — in edismax, `ps` (phrase slop) only applies to phrase queries generated from `pf`, so exposing `ps` without any `pf` would make `ps` a silent no-op (Gemini PR #413 finding — accepted). `pf` stays a baked-in literal (not a declared param) per the §9 declared-param == search-space equality invariant.
     2. `boost_decay.j2` — edismax with a recency/proximity boost. **Declared (tunable), exact set:** `boost_weight` (float — overall additive boost strength), `decay_scale` (float — the recip/decay scale), plus the per-field boosts (`title_boost`, `description_boost`, `bullet_points_boost`). **Baked-in literals:** `defType: edismax`, `fl`, the `bf` function-expression skeleton (e.g. `recip(...)`) + the decay field name; the tunable `boost_weight` and `decay_scale` are interpolated into that `bf` string. (Exact scalar names locked — cycle 3, GPT-5.5 F3.) The same `boost_weight`/`decay_scale` keys MUST appear identically in the README, `.search_space.json`, render test, and cheatsheet back-links.
   - The system **MUST NOT** ship a Solr kNN or Solr hybrid template (out of scope per §3).
   - The existing `products_edismax.j2`, `products_dismax.j2`, `products_lucene.j2` **MUST** remain unchanged.
-- Notes: Solr templates use the documented pivot keys (`field_boosts`→`qf`, `boost_fn`→`bf`/`boost`) plus Solr-native keys (`defType`, `q`, `tie`, `mm`, `ps`, `fl`).
+- Notes: Solr templates use the documented pivot keys (`field_boosts`→`qf`, `boost_fn`→`bf`/`boost`) plus Solr-native keys (`defType`, `q`, `tie`, `mm`, `ps`, `pf`, `fl`). (`pf` is baked into `edismax_basic.j2` as the phrase-field source that makes `ps` meaningful — see FR-2 item 1.)
 
 ### FR-3: Per-template documentation + starter search space
 
