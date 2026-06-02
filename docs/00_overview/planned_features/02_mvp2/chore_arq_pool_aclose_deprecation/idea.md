@@ -38,3 +38,8 @@ Replace both `await arq_pool.close()` calls with `await arq_pool.aclose()` — `
 ## Relationship to other work
 
 - Pure maintenance; no feature dependency. Pick up with any other `backend/app/main.py` touch.
+- **Surfaced a CI-policy gap:** this fix shipped via [PR #387](https://github.com/SoundMindsAI/relyloop/pull/387) (merged 2026-06-02 as `2e49ac99`), submitted by an external contributor. Its first run exposed that the `smoke` job hard-fails on every external-fork PR because forked PRs can't read `OPENAI_API_KEY_TEST` — captured as [`infra_smoke_fork_pr_secret_skip`](../infra_smoke_fork_pr_secret_skip/idea.md).
+
+## Postscript — shipped
+
+Shipped via PR #387 (squash commit `2e49ac99`, 2026-06-02). Both call sites converted to `aclose()`; regression tests added at both shutdown paths. The `fake_pool.close = AsyncMock(...)` stub flip predicted in "Scope signals" was applied, and `fake_pool.close` was additionally retained as an `AsyncMock` so the `close.assert_not_called()` negative assertion fails cleanly rather than crashing on a non-awaitable mock — a Gemini review point the contributor addressed before merge.

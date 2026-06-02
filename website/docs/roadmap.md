@@ -180,7 +180,7 @@
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
 - 🟡 [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison)
 
-??? note "Infrastructure & tooling (7)"
+??? note "Infrastructure & tooling (8)"
 
     - ✅ [Adapter Solr](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr) · [#336](https://github.com/SoundMindsAI/relyloop/pull/336)
     - ✅ [Solr CI Readiness](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_infra_solr_ci_readiness) · [#367](https://github.com/SoundMindsAI/relyloop/pull/367)
@@ -188,6 +188,7 @@
     - 🟡 [Arq Subprocess Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test)
     - 🟡 [Generated Artifact Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_generated_artifact_freshness_gate)
     - 🟡 [Openapi Types Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_openapi_types_freshness_gate)
+    - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
     - 🟡 [Smoke Reseed Runtime Budget](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget)
 
 ??? note "Maintenance & fixes (21)"
