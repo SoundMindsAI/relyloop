@@ -21,20 +21,20 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Filed under MVP2 | **44** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **12 / 24** (50%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **30** items (every not-done feat/infra/chore/bug across all priorities) |
+| Specced features done | **13 / 24** (54%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **29** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
-| → P1 | **2** high-value, ready when P0 clears |
+| → P1 | **1** high-value, ready when P0 clears |
 | → P2 (default) | 24 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 10 |
-| Legacy "Path to MVP2" | 26 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 25 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 4 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (14)
+### Done (15)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -46,6 +46,7 @@ Plan approved; run /impl-execute to ship
 | [feat_study_sub_warmup_guard](implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md) | Feature | A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials < STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme | — | [PR #316](https://github.com/SoundMindsAI/relyloop/pull/316) merged 2026-05-29 |
 | [feat_ubi_judgments](implemented_features/2026_05_29_feat_ubi_judgments/feature_spec.md) | Feature | Operators with the OpenSearch / ES UBI plugin installed (today; Solr's first-party `solr.UBIComponent` lights up with the sibling `infra_adapter_solr` MVP2 release) can derive judgments from real clic | — | [PR #317](https://github.com/SoundMindsAI/relyloop/pull/317) merged 2026-05-29 |
 | [infra_adapter_solr](implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md) | Infra | A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time. | `feat_ubi_judgments` | [PR #336](https://github.com/SoundMindsAI/relyloop/pull/336) merged 2026-05-31 |
+| [infra_smoke_reseed_runtime_budget](implemented_features/2026_06_02_infra_smoke_reseed_runtime_budget/feature_spec.md) | Infra | The CI smoke job's Playwright run excludes `demo-ubi.spec.ts` via the existing `testIgnore` precedent in [`ui/playwright.config.ts:47-65`](../../../ui/playwright.config.ts#L47-L65), so the reseed-boun | — | [PR #424](https://github.com/SoundMindsAI/relyloop/pull/424) merged 2026-06-02 |
 | [infra_solr_ci_readiness](implemented_features/2026_06_01_infra_solr_ci_readiness/feature_spec.md) | Infra | Post-2026-05-31, no full `pr.yml` run can go green on any branch. | — | [PR #367](https://github.com/SoundMindsAI/relyloop/pull/367) merged 2026-06-01 |
 | [infra_solr_smoke_stability](implemented_features/2026_06_02_infra_solr_smoke_stability/feature_spec.md) | Infra | The `pr.yml` `smoke (operator-path tutorial flow)` job is red on every branch. | — | [PR #383](https://github.com/SoundMindsAI/relyloop/pull/383) merged 2026-06-01 |
 | [chore_solr_cred_backfill_needs_api_restart](implemented_features/2026_06_01_chore_solr_cred_backfill_needs_api_restart/idea.md) | Chore | `scripts/install.sh` step 5a backfills a `local-solr:` entry into a **pre-existing** `./secrets/cluster_credentials.yaml`. That write is correct and idempotent. But the `api` (and `worker`) process re | — | [PR #365](https://github.com/SoundMindsAI/relyloop/pull/365) merged 2026-06-01 |
@@ -57,24 +58,23 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (14)
+### Plan (13)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | P1 | [infra_smoke_reseed_runtime_budget](planned_features/02_mvp2/infra_smoke_reseed_runtime_budget/feature_spec.md) | Infra | The CI smoke job's Playwright run excludes `demo-ubi.spec.ts` via the existing `testIgnore` precedent in [`ui/playwright.config.ts:47-65`](../../ui/playwright.config.ts#L47-L65), so the reseed-bound s | — | [PR #383](https://github.com/SoundMindsAI/relyloop/pull/383) merged 2026-06-02 |
-| 2 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 3 | P2 | [feat_overnight_studies_summary_card](planned_features/02_mvp2/feat_overnight_studies_summary_card/feature_spec.md) | Feature | A "ran while you were away" card surfaces at the top of `/studies` when at least one overnight chain has completed since the operator's last visit. | — | [PR #343](https://github.com/SoundMindsAI/relyloop/pull/343) |
-| 4 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
-| 5 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | — |
-| 6 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
-| 7 | P2 | [infra_generated_artifact_freshness_gate](planned_features/02_mvp2/infra_generated_artifact_freshness_gate/feature_spec.md) | Infra | CI fails a PR whose committed `types.ts` does not match what the live OpenAPI schema would produce, and whose `ui/public/docs/*` copies do not match their `docs/08_guides/*` sources. | — | — |
-| 8 | P2 | [chore_arq_pool_aclose_deprecation](planned_features/02_mvp2/chore_arq_pool_aclose_deprecation/feature_spec.md) | Chore | Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close( | — | — |
-| 9 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
-| 10 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
-| 11 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/feature_spec.md) | Chore | A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [("start | — | — |
-| 12 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md) | Chore | A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg | — | [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413) |
-| 13 | P2 | [bug_baseline_phase_test_isolation](planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md) | Bug | The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on | — | — |
-| 14 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/02_mvp2/bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | — |
+| 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
+| 2 | P2 | [feat_overnight_studies_summary_card](planned_features/02_mvp2/feat_overnight_studies_summary_card/feature_spec.md) | Feature | A "ran while you were away" card surfaces at the top of `/studies` when at least one overnight chain has completed since the operator's last visit. | — | [PR #343](https://github.com/SoundMindsAI/relyloop/pull/343) |
+| 3 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
+| 4 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | — |
+| 5 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 6 | P2 | [infra_generated_artifact_freshness_gate](planned_features/02_mvp2/infra_generated_artifact_freshness_gate/feature_spec.md) | Infra | CI fails a PR whose committed `types.ts` does not match what the live OpenAPI schema would produce, and whose `ui/public/docs/*` copies do not match their `docs/08_guides/*` sources. | — | — |
+| 7 | P2 | [chore_arq_pool_aclose_deprecation](planned_features/02_mvp2/chore_arq_pool_aclose_deprecation/feature_spec.md) | Chore | Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close( | — | — |
+| 8 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 9 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+| 10 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/feature_spec.md) | Chore | A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [("start | — | — |
+| 11 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md) | Chore | A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg | — | [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413) |
+| 12 | P2 | [bug_baseline_phase_test_isolation](planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md) | Bug | The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on | — | — |
+| 13 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/02_mvp2/bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | — |
 
 ### Spec (0)
 
@@ -134,8 +134,6 @@ graph LR
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate["generated artifact freshness gate"]
   class infra_generated_artifact_freshness_gate plan;
-  infra_smoke_reseed_runtime_budget["smoke reseed runtime budget"]
-  class infra_smoke_reseed_runtime_budget plan;
   feat_contextual_help_mvp2["contextual help mvp2"]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard["study sub warmup guard"]
@@ -158,6 +156,8 @@ graph LR
   class chore_template_library_expansion done;
   feat_studies_convergence_visibility["studies convergence visibility"]
   class feat_studies_convergence_visibility done;
+  infra_smoke_reseed_runtime_budget["smoke reseed runtime budget"]
+  class infra_smoke_reseed_runtime_budget done;
   infra_solr_smoke_stability["solr smoke stability"]
   class infra_solr_smoke_stability done;
   feat_ubi_judgments --> infra_adapter_solr

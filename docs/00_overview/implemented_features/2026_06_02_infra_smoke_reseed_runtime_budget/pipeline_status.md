@@ -6,6 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 
 # Pipeline Status — `infra_smoke_reseed_runtime_budget`
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: [`idea.md`](./idea.md)
@@ -26,5 +28,11 @@ SPDX-License-Identifier: Apache-2.0
 - Stories: 5 across 1 epic, single-phase
 
 ## Implementation
-- Status: Not started (pending `/impl-execute --all` launch)
-- Branch: `infra/smoke-reseed-runtime-budget` (created on this session before plan generation)
+- Status: **Complete**
+- Date: 2026-06-02
+- PR: [#424](https://github.com/SoundMindsAI/relyloop/pull/424) — squash-merged `035d7941`
+- Branch: `infra/smoke-reseed-runtime-budget`
+- Stories: 5 / 5 complete (1.1 testIgnore extension, 1.2 vitest guard, 1.3 runbook §5, 1.4 pr.yml comments, 1.5 state.md)
+- CI: 12 / 12 `pr.yml` checks green (smoke opt-in/off)
+- §16 manual verification: AC-1 (`CI=true` → 86 tests/30 files, 0 demo-ubi) + AC-2 (`CI=` unset → 110 tests/37 files, demo-ubi discovered) both confirmed
+- Reviews: Gemini Code Assist 2 findings (both accepted — `import.meta.url` path resolution + CRLF normalization); GPT-5.5 final review 3 findings (2 accepted — §4→§5 pointer fix + runbook markdown links; 1 rejected with counter-evidence — AC-7 file-shape re-raise)

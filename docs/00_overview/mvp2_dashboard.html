@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">12 / 24</div>
-      <div class="sub">50% specced · 44 filed under MVP2</div>
-      <div class="bar"><span style="width:50%"></span></div>
+      <div class="value">13 / 24</div>
+      <div class="sub">54% specced · 44 filed under MVP2</div>
+      <div class="bar"><span style="width:54%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">30</div>
+      <div class="value">29</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">2</div>
+      <div class="value">1</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">26</div>
+      <div class="value">25</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -680,20 +680,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">14</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget/feature_spec.md">Smoke Reseed Runtime Budget</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/383">PR #383</a> <span>merged 2026-06-02</span>
-  </div>
-  <div class="one-liner">The CI smoke job&#x27;s Playwright run excludes `demo-ubi.spec.ts` via the existing `testIgnore` precedent in [`ui/playwright.config.ts:47-65`](../../ui/playwright.config.ts#L47-L65), so the reseed-bound s</div>
-
-
-</div>
-
+  <h3>Plan <span class="count">13</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -871,7 +858,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">14</span></h3>
+  <h3>Done <span class="count">15</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -974,6 +961,19 @@ footer {
   <div class="one-liner">A single `SolrAdapter` implements the `SearchAdapter` Protocol against Apache Solr 9.x and 10.x (both SolrCloud and standalone), pivoting on a capability probe at construction time.</div>
 
   <div class="deps">depends on: <span class="dep-chip">feat_ubi_judgments</span></div>
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_02_infra_smoke_reseed_runtime_budget/feature_spec.md">Smoke Reseed Runtime Budget</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/424">PR #424</a> <span>merged 2026-06-02</span>
+  </div>
+  <div class="one-liner">The CI smoke job&#x27;s Playwright run excludes `demo-ubi.spec.ts` via the existing `testIgnore` precedent in [`ui/playwright.config.ts:47-65`](../../../ui/playwright.config.ts#L47-L65), so the reseed-boun</div>
+
+
 </div>
 
 
@@ -1089,8 +1089,6 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
-  infra_smoke_reseed_runtime_budget[&quot;smoke reseed runtime budget&quot;]
-  class infra_smoke_reseed_runtime_budget plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1113,6 +1111,8 @@ footer {
   class chore_template_library_expansion done;
   feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
   class feat_studies_convergence_visibility done;
+  infra_smoke_reseed_runtime_budget[&quot;smoke reseed runtime budget&quot;]
+  class infra_smoke_reseed_runtime_budget done;
   infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
   class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
@@ -1144,8 +1144,6 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
-  infra_smoke_reseed_runtime_budget[&quot;smoke reseed runtime budget&quot;]
-  class infra_smoke_reseed_runtime_budget plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1168,6 +1166,8 @@ footer {
   class chore_template_library_expansion done;
   feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
   class feat_studies_convergence_visibility done;
+  infra_smoke_reseed_runtime_budget[&quot;smoke reseed runtime budget&quot;]
+  class infra_smoke_reseed_runtime_budget done;
   infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
   class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
