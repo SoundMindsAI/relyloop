@@ -83,6 +83,7 @@ def _patched_externals(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     import arq.connections
 
     fake_pool = MagicMock()
+    fake_pool.aclose = AsyncMock(return_value=None)
     fake_pool.close = AsyncMock(return_value=None)
     monkeypatch.setattr(
         arq.connections,
@@ -166,6 +167,26 @@ class TestLifespanSpawnsBothTasks:
         assert len(cap_invocations) == 1
         # Warmup is gated off — coroutine NEVER called.
         assert len(warmup_invocations) == 0, warmup_invocations
+
+    async def test_lifespan_closes_arq_pool_with_aclose(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        _patched_externals: dict[str, Any],
+    ) -> None:
+        """Regression guard: Arq pool shutdown uses non-deprecated aclose()."""
+        monkeypatch.setenv("RELYLOOP_DISABLE_STARTUP_WARMUP", "1")
+
+        async def _fake_cap_noop(**_kwargs: Any) -> None:
+            return None
+
+        monkeypatch.setattr(app_main, "run_capability_check_background", _fake_cap_noop)
+
+        app = FastAPI()
+        async with app_main.lifespan(app):
+            await asyncio.sleep(0)
+
+        _patched_externals["pool"].aclose.assert_awaited_once()
+        _patched_externals["pool"].close.assert_not_called()
 
 
 class TestLifespanShutdownCancels:
