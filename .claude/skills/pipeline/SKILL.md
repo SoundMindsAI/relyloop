@@ -222,7 +222,7 @@ For each stage from current to target:
    - **Interactive mode:** Present the spec to the user.
      > "Spec generated at `<path>/feature_spec.md`. Review the spec — particularly the API contracts (Section 8), data model (Section 9), and acceptance criteria (Section 12). Approve to continue to implementation plan, or request changes."
 5. If the user requests changes (interactive only), re-invoke `/spec-gen <path>/feature_spec.md` in Review & Patch mode.
-6. **Sync the tracking issue** to the new stage per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md): flip `Stage → SPEC`, swap the stage label (`needs-preflight` → `ready-to-execute`, or `blocked` if a `Blocked by:` gate is unmet), add the Spec artifact link, and backfill the inline DoD from the spec's acceptance criteria. Re-verify any cited `file:line` against the current tree before writing it. (No-op if no tracking issue exists for the folder slug.)
+6. **Sync the tracking issue** to the new stage per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md): flip `Stage → SPEC`, **leave the stage label as `needs-preflight`** (it advances to `ready-to-execute` only at the PLAN stage, since that label means spec+plan are both present; set `blocked` instead if a `Blocked by:` gate is unmet), add the Spec artifact link, and backfill the inline DoD from the spec's acceptance criteria. Re-verify any cited `file:line` against the current tree before writing it. (No-op if no tracking issue exists for the folder slug.)
 7. On approval (or auto-advance), proceed to next stage.
 
 #### Stage: SPEC → PLAN
@@ -241,7 +241,7 @@ For each stage from current to target:
    - **Interactive mode:** Present the plan to the user.
      > "Plan generated at `<path>/implementation_plan.md`. Review the stories, endpoints, and key interfaces. The plan covers <N stories across M epics>. Approve to begin implementation, or request changes."
 5. If the user requests changes (interactive only), re-invoke `/impl-plan-gen <path>/implementation_plan.md` in Review & Patch mode.
-6. **Sync the tracking issue** to the new stage per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md): flip `Stage → PLAN`, keep/confirm the stage label (`ready-to-execute`, or `blocked` if gated), add the Plan artifact link, and ensure the inline DoD reflects the plan's stories/ACs. (No-op if no tracking issue exists.)
+6. **Sync the tracking issue** to the new stage per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md): flip `Stage → PLAN`, swap the stage label `needs-preflight` → `ready-to-execute` (now that spec+plan are both present), or set `blocked` if gated, add the Plan artifact link, and ensure the inline DoD reflects the plan's stories/ACs. (No-op if no tracking issue exists.)
 7. On approval (or auto-advance), proceed to next stage.
 
 #### Stage: PLAN → IMPLEMENT

@@ -89,11 +89,11 @@ Run this whenever a folder advances a stage (the pipeline skills call it at each
 1. **Find the issue** for the folder slug:
    ```bash
    gh issue list --state all --limit 300 --json number,title \
-     --jq '.[] | select(.title|test("<folder-slug>")) | .number'
+     --jq '.[] | select(.title|startswith("<folder-slug>:")) | .number'
    ```
-   If none exists, create one from the skeleton above (title rule + Idea-stage labels).
+   Anchor with `startswith("<folder-slug>:")` (the title convention is `<slug>: <summary>`) — a bare `test("<folder-slug>")` is a regex *substring* match that would also match a longer slug containing this one (e.g. `feat_auth` matching `feat_auth_saml`). If none exists, create one from the skeleton above (title rule + Idea-stage labels).
 2. **Flip `## Status → Stage:`** to the new stage.
-3. **Swap the stage label** per the table (`needs-preflight` → `ready-to-execute`, or `blocked` if a gate is unmet).
+3. **Swap the stage label** per the table. `ready-to-execute` requires **both** spec and plan present, so it is set at the **PLAN** transition — keep `needs-preflight` through the SPEC transition. `blocked` overrides whenever a `Blocked by:`/design-ahead gate is unmet.
 4. **Add the new artifact link** (Spec on SPEC, Plan on PLAN) to `## Artifacts`.
 5. **Backfill `## Definition of done`** from the spec's acceptance criteria — replace any "lives in the linked artifact" placeholder with a real inline checklist.
 6. **Switch `## How to execute`** to the stage-appropriate command block above.

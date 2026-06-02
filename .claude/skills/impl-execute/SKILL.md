@@ -891,7 +891,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 8. **Close the tracking issue** (if one exists) per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
    ```bash
    N=$(gh issue list --state all --limit 300 --json number,title \
-        --jq '.[] | select(.title|test("<feature-dir-slug>")) | .number')
+        --jq '.[] | select(.title|startswith("<feature-dir-slug>:")) | .number')
    [ -n "$N" ] && gh issue close "$N" --comment "Shipped in #<feature-PR-number> (merged \`<sha>\`)."
    ```
    If the folder still carries `phase*_idea.md` follow-ups, leave the issue **open** and comment what remains instead of closing.

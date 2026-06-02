@@ -275,8 +275,8 @@ If `pipeline_status.md` already exists (e.g., from a prior stage), update only t
 
 **Generate mode only.** A folder may have a GitHub tracking issue mirroring it (the issue-coverage sweep). If so, keep it in step with the new spec per [`docs/00_overview/planned_features/feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
 
-1. Find it: `gh issue list --state all --limit 300 --json number,title --jq '.[] | select(.title|test("<feature-dir-slug>")) | .number'`. If none, skip (the `/pipeline` orchestrator owns creation).
-2. Flip `Stage → SPEC`, swap the stage label (`needs-preflight` → `ready-to-execute`, or `blocked` if a `Blocked by:` gate is unmet), add the Spec artifact link, and backfill the inline DoD from the spec's acceptance criteria — replacing any "lives in the linked artifact" placeholder.
+1. Find it: `gh issue list --state all --limit 300 --json number,title --jq '.[] | select(.title|startswith("<feature-dir-slug>:")) | .number'` (anchored `startswith` — a bare `test()` substring-matches longer slugs). If none, skip (the `/pipeline` orchestrator owns creation).
+2. Flip `Stage → SPEC`, **leave the stage label as `needs-preflight`** (it advances to `ready-to-execute` only at the PLAN stage, once the plan exists — `ready-to-execute` means spec+plan both present; or `blocked` if a `Blocked by:` gate is unmet), add the Spec artifact link, and backfill the inline DoD from the spec's acceptance criteria — replacing any "lives in the linked artifact" placeholder.
 3. Re-verify any `file:line` you write into the issue against the current tree; never propagate stale artifact citations.
 
 ---

@@ -298,8 +298,8 @@ If `pipeline_status.md` does not exist yet (e.g., spec-gen was run before this s
 
 **Generate mode only.** If the folder has a GitHub tracking issue, keep it in step with the new plan per [`docs/00_overview/planned_features/feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
 
-1. Find it: `gh issue list --state all --limit 300 --json number,title --jq '.[] | select(.title|test("<feature-dir-slug>")) | .number'`. If none, skip.
-2. Flip `Stage → PLAN`, confirm the stage label (`ready-to-execute`, or `blocked` if a `Blocked by:` gate is unmet — never `ready-to-execute` for a gated/design-ahead feature), add the Plan artifact link, and ensure the inline DoD reflects the plan's stories/ACs.
+1. Find it: `gh issue list --state all --limit 300 --json number,title --jq '.[] | select(.title|startswith("<feature-dir-slug>:")) | .number'` (anchored `startswith` — a bare `test()` substring-matches longer slugs). If none, skip.
+2. Flip `Stage → PLAN`, swap the stage label `needs-preflight` → `ready-to-execute` (now that spec+plan are both present), or set `blocked` if a `Blocked by:` gate is unmet — never `ready-to-execute` for a gated/design-ahead feature. Add the Plan artifact link, and ensure the inline DoD reflects the plan's stories/ACs.
 3. Re-verify any `file:line` you write into the issue against the current tree.
 
 ---
