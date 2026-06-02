@@ -104,7 +104,11 @@ def _parse_declared_params_block(section: str) -> dict[str, str]:
             "include a `declared_params` map (spec FR-3)."
         )
     body = m.group(1)
-    pairs = dict(re.findall(r"(\w+):\s*\"(\w+)\"", body))
+    # Accept both shapes: jq-style unquoted keys (`title_boost: "float"`) and
+    # standard-JSON quoted keys (`"title_boost": "float"`). Gemini Code Assist
+    # finding on PR #416 — accepted: a future operator who copies a raw-JSON
+    # block in would otherwise silently fail with zero pairs extracted.
+    pairs = dict(re.findall(r'"?(\w+)"?:\s*"(\w+)"', body))
     if not pairs:
         raise AssertionError(
             '`declared_params` block parsed but no `<key>: "<type>"` pairs '

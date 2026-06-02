@@ -97,6 +97,13 @@ def _sample_assignment(space: SearchSpace) -> dict[str, ParamValue]:
                 f"Unexpected categorical choice type {type(choice).__name__}"
             )
             out[name] = choice
+        else:  # pragma: no cover — closed pydantic discriminator union today
+            # Defensive: if a new ParamSpec variant is added to SearchSpace
+            # in the future, fail loudly rather than silently produce an
+            # incomplete assignment that surfaces as a hard-to-debug Jinja
+            # `UndefinedError` downstream. Gemini Code Assist finding on
+            # PR #416 — accepted.
+            raise TypeError(f"Unsupported parameter spec type: {type(spec).__name__}")
     return out
 
 
