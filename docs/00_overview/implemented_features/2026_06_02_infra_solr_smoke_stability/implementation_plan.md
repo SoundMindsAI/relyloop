@@ -1,7 +1,7 @@
 # Implementation Plan — `infra_solr_smoke_stability`
 
 **Date:** 2026-06-01
-**Status:** Draft
+**Status:** Complete (PR #383, squash-merged d32b9714 on 2026-06-02)
 **Primary spec:** [`feature_spec.md`](./feature_spec.md)
 **Policy source(s):** [CLAUDE.md](../../../../../CLAUDE.md) (Absolute Rules + Common Pitfalls), [`docs/03_runbooks/demo-reseed-engine-tolerance.md`](../../../../03_runbooks/demo-reseed-engine-tolerance.md) (Phase 1 precedent — companion runbook to the one this work creates)
 

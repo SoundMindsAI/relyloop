@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">8 / 18</div>
-      <div class="sub">44% specced · 40 filed under MVP2</div>
-      <div class="bar"><span style="width:44%"></span></div>
+      <div class="value">9 / 18</div>
+      <div class="sub">50% specced · 40 filed under MVP2</div>
+      <div class="bar"><span style="width:50%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">32</div>
+      <div class="value">31</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">3</div>
+      <div class="value">2</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">28</div>
+      <div class="value">27</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -758,20 +758,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">10</span></h3>
-
-<div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_solr_smoke_stability/feature_spec.md">Solr Smoke Stability</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/367">PR #367</a> <span>merged 2026-06-01</span>
-  </div>
-  <div class="one-liner">The `pr.yml` `smoke (operator-path tutorial flow)` job is red on every branch.</div>
-
-
-</div>
-
+  <h3>Plan <span class="count">9</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -897,7 +884,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">8</span></h3>
+  <h3>Done <span class="count">9</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -1002,6 +989,19 @@ footer {
 
 </div>
 
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_02_infra_solr_smoke_stability/feature_spec.md">Solr Smoke Stability</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/383">PR #383</a> <span>merged 2026-06-01</span>
+  </div>
+  <div class="one-liner">The `pr.yml` `smoke (operator-path tutorial flow)` job is red on every branch.</div>
+
+
+</div>
+
 </div>
 </div>
 </section>
@@ -1033,8 +1033,6 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
-  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
-  class infra_solr_smoke_stability plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1051,6 +1049,8 @@ footer {
   class feat_study_convergence_indicator done;
   infra_solr_ci_readiness[&quot;solr ci readiness&quot;]
   class infra_solr_ci_readiness done;
+  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
+  class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1076,8 +1076,6 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
-  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
-  class infra_solr_smoke_stability plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1094,6 +1092,8 @@ footer {
   class feat_study_convergence_indicator done;
   infra_solr_ci_readiness[&quot;solr ci readiness&quot;]
   class infra_solr_ci_readiness done;
+  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
+  class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>
