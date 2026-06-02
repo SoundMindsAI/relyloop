@@ -397,9 +397,9 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">11 / 22</div>
-      <div class="sub">50% specced · 44 filed under MVP2</div>
-      <div class="bar"><span style="width:50%"></span></div>
+      <div class="value">11 / 23</div>
+      <div class="sub">48% specced · 44 filed under MVP2</div>
+      <div class="bar"><span style="width:48%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">25</div>
+      <div class="value">26</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      6 idea-only feat/infra folders (not yet scoped into MVP2)
+      5 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">18</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_studies_convergence_visibility">Studies Convergence Visibility</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">Two coupled gaps, sharing one root cause.</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">17</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P1">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget">Smoke Reseed Runtime Budget</a></div>
@@ -701,7 +688,19 @@ footer {
 </div>
 
 <div class="col spec">
-  <h3>Spec <span class="count">0</span></h3>
+  <h3>Spec <span class="count">1</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P1">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_studies_convergence_visibility/feature_spec.md">Studies Convergence Visibility</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/352">PR #352</a>
+  </div>
+  <div class="one-liner">The studies list shows a completed-trial count and a convergence badge (`Converged` / `Still improving` / `Too few trials`) per study, reusing the shipped classifier.</div>
+
+
+</div>
 
 </div>
 
@@ -1085,6 +1084,8 @@ footer {
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
+  feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
+  class feat_studies_convergence_visibility spec;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
@@ -1136,6 +1137,8 @@ footer {
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
+  feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
+  class feat_studies_convergence_visibility spec;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
