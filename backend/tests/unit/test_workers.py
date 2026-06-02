@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -109,6 +110,27 @@ def test_worker_settings_has_on_startup_hook(_settings_env: None) -> None:
     assert hasattr(WorkerSettings, "on_startup")
     # on_startup is bound as a coroutine on the class; verify it's callable.
     assert callable(WorkerSettings.on_startup)
+
+
+async def test_on_shutdown_closes_arq_pool_with_aclose(_settings_env: None) -> None:
+    """on_shutdown awaits ArqRedis.aclose() and avoids deprecated close()."""
+    from backend.workers.all import on_shutdown
+
+    fake_pool = MagicMock()
+    fake_pool.aclose = AsyncMock(return_value=None)
+    fake_pool.close = AsyncMock(return_value=None)
+
+    await on_shutdown({"arq_pool": fake_pool})
+
+    fake_pool.aclose.assert_awaited_once()
+    fake_pool.close.assert_not_called()
+
+
+async def test_on_shutdown_without_pool_is_noop(_settings_env: None) -> None:
+    """A missing Arq pool should not raise during worker shutdown."""
+    from backend.workers.all import on_shutdown
+
+    await on_shutdown({})
 
 
 def test_worker_settings_redis_host_parsed(_settings_env: None) -> None:

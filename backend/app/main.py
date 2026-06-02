@@ -141,7 +141,7 @@ async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
     finally:
         if arq_pool is not None:
             try:
-                await arq_pool.close()
+                await arq_pool.aclose()
             except Exception as exc:  # noqa: BLE001 — shutdown swallow
                 logger.warning("arq pool close raised during shutdown", error=str(exc))
         # Cancel the capability check if it's still running on shutdown
