@@ -49,7 +49,7 @@ from backend.app.db import repo
 from backend.app.db.models import Cluster, QuerySet
 from backend.app.db.models.query_template import QueryTemplate
 from backend.app.llm.budget_gate import peek_daily_total
-from backend.app.llm.capability_check import read_capability_result
+from backend.app.llm.capability_check import read_or_recompute_capability_result
 from backend.app.llm.cost_model import known_models
 from backend.app.services.cluster import build_adapter
 from backend.app.services.ubi_errors import UbiNotEnabledError
@@ -234,9 +234,21 @@ async def _check_llm_preflight(*, settings: Settings, redis: Redis) -> None:
         )
 
     # B — capability cache.
-    cap = await read_capability_result(redis, settings.openai_base_url)
+    # bug_llm_capability_cache_no_refresh (D-5): swap read_capability_result →
+    # read_or_recompute_capability_result so a cache miss after the 24h TTL
+    # passes triggers an inline recompute instead of returning 503. By this
+    # line, settings.openai_api_key is guaranteed non-empty (step A above).
+    cap = await read_or_recompute_capability_result(
+        redis,
+        settings.openai_base_url,
+        settings.openai_api_key,
+        settings.openai_model,
+    )
     if cap is None or cap.structured_output != "ok" or cap.model != settings.openai_model:
         if cap is None:
+            # Unreachable in practice: api_key was validated non-empty at
+            # step A, and the helper only returns None on empty key. Kept
+            # as a defensive guard against future helper-contract drift.
             cause = "cache miss"
         elif cap.model != settings.openai_model:
             cause = (

@@ -47,6 +47,16 @@ PROBE_HTTP_TIMEOUT_SECONDS = 5.0
 # Cache TTL: 24h per llm-orchestration.md.
 CACHE_TTL_SECONDS = 86_400
 
+# Per-worker single-flight lock for read_or_recompute_capability_result
+# (bug_llm_capability_cache_no_refresh, D-4). Without this, a burst of
+# concurrent /judgments/generate requests on the same uvicorn worker can
+# all observe the same Redis cache miss between the read and the
+# recompute, and each fire its own probe. The lock collapses the burst
+# to one probe per worker per cold expiry. The cross-worker bound stays
+# at WEB_CONCURRENCY (we intentionally don't add a Redis-level lock — see
+# bug_fix.md D-4 for the trade-off math).
+_RECOMPUTE_LOCK = asyncio.Lock()
+
 # Status literal type alias for the per-probe result.
 ProbeStatus = Literal["ok", "fail", "untested"]
 
@@ -419,6 +429,124 @@ async def read_capability_result(redis_client: Redis, base_url: str) -> Capabili
             error=str(exc),
         )
         return None
+
+
+async def read_or_recompute_capability_result(
+    redis_client: Redis,
+    base_url: str,
+    api_key: str | None,
+    model: str,
+    *,
+    http_client: httpx.AsyncClient | None = None,
+) -> CapabilityResult | None:
+    """Read the cached :class:`CapabilityResult`; if missing, recompute synchronously.
+
+    Bug fix for ``bug_llm_capability_cache_no_refresh``: the 24h
+    :data:`CACHE_TTL_SECONDS` cache key expires and nothing repopulates
+    it for the api process's remaining lifetime, so LLM-gated endpoints
+    return ``503 LLM_PROVIDER_INCAPABLE "cache miss"`` until the process
+    restarts. This helper closes the gap by recomputing on miss inline.
+
+    Args:
+        redis_client: Async Redis client (matches
+            :func:`read_capability_result` / :func:`check_capabilities`).
+        base_url: ``OPENAI_BASE_URL``.
+        api_key: Resolved API key. Accepts ``None``/empty (returns
+            ``None`` without probing — preserves the
+            :func:`read_capability_result` "no key, no capability"
+            semantic). Callers that require the recompute path SHOULD
+            pre-check that this is non-empty (see
+            :func:`backend.app.services.agent_judgments_dispatch._check_llm_preflight`)
+            so a degraded result isn't silently produced from an
+            unset key.
+        model: Default model name used by the chat / FC / structured-output
+            probes (typically ``Settings.openai_model``).
+        http_client: Optional ``httpx.AsyncClient``; tests inject mocks.
+            Threaded through to :func:`check_capabilities` on the
+            cache-miss path.
+
+    Returns:
+        - A cached :class:`CapabilityResult` if Redis has one.
+        - A freshly-computed :class:`CapabilityResult` if the cache was
+          empty AND ``api_key`` was non-empty. The result is written
+          back to Redis as a side effect of :func:`check_capabilities`.
+        - ``None`` if the cache was empty AND ``api_key`` was empty
+          (preserves :func:`read_capability_result`'s "no key, no
+          capability" semantic — consumers like ``/healthz`` need this).
+        - ``None`` if the recompute path raised an unexpected exception
+          (logged at WARN). Callers see the same "missing capability"
+          outcome they'd see for any other cache-miss/empty-key path
+          and translate to their usual error envelope
+          (``_check_llm_preflight`` → ``503 LLM_PROVIDER_INCAPABLE``),
+          rather than the unhandled exception bubbling up as a generic
+          ``500``.
+
+    Caller scope (locked in ``bug_fix.md`` D-5 — narrowed from preflight
+    D-5):
+
+    - ``agent_judgments_dispatch._check_llm_preflight`` — opted in (the
+      site reporting the live 503).
+    - ``/healthz`` — DOES NOT opt in; the 200ms SLO (CLAUDE.md Absolute
+      Rule #11) is incompatible with a synchronous 1-4s recompute.
+      ``/healthz`` stays on :func:`read_capability_result` and reports
+      cache-miss as a degraded ``openai`` subsystem state.
+    - Chat orchestrator — unchanged; can opt in via a one-line call-site
+      swap if it ever surfaces the same symptom.
+
+    Concurrency (refined in ``bug_fix.md`` D-4 after GPT-5.5 final review
+    on PR #426): a per-worker :class:`asyncio.Lock`
+    (:data:`_RECOMPUTE_LOCK`) wraps the recompute path so a burst of
+    concurrent ``/judgments/generate`` requests on the same uvicorn
+    worker collapses to one probe per worker per cold expiry. The lock
+    is acquired AFTER the first cache read so the cache-hit fast path
+    is uncontended, AND a second cache read runs INSIDE the lock to
+    catch the case where the request that won the lock already wrote
+    the result. Cross-worker bound stays at ``WEB_CONCURRENCY`` (no
+    Redis-level lock — see ``bug_fix.md`` D-4 trade-off math).
+    """
+    cached = await read_capability_result(redis_client, base_url)
+    if cached is not None:
+        return cached
+    if not api_key:
+        # Preserve read_capability_result's "no key → None" semantic.
+        # Consumers like /healthz rely on this to surface
+        # OPENAI_API_KEY_FILE being unset as a separate degraded state
+        # from an unreachable endpoint.
+        return None
+
+    async with _RECOMPUTE_LOCK:
+        # Double-checked read: another coroutine on this worker may have
+        # populated the cache between our initial read and lock acquisition.
+        # If so, return its result instead of firing a redundant probe.
+        cached = await read_capability_result(redis_client, base_url)
+        if cached is not None:
+            return cached
+        logger.info(
+            "OpenAI capability cache miss; recomputing inline",
+            base_url=base_url,
+            model=model,
+        )
+        try:
+            return await check_capabilities(
+                base_url, api_key, model, redis_client, http_client=http_client
+            )
+        except asyncio.CancelledError:  # pragma: no cover — propagate shutdown
+            raise
+        except Exception as exc:  # noqa: BLE001 — defensive parity with run_capability_check_background
+            # check_capabilities is documented as "never raises" but
+            # run_capability_check_background defensively wraps it
+            # anyway (line 446-451). Match that posture so an
+            # unexpected probe/redis-write failure surfaces as the
+            # caller's existing "cache-miss / cap=None" path (→ 503
+            # LLM_PROVIDER_INCAPABLE for _check_llm_preflight) rather
+            # than a bare 500.
+            logger.warning(
+                "OpenAI capability cache recompute raised unexpectedly; treating as cache-miss",
+                base_url=base_url,
+                model=model,
+                error=str(exc),
+            )
+            return None
 
 
 async def run_capability_check_background(

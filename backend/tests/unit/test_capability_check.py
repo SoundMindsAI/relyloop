@@ -21,7 +21,9 @@ Verifies:
 
 from __future__ import annotations
 
+import asyncio
 import json
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -34,6 +36,7 @@ from backend.app.llm.capability_check import (
     CACHE_TTL_SECONDS,
     cache_key,
     check_capabilities,
+    read_or_recompute_capability_result,
     run_capability_check_background,
 )
 from backend.app.llm.capability_models import CapabilityResult
@@ -501,3 +504,289 @@ class TestCacheKey:
 
     def test_different_base_urls_produce_different_keys(self) -> None:
         assert cache_key("http://a/v1") != cache_key("http://b/v1")
+
+
+# ---------------------------------------------------------------------------
+# bug_llm_capability_cache_no_refresh regression guard
+# ---------------------------------------------------------------------------
+
+
+def _make_redis_with_get(cached_raw: bytes | str | None) -> MagicMock:
+    """Mock ``redis.asyncio.Redis`` with awaitable ``get`` + ``set``.
+
+    ``cached_raw`` is what ``redis.get(cache_key)`` returns:
+    - ``None`` → cache miss (the bug's failure mode).
+    - ``bytes`` / ``str`` → cache hit, decoded as a ``CapabilityResult`` JSON.
+    """
+    client = MagicMock(spec=Redis)
+    client.get = AsyncMock(return_value=cached_raw)
+    client.set = AsyncMock(return_value=True)
+    return client
+
+
+class TestReadOrRecomputeCapabilityResult:
+    """Regression guard for ``bug_llm_capability_cache_no_refresh``.
+
+    The 24h ``CACHE_TTL_SECONDS`` TTL passes; nothing repopulates the
+    cache; LLM-gated endpoints return 503 ``LLM_PROVIDER_INCAPABLE``
+    until the api process restarts. ``read_or_recompute_capability_result``
+    closes the gap by recomputing on miss inline.
+    """
+
+    async def test_cache_miss_with_api_key_recomputes_and_writes_back(
+        self,
+    ) -> None:
+        """The bug's exact failure mode: cache empty, key configured.
+
+        With the old ``read_capability_result``, this returned ``None``
+        and the preflight raised ``LLM_PROVIDER_INCAPABLE``. The helper
+        must instead probe inline, return a real ``CapabilityResult``,
+        and write the result back to Redis (re-arming the cache).
+        """
+        redis = _make_redis_with_get(cached_raw=None)
+        async with httpx.AsyncClient(transport=_build_handler()) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, API_KEY, MODEL, http_client=http
+            )
+        assert result is not None, (
+            "cache miss with a configured api_key MUST recompute, not return None"
+        )
+        assert result.base_url == BASE_URL
+        assert result.model == MODEL
+        # check_capabilities writes back as a side effect:
+        redis.set.assert_awaited_once()
+        write_call = redis.set.call_args
+        assert write_call.args[0] == cache_key(BASE_URL)
+        # And the TTL is the same 24h we started with — no silent change.
+        assert write_call.kwargs.get("ex") == CACHE_TTL_SECONDS
+
+    async def test_cache_hit_returns_cached_value_without_reprobing(
+        self,
+    ) -> None:
+        """Cache-hit path: helper short-circuits before any HTTP work.
+
+        Critical: we MUST NOT add latency to steady-state dispatches.
+        The bug is about cold-expiry recovery, not about re-probing on
+        every read.
+        """
+        # Pre-populate the cache with a known-good result.
+        cached_result = CapabilityResult(
+            base_url=BASE_URL,
+            model=MODEL,
+            models_endpoint="ok",
+            chat_completion="ok",
+            function_calling="ok",
+            structured_output="ok",
+            tested_at=datetime.now(UTC),
+        )
+        redis = _make_redis_with_get(cached_raw=cached_result.model_dump_json())
+        # Use a transport that raises on ANY HTTP call — proves no probe fires.
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                f"cache-hit path made an HTTP request to {request.url} — "
+                "helper should have short-circuited",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, API_KEY, MODEL, http_client=http
+            )
+        assert result is not None
+        assert result.structured_output == "ok"
+        # And critically, no write either — we returned the cached row as-is.
+        redis.set.assert_not_awaited()
+
+    async def test_cache_miss_with_empty_api_key_returns_none(self) -> None:
+        """Empty-key contract preserved.
+
+        Consumers like ``/healthz`` rely on ``None`` to surface
+        ``OPENAI_API_KEY_FILE`` being unset as a distinct degraded
+        state from an unreachable endpoint. The helper MUST NOT
+        attempt a probe with an empty key (which would fail
+        spuriously and write a confusing ``models_endpoint="fail"``
+        row to Redis).
+        """
+        redis = _make_redis_with_get(cached_raw=None)
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                f"empty-key path made an HTTP request to {request.url} — "
+                "helper should have returned None without probing",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, "", MODEL, http_client=http
+            )
+        assert result is None, (
+            "empty api_key MUST return None to preserve "
+            "read_capability_result's 'no key, no capability' semantic"
+        )
+        redis.set.assert_not_awaited()
+
+    async def test_cache_miss_with_check_capabilities_raising_returns_none(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Defensive failure mode: unexpected exception inside the
+        recompute path returns ``None`` instead of bubbling as a 500.
+
+        ``check_capabilities`` is documented as "never raises" but
+        ``run_capability_check_background`` defensively wraps it
+        anyway. The helper matches that posture so the caller's
+        existing cap-miss path (→ 503 LLM_PROVIDER_INCAPABLE for the
+        judgments dispatcher) still fires, rather than producing a
+        bare 500 from an unhandled exception.
+
+        Regression guard for GPT-5.5 final review finding #2 on PR #426.
+        """
+        from backend.app.llm import capability_check as cc
+
+        redis = _make_redis_with_get(cached_raw=None)
+
+        async def _raising_check_capabilities(*args: Any, **kwargs: Any) -> CapabilityResult:
+            raise RuntimeError("simulated upstream failure during recompute")
+
+        monkeypatch.setattr(cc, "check_capabilities", _raising_check_capabilities)
+
+        result = await read_or_recompute_capability_result(redis, BASE_URL, API_KEY, MODEL)
+        assert result is None, (
+            "an unexpected exception during recompute MUST surface as None "
+            "(cap-miss path) — never bubble up as 500"
+        )
+
+    async def test_concurrent_requests_on_one_worker_collapse_to_single_probe(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Single-flight: 10 concurrent recompute callers fire 1 probe.
+
+        Without the per-worker ``_RECOMPUTE_LOCK``, every coroutine that
+        observes the cache miss between read and write would fire its
+        own ``check_capabilities`` call (the GPT-5.5 final review on
+        PR #426 caught this — the original D-4 bound of
+        ``WEB_CONCURRENCY × probes`` undercounted concurrent in-worker
+        requests).
+
+        With the lock + the in-lock double-checked read, only one
+        coroutine actually probes; the others see the populated cache
+        on their second read and short-circuit.
+        """
+        from backend.app.llm import capability_check as cc
+
+        probe_calls = 0
+        # The "cache" is a single mutable container — the first probe
+        # populates it, subsequent reads return the populated value.
+        cache_state: list[CapabilityResult | None] = [None]
+
+        async def _counting_check_capabilities(
+            base_url: str,
+            api_key: str,
+            model: str,
+            redis_client: Redis,
+            *,
+            http_client: httpx.AsyncClient | None = None,
+        ) -> CapabilityResult:
+            nonlocal probe_calls
+            probe_calls += 1
+            result = CapabilityResult(
+                base_url=base_url,
+                model=model,
+                models_endpoint="ok",
+                chat_completion="ok",
+                function_calling="ok",
+                structured_output="ok",
+                tested_at=datetime.now(UTC),
+            )
+            # Yield to give concurrent waiters a chance to interleave.
+            await asyncio.sleep(0)
+            cache_state[0] = result
+            return result
+
+        async def _stateful_read_capability_result(
+            redis_client: Redis, base_url: str
+        ) -> CapabilityResult | None:
+            return cache_state[0]
+
+        monkeypatch.setattr(cc, "check_capabilities", _counting_check_capabilities)
+        monkeypatch.setattr(cc, "read_capability_result", _stateful_read_capability_result)
+
+        redis = _make_redis_with_get(cached_raw=None)
+        results = await asyncio.gather(
+            *[
+                read_or_recompute_capability_result(redis, BASE_URL, API_KEY, MODEL)
+                for _ in range(10)
+            ]
+        )
+
+        assert probe_calls == 1, (
+            f"single-flight lock MUST collapse 10 concurrent recompute "
+            f"callers to 1 probe; got {probe_calls}"
+        )
+        assert all(r is not None for r in results), (
+            "all 10 callers MUST receive the recomputed CapabilityResult"
+        )
+        assert all(r.structured_output == "ok" for r in results if r is not None)
+
+    async def test_cache_miss_with_none_api_key_returns_none(self) -> None:
+        """Type-level: api_key is annotated as `str | None`. The internal
+        check `if not api_key` handles both ``None`` and ``""`` —
+        regression guard so a caller can pass `settings.openai_api_key`
+        directly (which is `str | None` in the Settings model) without
+        the ``or ""`` boilerplate.
+
+        Regression guard for Gemini Code Assist finding #1 on PR #426.
+        """
+        redis = _make_redis_with_get(cached_raw=None)
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                f"None-api_key path made an HTTP request to {request.url} — "
+                "helper should have returned None without probing",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, None, MODEL, http_client=http
+            )
+        assert result is None
+        redis.set.assert_not_called()
+
+    async def test_cache_hit_with_degraded_result_is_returned_as_is(
+        self,
+    ) -> None:
+        """Cache-hit short-circuit applies even when the cached row is
+        degraded (e.g., ``structured_output="fail"``). The preflight's
+        per-field policy continues to decide whether to refuse; the
+        helper does NOT re-probe a known-degraded row hoping it
+        recovered.
+        """
+        cached_result = CapabilityResult(
+            base_url=BASE_URL,
+            model=MODEL,
+            models_endpoint="ok",
+            chat_completion="ok",
+            function_calling="ok",
+            structured_output="fail",  # degraded — but still a cache hit
+            tested_at=datetime.now(UTC),
+        )
+        redis = _make_redis_with_get(cached_raw=cached_result.model_dump_json())
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                "degraded-cache-hit path should not re-probe; "
+                f"unexpected HTTP request to {request.url}",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, API_KEY, MODEL, http_client=http
+            )
+        assert result is not None
+        assert result.structured_output == "fail"
+        redis.set.assert_not_awaited()
