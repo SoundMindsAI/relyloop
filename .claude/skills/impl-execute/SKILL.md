@@ -888,13 +888,21 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
    - Short name is a snake_case slug derived from the feature directory name.
    - The entire folder moves — spec, plan, pipeline_status, phase idea files all travel together.
 
-8. **Commit and push** the finalization changes:
+8. **Close the tracking issue** (if one exists) per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
+   ```bash
+   N=$(gh issue list --state all --limit 300 --json number,title \
+        --jq '.[] | select(.title|startswith("<feature-dir-slug>:")) | .number')
+   [ -n "$N" ] && gh issue close "$N" --comment "Shipped in #<feature-PR-number> (merged \`<sha>\`)."
+   ```
+   If the folder still carries `phase*_idea.md` follow-ups, leave the issue **open** and comment what remains instead of closing.
+
+9. **Commit and push** the finalization changes:
    ```bash
    git add <all changed files> && git commit -s -m "docs: move <feature> to implemented, update state.md"
    git push
    ```
 
-9. **Report completion** to the user with the final PR URL and a summary of what was archived.
+10. **Report completion** to the user with the final PR URL and a summary of what was archived.
 
 **Why this step exists:** Without explicit finalization, completed features linger in `planned_features/` and `pipeline_status.md` stays at "PR created" indefinitely. This creates stale state that confuses future planning sessions and the `/pipeline --status` command.
 

@@ -67,8 +67,10 @@ body:
       options:
         - Elasticsearch (local-es from compose)
         - OpenSearch (local-opensearch from compose)
+        - Apache Solr (local-solr from compose)
         - Elasticsearch (operator-managed, not from compose)
         - OpenSearch (operator-managed, not from compose)
+        - Apache Solr (operator-managed, not from compose)
         - Not engine-related (UI, infra, docs, etc.)
         - Other (please describe in "What happened")
     validations:
@@ -78,7 +80,7 @@ body:
     id: engine-version
     attributes:
       label: Engine version
-      description: e.g. ES 9.4.0, OpenSearch 2.18.0. Leave blank if not engine-related.
+      description: e.g. ES 9.4.0, OpenSearch 2.18.0, Solr 10.0. Leave blank if not engine-related.
       placeholder: "9.4.0"
 
   - type: dropdown
