@@ -31,6 +31,9 @@ from backend.app.core.settings import get_settings
 from backend.app.domain.study.chain_summary import ChainStopReason as ChainStopReason
 from backend.app.domain.study.confidence import ConfidenceShape as ConfidenceShape
 from backend.app.domain.study.convergence import (
+    ConvergenceVerdict as ConvergenceVerdict,
+)
+from backend.app.domain.study.convergence import (
     StudyConvergenceShape as StudyConvergenceShape,
 )
 from backend.app.domain.study.followups import FollowupItem as FollowupItem
@@ -896,6 +899,28 @@ class StudySummary(BaseModel):
     ``bug_ceiling_badge_assumes_maximize_direction``."""
     created_at: datetime
     completed_at: datetime | None
+    trial_count: int = 0
+    """Non-baseline trial-row count for this study, matching the detail
+    page's ``trials_summary.total`` exactly (both use
+    ``is_baseline.is_(False)``). A ``max_trials=50`` study with a
+    completed baseline shows ``trial_count=50``. Computed per request via
+    one batched ``GROUP BY study_id`` aggregate
+    (``count_trials_for_studies``); see
+    ``feat_studies_convergence_visibility`` Story 1.1 / FR-1. Default
+    ``0`` for backward compatibility on hand-constructed instances in
+    tests; the live API always populates it."""
+    convergence_verdict: ConvergenceVerdict | None = None
+    """Per-study convergence verdict literal (NOT the full
+    :class:`StudyConvergenceShape` — list payload only). Equal to
+    ``StudyDetail.convergence.verdict`` for every case (in-flight /
+    invalid-direction / ``<5`` / ``5–49`` / ``≥50``) — see AC-2 + AC-3b
+    in ``feat_studies_convergence_visibility/feature_spec.md``. Computed
+    via :func:`backend.app.services.study_convergence.resolve_list_convergence_verdicts`
+    using the same gate order as ``fetch_study_convergence``
+    (in-flight → direction → count → classifier). ``None`` for in-flight
+    studies, invalid-direction completed studies, ``< 5`` complete
+    non-baseline trials, and the graceful-degrade exception path; never
+    raises."""
 
 
 class StudyListResponse(BaseModel):

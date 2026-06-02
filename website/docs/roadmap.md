@@ -178,6 +178,7 @@
 - 🟡 [Overnight Studies Summary Card](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_overnight_studies_summary_card)
 - 🟡 [Query Normalization Tuning](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning)
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
+- 🟡 [Studies Convergence Visibility](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_studies_convergence_visibility)
 - 🟡 [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison)
 
 ??? note "Infrastructure & tooling (8)"
