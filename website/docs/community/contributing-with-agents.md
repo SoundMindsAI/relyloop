@@ -126,6 +126,7 @@ through a fixed pipeline:
 | **`/impl-execute`** | Implements the plan story-by-story with verification gates, opens the PR, watches CI, adjudicates review comments. | `/impl-execute .../feat_my_thing/implementation_plan.md --all` |
 | **`/bug-fix`** | Drives a bug through CLAUDE.md's Bug Fix Protocol (reproduce → root-cause → regression test → fix). | `/bug-fix docs/00_overview/planned_features/02_mvp2/bug_my_bug` |
 | **`/guide-gen`** | Generates/audits tenant-facing walkthrough guides with screenshots. (Run automatically by `/impl-execute` post-implementation.) | `/guide-gen` |
+| **`/pr-review`** | Reviews an inbound PR (incl. external forks) in an isolated worktree — verifies the change against the live codebase, checks DCO/Conventional-Commit compliance, adjudicates review comments, clears merge gates, then posts a verdict + merges. | `/pr-review 387` · `/pr-review https://github.com/SoundMindsAI/relyloop/pull/387` |
 
 !!! example "The fast path for a new feature"
     ```text
