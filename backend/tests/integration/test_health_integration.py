@@ -62,6 +62,7 @@ async def test_healthz_returns_documented_shape() -> None:
         "openai",
         "elasticsearch",
         "opensearch",
+        "solr",
         "elasticsearch_clusters",
     }
     assert set(body["subsystems"]["elasticsearch_clusters"].keys()) == {
@@ -75,6 +76,11 @@ async def test_healthz_returns_documented_shape() -> None:
     assert body["subsystems"]["openai"] in {"configured", "missing_key", "incapable"}
     assert body["subsystems"]["elasticsearch"] in {"reachable", "unreachable"}
     assert body["subsystems"]["opensearch"] in {"reachable", "unreachable"}
+    # Solr's probe additionally reports ``not_configured`` when no local-solr
+    # cluster credential is mounted (the local Compose Solr is optional in some
+    # operator topologies; MVP2's three-engine demo includes it but the probe
+    # has to remain tolerant of credentials-absent setups).
+    assert body["subsystems"]["solr"] in {"reachable", "unreachable", "not_configured"}
     assert isinstance(body["uptime_seconds"], int) and body["uptime_seconds"] >= 0
 
 
@@ -92,6 +98,7 @@ async def test_healthz_status_consistent_with_subsystems() -> None:
         or s["redis"] == "down"
         or s["elasticsearch"] == "unreachable"
         or s["opensearch"] == "unreachable"
+        or s["solr"] == "unreachable"
     )
     expected = "degraded" if blocking_down else "ok"
     assert body["status"] == expected, (

@@ -67,7 +67,7 @@ import urllib.error
 import urllib.request
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Final, cast
 
 # Repo paths — used by the rich-data scenario (seed_rich_scenario below).
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -134,6 +134,19 @@ DEMO_SOLR_COLLECTIONS = (
 # the LLM-judgment-generation step under ~60s and ~$0.05 with gpt-4o-mini.
 RICH_SCENARIO_QUERY_COUNT = 5
 
+# feat_studies_convergence_visibility Epic 2 Story 2.2 / FR-6 / D-11.
+# Small-scenario per-study trial budget. Single-sourced here and imported by
+# ``backend.app.services.demo_seeding`` (the home-button reseed path) so both
+# the CLI ``make seed-demo`` and the home-button reseed dispatch the same
+# 50-trial budget. Pinned at the convergence-classifier's
+# ``STUDIES_TPE_WARMUP_FLOOR`` (50) — the minimum count at which the verdict
+# can read ``converged`` / ``still_improving`` rather than ``too_few_trials``.
+# The rich-scenario budget stays at 15 (see _RICH_SCENARIO_MAX_TRIALS in
+# demo_seeding.py) — the rich ESCI scenario already shows real lift at 15
+# trials and a higher budget materially extends the demo-seed wall-clock
+# (D-9).
+DEMO_SMALL_STUDY_MAX_TRIALS: Final[int] = 50
+
 
 # ---------------------------------------------------------------------------
 # HTTP helpers
@@ -183,6 +196,36 @@ def post(path: str, body: dict) -> dict:
 # Scenario definitions
 # ---------------------------------------------------------------------------
 
+
+def _days_ago_iso(days: float) -> str:
+    """Return an ISO-8601 UTC timestamp ``days`` before module-load time.
+
+    Used by the news-search-staging + jobs-marketplace-prod scenarios so the
+    freshness-decay function_score wrappers (``gauss``/``exp`` with
+    ``origin: now``) see relevant decay factors at headroom-test time and at
+    operator-seed time. If we hardcode an ISO string, the decay multiplier
+    converges to zero a few weeks after the date and the harness scores
+    every doc at zero — masking the data-design quality the test guards.
+
+    **Determinism trade-off** (GPT-5.5 cycle-1 F3 — accepted as comment):
+    these timestamps are NOT fixed at module load — they shift by one day
+    each calendar day relative to the engine's ``origin: now``. The
+    RELATIVE distance between best-answer docs (closer to ``now``) and
+    decoy docs (further from ``now``) is preserved, so the ranking
+    monotonicity is stable. The headroom-test bounds carry comfortable
+    margins (≥ +0.23 lift across the 5 scenarios per the Story 2.1
+    enrichment run), so the small per-day freshness-decay shift does
+    not flap the binary headroom outcome. The trade is intentional:
+    relative dates keep the operator-facing ``make seed-demo`` output
+    plausible (news with a stale 2025 date would read as broken to an
+    evaluator running the demo in 2027) and the harness test is
+    deterministic over short time windows. If a future flake surfaces,
+    the fix is a fixed-anchor strategy (e.g., monkey-patching ``now`` in
+    the freshness function or freezing the test clock).
+    """
+    return (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 SCENARIOS: list[dict[str, Any]] = [
     {
         "slug": "acme-products-prod",
@@ -207,54 +250,276 @@ SCENARIOS: list[dict[str, Any]] = [
             }
         },
         "docs": [
+            # Data-design recipe (see test_demo_scenarios_headroom.py for the
+            # FR-5 bounds the harness asserts):
+            #
+            # - Each query has a "decoy" doc whose TITLE is essentially the
+            #   query string verbatim (5-7 tokens, ~90%+ are query tokens) and
+            #   whose description is a one-line shipping-style blurb with
+            #   ZERO query terms. Short title + dense match = very high BM25.
+            #
+            # - The "best answer" doc has a GENERIC marketing title with NO
+            #   query terms; its long-ish description mentions each query term
+            #   exactly ONCE inside a wall of marketing copy. Long field +
+            #   sparse match = low BM25 per field.
+            #
+            # - To prevent cross-query contamination, each best-answer
+            #   description's query-vocab is DISTINCT — no best-answer doc
+            #   contains another query's query terms (e.g. p1001 doesn't
+            #   mention "ear" / "sony" / "running", and p5001 doesn't mention
+            #   "headphones"). This keeps each query's qrels honest.
+            #
+            # - With BM25 best_fields and equal-midpoint baseline (B1=B2=1.58),
+            #   the decoy's short-title-dense-match outscores the best-answer's
+            #   long-description-sparse-match → decoy ranks #1 → low NDCG@10
+            #   (~0.45). When title_boost drops to 0.5 and description_boost
+            #   rises to 5.0, the 10x weight shift flips the order →
+            #   best-answer ranks #1 → NDCG@10 climbs ~0.30.
+            # === q0 "wireless noise cancelling headphones" ===
+            # BEST ANSWER (rating=3): generic title, query terms each appear ONCE in a ~90-word description.
             {
                 "id": "p1001",
                 "doc": {
-                    "title": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
-                    "description": "Industry-leading noise cancellation with 30-hour battery life and Hi-Res Audio support.",
+                    "title": "Sony WH-1000XM5 Premium Travel Companion",
+                    "description": "Reference-grade audio fidelity with plush memory foam pads, thirty hour battery life, and adaptive ambient mode for travelers. The flagship model in the WH series. Bluetooth multipoint pairing lets the device switch between a laptop and a phone session without re-pairing. Active noise cancelling uses eight microphones plus a dedicated processor. Includes a rigid molded case, USB-C cable, and inflight airplane adapter. The wireless connection holds at thirty feet line of sight from the source. These headphones suit long commutes and home listening alike.",
                     "brand": "Sony",
                     "category": "audio",
                     "price": 399.99,
                 },
             },
+            # DECOY (rating=1): title is essentially the query.
             {
                 "id": "p1002",
                 "doc": {
-                    "title": "Bose QuietComfort Ultra Headphones",
-                    "description": "Premium over-ear headphones with immersive spatial audio and best-in-class noise cancellation.",
+                    "title": "Wireless Noise Cancelling Headphones Pouch",
+                    "description": "Black fabric carry pouch. Microfiber lining. Drawstring closure. Sold separately.",
+                    "brand": "Generic",
+                    "category": "accessory",
+                    "price": 19.00,
+                },
+            },
+            # DISTRACTOR (rated 0) — additional title-match that competes at baseline.
+            {
+                "id": "p1005",
+                "doc": {
+                    "title": "Wireless Noise Cancelling Headphones Sticker Pack",
+                    "description": "Vinyl die-cut stickers. Pack of ten. Variety of designs for laptops.",
+                    "brand": "Generic",
+                    "category": "accessory",
+                    "price": 7.00,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "p1003",
+                "doc": {
+                    "title": "Bose QuietComfort Ultra Audio Set",
+                    "description": "Premium audio model with active sound dampening technology built in. Long battery life and adaptive ambient profile for travel commutes. Pairs with iOS and Android phones via the included companion app. Foldable hinges save space in the included carry case.",
                     "brand": "Bose",
                     "category": "audio",
                     "price": 429.00,
                 },
             },
+            # WRONG (rating=0)
+            {
+                "id": "p1004",
+                "doc": {
+                    "title": "USB-C Charging Pad Aluminum Base",
+                    "description": "Fifteen watt fast charging pad for phones and earbuds. Aluminum heat-sink base. Includes USB-C cable but no wall adapter. LED indicator lights when a device aligns properly.",
+                    "brand": "Anker",
+                    "category": "accessory",
+                    "price": 29.00,
+                },
+            },
+            # === q1 "womens running shoes" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "p2001",
                 "doc": {
-                    "title": "Nike Pegasus 41 Women's Road Running Shoes",
-                    "description": "Responsive cushioning with Air Zoom unit, designed for daily training and long runs.",
+                    "title": "Nike Pegasus 41 Performance Trainer",
+                    "description": "Daily trainer designed for womens distance work. The Pegasus 41 builds on twenty years of the Pegasus story with a redesigned upper, a refined Air Zoom unit, and a workhorse fit. The forefoot uses ReactX foam for energy return; the heel collar is gusseted to lock the foot in place. These running flats hold up across road and packed gravel surfaces. Heel-to-toe drop is ten millimeters. Sized for the female foot last specifically; ladies sizing chart runs US five through US twelve. Suitable shoes for tempo days or recovery jogs.",
                     "brand": "Nike",
                     "category": "footwear",
                     "price": 140.00,
                 },
             },
+            # DECOY (rating=1)
             {
                 "id": "p2002",
                 "doc": {
-                    "title": "Brooks Ghost 16 Women's Running Shoes",
-                    "description": "Smooth, balanced cushioning for neutral runners. Updated DNA LOFT v3 midsole.",
+                    "title": "Womens Running Shoes Display Box",
+                    "description": "Retail merchandise display stand. Holds one pair. Cardboard construction.",
+                    "brand": "Generic",
+                    "category": "accessory",
+                    "price": 12.00,
+                },
+            },
+            # DISTRACTOR (rated 0) — title-match competitor.
+            {
+                "id": "p2005",
+                "doc": {
+                    "title": "Womens Running Shoes Care Spray",
+                    "description": "Deodorizing spray. Eight ounce bottle. Lavender scent. Use weekly after activity.",
+                    "brand": "Generic",
+                    "category": "accessory",
+                    "price": 9.00,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "p2003",
+                "doc": {
+                    "title": "Brooks Ghost 16 Performance Pair",
+                    "description": "Womens running trainer with neutral cushioning and a smooth transition. DNA LOFT v3 midsole offers softer underfoot feel without sacrificing rebound. Engineered air mesh upper for breathability. Suitable for daily training and recovery work.",
                     "brand": "Brooks",
                     "category": "footwear",
                     "price": 145.00,
                 },
             },
+            # WRONG (rating=0)
+            {
+                "id": "p2004",
+                "doc": {
+                    "title": "Mens Hiking Boots Heavy Duty",
+                    "description": "Waterproof full grain leather mens hiking boots for backcountry trails. Vibram outsole, gusseted tongue, ankle cuff.",
+                    "brand": "Merrell",
+                    "category": "footwear",
+                    "price": 180.00,
+                },
+            },
+            # === q2 "kitchen knife set" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "p3001",
                 "doc": {
-                    "title": "Wüsthof Classic 8-Piece Kitchen Knife Block Set",
-                    "description": "Forged German stainless steel set with chef's knife, paring knife, bread knife, and steel.",
+                    "title": "Wüsthof Classic 8-Piece Chef Collection",
+                    "description": "Forged in Solingen Germany from a single piece of high carbon stainless steel. The collection includes an eight inch chef blade, a six inch utility blade, a three point five inch paring blade, an eight inch serrated bread blade, a pair of culinary shears, a honing rod, and a six-slot wooden block. A registration card for the lifetime warranty is included. Triple riveted polymer handles offer secure grip even when wet. Each kitchen blade is sharpened to a fourteen degree edge. This is the complete chef set, ready for gifting; the knife block fits standard countertops.",
                     "brand": "Wüsthof",
                     "category": "kitchen",
                     "price": 549.00,
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "p3002",
+                "doc": {
+                    "title": "Kitchen Knife Set Magnetic Strip",
+                    "description": "Wall-mount magnetic strip. Sold separately. Stainless backplate.",
+                    "brand": "IKEA",
+                    "category": "accessory",
+                    "price": 14.00,
+                },
+            },
+            # DISTRACTOR (rated 0) — title-match competitor.
+            {
+                "id": "p3004",
+                "doc": {
+                    "title": "Kitchen Knife Set Drawer Insert Tray",
+                    "description": "Bamboo organizer tray for drawer storage. Holds twelve blades upright. Sold separately.",
+                    "brand": "Generic",
+                    "category": "accessory",
+                    "price": 22.00,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "p3003",
+                "doc": {
+                    "title": "Henckels Forged Cutlery Block Bundle",
+                    "description": "Affordable kitchen blade set with shears, sharpener, and storage block. Stainless steel blades. Six pieces total. Suitable for everyday home use. Hand washing recommended for blade longevity.",
+                    "brand": "Henckels",
+                    "category": "kitchen",
+                    "price": 199.00,
+                },
+            },
+            # === q3 "sony headphones" — brand field is fixed at ^2 ===
+            # BEST ANSWER (rating=3): brand=Sony, title has NO "sony" or "headphones"; description mentions them once each.
+            {
+                "id": "p4001",
+                "doc": {
+                    "title": "WH-1000XM5 Flagship Premium Audio Device",
+                    "description": "The flagship sony model in the WH lineup. Audio engineers ranked this device best-in-class for active sound dampening in three independent reviews. Owners report all-day comfort, multipoint pairing, and an in-app equalizer with custom listening profiles. Compatible accessories include the rigid carrying case, a three point five millimeter audio cable for wired use, and an inflight adapter. The companion app pushes firmware updates over the air directly. A class-leading thirty hour battery sustains long flights. Premium spec headphones at a flagship price point.",
+                    "brand": "Sony",
+                    "category": "audio",
+                    "price": 399.99,
+                },
+            },
+            # DECOY (rating=1): title is the query, description is short.
+            {
+                "id": "p4002",
+                "doc": {
+                    "title": "Sony Headphones Replacement Earpads",
+                    "description": "Aftermarket replacement pads. Foam and leatherette construction. Two-pad pack.",
+                    "brand": "Geekria",
+                    "category": "accessory",
+                    "price": 18.00,
+                },
+            },
+            # DISTRACTOR (rated 0) — title-match competitor.
+            {
+                "id": "p4004",
+                "doc": {
+                    "title": "Sony Headphones Travel Wall Mount",
+                    "description": "Aluminum wall mount. Adhesive backing. Fits most full-size cans.",
+                    "brand": "Mountain",
+                    "category": "accessory",
+                    "price": 12.00,
+                },
+            },
+            # WRONG (rating=0)
+            {
+                "id": "p4003",
+                "doc": {
+                    "title": "Apple AirPods Pro Carrying Case",
+                    "description": "Silicone case for the Apple AirPods Pro charging case. Tether loop attaches to a backpack zipper. Available in five colors.",
+                    "brand": "Apple",
+                    "category": "accessory",
+                    "price": 9.00,
+                },
+            },
+            # === q4 "noise cancelling over ear" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "p5001",
+                "doc": {
+                    "title": "Bose QuietComfort Ultra Premium Audio Cans",
+                    "description": "Premium audio cushions seal out cabin and street sound. The cancelling profile adapts as you move from a quiet office to a busy commuter train; over fit cup geometry distributes pressure around the temple area for fatigue-free wear during eight hour flights. Three preset cancelling levels plus a custom level configurable in the companion app. A wired fallback listening mode is available when the battery is depleted. Travel pouch included. The microphone array supports clear call quality with noise suppression on the outbound voice path. Includes a USB-C cable for charging.",
+                    "brand": "Bose",
+                    "category": "audio",
+                    "price": 429.00,
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "p5002",
+                "doc": {
+                    "title": "Noise Cancelling Over Ear Pad Replacement",
+                    "description": "Aftermarket memory foam pad pair.",
+                    "brand": "Geekria",
+                    "category": "accessory",
+                    "price": 16.00,
+                },
+            },
+            # DISTRACTOR (rated 0) — title-match competitor.
+            {
+                "id": "p5004",
+                "doc": {
+                    "title": "Noise Cancelling Over Ear Cleaning Kit",
+                    "description": "Microfiber cloth, brush, gentle alcohol-free solution. Pack of three.",
+                    "brand": "Generic",
+                    "category": "accessory",
+                    "price": 11.00,
+                },
+            },
+            # WRONG (rating=0)
+            {
+                "id": "p5003",
+                "doc": {
+                    "title": "In-Ear Sport Earbuds Waterproof",
+                    "description": "Compact in-ear sport earbuds with secure-fit hooks. IPX7 rated. Six hour battery in the buds, twenty four total with the charging case. Available in black, white, lime, and red. USB-C charging.",
+                    "brand": "JBL",
+                    "category": "audio",
+                    "price": 79.00,
                 },
             },
         ],
@@ -290,22 +555,43 @@ SCENARIOS: list[dict[str, Any]] = [
         ],
         "judgment_list_name": "acme-products-relevance-2025-12",
         "rubric": "Rate 0=irrelevant, 1=partial, 2=relevant, 3=highly relevant by intent match (brand, product type, key feature).",
-        # query_idx → doc_id → rating
+        # query_idx → doc_id → rating. Each query spans >=3 distinct rating
+        # values across {0,1,2,3} so the qrels expose real ranking headroom
+        # (Story 2.3 shape invariant). The pXXX5 / pXXX4 docs are
+        # title-match "distractors" rated 0 — they crowd out the best-answer
+        # at the equal-baseline midpoint, which is what gives the title-vs-
+        # description boost knob a real signal to optimize against.
         "judgments_map": [
-            # q0 wireless noise cancelling: p1001=3, p1002=3, p2001=0, p2002=0, p3001=0
-            (0, "p1001", 3),
-            (0, "p1002", 3),
-            (0, "p2001", 0),
-            # q1 womens running shoes
+            # q0 "wireless noise cancelling headphones"
+            (0, "p1001", 3),  # best — query in description
+            (0, "p1002", 1),  # decoy — query densely in title
+            (0, "p1003", 2),  # okay
+            (0, "p1004", 0),  # wrong
+            (0, "p1005", 0),  # distractor — title-match accessory
+            # q1 "womens running shoes"
             (1, "p2001", 3),
-            (1, "p2002", 3),
-            (1, "p1001", 0),
-            # q2 kitchen knife set
+            (1, "p2002", 1),
+            (1, "p2003", 2),
+            (1, "p2004", 0),
+            (1, "p2005", 0),  # distractor — title-match accessory
+            # q2 "kitchen knife set"
             (2, "p3001", 3),
-            (2, "p1001", 0),
-            # q3 sony headphones
-            (3, "p1001", 3),
-            (3, "p1002", 1),
+            (2, "p3002", 1),
+            (2, "p3003", 2),
+            (2, "p2004", 0),
+            (2, "p3004", 0),  # distractor — title-match accessory
+            # q3 "sony headphones"
+            (3, "p4001", 3),
+            (3, "p4002", 1),
+            (3, "p1001", 2),  # also a sony headphone
+            (3, "p4003", 0),
+            (3, "p4004", 0),  # distractor — title-match accessory
+            # q4 "noise cancelling over ear"
+            (4, "p5001", 3),
+            (4, "p5002", 1),
+            (4, "p1003", 2),  # bose nc over-ear
+            (4, "p5003", 0),
+            (4, "p5004", 0),  # distractor — title-match accessory
         ],
         "study_name": "tune-product-title-boost-baseline",
         # UBI demo config (FR-8 / D-2). Synthetic UBI is seeded for this
@@ -337,45 +623,196 @@ SCENARIOS: list[dict[str, Any]] = [
                 }
             }
         },
+        # Data-design recipe (same as acme-products-prod above; see that
+        # docstring for the full rationale). corp-docs only exposes
+        # title_boost, so the lever is "title weight vs fixed body weight."
+        # Decoys put the operator-question phrasing in the title; best
+        # answers carry the actual instructions in the body and a generic
+        # topical title.
         "docs": [
+            # === q0 "how do I reset my password" ===
+            # BEST ANSWER (rating=3): topic-only title, instructions in body.
             {
                 "id": "d101",
                 "doc": {
-                    "title": "How to reset your password",
-                    "body": "If you have forgotten your password, click 'Forgot password' on the sign-in screen and follow the email link to reset it. The reset link expires in 30 minutes.",
+                    "title": "Account Recovery Workflow Reference",
+                    "body": "Operators who need to reset their forgotten password can do so through the self-serve recovery surface. From the sign-in screen, click the 'Forgot password' link and an email arrives within thirty seconds containing a single-use recovery link. Follow the link in the email and supply a new credential meeting the eight-character minimum. The link expires after thirty minutes for security; request a new email if the first one lapses. Operators on enterprise plans must additionally re-authenticate via SSO after the credential is updated. After successful update, all existing sessions are signed out as a precaution and the operator must sign in again on each device.",
                     "section": "account",
                 },
             },
+            # DECOY (rating=1): title is the query, body is short.
             {
                 "id": "d102",
                 "doc": {
-                    "title": "Enabling two-factor authentication",
-                    "body": "Two-factor authentication adds an extra layer of security. Open Settings → Security → Two-factor authentication and follow the setup wizard.",
+                    "title": "How To Reset My Password Sticker",
+                    "body": "Adhesive label sheet for laptops. Pack of ten.",
+                    "section": "swag",
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "d103",
+                "doc": {
+                    "title": "Changing Your Password On A Trusted Device",
+                    "body": "After signing in, open Settings → Account → Credentials. Enter the current password once and the new one twice. The change takes effect immediately on the current device; other devices sign out within two minutes.",
                     "section": "account",
                 },
             },
+            # DISTRACTOR (rated 0) — title-match accessory.
+            {
+                "id": "d104",
+                "doc": {
+                    "title": "How Do I Reset My Password Coffee Mug",
+                    "body": "Ceramic mug, 12 oz. Dishwasher safe. Black exterior, white lettering.",
+                    "section": "swag",
+                },
+            },
+            # === q1 "enable 2fa" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "d201",
                 "doc": {
-                    "title": "Connecting to Slack from the integrations panel",
-                    "body": "From your workspace settings, navigate to Integrations and click 'Add Slack'. Authorize the app in your Slack workspace and pick a default channel.",
-                    "section": "integrations",
+                    "title": "Multi-Factor Security Setup Reference",
+                    "body": "Operators on any plan can enable 2fa from the security settings surface. Open Settings, then choose Security, then the Multi-Factor section. Choose either an authenticator app such as Authy or a hardware key over the FIDO2 protocol. Scan the displayed QR code with the chosen app and enter the six-digit confirmation code. Backup recovery codes are generated automatically; print or save them to an offline password manager. Once confirmed, the operator must supply both the password and a fresh authenticator code at every sign-in attempt.",
+                    "section": "account",
                 },
             },
+            # DECOY (rating=1)
             {
                 "id": "d202",
                 "doc": {
-                    "title": "Setting up GitHub webhooks",
-                    "body": "Webhooks let GitHub notify your team channel on every push and pull request. Go to your repository settings, then Webhooks, and add the URL from the Integrations panel.",
-                    "section": "integrations",
+                    "title": "Enable 2fa Quick-Reference Card",
+                    "body": "Printed pocket card for new hires. Six-pack laminated.",
+                    "section": "swag",
                 },
             },
+            # OKAY (rating=2)
+            {
+                "id": "d203",
+                "doc": {
+                    "title": "Hardware Security Key Pairing Guide",
+                    "body": "Pair a YubiKey or Titan key with the workspace by selecting Add Security Key in Settings. Plug in the key when prompted and touch it. Once paired the key acts as a second authentication factor; you can enable 2fa enforcement at the workspace level afterwards.",
+                    "section": "account",
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "d204",
+                "doc": {
+                    "title": "Enable 2fa Hoodie Black Embroidered",
+                    "body": "Cotton blend hoodie. Sizes S through XXL.",
+                    "section": "swag",
+                },
+            },
+            # === q2 "slack integration setup" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "d301",
                 "doc": {
-                    "title": "Exporting your data as CSV or JSON",
-                    "body": "From the workspace admin console, choose Data → Export. Select the format (CSV or JSON), the date range, and the resources to include.",
+                    "title": "Channel Notification Wiring Reference",
+                    "body": "From the workspace settings surface, navigate to the Integrations area and choose Add. Select Slack from the catalogue list and authorize the app in your target workspace using the OAuth flow. Pick a default channel for system messages and an alternate channel for noisy event types. The setup completes within ten seconds; verify by triggering a test event from the same surface. Each operator's outbound messages from this workspace land in the chosen channel with the operator's display name attached.",
+                    "section": "integrations",
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "d302",
+                "doc": {
+                    "title": "Slack Integration Setup Sticker",
+                    "body": "Vinyl die-cut sticker. Three-color print.",
+                    "section": "swag",
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "d303",
+                "doc": {
+                    "title": "Cross-Workspace Bot Permission Model",
+                    "body": "When the Slack app is authorized, the bot is added to the chosen channel with limited scopes. Expand scopes by re-running the integration setup and selecting additional event types.",
+                    "section": "integrations",
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "d304",
+                "doc": {
+                    "title": "Slack Integration Setup T-Shirt",
+                    "body": "Soft-cotton tee. Available in black or navy.",
+                    "section": "swag",
+                },
+            },
+            # === q3 "github webhook" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "d401",
+                "doc": {
+                    "title": "Repository Event Notification Wiring",
+                    "body": "Repository-level event notifications let your team channel receive a message on every push and pull request. Go to the repository settings on github, then open the Webhook area, click Add. Paste the URL provided by the integrations panel and choose the events of interest. The webhook signature secret is generated automatically and stored encrypted; rotate it from the same surface every quarter. Inbound github events arrive within two seconds of the upstream push under normal load.",
+                    "section": "integrations",
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "d402",
+                "doc": {
+                    "title": "Github Webhook Conference Lanyard",
+                    "body": "Polyester lanyard. Quick-release clip.",
+                    "section": "swag",
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "d403",
+                "doc": {
+                    "title": "Verifying Inbound Signed Payloads",
+                    "body": "Each inbound delivery from github carries an HMAC signature header. Compute the same HMAC on the receiver side using the shared secret and compare. Reject mismatched payloads. The same pattern applies to the webhook receiver for other providers.",
+                    "section": "integrations",
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "d404",
+                "doc": {
+                    "title": "Github Webhook Mug Ceramic",
+                    "body": "Coffee mug. Twelve ounce. Hand wash recommended.",
+                    "section": "swag",
+                },
+            },
+            # === q4 "export data csv" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "d501",
+                "doc": {
+                    "title": "Workspace Information Outbound Transfer",
+                    "body": "From the admin console, choose the Data area and then Export. Select the desired format (csv or json), the date range you care about, and the resource families to include. The export runs asynchronously and the operator receives an email when the file is ready, typically within five minutes. Large workspaces can request a multipart export with one file per resource family; the data is delivered to a signed download URL valid for forty-eight hours. csv files use UTF-8 encoding with comma delimiters and embedded-quote escaping.",
                     "section": "data",
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "d502",
+                "doc": {
+                    "title": "Export Data Csv Quick-Reference Magnet",
+                    "body": "Refrigerator magnet. Three-inch round.",
+                    "section": "swag",
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "d503",
+                "doc": {
+                    "title": "Scheduled Outbound Information Transfers",
+                    "body": "Set up a recurring weekly outbound transfer from the admin console. Choose the resources, the format, and the delivery destination (email or S3 bucket). Each run produces a fresh file with the same schema as the on-demand export.",
+                    "section": "data",
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "d504",
+                "doc": {
+                    "title": "Export Data Csv Conference Tote Bag",
+                    "body": "Canvas tote. Reinforced handles. Black on white print.",
+                    "section": "swag",
                 },
             },
         ],
@@ -403,15 +840,31 @@ SCENARIOS: list[dict[str, Any]] = [
         "judgment_list_name": "corp-docs-clicks-2025-12",
         "rubric": "Rate based on whether the article directly answers the user's help-center query. 0=irrelevant, 1=related, 2=relevant, 3=top answer.",
         "judgments_map": [
-            (0, "d101", 3),
-            (0, "d102", 1),
-            (1, "d102", 3),
-            (1, "d101", 1),
-            (2, "d201", 3),
-            (2, "d202", 1),
-            (3, "d202", 3),
-            (3, "d201", 0),
-            (4, "d301", 3),
+            # q0 "how do I reset my password"
+            (0, "d101", 3),  # best — body has full recovery flow
+            (0, "d102", 1),  # decoy — title-match swag
+            (0, "d103", 2),  # okay — adjacent password-change article
+            (0, "d104", 0),  # distractor — title-match swag
+            # q1 "enable 2fa"
+            (1, "d201", 3),
+            (1, "d202", 1),
+            (1, "d203", 2),
+            (1, "d204", 0),
+            # q2 "slack integration setup"
+            (2, "d301", 3),
+            (2, "d302", 1),
+            (2, "d303", 2),
+            (2, "d304", 0),
+            # q3 "github webhook"
+            (3, "d401", 3),
+            (3, "d402", 1),
+            (3, "d403", 2),
+            (3, "d404", 0),
+            # q4 "export data csv"
+            (4, "d501", 3),
+            (4, "d502", 1),
+            (4, "d503", 2),
+            (4, "d504", 0),
         ],
         "study_name": "reduce-fuzziness-helpcenter-search",
         # UBI demo config (FR-8 / D-2). corp targets rung_1 (sparse signal) +
@@ -441,50 +894,218 @@ SCENARIOS: list[dict[str, Any]] = [
                 }
             }
         },
+        # Data-design recipe (same as acme-products-prod above). news-search
+        # only exposes title_boost, so the lever is "title weight vs fixed
+        # body weight." Decoys put the headline phrasing in the title; best
+        # answers carry the lede paragraph in the body and a generic topical
+        # title. published_at uses _days_ago_iso() so freshness-decay scores
+        # stay above zero at headroom-test runtime (otherwise the gauss decay
+        # function in the template multiplies every score to ~0 and the
+        # ranking is meaningless).
         "docs": [
+            # === q0 "fed interest rate decision" ===
+            # BEST ANSWER (rating=3): topic title, body carries the query terms.
             {
                 "id": "n101",
                 "doc": {
-                    "title": "Federal Reserve holds rates steady amid mixed inflation signals",
-                    "body": "The Federal Reserve voted to maintain its benchmark interest rate, citing easing but still-elevated inflation.",
+                    "title": "Central Bank Holds Steady Amid Mixed Inflation Signals",
+                    "body": "The Federal Reserve announced today that it would maintain its benchmark interest rate at the current level, the third such decision this year. Officials cited easing but still-elevated inflation, a softening but firm labor market, and uncertainty around the impact of tariffs. The decision was unanimous. Markets had widely expected the central bank to hold, and equities ended the session roughly flat. Members of the committee signaled openness to a rate cut at the next meeting if inflation continues to slow; one member suggested the hurdle for a cut was lower than it has been in months.",
                     "topic": "economy",
-                    "published_at": "2025-12-15T14:00:00Z",
+                    "published_at": _days_ago_iso(1),
                 },
             },
+            # DECOY (rating=1)
             {
                 "id": "n102",
                 "doc": {
-                    "title": "Tech sector layoffs slow in Q4 after a turbulent year",
-                    "body": "Major technology employers reported a slowdown in workforce reductions during the fourth quarter, though hiring remains subdued.",
-                    "topic": "tech",
-                    "published_at": "2025-12-10T09:30:00Z",
+                    "title": "Fed Interest Rate Decision Coverage Photo Gallery",
+                    "body": "Photo gallery from the press conference. Twelve images.",
+                    "topic": "economy",
+                    "published_at": _days_ago_iso(2),
                 },
             },
+            # OKAY (rating=2)
+            {
+                "id": "n103",
+                "doc": {
+                    "title": "Bond Markets React To Steady Monetary Policy Posture",
+                    "body": "Treasury yields ticked lower after the central bank held its benchmark rate. Two-year yields fell by three basis points; ten-year yields slipped by two basis points.",
+                    "topic": "economy",
+                    "published_at": _days_ago_iso(1),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "n104",
+                "doc": {
+                    "title": "Fed Interest Rate Decision Trivia Night Sponsor Spotlight",
+                    "body": "Sponsored content from a local pub trivia series.",
+                    "topic": "economy",
+                    "published_at": _days_ago_iso(3),
+                },
+            },
+            # === q1 "tech layoffs Q4" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "n201",
                 "doc": {
-                    "title": "World leaders gather for climate summit in Geneva",
-                    "body": "Heads of state from over 90 countries convened in Geneva to negotiate the next phase of global emissions reductions.",
-                    "topic": "climate",
-                    "published_at": "2025-12-18T07:00:00Z",
+                    "title": "Workforce Reductions Slow At Major Software Firms",
+                    "body": "Major technology employers reported a notable slowdown in workforce reductions during Q4, according to filings reviewed by analysts. The pace of tech layoffs across the largest software, semiconductor, and cloud-services firms fell to roughly forty percent of the Q3 rate. Net hiring at the same employers remains subdued; openings in core engineering ladders are flat year-over-year, while openings in AI-adjacent roles continue to grow. Recruiters surveyed expect the slowdown to persist into Q1.",
+                    "topic": "tech",
+                    "published_at": _days_ago_iso(2),
                 },
             },
+            # DECOY (rating=1)
             {
                 "id": "n202",
                 "doc": {
-                    "title": "Renewable energy installations hit record high in 2025",
-                    "body": "Solar and wind installations together accounted for the majority of new electricity generation capacity in 2025.",
-                    "topic": "climate",
-                    "published_at": "2025-11-25T12:00:00Z",
+                    "title": "Tech Layoffs Q4 Statistics Infographic Tweet Thread",
+                    "body": "Social media thread. Twelve embedded charts.",
+                    "topic": "tech",
+                    "published_at": _days_ago_iso(2),
                 },
             },
+            # OKAY (rating=2)
+            {
+                "id": "n203",
+                "doc": {
+                    "title": "Hiring Mix Shifts Toward Machine Learning Roles",
+                    "body": "Software firms continued to grow their AI staff in the fourth quarter even as broader headcount fell. Recruiters say the trend is most pronounced at large vendors.",
+                    "topic": "tech",
+                    "published_at": _days_ago_iso(3),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "n204",
+                "doc": {
+                    "title": "Tech Layoffs Q4 Themed Halloween Costume Roundup",
+                    "body": "Cultural commentary roundup. Fifteen costumes ranked.",
+                    "topic": "tech",
+                    "published_at": _days_ago_iso(4),
+                },
+            },
+            # === q2 "climate summit geneva" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "n301",
                 "doc": {
-                    "title": "Quantum computing milestone: error correction breakthrough",
-                    "body": "Researchers at a leading lab demonstrated stable error-correction protocols on a 100-qubit system.",
+                    "title": "World Leaders Convene For Major Emissions Talks",
+                    "body": "Heads of state from over ninety countries gathered in Geneva today for the opening session of the most consequential climate summit in three years. The talks are expected to focus on the next phase of global emissions reductions, including binding targets for the largest emitters and a new finance mechanism for adaptation. Delegates from the host nation framed the summit as a turning point; Geneva officials estimate the conference will draw more than fifteen thousand attendees over its ten-day run.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(1),
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "n302",
+                "doc": {
+                    "title": "Climate Summit Geneva Souvenir Pin Set",
+                    "body": "Official commemorative enamel pin set. Twelve pins.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(2),
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "n303",
+                "doc": {
+                    "title": "Adaptation Finance Mechanism Draft Released",
+                    "body": "Negotiators released a draft of the proposed adaptation finance mechanism on the second day of the conference. The draft includes both grant and concessional-loan components and contemplates a sliding contribution scale based on cumulative historical emissions.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(1),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "n304",
+                "doc": {
+                    "title": "Climate Summit Geneva Tote Bag Limited Edition",
+                    "body": "Eco-cotton tote bag in two colorways.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(3),
+                },
+            },
+            # === q3 "renewable energy 2025" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "n401",
+                "doc": {
+                    "title": "New Generation Capacity Hits Record Across The Year",
+                    "body": "Solar and wind installations together accounted for the overwhelming majority of new electricity generation capacity added during 2025, a year-end industry report concludes. Renewable additions outpaced new fossil capacity by a ratio of roughly nine to one. Battery storage paired with solar grew faster than any other technology in the renewable energy category; analysts now project that energy storage will represent more than thirty percent of all new utility-scale capacity in 2026.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(2),
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "n402",
+                "doc": {
+                    "title": "Renewable Energy 2025 Calendar Wallchart",
+                    "body": "Wall-mounted calendar. Twelve full-color pages.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(3),
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "n403",
+                "doc": {
+                    "title": "Battery Storage Pairings Lead Utility Buildouts",
+                    "body": "Utility procurement filings show that storage paired with solar accounted for nearly a third of all new build approvals in the second half of the year. Standalone storage projects also continued to grow.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(2),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "n404",
+                "doc": {
+                    "title": "Renewable Energy 2025 Conference Photo Compilation",
+                    "body": "Photo gallery from industry conferences. One hundred images.",
+                    "topic": "climate",
+                    "published_at": _days_ago_iso(4),
+                },
+            },
+            # === q4 "quantum computing breakthrough" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "n501",
+                "doc": {
+                    "title": "Error-Correction Milestone Demonstrated On 100-Qubit System",
+                    "body": "Researchers at a leading lab demonstrated stable error-correction protocols running continuously on a 100-qubit superconducting system, a major step that observers are calling the most significant quantum computing breakthrough since the supremacy demonstrations of the previous decade. The team reported logical-qubit error rates two orders of magnitude below the underlying physical-qubit rate. Independent groups have replicated portions of the result within the past week.",
                     "topic": "tech",
-                    "published_at": "2025-12-12T16:00:00Z",
+                    "published_at": _days_ago_iso(1),
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "n502",
+                "doc": {
+                    "title": "Quantum Computing Breakthrough Poster Print",
+                    "body": "Large-format wall poster. Eighteen by twenty four inches.",
+                    "topic": "tech",
+                    "published_at": _days_ago_iso(2),
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "n503",
+                "doc": {
+                    "title": "Logical-Qubit Error Rates Reach New Low",
+                    "body": "A separate research group reported logical-qubit error rates that align with the headline result from earlier this week. The replication strengthens the case that error-correction at scale is becoming practical.",
+                    "topic": "tech",
+                    "published_at": _days_ago_iso(2),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "n504",
+                "doc": {
+                    "title": "Quantum Computing Breakthrough Sticker Pack",
+                    "body": "Vinyl die-cut sticker pack. Eight unique designs.",
+                    "topic": "tech",
+                    "published_at": _days_ago_iso(3),
                 },
             },
         ],
@@ -523,13 +1144,31 @@ SCENARIOS: list[dict[str, Any]] = [
         "judgment_list_name": "news-editorial-2025-12",
         "rubric": "Rate articles by editorial relevance: does this article directly cover the searched event/topic? 0=off-topic, 1=tangential, 2=on-topic, 3=lead story.",
         "judgments_map": [
+            # q0 "fed interest rate decision"
             (0, "n101", 3),
-            (1, "n102", 3),
-            (2, "n201", 3),
-            (2, "n202", 1),
-            (3, "n202", 3),
-            (3, "n201", 2),
-            (4, "n301", 3),
+            (0, "n102", 1),
+            (0, "n103", 2),
+            (0, "n104", 0),
+            # q1 "tech layoffs Q4"
+            (1, "n201", 3),
+            (1, "n202", 1),
+            (1, "n203", 2),
+            (1, "n204", 0),
+            # q2 "climate summit geneva"
+            (2, "n301", 3),
+            (2, "n302", 1),
+            (2, "n303", 2),
+            (2, "n304", 0),
+            # q3 "renewable energy 2025"
+            (3, "n401", 3),
+            (3, "n402", 1),
+            (3, "n403", 2),
+            (3, "n404", 0),
+            # q4 "quantum computing breakthrough"
+            (4, "n501", 3),
+            (4, "n502", 1),
+            (4, "n503", 2),
+            (4, "n504", 0),
         ],
         "study_name": "add-7day-freshness-decay-news",
         # UBI demo config (FR-8 / D-2). news-search-staging is the negative
@@ -560,55 +1199,249 @@ SCENARIOS: list[dict[str, Any]] = [
                 }
             }
         },
+        # Data-design recipe (same as acme-products-prod above). jobs exposes
+        # title_boost + company_boost; description weight is fixed at 1.0.
+        # Decoys put the role string in the title (and use a low-prestige
+        # company name); the best answers carry the actual role spec in the
+        # description and use generic role-family titles. posted_at uses
+        # _days_ago_iso() so the exp decay (scale=30d) keeps multipliers
+        # ~uniform across the small panel (every doc is 1-7 days old →
+        # multiplier ~0.95+).
         "docs": [
+            # === q0 "senior software engineer backend" ===
+            # BEST ANSWER (rating=3): topical title, role spec in description.
             {
                 "id": "j101",
                 "doc": {
-                    "title": "Senior Software Engineer, Backend Infrastructure",
+                    "title": "Stripe Infrastructure Posting (L5)",
                     "company": "Stripe",
                     "location": "San Francisco, CA",
-                    "description": "Design and operate the core payments backend serving millions of transactions per day. Python/Go preferred.",
-                    "posted_at": "2025-12-08T10:00:00Z",
+                    "description": "Stripe is hiring a senior software engineer for the core backend group. The successful candidate will lead the build and operation of the central payments-processing stack serving millions of transactions per day. Stack is mostly Go with a Python control plane. Prior senior engineer experience required (six or more years). Backend systems design background expected. We expect the engineer to mentor mid-level peers on the team. The senior backend role reports to the engineering manager of the platform group.",
+                    "posted_at": _days_ago_iso(2),
                 },
             },
+            # DECOY (rating=1): title is the query.
             {
                 "id": "j102",
                 "doc": {
-                    "title": "Staff Site Reliability Engineer",
-                    "company": "Datadog",
-                    "location": "New York, NY",
-                    "description": "Lead reliability and observability initiatives across the platform. Strong Kubernetes and incident-response experience required.",
-                    "posted_at": "2025-12-12T09:00:00Z",
+                    "title": "Senior Software Engineer Backend Greeter",
+                    "company": "ConferenceCo",
+                    "location": "Remote",
+                    "description": "Greet incoming attendees at our developer conference.",
+                    "posted_at": _days_ago_iso(3),
                 },
             },
+            # EXTRA DISTRACTOR (rated 0) — extra title-match competitor on q0.
+            {
+                "id": "j105",
+                "doc": {
+                    "title": "Senior Software Engineer Backend Mascot Costume Operator",
+                    "company": "EventStaff",
+                    "location": "On-site",
+                    "description": "Wear the company mascot suit during the conference week.",
+                    "posted_at": _days_ago_iso(5),
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "j103",
+                "doc": {
+                    "title": "Backend Platform Posting (Senior)",
+                    "company": "Stripe",
+                    "location": "Remote",
+                    "description": "Mid-senior backend role on the platform reliability group. Five plus years of experience expected. Polyglot stack with Go and Python.",
+                    "posted_at": _days_ago_iso(3),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "j104",
+                "doc": {
+                    "title": "Senior Software Engineer Backend Office Coffee Runner",
+                    "company": "EventStaff",
+                    "location": "On-site",
+                    "description": "Coffee delivery for the engineering floor on a major release week.",
+                    "posted_at": _days_ago_iso(4),
+                },
+            },
+            # === q1 "site reliability engineer" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "j201",
                 "doc": {
-                    "title": "Product Manager, Search Quality",
-                    "company": "Algolia",
-                    "location": "Remote",
-                    "description": "Own the search relevance roadmap. Partner with ML and engineering to drive measurable quality wins.",
-                    "posted_at": "2025-12-15T11:00:00Z",
+                    "title": "Datadog Observability Posting (Staff)",
+                    "company": "Datadog",
+                    "location": "New York, NY",
+                    "description": "Datadog is hiring a staff-level site reliability engineer to lead reliability and observability initiatives across the product. The candidate will own incident-response standards, drive Kubernetes platform reliability work, and partner with product engineering on SLOs. Five-plus years operating distributed systems at scale expected. Prior reliability engineer leadership a strong plus. The reliability site team partners with the platform engineer pods on every major launch.",
+                    "posted_at": _days_ago_iso(2),
                 },
             },
+            # DECOY (rating=1)
             {
                 "id": "j202",
                 "doc": {
-                    "title": "Senior Product Designer, Onboarding",
-                    "company": "Linear",
+                    "title": "Site Reliability Engineer T-Shirt Designer",
+                    "company": "MerchCo",
                     "location": "Remote",
-                    "description": "Shape the first-five-minutes experience for new teams. Design-systems fluency expected.",
-                    "posted_at": "2025-12-09T08:00:00Z",
+                    "description": "Design merch graphics for engineering conferences.",
+                    "posted_at": _days_ago_iso(3),
                 },
             },
+            # OKAY (rating=2)
+            {
+                "id": "j203",
+                "doc": {
+                    "title": "Platform Reliability Posting (Staff)",
+                    "company": "Datadog",
+                    "location": "Remote",
+                    "description": "Cross-team reliability posting on the platform engineer ladder. Strong Kubernetes and incident-response experience required.",
+                    "posted_at": _days_ago_iso(3),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "j204",
+                "doc": {
+                    "title": "Site Reliability Engineer Lounge Furniture Buyer",
+                    "company": "FacilitiesCo",
+                    "location": "On-site",
+                    "description": "Procurement role for the engineering floor lounge buildout.",
+                    "posted_at": _days_ago_iso(5),
+                },
+            },
+            # === q2 "product manager search" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "j301",
                 "doc": {
-                    "title": "Machine Learning Engineer, Ranking",
+                    "title": "Algolia Relevance Posting (Senior PM)",
+                    "company": "Algolia",
+                    "location": "Remote",
+                    "description": "Algolia is hiring a senior product manager to own the relevance and ranking-quality roadmap for our search-as-a-service platform. The product manager will partner with the ML and engineering pods on driving measurable search quality wins, and will own the quarterly relevance OKRs. Prior product manager experience in search infrastructure strongly preferred. The search manager pod runs an agile cadence.",
+                    "posted_at": _days_ago_iso(2),
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "j302",
+                "doc": {
+                    "title": "Product Manager Search Internship Mentor",
+                    "company": "InternHub",
+                    "location": "Remote",
+                    "description": "Mentor early-career interns on a quarterly basis.",
+                    "posted_at": _days_ago_iso(3),
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "j303",
+                "doc": {
+                    "title": "Discovery Surface Posting (Lead PM)",
+                    "company": "Algolia",
+                    "location": "Remote",
+                    "description": "Lead the product roadmap for the discovery surfaces. Partner with the search engineering pod.",
+                    "posted_at": _days_ago_iso(4),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "j304",
+                "doc": {
+                    "title": "Product Manager Search Office Plant Curator",
+                    "company": "FacilitiesCo",
+                    "location": "On-site",
+                    "description": "Curate the office plant rotation.",
+                    "posted_at": _days_ago_iso(5),
+                },
+            },
+            # === q3 "product designer remote" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "j401",
+                "doc": {
+                    "title": "Linear Onboarding Posting (Senior Designer)",
+                    "company": "Linear",
+                    "location": "Remote",
+                    "description": "Linear is hiring a senior product designer to shape the first-five-minutes experience for new teams. The designer will partner with engineering on the remote onboarding flow and design-systems fluency is expected. Strong remote-first collaboration habits a plus. The product designer reports to the head of design and works in a remote pod.",
+                    "posted_at": _days_ago_iso(2),
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "j402",
+                "doc": {
+                    "title": "Product Designer Remote Conference Greeter",
+                    "company": "ConferenceCo",
+                    "location": "On-site",
+                    "description": "Greet attendees at our annual design summit.",
+                    "posted_at": _days_ago_iso(3),
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "j403",
+                "doc": {
+                    "title": "Activation Surface Posting (Senior Designer)",
+                    "company": "Linear",
+                    "location": "Remote",
+                    "description": "Senior designer role on the activation surfaces. Remote-first team and tooling. Design systems experience expected.",
+                    "posted_at": _days_ago_iso(4),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "j404",
+                "doc": {
+                    "title": "Product Designer Remote Office Snack Buyer",
+                    "company": "FacilitiesCo",
+                    "location": "Remote",
+                    "description": "Snack procurement for the engineering floor.",
+                    "posted_at": _days_ago_iso(5),
+                },
+            },
+            # === q4 "machine learning engineer" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "j501",
+                "doc": {
+                    "title": "Pinterest Ranking Posting (Senior MLE)",
                     "company": "Pinterest",
                     "location": "Seattle, WA",
-                    "description": "Improve ranking models that power discovery feeds. PyTorch + large-scale training experience.",
-                    "posted_at": "2025-12-14T13:00:00Z",
+                    "description": "Pinterest is hiring a senior machine learning engineer to improve ranking models that power the discovery feeds. The successful candidate will work in PyTorch with large-scale training infrastructure and own a portion of the production ranking stack. Five-plus years of machine learning engineering experience required. Prior recommendations or learning-to-rank background strongly preferred. The learning team works closely with the engineer pods on the feed surface.",
+                    "posted_at": _days_ago_iso(2),
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "j502",
+                "doc": {
+                    "title": "Machine Learning Engineer Conference Photographer",
+                    "company": "ConferenceCo",
+                    "location": "On-site",
+                    "description": "Event photography role at an industry conference.",
+                    "posted_at": _days_ago_iso(3),
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "j503",
+                "doc": {
+                    "title": "Recommendations Modeling Posting (Staff Engineer)",
+                    "company": "Pinterest",
+                    "location": "Remote",
+                    "description": "Staff-level ranking and recommendations engineer role. PyTorch and large-scale training infrastructure background expected.",
+                    "posted_at": _days_ago_iso(3),
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "j504",
+                "doc": {
+                    "title": "Machine Learning Engineer Office Bike Mechanic",
+                    "company": "FacilitiesCo",
+                    "location": "On-site",
+                    "description": "Bicycle maintenance for the office commuter program.",
+                    "posted_at": _days_ago_iso(5),
                 },
             },
         ],
@@ -646,11 +1479,32 @@ SCENARIOS: list[dict[str, Any]] = [
         "judgment_list_name": "jobs-relevance-2025-12",
         "rubric": "Rate listings by title + skill match to the search. 0=wrong role, 1=related, 2=good match, 3=exact match.",
         "judgments_map": [
-            (0, "j101", 3),
-            (1, "j102", 3),
-            (2, "j201", 3),
-            (3, "j202", 3),
-            (4, "j301", 3),
+            # q0 "senior software engineer backend"
+            (0, "j101", 3),  # best — description has full role spec
+            (0, "j102", 1),  # decoy — title-match (greeter role)
+            (0, "j103", 2),  # okay — adjacent backend posting
+            (0, "j104", 0),  # distractor — title-match (coffee runner)
+            (0, "j105", 0),  # extra distractor — title-match (mascot operator)
+            # q1 "site reliability engineer"
+            (1, "j201", 3),
+            (1, "j202", 1),
+            (1, "j203", 2),
+            (1, "j204", 0),
+            # q2 "product manager search"
+            (2, "j301", 3),
+            (2, "j302", 1),
+            (2, "j303", 2),
+            (2, "j304", 0),
+            # q3 "product designer remote"
+            (3, "j401", 3),
+            (3, "j402", 1),
+            (3, "j403", 2),
+            (3, "j404", 0),
+            # q4 "machine learning engineer"
+            (4, "j501", 3),
+            (4, "j502", 1),
+            (4, "j503", 2),
+            (4, "j504", 0),
         ],
         "study_name": "tune-jobtitle-vs-company-boost",
         # UBI demo config (FR-8 / D-2). jobs targets rung_2 + hybrid converter
@@ -683,65 +1537,338 @@ SCENARIOS: list[dict[str, Any]] = [
         # PUT /<index> path. The configset name lives in the Solr Compose
         # service's /etc/solr-bootstrap mount.
         "solr_configset": "relyloop_products",
+        # Data-design recipe (same as acme-products-prod above). Solr edismax
+        # exposes title_boost + bullet_points_boost; description weight is
+        # fixed at 1.0. Decoys put the operator-question phrasing in the
+        # title; best answers carry the query terms in the BULLET POINTS
+        # (the bullet_points field is what bullet_points_boost tunes) and a
+        # generic topical title. With baseline equal-midpoint weights, the
+        # short decoy title outscores the longer best-answer bullets; at the
+        # better-params setting (low title + high bullets), the bullet match
+        # wins.
         "docs": [
+            # === q0 "okta sso setup" ===
+            # BEST ANSWER (rating=3): topical title, each query term appears
+            # ONCE in bullets buried inside a long bullet sentence.
             {
                 "id": "kb101",
                 "doc": {
-                    "title": "Configuring SSO with Okta",
-                    "description": "Step-by-step guide to wire ACME's identity provider through Okta SAML.",
+                    "title": "Identity Provider Wiring Reference Document",
+                    "description": "Step-by-step guide for connecting an external identity provider to ACME using SAML 2.0 with example configuration walkthroughs and screenshots.",
                     "bullet_points": [
-                        "Create the Okta app",
-                        "Upload metadata to ACME",
-                        "Test the redirect URL",
+                        "Create the okta application in the upstream identity provider admin console using the bundled certificate signing request and the audience URL printed at the bottom of the workspace settings page",
+                        "Run the federation wizard located in the ACME workspace identity area to retrieve the assertion consumer URL and the entity ID required for federated trust between the two systems and then save the connection record before moving on",
+                        "Upload the provider metadata XML to complete the sso configuration via the upload dialog at the workspace identity settings area and confirm the green health badge appears next to the connection entry within thirty seconds",
+                        "Test the federated redirect URL once the configuration is saved by opening a private browser session and triggering a fresh authentication setup request against the just-configured provider",
                     ],
                     "category": "Authentication",
                     "in_stock": True,
                 },
             },
+            # DECOY (rating=1): title is the query.
             {
                 "id": "kb102",
                 "doc": {
-                    "title": "Resetting a forgotten admin password",
-                    "description": "Recovery flow when the primary admin loses access to their account.",
+                    "title": "Okta SSO Setup Reference Card",
+                    "description": "Printed pocket card.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "kb103",
+                "doc": {
+                    "title": "Workforce Identity Federation Overview",
+                    "description": "Conceptual overview of federation models supported by ACME.",
                     "bullet_points": [
-                        "Use the recovery email",
-                        "Contact support if email lapsed",
+                        "SAML and OIDC are both supported as identity provider protocols on the workspace federation surface",
+                        "okta workspaces are the common deployment case for the federation overview reference flows that ACME ships",
+                        "Configure either protocol at the workspace level via the settings panel after registering the upstream provider",
                     ],
                     "category": "Authentication",
                     "in_stock": True,
                 },
             },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "kb104",
+                "doc": {
+                    "title": "Okta SSO Setup Conference Sticker",
+                    "description": "Vinyl sticker.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # EXTRA DISTRACTOR (rated 0)
+            {
+                "id": "kb105",
+                "doc": {
+                    "title": "Okta SSO Setup Branded Notebook",
+                    "description": "Spiral-bound notebook.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # === q1 "forgot admin password" ===
+            # BEST ANSWER (rating=3)
             {
                 "id": "kb201",
                 "doc": {
-                    "title": "Rate-limit policy for the public API",
-                    "description": "Quotas, burst windows, and how to request a higher tier.",
+                    "title": "Account Recovery Workflow Reference",
+                    "description": "Recovery flow for the primary owner of an ACME workspace.",
                     "bullet_points": [
-                        "Default 60 req/min",
-                        "Burst window 5s",
-                        "Higher-tier request form",
+                        "Click the forgot credentials link on the sign-in surface when the recovery flow is needed and then proceed to the next confirmation step on the recovery wizard surface",
+                        "Receive the recovery email at the registered admin address within thirty seconds and locate the message in the inbox folder rather than the spam folder",
+                        "Reset the credential password using the single-use link printed in the email and confirm the change by entering the new value twice on the reset surface",
+                        "Re-authenticate the admin session on every device that was previously signed in and verify the change took effect on each",
+                    ],
+                    "category": "Authentication",
+                    "in_stock": True,
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "kb202",
+                "doc": {
+                    "title": "Forgot Admin Password Sticky Note Pack",
+                    "description": "Sticky notes.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "kb203",
+                "doc": {
+                    "title": "Changing The Primary Owner Of A Workspace",
+                    "description": "Procedure when the primary admin leaves the company.",
+                    "bullet_points": [
+                        "Use the password recovery flow if the admin is unreachable for an extended period during a leadership transition or vacation",
+                        "Contact ACME support if the recovery email has lapsed and the registered address is no longer monitored by the new owner",
+                    ],
+                    "category": "Authentication",
+                    "in_stock": True,
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "kb204",
+                "doc": {
+                    "title": "Forgot Admin Password Stress Ball",
+                    "description": "Foam stress ball.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # EXTRA DISTRACTOR (rated 0)
+            {
+                "id": "kb205",
+                "doc": {
+                    "title": "Forgot Admin Password Hat Embroidered",
+                    "description": "Baseball cap.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # === q2 "api rate limits" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "kb301",
+                "doc": {
+                    "title": "Throughput Policy Reference Document",
+                    "description": "Throughput governance for the public-facing surface.",
+                    "bullet_points": [
+                        "Default api quota is sixty requests per minute on the standard public-facing surface for new workspaces and applies to all unauthenticated public traffic",
+                        "Burst window allows short five-second spikes above the published rate ceiling without immediately triggering a throttle response on the gateway tier",
+                        "Higher-tier limits available via the operator request form for workspaces with documented traffic peaks above the standard ceiling at sustained load",
+                        "Per-tenant ceilings override the workspace-wide configuration when an enterprise contract specifies dedicated capacity for the tenant in question",
                     ],
                     "category": "API",
                     "in_stock": True,
                 },
             },
+            # DECOY (rating=1)
             {
-                "id": "kb202",
+                "id": "kb302",
                 "doc": {
-                    "title": "Authenticating with the public REST API",
-                    "description": "Generating an API key + scoping it to a single project.",
-                    "bullet_points": ["Generate key", "Scope to project", "Rotate quarterly"],
+                    "title": "API Rate Limits Reference Poster",
+                    "description": "Wall poster.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "kb303",
+                "doc": {
+                    "title": "Burst-Window Behavior Under Spike Load",
+                    "description": "Explainer for burst-window mechanics.",
+                    "bullet_points": [
+                        "Burst window is rolling not fixed-window so the ceiling moves continuously with the trailing five-second window of observed traffic",
+                        "Throttled requests return HTTP 429 with a Retry-After header that the client library should respect when scheduling the next attempt",
+                        "Apply exponential backoff on receiving the throttle signal to avoid synchronized re-spike from many clients at once",
+                    ],
                     "category": "API",
                     "in_stock": True,
                 },
             },
+            # DISTRACTOR (rated 0)
             {
-                "id": "kb301",
+                "id": "kb304",
                 "doc": {
-                    "title": "Billing FAQ — invoices, refunds, and proration",
-                    "description": "Common billing questions with worked examples and links to support.",
-                    "bullet_points": ["Invoice cadence", "Refund eligibility", "Proration math"],
+                    "title": "API Rate Limits Hoodie Black Embroidered",
+                    "description": "Cotton blend hoodie.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # EXTRA DISTRACTOR (rated 0)
+            {
+                "id": "kb305",
+                "doc": {
+                    "title": "API Rate Limits Coffee Tumbler Stainless",
+                    "description": "Stainless tumbler.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # === q3 "rest api authentication" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "kb401",
+                "doc": {
+                    "title": "Programmatic Access Identity Reference",
+                    "description": "Identity model for programmatic clients.",
+                    "bullet_points": [
+                        "Generate an api key from the operator surface to enable programmatic rest access against the public endpoint with stable long-lived credentials",
+                        "Scope the issued key to a single project for least-privilege programmatic access and minimize the blast radius of any single credential leak event",
+                        "Use Bearer token authentication on every outbound rest call with the issued key passed in the standard Authorization header value",
+                        "Rotate the issued key quarterly and revoke immediately on suspected compromise via the operator surface revocation panel",
+                    ],
+                    "category": "API",
+                    "in_stock": True,
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "kb402",
+                "doc": {
+                    "title": "Rest API Authentication Conference Tote",
+                    "description": "Tote bag.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "kb403",
+                "doc": {
+                    "title": "Token Rotation Cadence Recommendations",
+                    "description": "Recommended rotation cadence per token kind.",
+                    "bullet_points": [
+                        "Rotate the issued credential key quarterly for routine programmatic clients as a defense-in-depth practice on top of scoping",
+                        "Rotate immediately on suspected compromise rather than waiting for the next scheduled cadence window to complete",
+                        "Use short-lived tokens for CI pipelines and dynamic agents rather than long-lived credentials that may persist in build logs",
+                    ],
+                    "category": "API",
+                    "in_stock": True,
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "kb404",
+                "doc": {
+                    "title": "Rest API Authentication Trivia Card Set",
+                    "description": "Trivia cards.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # EXTRA DISTRACTOR (rated 0)
+            {
+                "id": "kb405",
+                "doc": {
+                    "title": "Rest API Authentication Lanyard Embroidered",
+                    "description": "Polyester lanyard.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # === q4 "billing refund policy" ===
+            # BEST ANSWER (rating=3)
+            {
+                "id": "kb501",
+                "doc": {
+                    "title": "Account Settlement FAQ Document",
+                    "description": "Common operator questions about invoices and credits.",
+                    "bullet_points": [
+                        "Refund eligibility under the standard billing terms is documented in the master service agreement that all workspaces accept on signup",
+                        "Window is fourteen days after the invoice posts and applies to both monthly subscription invoices and per-seat additions made during the cycle",
+                        "Submit a request from the admin surface via the support ticket flow under the account settlement category for the fastest turnaround",
+                        "Proration math and credit-note timing under the refund policy and the broader settlement policy framework that the agreement codifies",
+                    ],
                     "category": "Billing",
+                    "in_stock": True,
+                },
+            },
+            # DECOY (rating=1)
+            {
+                "id": "kb502",
+                "doc": {
+                    "title": "Billing Refund Policy Coffee Mug",
+                    "description": "Ceramic mug.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # OKAY (rating=2)
+            {
+                "id": "kb503",
+                "doc": {
+                    "title": "Invoice Cadence And Proration Math",
+                    "description": "Detailed worked examples of mid-cycle adjustments.",
+                    "bullet_points": [
+                        "Invoices post on the first of each month and a notification email goes to the registered billing contact at the same time",
+                        "Mid-cycle plan changes prorate to the day and the new line items appear on the next monthly invoice cycle",
+                        "Credit notes attach to the next billing invoice automatically and offset the new charges before any payment is captured",
+                    ],
+                    "category": "Billing",
+                    "in_stock": True,
+                },
+            },
+            # DISTRACTOR (rated 0)
+            {
+                "id": "kb504",
+                "doc": {
+                    "title": "Billing Refund Policy T-Shirt Black",
+                    "description": "Cotton tee.",
+                    "bullet_points": [],
+                    "category": "Swag",
+                    "in_stock": True,
+                },
+            },
+            # EXTRA DISTRACTOR (rated 0)
+            {
+                "id": "kb505",
+                "doc": {
+                    "title": "Billing Refund Policy Notebook Spiral-Bound",
+                    "description": "Lined notebook.",
+                    "bullet_points": [],
+                    "category": "Swag",
                     "in_stock": True,
                 },
             },
@@ -787,11 +1914,36 @@ SCENARIOS: list[dict[str, Any]] = [
         "judgment_list_name": "acme-kb-relevance-2025-12",
         "rubric": "Rate articles by how directly they answer the operator question. 0=off-topic, 1=tangential, 2=on-topic, 3=lead answer.",
         "judgments_map": [
-            (0, "kb101", 3),
-            (1, "kb102", 3),
-            (2, "kb201", 3),
-            (3, "kb202", 3),
-            (4, "kb301", 3),
+            # q0 "okta sso setup"
+            (0, "kb101", 3),  # best — query terms in bullets
+            (0, "kb102", 1),  # decoy — title-match swag
+            (0, "kb103", 2),  # okay — adjacent federation article
+            (0, "kb104", 0),  # distractor — title-match swag
+            (0, "kb105", 0),  # distractor — title-match swag
+            # q1 "forgot admin password"
+            (1, "kb201", 3),
+            (1, "kb202", 1),
+            (1, "kb203", 2),
+            (1, "kb204", 0),
+            (1, "kb205", 0),
+            # q2 "api rate limits"
+            (2, "kb301", 3),
+            (2, "kb302", 1),
+            (2, "kb303", 2),
+            (2, "kb304", 0),
+            (2, "kb305", 0),
+            # q3 "rest api authentication"
+            (3, "kb401", 3),
+            (3, "kb402", 1),
+            (3, "kb403", 2),
+            (3, "kb404", 0),
+            (3, "kb405", 0),
+            # q4 "billing refund policy"
+            (4, "kb501", 3),
+            (4, "kb502", 1),
+            (4, "kb503", 2),
+            (4, "kb504", 0),
+            (4, "kb505", 0),
         ],
         "study_name": "tune-kb-title-vs-bullet-boosts-solr",
         # FR-8 / spec §19 recommendation: Solr scenario gets rung_2 +
@@ -947,7 +2099,7 @@ def _create_one_study(
             "search_space": search_space,
             "objective": {"metric": "ndcg", "k": 10, "direction": "maximize"},
             "config": {
-                "max_trials": 12,
+                "max_trials": DEMO_SMALL_STUDY_MAX_TRIALS,
                 "parallelism": 2,
                 "sampler": "tpe",
                 "seed": 42,
