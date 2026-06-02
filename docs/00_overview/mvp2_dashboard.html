@@ -369,7 +369,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP2 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-06-01 (latest mtime of any
+    Reflects feature-folder state as of 2026-06-02 (latest mtime of any
     <code>docs/00_overview/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -397,18 +397,18 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">8 / 17</div>
-      <div class="sub">47% specced · 39 filed under MVP2</div>
-      <div class="bar"><span style="width:47%"></span></div>
+      <div class="value">10 / 19</div>
+      <div class="sub">53% specced · 40 filed under MVP2</div>
+      <div class="bar"><span style="width:53%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">31</div>
+      <div class="value">28</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">10</div>
+      <div class="value">8</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -420,12 +420,12 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">2</div>
+      <div class="value">1</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">25</div>
+      <div class="value">23</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">27</div>
+      <div class="value">24</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,29 +463,16 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">22</span></h3>
+  <h3>Idea <span class="count">19</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_solr_smoke_stability">Solr Smoke Stability</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget">Smoke Reseed Runtime Budget</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
-  <div class="one-liner">After Phase 1 ships, the `pr.yml` `backend` job goes green (the heavy-lane reseed test no longer requires Solr). But the `smoke-test` job is independent — it runs `make up` which brings up the full Co</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_backend_suite_nondeterministic_caplog_isolation">Backend Suite Nondeterministic Caplog Isolation</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">Many backend unit tests assert on captured log records (`caplog` / a structlog capture fixture) and fail with empty-capture shapes (`assert []`, `assert &#x27;x&#x27; in []`) when run in the full randomized sui</div>
+  <div class="one-liner">Idea — captured at `infra_solr_smoke_stability` PR #383 merge time</div>
 
 
 </div>
@@ -512,19 +499,6 @@ footer {
 
   </div>
   <div class="one-liner">`infra_solr_ci_readiness` made the demo reseed engine-tolerant: when an engine is unreachable, its scenario is skipped, the reseed completes with `status=&quot;complete&quot;` and a non-empty `scenarios_skipped</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_solr_cred_backfill_needs_api_restart">Solr Cred Backfill Needs Api Restart</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`scripts/install.sh` step 5a backfills a `local-solr:` entry into a **pre-existing** `./secrets/cluster_credentials.yaml`. That write is correct and idempotent. But the `api` (and `worker`) process re</div>
 
 
 </div>
@@ -603,19 +577,6 @@ footer {
 
   </div>
   <div class="one-liner">`backend/tests/unit/workers/test_orchestrator_baseline_phase.py::TestComputeBaselineWaitS::*` fail when run in isolation with:</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_contract_allowlists_outdated_after_mvp2_features">Contract Allowlists Outdated After Mvp2 Features</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Three separate contract-test allowlists were not updated as features shipped through MVP2. Each is a &quot;hand-maintained canonical list of valid values&quot; that drifts when a feature adds new entries to the</div>
 
 
 </div>
@@ -884,7 +845,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">8</span></h3>
+  <h3>Done <span class="count">12</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -989,6 +950,58 @@ footer {
 
 </div>
 
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_02_infra_solr_smoke_stability/feature_spec.md">Solr Smoke Stability</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/383">PR #383</a> <span>merged 2026-06-01</span>
+  </div>
+  <div class="one-liner">The `pr.yml` `smoke (operator-path tutorial flow)` job is red on every branch.</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_01_chore_solr_cred_backfill_needs_api_restart">Solr Cred Backfill Needs Api Restart</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/365">PR #365</a> <span>merged 2026-06-01</span>
+  </div>
+  <div class="one-liner">`scripts/install.sh` step 5a backfills a `local-solr:` entry into a **pre-existing** `./secrets/cluster_credentials.yaml`. That write is correct and idempotent. But the `api` (and `worker`) process re</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation">Backend Suite Nondeterministic Caplog Isolation</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/364">PR #364</a> <span>merged 2026-06-01</span>
+  </div>
+  <div class="one-liner">Many backend unit tests assert on captured log records (`caplog` / a structlog capture fixture) and fail with empty-capture shapes (`assert []`, `assert &#x27;x&#x27; in []`) when run in the full randomized sui</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features">Contract Allowlists Outdated After Mvp2 Features</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/364">PR #364</a> <span>merged 2026-06-01</span>
+  </div>
+  <div class="one-liner">Three separate contract-test allowlists were not updated as features shipped through MVP2. Each is a &quot;hand-maintained canonical list of valid values&quot; that drifts when a feature adds new entries to the</div>
+
+
+</div>
+
 </div>
 </div>
 </section>
@@ -1032,10 +1045,14 @@ footer {
   class feat_overnight_autopilot done;
   infra_adapter_solr[&quot;adapter solr&quot;]
   class infra_adapter_solr done;
+  chore_solr_cred_backfill_needs_api_restart[&quot;solr cred backfill needs api restart&quot;]
+  class chore_solr_cred_backfill_needs_api_restart done;
   feat_study_convergence_indicator[&quot;study convergence indicator&quot;]
   class feat_study_convergence_indicator done;
   infra_solr_ci_readiness[&quot;solr ci readiness&quot;]
   class infra_solr_ci_readiness done;
+  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
+  class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1073,10 +1090,14 @@ footer {
   class feat_overnight_autopilot done;
   infra_adapter_solr[&quot;adapter solr&quot;]
   class infra_adapter_solr done;
+  chore_solr_cred_backfill_needs_api_restart[&quot;solr cred backfill needs api restart&quot;]
+  class chore_solr_cred_backfill_needs_api_restart done;
   feat_study_convergence_indicator[&quot;study convergence indicator&quot;]
   class feat_study_convergence_indicator done;
   infra_solr_ci_readiness[&quot;solr ci readiness&quot;]
   class infra_solr_ci_readiness done;
+  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
+  class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>

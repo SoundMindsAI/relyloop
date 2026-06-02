@@ -491,7 +491,14 @@ jobs:
     # those skip too, so this stays consistent either way.)
     if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Bumped 15 → 25 min after infra_solr_smoke_stability PR #383: the
+    # demo-ubi.spec.ts beforeAll hook drives a reseed that AC-8 bounds at
+    # 24 min, and with Solr actually booting now (PR #383's Lever-0 perms
+    # fix unblocked it) the reseed actually exercises the Solr scenario
+    # — so total wall-clock for the smoke job's Playwright E2E step
+    # crossed 15 min and started hitting the job-level cap. 25 covers
+    # the reseed bound + setup/teardown headroom.
+    timeout-minutes: 25
     # Depend on the parallel `docker` (API) + `docker-ui` jobs so both image
     # artifacts are ready before `make up`. Pre-bumps this PR was paying ~10min
     # for `docker compose up -d` (image pulls + API + UI builds inside the
@@ -501,6 +508,13 @@ jobs:
     needs: [docker, docker-ui]
     permissions:
       contents: read
+    env:
+      # Pin Compose project name so container-name prefixes (relyloop-solr-1,
+      # relyloop-opensearch-1) are deterministic for the failure-diagnostics
+      # grep across both `make up` and the later log-collect step. GHA
+      # step-level env does NOT persist to later steps, so this MUST be
+      # job-level. See infra_solr_smoke_stability spec FR-2 + AC-2.
+      COMPOSE_PROJECT_NAME: "relyloop"
     steps:
       - uses: actions/checkout@v6
 
@@ -626,7 +640,27 @@ jobs:
           # (chore_drop_demo_seed_from_ci). Without this skip install.sh
           # would still auto-seed ~5min of demo data on every CI run.
           RELYLOOP_SKIP_AUTO_SEED: "1"
-        run: make up
+          # Cap Solr heap to reduce JVM memory pressure on the GHA runner.
+          # Compose's solr service reads ${SOLR_HEAP_SIZE:-512m}; the 512m
+          # default is correct for local dev (docker-compose.yml:274) — this
+          # 256m cap is CI-only. Mirrors the backend job's
+          # ES_JAVA_OPTS: "-Xms256m -Xmx256m" precedent at line 287.
+          # See infra_solr_smoke_stability spec FR-2 + decision log D-1, D-5.
+          SOLR_HEAP_SIZE: "256m"
+        # Pre-create ./data/solr with Solr's container UID (8983) so the
+        # bind-mount target is writable from inside the container. The
+        # solr:10.0 image runs as UID/GID 8983; on the GHA runner the
+        # bind-mount target defaults to root ownership, which makes Solr's
+        # boot script fail at "Cannot write to /var/solr as 8983:8983" and
+        # exit(1) within ~500ms (verified empirically on PR #383 run
+        # 26788939356 — diagnostics fold-in caught this; lever cascade did
+        # not anticipate it because all three locked levers assumed
+        # JVM-internal crash modes, not filesystem permissions).
+        # CI-only; never edit docker-compose.yml's defaults for this.
+        run: |
+          mkdir -p ./data/solr
+          sudo chown 8983:8983 ./data/solr
+          make up
 
       - name: Wait for /healthz
         run: |
@@ -715,8 +749,16 @@ jobs:
 
       - name: Collect docker compose logs on failure
         if: failure()
+        # `infra_solr_smoke_stability` FR-1: include solr + opensearch in the
+        # log collect list (both were missing — opensearch is a pre-existing
+        # gap), and append per-container `docker inspect` exit-state with
+        # OOMKilled / Health.Status / StartedAt / FinishedAt so total-runner
+        # memory pressure and slow-boot vs healthcheck-window failures are
+        # diagnosable from the artifact alone. All three lines `|| true` —
+        # intentionally best-effort.
         run: |
-          docker compose logs --no-color api worker postgres redis elasticsearch ui > smoke-logs.txt 2>&1 || true
+          docker compose logs --no-color api worker postgres redis elasticsearch opensearch solr ui > smoke-logs.txt 2>&1 || true
+          docker compose ps -aq | xargs -r docker inspect --format '{{.Name}} exit={{.State.ExitCode}} oom={{.State.OOMKilled}} error={{.State.Error}} health={{with .State.Health}}{{.Status}}{{end}} started={{.State.StartedAt}} finished={{.State.FinishedAt}}' >> smoke-logs.txt 2>&1 || true
           curl -s http://127.0.0.1:8000/healthz >> smoke-logs.txt 2>&1 || true
 
       - name: Upload failure diagnostics

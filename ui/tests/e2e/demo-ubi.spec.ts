@@ -114,6 +114,18 @@ test.describe('demo-ubi surfaces (FR-7 + FR-12)', () => {
   test.setTimeout(25 * 60 * 1000);
 
   test.beforeAll(async ({ request }) => {
+    // Override the hook's default 30s timeout — the reseed itself can take
+    // up to 24 min per AC-8, and the describe-block `test.setTimeout(...)`
+    // above only applies to individual test bodies, NOT to
+    // beforeAll/afterAll hooks. Pre-Lever-0-Solr-fix
+    // (infra_solr_smoke_stability PR #383) this hook's 30s default went
+    // unnoticed because Solr crashed at 542ms and the reseed only did ES +
+    // OpenSearch work; with Solr actually booting + adding the
+    // `acme-kb-docs-solr` scenario to the reseed work, total time blew
+    // past 30s and the hook started timing out. Caught inline on PR #383
+    // (smoke job run 26789478942) when the Lever-0 perms fix unblocked Solr.
+    test.setTimeout(25 * 60 * 1000);
+
     // Trigger the reseed. The endpoint returns 202 (job enqueued) and
     // the worker drives the orchestrator; status flows through
     // GET /api/v1/_test/demo/reseed/status.

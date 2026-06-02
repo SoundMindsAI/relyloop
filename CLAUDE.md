@@ -486,13 +486,24 @@ When fixing a bug, follow this sequence:
 
 For ad-hoc fixes that don't warrant `/pipeline` scaffolding, use `/impl-execute --ad-hoc` to ship the change through the standard review/merge ceremony (pre-push gate → push → PR → CI watch → Gemini adjudication → optional GPT-5.5 review). See `.claude/skills/impl-execute/SKILL.md` "Ad-hoc mode behavior."
 
-## Tangential discoveries — capture as idea files immediately
+## Tangential discoveries — fix inline by default, defer rarely
 
 When working on any task (feature, bug fix, refactor, doc update), you will routinely notice **other** problems that aren't part of the current scope: a pre-existing test failure that you waved through, a flaky test you re-ran without investigating, an infrastructure gap that forced you to defer coverage, a stale runbook entry, a dead-code branch, etc.
 
-**Do not** carry these in working memory or "mention them in the PR description". Conversation memory evaporates between sessions and PR descriptions don't get re-read.
+**The default is: fix it inline on the current branch.** Capture-as-idea-file is the exception, reserved for cases where inline fix is genuinely impossible (different subsystem + significant LOC, requires a product decision, requires an operator-environment change you can't make). The historical failure mode at this project has been **over-deferring** — agents file an idea file when the actual fix is one line of YAML or a single-character grep pattern correction, then the idea sits in `02_mvp2/` for weeks while the bug stays live. **Don't do that.** Fix it now and note the tangential discovery in the commit body.
 
-**Do** create an idea file the moment you notice the issue:
+**The ordering of operations when you notice a tangential issue:**
+
+1. **Write down the implementation path in two-three sentences** (which file, which line, what edit). If you can't, you don't understand the issue well enough yet — keep reading code.
+2. **Estimate the path in minutes.** If you can't estimate concretely (file count × diff size × verification cycles), the "high overhead" intuition is probably wrong; just try it and abort if you cross 60 minutes.
+3. **If <60 minutes AND no cross-subsystem fork AND no product/operator decision → fix inline.** Commit on the current branch with a message that names the tangential discovery (e.g. `fix(scope): tangential — <short description> (noticed during <current-work>)`). Mention it in the PR body as "Also fixes: <one-line>" — that's the audit trail, not an idea file.
+4. **Only if inline fix fails one of the gates above → capture as idea file** per the recipe below. Most tangential discoveries do NOT survive these gates; that's the point.
+
+**Canonical example of the right reflex** — during `infra_solr_smoke_stability` PR #383, the first CI run surfaced a Solr filesystem-perms crash that the spec's locked lever cascade never anticipated. The fix was three lines of YAML (`mkdir + chown + make up`). The agent's first instinct was to file `infra_solr_smoke_data_dir_perms/idea.md` as a follow-up. **Wrong reflex.** Deferring would have meant another full PR cycle (idea-preflight → spec-gen → impl-plan-gen → impl-execute) for a fix that took 30 seconds to write. The right move — and what shipped — was the inline commit with a D-log entry on the spec acknowledging the failure-mode discovery. The user's directive when they caught the deferral: "stop pushing off fixing these... fix now."
+
+**Anti-pattern to recognize in yourself:** "I'll just file this for later." The "later" agent has less context than you have right now. They'll have to re-derive what you already know, re-read the same code, re-run the same failing CI to confirm the symptom. That cost is real and almost always larger than the cost of just fixing it now. **Default lean: implement-now.**
+
+When inline fix genuinely doesn't apply (the rubric below sends you to "Idea file"), then file one:
 
 1. Pick a folder name with the right prefix per [`docs/00_overview/planned_features/feature_templates/README.md`](docs/00_overview/planned_features/feature_templates/README.md):
    - `bug_<short-slug>` — pre-existing failure, regression, broken behavior
@@ -501,16 +512,14 @@ When working on any task (feature, bug fix, refactor, doc update), you will rout
 2. Write `docs/00_overview/planned_features/<bucket>/<folder>/idea.md` following [`feature_templates/idea-template.md`](docs/00_overview/planned_features/feature_templates/idea-template.md). **`<bucket>` defaults to the current active-release bucket** — read the active release from [`state.md`](state.md) ("Where the roadmap sits" / current focus; today **MVP2 → `02_mvp2/`**). A discovery tripped over while building the current MVP is almost always that MVP's concern, so it goes there by default — NOT into `00_unsure/`. Only file elsewhere when the target is clearly a *different* release: GA-hardening → `04_ga/`, Observable/MVP3 → `03_mvp3/`, defer-until-incident → `99_backlog/`. `00_unsure/` is reserved for the genuinely-rare "I truly can't tell which release" case. Include:
    - **Origin**: how you noticed it (which PR / phase gate / story / conversation)
    - **Problem**: what's wrong, with `file:line` citations where you can
-   - **Why deferred**: why you didn't fix it inline (almost always: "out of scope for current task")
-3. Include the idea file in the same commit as the work that surfaced it (or a separate doc commit on the same branch). Don't wait for a "later cleanup PR" — the cleanup PR is the idea file.
+   - **Why inline fix wasn't viable**: cite the specific rubric row below that sent you here (NOT "out of scope" — that phrase has been the cover for too many deferrals that should have been inline fixes)
+3. Include the idea file in the same commit as the work that surfaced it (or a separate doc commit on the same branch).
 
-This rule applies even if the issue feels minor. A 3-line idea file with the right `bug_` / `chore_` / `infra_` prefix surfaces in `/pipeline status` and the next infra-sweep agent will find it. A noticing that lives only in a chat transcript is gone forever.
-
-**Anti-pattern to recognize in yourself:** "I'll just note this and come back to it later." Either fix it now (if it's truly inline-cheap) or capture the idea file now (if it's not). There is no "later" — the conversation will end.
+The rule's spirit: **inline fix is the discipline; capture is the safety net.** A chat-transcript-only noticing is gone forever, so when inline fix really isn't viable, capture it — but interrogate the "really isn't viable" claim hard before accepting it.
 
 ### Inline-fix vs idea-file rubric
 
-The historical failure mode here was *capturing too aggressively* — auto-creating idea files for medium-sized fixes that would have been 30–60 minutes inline. Apply this table when deciding, calibrated toward implement-now:
+The rubric below is the authoritative decision tree. Most rows route to **inline fix** — that's intentional. Only the bottom two rows route to idea-file, and they share the same shape: the work can't be done in the current PR without breaking either the PR's review boundary or the operator's authorization scope.
 
 | Discovery shape | Action |
 |---|---|
@@ -521,7 +530,7 @@ The historical failure mode here was *capturing too aggressively* — auto-creat
 | Fix requires a separate subsystem AND >250 LOC AND no immediate path to inline (different ORM model unrelated to the feature, different service entirely, different UI route family) | **Idea file.** Cross-subsystem mixing in one PR breaks reviewability. |
 | Fix requires a product/UX decision, third-party config, or an operator-environment change (env vars, mounted secrets, branch-protection settings, SaaS account) | **Idea file.** Can't be unilaterally implemented. |
 
-**Default lean: implement-now, not capture-as-idea-file.** The cost of a deferred-and-never-fixed idea file is higher than the cost of a slightly mixed-scope PR.
+**Default lean: implement-now, not capture-as-idea-file.** The cost of a deferred-and-never-fixed idea file is higher than the cost of a slightly mixed-scope PR. If the inline fix surfaces during CI watch (e.g. a smoke job catches a failure mode the spec didn't anticipate), apply the fix to the same branch BEFORE merge — CI will re-run automatically on the new commit. That's exactly how the PR-#383 Solr-perms fix shipped.
 
 ### Pre-defer diagnostic: write the path
 
@@ -605,3 +614,4 @@ Run `/pipeline status` for the live view from spec dependencies.
 | Parallel-worktree workflow — sibling checkouts, `make test-worktree`, leak prevention | [`docs/03_runbooks/parallel-worktrees.md`](docs/03_runbooks/parallel-worktrees.md) (`infra_agent_sibling_worktree_isolation` Phase 2) |
 | Interpreting the convergence verdict (converged / still_improving / too_few_trials) | [`docs/03_runbooks/convergence-verdict.md`](docs/03_runbooks/convergence-verdict.md) (`feat_study_convergence_indicator`) |
 | Demo reseed engine tolerance — partial completion (`scenarios_skipped`), all-engines-unreachable failure, re-seed after starting an engine | [`docs/03_runbooks/demo-reseed-engine-tolerance.md`](docs/03_runbooks/demo-reseed-engine-tolerance.md) (`infra_solr_ci_readiness`) |
+| Smoke job Solr stability — lever cascade (heap-cap / start_period / smoke-tolerance) for a red `smoke` CI job, diagnostic workflow from the smoke-logs artifact | [`docs/03_runbooks/smoke-solr-stability.md`](docs/03_runbooks/smoke-solr-stability.md) (`infra_solr_smoke_stability`) |
