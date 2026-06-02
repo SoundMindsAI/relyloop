@@ -23,8 +23,24 @@ Redis + OpenAI, asserting the Story 4.2 DoD:
   ``GET /clusters/{id}/ubi-readiness`` operator path) returns the
   expected rung for every REACHABLE scenario (acme=rung_3, jobs=rung_2,
   corp=rung_1, news=rung_0, rich=rung_0, solr=rung_2-when-reachable).
-- **AC-8**: full-reseed wall-clock < 1140s (hard assert per spec cycle-3
-  patch — NOT a p95 calculation).
+- **AC-8** (feat_demo_reseed_solr_and_steplog): full-reseed wall-clock < 3600s
+  (hard assert per spec cycle-3 patch — NOT a p95 calculation). Ceiling
+  raised from 1140s to 3600s alongside the
+  ``DEMO_SMALL_STUDY_MAX_TRIALS`` 12 -> 50 bump
+  (feat_studies_convergence_visibility Story 2.2 / D-9 — the seed
+  wall-clock increase is explicitly accepted; smoke is opt-in/off so the
+  default CI lanes are unaffected).
+- **feat_studies_convergence_visibility AC-7 + AC-8**: read the persisted
+  ``Study.baseline_metric`` / ``best_metric`` / ``convergence_verdict`` for
+  acme-products-prod (the representative scenario picked per the plan's
+  Testing workstream §3.2). Asserts the FR-5 bounds (no ceiling,
+  >= 0.10 lift, baseline in [0.40, 0.70]) AND the FR-6 verdict
+  (``trial_count == 50`` AND verdict in {``converged``,``still_improving``}).
+  The per-scenario headroom test
+  (``backend/tests/integration/test_demo_scenarios_headroom.py``) covers
+  all 5 scenarios deterministically without running the optimizer; this
+  heavy-lane assertion validates the full pipeline (Optuna -> trials ->
+  persisted Study fields) end-to-end for one scenario.
 - **AC-10**: a subsequent cleanup pass deletes both ``ubi_queries`` and
   ``ubi_events`` indices.
 
@@ -298,12 +314,148 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct(
                         f"AC-2 rung drift for {slug}: expected {expected_rung}, got {actual_rung}"
                     )
 
-                # AC-8: hard wall-clock ceiling (spec cycle-3 patch — hard
-                # assert, not p95).
-                assert duration_s < 1140, (
-                    f"reseed wall-clock {duration_s:.1f}s exceeded AC-8 ceiling 1140s"
+                # feat_studies_convergence_visibility AC-7 + AC-8: read the
+                # persisted `Study.baseline_metric`/`best_metric`/`convergence_
+                # verdict` for ONE representative reachable scenario and assert
+                # the FR-5 / FR-6 bounds:
+                #
+                #   AC-7: best_metric < 0.99 (no ceiling), best_metric -
+                #         baseline_metric >= 0.10 absolute lift, and
+                #         0.40 <= baseline_metric <= 0.70.
+                #   AC-8: trial_count == DEMO_SMALL_STUDY_MAX_TRIALS (50) AND
+                #         convergence_verdict in {"converged","still_improving"}
+                #         (NOT "too_few_trials" — that was the degenerate state
+                #         the bump fixes).
+                #
+                # We target acme-products-prod because it's the first reachable
+                # scenario across both the CI lane (no Solr) and a full local
+                # stack — the per-scenario headroom test
+                # (test_demo_scenarios_headroom.py) covers all 5 deterministically
+                # without running the optimizer; this heavy-lane assertion
+                # validates the full pipeline (Optuna → trials → persisted
+                # Study.baseline_metric / best_metric / convergence_verdict)
+                # for one. Picking a single scenario keeps the assertion cost
+                # bounded (no extra DB queries beyond the one we need).
+                from backend.app.db.models.study import Study
+                from backend.app.domain.study.convergence import classify_convergence
+
+                acme_cluster_id = await _discover_cluster_id(api_client, "acme-products-prod")
+                acme_study_row = (
+                    await db.execute(
+                        text(
+                            "SELECT id, baseline_metric, best_metric, "
+                            "objective, status "
+                            "FROM studies "
+                            "WHERE cluster_id = :cluster_id "
+                            "  AND status = 'completed' "
+                            "  AND name LIKE '%(LLM)' "
+                            "LIMIT 1"
+                        ),
+                        {"cluster_id": acme_cluster_id},
+                    )
+                ).first()
+                assert acme_study_row is not None, (
+                    "acme-products-prod has no completed LLM study after reseed "
+                    "— prerequisite for the AC-7 / AC-8 assertions"
                 )
-                print(f"\nfull-reseed duration: {duration_s:.1f}s (AC-8 ceiling 1140s)")
+                acme_study_id = acme_study_row.id
+                acme_baseline = acme_study_row.baseline_metric
+                acme_best = acme_study_row.best_metric
+                assert acme_baseline is not None, (
+                    f"acme study {acme_study_id} missing baseline_metric — "
+                    "baseline-trial path did not persist"
+                )
+                assert acme_best is not None, (
+                    f"acme study {acme_study_id} missing best_metric — "
+                    "no completed optimization trial"
+                )
+                lift = float(acme_best) - float(acme_baseline)
+                # FSCV AC-7: bounds match the per-scenario headroom test.
+                assert 0.40 <= float(acme_baseline) <= 0.70, (
+                    f"FSCV AC-7 baseline drift — acme-products-prod baseline_metric="
+                    f"{acme_baseline} outside [0.40, 0.70]; the demo enrichment "
+                    f"regressed (or the optimizer got an unfair head start)"
+                )
+                assert lift >= 0.10, (
+                    f"FSCV AC-7 lift bound — acme-products-prod best-baseline="
+                    f"{lift:.4f} below 0.10; the optimizer failed to find "
+                    f"the headroom Story 2.1 authored"
+                )
+                assert float(acme_best) < 0.99, (
+                    f"FSCV AC-7 ceiling bound — acme-products-prod best_metric="
+                    f"{acme_best} pinned at the ceiling; the demo regressed "
+                    f"back to the degenerate state"
+                )
+
+                # FSCV AC-8: trial_count == 50 AND verdict != too_few_trials.
+                # trial_count semantics match StudySummary (non-baseline rows).
+                acme_trial_count = await db.scalar(
+                    text(
+                        "SELECT COUNT(*) FROM trials WHERE study_id = :sid AND is_baseline IS FALSE"
+                    ),
+                    {"sid": acme_study_id},
+                )
+                assert acme_trial_count == 50, (
+                    f"FSCV AC-8 trial_count drift — acme-products-prod ran "
+                    f"{acme_trial_count} non-baseline trials, not 50; the "
+                    f"DEMO_SMALL_STUDY_MAX_TRIALS bump regressed"
+                )
+                # Convergence verdict — classify against the persisted complete
+                # trials, the same path the live list endpoint uses.
+                acme_complete_trials = (
+                    await db.execute(
+                        text(
+                            "SELECT primary_metric, optuna_trial_number "
+                            "FROM trials "
+                            "WHERE study_id = :sid AND status = 'complete' "
+                            "  AND is_baseline IS NOT TRUE "
+                            "ORDER BY optuna_trial_number"
+                        ),
+                        {"sid": acme_study_id},
+                    )
+                ).all()
+                # The classifier consumes Trial ORM rows but reads only the
+                # two fields above — a SimpleNamespace duck-type is enough.
+                from types import SimpleNamespace
+
+                trial_objs = [
+                    SimpleNamespace(
+                        primary_metric=row.primary_metric,
+                        optuna_trial_number=row.optuna_trial_number,
+                    )
+                    for row in acme_complete_trials
+                ]
+                # Direction comes from the persisted objective JSON (defaults
+                # to maximize, matching the demo config).
+                direction = (acme_study_row.objective or {}).get("direction", "maximize")
+                shape = classify_convergence(trial_objs, direction=direction)
+                assert shape is not None, (
+                    "FSCV AC-8 — classifier returned None for acme-products-prod "
+                    "despite >= 50 complete trials; classifier wiring regressed"
+                )
+                assert shape.verdict in ("converged", "still_improving"), (
+                    f"FSCV AC-8 verdict drift — acme-products-prod resolved to "
+                    f"verdict={shape.verdict!r}; the bump to 50 trials should "
+                    f"clear too_few_trials"
+                )
+
+                # Silence the unused-import lint — Study is referenced in the
+                # docstring/comments above to document the wire shape this
+                # block reads, even though we use raw SQL for the heavy-lane
+                # session efficiency (one round-trip per metric).
+                _ = Study
+
+                # AC-8 (feat_demo_reseed_solr_and_steplog): hard wall-clock
+                # ceiling. Raised from 1140s to 3600s alongside the
+                # DEMO_SMALL_STUDY_MAX_TRIALS 12 -> 50 bump (Story 2.2 / D-9
+                # accepts the seed wall-clock increase explicitly). The
+                # heavy-lane test is the only consumer; smoke is opt-in/off
+                # by default per state.md so the bump does not regress the
+                # default CI lanes.
+                assert duration_s < 3600, (
+                    f"reseed wall-clock {duration_s:.1f}s exceeded AC-8 ceiling 3600s"
+                )
+                print(f"\nfull-reseed duration: {duration_s:.1f}s (AC-8 ceiling 3600s)")
 
                 # AC-10: cleanup pass deletes both UBI indices. The UBI
                 # collections live on ES; resolve the same in-container ES URL
