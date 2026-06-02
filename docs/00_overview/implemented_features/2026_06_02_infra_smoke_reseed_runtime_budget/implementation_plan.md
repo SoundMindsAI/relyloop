@@ -7,7 +7,7 @@ SPDX-License-Identifier: Apache-2.0
 # Implementation Plan — `infra_smoke_reseed_runtime_budget`
 
 **Date:** 2026-06-02
-**Status:** Ready for Execution
+**Status:** Complete (PR #424, squash-merged `035d7941` 2026-06-02)
 **Primary spec:** [`feature_spec.md`](./feature_spec.md)
 **Policy source(s):**
 - [`CLAUDE.md`](../../../../CLAUDE.md) "Never commit directly to main" + "Tangential discoveries — fix inline by default"
