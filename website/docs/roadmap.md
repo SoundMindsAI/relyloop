@@ -192,7 +192,7 @@
     - 🟡 [Openapi Types Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_openapi_types_freshness_gate)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (23)"
+??? note "Maintenance & fixes (24)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -208,6 +208,7 @@
     - 🟡 [E2E Teardown Chain Node Delete 500](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_e2e_teardown_chain_node_delete_500)
     - 🟡 [Judgment Header Omits Click Bucket](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_judgment_header_omits_click_bucket)
     - 🟡 [LLM Capability Cache No Refresh After Ttl Expiry](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_llm_capability_cache_no_refresh_after_ttl_expiry)
+    - 🟡 [PR Yml Parallelize Backend Job](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_pr_yml_parallelize_backend_job)
     - 🟡 [Relyloop Spec UBI Section Drift](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_relyloop_spec_ubi_section_drift)
     - 🟡 [Reseed Failure Blocks Retry Arq Singleton Dedup](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup)
     - 🟡 [Seed Meaningful Demos Silent Bulk Errors](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors)

@@ -398,12 +398,12 @@ footer {
     <div class="kpi ">
       <div class="label">Specced features done</div>
       <div class="value">13 / 24</div>
-      <div class="sub">54% specced · 44 filed under MVP2</div>
+      <div class="sub">54% specced · 45 filed under MVP2</div>
       <div class="bar"><span style="width:54%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">29</div>
+      <div class="value">30</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">24</div>
+      <div class="value">25</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">25</div>
+      <div class="value">26</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">16</span></h3>
+  <h3>Idea <span class="count">17</span></h3>
 
 <div class="card bug" data-prefix="bug" data-priority="P1">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_llm_capability_cache_no_refresh_after_ttl_expiry">Llm Capability Cache No Refresh After Ttl Expiry</a></div>
@@ -512,6 +512,19 @@ footer {
 
   </div>
   <div class="one-liner">`infra_solr_ci_readiness` made the demo reseed engine-tolerant: when an engine is unreachable, its scenario is skipped, the reseed completes with `status=&quot;complete&quot;` and a non-empty `scenarios_skipped</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_pr_yml_parallelize_backend_job">Pr Yml Parallelize Backend Job</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">`.github/workflows/pr.yml` has a job named `backend (lint + typecheck + tests + coverage)` that runs four sequential things in one job: ruff/lint, mypy, the full pytest matrix (unit + integration + co</div>
 
 
 </div>
