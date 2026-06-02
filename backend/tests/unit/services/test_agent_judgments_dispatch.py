@@ -66,8 +66,13 @@ def _detail(exc: HTTPException) -> dict[str, Any]:
 
 
 def _patch_cap(monkeypatch: pytest.MonkeyPatch, value: Any) -> None:
+    # bug_llm_capability_cache_no_refresh swapped read_capability_result →
+    # read_or_recompute_capability_result at the dispatch import site.
+    # Tests must patch the new symbol; patching the old (now-absent) name
+    # would silently no-op and let `_check_llm_preflight` fall through to
+    # the real Redis read.
     monkeypatch.setattr(
-        "backend.app.services.agent_judgments_dispatch.read_capability_result",
+        "backend.app.services.agent_judgments_dispatch.read_or_recompute_capability_result",
         AsyncMock(return_value=value),
     )
 
