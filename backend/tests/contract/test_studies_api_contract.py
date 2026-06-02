@@ -171,6 +171,68 @@ def test_convergence_direction_is_two_string_literal() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# feat_studies_convergence_visibility Story 1.1 — StudySummary list fields
+# ---------------------------------------------------------------------------
+
+
+def test_study_summary_includes_trial_count_field() -> None:
+    """``StudySummary`` exposes ``trial_count: int`` (FR-1)."""
+    schema = StudySummary.model_json_schema()
+    assert "trial_count" in schema["properties"], (
+        "StudySummary.trial_count missing — see feat_studies_convergence_visibility Story 1.1."
+    )
+    prop = schema["properties"]["trial_count"]
+    assert prop.get("type") == "integer", f"StudySummary.trial_count must be integer; got {prop!r}"
+
+
+def test_study_summary_includes_convergence_verdict_field() -> None:
+    """``StudySummary`` exposes ``convergence_verdict: ConvergenceVerdict | None`` (FR-2).
+
+    The Pydantic JSON schema for an ``Optional[Literal[...]]`` field
+    renders as either ``{"anyOf": [{"enum": [...]}, {"type": "null"}]}``
+    or, on some pydantic releases, as ``{"enum": [...], "type": ["string",
+    "null"]}``. We accept both renderings and assert the union contains
+    the three documented verdict literals plus null.
+    """
+    schema = StudySummary.model_json_schema()
+    assert "convergence_verdict" in schema["properties"], (
+        "StudySummary.convergence_verdict missing — "
+        "see feat_studies_convergence_visibility Story 1.1."
+    )
+    prop = schema["properties"]["convergence_verdict"]
+    # Collect the enum literals across either anyOf or top-level shape.
+    enum_vals: set[str] = set()
+    has_null = False
+    for entry in prop.get("anyOf") or [prop]:
+        if entry.get("type") == "null":
+            has_null = True
+            continue
+        for val in entry.get("enum") or []:
+            if val is None:
+                has_null = True
+            else:
+                enum_vals.add(val)
+    assert enum_vals == {"converged", "still_improving", "too_few_trials"}, (
+        f"StudySummary.convergence_verdict literals drifted: {prop!r}"
+    )
+    assert has_null, (
+        f"StudySummary.convergence_verdict must be Optional (null permitted); got {prop!r}"
+    )
+
+
+def test_study_summary_trial_count_matches_detail_trials_summary_total() -> None:
+    """Contract parity: the list's ``trial_count`` is the same scalar as
+    detail's ``trials_summary.total`` — both ``integer``. The integration
+    tests prove the values match; this contract test catches a type drift
+    (e.g., one becoming a ``string``)."""
+    list_type = StudySummary.model_json_schema()["properties"]["trial_count"].get("type")
+    detail_type = TrialsSummaryShape.model_json_schema()["properties"]["total"].get("type")
+    assert list_type == detail_type == "integer", (
+        f"trial_count/total type drift: list={list_type!r} detail={detail_type!r}"
+    )
+
+
 def test_study_config_requires_at_least_one_stop_condition() -> None:
     """``max_trials`` AND ``time_budget_min`` both None → ValidationError."""
     with pytest.raises(ValidationError, match="stop condition"):

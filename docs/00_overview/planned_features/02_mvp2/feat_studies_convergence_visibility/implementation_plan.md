@@ -275,7 +275,7 @@ No migration (§3.5 migration verification N/A).
 - No flags, no migration. After merge: re-run `make seed-demo FORCE=1` to refresh local demo data (note in runbook).
 
 ## 9) Execution tracker
-- [ ] Story 1.1 — backend list fields
+- [x] Story 1.1 — backend list fields (commit pending; 8 unit + 7 integration + 3 contract tests green; latent `_summary` invalid-direction crash fixed inline as a tangential discovery surfaced by AC-3b)
 - [ ] Story 1.2 — frontend columns
 - [ ] Story 2.1 — enrich docs + judgments
 - [ ] Story 2.2 — max_trials 12→50
