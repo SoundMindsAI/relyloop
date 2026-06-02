@@ -110,6 +110,53 @@ Local dev (`make up` on an operator's machine) runs without the CI-only env vars
 
 ---
 
+## §5 Reseed runtime (demo-ubi exclusion)
+
+**Owner:** `infra_smoke_reseed_runtime_budget` (ships 2026-06-02).
+
+**Why this section exists.** The §1–§4 levers above are about the **Solr container's stability** during `make up`. There is a separate, independent failure mode in the smoke job's Playwright phase: the `demo-ubi.spec.ts` E2E spec drives a `POST /api/v1/_test/demo/reseed` in its `beforeAll` hook, and that reseed alone consumes most or all of the smoke job's 25-min wall-clock budget. This is a *reseed-runtime* concern, not a *Solr-stability* concern — they're not on the same lever cascade.
+
+### Why the budget mismatch exists
+
+`feat_demo_ubi_study_comparison`'s AC-8 bounds the in-flight reseed wall-clock at **1140s (~19 min hard ceiling)** ([feature_spec.md:324](../00_overview/implemented_features/2026_05_30_feat_demo_ubi_study_comparison/feature_spec.md), lines 559-563), with §14 of the same spec estimating **~28 min worst case** once the Solr scenario lights up. Both readings exceed (or close in on) the smoke job's 25-min `timeout-minutes` cap once Playwright + smoke-job setup overhead is added. PR #383 run 26790636716 hit the cap at 25:18 mid-reseed and was cancelled by the job-level timeout.
+
+Before `infra_solr_smoke_stability` PR #383 (Lever-0 perms fix), Solr crashed in 542ms and the reseed's Solr scenario was skipped via `infra_solr_ci_readiness` Phase 1's `is_engine_reachable` check. That kept the reseed at 5-scenarios-on-2-engines and inside the budget. Solr actually booting after PR #383 is what surfaced the budget mismatch.
+
+### Where the exclusion lives
+
+The fix is a config-level test exclusion, NOT a Compose change and NOT a `pr.yml` YAML change:
+
+- [`ui/playwright.config.ts`](../../ui/playwright.config.ts) — the `testIgnore` array's CI-gated branch lists `'**/demo-ubi.spec.ts'` alongside the 6 pre-existing demo-data-dependent specs. The CI ternary (`process.env.CI ? [...] : []`) gates the exclusion to runs where `CI=true` (the GHA default).
+- [`ui/src/__tests__/playwright-config-test-ignore.test.ts`](../../ui/src/__tests__/playwright-config-test-ignore.test.ts) — vitest regression guard asserts the entry is in the CI branch (not outside it) and all 7 expected entries are present. Catches accidental removal or accidental promotion outside the CI ternary on every commit.
+
+The exclusion lives in one file — there is no parallel `--grep-invert` CLI flag in `pr.yml`. Anyone reading [`ui/playwright.config.ts`](../../ui/playwright.config.ts) sees the full list of CI-excluded specs with rationale; the pr.yml smoke-test job doesn't duplicate the spec name in YAML.
+
+### Local-coverage promise
+
+[`ui/tests/e2e/demo-ubi.spec.ts`](../../ui/tests/e2e/demo-ubi.spec.ts) is **NOT deleted**, **NOT renamed**, and **NOT skipped at the file level** by this work. The spec file is unchanged. Local `pnpm test:e2e` (with `CI=` unset) discovers and runs it normally, the same as it did before this fix. The exclusion fires only when `CI=true` (every GHA runner).
+
+### Nightly-CI caveat
+
+A future nightly-on-GHA job would also exclude `demo-ubi.spec.ts` by the same mechanism — every GHA runner has `CI=true` set by default. If per-PR demo-ubi smoke coverage is ever wanted, the path is either:
+
+- **Override `CI` in that nightly job's env block** (e.g., `env: { CI: 'false' }` on the nightly's job) — sidesteps the testIgnore CI ternary so demo-ubi runs nightly. Sharpest knife: also disables every other CI-gated effect (retries, single-worker mode, `forbidOnly`); test before relying on it.
+- **Use a separate Playwright config** for the nightly job (`playwright.nightly.config.ts`) whose `testIgnore` doesn't gate on `CI` — preserves the other CI-only behaviors.
+
+This caveat is **defer until needed**, not a guarantee made by `infra_smoke_reseed_runtime_budget`. The current scope ships Option A (the locked spec decision); Option C (env-var scenario filter on the reseed orchestrator) preserves per-PR demo-ubi smoke coverage at ~2-3 hours of multi-file work and is captured in the spec as the path forward if the operator ever wants it.
+
+### Relationship to the §1–§4 lever cascade
+
+The lever cascade in §3 is about Solr's container stability under `make up`. This section is about the Playwright runtime budget once `make up` succeeds. They're orthogonal concerns:
+
+| Concern | Owner | Failure mode | Fix shape |
+|---|---|---|---|
+| Solr boot stability | `infra_solr_smoke_stability` (this runbook §1–§4) | `relyloop-solr-1 exited (1)` during `make up` | Compose env override (`SOLR_HEAP_SIZE`, etc.) |
+| Reseed runtime budget | `infra_smoke_reseed_runtime_budget` (this section) | Playwright `beforeAll` reseed hits job timeout | Playwright `testIgnore` CI branch exclusion |
+
+A maintainer staring at a red smoke job: read the failure-diagnostics smoke-logs artifact. If Solr exited or never reached `healthy`, walk §3's lever cascade. If `make up` succeeded and the failure is the Playwright phase timing out, the demo-ubi exclusion in `playwright.config.ts` should already be in place; investigate whether some *other* slow Playwright spec is now the bottleneck (this work cleared the demo-ubi-shaped one — it does not promise the smoke job stays green if another spec drifts over budget).
+
+---
+
 ## Related
 
 - [Demo reseed engine tolerance](./demo-reseed-engine-tolerance.md) — backend-job sibling runbook (Phase 1 / PR #367).
