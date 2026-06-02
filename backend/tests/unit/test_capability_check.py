@@ -22,6 +22,7 @@ Verifies:
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -34,6 +35,7 @@ from backend.app.llm.capability_check import (
     CACHE_TTL_SECONDS,
     cache_key,
     check_capabilities,
+    read_or_recompute_capability_result,
     run_capability_check_background,
 )
 from backend.app.llm.capability_models import CapabilityResult
@@ -501,3 +503,160 @@ class TestCacheKey:
 
     def test_different_base_urls_produce_different_keys(self) -> None:
         assert cache_key("http://a/v1") != cache_key("http://b/v1")
+
+
+# ---------------------------------------------------------------------------
+# bug_llm_capability_cache_no_refresh regression guard
+# ---------------------------------------------------------------------------
+
+
+def _make_redis_with_get(cached_raw: bytes | str | None) -> MagicMock:
+    """Mock ``redis.asyncio.Redis`` with awaitable ``get`` + ``set``.
+
+    ``cached_raw`` is what ``redis.get(cache_key)`` returns:
+    - ``None`` → cache miss (the bug's failure mode).
+    - ``bytes`` / ``str`` → cache hit, decoded as a ``CapabilityResult`` JSON.
+    """
+    client = MagicMock(spec=Redis)
+    client.get = AsyncMock(return_value=cached_raw)
+    client.set = AsyncMock(return_value=True)
+    return client
+
+
+class TestReadOrRecomputeCapabilityResult:
+    """Regression guard for ``bug_llm_capability_cache_no_refresh``.
+
+    The 24h ``CACHE_TTL_SECONDS`` TTL passes; nothing repopulates the
+    cache; LLM-gated endpoints return 503 ``LLM_PROVIDER_INCAPABLE``
+    until the api process restarts. ``read_or_recompute_capability_result``
+    closes the gap by recomputing on miss inline.
+    """
+
+    async def test_cache_miss_with_api_key_recomputes_and_writes_back(
+        self,
+    ) -> None:
+        """The bug's exact failure mode: cache empty, key configured.
+
+        With the old ``read_capability_result``, this returned ``None``
+        and the preflight raised ``LLM_PROVIDER_INCAPABLE``. The helper
+        must instead probe inline, return a real ``CapabilityResult``,
+        and write the result back to Redis (re-arming the cache).
+        """
+        redis = _make_redis_with_get(cached_raw=None)
+        async with httpx.AsyncClient(transport=_build_handler()) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, API_KEY, MODEL, http_client=http
+            )
+        assert result is not None, (
+            "cache miss with a configured api_key MUST recompute, not return None"
+        )
+        assert result.base_url == BASE_URL
+        assert result.model == MODEL
+        # check_capabilities writes back as a side effect:
+        redis.set.assert_awaited_once()
+        write_call = redis.set.call_args
+        assert write_call.args[0] == cache_key(BASE_URL)
+        # And the TTL is the same 24h we started with — no silent change.
+        assert write_call.kwargs.get("ex") == CACHE_TTL_SECONDS
+
+    async def test_cache_hit_returns_cached_value_without_reprobing(
+        self,
+    ) -> None:
+        """Cache-hit path: helper short-circuits before any HTTP work.
+
+        Critical: we MUST NOT add latency to steady-state dispatches.
+        The bug is about cold-expiry recovery, not about re-probing on
+        every read.
+        """
+        # Pre-populate the cache with a known-good result.
+        cached_result = CapabilityResult(
+            base_url=BASE_URL,
+            model=MODEL,
+            models_endpoint="ok",
+            chat_completion="ok",
+            function_calling="ok",
+            structured_output="ok",
+            tested_at=datetime.now(UTC),
+        )
+        redis = _make_redis_with_get(cached_raw=cached_result.model_dump_json())
+        # Use a transport that raises on ANY HTTP call — proves no probe fires.
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                f"cache-hit path made an HTTP request to {request.url} — "
+                "helper should have short-circuited",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, API_KEY, MODEL, http_client=http
+            )
+        assert result is not None
+        assert result.structured_output == "ok"
+        # And critically, no write either — we returned the cached row as-is.
+        redis.set.assert_not_awaited()
+
+    async def test_cache_miss_with_empty_api_key_returns_none(self) -> None:
+        """Empty-key contract preserved.
+
+        Consumers like ``/healthz`` rely on ``None`` to surface
+        ``OPENAI_API_KEY_FILE`` being unset as a distinct degraded
+        state from an unreachable endpoint. The helper MUST NOT
+        attempt a probe with an empty key (which would fail
+        spuriously and write a confusing ``models_endpoint="fail"``
+        row to Redis).
+        """
+        redis = _make_redis_with_get(cached_raw=None)
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                f"empty-key path made an HTTP request to {request.url} — "
+                "helper should have returned None without probing",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, "", MODEL, http_client=http
+            )
+        assert result is None, (
+            "empty api_key MUST return None to preserve "
+            "read_capability_result's 'no key, no capability' semantic"
+        )
+        redis.set.assert_not_awaited()
+
+    async def test_cache_hit_with_degraded_result_is_returned_as_is(
+        self,
+    ) -> None:
+        """Cache-hit short-circuit applies even when the cached row is
+        degraded (e.g., ``structured_output="fail"``). The preflight's
+        per-field policy continues to decide whether to refuse; the
+        helper does NOT re-probe a known-degraded row hoping it
+        recovered.
+        """
+        cached_result = CapabilityResult(
+            base_url=BASE_URL,
+            model=MODEL,
+            models_endpoint="ok",
+            chat_completion="ok",
+            function_calling="ok",
+            structured_output="fail",  # degraded — but still a cache hit
+            tested_at=datetime.now(UTC),
+        )
+        redis = _make_redis_with_get(cached_raw=cached_result.model_dump_json())
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                "degraded-cache-hit path should not re-probe; "
+                f"unexpected HTTP request to {request.url}",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, API_KEY, MODEL, http_client=http
+            )
+        assert result is not None
+        assert result.structured_output == "fail"
+        redis.set.assert_not_awaited()

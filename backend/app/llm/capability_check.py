@@ -421,6 +421,80 @@ async def read_capability_result(redis_client: Redis, base_url: str) -> Capabili
         return None
 
 
+async def read_or_recompute_capability_result(
+    redis_client: Redis,
+    base_url: str,
+    api_key: str,
+    model: str,
+    *,
+    http_client: httpx.AsyncClient | None = None,
+) -> CapabilityResult | None:
+    """Read the cached :class:`CapabilityResult`; if missing, recompute synchronously.
+
+    Bug fix for ``bug_llm_capability_cache_no_refresh``: the 24h
+    :data:`CACHE_TTL_SECONDS` cache key expires and nothing repopulates
+    it for the api process's remaining lifetime, so LLM-gated endpoints
+    return ``503 LLM_PROVIDER_INCAPABLE "cache miss"`` until the process
+    restarts. This helper closes the gap by recomputing on miss inline.
+
+    Args:
+        redis_client: Async Redis client (matches
+            :func:`read_capability_result` / :func:`check_capabilities`).
+        base_url: ``OPENAI_BASE_URL``.
+        api_key: Resolved API key (caller MUST pre-check non-empty when
+            it requires the recompute path — see
+            :func:`backend.app.services.agent_judgments_dispatch._check_llm_preflight`).
+        model: Default model name used by the chat / FC / structured-output
+            probes (typically ``Settings.openai_model``).
+        http_client: Optional ``httpx.AsyncClient``; tests inject mocks.
+            Threaded through to :func:`check_capabilities` on the
+            cache-miss path.
+
+    Returns:
+        - A cached :class:`CapabilityResult` if Redis has one.
+        - A freshly-computed :class:`CapabilityResult` if the cache was
+          empty AND ``api_key`` was non-empty. The result is written
+          back to Redis as a side effect of :func:`check_capabilities`.
+        - ``None`` if the cache was empty AND ``api_key`` was empty
+          (preserves :func:`read_capability_result`'s "no key, no
+          capability" semantic — consumers like ``/healthz`` need this).
+
+    Caller scope (locked in ``bug_fix.md`` D-5 — narrowed from preflight
+    D-5):
+
+    - ``agent_judgments_dispatch._check_llm_preflight`` — opted in (the
+      site reporting the live 503).
+    - ``/healthz`` — DOES NOT opt in; the 200ms SLO (CLAUDE.md Absolute
+      Rule #11) is incompatible with a synchronous 1-4s recompute.
+      ``/healthz`` stays on :func:`read_capability_result` and reports
+      cache-miss as a degraded ``openai`` subsystem state.
+    - Chat orchestrator — unchanged; can opt in via a one-line call-site
+      swap if it ever surfaces the same symptom.
+
+    Concurrency: no single-flight lock (locked in ``bug_fix.md`` D-4).
+    On cold expiry, ``WEB_CONCURRENCY`` workers may each recompute
+    concurrently; :func:`check_capabilities` is deterministic given the
+    same ``(base_url, api_key, model)`` triple, Redis writes are
+    last-write-wins with byte-identical values, and the probe cost is
+    trivial (1-token completions).
+    """
+    cached = await read_capability_result(redis_client, base_url)
+    if cached is not None:
+        return cached
+    if not api_key:
+        # Preserve read_capability_result's "no key → None" semantic.
+        # Consumers like /healthz rely on this to surface
+        # OPENAI_API_KEY_FILE being unset as a separate degraded state
+        # from an unreachable endpoint.
+        return None
+    logger.info(
+        "OpenAI capability cache miss; recomputing inline",
+        base_url=base_url,
+        model=model,
+    )
+    return await check_capabilities(base_url, api_key, model, redis_client, http_client=http_client)
+
+
 async def run_capability_check_background(
     base_url: str,
     api_key: str | None,
