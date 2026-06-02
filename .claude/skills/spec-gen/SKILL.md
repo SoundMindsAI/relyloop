@@ -271,6 +271,14 @@ Write to `docs/00_overview/planned_features/<bucket>/<feature_dir>/pipeline_stat
 
 If `pipeline_status.md` already exists (e.g., from a prior stage), update only the `## Spec` section — do not overwrite other sections.
 
+### Step 13: Sync the tracking issue (if one exists)
+
+**Generate mode only.** A folder may have a GitHub tracking issue mirroring it (the issue-coverage sweep). If so, keep it in step with the new spec per [`docs/00_overview/planned_features/feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
+
+1. Find it: `gh issue list --state all --limit 300 --json number,title --jq '.[] | select(.title|test("<feature-dir-slug>")) | .number'`. If none, skip (the `/pipeline` orchestrator owns creation).
+2. Flip `Stage → SPEC`, swap the stage label (`needs-preflight` → `ready-to-execute`, or `blocked` if a `Blocked by:` gate is unmet), add the Spec artifact link, and backfill the inline DoD from the spec's acceptance criteria — replacing any "lives in the linked artifact" placeholder.
+3. Re-verify any `file:line` you write into the issue against the current tree; never propagate stale artifact citations.
+
 ---
 
 ## Workflow — Review mode

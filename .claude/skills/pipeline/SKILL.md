@@ -222,7 +222,8 @@ For each stage from current to target:
    - **Interactive mode:** Present the spec to the user.
      > "Spec generated at `<path>/feature_spec.md`. Review the spec — particularly the API contracts (Section 8), data model (Section 9), and acceptance criteria (Section 12). Approve to continue to implementation plan, or request changes."
 5. If the user requests changes (interactive only), re-invoke `/spec-gen <path>/feature_spec.md` in Review & Patch mode.
-6. On approval (or auto-advance), proceed to next stage.
+6. **Sync the tracking issue** to the new stage per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md): flip `Stage → SPEC`, swap the stage label (`needs-preflight` → `ready-to-execute`, or `blocked` if a `Blocked by:` gate is unmet), add the Spec artifact link, and backfill the inline DoD from the spec's acceptance criteria. Re-verify any cited `file:line` against the current tree before writing it. (No-op if no tracking issue exists for the folder slug.)
+7. On approval (or auto-advance), proceed to next stage.
 
 #### Stage: SPEC → PLAN
 
@@ -240,7 +241,8 @@ For each stage from current to target:
    - **Interactive mode:** Present the plan to the user.
      > "Plan generated at `<path>/implementation_plan.md`. Review the stories, endpoints, and key interfaces. The plan covers <N stories across M epics>. Approve to begin implementation, or request changes."
 5. If the user requests changes (interactive only), re-invoke `/impl-plan-gen <path>/implementation_plan.md` in Review & Patch mode.
-6. On approval (or auto-advance), proceed to next stage.
+6. **Sync the tracking issue** to the new stage per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md): flip `Stage → PLAN`, keep/confirm the stage label (`ready-to-execute`, or `blocked` if gated), add the Plan artifact link, and ensure the inline DoD reflects the plan's stories/ACs. (No-op if no tracking issue exists.)
+7. On approval (or auto-advance), proceed to next stage.
 
 #### Stage: PLAN → IMPLEMENT
 
@@ -278,6 +280,7 @@ For each stage from current to target:
    - Update `state.md`: add to recent changes, update current focus + branch context
    - **Check for `phase*_idea.md` files** — if any exist, STOP and ask the user for instructions (the folder contains unimplemented future work)
    - Move feature folder: `planned_features/<bucket>/<dir>` → `implemented_features/<YYYY_MM_DD>_<short_name>/`. Source carries the bucket; destination stays FLAT and date-prefixed (no bucket directory inside `implemented_features/`).
+   - **Close the tracking issue** per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md) — `gh issue close <N> --comment "<merged PR link>"`. If any `phase*_idea.md` follow-ups remain, leave it open and note what's left instead.
    - Commit and push the finalization changes
 
 #### Stage: IMPLEMENT → DONE
@@ -443,3 +446,4 @@ If the feature branch already exists or has diverged:
 9. **One feature at a time.** In epic mode, complete one feature's full pipeline before starting the next.
 10. **Inform the user at every transition.** What just completed, what's next, what they need to review.
 11. **Project-wide status output is always priority-ordered with one explicit "Next action."** When invoked as `/pipeline status` (or with no arguments), sort features by dependency-derived order parsed from each spec's "Depends on:" line; never sort by directory listing, alphabet, or recency. End the output with a single bold "Next action:" line and the exact `/pipeline <path>` command to run. The user must not have to scan the table and guess.
+12. **Keep the tracking issue in sync at every stage transition.** When a folder advances Idea→Spec→Plan→Implement→Done, run the stage-sync procedure in [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md) — flip the Stage field, swap the stage label, add the new artifact link, backfill the DoD from ACs, and close on merge. An issue must never advertise `ready-to-execute` for a gated/design-ahead feature, nor sit at `Stage: IDEA` once a spec exists.

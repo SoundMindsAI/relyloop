@@ -5,6 +5,7 @@ Templates for the spec → plan → implement pipeline:
 1. [`idea-template.md`](idea-template.md) — lightweight tracking for deferred or exploratory work
 2. [`feature-spec-template.md`](feature-spec-template.md) — full feature specification (the contract between product and engineering)
 3. [`implementation-plan-template.md`](implementation-plan-template.md) — story-by-story plan derived from an approved spec
+4. [`tracking-issue-template.md`](tracking-issue-template.md) — the GitHub tracking-issue body format + the stage-sync procedure that keeps the issue in step with this folder's artifacts (Idea → Spec → Plan → Implement → Done). Distinct from the human-facing [`.github/ISSUE_TEMPLATE/`](../../../../.github/ISSUE_TEMPLATE/) forms.
 
 ## How to use
 

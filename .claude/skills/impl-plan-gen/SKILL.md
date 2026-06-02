@@ -294,6 +294,14 @@ If `pipeline_status.md` does not exist yet (e.g., spec-gen was run before this s
 - Check for `feature_spec.md` → mark Spec as Approved (date from file modification time)
 - Fill in the Plan section with current data
 
+### Step 13: Sync the tracking issue (if one exists)
+
+**Generate mode only.** If the folder has a GitHub tracking issue, keep it in step with the new plan per [`docs/00_overview/planned_features/feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
+
+1. Find it: `gh issue list --state all --limit 300 --json number,title --jq '.[] | select(.title|test("<feature-dir-slug>")) | .number'`. If none, skip.
+2. Flip `Stage → PLAN`, confirm the stage label (`ready-to-execute`, or `blocked` if a `Blocked by:` gate is unmet — never `ready-to-execute` for a gated/design-ahead feature), add the Plan artifact link, and ensure the inline DoD reflects the plan's stories/ACs.
+3. Re-verify any `file:line` you write into the issue against the current tree.
+
 ---
 
 ## Workflow — Review mode
