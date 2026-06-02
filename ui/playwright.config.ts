@@ -60,6 +60,19 @@ export default defineConfig({
           '**/index-document-browser.spec.ts',
           '**/studies-create-builder.spec.ts',
           '**/studies-create-target-dropdown.spec.ts',
+          //   - infra_smoke_reseed_runtime_budget (2026-06-02): demo-ubi.spec.ts
+          //     drives a `POST /api/v1/_test/demo/reseed` in beforeAll. With Solr
+          //     actually booting (post infra_solr_smoke_stability PR #383's Lever-0
+          //     perms fix), the reseed seeds all 6 scenarios; AC-8 of
+          //     feat_demo_ubi_study_comparison bounds the in-flight reseed at
+          //     1140s (~19 min hard ceiling) with ~28 min worst case per §14.
+          //     Adding Playwright + smoke-job setup overhead pushes total wall-
+          //     clock past the smoke job's 25-min cap (run 26790636716 hit it).
+          //     Excluding here keeps the smoke job runtime-bounded; local `make
+          //     up` smoke (CI= unset) retains full demo-ubi coverage. See
+          //     docs/03_runbooks/smoke-solr-stability.md §4 for the lever
+          //     cascade context.
+          '**/demo-ubi.spec.ts',
         ]
       : []),
   ],
