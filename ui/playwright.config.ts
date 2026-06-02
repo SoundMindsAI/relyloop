@@ -70,8 +70,8 @@ export default defineConfig({
           //     clock past the smoke job's 25-min cap (run 26790636716 hit it).
           //     Excluding here keeps the smoke job runtime-bounded; local `make
           //     up` smoke (CI= unset) retains full demo-ubi coverage. See
-          //     docs/03_runbooks/smoke-solr-stability.md §4 for the lever
-          //     cascade context.
+          //     docs/03_runbooks/smoke-solr-stability.md §5 for the
+          //     reseed-runtime-vs-Solr-stability relationship table.
           '**/demo-ubi.spec.ts',
         ]
       : []),
