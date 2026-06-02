@@ -191,7 +191,7 @@
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
     - 🟡 [Smoke Reseed Runtime Budget](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget)
 
-??? note "Maintenance & fixes (21)"
+??? note "Maintenance & fixes (22)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -209,6 +209,7 @@
     - 🟡 [Reseed Failure Blocks Retry Arq Singleton Dedup](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup)
     - 🟡 [Seed Meaningful Demos Silent Bulk Errors](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors)
     - 🟡 [Solr Post Pipeline Followups](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_solr_post_pipeline_followups)
+    - 🟡 [Studies Detail Vitest Intermittent Timeout](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_studies_detail_vitest_intermittent_timeout)
     - 🟡 [Studies Post Arq Spy Fixture](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_studies_post_arq_spy_fixture)
     - 🟡 [Template Library Expansion](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_template_library_expansion)
     - 🟡 [UBI Hybrid Template Render](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render)

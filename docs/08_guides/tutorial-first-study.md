@@ -461,7 +461,39 @@ your one decision.**
 
 ---
 
-## Where to next
+## Where to go next
+
+### Tune more than the demo template
+
+The tutorial registered `product_search.j2` — a deliberately minimal
+demo template. RelyLoop ships a curated **runnable template library**
+covering function-score decay, bool boosting, and phrase rescore on
+ES/OpenSearch + edismax basic and recency-decay on Solr. Each library
+template ships with a checked-in `.search_space.json` starter and a
+copy-paste registration block.
+
+- [`samples/templates/README.md`](../../samples/templates/README.md) —
+  the four runnable ES/OpenSearch templates (`multi_match_basic`,
+  `function_score_decay`, `bool_boosted`, `rescore_phrase`) with
+  per-template "when to use", expected metric behavior, and a
+  copy-paste `curl` registration block per template.
+- [`samples/templates/solr/README.md`](../../samples/templates/solr/README.md) —
+  the two runnable Solr templates (`edismax_basic`, `boost_decay`).
+
+### Look up a specific parameter
+
+Each tunable knob has a per-engine reference page with native + unified
+names, valid ranges, "when to tune", caveats, and the templates that
+declare it.
+
+- [`docs/06_vendor_docs/elasticsearch-tunable-params.md`](../06_vendor_docs/elasticsearch-tunable-params.md)
+- [`docs/06_vendor_docs/opensearch-tunable-params.md`](../06_vendor_docs/opensearch-tunable-params.md)
+  (covers OpenSearch's hybrid normalization-processor — NOT the ES
+  `rrf` retriever)
+- [`docs/06_vendor_docs/solr-tunable-params.md`](../06_vendor_docs/solr-tunable-params.md)
+  (grounded in the checked-in Solr 9 / 10 ref-guide source)
+
+### The rest of the project
 
 - The full feature set is in [`docs/02_product/mvp1-user-stories.md`](../02_product/mvp1-user-stories.md).
 - The architectural decisions are in

@@ -1,0 +1,43 @@
+{#-
+  multi_match_basic.j2 — basic lexical multi_match (best_fields) for ES + OpenSearch.
+
+  Declared (tunable) params:
+    title_boost                  float   per-field boost on `title`
+    description_boost            float   per-field boost on `description`
+    bullet_points_boost          float   per-field boost on `bullet_points`
+    tie_breaker                  float   range 0.0–1.0 (best_fields tie-breaker)
+    fuzziness                    string  one of "0", "1", "2", "AUTO"
+
+  Baked-in literals (NOT declared / NOT tunable):
+    field list                   ["title", "description", "bullet_points"]
+    type                         "best_fields"
+
+  `slop` is intentionally NOT exposed here — it only affects `phrase` /
+  `phrase_prefix` multi_match, not `best_fields`. Phrase slop lives on
+  `rescore_phrase.j2` where it is valid (spec §7 FR-1 / cycle 3, GPT-5.5 F1).
+
+  `query_text` is rendered through Jinja's `tojson` filter so a query
+  containing a double-quote or newline still produces valid JSON (the
+  filter emits the surrounding quotes — no manual `"..."` wrapping).
+
+  Renders to a native ES/OpenSearch query body. Compatible with ES 8.11+
+  and OpenSearch 2.x (lexical DSL is identical across both engines).
+
+  Recommended registration name: `multi-match-basic-v1`
+  (see samples/templates/README.md "Runnable library templates").
+-#}
+{
+  "query": {
+    "multi_match": {
+      "query": {{ query_text | tojson }},
+      "type": "best_fields",
+      "tie_breaker": {{ tie_breaker }},
+      "fuzziness": "{{ fuzziness }}",
+      "fields": [
+        "title^{{ title_boost }}",
+        "description^{{ description_boost }}",
+        "bullet_points^{{ bullet_points_boost }}"
+      ]
+    }
+  }
+}
