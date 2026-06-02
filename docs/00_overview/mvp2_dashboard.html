@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">11 / 23</div>
-      <div class="sub">48% specced · 44 filed under MVP2</div>
-      <div class="bar"><span style="width:48%"></span></div>
+      <div class="value">12 / 23</div>
+      <div class="sub">52% specced · 44 filed under MVP2</div>
+      <div class="bar"><span style="width:52%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">31</div>
+      <div class="value">30</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">3</div>
+      <div class="value">2</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">26</div>
+      <div class="value">25</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -693,20 +693,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">14</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_studies_convergence_visibility/feature_spec.md">Studies Convergence Visibility</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/421">PR #421</a>
-  </div>
-  <div class="one-liner">The studies list shows a completed-trial count and a convergence badge (`Converged` / `Still improving` / `Too few trials`) per study, reusing the shipped classifier.</div>
-
-
-</div>
-
+  <h3>Plan <span class="count">13</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -884,7 +871,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">13</span></h3>
+  <h3>Done <span class="count">14</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -920,6 +907,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/343">PR #343</a> <span>merged 2026-05-31</span>
   </div>
   <div class="one-liner">an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled &quot;🌙 Run overnight (compound automatically)&quot; toggle with explicit copy about th</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_02_feat_studies_convergence_visibility/feature_spec.md">Studies Convergence Visibility</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/421">PR #421</a> <span>merged 2026-06-02</span>
+  </div>
+  <div class="one-liner">The studies list shows a completed-trial count and a convergence badge (`Converged` / `Still improving` / `Too few trials`) per study, reusing the shipped classifier.</div>
 
 
 </div>
@@ -1085,8 +1085,6 @@ footer {
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
-  feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
-  class feat_studies_convergence_visibility plan;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
@@ -1111,6 +1109,8 @@ footer {
   class infra_solr_ci_readiness done;
   chore_template_library_expansion[&quot;template library expansion&quot;]
   class chore_template_library_expansion done;
+  feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
+  class feat_studies_convergence_visibility done;
   infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
   class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
@@ -1138,8 +1138,6 @@ footer {
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
-  feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
-  class feat_studies_convergence_visibility plan;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
@@ -1164,6 +1162,8 @@ footer {
   class infra_solr_ci_readiness done;
   chore_template_library_expansion[&quot;template library expansion&quot;]
   class chore_template_library_expansion done;
+  feat_studies_convergence_visibility[&quot;studies convergence visibility&quot;]
+  class feat_studies_convergence_visibility done;
   infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
   class infra_solr_smoke_stability done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
