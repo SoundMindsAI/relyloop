@@ -9,7 +9,13 @@ SPDX-License-Identifier: Apache-2.0
 **Owner:** `feat_study_convergence_indicator` (`backend/app/domain/study/convergence.py` + `ui/src/components/studies/convergence-panel.tsx`).
 **Audience:** the relevance engineer who wakes up to a finished study (or an overnight chain) and wants a one-glance answer to *did this actually finish learning, or did I stop it too early?*
 
-This is the operator-facing reference for the **Convergence** panel on `/studies/[id]`, the `<convergence>` block in the digest narrative, and the per-link verdicts the overnight-autopilot chain panel surfaces (when that feature lands).
+This is the operator-facing reference for:
+- the **Convergence** panel on `/studies/[id]` (the deep view — best-so-far curve + window numerics);
+- the **Convergence badge column** on the `/studies` list (the at-a-glance cue — added 2026-06-02 by `feat_studies_convergence_visibility` Epic 1 so operators can spot non-converged studies without opening each one);
+- the `<convergence>` block in the digest narrative;
+- the per-link verdicts the overnight-autopilot chain panel surfaces (when that feature lands).
+
+The list-page badge uses the SAME classifier with compact labels — `Converged`/`Improving`/`Too few trials`/em-dash. A `null` verdict on either surface means the same thing (in-flight study, invalid `objective.direction`, or fewer than 5 complete trials).
 
 The classifier itself is a 50-line pure-domain function. Don't memorise the algorithm — memorise the three verdicts and what each one means for your next move.
 
