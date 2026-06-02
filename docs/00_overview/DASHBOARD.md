@@ -1,6 +1,6 @@
 # RelyLoop — Release Roadmap
 
-_Top-level index across MVP1 → GA v1+ as of **2026-06-01**. Click a release name to drill into the per-release dashboard. Theme labels sourced from [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md). For the rich local view, open [`dashboard.html`](dashboard.html) in a browser._
+_Top-level index across MVP1 → GA v1+ as of **2026-06-02**. Click a release name to drill into the per-release dashboard. Theme labels sourced from [`docs/01_architecture/tech-stack.md` §"Canonical release matrix"](../01_architecture/tech-stack.md). For the rich local view, open [`dashboard.html`](dashboard.html) in a browser._
 
 ## Releases
 
