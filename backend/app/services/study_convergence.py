@@ -36,6 +36,7 @@ during their normal lifecycle.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Literal
 
 import structlog
@@ -43,10 +44,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db import repo
 from backend.app.db.models import Study
+from backend.app.db.repo.trial import TrialCounts
 from backend.app.domain.study.convergence import (
+    CONVERGENCE_FLAT_MIN_COMPLETE,
+    ConvergenceVerdict,
     StudyConvergenceShape,
     classify_convergence,
 )
+from backend.app.eval.optuna_runtime import STUDIES_TPE_WARMUP_FLOOR
 
 _log = structlog.get_logger(__name__)
 
@@ -156,6 +161,102 @@ async def fetch_study_convergence(
     return shape
 
 
+async def resolve_list_convergence_verdicts(
+    db: AsyncSession,
+    studies: Sequence[Study],
+    trial_counts: dict[str, TrialCounts],
+) -> dict[str, ConvergenceVerdict | None]:
+    """Bulk-classify convergence for a page of studies for the studies-list response.
+
+    Mirrors :func:`fetch_study_convergence` semantics exactly so the list
+    verdict equals the detail verdict for every case (AC-2 / AC-3b in
+    ``feat_studies_convergence_visibility/feature_spec.md``). Applies the
+    gates in the documented order — the first three are cheap (no trial
+    load):
+
+    1. **In-flight short-circuit** — status ∈ {``queued``, ``running``}
+       → ``None``.
+    2. **Direction resolution** — invalid direction → ``None`` (fires
+       BEFORE the count gate so an invalid-direction completed study
+       with 5–49 trials yields ``None`` here, matching the detail page).
+    3. **Count gate** — using the pre-computed ``complete`` count from
+       ``trial_counts``: ``< CONVERGENCE_FLAT_MIN_COMPLETE`` (5) →
+       ``None``; ``< STUDIES_TPE_WARMUP_FLOOR`` (50) →
+       ``"too_few_trials"``.
+    4. **Classifier** — for the ``complete ≥ 50`` subset only: one
+       batched trial-load via
+       :func:`backend.app.db.repo.list_complete_optuna_trials_for_studies`,
+       then ``classify_convergence`` per study (try/except → ``None`` on
+       exception, mirroring ``fetch_study_convergence``).
+
+    Per-list query budget (FR-3 / AC-5): one batched count aggregate is
+    expected to have already been issued by the caller and passed in
+    ``trial_counts``; this function adds **one** batched trial-load query
+    when the ``complete ≥ 50`` subset is non-empty, and **zero** when it
+    is empty (M=0 case — common at demo scale before
+    ``feat_studies_convergence_visibility`` Epic 2's trial bump).
+    """
+    verdicts: dict[str, ConvergenceVerdict | None] = {}
+    eligible_for_classify: list[Study] = []
+    directions: dict[str, Literal["maximize", "minimize"]] = {}
+
+    for study in studies:
+        sid = str(study.id)
+        # Gate 1: in-flight short-circuit.
+        if study.status in _IN_FLIGHT_STATUSES:
+            verdicts[sid] = None
+            continue
+        # Gate 2: direction resolution (cheap; mirrors fetch_study_convergence).
+        objective = study.objective if isinstance(study.objective, dict) else None
+        direction = _resolve_direction(objective)
+        if direction is None:
+            raw = objective.get("direction") if objective is not None else None
+            _log.warning(
+                "convergence_invalid_direction",
+                study_id=sid,
+                raw_direction=raw,
+            )
+            verdicts[sid] = None
+            continue
+        # Gate 3: count gate (cheap; no trial load).
+        counts = trial_counts.get(sid, TrialCounts(total=0, complete=0))
+        complete = counts.complete
+        if complete < CONVERGENCE_FLAT_MIN_COMPLETE:
+            verdicts[sid] = None
+            continue
+        if complete < STUDIES_TPE_WARMUP_FLOOR:
+            verdicts[sid] = "too_few_trials"
+            continue
+        # ≥ 50 — defer to the batched classifier pass below.
+        eligible_for_classify.append(study)
+        directions[sid] = direction
+
+    # Gate 4: one batched trial-load + per-study classify (only if M > 0).
+    if eligible_for_classify:
+        trials_by_study = await repo.list_complete_optuna_trials_for_studies(
+            db, [str(s.id) for s in eligible_for_classify]
+        )
+        for study in eligible_for_classify:
+            sid = str(study.id)
+            try:
+                shape = classify_convergence(
+                    trials_by_study.get(sid, []), direction=directions[sid]
+                )
+            except Exception as exc:  # noqa: BLE001 — mirror fetch_study_convergence
+                _log.warning(
+                    "convergence_classifier_exception",
+                    study_id=sid,
+                    exception_type=type(exc).__name__,
+                    exception_str=str(exc),
+                )
+                verdicts[sid] = None
+                continue
+            verdicts[sid] = shape.verdict if shape is not None else None
+
+    return verdicts
+
+
 __all__ = [
     "fetch_study_convergence",
+    "resolve_list_convergence_verdicts",
 ]

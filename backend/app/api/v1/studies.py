@@ -68,6 +68,7 @@ from backend.app.domain.study.chain_summary import (
     derive_chain_stop_reason,
     select_best_link,
 )
+from backend.app.domain.study.convergence import ConvergenceVerdict
 from backend.app.domain.study.followups import parse_followup_list
 from backend.app.domain.study.search_space import (
     MissingDeclaredParamError,
@@ -77,7 +78,10 @@ from backend.app.domain.study.search_space import (
 )
 from backend.app.services import study_state
 from backend.app.services.study_confidence import fetch_study_confidence
-from backend.app.services.study_convergence import fetch_study_convergence
+from backend.app.services.study_convergence import (
+    fetch_study_convergence,
+    resolve_list_convergence_verdicts,
+)
 from backend.app.services.study_preflight import MIN_OVERLAP, probe_judgment_overlap
 
 router = APIRouter()
@@ -169,11 +173,30 @@ async def _detail(db: AsyncSession, row: Study) -> StudyDetail:
     )
 
 
-def _summary(row: Study) -> StudySummary:
+def _summary(
+    row: Study,
+    *,
+    trial_count: int,
+    convergence_verdict: ConvergenceVerdict | None,
+) -> StudySummary:
     # ``objective`` is a non-null JSONB dict; ``direction`` arrived with
     # feat_study_baseline_trial, so older rows may lack the key — default
     # to "maximize" (per bug_ceiling_badge_assumes_maximize_direction).
-    direction = row.objective.get("direction", "maximize")
+    #
+    # Coerce ANY value outside the {"maximize", "minimize"} Literal to
+    # "maximize" — not only the absent-key case. Without this guard, a
+    # row whose persisted ``direction`` somehow drifted to a third value
+    # (corrupt JSONB, a future migration that re-uses the key, a manual
+    # SQL edit) would crash the entire studies-list response with a
+    # ``ValidationError`` because ``StudySummary.direction`` is typed as
+    # a two-value Literal. The detail-path's
+    # :func:`backend.app.services.study_convergence._resolve_direction`
+    # already handles this case — the list path was the latent gap.
+    # Surfaced by ``feat_studies_convergence_visibility`` AC-3b, which
+    # writes ``"sideways"`` deliberately to exercise the
+    # invalid-direction parity path.
+    raw_direction = row.objective.get("direction", "maximize")
+    direction = raw_direction if raw_direction in ("maximize", "minimize") else "maximize"
     return StudySummary(
         id=row.id,
         name=row.name,
@@ -183,6 +206,8 @@ def _summary(row: Study) -> StudySummary:
         direction=direction,
         created_at=row.created_at,
         completed_at=row.completed_at,
+        trial_count=trial_count,
+        convergence_verdict=convergence_verdict,
     )
 
 
@@ -545,8 +570,25 @@ async def list_studies(
             cursor_value = getattr(last, parsed_sort.col_name)
         next_cursor = _sort_encode_cursor(cursor_value, last.id)
         has_more = True
+
+    # feat_studies_convergence_visibility Story 1.1 — populate per-row
+    # trial_count + convergence_verdict via bounded batched queries
+    # (FR-1/FR-2/FR-3): one GROUP BY aggregate for counts; one batched
+    # trial-load ONLY when the complete>=50 subset is non-empty
+    # (resolve_list_convergence_verdicts handles the gating).
+    page_ids = [str(r.id) for r in rows]
+    trial_counts = await repo.count_trials_for_studies(db, page_ids)
+    verdicts = await resolve_list_convergence_verdicts(db, rows, trial_counts)
+
     return StudyListResponse(
-        data=[_summary(r) for r in rows],
+        data=[
+            _summary(
+                r,
+                trial_count=trial_counts.get(str(r.id), repo.TrialCounts(0, 0)).total,
+                convergence_verdict=verdicts.get(str(r.id)),
+            )
+            for r in rows
+        ],
         next_cursor=next_cursor,
         has_more=has_more,
     )
@@ -663,8 +705,22 @@ async def list_study_children(
     children = await repo.list_children_of_study(db, study_id)
     # Direct children of any single parent are at most 1 (linear chains in v1),
     # so we never paginate this endpoint. has_more is always False.
+    #
+    # feat_studies_convergence_visibility Story 1.1: populate trial_count +
+    # convergence_verdict per the StudySummary contract — same bounded
+    # batched-query pattern as the main list_studies handler.
+    child_ids = [str(c.id) for c in children]
+    child_trial_counts = await repo.count_trials_for_studies(db, child_ids)
+    child_verdicts = await resolve_list_convergence_verdicts(db, children, child_trial_counts)
     return StudyListResponse(
-        data=[_summary(c) for c in children],
+        data=[
+            _summary(
+                c,
+                trial_count=child_trial_counts.get(str(c.id), repo.TrialCounts(0, 0)).total,
+                convergence_verdict=child_verdicts.get(str(c.id)),
+            )
+            for c in children
+        ],
         next_cursor=None,
         has_more=False,
     )
