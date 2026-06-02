@@ -117,6 +117,25 @@ def _flatten(params: dict[str, list[str]]) -> set[str]:
     return out
 
 
+def _section_headings(text: str) -> list[str]:
+    """Return the ``### `<name>` ...`` heading slugs in document order.
+
+    Splits on the first comma inside the heading so a grouped header like
+    ``### `decay_scale`, `decay_offset`, `decay_decay``` registers all
+    three slugs (the cheatsheets group the three decay params under a
+    single heading per the cheatsheet design).
+    """
+    out: list[str] = []
+    for line in text.splitlines():
+        if not line.startswith("### "):
+            continue
+        # Extract every ``…`` token from the heading (handles grouped
+        # headings like the decay-trio).
+        for m in re.findall(r"`(\w+)`", line):
+            out.append(m)
+    return out
+
+
 @pytest.mark.parametrize(
     "cheatsheet,engine_params",
     [
@@ -127,14 +146,38 @@ def _flatten(params: dict[str, list[str]]) -> set[str]:
     ids=["elasticsearch", "opensearch", "solr"],
 )
 def test_cheatsheet_covers_all_required_knobs(cheatsheet: Path, engine_params: set[str]) -> None:
-    """AC-4: every cheatsheet covers (a) the 8 unified params and (b)
-    every declared param exposed by that engine's runnable templates."""
+    """AC-4: every cheatsheet covers (a) the 8 unified params (each as its
+    own ``### `<name>``` section heading per the plan's AC-4 wording) and
+    (b) every declared param exposed by that engine's runnable templates.
+
+    Per-template-instance declared params (`title_boost`, `description_boost`,
+    `bullet_points_boost`) are intentionally grouped under the unified
+    `field_boosts` section rather than promoted to their own headings —
+    the cheatsheet design documents the CONCEPT once and lists template
+    instances in the back-link line. The substring check covers them.
+    """
     text = cheatsheet.read_text()
-    required = set(UNIFIED_PARAMS) | engine_params
-    missing = sorted(p for p in required if p not in text)
-    assert not missing, (
-        f"{cheatsheet.name} is missing entries for required knobs: {missing}. "
-        "Each required knob must appear somewhere in the cheatsheet — either "
+    headings = set(_section_headings(text))
+
+    # Strict heading check for the 8 unified params (GPT-5.5 final-review
+    # finding on PR #416 — accepted: substring-only was weaker than the
+    # plan's "section/anchor for all 8 unified params" wording).
+    missing_unified = sorted(p for p in UNIFIED_PARAMS if p not in headings)
+    assert not missing_unified, (
+        f"{cheatsheet.name} is missing dedicated section headings (### `<param>`...) "
+        f"for required unified params: {missing_unified}. Each of the 8 unified "
+        "params in `docs/01_architecture/adapters.md` MUST have its own section "
+        "heading in every per-engine cheatsheet."
+    )
+
+    # Substring check for declared-param instances + ES-specific knobs
+    # (these may appear as their own heading OR in a back-link line within
+    # a unified-vocabulary section).
+    declared_only = engine_params - set(UNIFIED_PARAMS)
+    missing_declared = sorted(p for p in declared_only if p not in text)
+    assert not missing_declared, (
+        f"{cheatsheet.name} is missing entries for declared params: {missing_declared}. "
+        "Each declared param must appear somewhere in the cheatsheet — either "
         "as its own section heading or in a per-knob 'Templates that use "
         "this param' back-link."
     )
