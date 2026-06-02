@@ -1,0 +1,9 @@
+{
+  "params": {
+    "title_boost": {"type": "float", "low": 0.5, "high": 10.0},
+    "description_boost": {"type": "float", "low": 0.5, "high": 10.0},
+    "bullet_points_boost": {"type": "categorical", "choices": [0.5, 1.0, 2.0, 5.0, 10.0]},
+    "tie_breaker": {"type": "categorical", "choices": [0.0, 0.3, 0.5, 0.7, 1.0]},
+    "fuzziness": {"type": "categorical", "choices": ["0", "1", "2", "AUTO"]}
+  }
+}

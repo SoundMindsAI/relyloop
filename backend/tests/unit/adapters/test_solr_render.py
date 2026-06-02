@@ -154,6 +154,95 @@ class TestSampleTemplates:
 
 
 # ---------------------------------------------------------------------------
+# Library templates (chore_template_library_expansion Story 1.3, FR-6) — the
+# Solr ``edismax_basic.j2`` and ``boost_decay.j2`` library templates live
+# directly under ``samples/templates/solr/`` (not under ``products_*`` like
+# the demo trio) and pair with a checked-in ``<name>.search_space.json``.
+# ---------------------------------------------------------------------------
+
+
+def _solr_library_template(name: str, declared_params: dict[str, str]) -> QueryTemplate:
+    """Like ``_solr_template`` but reads ``samples/templates/solr/<name>.j2``
+    rather than the ``products_<name>.j2`` demo path."""
+    body = (Path(__file__).resolve().parents[4] / f"samples/templates/solr/{name}.j2").read_text()
+    return QueryTemplate(
+        name=name,
+        engine_type="solr",
+        body=body,
+        declared_params=declared_params,
+    )
+
+
+class TestSolrLibraryTemplates:
+    def test_edismax_basic_renders(self, adapter) -> None:
+        tpl = _solr_library_template(
+            "edismax_basic",
+            declared_params={
+                "title_boost": "float",
+                "description_boost": "categorical",
+                "bullet_points_boost": "categorical",
+                "tie": "categorical",
+                "mm": "categorical",
+                "ps": "int",
+            },
+        )
+        nq = adapter.render(
+            tpl,
+            params={
+                "title_boost": 2.0,
+                "description_boost": 1.0,
+                "bullet_points_boost": 0.5,
+                "tie": 0.3,
+                "mm": "75%",
+                "ps": 2,
+            },
+            query_text="laptop",
+        )
+        assert nq.body["defType"] == "edismax"
+        assert nq.body["q"] == "laptop"
+        # field_boosts → qf (post-pivot, space-joined, source-order preserved).
+        assert nq.body["qf"] == "title^2.0 description^1.0 bullet_points^0.5"
+        # `pf` is baked in (literal) so the declared-tunable `ps` (phrase slop)
+        # actually has phrase queries to act on (spec FR-2 / Gemini fix).
+        assert nq.body["pf"] == "title description"
+        assert nq.body["tie"] == "0.3"
+        assert nq.body["mm"] == "75%"
+        # slop → ps pivot.
+        assert nq.body["ps"] == "2"
+        assert nq.body["fl"] == "*,score"
+
+    def test_boost_decay_renders_with_bf(self, adapter) -> None:
+        tpl = _solr_library_template(
+            "boost_decay",
+            declared_params={
+                "title_boost": "float",
+                "description_boost": "float",
+                "bullet_points_boost": "categorical",
+                "boost_weight": "categorical",
+                "decay_scale": "categorical",
+            },
+        )
+        nq = adapter.render(
+            tpl,
+            params={
+                "title_boost": 2.0,
+                "description_boost": 1.0,
+                "bullet_points_boost": 0.5,
+                "boost_weight": 1.0,
+                "decay_scale": "3e-11",
+            },
+            query_text="laptop",
+        )
+        assert nq.body["defType"] == "edismax"
+        # field_boosts → qf.
+        assert nq.body["qf"] == "title^2.0 description^1.0 bullet_points^0.5"
+        # The bf string interpolates both boost_weight and decay_scale;
+        # `recip(ms(NOW,created_at), m, a, b)` is Solr's recency-decay idiom.
+        # m = decay_scale (string), a = b = boost_weight.
+        assert nq.body["bf"] == "recip(ms(NOW,created_at),3e-11,1.0,1.0)"
+
+
+# ---------------------------------------------------------------------------
 # Pivot helpers — individual coverage so a broken pivot surfaces in isolation.
 # ---------------------------------------------------------------------------
 

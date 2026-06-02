@@ -1,0 +1,36 @@
+{#-
+  bool_boosted.j2 — bool query with must / should / filter clauses and a
+  tunable `minimum_should_match`.
+
+  Declared (tunable) params:
+    title_boost                  float   per-field boost on `title` (should)
+    description_boost            float   per-field boost on `description` (should)
+    bullet_points_boost          float   per-field boost on `bullet_points` (should)
+    min_should_match             string  categorical — Elasticsearch's
+                                         minimum_should_match syntax
+                                         (e.g. "1", "2", "75%", "2<-25% 9<-3")
+
+  Baked-in literals (NOT declared / NOT tunable):
+    must clause field            "title" (match) — drives recall
+    should clauses' field names  "title", "description", "bullet_points"
+    filter clause                none (operators add `fq`-like terms client-side)
+
+  Compatible with ES 8.11+ and OpenSearch 2.x.
+
+  Recommended registration name: `bool-boosted-v1`.
+-#}
+{
+  "query": {
+    "bool": {
+      "must": [
+        {"match": {"title": "{{ query_text }}"}}
+      ],
+      "should": [
+        {"match": {"title": {"query": "{{ query_text }}", "boost": {{ title_boost }}}}},
+        {"match": {"description": {"query": "{{ query_text }}", "boost": {{ description_boost }}}}},
+        {"match": {"bullet_points": {"query": "{{ query_text }}", "boost": {{ bullet_points_boost }}}}}
+      ],
+      "minimum_should_match": "{{ min_should_match }}"
+    }
+  }
+}

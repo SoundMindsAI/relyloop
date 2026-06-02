@@ -10,8 +10,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { glossary, type ShortGlossaryKey } from '@/lib/glossary';
 
 type InfoTooltipProps =
-  | { glossaryKey: ShortGlossaryKey; asChild?: false }
-  | { glossaryKey: ShortGlossaryKey; asChild: true; children: React.ReactNode };
+  | { glossaryKey: ShortGlossaryKey; asChild?: false; learnMoreHref?: string }
+  | {
+      glossaryKey: ShortGlossaryKey;
+      asChild: true;
+      children: React.ReactNode;
+      learnMoreHref?: string;
+    };
 
 /**
  * Renders a label-adjacent help affordance backed by an entry in the shared
@@ -37,6 +42,13 @@ type InfoTooltipProps =
  * The `glossaryKey` prop is typed as `ShortGlossaryKey`, which narrows to
  * glossary entries that include a `short` field — so a long-only entry
  * cannot be passed at compile time.
+ *
+ * Optional `learnMoreHref` prop (`chore_template_library_expansion` FR-7):
+ * when present, renders a focusable "Learn more" link inside the tooltip
+ * body after the short text. The href is supplied by the caller (a global
+ * glossary entry cannot know engine-specific context like the operator's
+ * selected cluster engine — the call site resolves the right URL and
+ * passes it in).
  */
 export function InfoTooltip(props: InfoTooltipProps): React.ReactElement | null {
   const entry = glossary[props.glossaryKey];
@@ -47,6 +59,7 @@ export function InfoTooltip(props: InfoTooltipProps): React.ReactElement | null 
   const ariaLabel =
     'ariaLabel' in entry && entry.ariaLabel !== undefined ? entry.ariaLabel : 'More information';
   const bodyTestId = `tooltip-body-${props.glossaryKey}`;
+  const learnMoreHref = props.learnMoreHref;
 
   return (
     <Tooltip>
@@ -64,7 +77,23 @@ export function InfoTooltip(props: InfoTooltipProps): React.ReactElement | null 
           </button>
         </TooltipTrigger>
       )}
-      <TooltipContent data-testid={bodyTestId}>{entry.short}</TooltipContent>
+      <TooltipContent data-testid={bodyTestId}>
+        <span>{entry.short}</span>
+        {learnMoreHref && (
+          <>
+            {' '}
+            <a
+              href={learnMoreHref}
+              target="_blank"
+              rel="noreferrer noopener"
+              data-testid={`tooltip-learn-more-${props.glossaryKey}`}
+              className="underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              Learn more
+            </a>
+          </>
+        )}
+      </TooltipContent>
     </Tooltip>
   );
 }

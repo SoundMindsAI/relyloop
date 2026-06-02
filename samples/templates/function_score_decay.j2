@@ -1,0 +1,55 @@
+{#-
+  function_score_decay.j2 — function_score with a Gaussian decay over a
+  numeric/date field, combined with a lexical multi_match (best_fields).
+
+  Declared (tunable) params:
+    title_boost                  float   per-field boost on `title`
+    description_boost            float   per-field boost on `description`
+    bullet_points_boost          float   per-field boost on `bullet_points`
+    decay_scale                  string  e.g. "30d" or "180d" — controls the
+                                         half-life of the gauss decay
+    decay_offset                 string  e.g. "0d" or "7d" — the plateau
+                                         before decay starts
+    decay_decay                  float   value the function returns at
+                                         `decay_scale` distance (0–1)
+
+  Baked-in literals (NOT declared / NOT tunable):
+    decay field name             "created_at"
+    decay function kind          "gauss"
+    boost_mode                   "multiply"
+
+  Compatible with ES 8.11+ and OpenSearch 2.x. `decay_scale` / `decay_offset`
+  are strings to support both numeric (`"30"`) and date-math (`"30d"`)
+  syntaxes; the search space below picks date-math choices.
+
+  Recommended registration name: `function-score-decay-v1`.
+-#}
+{
+  "query": {
+    "function_score": {
+      "query": {
+        "multi_match": {
+          "query": "{{ query_text }}",
+          "type": "best_fields",
+          "fields": [
+            "title^{{ title_boost }}",
+            "description^{{ description_boost }}",
+            "bullet_points^{{ bullet_points_boost }}"
+          ]
+        }
+      },
+      "functions": [
+        {
+          "gauss": {
+            "created_at": {
+              "scale": "{{ decay_scale }}",
+              "offset": "{{ decay_offset }}",
+              "decay": {{ decay_decay }}
+            }
+          }
+        }
+      ],
+      "boost_mode": "multiply"
+    }
+  }
+}

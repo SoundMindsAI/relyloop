@@ -1,0 +1,49 @@
+{#-
+  rescore_phrase.j2 — first-pass lexical (multi_match best_fields) + second-
+  pass phrase rescore over the top-N first-pass hits.
+
+  Declared (tunable) params:
+    title_boost                  float   per-field boost on `title` (first pass)
+    description_boost            float   per-field boost on `description` (first pass)
+    bullet_points_boost          float   per-field boost on `bullet_points` (first pass)
+    rescore_window_size          int     how many first-pass hits to rescore
+    rescore_query_weight         float   weight of the original first-pass score
+    rescore_phrase_slop          int     phrase-slop tolerated on the rescore pass
+
+  Baked-in literals (NOT declared / NOT tunable):
+    first-pass type              "best_fields"
+    rescore phrase field         "title"
+
+  Compatible with ES 8.11+ and OpenSearch 2.x. (`phrase_slop` is valid here
+  because the rescore query is a `match_phrase` — unlike best_fields where
+  slop is a silent no-op.)
+
+  Recommended registration name: `rescore-phrase-v1`.
+-#}
+{
+  "query": {
+    "multi_match": {
+      "query": "{{ query_text }}",
+      "type": "best_fields",
+      "fields": [
+        "title^{{ title_boost }}",
+        "description^{{ description_boost }}",
+        "bullet_points^{{ bullet_points_boost }}"
+      ]
+    }
+  },
+  "rescore": {
+    "window_size": {{ rescore_window_size }},
+    "query": {
+      "rescore_query": {
+        "match_phrase": {
+          "title": {
+            "query": "{{ query_text }}",
+            "slop": {{ rescore_phrase_slop }}
+          }
+        }
+      },
+      "query_weight": {{ rescore_query_weight }}
+    }
+  }
+}

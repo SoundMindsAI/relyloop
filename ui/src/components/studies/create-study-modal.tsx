@@ -43,6 +43,7 @@ import { useTemplates, useTemplate } from '@/lib/api/query-templates';
 import { useQuerySets } from '@/lib/api/query-sets';
 import { useCreateStudy } from '@/lib/api/studies';
 import { narrowBoundsAroundWinner } from '@/lib/narrow-bounds';
+import { cheatsheetUrlFor, descriptionFor } from '@/lib/template-descriptions';
 import {
   AUTO_FOLLOWUP_DEPTH_WIZARD_VALUES,
   OBJECTIVE_DIRECTION_VALUES,
@@ -991,6 +992,23 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   }}
                   placeholder="Choose a template"
                 />
+                {/* chore_template_library_expansion FR-7: one-line "when to
+                    use" summary keyed by the recommended registration name
+                    documented in samples/templates/README.md. Renders nothing
+                    on a miss (operator chose a different name) — graceful
+                    miss per FR-7, NEVER show a wrong summary. */}
+                {(() => {
+                  const selectedName = templates.data?.data.find(
+                    (t) => t.id === values.template_id,
+                  )?.name;
+                  const summary = descriptionFor(selectedName);
+                  if (!summary) return null;
+                  return (
+                    <p className="text-sm text-muted-foreground" data-testid="cs-tpl-summary">
+                      {summary}
+                    </p>
+                  );
+                })()}
                 {templateHasNoDeclaredParams && (
                   <p
                     role="alert"
@@ -1084,7 +1102,14 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1">
                       <Label htmlFor="cs-space">Search space (JSON)</Label>
-                      <InfoTooltip glossaryKey="study.search_space" />
+                      {/* chore_template_library_expansion FR-7: cheatsheet
+                          link resolved at the call site (the glossary entry
+                          is engine-agnostic; the cheatsheet URL depends on
+                          the selected cluster's engine_type). */}
+                      <InfoTooltip
+                        glossaryKey="study.search_space"
+                        learnMoreHref={cheatsheetUrlFor(selectedCluster?.engine_type) ?? undefined}
+                      />
                     </div>
                     {templateQuery.isFetching && (
                       <p

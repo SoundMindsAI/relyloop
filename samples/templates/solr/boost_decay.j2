@@ -1,0 +1,40 @@
+{#-
+  boost_decay.j2 — Apache Solr edismax with a recency/proximity boost
+  function. Combines lexical edismax with a `recip(ms(NOW,created_at),...)`
+  decay applied as an additive boost (Solr's `bf` semantics).
+
+  Declared (tunable) params, EXACT set:
+    title_boost                  float        per-field boost on `title`
+    description_boost            float        per-field boost on `description`
+    bullet_points_boost          categorical  discrete float choices
+    boost_weight                 categorical  overall additive boost strength
+    decay_scale                  categorical  recip slope (smaller = slower decay)
+
+  Baked-in literals (NOT declared / NOT tunable):
+    defType                      "edismax"
+    qf field names               "title", "description", "bullet_points"
+                                 (via field_boosts → qf pivot)
+    bf function skeleton         "recip(ms(NOW,created_at), <decay_scale>,
+                                  <boost_weight>, <boost_weight>)"
+    decay field name             "created_at"
+    fl                           "*,score"
+
+  Solr's `recip(x, m, a, b) = a / (m*x + b)`. With `x = ms(NOW, created_at)`:
+    age=0 → result = a/b = 1.0 when a == b == boost_weight
+    age large → result → 0
+  Smaller `decay_scale` (m) means slower decay; larger `boost_weight` is the
+  overall boost magnitude.
+
+  Recommended registration name: `boost-decay-v1`.
+-#}
+{
+  "defType": "edismax",
+  "q": "{{ query_text }}",
+  "field_boosts": {
+    "title": {{ title_boost }},
+    "description": {{ description_boost }},
+    "bullet_points": {{ bullet_points_boost }}
+  },
+  "bf": "recip(ms(NOW,created_at),{{ decay_scale }},{{ boost_weight }},{{ boost_weight }})",
+  "fl": "*,score"
+}
