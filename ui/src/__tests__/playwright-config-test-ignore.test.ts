@@ -30,11 +30,19 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
 
-const CONFIG_PATH = join(process.cwd(), 'playwright.config.ts');
+// Resolve the config path relative to THIS test file rather than relying
+// on `process.cwd()`. The canonical CI invocation is `pnpm --dir ui test`
+// (cwd=ui/), but an ad-hoc operator run like
+// `pnpm vitest run ui/src/__tests__/playwright-config-test-ignore.test.ts`
+// from the repo root would set cwd to the repo root and break the lookup.
+// `import.meta.url`-based resolution works in both contexts.
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const CONFIG_PATH = resolve(__dirname, '../../playwright.config.ts');
 
 // Source of truth: the 7 spec files the CI-gated testIgnore branch must
 // list after `infra_smoke_reseed_runtime_budget` ships. Order in this
@@ -75,30 +83,34 @@ function sliceConfig(source: string): {
   ciBranch: string;
   afterCi: string;
 } {
-  const ciIdx = source.indexOf('process.env.CI');
+  // Normalize CRLF -> LF before slicing. The closing-tag anchor below
+  // hard-codes `\n`; on a Windows checkout with CRLF endings, `indexOf`
+  // would otherwise miss the match. macOS/Linux unchanged.
+  const normalizedSource = source.replace(/\r\n/g, '\n');
+  const ciIdx = normalizedSource.indexOf('process.env.CI');
   if (ciIdx === -1) {
     throw new Error(
       'Could not locate `process.env.CI` in playwright.config.ts — testIgnore CI-ternary shape changed?',
     );
   }
   // Find the `? [` after process.env.CI.
-  const openBracketIdx = source.indexOf('? [', ciIdx);
+  const openBracketIdx = normalizedSource.indexOf('? [', ciIdx);
   if (openBracketIdx === -1) {
     throw new Error(
       'Could not locate `? [` after `process.env.CI` — testIgnore CI-ternary shape changed?',
     );
   }
   // Find the matching `] : []` close that ends the ternary.
-  const closeIdx = source.indexOf(']\n      : []', openBracketIdx);
+  const closeIdx = normalizedSource.indexOf(']\n      : []', openBracketIdx);
   if (closeIdx === -1) {
     throw new Error(
       'Could not locate `] : []` closing the CI ternary — testIgnore CI-ternary shape changed?',
     );
   }
   return {
-    beforeCi: source.slice(0, ciIdx),
-    ciBranch: source.slice(openBracketIdx, closeIdx),
-    afterCi: source.slice(closeIdx),
+    beforeCi: normalizedSource.slice(0, ciIdx),
+    ciBranch: normalizedSource.slice(openBracketIdx, closeIdx),
+    afterCi: normalizedSource.slice(closeIdx),
   };
 }
 
