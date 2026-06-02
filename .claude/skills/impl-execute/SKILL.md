@@ -51,7 +51,7 @@ after all stories complete:
        item must be tracked before any post-impl work begins, so none are implicitly skipped):
           - Extract deferred work (Step 1)
           - Documentation updates (Step 2)
-          - Tangential observations sweep (Step 2.5) — BLOCKING; capture every noticed-but-uncaptured issue per CLAUDE.md tangential-discoveries rule
+          - Tangential observations sweep (Step 2.5) — BLOCKING; fix-inline-by-default per CLAUDE.md tangential-discoveries rule (capture as idea file only when inline fix actually fails the rubric)
           - Guide impact assessment + guide-gen run (Step 3) — MANDATORY gate
           - Push + open PR (Step 4)
           - Monitor CI (Step 5)
@@ -89,7 +89,7 @@ Ad-hoc mode (`/impl-execute --ad-hoc`) is for changes that don't warrant `/pipel
 - Post-implementation Step 0a (worktree pre-flight — surfaces locked sibling worktrees that would block branch ops in Step 8 finalization or Step 9 cleanup; same risk applies to ad-hoc fixes).
 - Post-implementation Step 0b.1 (audit-event coverage audit — small fixes can still introduce new tenant-visible mutations).
 - Post-implementation Step 2 (`state.md` update if completion-snapshot or active-priorities changed; only if applicable).
-- Post-implementation Step 2.5 (**tangential-observations sweep — BLOCKING**). Bug fixes routinely surface unrelated bugs; capture them as idea files before push.
+- Post-implementation Step 2.5 (**tangential-observations sweep — BLOCKING**). Bug fixes routinely surface unrelated bugs; fix them inline on the current branch by default (per the CLAUDE.md fix-inline-by-default rule), capture as idea files only when inline fix actually fails the rubric.
 - Post-implementation Step 3 (guide impact assessment — MANDATORY GATE if frontend was touched).
 - Post-implementation Step 4 (push + `gh pr create` with the standard Summary / Test plan template).
 - Post-implementation Step 5 (CI watch).
@@ -576,24 +576,24 @@ Commit documentation updates.
 
 ### Step 2.5: Tangential observations sweep — BLOCKING
 
-Per the [tangential-discoveries rule in CLAUDE.md](../../../CLAUDE.md#tangential-discoveries--capture-as-idea-files-immediately), every issue you noticed during this implementation that was NOT part of the current plan must be captured as an idea file before push — not held in conversation memory, not deferred to "later in the PR description".
+Per the [tangential-discoveries rule in CLAUDE.md](../../../CLAUDE.md#tangential-discoveries--fix-inline-by-default-defer-rarely), every issue you noticed during this implementation that was NOT part of the current plan must be **resolved** before push — either fixed inline on this branch (the default) or, when inline fix genuinely fails the CLAUDE.md rubric, captured as an idea file. What you cannot do is hold the noticing in conversation memory or defer it vaguely to "later in the PR description."
 
-This step is a safety net for Rule #3 ("Capture, don't carry"). The discipline is to capture inline as you notice; this sweep is the last chance to flush anything you missed.
+This step is a safety net for Rule #3 (fix-inline-by-default). The discipline is to fix-or-capture inline as you notice; this sweep is the last chance to flush anything you missed.
 
 Walk back through this implementation session and ask:
 
-1. **Did I `git stash` to verify a failure was pre-existing on `main`?** That's a tangential bug — it pre-existed and I confirmed it. If I didn't already file an idea, file one now.
-2. **Did I see a test fail on first run, then pass on re-run, and "just re-run" without investigating?** That's a test-isolation bug. File an idea.
-3. **Did I defer test coverage with "no framework available" / "manual smoke at staging" / "out of scope for a bug fix"?** That's an infra gap. File an idea.
-4. **Did I read code that referenced a broken/stale path** (a TODO comment older than 6 months, a deprecated symbol still in use, an env var with no documentation)? Note it.
-5. **Did I think "I should fix that someday" about anything**, even briefly? File the someday now.
-6. **Did I notice during implementation any operator-judgment-shaped question that has no canonical answer in the current docs?** Examples: *"What happens if I X?"* / *"Should I trust Y in case Z?"* / *"My pipeline shows N — is that a bug or expected?"* If yes, either (a) draft the entry directly under `ui/src/lib/faq.ts` in this PR (preferred — adds the answer where operators will look for it), OR (b) file a focused `chore_faq_<slug>/idea.md` capturing the question + draft answer + the spec/AC citation that backs the answer. Tooltips and the glossary are NOT the right surface — they're definitional, not judgment-shaped.
+1. **Did I `git stash` to verify a failure was pre-existing on `main`?** That's a tangential bug — it pre-existed and I confirmed it. Estimate the fix path; if <60 min and on the same subsystem, fix inline now. Else file an idea.
+2. **Did I see a test fail on first run, then pass on re-run, and "just re-run" without investigating?** That's a test-isolation bug. Estimate the fix path; if <60 min, fix inline now. Else file an idea.
+3. **Did I defer test coverage with "no framework available" / "manual smoke at staging" / "out of scope for a bug fix"?** Almost always wrong — first instances of common test infra are <60 min per CLAUDE.md's failure-mode words table. Try the inline fix first; only file an idea if you actually hit the 60-min ceiling.
+4. **Did I read code that referenced a broken/stale path** (a TODO comment older than 6 months, a deprecated symbol still in use, an env var with no documentation)? If the fix is <30 lines and on-topic for the current PR, fix inline. Else note it.
+5. **Did I think "I should fix that someday" about anything**, even briefly? Don't defer "someday" — write the implementation path now and decide: fix inline or file idea. "Someday" is the trap.
+6. **Did I notice during implementation any operator-judgment-shaped question that has no canonical answer in the current docs?** Examples: *"What happens if I X?"* / *"Should I trust Y in case Z?"* / *"My pipeline shows N — is that a bug or expected?"* If yes, the default action is **add the entry to `ui/src/lib/faq.ts` in this PR** (preferred — adds the answer where operators will look for it). Only file `chore_faq_<slug>/idea.md` if the FAQ entry actually requires a product decision you can't make unilaterally. Tooltips and the glossary are NOT the right surface for judgment-shaped questions — they're definitional, not judgment-shaped.
 
-For each, create `docs/00_overview/planned_features/<bucket>/<bug_|chore_|infra_>_<slug>/idea.md` per [feature_templates/idea-template.md](../../../docs/00_overview/planned_features/feature_templates/idea-template.md). **`<bucket>` defaults to the current active-release bucket** — read the active release from [`state.md`](../../../state.md) (today **MVP2 → `02_mvp2/`**). A bug/chore tripped over while building the current MVP is almost always that MVP's concern, so it goes there by default. File elsewhere only when the target is clearly a *different* release (`03_mvp3/`, `04_ga/`, `99_backlog/`); `00_unsure/` is reserved for the genuinely-rare "can't tell which release" case, not the default. Origin field MUST point at the PR or story that surfaced the observation, so the trace stays intact.
+For each tangential discovery that survives the inline-fix gate, create `docs/00_overview/planned_features/<bucket>/<bug_|chore_|infra_>_<slug>/idea.md` per [feature_templates/idea-template.md](../../../docs/00_overview/planned_features/feature_templates/idea-template.md). **`<bucket>` defaults to the current active-release bucket** — read the active release from [`state.md`](../../../state.md) (today **MVP2 → `02_mvp2/`**). A bug/chore tripped over while building the current MVP is almost always that MVP's concern, so it goes there by default. File elsewhere only when the target is clearly a *different* release (`03_mvp3/`, `04_ga/`, `99_backlog/`); `00_unsure/` is reserved for the genuinely-rare "can't tell which release" case, not the default. Origin field MUST point at the PR or story that surfaced the observation, AND cite the specific CLAUDE.md rubric row that justified the deferral (not "out of scope" — that phrase has been the cover for too many over-deferrals).
 
-**If you have nothing to file, state explicitly: "Tangential observations sweep: none found." in your end-of-step summary.** Silence is suspicious — the sweep is supposed to find things.
+**If you have nothing to file AND nothing to fix inline, state explicitly: "Tangential observations sweep: none found." in your end-of-step summary.** Silence is suspicious — the sweep is supposed to find things.
 
-Commit the idea files (separate `docs(planned): capture <N> in-flight-noticed issues` commit on the same branch is acceptable).
+For inline fixes during the sweep: commit on the current branch with `fix(scope): tangential — <description>` style messages, and mention each in the PR body's "Also fixes:" list. For captured ideas (the exception): a single `docs(planned): capture <N> deferred discoveries` commit on the same branch is acceptable.
 
 ### Step 3: Guide impact assessment — MANDATORY GATE
 
@@ -1031,7 +1031,7 @@ Some stories involve manual configuration outside the codebase (GitHub App regis
 
 1. **Never commit to main.** Always use a feature branch.
 2. **Never skip a verification gate.** If lint fails, fix it. If tests fail, fix them. No `--no-verify`.
-3. **Never implement beyond the story scope. Capture, don't carry.** If you see a bug or improvement opportunity that's orthogonal to the current story, do NOT fix it in this story's commit AND do NOT just "note it for later" in conversation memory. **Create an idea file immediately** at `docs/00_overview/planned_features/<bucket>/<bug_|chore_|infra_>_<slug>/idea.md` (`<bucket>` defaults to the **current active-release bucket** per [`state.md`](../../../state.md) — today `02_mvp2/`; `00_unsure/` only for the genuinely-rare can't-tell-which-release case) per the [tangential-discoveries protocol in CLAUDE.md](../../../CLAUDE.md#tangential-discoveries--capture-as-idea-files-immediately). Idea files surface in `/pipeline --status` and persist across sessions; chat-noticings evaporate. Step 1.5 below ("Tangential observations sweep") flushes any uncaptured noticings before push as a safety net, but the discipline is to capture inline as you notice.
+3. **Fix tangential discoveries inline by default; capture only when inline is genuinely impossible.** If you see a bug or improvement opportunity that's orthogonal to the current story, **first ask: can I fix it on this branch in <60 minutes?** If yes, fix it inline — add an adjacent commit on the current branch (or fold into the current commit if the diff is tiny and on-topic) with a message that names the tangential discovery (e.g. `fix(scope): tangential — <description> (noticed during Story X.Y)`). Note it in the PR body's "Also fixes:" section. This is the default. Only when inline fix actually fails the rubric (cross-subsystem + >250 LOC, requires product/UX decision, requires operator-environment change) do you fall back to filing an idea file at `docs/00_overview/planned_features/<bucket>/<bug_|chore_|infra_>_<slug>/idea.md` per the [tangential-discoveries protocol in CLAUDE.md](../../../CLAUDE.md#tangential-discoveries--fix-inline-by-default-defer-rarely). What you must NOT do: hold the noticing in conversation memory ("I'll come back to it"), or vaguely defer to "later in the PR description". The "later" agent has less context than you do right now; over-deferral has been the project's failure mode (canonical example: PR #383's first instinct was to file `infra_solr_smoke_data_dir_perms` instead of fixing the three-line YAML; the user caught it with "stop pushing off fixing these"). Step 1.5 below ("Tangential observations sweep") flushes any uncaptured noticings before push as a safety net.
 4. **Always read before editing.** Never modify a file you haven't read in this session.
 5. **Always use GPT-5.5 for cross-model review.** Model ID: `gpt-5.5`. Never substitute gpt-4o.
 6. **Always update the plan tracker** after completing a story.
