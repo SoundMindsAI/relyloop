@@ -41,12 +41,16 @@ name: pr
 #
 # SMOKE-TEST OPT-IN SWITCH (SMOKE_TEST repo variable)
 # ---------------------------------------------------
-# The `smoke-test` (operator-path tutorial flow) job is OFF by default. The
-# full-stack Playwright smoke run drives the demo-ubi reseed, which exceeds
-# any reasonable per-PR budget (it routinely hits the 25-min job cap — see
-# infra_smoke_reseed_runtime_budget). Until that's fixed the job provides
-# little signal for the wall-clock it costs, so it only runs when explicitly
-# opted in:
+# The `smoke-test` (operator-path tutorial flow) job is OFF by default —
+# operator-controlled. The runtime block that triggered the switch in the
+# first place (demo-ubi.spec.ts beforeAll reseed exceeding the 25-min job
+# cap) shipped a fix in infra_smoke_reseed_runtime_budget: demo-ubi.spec.ts
+# is now CI-excluded via ui/playwright.config.ts's testIgnore CI branch,
+# so the Playwright runtime is expected to fit within the 25-min cap.
+# Verify before flipping SMOKE_TEST=true per the spec's §16 manual
+# verification step (run `CI=true pnpm --dir ui exec playwright test --list
+# | grep demo-ubi` — expect no matches). Once verified, operators may
+# flip SMOKE_TEST=true to re-enable per-PR smoke signal:
 #   if: ${{ vars.SMOKE_TEST == 'true' && vars.SKIP_HEAVY_CI != 'true' }}
 # Default (variable unset) → SMOKE_TEST is false → the smoke job is skipped.
 # It still requires heavy CI to be on (SKIP_HEAVY_CI != 'true').
@@ -55,7 +59,9 @@ name: pr
 #   Disable smoke (default): gh variable delete SMOKE_TEST   (or set to false)
 #
 # Unlike SKIP_HEAVY_CI (whose SAFE default runs everything), SMOKE_TEST's
-# default is OFF on purpose — the job is currently more cost than signal.
+# default is OFF on purpose — even with the runtime block cleared the job
+# is the only check that boots the full Compose stack, so flipping it
+# on/off remains an explicit operator decision rather than a silent cost.
 
 on:
   pull_request:
@@ -507,19 +513,21 @@ jobs:
     # OFF by default — opt in with `gh variable set SMOKE_TEST --body true`.
     # See the "SMOKE-TEST OPT-IN SWITCH" + "SKIP_HEAVY_CI" notes at top of
     # file. The job runs ONLY when SMOKE_TEST is explicitly 'true' AND heavy
-    # CI isn't being skipped. Default (SMOKE_TEST unset → false) skips it
-    # because the demo-ubi reseed exceeds the per-PR budget
-    # (infra_smoke_reseed_runtime_budget). `needs: [docker, docker-ui]` below
-    # stays consistent — when this skips, the images simply go unused here.
+    # CI isn't being skipped. Default (SMOKE_TEST unset → false) skips it.
+    # The reseed-runtime block that originally triggered the OFF default
+    # was cleared by infra_smoke_reseed_runtime_budget (demo-ubi CI-excluded
+    # in ui/playwright.config.ts testIgnore). `needs: [docker, docker-ui]`
+    # below stays consistent — when this skips, the images simply go unused.
     if: ${{ vars.SMOKE_TEST == 'true' && vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-24.04
-    # Bumped 15 → 25 min after infra_solr_smoke_stability PR #383: the
-    # demo-ubi.spec.ts beforeAll hook drives a reseed that AC-8 bounds at
-    # 24 min, and with Solr actually booting now (PR #383's Lever-0 perms
-    # fix unblocked it) the reseed actually exercises the Solr scenario
-    # — so total wall-clock for the smoke job's Playwright E2E step
-    # crossed 15 min and started hitting the job-level cap. 25 covers
-    # the reseed bound + setup/teardown headroom.
+    # Bumped 15 → 25 min as part of infra_solr_smoke_stability PR #383.
+    # Post infra_smoke_reseed_runtime_budget (demo-ubi CI-excluded in
+    # ui/playwright.config.ts testIgnore), the Playwright runtime is
+    # expected to fit within the 25-min cap (verify once via the spec
+    # §16 `playwright test --list` check before flipping SMOKE_TEST=true,
+    # and optionally re-confirm with one post-merge SMOKE_TEST=true run).
+    # The 25-min cap is expected headroom against the remaining specs,
+    # not a regular threat.
     timeout-minutes: 25
     # Depend on the parallel `docker` (API) + `docker-ui` jobs so both image
     # artifacts are ready before `make up`. Pre-bumps this PR was paying ~10min
