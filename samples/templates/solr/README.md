@@ -89,8 +89,10 @@ jq -n \
 ### `boost_decay.j2`
 
 **When to use:** when recency (or another date-typed signal) should
-boost lexical edismax matches. Uses Solr's `recip(ms(NOW, field), m, a, b)`
-function-query expression as an additive boost via `bf`.
+boost lexical edismax matches. Uses
+`product(boost_weight, recip(ms(NOW, created_at), decay_scale, 1, 1))`
+as an additive boost via `bf` — a 0→1 recip() decay curve scaled by
+`boost_weight`, so the max additive boost (at age 0) equals `boost_weight`.
 
 **Declared params** (tunable), exact set:
 
@@ -99,7 +101,7 @@ function-query expression as an additive boost via `bf`.
 | `title_boost` | float | per-field boost on `title` |
 | `description_boost` | float | per-field boost on `description` |
 | `bullet_points_boost` | categorical | discrete float choices |
-| `boost_weight` | categorical | additive boost magnitude — interpolated as both `a` and `b` in `recip(...)` |
+| `boost_weight` | categorical | max additive boost magnitude (at age 0) — the `product(...)` multiplier |
 | `decay_scale` | categorical | recip slope (`m`), smaller = slower decay |
 
 The `bf` function-expression skeleton, the decay field name

@@ -111,10 +111,10 @@ automatically, so a template may use either the unified key
 
 ### `boost_weight`, `decay_scale`
 
-- **Where used:** `boost_decay.j2` — interpolated into the rendered `bf` string `recip(ms(NOW, created_at), <decay_scale>, <boost_weight>, <boost_weight>)`.
+- **Where used:** `boost_decay.j2` — interpolated into the rendered `bf` string `product(<boost_weight>, recip(ms(NOW, created_at), <decay_scale>, 1, 1))`.
 - **Range:**
-  - `boost_weight` — float ≥ 0. Both the `a` and `b` arguments of `recip(x, m, a, b) = a/(m*x + b)`; with `a == b` the function returns 1.0 at `x = 0` and asymptotically approaches 0 as `x` grows.
-  - `decay_scale` — small positive number (string-typed in the search space so scientific notation like `"3e-11"` interpolates cleanly into the rendered `bf` string).
+  - `boost_weight` — float ≥ 0. The `product(...)` multiplier scaling a 0→1 `recip(x, m, 1, 1) = 1/(m*x + 1)` decay curve, so the MAXIMUM additive boost (at `x = 0`, i.e. age 0) is exactly `boost_weight`. (Interpolating `boost_weight` as both `a` and `b` of `recip` would instead cancel to 1.0 at age 0 and NOT scale the magnitude — that's why the template uses `product(...)`.)
+  - `decay_scale` — small positive number (the `m` slope; string-typed in the search space so scientific notation like `"3e-11"` interpolates cleanly into the rendered `bf` string).
 - **When to tune:** when recency / age should boost lexical edismax matches.
 - **Caveats:** the `recip` form requires `created_at` to be a date- or numeric-typed Solr field; on string-typed timestamps the function silently returns identical scores for every doc.
 - **Source:** [`solr-10/`](solr-10/) — function-query reference (`recip`, `ms` function descriptions).

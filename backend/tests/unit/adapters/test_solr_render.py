@@ -236,10 +236,10 @@ class TestSolrLibraryTemplates:
         assert nq.body["defType"] == "edismax"
         # field_boosts → qf.
         assert nq.body["qf"] == "title^2.0 description^1.0 bullet_points^0.5"
-        # The bf string interpolates both boost_weight and decay_scale;
-        # `recip(ms(NOW,created_at), m, a, b)` is Solr's recency-decay idiom.
-        # m = decay_scale (string), a = b = boost_weight.
-        assert nq.body["bf"] == "recip(ms(NOW,created_at),3e-11,1.0,1.0)"
+        # The bf string scales a 0→1 recip() decay curve by boost_weight via
+        # product(...) so the max additive boost (at age 0) equals boost_weight.
+        # m = decay_scale (string); recip numerator/denominator are fixed at 1.
+        assert nq.body["bf"] == "product(1.0,recip(ms(NOW,created_at),3e-11,1,1))"
 
 
 # ---------------------------------------------------------------------------
