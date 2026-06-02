@@ -4,6 +4,115 @@
 
 ---
 
+### `feat_studies_convergence_visibility` — studies-list convergence visibility + real demo data (Epic 1 PR #421, Epic 2 PR #422, 2026-06-02)
+
+Two epics, one single-phase plan. **Epic 1** (studies-list trial count +
+convergence badge) shipped on `main` via [PR #421](https://github.com/SoundMindsAI/relyloop/pull/421)
+(`e5c3b8b9`) — a multi-commit squash-merge that bundled the
+`complementary-architecture.md` one-pager docs PR with the entire Epic 1
+backend + frontend code. **Epic 2** (demo data enrichment) shipped via
+[PR #422](https://github.com/SoundMindsAI/relyloop/pull/422)
+(`49a0e1b0`). No migration (Alembic head stays `0022`).
+
+**Epic 1 — what shipped (already on main via #421):**
+
+- Backend: `GET /api/v1/studies` items gain `trial_count` (non-baseline
+  total, matching `trials_summary.total`) + `convergence_verdict` (the
+  `ConvergenceVerdict` literal only, NOT the full `StudyConvergenceShape`).
+  Two new repo helpers in `backend/app/db/repo/trial.py` —
+  `count_trials_for_studies` (one `GROUP BY study_id` aggregate) +
+  `list_complete_optuna_trials_for_studies` (batched
+  `WHERE study_id IN (...)`). New service helper
+  `resolve_list_convergence_verdicts` in
+  `backend/app/services/study_convergence.py` applies the gates in order
+  (in-flight → direction-validity → count → classifier), batch-loads only
+  the `complete ≥ 50` subset, and reuses the shipped `classify_convergence`.
+  Bounded to **2 added queries per list request** regardless of page size
+  (FR-3): one count aggregate always, + one batched trial-load only when
+  the `complete ≥ 50` subset is non-empty.
+- Frontend: Trials + Convergence columns on `/studies`, reusing
+  `CONVERGENCE_VERDICT_VALUES` (`ui/src/lib/enums.ts`) for wire-value
+  discipline and the `convergence_verdict` glossary key for the tooltip;
+  compact labels `Converged`/`Improving`/`Too few trials`/em-dash. The
+  verdict→badge map is `satisfies Record<ConvergenceVerdict, ...>` so a
+  missing/extra verdict is a compile error.
+
+**Epic 2 — what shipped (PR #422):**
+
+- **Demo data that shows real optimization** (Story 2.1 / FR-5): rewrote all
+  5 small `SCENARIOS` in `scripts/seed_meaningful_demos.py` with the
+  **decoy-by-title pattern** — each query has a "best answer" doc whose
+  query terms live in description/body/bullet_points (NOT title) and a
+  "decoy" doc with terms densely in title only + shallow description. At the
+  equal-midpoint baseline (every boost ≈ `sqrt(0.5*5.0) ≈ 1.58`) the
+  title-decoys win on raw BM25, so the baseline under-ranks (NDCG@10 ∈
+  [0.40, 0.70]); tuning the title boost DOWN + description/body/bullet boost
+  UP re-ranks the best answer above the decoy → headroom appears.
+  Per-scenario (baseline → better): acme-products 0.597→0.851, corp-docs
+  0.633→0.863, news 0.561→0.799, jobs 0.690→0.985, acme-kb-solr
+  0.644→0.878 (all lift ≥ +0.23, all `better < 0.99`). A module-level
+  `_days_ago_iso()` helper keeps the news + jobs `published_at` within the
+  freshness-decay window (documented determinism trade-off — relative dates
+  keep the operator-facing demo plausible; the ≥ +0.23 margins absorb the
+  per-day decay shift).
+- **`max_trials` 12 → 50** (Story 2.2 / FR-6 / D-11): new shared
+  `DEMO_SMALL_STUDY_MAX_TRIALS` constant exported from
+  `scripts/seed_meaningful_demos.py`, aliased by
+  `demo_seeding.py:_REAL_STUDY_MAX_TRIALS` so the CLI `make seed-demo` and
+  home-button reseed paths can't drift. Pinned at
+  `STUDIES_TPE_WARMUP_FLOOR` so the small-scenario LLM + UBI studies clear
+  the warmup floor and the verdict reads `converged`/`still_improving`
+  instead of a uniform `too_few_trials`. Rich-scenario budget stays at 15.
+- **Tests** (Story 2.3 scaffold + finalize): engine-backed headroom test
+  (`backend/tests/integration/test_demo_scenarios_headroom.py` + the
+  `headroom_harness.py` + `opensearch_reachability.py` fixtures) — 5
+  scenarios + a resolver-parity guard. ES/OS scenarios are **hard CI gates**
+  via `_require_es_or_fail()` / `_require_opensearch_or_fail()` (CI=true →
+  `pytest.fail`, local → `pytest.skip`); Solr skip-gates per D-18. Shape
+  invariants (`test_scenarios_judgment_density.py`, 21 parametrized cases —
+  doc-count floor, judgment density, valid refs, FULL {0,1,2,3} rubric per
+  query). `max_trials` single-source guards (4 — warmup-floor equality,
+  alias-via-source-inspection, rich-unchanged, CLI-source-grep). Heavy-lane
+  `test_demo_seeding_ubi_full.py` gained an AC-7/AC-8 block reading
+  persisted `Study.baseline_metric`/`best_metric` via the **live list path**
+  (`count_trials_for_studies` + `resolve_list_convergence_verdicts`); AC-8
+  wall-clock ceiling raised 1140s → 3600s per D-9.
+- **Tangential inline fix**: `backend/tests/integration/test_health_integration.py`
+  was asserting the `/healthz` subsystems set didn't include `solr` despite
+  Solr being live since 2026-05-31 — added `solr` to the expected set + the
+  blocking-down branch + accepted `not_configured` as a valid Solr-probe
+  state. Fixed inline per the CLAUDE.md fix-inline-by-default rule.
+
+**The interesting story is the mid-flight rebase.** The Epic 2 PR was opened
+carrying both epics (Epic 1 had been committed on the feat branch in an
+earlier session but not yet PR'd). During CI watch the PR showed
+`CONFLICTING` against main — investigation revealed Epic 1's exact commits
+had already merged to main as part of PR #421's squash-merge (which bundled
+the onepager docs PR with the Epic 1 code, presumably from a parallel
+session). Rather than resolve a 4-file conflict on duplicate content, the
+branch was reset to `origin/main` (`e5c3b8b9`) and the 5 Epic 2 commits were
+cherry-picked clean on top, then force-pushed. A second wrinkle: a
+subsequent docs-only push hit `pr.yml`'s `paths-ignore` filter so the heavy
+lanes didn't run — fixed by a close+reopen of the PR to re-trigger the full
+workflow.
+
+**Cross-model review.** Epic 2 phase-gate GPT-5.5 cycle 1 returned 6 findings
+(F1 High: ES/OS skip→fail-in-CI — accepted; F2 Medium: AC-8 via direct
+classifier→route through the live resolver — accepted; F3 Medium: dynamic
+timestamps — accepted as documented comment; F4 Low: shape test 3-distinct→
+full-rubric — accepted; F5 Low: `is`-identity on small ints→source
+inspection — accepted; F6 Medium: docs deferred to the docs step). Cycle 2
+clean. Final GPT-5.5 review on the full PR diff: 2 findings, both rejected
+(Solr CLI being study-less is pre-existing `infra_adapter_solr` Story A13
+behavior, not this PR's scope; the convergence badge's header-tooltip matches
+the established sibling-column convention). Gemini Code Assist posted 2
+pre-rebase findings on `trial.py` (both hunk-isolated false positives — the
+`Trial.study_id` column is `Mapped[str]`); the rebase made them moot since
+that file shipped with Epic 1. All 12 `pr.yml` checks green on merge (smoke
+skipped — opt-in/off).
+
+---
+
 ### `chore_template_library_expansion` — runnable template library + per-engine tunable-params cheatsheets (PR #416, 2026-06-02)
 
 Squash-merged via [PR #416](https://github.com/SoundMindsAI/relyloop/pull/416)

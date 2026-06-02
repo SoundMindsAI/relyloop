@@ -1,7 +1,7 @@
 # Implementation Plan — Studies-list convergence visibility + real demo data
 
 **Date:** 2026-06-02
-**Status:** Epic 1 shipped on `main` via PR #421 (`e5c3b8b9`); Epic 2 in flight as PR #422
+**Status:** Complete — Epic 1 via PR #421 (`e5c3b8b9`), Epic 2 via PR #422 (squash-merged `49a0e1b0`, 2026-06-02)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md (conventions, absolute rules); `feat_study_convergence_indicator` (classifier reuse)
 
