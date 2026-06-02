@@ -836,6 +836,7 @@ async def _async_seed_synthetic_ubi(
     seed_anchor_iso: str,
     engine_base_url: str,
     host_auth: tuple[str, str],
+    engine_type: str,
 ) -> int:
     """Sync-callable wrapper around the async UBI helpers (Story 2.5 / FR-5).
 
@@ -874,6 +875,7 @@ async def _async_seed_synthetic_ubi(
             engine_client=client,
             engine_base_url=engine_base_url,
             host_auth=host_auth,
+            engine_type=engine_type,
             # CLI runs on the HOST — the in-container default
             # /app/samples/ubi_index_mappings.json does not exist here.
             # Resolve the repo-root samples/ path instead (GPT-5.5 final
@@ -885,6 +887,7 @@ async def _async_seed_synthetic_ubi(
             engine_client=client,
             engine_base_url=engine_base_url,
             host_auth=host_auth,
+            engine_type=engine_type,
             scenario_slug=scenario_slug,
             target_application=target_application,
             queries=queries,
@@ -1153,6 +1156,7 @@ def seed_scenario(s: dict) -> list[dict]:
                 seed_anchor_iso=seed_anchor_iso,
                 engine_base_url=s["host_base_url"],
                 host_auth=s["host_auth"],
+                engine_type=s["engine_type"],
             )
         )
         print(f"  synthetic UBI: {event_count} events ({ubi_target_rung})")
@@ -1633,6 +1637,16 @@ def apply_study_renames(results: list[dict]) -> None:
         return
     print("\n=== renaming studies ===")
     for r in results:
+        # Solr-minimum scenarios (infra_adapter_solr Story A13) register a
+        # cluster + template but create no study — operators start it from the
+        # UI after `make seed-solr`. Those result dicts carry neither
+        # `study_id` nor `study_name`, so there's nothing to rename; skip them.
+        # Guard on BOTH keys the body dereferences (the summary loop guards on
+        # `study_id`) so the two consumers stay consistent and robust to any
+        # partial dict. (Mirrors the rich scenario's `if rich_result.get(
+        # "study_id")` study-presence guard.)
+        if "study_id" not in r or "study_name" not in r:
+            continue
         # study_name is from a closed set in SCENARIOS — safe to inline-escape.
         safe = r["study_name"].replace("'", "''")
         sql = f"UPDATE studies SET name = '{safe}' WHERE id = '{r['study_id']}';"
@@ -1884,6 +1898,15 @@ def main() -> int:
 
     print("\n=== seed complete ===")
     for r in results:
+        # Study-less entries (Solr-minimum, Story A13): no study was seeded —
+        # surface the cluster registration + next-step hint instead of the
+        # study line so the operator knows the Solr scenario landed partially.
+        if "study_id" not in r:
+            print(
+                f"  {r.get('scenario', '?')}: cluster registered, no study "
+                f"— {r.get('next_step', 'create the demo study via the UI')}"
+            )
+            continue
         print(f"  {r['slug']}: study={r['study_id']} ({r['study_name']})")
 
     # Engine-unreachable skips are a distinct, non-error outcome — list them in
