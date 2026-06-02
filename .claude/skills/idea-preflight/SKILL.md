@@ -11,7 +11,9 @@ user-invocable: true
 
 # Idea Preflight — verify an idea.md is ready for /pipeline
 
-You are auditing a planned-feature `idea.md` file before it enters the `/pipeline` flow (which runs `/spec-gen` → `/impl-plan-gen` → `/impl-execute` → `/guide-gen`). The idea may have been written days, weeks, or months ago. Your job is to ground every concrete claim against the **current** codebase, force decisions on every open fork, and either declare the idea **ready for /pipeline** or emit a concrete patch list.
+You are auditing a planned-feature `idea.md` file before it enters a downstream execution flow. The idea may have been written days, weeks, or months ago. Your job is to ground every concrete claim against the **current** codebase, force decisions on every open fork, and either declare the idea **ready** (and route it to the right-sized execution skill — see Step 10 §9) or emit a concrete patch list.
+
+The downstream flow depends on the work's weight: **`/pipeline`** (`/spec-gen` → `/impl-plan-gen` → `/impl-execute` → `/guide-gen`) for feature-shaped work; **`/bug-fix`** (focused `bug_fix.md` → `/impl-execute --ad-hoc`) for bounded bugs/chores with design surface; **`/impl-execute --ad-hoc`** for mechanical fixes. Preflight is the common front door to all three — the Step 10 §9 decision tree picks the route so the user doesn't pay `/pipeline`'s two-artifact ceremony for a one-subsystem bug fix.
 
 This skill **defaults to Audit & Patch** — apply the patches you propose, do not ask for permission first. The findings table is still emitted, but the user sees it as "here's what I changed and why," not "here's a list of edits I'd like to make if you say yes."
 
@@ -138,15 +140,24 @@ Output, in order:
 6. **Open questions for /spec-gen** (genuinely needs spec-time decision; not just deferred).
 7. **Sibling coordination notes**.
 8. **Patches applied** — one paragraph per file, exact edits that landed (Audit & Patch is the default). For each edit, cite the section (Origin / Depends on / Capability N / etc.) and one-line summary of the change. If a folder rename is recommended, present it as a proposal and pause before running `git mv` (folder renames are the one hard-confirmation gate per "Mode selection" above).
-9. **Suggested next command** — the runnable `/pipeline` command to advance the idea, in **autonomous (`--auto`) form**. Whenever the verdict is **ready** (or "ready after patching"), emit the command with the `--auto` flag appended so the user can run the full idea → spec → plan → implement → PR lifecycle without inter-stage approval pauses:
+9. **Suggested next command** — the runnable command to advance the idea. **Route to the lightest-weight skill that fits the work** — do NOT reflexively suggest `/pipeline`. `/pipeline` runs `/spec-gen` + `/impl-plan-gen` (two heavyweight artifacts, each with up to 3 GPT-5.5 cross-model cycles) before any code; that ceremony is justified for *features* with new product surface, but it is overkill for a bounded bug fix or chore. Pick the route with the **Right-sizing decision tree** below, then emit that command (in autonomous form) only when the verdict is **ready** (or "ready after patching"). If the verdict is **not ready** (blockers needing a human decision), do NOT emit any autonomous command — point at the specific blocker remediation instead, since autonomous advancement would carry the unresolved decision downstream.
 
-   ```
-   /pipeline <feature_dir> --auto
-   ```
+   **Right-sizing decision tree** (evaluate top-to-bottom; first match wins). Read the idea's **folder prefix** + its **Scope signals** section (backend/frontend/migration/config file-count hints) + whether any **design fork is still open**:
 
-   Example: `/pipeline docs/00_overview/planned_features/02_mvp2/infra_adapter_solr --auto`.
+   | If the idea is… | Route | Command |
+   |---|---|---|
+   | `feat_` or `epic_` — new product/UI surface, OR multi-subsystem, OR a migration that warrants a spec's downgrade/idempotency discipline, OR introduces/modifies an absolute-rule surface (audit events, webhook idempotency, quota, pipeline-stage transitions) | **`/pipeline`** — full spec → plan → implement | `/pipeline <feature_dir> --auto` |
+   | `bug_` or `chore_` with **non-trivial design surface** — an open/just-locked design fork, a new migration, a new prompt, or cross-layer ownership — but **smaller than a feature** (no new product surface, bounded file count) | **`/bug-fix`** — writes a focused ~80-line `bug_fix.md` (NOT a spec+plan pair), then `--ship` chains into `/impl-execute --ad-hoc` | `/bug-fix <feature_dir> --ship` |
+   | `bug_` or `chore_` that is **mechanical** — ≤~50 LOC, no design fork, no new test-infra layer, the fix is obvious from the idea | **`/impl-execute --ad-hoc`** on a feature branch (no spec, no plan, no `bug_fix.md`) — but most ideas this small never get an idea file in the first place | `/impl-execute --ad-hoc` (create the branch + make the change first; ad-hoc ships what's on the branch) |
 
-   The `--auto` form is the default suggestion because a preflighted idea has already had its concrete claims verified, its forks locked, and its stale references refreshed — the pre-work that the inter-stage approval pauses would otherwise re-surface. The hard quality gates inside each skill (cross-model review, verification gates, test suites, CI, Gemini adjudication) still fire in `--auto` mode — only the inter-stage "approve to continue?" prompts are skipped, and the PR is still left for the user to merge manually. If the verdict is **not ready** (blockers remain that need a human decision), do NOT suggest `--auto` — instead point the user at the specific blocker remediation, since autonomous advancement would carry the unresolved decision downstream.
+   **The dominant signal is the prefix.** A preflighted `bug_`/`chore_` idea almost always routes to `/bug-fix --ship`, NOT `/pipeline`. Reach for `/pipeline` on a `bug_`/`chore_` folder ONLY when the work genuinely sprawls into feature-shaped territory (multi-subsystem, new surface, a migration needing spec-level review) — and say so explicitly when you do. Conversely, a `feat_`/`epic_` folder almost always routes to `/pipeline --auto`. When the prefix and the scope disagree (e.g. a `feat_`-prefixed folder whose Scope signals show a one-file backend tweak with no UI), trust the scope and say which signal you weighed.
+
+   Examples:
+   - `infra_adapter_solr` (feature, three-engine surface, new adapter) → `/pipeline docs/00_overview/planned_features/02_mvp2/infra_adapter_solr --auto`
+   - `bug_llm_capability_cache_no_refresh` (bug, one subsystem, design fork locked at preflight, ~2-3 backend files, no migration) → `/bug-fix docs/00_overview/planned_features/02_mvp2/bug_llm_capability_cache_no_refresh --ship`
+   - `chore_arq_pool_aclose_deprecation` (chore, two call-sites, no design fork) → `/impl-execute --ad-hoc` (branch + edit first)
+
+   The autonomous/`--ship` form is the default because a preflighted idea has already had its concrete claims verified, its forks locked, and its stale references refreshed — the pre-work that inter-stage approval pauses (or a `bug_fix.md` design round) would otherwise re-surface. The hard quality gates inside each downstream skill (cross-model review, verification gates, test suites, CI, Gemini adjudication) still fire regardless of route; only the inter-stage "approve to continue?" prompts are skipped, and the PR is still left for the user to merge manually.
 
 Then: report `git diff --stat` so the user can see file-level scope. If Audit-only mode is in effect, swap section 8 to "Patch plan" and end by asking whether to apply.
 
@@ -178,9 +189,9 @@ Cap each section at what fits on screen. If the audit produces 20+ findings, gro
 
 ## Termination
 
-End with one of the following. For every **ready** termination, the closing line is the autonomous `/pipeline <feature_dir> --auto` command (per Step 10 §9) so the user has a one-paste next action:
+End with one of the following. For every **ready** termination, the closing line is the **route-appropriate** advance command chosen by the Step 10 §9 decision tree (`/pipeline <dir> --auto` for features, `/bug-fix <dir> --ship` for bounded bugs/chores with design surface, `/impl-execute --ad-hoc` for mechanical fixes) — NOT a hard-wired `/pipeline`. Give the user a one-paste next action that matches the work's actual weight:
 
-- **"Ready for /pipeline."** — no patches needed (rare on first audit; common after a re-audit). No blockers, all decisions locked, folder name correct. Close with the `--auto` command.
-- **"Patches applied. N edits across M files. Idea is now ready for /pipeline."** — the default termination after Audit & Patch. Include a short bullet list of what changed and a `git diff --stat` line, then close with the `--auto` command. If a folder rename was recommended but skipped pending user confirmation, surface that explicitly: **"One pending decision: rename folder to `<new>`? Run `git mv` to apply."**
-- **"Not ready. N blockers remain after patching (see above)."** — Audit & Patch landed the safe edits but blockers requiring human decision remain. Each blocker has a remediation path the user must drive (product/UX call, schema design call, scope cut, etc.). Do NOT emit the `--auto` command here — point at the blocker remediation instead.
+- **"Ready for the pipeline."** — no patches needed (rare on first audit; common after a re-audit). No blockers, all decisions locked, folder name correct. Close with the route-appropriate command from §9.
+- **"Patches applied. N edits across M files. Idea is now ready."** — the default termination after Audit & Patch. Include a short bullet list of what changed and a `git diff --stat` line, then close with the route-appropriate command from §9 (name the route + one-line why, e.g. "`bug_` folder + locked design fork + 3-file backend scope → `/bug-fix --ship`, not `/pipeline`"). If a folder rename was recommended but skipped pending user confirmation, surface that explicitly: **"One pending decision: rename folder to `<new>`? Run `git mv` to apply."**
+- **"Not ready. N blockers remain after patching (see above)."** — Audit & Patch landed the safe edits but blockers requiring human decision remain. Each blocker has a remediation path the user must drive (product/UX call, schema design call, scope cut, etc.). Do NOT emit any autonomous advance command here — point at the blocker remediation instead.
 - **"Audit-only output (no patches applied per `--audit-only` flag). Want me to apply?"** — Audit-only mode termination. The default termination above replaces this for normal invocations.
