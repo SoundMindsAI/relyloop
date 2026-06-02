@@ -40,16 +40,14 @@ against this exact harness until all bounds held.
 from __future__ import annotations
 
 import math
+import os
 import uuid
 from typing import Any
 
 import pytest
 
 from backend.app.adapters.protocol import ParamValue
-from backend.tests.integration.fixtures.es_reachability import (
-    _es_base_url,
-    es_required,
-)
+from backend.tests.integration.fixtures.es_reachability import _es_base_url
 from backend.tests.integration.fixtures.headroom_harness import (
     build_adapter,
     cleanup_target,
@@ -59,7 +57,6 @@ from backend.tests.integration.fixtures.headroom_harness import (
 )
 from backend.tests.integration.fixtures.opensearch_reachability import (
     _opensearch_base_url,
-    opensearch_required,
 )
 from backend.tests.integration.fixtures.solr_reachability import (
     _solr_base_url,
@@ -245,45 +242,91 @@ async def _run_headroom(scenario: dict[str, Any], base_url: str) -> None:
 # per-case skip markers ergonomically. The set of scenarios per engine is
 # stable (the SCENARIOS literal is single-sourced) so the test count is
 # transparent and grep-able.
+#
+# ES/OpenSearch hard-gate (plan D-18 / GPT-5.5 cycle-1 F1): in CI the
+# `pr.yml` workflow declares ES + OS as service containers, so a missing
+# probe URL means the container failed to come up — a CI-infra regression
+# that MUST fail loudly, not silently skip. The ``_require_es_or_fail`` /
+# ``_require_opensearch_or_fail`` helpers route the failure based on the
+# ``CI`` env var (GitHub Actions sets ``CI=true``; same precedent as
+# ``backend/tests/integration/fixtures/es_overlap_probe.py``'s
+# ``_check_local_es_credentials_or_skip``). Solr stays skip-only — backend
+# CI has no Solr container per ``infra_solr_ci_readiness``.
+
+
+def _require_es_or_fail() -> str:
+    """Return the ES base URL; in CI fail hard when unreachable, locally skip.
+
+    Plan §6 + D-18: ES/OS scenarios are hard CI gates; an unreachable ES
+    container is a CI infrastructure failure, NOT a tolerable skip. The
+    ``@es_required`` marker silently skips when ``_es_base_url()`` returns
+    empty — fine for a developer who hasn't run ``make up`` locally, but
+    a CI regression hider. This helper routes the unreachable case to
+    ``pytest.fail`` when ``CI=true`` (the GHA-set env var the rest of the
+    repo already discriminates on — see ``es_overlap_probe.py`` for the
+    precedent).
+    """
+    base_url = _es_base_url()
+    if base_url:
+        return base_url
+    msg = (
+        "ES unreachable at localhost:9200 / elasticsearch:9200 — the "
+        "pr.yml backend job declares an `elasticsearch` service container "
+        "(see .github/workflows/pr.yml); if you see this in CI the "
+        "container failed to come up. Per plan D-18 the 4 ES/OS headroom "
+        "scenarios are hard CI gates."
+    )
+    if os.environ.get("CI") == "true":
+        pytest.fail(msg)
+    pytest.skip(msg)
+
+
+def _require_opensearch_or_fail() -> str:
+    """OpenSearch sibling of :func:`_require_es_or_fail`; same CI-fail semantics."""
+    base_url = _opensearch_base_url()
+    if base_url:
+        return base_url
+    msg = (
+        "OpenSearch unreachable at localhost:9201 / opensearch:9200 — the "
+        "pr.yml backend job declares an `opensearch` service container "
+        "(see .github/workflows/pr.yml); if you see this in CI the "
+        "container failed to come up. Per plan D-18 the 4 ES/OS headroom "
+        "scenarios are hard CI gates."
+    )
+    if os.environ.get("CI") == "true":
+        pytest.fail(msg)
+    pytest.skip(msg)
 
 
 # acme-products-prod — Elasticsearch.
 @pytest.mark.integration
-@es_required
 async def test_headroom_acme_products_prod() -> None:
     scenario = _scenarios_by_slug()["acme-products-prod"]
-    base_url = _es_base_url()
-    assert base_url, "es_required marker should have skipped"
+    base_url = _require_es_or_fail()
     await _run_headroom(scenario, base_url)
 
 
 # corp-docs-search — Elasticsearch.
 @pytest.mark.integration
-@es_required
 async def test_headroom_corp_docs_search() -> None:
     scenario = _scenarios_by_slug()["corp-docs-search"]
-    base_url = _es_base_url()
-    assert base_url, "es_required marker should have skipped"
+    base_url = _require_es_or_fail()
     await _run_headroom(scenario, base_url)
 
 
 # news-search-staging — OpenSearch.
 @pytest.mark.integration
-@opensearch_required
 async def test_headroom_news_search_staging() -> None:
     scenario = _scenarios_by_slug()["news-search-staging"]
-    base_url = _opensearch_base_url()
-    assert base_url, "opensearch_required marker should have skipped"
+    base_url = _require_opensearch_or_fail()
     await _run_headroom(scenario, base_url)
 
 
 # jobs-marketplace-prod — Elasticsearch.
 @pytest.mark.integration
-@es_required
 async def test_headroom_jobs_marketplace_prod() -> None:
     scenario = _scenarios_by_slug()["jobs-marketplace-prod"]
-    base_url = _es_base_url()
-    assert base_url, "es_required marker should have skipped"
+    base_url = _require_es_or_fail()
     await _run_headroom(scenario, base_url)
 
 

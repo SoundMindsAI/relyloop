@@ -388,62 +388,59 @@ async def test_full_reseed_produces_8_lists_8_studies_per_rung_correct(
                 )
 
                 # FSCV AC-8: trial_count == 50 AND verdict != too_few_trials.
-                # trial_count semantics match StudySummary (non-baseline rows).
-                acme_trial_count = await db.scalar(
-                    text(
-                        "SELECT COUNT(*) FROM trials WHERE study_id = :sid AND is_baseline IS FALSE"
-                    ),
-                    {"sid": acme_study_id},
+                # Route the assertion through the LIVE list-endpoint path
+                # (``count_trials_for_studies`` + ``resolve_list_convergence_verdicts``)
+                # so a regression in the list wiring fails this heavy-lane
+                # assertion too, not just the per-scenario headroom test (per
+                # GPT-5.5 phase-gate cycle-1 F2). Mirrors the live
+                # ``list_studies`` builder: repo.count then service.resolve.
+                from backend.app.db import repo as live_repo
+                from backend.app.services.study_convergence import (
+                    resolve_list_convergence_verdicts,
                 )
-                assert acme_trial_count == 50, (
-                    f"FSCV AC-8 trial_count drift — acme-products-prod ran "
-                    f"{acme_trial_count} non-baseline trials, not 50; the "
-                    f"DEMO_SMALL_STUDY_MAX_TRIALS bump regressed"
-                )
-                # Convergence verdict — classify against the persisted complete
-                # trials, the same path the live list endpoint uses.
-                acme_complete_trials = (
-                    await db.execute(
-                        text(
-                            "SELECT primary_metric, optuna_trial_number "
-                            "FROM trials "
-                            "WHERE study_id = :sid AND status = 'complete' "
-                            "  AND is_baseline IS NOT TRUE "
-                            "ORDER BY optuna_trial_number"
-                        ),
-                        {"sid": acme_study_id},
-                    )
-                ).all()
-                # The classifier consumes Trial ORM rows but reads only the
-                # two fields above — a SimpleNamespace duck-type is enough.
-                from types import SimpleNamespace
 
-                trial_objs = [
-                    SimpleNamespace(
-                        primary_metric=row.primary_metric,
-                        optuna_trial_number=row.optuna_trial_number,
-                    )
-                    for row in acme_complete_trials
-                ]
-                # Direction comes from the persisted objective JSON (defaults
-                # to maximize, matching the demo config).
-                direction = (acme_study_row.objective or {}).get("direction", "maximize")
-                shape = classify_convergence(trial_objs, direction=direction)
-                assert shape is not None, (
-                    "FSCV AC-8 — classifier returned None for acme-products-prod "
-                    "despite >= 50 complete trials; classifier wiring regressed"
+                # Need the Study ORM row (not a raw SQL Row) for
+                # resolve_list_convergence_verdicts — it reads .id, .status,
+                # .objective, .config.
+                acme_study = await live_repo.get_study(db, str(acme_study_id))
+                assert acme_study is not None, (
+                    f"acme study {acme_study_id} disappeared between SELECT and "
+                    "get_study — DB churn race?"
                 )
-                assert shape.verdict in ("converged", "still_improving"), (
+                trial_counts = await live_repo.count_trials_for_studies(db, [str(acme_study_id)])
+                acme_trial_counts = trial_counts.get(str(acme_study_id))
+                assert acme_trial_counts is not None, (
+                    f"count_trials_for_studies returned no entry for {acme_study_id}"
+                )
+                # ``total`` matches StudySummary.trial_count exactly
+                # (non-baseline rows; FR-1 / spec §13).
+                assert acme_trial_counts.total == 50, (
+                    f"FSCV AC-8 trial_count drift — acme-products-prod ran "
+                    f"{acme_trial_counts.total} non-baseline trials, not 50; "
+                    f"the DEMO_SMALL_STUDY_MAX_TRIALS bump regressed"
+                )
+                verdicts_map = await resolve_list_convergence_verdicts(
+                    db, [acme_study], trial_counts
+                )
+                acme_verdict = verdicts_map.get(str(acme_study_id))
+                assert acme_verdict is not None, (
+                    "FSCV AC-8 — list-endpoint resolver returned None verdict "
+                    "for acme-products-prod despite >= 50 complete trials; "
+                    "this is the path StudySummary.convergence_verdict "
+                    "exercises (regression in list wiring would surface here)"
+                )
+                assert acme_verdict in ("converged", "still_improving"), (
                     f"FSCV AC-8 verdict drift — acme-products-prod resolved to "
-                    f"verdict={shape.verdict!r}; the bump to 50 trials should "
+                    f"verdict={acme_verdict!r}; the bump to 50 trials should "
                     f"clear too_few_trials"
                 )
 
-                # Silence the unused-import lint — Study is referenced in the
-                # docstring/comments above to document the wire shape this
-                # block reads, even though we use raw SQL for the heavy-lane
-                # session efficiency (one round-trip per metric).
+                # Silence the unused-import lints — both symbols are referenced
+                # in the docstring/commentary above to document the wire shape
+                # this block reads; the actual call goes through the resolver
+                # (which itself calls classify_convergence internally).
                 _ = Study
+                _ = classify_convergence
 
                 # AC-8 (feat_demo_reseed_solr_and_steplog): hard wall-clock
                 # ceiling. Raised from 1140s to 3600s alongside the

@@ -206,6 +206,22 @@ def _days_ago_iso(days: float) -> str:
     operator-seed time. If we hardcode an ISO string, the decay multiplier
     converges to zero a few weeks after the date and the harness scores
     every doc at zero — masking the data-design quality the test guards.
+
+    **Determinism trade-off** (GPT-5.5 cycle-1 F3 — accepted as comment):
+    these timestamps are NOT fixed at module load — they shift by one day
+    each calendar day relative to the engine's ``origin: now``. The
+    RELATIVE distance between best-answer docs (closer to ``now``) and
+    decoy docs (further from ``now``) is preserved, so the ranking
+    monotonicity is stable. The headroom-test bounds carry comfortable
+    margins (≥ +0.23 lift across the 5 scenarios per the Story 2.1
+    enrichment run), so the small per-day freshness-decay shift does
+    not flap the binary headroom outcome. The trade is intentional:
+    relative dates keep the operator-facing ``make seed-demo`` output
+    plausible (news with a stale 2025 date would read as broken to an
+    evaluator running the demo in 2027) and the harness test is
+    deterministic over short time windows. If a future flake surfaces,
+    the fix is a fixed-anchor strategy (e.g., monkey-patching ``now`` in
+    the freshness function or freezing the test clock).
     """
     return (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%SZ")
 

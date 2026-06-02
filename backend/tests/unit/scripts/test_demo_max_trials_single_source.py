@@ -58,22 +58,36 @@ def test_small_scenario_max_trials_is_at_warmup_floor() -> None:
 
 
 def test_real_study_max_trials_imports_the_shared_constant() -> None:
-    """``_REAL_STUDY_MAX_TRIALS`` must be the same int identity as the shared constant.
+    """``_REAL_STUDY_MAX_TRIALS`` must alias the shared constant, NOT a fresh literal.
 
-    Asserts the IMPORT wiring (not just equality) — a future maintainer who
-    re-introduces ``_REAL_STUDY_MAX_TRIALS: Final[int] = 50`` as a literal
-    would still satisfy ``==`` but would defeat the single-source-of-truth
-    discipline FR-7 + Story 2.2 (the parity contract) pin. ``is`` is the
-    canonical check for "same object" on Python's small-int cache; for the
-    50 we use today CPython interns the literal, so this also catches the
-    accidental re-introduction.
+    Asserts the IMPORT wiring via source inspection — a future maintainer
+    who re-introduces ``_REAL_STUDY_MAX_TRIALS: Final[int] = 50`` as a
+    literal would still satisfy ``==``, AND would still satisfy ``is`` for
+    the value ``50`` because CPython interns small ints (GPT-5.5 cycle-1
+    F5 — the original ``is`` check was unreliable for this purpose).
+    Inspecting the source for the canonical alias-binding form is the
+    only reliable single-source-of-truth enforcement.
     """
-    assert _REAL_STUDY_MAX_TRIALS == DEMO_SMALL_STUDY_MAX_TRIALS
-    assert _REAL_STUDY_MAX_TRIALS is DEMO_SMALL_STUDY_MAX_TRIALS, (
-        f"_REAL_STUDY_MAX_TRIALS in demo_seeding.py must alias the imported "
-        f"DEMO_SMALL_STUDY_MAX_TRIALS constant, not a fresh literal "
-        f"(got id(_REAL_STUDY_MAX_TRIALS)={id(_REAL_STUDY_MAX_TRIALS)}, "
-        f"id(DEMO_SMALL_STUDY_MAX_TRIALS)={id(DEMO_SMALL_STUDY_MAX_TRIALS)})"
+    import inspect
+
+    import backend.app.services.demo_seeding as demo_seeding
+
+    source = inspect.getsource(demo_seeding)
+    canonical_binding = "_REAL_STUDY_MAX_TRIALS: Final[int] = DEMO_SMALL_STUDY_MAX_TRIALS"
+    assert canonical_binding in source, (
+        f"expected demo_seeding.py to bind _REAL_STUDY_MAX_TRIALS to the "
+        f"imported DEMO_SMALL_STUDY_MAX_TRIALS constant; missing form: "
+        f"{canonical_binding!r}. Re-introducing a literal int (e.g. "
+        f"'_REAL_STUDY_MAX_TRIALS: Final[int] = 50') defeats Story 2.2's "
+        f"single-source discipline — the CLI and home-button reseed paths "
+        f"could then silently drift."
+    )
+    # Defense-in-depth: even with the source check, the runtime values must
+    # match. A type-check error or a future refactor that renames the
+    # constant would surface here.
+    assert _REAL_STUDY_MAX_TRIALS == DEMO_SMALL_STUDY_MAX_TRIALS, (
+        f"_REAL_STUDY_MAX_TRIALS={_REAL_STUDY_MAX_TRIALS} != "
+        f"DEMO_SMALL_STUDY_MAX_TRIALS={DEMO_SMALL_STUDY_MAX_TRIALS}"
     )
 
 

@@ -34,10 +34,15 @@ from scripts.seed_meaningful_demos import SCENARIOS
 
 # D-8 spec targets (per ``feature_spec.md`` §FR-5 + the headroom test's
 # data-design recipe). Lower bounds — the actual enrichment may exceed.
+# D-8 / Story 2.1 / GPT-5.5 cycle-1 F4: enriched judgments must span the
+# FULL rating range {0, 1, 2, 3} so a future regression that drops one
+# rubric bucket (e.g., loses all grade-2 "okay" docs) fails the test even
+# if total count stays the same. Requiring all 4 ratings keeps the
+# decoy / best-answer headroom pattern intact.
 _MIN_DOCS_PER_SCENARIO = 12
 _MIN_GRADED_DOCS_PER_QUERY = 4
-_MIN_DISTINCT_RATINGS_PER_QUERY = 3
 _VALID_RATINGS: frozenset[int] = frozenset({0, 1, 2, 3})
+_REQUIRED_RATINGS_PER_QUERY: frozenset[int] = _VALID_RATINGS
 
 
 def _scenarios_by_slug() -> dict[str, dict[str, Any]]:
@@ -125,16 +130,17 @@ def test_scenario_each_query_has_minimum_judgment_density(slug: str) -> None:
 
 
 @pytest.mark.parametrize("slug", _slugs())
-def test_scenario_each_query_spans_distinct_rating_buckets(slug: str) -> None:
-    """Every query's judgments span at least ``_MIN_DISTINCT_RATINGS_PER_QUERY`` rating values.
+def test_scenario_each_query_spans_full_rubric(slug: str) -> None:
+    """Every query's judgments span the full ``{0,1,2,3}`` rubric.
 
     The headroom test's data-design recipe (the comment block atop
     ``_BETTER_PARAMS`` in
     ``backend/tests/integration/test_demo_scenarios_headroom.py``) requires a
-    grade-3 "best answer", a grade-1 "decoy", and at least one other rating
-    (grade-0 noise OR grade-2 okay) per query. A query that collapses to a
-    single rating (e.g., all grade-3) is the degenerate state Story 2.1
-    explicitly removed; this guard prevents the regression.
+    grade-3 "best answer", a grade-1 "decoy", a grade-2 "okay", and a
+    grade-0 "wrong" per query. The original ``>= 3 distinct ratings``
+    formulation (pre-GPT-5.5-cycle-1-F4) allowed a future regression that
+    dropped one rubric bucket while still passing — tightening to the full
+    set catches that silent drift at the unit-test layer.
     """
     scenario = _scenarios_by_slug()[slug]
     ratings_per_query: dict[int, set[int]] = {}
@@ -142,12 +148,14 @@ def test_scenario_each_query_spans_distinct_rating_buckets(slug: str) -> None:
         ratings_per_query.setdefault(query_idx, set()).add(int(rating))
     for query_idx in range(len(scenario["queries"])):
         distinct = ratings_per_query.get(query_idx, set())
-        assert len(distinct) >= _MIN_DISTINCT_RATINGS_PER_QUERY, (
+        missing = _REQUIRED_RATINGS_PER_QUERY - distinct
+        assert not missing, (
             f"[{slug}] query #{query_idx} "
             f"({scenario['queries'][query_idx]['query_text']!r}) "
-            f"only spans ratings {sorted(distinct)} — D-8 / Story 2.1 "
-            f"requires >= {_MIN_DISTINCT_RATINGS_PER_QUERY} distinct ratings "
-            f"per query so the baseline-vs-better ranking gap can show"
+            f"is missing rating bucket(s) {sorted(missing)} "
+            f"(spans {sorted(distinct)}) — D-8 / Story 2.1 requires the full "
+            f"{sorted(_REQUIRED_RATINGS_PER_QUERY)} rubric per query so the "
+            f"baseline-vs-better ranking gap can show through every gradation"
         )
 
 
