@@ -63,6 +63,7 @@ from backend.app.services.demo_ubi_seed import (
 from scripts.seed_meaningful_demos import (
     DEMO_ES_INDICES,
     DEMO_OS_INDICES,
+    DEMO_SMALL_STUDY_MAX_TRIALS,
     ES,
     OS,
     TRUNCATE_TABLES,
@@ -146,8 +147,13 @@ DEMO_RESEED_JOB_TIMEOUT_S: Final[int] = 1200
 # Real-study Optuna config — identical to the CLI's
 # ``scripts/seed_meaningful_demos.py:seed_scenario`` so the reseed-button
 # output matches ``make seed-demo`` byte-for-byte (same seed=42, same
-# max_trials=12, same parallelism=2).
-_REAL_STUDY_MAX_TRIALS: Final[int] = 12
+# max_trials, same parallelism=2). ``max_trials`` is single-sourced via
+# ``DEMO_SMALL_STUDY_MAX_TRIALS`` (Story 2.2 / FR-6 / D-11 / D-12) — pinned
+# at the convergence-classifier's ``STUDIES_TPE_WARMUP_FLOOR`` (50) so the
+# small-scenario LLM + UBI studies read a meaningful convergence verdict
+# instead of a uniform ``too_few_trials``. The shared constant guarantees
+# the CLI seed and the home-button reseed never drift.
+_REAL_STUDY_MAX_TRIALS: Final[int] = DEMO_SMALL_STUDY_MAX_TRIALS
 _REAL_STUDY_PARALLELISM: Final[int] = 2
 _REAL_STUDY_SAMPLER: Final[str] = "tpe"
 _REAL_STUDY_SEED: Final[int] = 42
@@ -1905,9 +1911,12 @@ async def reseed_demo_state(
             await _poll_judgment_list_until_terminal(api_client, ubi_jlist_id, slug=slug)
 
             # Second study seed against the UBI judgment list. Same
-            # template/qset/cluster/search_space/seed=42/max_trials=12 —
-            # only the judgment_list_id differs. Skip the acme swap-
-            # template creation: it was already done on the LLM pass.
+            # template/qset/cluster/search_space/seed=42/max_trials — only
+            # the judgment_list_id differs (per D-12 the UBI study also runs
+            # ``_REAL_STUDY_MAX_TRIALS`` trials for symmetry with the LLM
+            # study, even though AC-8 only gates on the LLM study). Skip the
+            # acme swap-template creation: it was already done on the LLM
+            # pass.
             ubi_study_name = f"{base_study_name} (UBI)"
             progress.current_step = (
                 f"{slug}: creating UBI study (max_trials={_REAL_STUDY_MAX_TRIALS})"

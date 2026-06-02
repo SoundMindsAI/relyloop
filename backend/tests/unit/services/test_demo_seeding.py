@@ -221,7 +221,7 @@ async def test_seed_solr_scenario_routes_through_solr_helpers_not_index_mapping(
     first = flat_docs[0]
     assert first["id"] == "kb101"
     assert "doc" not in first
-    assert first["title"] == "Configuring SSO with Okta"
+    assert first["title"] == "Identity Provider Wiring Reference Document"
 
 
 @pytest.mark.asyncio

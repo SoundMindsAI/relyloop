@@ -1,7 +1,7 @@
 # Implementation Plan — Studies-list convergence visibility + real demo data
 
 **Date:** 2026-06-02
-**Status:** Ready for Execution
+**Status:** Epic 1 shipped on `main` via PR #421 (`e5c3b8b9`); Epic 2 in flight as PR #422
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md (conventions, absolute rules); `feat_study_convergence_indicator` (classifier reuse)
 
@@ -275,11 +275,20 @@ No migration (§3.5 migration verification N/A).
 - No flags, no migration. After merge: re-run `make seed-demo FORCE=1` to refresh local demo data (note in runbook).
 
 ## 9) Execution tracker
-- [x] Story 1.1 — backend list fields (commit pending; 8 unit + 7 integration + 3 contract tests green; latent `_summary` invalid-direction crash fixed inline as a tangential discovery surfaced by AC-3b)
-- [ ] Story 1.2 — frontend columns
-- [ ] Story 2.1 — enrich docs + judgments
-- [ ] Story 2.2 — max_trials 12→50
-- [ ] Story 2.3 — demo tests (headroom all-5 + shape + @slow seed)
+
+**Epic 1 (shipped to main via PR #421 `e5c3b8b9` squash-merge, 2026-06-02):**
+- [x] Story 1.1 — backend list fields (`b90d5477` on the feat branch, landed on main via PR #421; 8 unit + 7 integration + 3 contract tests green; latent `_summary` invalid-direction crash fixed inline as a tangential discovery surfaced by AC-3b; Epic-1 phase-review F1 parity bug (count-gate `primary_metric IS NOT NULL`) fixed in `a0c40d37`)
+- [x] Story 1.2 — frontend Trials + Convergence columns (`ed5ca276` on the feat branch, landed on main via PR #421; 1012 vitest, build clean, E2E spec)
+- [x] Epic 1 phase gate — GPT-5.5 review: 5 findings (4 accepted+fixed `a0c40d37`, F4 rejected with counter-evidence); re-review clean.
+
+**Epic 2 (in flight as PR #422):**
+- [x] Story 2.3 (scaffold) — engine-backed headroom harness (`d3db5fc2`; new `backend/tests/integration/fixtures/headroom_harness.py` + `opensearch_reachability.py`; 6 tests — 5 scenarios + resolver-parity guard; ES/OS hard-gated in CI per D-18)
+- [x] Story 2.1 — enriched docs + judgments (5 scenarios) — same commit as 2.3 scaffold; per-scenario headroom held with margins (baseline 0.561–0.690, lift +0.230 to +0.295, all `better < 0.99`)
+- [x] Story 2.2 — `max_trials` 12→50 via shared `DEMO_SMALL_STUDY_MAX_TRIALS` constant (`12b0944b`; 4 parity guards — warmup-floor + alias + rich-unchanged + CLI-source-inspection)
+- [x] Story 2.3 (finalize) — shape invariants (`79050269`; 21 parametrized — full {0,1,2,3} rubric) + @slow seed test extended with AC-7/AC-8 block routing through the live list path (`resolve_list_convergence_verdicts`)
+- [x] Epic 2 phase gate — GPT-5.5 review: cycle 1 returned 6 findings (4 accepted+fixed in `f2cb9e2b`, 1 accepted as comment, 1 deferred to docs step); cycle 2 clean.
+- [x] Documentation (`bb51300c` + state-correction `e0742e71`) — convergence-verdict runbook + ui-architecture column inventory + state.md + guide-06 caption + tangential healthz subsystem fix.
+- [x] Final GPT-5.5 cross-model review of the full PR diff: 2 findings — both rejected (Solr CLI scope is out-of-scope from `infra_adapter_solr` Story A13; header-tooltip UX matches sibling-column convention).
 
 ## 10) Story-by-Story Verification Gate
 Standard checklist per story (files match scope; contract implemented; tests at touched layers; commands run + passed; docs updated). Operator-path verification for Epic 2: `make seed-demo FORCE=1` confirming FR-5/FR-6 ranges.
