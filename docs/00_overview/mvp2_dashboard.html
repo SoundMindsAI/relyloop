@@ -369,7 +369,7 @@ footer {
   <div class="back-link"><a href="dashboard.html">← Roadmap overview</a></div>
   <h1>RelyLoop MVP2 Dashboard</h1>
   <div class="meta">
-    Reflects feature-folder state as of 2026-06-01 (latest mtime of any
+    Reflects feature-folder state as of 2026-06-02 (latest mtime of any
     <code>docs/00_overview/planned_features/</code> or
     <code>docs/00_overview/implemented_features/</code> file).
     See <a href="../../state.md">state.md</a> for the active branch context,
@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">8 / 17</div>
-      <div class="sub">47% specced · 39 filed under MVP2</div>
-      <div class="bar"><span style="width:47%"></span></div>
+      <div class="value">8 / 18</div>
+      <div class="sub">44% specced · 40 filed under MVP2</div>
+      <div class="bar"><span style="width:44%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">31</div>
+      <div class="value">32</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,7 +420,7 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">2</div>
+      <div class="value">3</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">27</div>
+      <div class="value">28</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -466,13 +466,13 @@ footer {
   <h3>Idea <span class="count">22</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_solr_smoke_stability">Solr Smoke Stability</a></div>
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget">Smoke Reseed Runtime Budget</a></div>
   <div class="meta">
     <span class="badge infra">Infra</span>
     <span class="badge priority" data-priority="P1">P1</span>
 
   </div>
-  <div class="one-liner">After Phase 1 ships, the `pr.yml` `backend` job goes green (the heavy-lane reseed test no longer requires Solr). But the `smoke-test` job is independent — it runs `make up` which brings up the full Co</div>
+  <div class="one-liner">Idea — captured at `infra_solr_smoke_stability` PR #383 merge time</div>
 
 
 </div>
@@ -758,7 +758,20 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">9</span></h3>
+  <h3>Plan <span class="count">10</span></h3>
+
+<div class="card infra" data-prefix="infra" data-priority="P1">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_solr_smoke_stability/feature_spec.md">Solr Smoke Stability</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P1">P1</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/367">PR #367</a> <span>merged 2026-06-01</span>
+  </div>
+  <div class="one-liner">The `pr.yml` `smoke (operator-path tutorial flow)` job is red on every branch.</div>
+
+
+</div>
+
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -1020,6 +1033,8 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
+  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
+  class infra_solr_smoke_stability plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1061,6 +1076,8 @@ footer {
   class feat_ubi_llm_study_comparison plan;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate plan;
+  infra_solr_smoke_stability[&quot;solr smoke stability&quot;]
+  class infra_solr_smoke_stability plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
