@@ -38,6 +38,24 @@ name: pr
 # switch is ON, PRs merge with only the fast-lane unit tests + secret scanning
 # as automated signal, so lean on local `make test` / `pnpm test` + review.
 # This is a temporary measure; restore full CI as soon as the budget allows.
+#
+# SMOKE-TEST OPT-IN SWITCH (SMOKE_TEST repo variable)
+# ---------------------------------------------------
+# The `smoke-test` (operator-path tutorial flow) job is OFF by default. The
+# full-stack Playwright smoke run drives the demo-ubi reseed, which exceeds
+# any reasonable per-PR budget (it routinely hits the 25-min job cap — see
+# infra_smoke_reseed_runtime_budget). Until that's fixed the job provides
+# little signal for the wall-clock it costs, so it only runs when explicitly
+# opted in:
+#   if: ${{ vars.SMOKE_TEST == 'true' && vars.SKIP_HEAVY_CI != 'true' }}
+# Default (variable unset) → SMOKE_TEST is false → the smoke job is skipped.
+# It still requires heavy CI to be on (SKIP_HEAVY_CI != 'true').
+#
+#   Enable smoke (opt in):   gh variable set SMOKE_TEST --body true
+#   Disable smoke (default): gh variable delete SMOKE_TEST   (or set to false)
+#
+# Unlike SKIP_HEAVY_CI (whose SAFE default runs everything), SMOKE_TEST's
+# default is OFF on purpose — the job is currently more cost than signal.
 
 on:
   pull_request:
@@ -486,10 +504,14 @@ jobs:
 
   smoke-test:
     name: smoke (operator-path tutorial flow)
-    # TEMP CI-budget kill-switch — see the SKIP_HEAVY_CI note at top of file.
-    # (Also has `needs: [docker, docker-ui]` below; when the switch is on
-    # those skip too, so this stays consistent either way.)
-    if: ${{ vars.SKIP_HEAVY_CI != 'true' }}
+    # OFF by default — opt in with `gh variable set SMOKE_TEST --body true`.
+    # See the "SMOKE-TEST OPT-IN SWITCH" + "SKIP_HEAVY_CI" notes at top of
+    # file. The job runs ONLY when SMOKE_TEST is explicitly 'true' AND heavy
+    # CI isn't being skipped. Default (SMOKE_TEST unset → false) skips it
+    # because the demo-ubi reseed exceeds the per-PR budget
+    # (infra_smoke_reseed_runtime_budget). `needs: [docker, docker-ui]` below
+    # stays consistent — when this skips, the images simply go unused here.
+    if: ${{ vars.SMOKE_TEST == 'true' && vars.SKIP_HEAVY_CI != 'true' }}
     runs-on: ubuntu-24.04
     # Bumped 15 → 25 min after infra_solr_smoke_stability PR #383: the
     # demo-ubi.spec.ts beforeAll hook drives a reseed that AC-8 bounds at

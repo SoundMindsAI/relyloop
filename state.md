@@ -8,9 +8,11 @@
 
 MVP1 (v0.1) **shipped** — all six differentiators live (Bayesian/TPE optimizer, Git-PR apply path, conversational agent, ES + OpenSearch adapters, LLM judgments, local-first stack). The release matrix was compressed to four stops on 2026-05-27 — MVP1 → MVP2 (Three-Engine + Real Signals: Solr adapter + UBI judgments) → MVP3 (Observable) → GA v1 (hardening). Multi-tenant + multi-LLM + multi-Git + LTR + Path B are backlog. Canonical matrix: [`docs/01_architecture/tech-stack.md`](docs/01_architecture/tech-stack.md); full reshuffle rationale archived in [`state_history.md`](state_history.md).
 
-## CI note — full suite active
+## CI note — full suite active (smoke is opt-in)
 
-**Heavy CI is ON.** `SKIP_HEAVY_CI` was deleted 2026-05-31 — the full `pr.yml` suite (backend lint/typecheck/tests/coverage, frontend, smoke, both `docker buildx`) runs on every PR again. The earlier ~3-day skip (2026-05-29, PR #307) was a private-repo GHA-budget measure; it no longer applies now that the repo is **public** — standard GitHub-hosted runners (`ubuntu-latest`/`ubuntu-24.04`, all jobs) are unlimited-free on public repos. The `if:` kill-switch stays in `pr.yml` as documented infra; re-enable only with a fresh budget reason by setting `SKIP_HEAVY_CI=true`.
+**Heavy CI is ON.** `SKIP_HEAVY_CI` was deleted 2026-05-31 — the full `pr.yml` suite (backend lint/typecheck/tests/coverage, frontend, both `docker buildx`) runs on every PR. The earlier ~3-day skip (2026-05-29, PR #307) was a private-repo GHA-budget measure; it no longer applies now that the repo is **public** — standard GitHub-hosted runners (`ubuntu-latest`/`ubuntu-24.04`, all jobs) are unlimited-free on public repos. The `if:` kill-switch stays in `pr.yml` as documented infra; re-enable only with a fresh budget reason by setting `SKIP_HEAVY_CI=true`.
+
+**The `smoke` job is OFF by default (2026-06-02).** Gated behind a new `SMOKE_TEST` repo variable: `if: ${{ vars.SMOKE_TEST == 'true' && vars.SKIP_HEAVY_CI != 'true' }}`. Unset → false → smoke skipped. The full-stack Playwright smoke run drives the demo-ubi reseed, which routinely hits the 25-min job cap (see [`infra_smoke_reseed_runtime_budget`](docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget/idea.md)) — currently more cost than signal. Opt in with `gh variable set SMOKE_TEST --body true`; disable (default) with `gh variable delete SMOKE_TEST`. Until the reseed-runtime fix lands, leave it off and lean on the backend/frontend gates + local `make up` smoke. This retires the "smoke red/cancelled on every PR → merge on the D-6 fast lane" friction — there's no longer a smoke check to fast-lane past.
 
 ## Current branch / execution context
 
