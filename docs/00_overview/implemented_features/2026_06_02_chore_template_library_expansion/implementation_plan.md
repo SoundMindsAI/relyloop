@@ -1,7 +1,7 @@
 # Implementation Plan — Curated query-template library + per-engine tunable-params cheatsheets
 
 **Date:** 2026-06-02
-**Status:** In Progress (PR open; 8 of 8 stories complete, gates green; finalize on merge)
+**Status:** Complete (PR #416, squash-merged `24568c8e` on 2026-06-02)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`docs/01_architecture/adapters.md`](../../../../01_architecture/adapters.md) §"Cross-engine parameter naming"; [`samples/templates/README.md`](../../../../../samples/templates/README.md); [`docs/06_vendor_docs/README.md`](../../../../06_vendor_docs/README.md)
 
