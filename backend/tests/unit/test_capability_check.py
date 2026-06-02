@@ -21,6 +21,7 @@ Verifies:
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import UTC, datetime
 from typing import Any
@@ -625,6 +626,135 @@ class TestReadOrRecomputeCapabilityResult:
             "read_capability_result's 'no key, no capability' semantic"
         )
         redis.set.assert_not_awaited()
+
+    async def test_cache_miss_with_check_capabilities_raising_returns_none(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Defensive failure mode: unexpected exception inside the
+        recompute path returns ``None`` instead of bubbling as a 500.
+
+        ``check_capabilities`` is documented as "never raises" but
+        ``run_capability_check_background`` defensively wraps it
+        anyway. The helper matches that posture so the caller's
+        existing cap-miss path (→ 503 LLM_PROVIDER_INCAPABLE for the
+        judgments dispatcher) still fires, rather than producing a
+        bare 500 from an unhandled exception.
+
+        Regression guard for GPT-5.5 final review finding #2 on PR #426.
+        """
+        from backend.app.llm import capability_check as cc
+
+        redis = _make_redis_with_get(cached_raw=None)
+
+        async def _raising_check_capabilities(*args: Any, **kwargs: Any) -> CapabilityResult:
+            raise RuntimeError("simulated upstream failure during recompute")
+
+        monkeypatch.setattr(cc, "check_capabilities", _raising_check_capabilities)
+
+        result = await read_or_recompute_capability_result(redis, BASE_URL, API_KEY, MODEL)
+        assert result is None, (
+            "an unexpected exception during recompute MUST surface as None "
+            "(cap-miss path) — never bubble up as 500"
+        )
+
+    async def test_concurrent_requests_on_one_worker_collapse_to_single_probe(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Single-flight: 10 concurrent recompute callers fire 1 probe.
+
+        Without the per-worker ``_RECOMPUTE_LOCK``, every coroutine that
+        observes the cache miss between read and write would fire its
+        own ``check_capabilities`` call (the GPT-5.5 final review on
+        PR #426 caught this — the original D-4 bound of
+        ``WEB_CONCURRENCY × probes`` undercounted concurrent in-worker
+        requests).
+
+        With the lock + the in-lock double-checked read, only one
+        coroutine actually probes; the others see the populated cache
+        on their second read and short-circuit.
+        """
+        from backend.app.llm import capability_check as cc
+
+        probe_calls = 0
+        # The "cache" is a single mutable container — the first probe
+        # populates it, subsequent reads return the populated value.
+        cache_state: list[CapabilityResult | None] = [None]
+
+        async def _counting_check_capabilities(
+            base_url: str,
+            api_key: str,
+            model: str,
+            redis_client: Redis,
+            *,
+            http_client: httpx.AsyncClient | None = None,
+        ) -> CapabilityResult:
+            nonlocal probe_calls
+            probe_calls += 1
+            result = CapabilityResult(
+                base_url=base_url,
+                model=model,
+                models_endpoint="ok",
+                chat_completion="ok",
+                function_calling="ok",
+                structured_output="ok",
+                tested_at=datetime.now(UTC),
+            )
+            # Yield to give concurrent waiters a chance to interleave.
+            await asyncio.sleep(0)
+            cache_state[0] = result
+            return result
+
+        async def _stateful_read_capability_result(
+            redis_client: Redis, base_url: str
+        ) -> CapabilityResult | None:
+            return cache_state[0]
+
+        monkeypatch.setattr(cc, "check_capabilities", _counting_check_capabilities)
+        monkeypatch.setattr(cc, "read_capability_result", _stateful_read_capability_result)
+
+        redis = _make_redis_with_get(cached_raw=None)
+        results = await asyncio.gather(
+            *[
+                read_or_recompute_capability_result(redis, BASE_URL, API_KEY, MODEL)
+                for _ in range(10)
+            ]
+        )
+
+        assert probe_calls == 1, (
+            f"single-flight lock MUST collapse 10 concurrent recompute "
+            f"callers to 1 probe; got {probe_calls}"
+        )
+        assert all(r is not None for r in results), (
+            "all 10 callers MUST receive the recomputed CapabilityResult"
+        )
+        assert all(r.structured_output == "ok" for r in results if r is not None)
+
+    async def test_cache_miss_with_none_api_key_returns_none(self) -> None:
+        """Type-level: api_key is annotated as `str | None`. The internal
+        check `if not api_key` handles both ``None`` and ``""`` —
+        regression guard so a caller can pass `settings.openai_api_key`
+        directly (which is `str | None` in the Settings model) without
+        the ``or ""`` boilerplate.
+
+        Regression guard for Gemini Code Assist finding #1 on PR #426.
+        """
+        redis = _make_redis_with_get(cached_raw=None)
+
+        def _explode(request: httpx.Request) -> httpx.Response:
+            raise AssertionError(
+                f"None-api_key path made an HTTP request to {request.url} — "
+                "helper should have returned None without probing",
+            )
+
+        transport = httpx.MockTransport(_explode)
+        async with httpx.AsyncClient(transport=transport) as http:
+            result = await read_or_recompute_capability_result(
+                redis, BASE_URL, None, MODEL, http_client=http
+            )
+        assert result is None
+        redis.set.assert_not_called()
 
     async def test_cache_hit_with_degraded_result_is_returned_as_is(
         self,
