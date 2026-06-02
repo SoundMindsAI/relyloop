@@ -397,9 +397,9 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">10 / 19</div>
-      <div class="sub">53% specced · 41 filed under MVP2</div>
-      <div class="bar"><span style="width:53%"></span></div>
+      <div class="value">10 / 22</div>
+      <div class="sub">45% specced · 41 filed under MVP2</div>
+      <div class="bar"><span style="width:45%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">20</span></h3>
+  <h3>Idea <span class="count">15</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P1">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_reseed_runtime_budget">Smoke Reseed Runtime Budget</a></div>
@@ -531,32 +531,6 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_studies_post_arq_spy_fixture">Studies Post Arq Spy Fixture</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The studies POST handler at [`backend/app/api/v1/studies.py:307`](../../backend/app/api/v1/studies.py#L307) calls `await _enqueue_start_study(request, study_id)` after a successful create. The helper </div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_template_library_expansion">Template Library Expansion</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Three connected gaps:</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render">Ubi Hybrid Template Render</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -564,32 +538,6 @@ footer {
 
   </div>
   <div class="one-liner">Idea — contract decision deferred (NOT a worker bug)</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ubi_reader_search_after_pagination">Ubi Reader Search After Pagination</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`UbiReader._scan_ubi_events` / `_scan_ubi_queries` each issue ONE `search_batch` (a `size`-limited query). To stay under the engine result-window they now cap at 10000 rows per (target, window).…</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_baseline_phase_test_isolation">Baseline Phase Test Isolation</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`backend/tests/unit/workers/test_orchestrator_baseline_phase.py::TestComputeBaselineWaitS::*` fail when run in isolation with:</div>
 
 
 </div>
@@ -603,19 +551,6 @@ footer {
 
   </div>
   <div class="one-liner">The E2E global-teardown deletes seeded rows in a fixed order (per `chore_e2e_test_rows_isolation` Story 1.2 cleanup registration). For auto-followup **chains**, the seeded nodes are `queued` studies c</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_judgment_header_omits_click_bucket">Judgment Header Omits Click Bucket</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">A judgment list generated from UBI (or hybrid UBI+LLM) carries non-zero `source_breakdown.click`, but the header&#x27;s source-breakdown card silently drops it. Operators reviewing a UBI list see only the </div>
 
 
 </div>
@@ -732,7 +667,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">9</span></h3>
+  <h3>Plan <span class="count">14</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -846,6 +781,71 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/286">PR #286</a>
   </div>
   <div class="one-liner">The 9 skipped cases are rewritten to the async &quot;POST + poll-until-terminal&quot; shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/feature_spec.md">Studies Post Arq Spy Fixture</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [(&quot;start</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_template_library_expansion/feature_spec.md">Template Library Expansion</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/413">PR #413</a>
+  </div>
+  <div class="one-liner">A curated, version-grounded **template library** of **6 runnable templates** (4 ES/OpenSearch: basic multi_match, function-score decay, bool-boosted, phrase rescore; 2 Solr: edismax basic, boost decay</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md">Ubi Reader Search After Pagination</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/413">PR #413</a>
+  </div>
+  <div class="one-liner">A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md">Baseline Phase Test Isolation</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_judgment_header_omits_click_bucket/feature_spec.md">Judgment Header Omits Click Bucket</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim (&quot;the UI&#x27;s source-breakdown card now renders all th</div>
 
 
 </div>
@@ -1034,6 +1034,12 @@ footer {
   class chore_cluster_detail_rung_badge plan;
   chore_demo_seeding_integration_tests_rewrite[&quot;demo seeding integration tests rewrite&quot;]
   class chore_demo_seeding_integration_tests_rewrite plan;
+  chore_studies_post_arq_spy_fixture[&quot;studies post arq spy fixture&quot;]
+  class chore_studies_post_arq_spy_fixture plan;
+  chore_template_library_expansion[&quot;template library expansion&quot;]
+  class chore_template_library_expansion plan;
+  chore_ubi_reader_search_after_pagination[&quot;ubi reader search after pagination&quot;]
+  class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
   feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
@@ -1079,6 +1085,12 @@ footer {
   class chore_cluster_detail_rung_badge plan;
   chore_demo_seeding_integration_tests_rewrite[&quot;demo seeding integration tests rewrite&quot;]
   class chore_demo_seeding_integration_tests_rewrite plan;
+  chore_studies_post_arq_spy_fixture[&quot;studies post arq spy fixture&quot;]
+  class chore_studies_post_arq_spy_fixture plan;
+  chore_template_library_expansion[&quot;template library expansion&quot;]
+  class chore_template_library_expansion plan;
+  chore_ubi_reader_search_after_pagination[&quot;ubi reader search after pagination&quot;]
+  class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
   feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
