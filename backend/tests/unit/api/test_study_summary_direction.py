@@ -42,12 +42,20 @@ def _study(objective: dict[str, Any]) -> Study:
 
 def test_summary_surfaces_minimize_direction() -> None:
     """A minimize objective flows through to StudySummary.direction."""
-    summary = _summary(_study({"metric": "ndcg", "k": 10, "direction": "minimize"}))
+    summary = _summary(
+        _study({"metric": "ndcg", "k": 10, "direction": "minimize"}),
+        trial_count=0,
+        convergence_verdict=None,
+    )
     assert summary.direction == "minimize"
 
 
 def test_summary_surfaces_maximize_direction() -> None:
-    summary = _summary(_study({"metric": "ndcg", "k": 10, "direction": "maximize"}))
+    summary = _summary(
+        _study({"metric": "ndcg", "k": 10, "direction": "maximize"}),
+        trial_count=0,
+        convergence_verdict=None,
+    )
     assert summary.direction == "maximize"
 
 
@@ -58,5 +66,9 @@ def test_summary_defaults_to_maximize_when_direction_absent() -> None:
     the ``direction`` field existed must not blow up or mislabel — it
     defaults to the historical implicit behavior (maximize).
     """
-    summary = _summary(_study({"metric": "ndcg", "k": 10}))
+    summary = _summary(
+        _study({"metric": "ndcg", "k": 10}),
+        trial_count=0,
+        convergence_verdict=None,
+    )
     assert summary.direction == "maximize"

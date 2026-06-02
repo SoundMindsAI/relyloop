@@ -135,11 +135,14 @@ from backend.app.db.repo.study import (
     list_studies,
 )
 from backend.app.db.repo.trial import (
+    TrialCounts,
     TrialsSummary,
     aggregate_trials_summary,
     count_trials,
+    count_trials_for_studies,
     create_trial,
     get_trial,
+    list_complete_optuna_trials_for_studies,
     list_complete_optuna_trials_for_study,
     list_trials_for_study,
     list_trials_paginated,
@@ -276,4 +279,9 @@ __all__ = [
     # feat_study_convergence_indicator Story 2.1 — read-side helper feeding
     # the trailing-window-flat convergence classifier.
     "list_complete_optuna_trials_for_study",
+    # feat_studies_convergence_visibility Story 1.1 — batched count + trial
+    # load for the studies-list trial_count + convergence_verdict fields.
+    "TrialCounts",
+    "count_trials_for_studies",
+    "list_complete_optuna_trials_for_studies",
 ]
