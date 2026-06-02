@@ -13,7 +13,15 @@
   Baked-in literals (NOT declared / NOT tunable):
     must clause field            "title" (match) — drives recall
     should clauses' field names  "title", "description", "bullet_points"
-    filter clause                none (operators add `fq`-like terms client-side)
+    filter clause                an `exists` filter on `title` — a no-op-ish
+                                 structural floor that keeps untitled docs
+                                 out of the result set. Baked in (not tunable)
+                                 so the must/should/filter shape FR-1 names
+                                 is structurally present; operators replace it
+                                 with their own term/range filters as needed.
+
+  `query_text` is rendered through Jinja's `tojson` filter so a query with
+  a double-quote or newline still yields valid JSON.
 
   Compatible with ES 8.11+ and OpenSearch 2.x.
 
@@ -23,12 +31,15 @@
   "query": {
     "bool": {
       "must": [
-        {"match": {"title": "{{ query_text }}"}}
+        {"match": {"title": {{ query_text | tojson }}}}
       ],
       "should": [
-        {"match": {"title": {"query": "{{ query_text }}", "boost": {{ title_boost }}}}},
-        {"match": {"description": {"query": "{{ query_text }}", "boost": {{ description_boost }}}}},
-        {"match": {"bullet_points": {"query": "{{ query_text }}", "boost": {{ bullet_points_boost }}}}}
+        {"match": {"title": {"query": {{ query_text | tojson }}, "boost": {{ title_boost }}}}},
+        {"match": {"description": {"query": {{ query_text | tojson }}, "boost": {{ description_boost }}}}},
+        {"match": {"bullet_points": {"query": {{ query_text | tojson }}, "boost": {{ bullet_points_boost }}}}}
+      ],
+      "filter": [
+        {"exists": {"field": "title"}}
       ],
       "minimum_should_match": "{{ min_should_match }}"
     }

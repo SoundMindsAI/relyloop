@@ -186,6 +186,10 @@ class TestBoolBoosted:
         block = native.body["query"]["bool"]
         assert "must" in block
         assert "should" in block
+        # FR-1 names the must/should/filter shape — the filter clause is a
+        # baked-in `exists` floor on `title` (GPT-5.5 cycle-3 finding).
+        assert "filter" in block
+        assert block["filter"][0]["exists"]["field"] == "title"
         assert "minimum_should_match" in block
         # All three field boosts wired through to the should clauses.
         should_fields = {list(c["match"].keys())[0] for c in block["should"]}
@@ -224,3 +228,29 @@ def test_es_and_opensearch_bodies_are_identical(template_name: str) -> None:
     es_body = _adapter("elasticsearch").render(template, params, "widget").body
     os_body = _adapter("opensearch").render(template, params, "widget").body
     assert es_body == os_body, f"{template_name} diverged between ES and OpenSearch"
+
+
+# ---------------------------------------------------------------------------
+# JSON-safety sweep — a query_text containing a double-quote, backslash, or
+# newline must still render valid JSON (the templates wrap query_text via the
+# Jinja `tojson` filter). GPT-5.5 cycle-3 finding — accepted: a naive
+# `"{{ query_text }}"` would break `json.loads` on such input.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "template_name",
+    ["multi_match_basic", "function_score_decay", "bool_boosted", "rescore_phrase"],
+)
+def test_renders_valid_json_for_query_with_special_chars(template_name: str) -> None:
+    template, space, _ = _load_template_and_space(template_name)
+    params = _sample_assignment(space)
+    # Double-quote + backslash + newline — the canonical JSON-breaking trio.
+    nasty = 'a "quoted" \\ value\nwith newline'
+    native = _adapter().render(template, params=params, query_text=nasty)
+    # render() already json.loads-es internally; reaching here means valid JSON.
+    # Confirm the query text round-trips intact somewhere in the body.
+    body_str = json.dumps(native.body)
+    assert "quoted" in body_str
+    # The literal newline survived as an escaped \n in the parsed structure.
+    assert "with newline" in body_str

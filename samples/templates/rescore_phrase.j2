@@ -14,6 +14,9 @@
     first-pass type              "best_fields"
     rescore phrase field         "title"
 
+  `query_text` is rendered through Jinja's `tojson` filter so a query with
+  a double-quote or newline still yields valid JSON.
+
   Compatible with ES 8.11+ and OpenSearch 2.x. (`phrase_slop` is valid here
   because the rescore query is a `match_phrase` — unlike best_fields where
   slop is a silent no-op.)
@@ -23,7 +26,7 @@
 {
   "query": {
     "multi_match": {
-      "query": "{{ query_text }}",
+      "query": {{ query_text | tojson }},
       "type": "best_fields",
       "fields": [
         "title^{{ title_boost }}",
@@ -38,7 +41,7 @@
       "rescore_query": {
         "match_phrase": {
           "title": {
-            "query": "{{ query_text }}",
+            "query": {{ query_text | tojson }},
             "slop": {{ rescore_phrase_slop }}
           }
         }

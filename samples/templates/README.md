@@ -118,7 +118,7 @@ lives on `rescore_phrase.j2`.
 
 **Expected metric behavior:** tuning `fuzziness` and `tie_breaker`
 typically moves nDCG@10 by 1–3 points on noisy catalogs; on clean
-catalogs the boosts dominate. Cardinality: 100 × 100 × 5 × 5 × 4 = 1,000,000.
+catalogs the boosts dominate. Cardinality: 100 × 100 × 5 × 4 × 4 = 800,000.
 
 **Caveats:** `fuzziness="AUTO"` triggers per-term length-based fuzzy
 expansion and is markedly slower on long queries than fixed edit-
@@ -221,8 +221,11 @@ for precision tuning) and want to optimize `min_should_match` directly.
 | `bullet_points_boost` | categorical | should-clause boost on `bullet_points` |
 | `min_should_match` | categorical | Elasticsearch `minimum_should_match` syntax: `1`, `2`, `50%`, `75%`, `2<-25% 9<-3` |
 
-The `must`-clause field (`title`) and the should-clause field names
-(`title`, `description`, `bullet_points`) are baked-in literals.
+The `must`-clause field (`title`), the should-clause field names
+(`title`, `description`, `bullet_points`), and the `filter` clause (an
+`exists` filter on `title` — a structural floor keeping untitled docs
+out of results; replace with your own term/range filters) are baked-in
+literals.
 
 **Expected metric behavior:** tightening `min_should_match` (e.g. from
 `50%` → `75%`) typically lifts precision @ low N at the cost of recall;

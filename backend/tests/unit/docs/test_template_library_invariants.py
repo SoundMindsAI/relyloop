@@ -188,8 +188,13 @@ def test_search_space_cardinality_at_or_below_cap(template_name: str) -> None:
     is_solr = template_name in SOLR_TEMPLATES
     space = _load_search_space(template_name, solr=is_solr)
     cardinality = estimate_cardinality(space)
-    assert cardinality <= 1_000_000, (
-        f"`{template_name}.search_space.json` cardinality {cardinality} > 10^6. "
+    # Spec §9 + FR-3 require starter spaces to stay STRICTLY under 10⁶
+    # (the platform's own SearchSpace validator rejects > 10⁶, but the
+    # library contract is the tighter `<`). GPT-5.5 final-review cycle-3
+    # finding — accepted: an exactly-10⁶ space is at the platform ceiling
+    # and leaves no headroom.
+    assert cardinality < 1_000_000, (
+        f"`{template_name}.search_space.json` cardinality {cardinality} is not < 10^6. "
         "Narrow ranges, drop a float to categorical, or shrink categorical "
         "choice sets so trial counts stay tractable."
     )

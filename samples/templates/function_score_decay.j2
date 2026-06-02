@@ -29,7 +29,7 @@
     "function_score": {
       "query": {
         "multi_match": {
-          "query": "{{ query_text }}",
+          "query": {{ query_text | tojson }},
           "type": "best_fields",
           "fields": [
             "title^{{ title_boost }}",
