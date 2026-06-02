@@ -4,6 +4,86 @@
 
 ---
 
+### `chore_template_library_expansion` — runnable template library + per-engine tunable-params cheatsheets (PR #416, 2026-06-02)
+
+Squash-merged via [PR #416](https://github.com/SoundMindsAI/relyloop/pull/416)
+(merge commit `24568c8e`). Executed from the cross-model-reviewed spec + plan
+landed by PR #413. **No source under `backend/app/`, no migration** (Alembic
+head stays `0022`); the only Python is test files under `backend/tests/`.
+
+**What shipped — 8 stories across 3 epics:**
+
+- **Epic 1 (runnable library):** 6 Jinja templates with co-located
+  `.search_space.json` starters. Four engine-agnostic ES/OpenSearch shapes
+  (`multi_match_basic`, `function_score_decay`, `bool_boosted`,
+  `rescore_phrase`) whose lexical/function-score/rescore DSL renders
+  byte-identically on ES 8.11+ and OpenSearch 2.x (test-asserted via an
+  engine-agnostic parametrized sweep), plus two Solr shapes (`edismax_basic`
+  with a baked-in `pf` so the tunable `ps` isn't a no-op; `boost_decay` using
+  `product(boost_weight, recip(ms(NOW,created_at), decay_scale, 1, 1))`). Each
+  template carries a copy-paste `curl` registration block in its samples
+  README — ES/OS blocks parameterized via `ENGINE_TYPE="elasticsearch" # or
+  opensearch` (same body, register once per engine), Solr blocks literal
+  `engine_type: "solr"`. The 4 existing demo templates stay byte-identical
+  (AC-3, test-enforced). The Epic-1 invariant test parses each README
+  registration block *independently* and asserts its `declared_params` keys
+  EQUAL the `.search_space.json` keys (platform-equality invariant) + each
+  space's cardinality is strictly `< 10⁶`.
+- **Epic 2 (cheatsheets):** `docs/06_vendor_docs/{elasticsearch,opensearch,
+  solr}-tunable-params.md`, each with a dedicated `###` section for all 8
+  unified params + per-engine knobs (test-enforced heading inventory) + kNN /
+  hybrid reference snippets. The ES cheatsheet uses the native `rrf` retriever;
+  the OpenSearch one uses the search-pipeline normalization processor — a
+  doc-consistency test asserts the OS hybrid snippet does NOT contain `"rrf"`
+  (they're not interchangeable, FR-1b). Solr cheatsheet grounded in the
+  checked-in `solr-9/` + `solr-10/` ref-guide source; Solr kNN/hybrid declared
+  out of scope. Vendor README index gains 3 rows; the tutorial gets a "Where
+  to go next" section.
+- **Epic 3 (FR-7, shipped):** feasibility gate passed — `ui/src/lib/
+  template-descriptions.ts` (recommended-name→summary map keyed by the README
+  `--name` convention + `cheatsheetUrlFor(engine_type)` resolver with a
+  source-of-truth comment vs `registry.py SUPPORTED_ENGINE_TYPES`). The
+  `InfoTooltip` gained an optional `learnMoreHref` prop — when set it switches
+  from Radix `Tooltip` to `Popover` (so the contained "Learn more" link is
+  keyboard-focusable; Gemini a11y finding). The Step-3 picker renders a
+  one-line summary for known recommended names and nothing on a miss
+  (graceful). No migration, no new endpoint.
+
+**Tests:** +34 backend (9 ES render + 2 Solr render + 22 Epic-1 invariants + 14
+Epic-2 cheatsheet doc-consistency, with 4 JSON-safety cases added in review) +
+7 frontend vitest (5 lib-contract + 2 modal-wiring). Final gates: 2149 backend
+unit + 327 contract + 1005 frontend vitest; lint/typecheck/build/ruff-format
+clean.
+
+**Cross-model review.** Gemini Code Assist: 4 findings — 3 accepted (Popover
+a11y for `learnMoreHref`; declared_params regex tolerance; defensive `else` in
+`_sample_assignment`), 1 rejected with counter-evidence (nested optional
+chaining `templates.data?.data?.find` — the sibling at `create-study-modal.tsx:265`
+uses identical single-level chaining and the wire schema guarantees nested
+`.data` non-optional). GPT-5.5 final review **converged after 5 cycles** — 6
+accepted-and-fixed across cycles 1–4: (1) the cheatsheet inventory test was
+substring-only → now requires a `###` heading per unified param; (2) FR-7 had
+no modal-level wiring assertion → added `create-study-modal.template-summary.test.tsx`;
+(3) `multi_match_basic` cardinality was exactly 10⁶ → shrank to 800k + tightened
+the test to `< 1_000_000`; (4) `bool_boosted.j2` lacked the `filter` clause
+FR-1 names → added a baked-in `exists` filter on `title`; (5) `query_text` was
+interpolated into hand-quoted JSON → switched all templates to the Jinja
+`tojson` filter + 4 JSON-safety render tests; (6) Solr `boost_weight` cancelled
+to 1.0 at age 0 under `recip(...,boost_weight,boost_weight)` → switched to
+`product(boost_weight, recip(...,1,1))` so max boost = `boost_weight`. Cycle 5
+returned zero findings.
+
+**CI:** all checks green except `smoke`, which was cancelled at the 25-min cap
+— the known, deferred `infra_smoke_reseed_runtime_budget` issue (the Playwright
+demo-ubi reseed exceeds any per-PR smoke budget), unrelated to this content/docs
+PR. Merged on the documented D-6 fast lane (`main` carries no required status
+checks). Tangential discovery captured: `bug_studies_detail_vitest_intermittent_timeout`
+(the Study-detail-page render test intermittently times out under the full
+`pnpm test` worker pool while passing in isolation — pre-existing, not touched
+by this PR).
+
+---
+
 ### Planning-docs batch — 5 idea-only MVP2 folders advanced Idea→Plan (PR #413, 2026-06-02)
 
 Squash-merged via [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413)

@@ -21,20 +21,20 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Filed under MVP2 | **42** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **10 / 22** (45%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **30** items (every not-done feat/infra/chore/bug across all priorities) |
+| Specced features done | **11 / 22** (50%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **29** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **1** high-value, ready when P0 clears |
-| → P2 (default) | 25 important to file, not blocking |
+| → P2 (default) | 24 important to file, not blocking |
 | → Backlog | 4 captured for record, not planned |
 | Open bugs | 9 |
-| Legacy "Path to MVP2" | 25 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 24 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (12)
+### Done (13)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -48,6 +48,7 @@ Plan approved; run /impl-execute to ship
 | [infra_solr_ci_readiness](implemented_features/2026_06_01_infra_solr_ci_readiness/feature_spec.md) | Infra | Post-2026-05-31, no full `pr.yml` run can go green on any branch. | — | [PR #367](https://github.com/SoundMindsAI/relyloop/pull/367) merged 2026-06-01 |
 | [infra_solr_smoke_stability](implemented_features/2026_06_02_infra_solr_smoke_stability/feature_spec.md) | Infra | The `pr.yml` `smoke (operator-path tutorial flow)` job is red on every branch. | — | [PR #383](https://github.com/SoundMindsAI/relyloop/pull/383) merged 2026-06-01 |
 | [chore_solr_cred_backfill_needs_api_restart](implemented_features/2026_06_01_chore_solr_cred_backfill_needs_api_restart/idea.md) | Chore | `scripts/install.sh` step 5a backfills a `local-solr:` entry into a **pre-existing** `./secrets/cluster_credentials.yaml`. That write is correct and idempotent. But the `api` (and `worker`) process re | — | [PR #365](https://github.com/SoundMindsAI/relyloop/pull/365) merged 2026-06-01 |
+| [chore_template_library_expansion](implemented_features/2026_06_02_chore_template_library_expansion/feature_spec.md) | Chore | A curated, version-grounded **template library** of **6 runnable templates** (4 ES/OpenSearch: basic multi_match, function-score decay, bool-boosted, phrase rescore; 2 Solr: edismax basic, boost decay | — | [PR #416](https://github.com/SoundMindsAI/relyloop/pull/416) merged 2026-06-02 |
 | [bug_backend_suite_nondeterministic_caplog_isolation](implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation/idea.md) | Bug | Many backend unit tests assert on captured log records (`caplog` / a structlog capture fixture) and fail with empty-capture shapes (`assert []`, `assert 'x' in []`) when run in the full randomized sui | — | [PR #364](https://github.com/SoundMindsAI/relyloop/pull/364) merged 2026-06-01 |
 | [bug_contract_allowlists_outdated_after_mvp2_features](implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features/idea.md) | Bug | Three separate contract-test allowlists were not updated as features shipped through MVP2. Each is a "hand-maintained canonical list of valid values" that drifts when a feature adds new entries to the | — | [PR #364](https://github.com/SoundMindsAI/relyloop/pull/364) merged 2026-06-01 |
 
@@ -55,7 +56,7 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (14)
+### Plan (13)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
@@ -69,10 +70,9 @@ _None._
 | 8 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
 | 9 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
 | 10 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/feature_spec.md) | Chore | A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [("start | — | — |
-| 11 | P2 | [chore_template_library_expansion](planned_features/02_mvp2/chore_template_library_expansion/feature_spec.md) | Chore | A curated, version-grounded **template library** of **6 runnable templates** (4 ES/OpenSearch: basic multi_match, function-score decay, bool-boosted, phrase rescore; 2 Solr: edismax basic, boost decay | — | [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413) |
-| 12 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md) | Chore | A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg | — | [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413) |
-| 13 | P2 | [bug_baseline_phase_test_isolation](planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md) | Bug | The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on | — | — |
-| 14 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/02_mvp2/bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | — |
+| 11 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md) | Chore | A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg | — | [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413) |
+| 12 | P2 | [bug_baseline_phase_test_isolation](planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md) | Bug | The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on | — | — |
+| 13 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/02_mvp2/bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | — |
 
 ### Spec (0)
 
@@ -118,8 +118,6 @@ graph LR
   class chore_demo_seeding_integration_tests_rewrite plan;
   chore_studies_post_arq_spy_fixture["studies post arq spy fixture"]
   class chore_studies_post_arq_spy_fixture plan;
-  chore_template_library_expansion["template library expansion"]
-  class chore_template_library_expansion plan;
   chore_ubi_reader_search_after_pagination["ubi reader search after pagination"]
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration["apply path normalizer declaration"]
@@ -152,6 +150,8 @@ graph LR
   class feat_study_convergence_indicator done;
   infra_solr_ci_readiness["solr ci readiness"]
   class infra_solr_ci_readiness done;
+  chore_template_library_expansion["template library expansion"]
+  class chore_template_library_expansion done;
   infra_solr_smoke_stability["solr smoke stability"]
   class infra_solr_smoke_stability done;
   feat_ubi_judgments --> infra_adapter_solr
