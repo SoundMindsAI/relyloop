@@ -192,13 +192,14 @@
 
 ??? note "Maintenance & fixes (21)"
 
+    - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
+    - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
+    - ✅ [Solr Cred Backfill Needs API Restart](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_chore_solr_cred_backfill_needs_api_restart) · [#365](https://github.com/SoundMindsAI/relyloop/pull/365)
     - 🟡 [Arq Pool Aclose Deprecation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_arq_pool_aclose_deprecation)
     - 🟡 [Auto Followup Parent Advisory Lock](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock)
-    - 🟡 [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_backend_suite_nondeterministic_caplog_isolation)
     - 🟡 [Baseline Phase Test Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_baseline_phase_test_isolation)
     - 🟡 [Chat Long Conversation Truncation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_chat_long_conversation_truncation)
     - 🟡 [Cluster Detail Rung Badge](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_cluster_detail_rung_badge)
-    - 🟡 [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_contract_allowlists_outdated_after_mvp2_features)
     - 🟡 [Demo Reseed Partial Completion Fast Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_reseed_partial_completion_fast_test)
     - 🟡 [Demo Seeding Integration Tests Rewrite](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite)
     - 🟡 [E2E Teardown Chain Node Delete 500](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_e2e_teardown_chain_node_delete_500)
@@ -206,7 +207,6 @@
     - 🟡 [Relyloop Spec UBI Section Drift](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_relyloop_spec_ubi_section_drift)
     - 🟡 [Reseed Failure Blocks Retry Arq Singleton Dedup](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup)
     - 🟡 [Seed Meaningful Demos Silent Bulk Errors](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors)
-    - 🟡 [Solr Cred Backfill Needs API Restart](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_solr_cred_backfill_needs_api_restart)
     - 🟡 [Solr Post Pipeline Followups](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_solr_post_pipeline_followups)
     - 🟡 [Studies Post Arq Spy Fixture](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_studies_post_arq_spy_fixture)
     - 🟡 [Template Library Expansion](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_template_library_expansion)
