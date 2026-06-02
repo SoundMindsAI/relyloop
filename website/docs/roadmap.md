@@ -207,7 +207,7 @@
     - 🟡 [Demo Seeding Integration Tests Rewrite](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite)
     - 🟡 [E2E Teardown Chain Node Delete 500](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_e2e_teardown_chain_node_delete_500)
     - 🟡 [Judgment Header Omits Click Bucket](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_judgment_header_omits_click_bucket)
-    - 🟡 [LLM Capability Cache No Refresh After Ttl Expiry](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_llm_capability_cache_no_refresh_after_ttl_expiry)
+    - 🟡 [LLM Capability Cache No Refresh](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_llm_capability_cache_no_refresh)
     - 🟡 [Relyloop Spec UBI Section Drift](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_relyloop_spec_ubi_section_drift)
     - 🟡 [Reseed Failure Blocks Retry Arq Singleton Dedup](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup)
     - 🟡 [Seed Meaningful Demos Silent Bulk Errors](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors)
