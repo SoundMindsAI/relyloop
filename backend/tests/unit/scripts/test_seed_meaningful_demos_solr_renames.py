@@ -52,6 +52,24 @@ def test_apply_study_renames_skips_study_less_solr_entry(monkeypatch) -> None:
     assert "tune-product-title-boost-baseline (LLM)" in psql_calls[0]
 
 
+def test_apply_study_renames_skips_partial_study_dict(monkeypatch) -> None:
+    """A dict with ``study_name`` but no ``study_id`` is skipped, not crashed.
+
+    Guards on BOTH keys the rename body dereferences (Gemini review on
+    PR #419) so the consumer is robust to any partial dict, consistent with
+    the summary loop's ``study_id`` guard — not just the exact Solr-minimum
+    shape (which carries neither key).
+    """
+    psql_calls: list[str] = []
+    monkeypatch.setattr(mod, "_psql", lambda sql: psql_calls.append(sql))
+
+    partial = {"slug": "broken", "study_name": "has-name-no-id"}
+
+    mod.apply_study_renames([partial])  # must not raise KeyError on study_id
+
+    assert psql_calls == [], "partial dict (no study_id) must be skipped"
+
+
 def test_solr_minimum_result_shape_has_no_study_keys() -> None:
     """Pin the contract the rename/summary guards rely on.
 

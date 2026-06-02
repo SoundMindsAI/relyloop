@@ -1639,10 +1639,13 @@ def apply_study_renames(results: list[dict]) -> None:
     for r in results:
         # Solr-minimum scenarios (infra_adapter_solr Story A13) register a
         # cluster + template but create no study — operators start it from the
-        # UI after `make seed-solr`. Those result dicts carry no `study_name`,
-        # so there's nothing to rename; skip them. (Mirrors the rich scenario's
-        # `if rich_result.get("study_id")` study-presence guard.)
-        if "study_name" not in r:
+        # UI after `make seed-solr`. Those result dicts carry neither
+        # `study_id` nor `study_name`, so there's nothing to rename; skip them.
+        # Guard on BOTH keys the body dereferences (the summary loop guards on
+        # `study_id`) so the two consumers stay consistent and robust to any
+        # partial dict. (Mirrors the rich scenario's `if rich_result.get(
+        # "study_id")` study-presence guard.)
+        if "study_id" not in r or "study_name" not in r:
             continue
         # study_name is from a closed set in SCENARIOS — safe to inline-escape.
         safe = r["study_name"].replace("'", "''")
