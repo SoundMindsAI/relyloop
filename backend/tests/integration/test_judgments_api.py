@@ -267,7 +267,11 @@ async def test_generate_recovers_after_capability_cache_expiry(
 
     monkeypatch.setattr(cc, "check_capabilities", _stub_check_capabilities)
 
-    payload = {
+    # Two POSTs with DIFFERENT names — the cache short-circuit assertion
+    # is about the capability cache, not the judgment-list uniqueness
+    # check (which runs before the preflight and would 409 on a duplicate
+    # name regardless of cache state).
+    payload1 = {
         "name": f"gen-cap-recover-{uuid.uuid4().hex[:8]}",
         "query_set_id": seeded["query_set_id"],
         "cluster_id": seeded["cluster_id"],
@@ -275,12 +279,13 @@ async def test_generate_recovers_after_capability_cache_expiry(
         "current_template_id": seeded["template_id"],
         "rubric": "r",
     }
-    response = await async_client.post("/api/v1/judgments/generate", json=payload)
+    response = await async_client.post("/api/v1/judgments/generate", json=payload1)
     assert response.status_code == 202, response.text
     assert recompute_calls == 1, "the cold-cache path MUST trigger exactly one inline recompute"
-    # And the recomputed result is now cached — a follow-up request
-    # short-circuits without re-probing.
-    response2 = await async_client.post("/api/v1/judgments/generate", json=payload)
+    # And the recomputed result is now cached — a follow-up request with
+    # a different name short-circuits without re-probing.
+    payload2 = {**payload1, "name": f"gen-cap-warm-{uuid.uuid4().hex[:8]}"}
+    response2 = await async_client.post("/api/v1/judgments/generate", json=payload2)
     assert response2.status_code == 202, response2.text
     assert recompute_calls == 1, "warm-cache path MUST short-circuit; helper should not re-probe"
 
