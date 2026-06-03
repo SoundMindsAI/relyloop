@@ -68,9 +68,27 @@ on:
     branches: [main]
     # Docs-only changes don't need backend tests / frontend build /
     # smoke / docker buildx. A PR that touches BOTH docs and code
-    # still runs the full workflow (any non-ignored path matches).
+    # still runs the full workflow (any non-ignored path matches —
+    # paths-ignore skips only when EVERY changed file matches).
+    #
+    # `website/**` is the mkdocs-material site (built + deployed by
+    # the separate, push-triggered deploy-docs.yml — NOT a PR gate).
+    # pr.yml has no website job, so a website-only PR validates
+    # nothing here. The dashboard-regen pre-commit hook writes
+    # website/docs/roadmap.md alongside docs/00_overview/*.{md,html};
+    # the latter are caught by `docs/**` but roadmap.md is under
+    # website/docs/ (not matched by `docs/**` or root-level `*.md`),
+    # so without this entry every finalization/dashboard-regen PR
+    # pulled in the full ~8-min backend suite for zero signal.
+    #
+    # CAVEAT: paths-ignore reports a skipped workflow's checks as
+    # perpetually "pending". That's fine TODAY (no required_status_checks
+    # on main — fast-lane posture). If branch protection with required
+    # checks is ever re-added, this needs a companion always-green
+    # passthrough job or merges on docs/website-only PRs will deadlock.
     paths-ignore:
       - 'docs/**'
+      - 'website/**'
       - '*.md'
       - '.gitignore'
       - 'LICENSE'
