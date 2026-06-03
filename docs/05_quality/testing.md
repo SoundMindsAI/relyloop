@@ -256,11 +256,16 @@ markers) — every drift mode the gate exists to catch.
 | # | Gate | Workflow | Source → Output | Regenerator | Self-test |
 |---|---|---|---|---|---|
 | 1 | `copy-docs-freshness` | own file (`copy-docs-freshness.yml`) — runs on every PR with no `paths-ignore` filter (FR-3 escape from `pr.yml`'s `docs/**` paths-ignore so docs-only PRs still get the check) | `docs/08_guides/*.md` → `ui/public/docs/*.md` | `node ui/scripts/copy-docs.mjs` (prunes the dest to `{README.md} ∪ {DOCS[].dest}` per FR-9, so a renamed entry never leaves a stale public copy behind) | `scripts/ci/test_verify_copy_docs_fresh.sh` exercises clean / source-drift / untracked-AC-9 cases against a disposable `mktemp` git fixture |
+| 2 | `generated-artifacts-fresh` (snapshot step) | `pr.yml` job — backend (`**/*.py`) + ui (`**/*.ts`) changes can both invalidate the snapshot, so the gate runs on every code-bearing PR | backend FastAPI route table → `ui/openapi.json` | `uv run python -m backend.app.openapi_export --out ui/openapi.json` (offline, no live services per Story 2.1) | `scripts/ci/test_verify_openapi_snapshot_fresh.sh` uses an `OPENAPI_SNAPSHOT_REGEN_SCRIPT` path-override + a disposable `mktemp` fixture to test the guard's diff-detection without needing `uv` in the fixture (the exporter has its own Story-2.1 unit test) |
 
-The fix command printed on failure:
+The fix commands printed on failure:
 
 ```bash
+# Gate 1 (copy-docs)
 cd ui && node scripts/copy-docs.mjs && git add public/docs
+
+# Gate 2 (openapi.json snapshot)
+uv run python -m backend.app.openapi_export --out ui/openapi.json && git add ui/openapi.json
 ```
 
 The freshness-gate scripts (`scripts/ci/verify_copy_docs_fresh.sh` + its
