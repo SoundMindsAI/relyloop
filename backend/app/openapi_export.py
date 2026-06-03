@@ -58,8 +58,10 @@ Reuses the dummy-``*_FILE`` env setup pioneered by
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -88,6 +90,13 @@ def _ensure_dummy_settings_env() -> None:
         return
 
     tmp_dir = Path(tempfile.mkdtemp(prefix="relyloop-openapi-export-"))
+    # Clean up the dummy-secrets dir at process exit (Gemini Code Assist
+    # review finding #1, PR #433). The directory holds <100 bytes of
+    # placeholder content, so the leak is small — but accumulating one
+    # per CLI invocation is sloppy. The env-var publish below is purely
+    # diagnostic and the contract documents it as such; cleanup at exit
+    # is compatible.
+    atexit.register(shutil.rmtree, tmp_dir, ignore_errors=True)
     os.environ.setdefault("RELYLOOP_OPENAPI_EXPORT_TMP", str(tmp_dir))
 
     if not os.environ.get("DATABASE_URL_FILE"):
@@ -163,20 +172,38 @@ def _write_atomic(path: Path, content: str) -> None:
     ``os.replace`` is a same-filesystem rename (atomic on POSIX/NTFS).
     """
     path.parent.mkdir(parents=True, exist_ok=True)
-    # ``delete=False`` because os.replace handles the rename + cleanup.
-    with tempfile.NamedTemporaryFile(
-        mode="w",
-        encoding="utf-8",
-        dir=str(path.parent),
-        prefix=f".{path.name}.",
-        suffix=".tmp",
-        delete=False,
-    ) as tmp:
-        tmp.write(content)
-        tmp.flush()
-        os.fsync(tmp.fileno())
-        tmp_path = Path(tmp.name)
-    os.replace(tmp_path, path)
+    # ``delete=False`` because os.replace handles the rename. If anything
+    # between the NamedTemporaryFile context and the successful
+    # ``os.replace`` raises (write/flush/fsync error, disk full,
+    # permission denied on the rename), the orphan ``.tmp`` would
+    # otherwise persist next to ``path`` — see Gemini Code Assist review
+    # finding #2 on PR #433. ``tmp_path = None`` after a successful
+    # replace tells the finally block "the rename took ownership, don't
+    # try to delete the now-renamed file".
+    tmp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=str(path.parent),
+            prefix=f".{path.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as tmp:
+            tmp.write(content)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+            tmp_path = Path(tmp.name)
+        os.replace(tmp_path, path)
+        tmp_path = None
+    finally:
+        if tmp_path is not None:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError:
+                # Best-effort cleanup; never raise from a finally clause
+                # masking the original exception.
+                pass
 
 
 def main(argv: list[str] | None = None) -> int:

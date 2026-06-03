@@ -92,13 +92,21 @@ function resolvePinnedBinary() {
  */
 function generate() {
   const bin = resolvePinnedBinary();
-  // execFileSync (no shell) — SOURCE_URL comes from OPENAPI_URL env var,
-  // and a shell-interpolated command would let a crafted value inject.
-  // Array argv is shell-free.
+  // execFileSync (no shell on POSIX) — SOURCE_URL comes from
+  // OPENAPI_URL env var, and a shell-interpolated command would let a
+  // crafted value inject. Array argv is shell-free.
+  //
+  // On Windows the pinned binary is a `.cmd` shim, which Node's
+  // execFileSync cannot invoke without `shell: true` (Windows requires
+  // cmd.exe to interpret batch files; see
+  // https://nodejs.org/api/child_process.html#spawning-bat-and-cmd-files).
+  // We gate `shell: true` to win32 only so POSIX stays shell-free
+  // (Gemini Code Assist review finding #3 on PR #433).
   console.log(`Generating ${OUTPUT} from ${SOURCE_URL}…`);
   execFileSync(bin, [SOURCE_URL, '-o', OUTPUT], {
     stdio: 'inherit',
     cwd: UI_ROOT,
+    shell: process.platform === 'win32',
   });
 
   const generated = readFileSync(OUTPUT, 'utf8');
