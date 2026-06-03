@@ -12,16 +12,16 @@
 # Per docs/01_architecture/deployment.md §"MVP1 deployment shape" + the
 # implementation_plan.md Story 4.1 "Decision rationale".
 
-ARG PYTHON_VERSION=3.14
-# Digest pins python:3.14-slim (PinnedDependencies / OSSF Scorecard). When
-# bumping PYTHON_VERSION, refresh this digest too (Dependabot's docker
-# ecosystem keeps it current); the digest wins over the tag at pull time.
-ARG PYTHON_DIGEST=sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97
+# Single digest-pinned base image (PinnedDependencies / OSSF Scorecard).
+# tag + digest in one ARG so an override (`--build-arg BASE_IMAGE=...`) is
+# unambiguous — a separate version/digest pair would let the digest silently
+# win over a changed tag. Dependabot's docker ecosystem keeps this fresh.
+ARG BASE_IMAGE=python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97
 
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
 # ---------------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim@${PYTHON_DIGEST} AS base
+FROM ${BASE_IMAGE} AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
