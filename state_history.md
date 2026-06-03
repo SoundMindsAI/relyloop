@@ -4,6 +4,77 @@
 
 ---
 
+### `chore_scorecard_pin_deps_postcss` — pin CI actions/images by digest + fix postcss vuln (PR #430, 2026-06-03)
+
+**Origin.** Operator linked OSSF Scorecard code-scanning alert #72 ("We need to
+resolve some of these"). The repo's public code-scanning surface had 73 open
+alerts, all from `scorecard.yml` (Scorecard v5) rather than CodeQL — i.e.
+supply-chain best-practice findings, not code-injection bugs. Triaged into three
+tiers: **Tier 1** — the one genuine vulnerability (#72); **Tier 2** — ~60
+`PinnedDependencies` alerts (actions/images/commands not pinned by hash);
+**Tier 3** — intrinsic/intentional findings (branch protection, code-review
+ratio, project age, fuzzing, OpenSSF badge, SAST). Operator chose scope
+"postcss + pin all actions/images" (Tier 1 + the actions/images half of Tier 2).
+
+**Vulnerability #72 — postcss.** `GHSA-qx2v-qp2m-jg93`: postcss < 8.5.10,
+moderate XSS via an unescaped `</style>` in CSS stringify output. It was
+transitive, not a direct dep — the UI's direct `postcss` devDep was already
+`^8.5.15`, but `next@16.2.6` hard-pins `postcss: 8.4.31` as a bundled
+dependency, so the lockfile resolved two postcss versions (8.5.15 for
+tailwind/autoprefixer, 8.4.31 for Next). Fix: a **selective** pnpm override
+`"postcss@<8.5.10": "^8.5.15"` in `ui/package.json` (only rewrites the
+vulnerable range; leaves the already-fine 8.5.15 resolutions untouched),
+regenerated `ui/pnpm-lock.yaml`. Verified the 8.4.31 resolution was gone
+(Next's bundled copy now resolves to 8.5.15), then `pnpm build` ✓ and the full
+vitest suite (1008 tests) ✓ — postcss is build-time tooling so the build is the
+strongest signal.
+
+**Tier 2 — PinnedDependencies.** (a) Pinned all **56** GitHub Action `uses:`
+refs across all 5 workflows (`pr.yml`, `dco.yml`, `deploy-docs.yml`,
+`scorecard.yml`, `secrets-defense.yml`) to 40-char commit SHAs with trailing
+`# vX` comments, resolved via `gh api repos/<repo>/commits/<tag>` for each of
+the 15 distinct actions. (b) Pinned the 4 `pr.yml` service-container images
+(postgres:17 / redis:8 / elasticsearch:9.4.1 / opensearchproject/opensearch:3.6.0)
+to manifest digests via `docker buildx imagetools inspect`. (c) Pinned the
+Dockerfile base images by digest: `python:3.14-slim` in `Dockerfile` and
+`node:26-bookworm-slim` (×3 stages) in `ui/Dockerfile`, plus the
+`ghcr.io/astral-sh/uv:0.5.7` COPY stage. Both Dockerfiles validated with
+`docker buildx build --check` (digests resolve, no warnings). Dependabot already
+runs `github-actions` + `docker` weekly, so the `uses:` SHAs and Dockerfile
+`FROM` digests stay fresh — no dependabot.yml change needed.
+
+**Gemini adjudication (2 findings, both accepted).** (1) *Dockerfile, high*:
+my first cut split the python pin into `ARG PYTHON_VERSION=3.14` +
+`ARG PYTHON_DIGEST=sha256:…` — a silent footgun, because `--build-arg
+PYTHON_VERSION=3.13` would still pull 3.14 (the digest wins over the tag at pull
+time). Collapsed to a single `ARG BASE_IMAGE=python:3.14-slim@sha256:…` so
+overrides are unambiguous (`PYTHON_VERSION` had no other references). (2)
+*ui/Dockerfile, medium*: the node digest was triplicated across the deps/builder/
+runner `FROM` lines — declared it once as a top-level `ARG BASE_IMAGE` and
+referenced `${BASE_IMAGE}` in each stage. Both re-validated with `buildx
+--check`; both `docker buildx` CI jobs green on the final commit.
+
+**Deliberately left** (reported on the PR, not deferred-as-idea-file because
+each is a conscious non-fix): npmCommand `npm install -g pnpm@9` in
+`ui/Dockerfile` (#64/#65 — global tool install can't be cleanly hash-pinned; a
+corepack swap is a build-behavior change out of scope for a pinning pass);
+pipCommand `pip install -r website/requirements.txt` in `deploy-docs.yml` (#73 —
+docs-site only; needs a `--require-hashes` hash-locked requirements file); the
+4 workflow `services.*.image` digests are NOT auto-bumped by Dependabot (its
+github-actions ecosystem updates `uses:` only) so they need manual refresh; and
+the Tier-3 Scorecard findings (branch protection — intentionally relaxed on
+2026-05-31; code-review ratio — solo-dev self-merge; project age; fuzzing;
+OpenSSF badge; SAST) which are intrinsic or intentional.
+
+**Footprint.** No `backend/app/` source, no migration (Alembic head stays
+`0022`). Files: `ui/package.json` + `ui/pnpm-lock.yaml` (postcss override), all
+5 `.github/workflows/*.yml`, `Dockerfile`, `ui/Dockerfile`. Two commits
+(pinning pass + Gemini consolidation). All `pr.yml` checks green on both
+(smoke skipped — opt-in/off); `main` unchanged at `445d4388` through merge (no
+merge-skew).
+
+---
+
 ### `bug_llm_capability_cache_no_refresh` — recompute the OpenAI capability cache on miss to recover from 24h TTL expiry (PR #426, 2026-06-02)
 
 **The bug.** The OpenAI capability check (`infra_foundation` Story 3.3 / FR-7)

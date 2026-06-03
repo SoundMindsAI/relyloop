@@ -16,13 +16,18 @@
 # Node 26 to use the latest engine features without waiting for the
 # October LTS transition.
 
-FROM node:26-bookworm-slim AS deps
+# Single digest-pinned base image (PinnedDependencies / OSSF Scorecard),
+# declared once and reused by every stage. Dependabot's docker ecosystem
+# keeps the digest fresh.
+ARG BASE_IMAGE=node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16
+
+FROM ${BASE_IMAGE} AS deps
 WORKDIR /app
 RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
 RUN pnpm install --frozen-lockfile
 
-FROM node:26-bookworm-slim AS builder
+FROM ${BASE_IMAGE} AS builder
 WORKDIR /app
 RUN npm install -g pnpm@9
 COPY --from=deps /app/node_modules ./node_modules
@@ -31,7 +36,7 @@ ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
-FROM node:26-bookworm-slim AS runner
+FROM ${BASE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
