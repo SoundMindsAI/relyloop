@@ -233,12 +233,19 @@ var, which triggers `os._exit(1)` at one of two seams
 
 ## Generated-artifact freshness gates
 
-Three CI gates catch the failure mode where a developer edits a source
-file but forgets to regenerate the committed artifact built from it. Each
-gate **regenerates** the artifact in CI and fails the PR if
+A family of CI gates catches the failure mode where a developer edits a
+source file but forgets to regenerate the committed artifact built from
+it. Each gate **regenerates** the artifact in CI and fails the PR if
 `git status --porcelain` reports drift — a contributor never has to
 remember to run a regen step locally before pushing; CI does it for them
 and the gate's failure output prints the one-paste fix command.
+
+Phase 1 (the `copy-docs` gate documented below) ships first; Phase 2
+adds two more gates for the OpenAPI snapshot (`ui/openapi.json`) and the
+generated `ui/src/lib/types.ts`, plus a single chained fix command
+spanning all three. Each row in the table is appended as its owning
+story lands (per the cross-story testing.md ownership declared in
+`infra_generated_artifact_freshness_gate/implementation_plan.md` §11).
 
 Why `git status --porcelain` (and not `git diff --exit-code`): `git diff`
 silently ignores untracked files. A freshly-added `DOCS` entry whose
