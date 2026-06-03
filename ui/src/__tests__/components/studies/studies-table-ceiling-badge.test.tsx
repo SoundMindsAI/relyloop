@@ -37,6 +37,14 @@ function renderBestMetricCell(overrides: Partial<StudySummary>) {
     direction: 'maximize',
     created_at: '2026-05-29T00:00:00Z',
     completed_at: '2026-05-29T00:05:00Z',
+    // `trial_count` is a required `int = 0` field on the backend (per
+    // `backend/app/api/v1/schemas.py:902`, shipped with
+    // `feat_studies_convergence_visibility` / PR #421). The freshness-
+    // gate regen of `types.ts` surfaced that this fixture omitted it
+    // (it had been working by accident against a stale committed
+    // types.ts that didn't yet reflect the new required field) —
+    // tangential fix while shipping `infra_generated_artifact_freshness_gate`.
+    trial_count: 0,
     ...overrides,
   };
   // The DataTable cell renderer only reads `row.original`; a minimal stub

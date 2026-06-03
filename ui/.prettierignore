@@ -1,0 +1,21 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# Generated files where the generator IS the source of truth.
+#
+# `src/lib/types.ts` is emitted by `openapi-typescript` (via
+# `pnpm types:gen` / `node scripts/gen-types.mjs`) from the committed
+# `ui/openapi.json` snapshot. The `generated-artifacts-fresh` CI job
+# (`infra_generated_artifact_freshness_gate`) regenerates the file
+# and fails on `git status --porcelain` drift, so running prettier
+# on it would produce bytes that differ from the canonical generator
+# output and the gate would flap. Leave it in openapi-typescript's
+# native format.
+#
+# `public/docs/*.md` is copied verbatim from `docs/08_guides/*.md`
+# by `scripts/copy-docs.mjs`. Letting prettier reformat the public
+# copy would cause the same drift between the source and the
+# committed output.
+src/lib/types.ts
+public/docs/*.md
