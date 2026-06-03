@@ -1,5 +1,7 @@
 # Pipeline Status — CI gate for generated-artifact freshness
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: idea.md
@@ -20,4 +22,11 @@
 - Phases covered: Phase 1 + Phase 2 (both)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-03
+- PR: #433 (squash-merged `c5c36c65`)
+- CI: all 17 checks green (smoke skipped — operator-controlled, OFF by default)
+- Stories completed: 6 / 6 (Epic 1: 1.1, 1.2; Epic 2: 2.1, 2.2, 2.3, 2.4) — both phases shipped together
+- Tests: 48 new cases (10 backend unit + 17 vitest + 21 shell-guard self-test)
+- Cross-model review: Epic 1 GPT-5.5 phase gate (1 accepted, 2 rejected w/ counter-evidence); Epic 2 GPT-5.5 phase gate (5 rejected); Gemini Code Assist (3 accepted — atexit cleanup, atomic-write try/finally, Windows shell flag); final GPT-5.5 review clean (0 findings)
+- Note: the standalone Phase-2 record `infra_openapi_types_freshness_gate/` was retired at finalization since both phases shipped in this PR.

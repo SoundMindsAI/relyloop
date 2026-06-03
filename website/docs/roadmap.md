@@ -182,18 +182,17 @@
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
 - 🟡 [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison)
 
-??? note "Infrastructure & tooling (8)"
+??? note "Infrastructure & tooling (7)"
 
     - ✅ [Adapter Solr](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr) · [#336](https://github.com/SoundMindsAI/relyloop/pull/336)
+    - ✅ [Generated Artifact Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_03_infra_generated_artifact_freshness_gate) · [#433](https://github.com/SoundMindsAI/relyloop/pull/433)
     - ✅ [Smoke Reseed Runtime Budget](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_infra_smoke_reseed_runtime_budget) · [#424](https://github.com/SoundMindsAI/relyloop/pull/424)
     - ✅ [Solr CI Readiness](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_infra_solr_ci_readiness) · [#367](https://github.com/SoundMindsAI/relyloop/pull/367)
     - ✅ [Solr Smoke Stability](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_infra_solr_smoke_stability) · [#383](https://github.com/SoundMindsAI/relyloop/pull/383)
     - 🟡 [Arq Subprocess Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test)
-    - 🟡 [Generated Artifact Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_generated_artifact_freshness_gate)
-    - 🟡 [Openapi Types Freshness Gate](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_openapi_types_freshness_gate)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (22)"
+??? note "Maintenance & fixes (23)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -208,6 +207,7 @@
     - 🟡 [Demo Seeding Integration Tests Rewrite](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite)
     - 🟡 [E2E Teardown Chain Node Delete 500](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_e2e_teardown_chain_node_delete_500)
     - 🟡 [Judgment Header Omits Click Bucket](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_judgment_header_omits_click_bucket)
+    - 🟡 [PR Yml Parallelize Backend Job](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_pr_yml_parallelize_backend_job)
     - 🟡 [Relyloop Spec UBI Section Drift](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_relyloop_spec_ubi_section_drift)
     - 🟡 [Reseed Failure Blocks Retry Arq Singleton Dedup](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_reseed_failure_blocks_retry_arq_singleton_dedup)
     - 🟡 [Seed Meaningful Demos Silent Bulk Errors](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_seed_meaningful_demos_silent_bulk_errors)
