@@ -8,6 +8,8 @@ import { http, HttpResponse } from 'msw';
 import { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { TooltipProvider } from '@/components/ui/tooltip';
+
 import { server } from '../../setup';
 
 const API_BASE = 'http://api.test';
@@ -39,8 +41,15 @@ async function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const { default: StudiesPage } = await import('@/app/studies/page');
   return render(
+    // TooltipProvider mirrors the real app shell (app/layout.tsx wraps the
+    // whole tree in one). The studies-table Trials/Convergence columns render
+    // an <InfoTooltip> in the column HEADER (via tooltipKey), and Radix's
+    // Tooltip throws without a provider ancestor — so this isolated page
+    // render needs the provider the layout would otherwise supply.
     <QueryClientProvider client={qc}>
-      <StudiesPage />
+      <TooltipProvider>
+        <StudiesPage />
+      </TooltipProvider>
     </QueryClientProvider>,
   );
 }
@@ -65,6 +74,13 @@ function studyRows(count = 2) {
     direction: 'maximize' as const,
     created_at: '2026-05-12T00:00:00Z',
     completed_at: null,
+    // trial_count (required) + convergence_verdict (nullable) are part of
+    // the StudySummary wire shape since feat_studies_convergence_visibility
+    // (PR #421); the Trials + Convergence list columns
+    // (feat_studies_list_trial_convergence_columns) render them, so the mock
+    // must carry them or the Trials cell hits undefined.toLocaleString().
+    trial_count: i * 3,
+    convergence_verdict: null,
   }));
 }
 

@@ -278,7 +278,7 @@ No migration (§3.5 migration verification N/A).
 
 **Epic 1 (shipped to main via PR #421 `e5c3b8b9` squash-merge, 2026-06-02):**
 - [x] Story 1.1 — backend list fields (`b90d5477` on the feat branch, landed on main via PR #421; 8 unit + 7 integration + 3 contract tests green; latent `_summary` invalid-direction crash fixed inline as a tangential discovery surfaced by AC-3b; Epic-1 phase-review F1 parity bug (count-gate `primary_metric IS NOT NULL`) fixed in `a0c40d37`)
-- [x] Story 1.2 — frontend Trials + Convergence columns (`ed5ca276` on the feat branch, landed on main via PR #421; 1012 vitest, build clean, E2E spec)
+- [x] Story 1.2 — frontend Trials + Convergence columns (`ed5ca276` on the feat branch). **CORRECTION (2026-06-03):** this commit did NOT actually land on `main` — it was dropped during the PR #421/#422 rebase that de-duplicated Epic 1 commits (the Story 1.1 *backend* fields survived in `b90d5477`, but the Story 1.2 *frontend* columns in `ed5ca276` were lost). The `/studies` list shipped with only its original 6 columns; `trial_count` + `convergence_verdict` sat returned-but-unsurfaced. Restored 2026-06-03 by cherry-picking `ed5ca276` in `feat_studies_list_trial_convergence_columns` — which also added the `TooltipProvider` wrapper to `page.test.tsx` that the header `tooltipKey` requires (a gap the lost commit never exercised against CI, confirming it never ran the full suite on main).
 - [x] Epic 1 phase gate — GPT-5.5 review: 5 findings (4 accepted+fixed `a0c40d37`, F4 rejected with counter-evidence); re-review clean.
 
 **Epic 2 (in flight as PR #422):**

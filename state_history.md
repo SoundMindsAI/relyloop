@@ -272,6 +272,16 @@ backend + frontend code. **Epic 2** (demo data enrichment) shipped via
   compact labels `Converged`/`Improving`/`Too few trials`/em-dash. The
   verdict→badge map is `satisfies Record<ConvergenceVerdict, ...>` so a
   missing/extra verdict is a compile error.
+  - **CORRECTION (2026-06-03):** the frontend columns described in this
+    bullet (commit `ed5ca276`) did NOT actually ship with PR #421 — they
+    were dropped in the PR #421/#422 rebase that de-duplicated Epic 1
+    commits. Only the Story 1.1 *backend* fields (`b90d5477`) landed; the
+    `/studies` list ran with its original 6 columns and `trial_count` +
+    `convergence_verdict` sat returned-but-unsurfaced for ~30 hours.
+    Discovered + restored 2026-06-03 (`feat_studies_list_trial_convergence_columns`)
+    by cherry-picking `ed5ca276`, which also caught a `TooltipProvider`
+    gap in `page.test.tsx` the lost commit never exercised — confirming
+    `ed5ca276` never ran the full suite on main.
 
 **Epic 2 — what shipped (PR #422):**
 

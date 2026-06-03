@@ -21,6 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import type { DataTableColumnDef } from '@/components/common/types';
 import type { StudySummary } from '@/lib/api/studies';
 import { STUDY_STATUS_VALUES } from '@/lib/enums';
+import type { ConvergenceVerdict } from '@/lib/enums';
 
 /**
  * Threshold heuristic for the "ceiling" badge — when `best_metric` is at or
@@ -30,6 +31,25 @@ import { STUDY_STATUS_VALUES } from '@/lib/enums';
  * gap, CI band); this badge is the at-a-glance cue on the list view.
  */
 const METRIC_CEILING_THRESHOLD = 0.99;
+
+/**
+ * Compact convergence-verdict badge map for the studies-list column
+ * (feat_studies_convergence_visibility Story 1.2 / FR-4). Typed
+ * `satisfies Record<ConvergenceVerdict, ...>` so a verdict added to (or
+ * removed from) the backend `ConvergenceVerdict` Literal — mirrored by
+ * `CONVERGENCE_VERDICT_VALUES` in `@/lib/enums` — becomes a COMPILE error
+ * here, not a silent missing badge. The detail page's `<ConvergencePanel>`
+ * uses the fuller labels ("Still improving when it stopped", "Too few
+ * trials to tell"); the dense list uses these compact forms.
+ *
+ * Wire values must match backend/app/domain/study/convergence.py
+ * ConvergenceVerdict (via CONVERGENCE_VERDICT_VALUES in @/lib/enums).
+ */
+const VERDICT_BADGE = {
+  converged: { label: 'Converged', variant: 'success' as const },
+  still_improving: { label: 'Improving', variant: 'warning' as const },
+  too_few_trials: { label: 'Too few trials', variant: 'warning' as const },
+} satisfies Record<ConvergenceVerdict, { label: string; variant: 'success' | 'warning' }>;
 
 export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
   {
@@ -105,6 +125,58 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
               <InfoTooltip glossaryKey="study.best_metric.saturated" />
             </span>
           )}
+        </span>
+      );
+    },
+  },
+  {
+    id: 'trial_count',
+    header: 'Trials',
+    // tooltipKey renders an <InfoTooltip> in the header (data-table.tsx:435)
+    // while keeping `header` a string so the column-visibility menu shows
+    // "Trials" (not the column id) — see data-table.tsx:316.
+    tooltipKey: 'study.trial_count',
+    accessorKey: 'trial_count',
+    sortable: false,
+    hideable: true,
+    cell: ({ row }) => <span className="tabular-nums">{row.original.trial_count}</span>,
+  },
+  {
+    id: 'convergence_verdict',
+    header: 'Convergence',
+    tooltipKey: 'convergence_verdict',
+    accessorKey: 'convergence_verdict',
+    sortable: false,
+    hideable: true,
+    cell: ({ row }) => {
+      const verdict = row.original.convergence_verdict;
+      // null verdict (in-flight, invalid-direction, or < 5 complete trials)
+      // renders an em-dash, never a badge — matches the detail panel's
+      // null-state behavior.
+      if (verdict == null) return <span className="text-muted-foreground">—</span>;
+      // `verdict` is narrowed to the ConvergenceVerdict union and VERDICT_BADGE
+      // is `satisfies Record<ConvergenceVerdict, ...>`, so this lookup is
+      // provably total + safe at compile time — not user-controlled object
+      // injection.
+      // eslint-disable-next-line security/detect-object-injection
+      const badge = VERDICT_BADGE[verdict];
+      // Forward-compat guard (Gemini PR #438 review, accepted): convergence_verdict
+      // is a backend-COMPUTED classification (backend/app/domain/study/convergence.py),
+      // not a fixed DB-enum, so a newer backend could emit a verdict this snapshot
+      // doesn't map during a rolling deploy. Without this, an unmapped value would
+      // throw on `badge.variant` and crash the whole table render. Falls back to the
+      // same em-dash as the null state. Matches the StatusBadge `?? 'secondary'`
+      // pattern + the best_metric column's rolling-deploy backward-compat stance.
+      if (!badge) return <span className="text-muted-foreground">—</span>;
+      return (
+        <span
+          className="inline-flex items-center"
+          data-testid={`convergence-verdict-${row.original.id}`}
+          data-verdict={verdict}
+        >
+          <Badge variant={badge.variant} className="text-[10px] uppercase tracking-wide">
+            {badge.label}
+          </Badge>
         </span>
       );
     },
