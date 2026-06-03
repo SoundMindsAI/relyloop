@@ -86,6 +86,14 @@ def _auth_ref_exists(auth_ref: str) -> bool:
         return False
     override = os.environ.get("RELYLOOP_SECRETS_DIR")
     secrets_root = Path(override).resolve() if override else Path("./secrets").resolve()
+    # Path containment guard. `auth_ref` is already constrained to
+    # `^[a-zA-Z0-9_-]+$` by CreateConfigRepoRequest (no slashes/dots → no
+    # traversal at the API boundary); this resolve()+relative_to() is a second
+    # layer that also catches symlink escape and any non-HTTP caller. CodeQL's
+    # py/path-injection flags this candidate/is_file() pair because it doesn't
+    # model the Pydantic pattern or recognize relative_to() as a sanitizer —
+    # dismissed as a reviewed false positive (the input cannot escape
+    # secrets_root).
     candidate = (secrets_root / auth_ref).resolve()
     try:
         candidate.relative_to(secrets_root)
