@@ -894,6 +894,17 @@ export const glossary = {
   },
 
   // ---------------------------------------------------------------------------
+  // feat_studies_convergence_visibility Story 1.2 — studies-list trial count.
+  // Source-of-truth: backend/app/api/v1/schemas.py StudySummary.trial_count
+  //   (mirrors trials_summary.total — non-baseline optimization trials).
+  // ---------------------------------------------------------------------------
+  'study.trial_count': {
+    short:
+      'Number of optimization trials this study ran (the baseline trial is counted separately). More trials = more of the search space explored.',
+    ariaLabel: 'More information about the trial count',
+  },
+
+  // ---------------------------------------------------------------------------
   // feat_auto_followup_studies Story 3.1 — 4 chain-panel + wizard entries.
   // Text from feature_spec.md §11 tooltip inventory. Mirrors the FR-9
   // catalog (auto_followup_* events) where the chain semantics are
