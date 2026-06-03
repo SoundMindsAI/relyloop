@@ -202,27 +202,92 @@ async def test_generate_returns_503_when_key_missing(
     assert response.json()["detail"]["error_code"] == "OPENAI_NOT_CONFIGURED"
 
 
-async def test_generate_returns_503_on_capability_cache_miss(
+async def test_generate_recovers_after_capability_cache_expiry(
     async_client: httpx.AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    """Regression guard for bug_llm_capability_cache_no_refresh.
+
+    Before the fix, the 24h capability cache TTL would expire and any
+    judgment-generate POST would return 503 LLM_PROVIDER_INCAPABLE
+    "cache miss" until the api process restarted.
+
+    After the fix (D-1 in the bug_fix.md), the preflight calls
+    read_or_recompute_capability_result, which recomputes on miss
+    inline and writes the fresh result back to Redis. The endpoint
+    returns 202 again. We stub check_capabilities to avoid hitting
+    real OpenAI from the integration suite — the unit tests in
+    test_capability_check.py::TestReadOrRecomputeCapabilityResult
+    cover the helper's branches directly.
+    """
     seeded = await _seed_chain()
     from backend.app.core.settings import get_settings
+    from backend.app.llm import capability_check as cc
 
     settings = get_settings()
     monkeypatch.setattr(type(settings), "openai_api_key", property(lambda self: "sk-test"))
+    # Simulate the 24h TTL expiry: cache was populated at startup, then
+    # expired.
     await _clear_capability_cache(settings.openai_base_url)
+    await _clear_budget()
 
-    payload = {
-        "name": f"gen-cap-miss-{uuid.uuid4().hex[:8]}",
+    # Stub check_capabilities to return an OK result without touching the
+    # real OpenAI endpoint. The helper imports + calls check_capabilities
+    # at the module level, so patching the attribute on the module is
+    # enough — the read_or_recompute_capability_result inside the same
+    # module will pick up the stub.
+    recompute_calls = 0
+
+    async def _stub_check_capabilities(
+        base_url: str,
+        api_key: str,
+        model: str,
+        redis_client: Redis,
+        *,
+        http_client: httpx.AsyncClient | None = None,
+    ) -> CapabilityResult:
+        nonlocal recompute_calls
+        recompute_calls += 1
+        result = CapabilityResult(
+            base_url=base_url,
+            model=model,
+            models_endpoint="ok",
+            chat_completion="ok",
+            function_calling="ok",
+            structured_output="ok",
+            tested_at=datetime.now(UTC),
+        )
+        # Mirror the real cache-write side effect so a SECOND request in
+        # the same test run wouldn't trigger another recompute.
+        await redis_client.set(
+            cap_cache_key(base_url),
+            result.model_dump_json(),
+            ex=600,
+        )
+        return result
+
+    monkeypatch.setattr(cc, "check_capabilities", _stub_check_capabilities)
+
+    # Two POSTs with DIFFERENT names — the cache short-circuit assertion
+    # is about the capability cache, not the judgment-list uniqueness
+    # check (which runs before the preflight and would 409 on a duplicate
+    # name regardless of cache state).
+    payload1 = {
+        "name": f"gen-cap-recover-{uuid.uuid4().hex[:8]}",
         "query_set_id": seeded["query_set_id"],
         "cluster_id": seeded["cluster_id"],
         "target": "stub-index",
         "current_template_id": seeded["template_id"],
         "rubric": "r",
     }
-    response = await async_client.post("/api/v1/judgments/generate", json=payload)
-    assert response.status_code == 503
-    assert response.json()["detail"]["error_code"] == "LLM_PROVIDER_INCAPABLE"
+    response = await async_client.post("/api/v1/judgments/generate", json=payload1)
+    assert response.status_code == 202, response.text
+    assert recompute_calls == 1, "the cold-cache path MUST trigger exactly one inline recompute"
+    # And the recomputed result is now cached — a follow-up request with
+    # a different name short-circuits without re-probing.
+    payload2 = {**payload1, "name": f"gen-cap-warm-{uuid.uuid4().hex[:8]}"}
+    response2 = await async_client.post("/api/v1/judgments/generate", json=payload2)
+    assert response2.status_code == 202, response2.text
+    assert recompute_calls == 1, "warm-cache path MUST short-circuit; helper should not re-probe"
 
 
 async def test_generate_returns_503_on_structured_output_fail(

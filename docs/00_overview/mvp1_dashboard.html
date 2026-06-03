@@ -398,7 +398,7 @@ footer {
     <div class="kpi complete">
       <div class="label">Specced features done</div>
       <div class="value">94 / 94</div>
-      <div class="sub">100% specced · 129 filed under MVP1</div>
+      <div class="sub">100% specced · 130 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">129</span></h3>
+  <h3>Done <span class="count">130</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -2001,6 +2001,19 @@ footer {
     <span>merged 2026-05-13</span>
   </div>
   <div class="one-liner">The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_02_bug_llm_capability_cache_no_refresh">Llm Capability Cache No Refresh</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-06-02</span>
+  </div>
+  <div class="one-liner">The OpenAI capability check runs **exactly once**, as a fire-and-forget task in the FastAPI `lifespan` startup hook ([`backend/app/main.py:94`](../../backend/app/main.py) — `run_capability_check_backg</div>
 
 
 </div>
