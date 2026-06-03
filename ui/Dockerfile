@@ -28,10 +28,10 @@ RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
 RUN pnpm install --frozen-lockfile
 
-FROM node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS builder
-WORKDIR /app
-RUN npm install -g pnpm@9
-COPY --from=deps /app/node_modules ./node_modules
+# Inherit from `deps` — pnpm, WORKDIR, and node_modules are already in place,
+# so no redundant install/copy (and one fewer digest occurrence). A stage ref
+# to a digest-pinned stage is still credited as pinned by Scorecard.
+FROM deps AS builder
 COPY . .
 ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
