@@ -103,6 +103,40 @@ async def count_queries_in_set(db: AsyncSession, query_set_id: str) -> int:
     return int((await db.execute(stmt)).scalar_one())
 
 
+async def count_queries_for_sets(db: AsyncSession, query_set_ids: Sequence[str]) -> dict[str, int]:
+    """Batched query counts for a page of query sets.
+
+    One ``GROUP BY query_set_id`` aggregate returning the COUNT(*) of
+    queries per set. Powers the query-sets-list ``query_count`` field
+    without a per-row count (the no-N+1 pattern mirroring
+    ``repo.count_trials_for_studies`` from
+    ``feat_studies_convergence_visibility``).
+
+    Sets whose id is in the input but have zero queries are returned
+    with ``0`` (backfilled) so callers can index by id without a
+    ``KeyError``. Empty input returns an empty dict (no query issued).
+    """
+    if not query_set_ids:
+        return {}
+    # Label the aggregate ``query_count`` (NOT ``count``): SQLAlchemy
+    # ``Row`` objects are tuple-like and expose a built-in ``.count()``
+    # method, so ``row.count`` would resolve to that bound method, not
+    # the labeled column. ``query_count`` has no such collision.
+    stmt = (
+        select(
+            Query.query_set_id.label("query_set_id"),
+            func.count(Query.id).label("query_count"),
+        )
+        .where(Query.query_set_id.in_(list(query_set_ids)))
+        .group_by(Query.query_set_id)
+    )
+    rows = (await db.execute(stmt)).all()
+    result: dict[str, int] = {row.query_set_id: int(row.query_count) for row in rows}
+    for qsid in query_set_ids:
+        result.setdefault(qsid, 0)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # chore_e2e_test_rows_isolation Story 1.1 — hard-delete for test-only cleanup
 # ---------------------------------------------------------------------------

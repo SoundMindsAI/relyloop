@@ -5,8 +5,10 @@
 /**
  * Column configuration for `<QuerySetsTable>` (feat_data_table_primitive Story 3.5).
  *
- * 3 columns: Name (link, sortable+sticky), Cluster, Created (sortable).
- * No filters. FTS on `name` (Story 1.2).
+ * 4 columns: Name (link, sortable+sticky), Cluster, Queries (count), Created
+ * (sortable). No filters. FTS on `name` (Story 1.2). The Queries column reads
+ * the `query_count` field added to `QuerySetSummary` by feat_list_count_columns
+ * (resolved server-side via one batched aggregate per page — no N+1).
  */
 import Link from 'next/link';
 
@@ -34,6 +36,14 @@ export const querySetsColumns: DataTableColumnDef<QuerySetSummary>[] = [
     header: 'Cluster',
     accessorKey: 'cluster_id',
     cell: ({ row }) => <span className="font-mono text-xs">{row.original.cluster_id}</span>,
+  },
+  {
+    id: 'query_count',
+    header: 'Queries',
+    accessorKey: 'query_count',
+    cell: ({ row }) => (
+      <span className="tabular-nums">{row.original.query_count.toLocaleString()}</span>
+    ),
   },
   {
     id: 'created_at',

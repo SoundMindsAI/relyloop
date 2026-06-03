@@ -2809,7 +2809,15 @@ export interface components {
         };
         /**
          * QuerySetSummary
-         * @description List-view shape; omits ``query_count`` to avoid N+1 counts at list time.
+         * @description List-view shape.
+         *
+         *     ``query_count`` is the number of queries in the set. It is resolved
+         *     via a single batched ``GROUP BY query_set_id`` aggregate per page
+         *     (``repo.count_queries_for_sets``), NOT a per-row count — so the
+         *     list endpoint stays at a fixed 2 queries (the page + the count
+         *     aggregate) regardless of page size. This is the same no-N+1 pattern
+         *     ``feat_studies_convergence_visibility`` (PR #421) used for the
+         *     studies-list ``trial_count`` field.
          */
         QuerySetSummary: {
             /** Cluster Id */
@@ -2823,6 +2831,8 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /** Query Count */
+            query_count: number;
         };
         /**
          * QueryTemplateDetail
@@ -2868,7 +2878,14 @@ export interface components {
         };
         /**
          * QueryTemplateSummary
-         * @description List-view shape; drops ``body`` + ``declared_params`` for brevity.
+         * @description List-view shape; drops ``body`` + the full ``declared_params`` dict.
+         *
+         *     Surfaces ``param_count`` (= ``len(declared_params)``) so the
+         *     templates list can show each template's tuning surface at a glance.
+         *     ``param_count`` is free to compute — ``declared_params`` is a JSONB
+         *     column already loaded on the row (not a child relationship), so the
+         *     count is ``len(row.declared_params)`` with no extra query and no
+         *     N+1 risk. The full dict remains on ``QueryTemplateDetail``.
          */
         QueryTemplateSummary: {
             /**
@@ -2885,6 +2902,8 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /** Param Count */
+            param_count: number;
             /** Version */
             version: number;
         };

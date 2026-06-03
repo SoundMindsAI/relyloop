@@ -107,11 +107,12 @@ async def _detail(db: AsyncSession, row: QuerySet) -> QuerySetDetail:
     )
 
 
-def _summary(row: QuerySet) -> QuerySetSummary:
+def _summary(row: QuerySet, query_count: int) -> QuerySetSummary:
     return QuerySetSummary(
         id=row.id,
         name=row.name,
         cluster_id=row.cluster_id,
+        query_count=query_count,
         created_at=row.created_at,
     )
 
@@ -200,8 +201,11 @@ async def list_query_sets(
             cursor_value = getattr(last, parsed_sort.col_name)
         next_cursor = _sort_encode_cursor(cursor_value, last.id)
         has_more = True
+    # One batched GROUP BY aggregate for the whole page — no per-row
+    # count (see QuerySetSummary docstring + repo.count_queries_for_sets).
+    counts = await repo.count_queries_for_sets(db, [r.id for r in rows])
     return QuerySetListResponse(
-        data=[_summary(r) for r in rows],
+        data=[_summary(r, counts.get(r.id, 0)) for r in rows],
         next_cursor=next_cursor,
         has_more=has_more,
     )
