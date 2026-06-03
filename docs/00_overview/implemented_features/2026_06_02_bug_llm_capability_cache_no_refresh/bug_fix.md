@@ -6,10 +6,12 @@ SPDX-License-Identifier: Apache-2.0
 
 # Bug fix — `bug_llm_capability_cache_no_refresh`
 
+**Release:** mvp2
 **Source idea:** [idea.md](./idea.md)
 **Branch:** `bug/llm-capability-cache-no-refresh`
 **Type:** bug fix — medium (one subsystem + design fork + cross-layer consumers)
 **Date:** 2026-06-02
+**Status:** Complete (PR #426, squash-merged `432dcf59` 2026-06-02)
 
 ## Problem
 
