@@ -1,7 +1,7 @@
 # Implementation Plan — CI gate for generated-artifact freshness (`types.ts` + `ui/public/docs`)
 
 **Date:** 2026-06-01
-**Status:** Draft
+**Status:** Complete (PR #433, merged 2026-06-03 — squash `c5c36c65`)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Absolute Rules #2 secrets-via-files, #7 conventional commits + DCO; "Common Pitfalls" hermetic-CI + local-stub hygiene); `scripts/gen_license_inventory.py --check` + the `license-inventory` job in [`.github/workflows/pr.yml`](../../../../../.github/workflows/pr.yml); [`.github/workflows/secrets-defense.yml`](../../../../../.github/workflows/secrets-defense.yml) (own-workflow-to-escape-`paths-ignore` precedent)
 
