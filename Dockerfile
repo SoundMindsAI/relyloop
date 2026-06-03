@@ -13,11 +13,15 @@
 # implementation_plan.md Story 4.1 "Decision rationale".
 
 ARG PYTHON_VERSION=3.14
+# Digest pins python:3.14-slim (PinnedDependencies / OSSF Scorecard). When
+# bumping PYTHON_VERSION, refresh this digest too (Dependabot's docker
+# ecosystem keeps it current); the digest wins over the tag at pull time.
+ARG PYTHON_DIGEST=sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97
 
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
 # ---------------------------------------------------------------------------
-FROM python:${PYTHON_VERSION}-slim AS base
+FROM python:${PYTHON_VERSION}-slim@${PYTHON_DIGEST} AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -32,7 +36,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv via the official installer to /usr/local/bin/uv
-COPY --from=ghcr.io/astral-sh/uv:0.5.7 /uv /uvx /usr/local/bin/
+COPY --from=ghcr.io/astral-sh/uv:0.5.7@sha256:23272999edd22e78195509ea3fe380e7632ab39a4c69a340bedaba7555abe20a /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
