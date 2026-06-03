@@ -156,9 +156,18 @@ export const studiesColumns: DataTableColumnDef<StudySummary>[] = [
       if (verdict == null) return <span className="text-muted-foreground">—</span>;
       // `verdict` is narrowed to the ConvergenceVerdict union and VERDICT_BADGE
       // is `satisfies Record<ConvergenceVerdict, ...>`, so this lookup is
-      // provably total + safe — not user-controlled object injection.
+      // provably total + safe at compile time — not user-controlled object
+      // injection.
       // eslint-disable-next-line security/detect-object-injection
       const badge = VERDICT_BADGE[verdict];
+      // Forward-compat guard (Gemini PR #438 review, accepted): convergence_verdict
+      // is a backend-COMPUTED classification (backend/app/domain/study/convergence.py),
+      // not a fixed DB-enum, so a newer backend could emit a verdict this snapshot
+      // doesn't map during a rolling deploy. Without this, an unmapped value would
+      // throw on `badge.variant` and crash the whole table render. Falls back to the
+      // same em-dash as the null state. Matches the StatusBadge `?? 'secondary'`
+      // pattern + the best_metric column's rolling-deploy backward-compat stance.
+      if (!badge) return <span className="text-muted-foreground">—</span>;
       return (
         <span
           className="inline-flex items-center"

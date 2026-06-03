@@ -14,6 +14,7 @@
  *   panel's null-state behavior.
  */
 import { render, screen } from '@testing-library/react';
+import { type ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 
 import { studiesColumns } from '@/components/studies/studies-table.column-config';
@@ -42,7 +43,7 @@ function renderCell(columnId: string, original: StudySummary) {
   if (!column?.cell || typeof column.cell !== 'function') {
     throw new Error(`${columnId} column or its cell renderer not found`);
   }
-  const cell = column.cell as (ctx: { row: { original: StudySummary } }) => React.ReactNode;
+  const cell = column.cell as (ctx: { row: { original: StudySummary } }) => ReactNode;
   return render(<TooltipProvider delayDuration={0}>{cell({ row: { original } })}</TooltipProvider>);
 }
 
@@ -98,5 +99,22 @@ describe('studies-table Convergence column', () => {
       expect(container.querySelector(`[data-verdict="${verdict}"]`)).not.toBeNull();
       unmount();
     }
+  });
+
+  it('falls back to an em-dash for an unmapped verdict (forward-compat guard)', () => {
+    // Regression test for the Gemini PR #438 finding (accepted): a newer
+    // backend could emit a convergence_verdict this frontend snapshot doesn't
+    // map (rolling deploy). The cast simulates that out-of-union runtime value
+    // — TypeScript would never let it through the typed path, but the wire can.
+    // The cell must render the same em-dash as the null state, NOT crash on
+    // `badge.variant`.
+    const unknown = 'diverged' as StudySummary['convergence_verdict'];
+    const { container } = renderCell(
+      'convergence_verdict',
+      baseStudy({ convergence_verdict: unknown }),
+    );
+    expect(screen.getByText('—')).toBeInTheDocument();
+    // No badge rendered for the unmapped value.
+    expect(container.querySelector('[data-verdict]')).toBeNull();
   });
 });
