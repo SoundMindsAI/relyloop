@@ -64,8 +64,9 @@ DRIFT="$(git status --porcelain -- ui/src/lib/types.ts)"
 
 if [[ -n "${DRIFT}" ]]; then
   echo "ERROR: ui/src/lib/types.ts is stale." >&2
-  echo "Fix with:" >&2
-  echo "  bash scripts/regen-generated-artifacts.sh && git add ui/openapi.json ui/src/lib/types.ts" >&2
+  echo "Fix with the canonical chained regen (Story 2.4):" >&2
+  echo "  bash scripts/regen-generated-artifacts.sh" >&2
+  echo "(this also refreshes ui/openapi.json + ui/public/docs/ in lockstep.)" >&2
   echo >&2
   echo "Drift detected (diagnostic):" >&2
   printf '%s\n' "${DRIFT}" >&2

@@ -259,7 +259,25 @@ markers) — every drift mode the gate exists to catch.
 | 2 | `generated-artifacts-fresh` (snapshot step) | `pr.yml` job — backend (`**/*.py`) + ui (`**/*.ts`) changes can both invalidate the snapshot, so the gate runs on every code-bearing PR | backend FastAPI route table → `ui/openapi.json` | `uv run python -m backend.app.openapi_export --out ui/openapi.json` (offline, no live services per Story 2.1) | `scripts/ci/test_verify_openapi_snapshot_fresh.sh` uses an `OPENAPI_SNAPSHOT_REGEN_SCRIPT` path-override + a disposable `mktemp` fixture to test the guard's diff-detection without needing `uv` in the fixture (the exporter has its own Story-2.1 unit test) |
 | 3 | `generated-artifacts-fresh` (types step) | same `pr.yml` job — chained after the snapshot step so they share the toolchain install | `ui/openapi.json` → `ui/src/lib/types.ts` | `OPENAPI_URL="$PWD/ui/openapi.json" pnpm --dir ui types:gen` (wraps the lockfile-pinned `openapi-typescript@7.x` binary; Story 2.3 ditched the `npx` fallback per FR-5) | `scripts/ci/test_verify_types_fresh.sh` uses a `TYPES_FRESH_REGEN_SCRIPT` path-override against a disposable fixture; `ui/src/__tests__/scripts/gen-types-banner.test.ts` covers banner source-invariance (FR-5 / AC-8) |
 
-The fix commands printed on failure:
+The single canonical fix command for ALL three gates:
+
+```bash
+bash scripts/regen-generated-artifacts.sh
+```
+
+`scripts/regen-generated-artifacts.sh` chains the three regenerators in
+the order their outputs depend on each other — exporter writes
+`ui/openapi.json`; `pnpm types:gen` reads that snapshot to produce
+`ui/src/lib/types.ts`; `copy-docs.mjs` is independent — then `git add`s
+all three. Running it on an up-to-date tree is a clean no-op. CI runs a
+**clean-tree determinism assertion** (AC-7) after the two per-gate
+guards: a fresh regen against a clean tree must leave `git status
+--porcelain -- ui/openapi.json ui/src/lib/types.ts ui/public/docs`
+empty. That catches a regenerator that is itself non-deterministic
+across runs (the FR-6 failure mode), distinct from drift against the
+committed snapshots that the per-gate guards above catch.
+
+Per-gate fix commands (if you'd rather refresh just one artifact):
 
 ```bash
 # Gate 1 (copy-docs)
@@ -268,10 +286,18 @@ cd ui && node scripts/copy-docs.mjs && git add public/docs
 # Gate 2 (openapi.json snapshot)
 uv run python -m backend.app.openapi_export --out ui/openapi.json && git add ui/openapi.json
 
-# Gate 3 (types.ts) — refreshes the snapshot too, so use the chained
-# fix landing in Story 2.4 (`scripts/regen-generated-artifacts.sh`)
-bash scripts/regen-generated-artifacts.sh && git add ui/openapi.json ui/src/lib/types.ts
+# Gate 3 (types.ts — depends on the snapshot at gate 2, so the chained
+# regen above is usually the right call)
+( cd ui && OPENAPI_URL="$PWD/openapi.json" pnpm types:gen ) && git add ui/src/lib/types.ts
 ```
+
+**Generated files are NOT prettier-formatted.** `ui/src/lib/types.ts`
+(emitted by `openapi-typescript`) and `ui/public/docs/*.md` (copied
+from `docs/08_guides/`) are listed in `ui/.prettierignore` — the
+generator is the source of truth, and reformatting their output would
+make the gates flap. If you edit a guide or change a backend route,
+run the canonical regen above; do not run prettier on the generated
+artifacts.
 
 The freshness-gate scripts (`scripts/ci/verify_copy_docs_fresh.sh` + its
 self-test) follow the canonical `scripts/ci/` shape: `set -euo pipefail`,

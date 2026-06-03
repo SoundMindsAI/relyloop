@@ -61,8 +61,10 @@ DRIFT="$(git status --porcelain -- ui/openapi.json)"
 
 if [[ -n "${DRIFT}" ]]; then
   echo "ERROR: ui/openapi.json is stale." >&2
-  echo "Fix with:" >&2
-  echo "  uv run python -m backend.app.openapi_export --out ui/openapi.json && git add ui/openapi.json" >&2
+  echo "Fix with the canonical chained regen (Story 2.4):" >&2
+  echo "  bash scripts/regen-generated-artifacts.sh" >&2
+  echo "(or this gate alone:" >&2
+  echo "  uv run python -m backend.app.openapi_export --out ui/openapi.json && git add ui/openapi.json)" >&2
   echo >&2
   echo "Drift detected (diagnostic):" >&2
   printf '%s\n' "${DRIFT}" >&2

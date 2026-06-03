@@ -261,6 +261,23 @@ jobs:
         run: bash scripts/ci/test_verify_types_fresh.sh
       - name: Verify ui/src/lib/types.ts is fresh
         run: bash scripts/ci/verify_types_fresh.sh
+      - name: Clean-tree determinism assertion (AC-7)
+        # After both guards have run their regenerators, the working
+        # tree must be clean across all three artifacts. Catches a
+        # regenerator that is itself non-deterministic across runs
+        # (the failure mode `infra_generated_artifact_freshness_gate`
+        # FR-6 names) — distinct from drift against the committed
+        # snapshot, which the two guards above catch.
+        run: |
+          REGEN_NO_STAGE=1 bash scripts/regen-generated-artifacts.sh
+          DRIFT="$(git status --porcelain -- ui/openapi.json ui/src/lib/types.ts ui/public/docs)"
+          if [[ -n "${DRIFT}" ]]; then
+            echo "ERROR: regenerator output is non-deterministic across runs." >&2
+            echo "Drift after a fresh canonical regen:" >&2
+            printf '%s\n' "${DRIFT}" >&2
+            exit 1
+          fi
+          echo "OK: clean-tree determinism assertion passed."
 
   # -------------------------------------------------------------------------
   # Static checks — ALWAYS run (not gated by SKIP_HEAVY_CI). Split into two

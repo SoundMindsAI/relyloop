@@ -18,5935 +18,5846 @@
  */
 
 export interface paths {
-  '/api/v1/_test/auto-followup/seed-chain': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/auto-followup/seed-chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed an auto-followup chain of N+1 linked studies
+         * @description Test-only endpoint. Returns 404 unless `ENVIRONMENT=development`. Inserts a chain of `depth + 1` studies where each child carries the prior node's id as `parent_study_id`. The public POST /studies endpoint does NOT accept `parent_study_id` (it's set only by the auto-followup worker via `repo.create_study(parent_study_id=...)`), so this endpoint is the only way to drive deterministic E2E coverage of chain-panel parent-link / children-table / cascade-radio paths. Closes chore_auto_followup_e2e_chain_seed_helper.
+         */
+        post: operations["seed_auto_followup_chain_endpoint_api_v1__test_auto_followup_seed_chain_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Seed an auto-followup chain of N+1 linked studies
-     * @description Test-only endpoint. Returns 404 unless `ENVIRONMENT=development`. Inserts a chain of `depth + 1` studies where each child carries the prior node's id as `parent_study_id`. The public POST /studies endpoint does NOT accept `parent_study_id` (it's set only by the auto-followup worker via `repo.create_study(parent_study_id=...)`), so this endpoint is the only way to drive deterministic E2E coverage of chain-panel parent-link / children-table / cascade-radio paths. Closes chore_auto_followup_e2e_chain_seed_helper.
-     */
-    post: operations['seed_auto_followup_chain_endpoint_api_v1__test_auto_followup_seed_chain_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/demo/reseed': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/demo/reseed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enqueue a demo-state reseed (dev-only, async)
+         * @description Enqueues an Arq job that wipes the demo Postgres tables + ES/OS indices, then re-seeds the 4 demo scenarios from ``scripts/seed_meaningful_demos.py`` using REAL studies (real Optuna trials, real metrics per scenario). Returns 202 + an initial ``ReseedStatusResponse`` immediately; the frontend polls ``GET /api/v1/_test/demo/reseed/status`` for progress.
+         *
+         *     Per ``bug_demo_reseed_fake_metric_regression``. Replaces the previous synchronous path that called ``/_test/studies/seed-completed`` and produced identical ``best_metric=0.487`` rows for every scenario.
+         */
+        post: operations["reseed_demo_api_v1__test_demo_reseed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Enqueue a demo-state reseed (dev-only, async)
-     * @description Enqueues an Arq job that wipes the demo Postgres tables + ES/OS indices, then re-seeds the 4 demo scenarios from ``scripts/seed_meaningful_demos.py`` using REAL studies (real Optuna trials, real metrics per scenario). Returns 202 + an initial ``ReseedStatusResponse`` immediately; the frontend polls ``GET /api/v1/_test/demo/reseed/status`` for progress.
-     *
-     *     Per ``bug_demo_reseed_fake_metric_regression``. Replaces the previous synchronous path that called ``/_test/studies/seed-completed`` and produced identical ``best_metric=0.487`` rows for every scenario.
-     */
-    post: operations['reseed_demo_api_v1__test_demo_reseed_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/demo/reseed/status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/demo/reseed/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Poll the current demo-reseed progress (dev-only)
+         * @description Returns the current reseed status from Redis. When no reseed has ever run (or the result TTL'd out), returns ``{status: 'idle'}`` rather than 404 so the frontend's polling loop is trivially safe.
+         */
+        get: operations["reseed_demo_status_api_v1__test_demo_reseed_status_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Poll the current demo-reseed progress (dev-only)
-     * @description Returns the current reseed status from Redis. When no reseed has ever run (or the result TTL'd out), returns ``{status: 'idle'}`` rather than 404 so the frontend's polling loop is trivially safe.
-     */
-    get: operations['reseed_demo_status_api_v1__test_demo_reseed_status_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/digests/{digest_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/digests/{digest_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Hard-delete a digest (test-only)
+         * @description FR-2: Hard-delete the digest row. No FK children — no preflight needed.
+         */
+        delete: operations["delete_test_digest_api_v1__test_digests__digest_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Hard-delete a digest (test-only)
-     * @description FR-2: Hard-delete the digest row. No FK children — no preflight needed.
-     */
-    delete: operations['delete_test_digest_api_v1__test_digests__digest_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/judgment-lists/{judgment_list_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/judgment-lists/{judgment_list_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Hard-delete a judgment_list (test-only)
+         * @description FR-4 — hard-delete the judgment_list row.
+         *
+         *     Judgments cascade-delete via existing FK. Preflight-checks ``studies``
+         *     (non-cascade); 409 if any study references the judgment_list.
+         */
+        delete: operations["delete_test_judgment_list_api_v1__test_judgment_lists__judgment_list_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Hard-delete a judgment_list (test-only)
-     * @description FR-4 — hard-delete the judgment_list row.
-     *
-     *     Judgments cascade-delete via existing FK. Preflight-checks ``studies``
-     *     (non-cascade); 409 if any study references the judgment_list.
-     */
-    delete: operations['delete_test_judgment_list_api_v1__test_judgment_lists__judgment_list_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/proposals/{proposal_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/proposals/{proposal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Hard-delete a proposal (test-only)
+         * @description FR-1: Hard-delete the proposal row. No FK children — no preflight needed.
+         */
+        delete: operations["delete_test_proposal_api_v1__test_proposals__proposal_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Hard-delete a proposal (test-only)
-     * @description FR-1: Hard-delete the proposal row. No FK children — no preflight needed.
-     */
-    delete: operations['delete_test_proposal_api_v1__test_proposals__proposal_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/query-sets/{query_set_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/query-sets/{query_set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Hard-delete a query_set (test-only)
+         * @description FR-5 — hard-delete the query_set row.
+         *
+         *     Queries cascade-delete via existing FK. Preflight-checks ``studies``
+         *     + ``judgment_lists`` (both non-cascade); 409 with resource-specific
+         *     code if either references.
+         */
+        delete: operations["delete_test_query_set_api_v1__test_query_sets__query_set_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Hard-delete a query_set (test-only)
-     * @description FR-5 — hard-delete the query_set row.
-     *
-     *     Queries cascade-delete via existing FK. Preflight-checks ``studies``
-     *     + ``judgment_lists`` (both non-cascade); 409 with resource-specific
-     *     code if either references.
-     */
-    delete: operations['delete_test_query_set_api_v1__test_query_sets__query_set_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/query-templates/{template_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/query-templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Hard-delete a query_template (test-only)
+         * @description FR-6 — hard-delete the query_template row.
+         *
+         *     No FK children cascade with template. Preflight-checks ``studies``,
+         *     ``proposals``, and ``judgment_lists.current_template_id`` in
+         *     **fixed priority order: STUDY > PROPOSAL > JUDGMENT_LIST** (per
+         *     spec §FR-6) — first match wins.
+         */
+        delete: operations["delete_test_query_template_api_v1__test_query_templates__template_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Hard-delete a query_template (test-only)
-     * @description FR-6 — hard-delete the query_template row.
-     *
-     *     No FK children cascade with template. Preflight-checks ``studies``,
-     *     ``proposals``, and ``judgment_lists.current_template_id`` in
-     *     **fixed priority order: STUDY > PROPOSAL > JUDGMENT_LIST** (per
-     *     spec §FR-6) — first match wins.
-     */
-    delete: operations['delete_test_query_template_api_v1__test_query_templates__template_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/studies/seed-completed': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/studies/seed-completed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Seed a completed study + digest + (optional) pending proposal
+         * @description Test-only endpoint. Returns 404 unless `ENVIRONMENT=development`. Inserts a study (driven through queued → running → completed via the legal state-machine transitions), 2 trials (one winner, one comparison), a digest, and optionally a pending proposal in a single transaction. Used by the Playwright E2E suite to cover the digest-panel surfaces (7 tooltip placements + AC-7 body content + AC-11 Open PR enabled/disabled branches) without waiting on the orchestrator + Optuna workers.
+         */
+        post: operations["seed_completed_study_api_v1__test_studies_seed_completed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Seed a completed study + digest + (optional) pending proposal
-     * @description Test-only endpoint. Returns 404 unless `ENVIRONMENT=development`. Inserts a study (driven through queued → running → completed via the legal state-machine transitions), 2 trials (one winner, one comparison), a digest, and optionally a pending proposal in a single transaction. Used by the Playwright E2E suite to cover the digest-panel surfaces (7 tooltip placements + AC-7 body content + AC-11 Open PR enabled/disabled branches) without waiting on the orchestrator + Optuna workers.
-     */
-    post: operations['seed_completed_study_api_v1__test_studies_seed_completed_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/_test/studies/{study_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/_test/studies/{study_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Hard-delete a study (test-only)
+         * @description FR-3 — hard-delete the study row.
+         *
+         *     Trials cascade-delete via existing FK. Preflight-checks ``proposals``
+         *     + ``digests`` (both non-cascade); 409 if any dependent rows reference
+         *     the study.
+         */
+        delete: operations["delete_test_study_api_v1__test_studies__study_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Hard-delete a study (test-only)
-     * @description FR-3 — hard-delete the study row.
-     *
-     *     Trials cascade-delete via existing FK. Preflight-checks ``proposals``
-     *     + ``digests`` (both non-cascade); 409 if any dependent rows reference
-     *     the study.
-     */
-    delete: operations['delete_test_study_api_v1__test_studies__study_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Clusters
+         * @description List clusters with cursor pagination + ``X-Total-Count`` header.
+         *
+         *     ``?q=`` is a Postgres FTS match against the cluster's ``search_vector``
+         *     (name + base_url); 2–200 chars. Filter-only — ordering unchanged per
+         *     spec FR-1. ``?sort=`` is one of the values in
+         *     :data:`~backend.app.api.v1.schemas.ClusterSortKey`; the cursor is
+         *     sort-aware so the keyset predicate matches the active ORDER BY
+         *     (feat_data_table_primitive Stories 1.2 + 1.3).
+         */
+        get: operations["list_clusters_api_v1_clusters_get"];
+        put?: never;
+        /**
+         * Create Cluster
+         * @description Register a cluster (FR-5 / AC-1).
+         */
+        post: operations["create_cluster_api_v1_clusters_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Clusters
-     * @description List clusters with cursor pagination + ``X-Total-Count`` header.
-     *
-     *     ``?q=`` is a Postgres FTS match against the cluster's ``search_vector``
-     *     (name + base_url); 2–200 chars. Filter-only — ordering unchanged per
-     *     spec FR-1. ``?sort=`` is one of the values in
-     *     :data:`~backend.app.api.v1.schemas.ClusterSortKey`; the cursor is
-     *     sort-aware so the keyset predicate matches the active ORDER BY
-     *     (feat_data_table_primitive Stories 1.2 + 1.3).
-     */
-    get: operations['list_clusters_api_v1_clusters_get'];
-    put?: never;
-    /**
-     * Create Cluster
-     * @description Register a cluster (FR-5 / AC-1).
-     */
-    post: operations['create_cluster_api_v1_clusters_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/test-connection': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/test-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Connection
+         * @description Probe a cluster config WITHOUT persisting (infra_adapter_solr Story A9).
+         *
+         *     Powers the registration modal's "Test connection" button. Always 200 —
+         *     transport failures surface as ``reachable=false`` with ``error`` set.
+         *     Invalid engine×auth pairings 400 BEFORE the network call.
+         */
+        post: operations["test_connection_api_v1_clusters_test_connection_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Test Connection
-     * @description Probe a cluster config WITHOUT persisting (infra_adapter_solr Story A9).
-     *
-     *     Powers the registration modal's "Test connection" button. Always 200 —
-     *     transport failures surface as ``reachable=false`` with ``error`` set.
-     *     Invalid engine×auth pairings 400 BEFORE the network call.
-     */
-    post: operations['test_connection_api_v1_clusters_test_connection_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cluster Detail
+         * @description Return cluster row + cached/fresh health probe.
+         */
+        get: operations["get_cluster_detail_api_v1_clusters__cluster_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Cluster
+         * @description Soft-delete a cluster (AC-8). Returns 204 with no body.
+         */
+        delete: operations["delete_cluster_api_v1_clusters__cluster_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Cluster Detail
-     * @description Return cluster row + cached/fresh health probe.
-     */
-    get: operations['get_cluster_detail_api_v1_clusters__cluster_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete Cluster
-     * @description Soft-delete a cluster (AC-8). Returns 204 with no body.
-     */
-    delete: operations['delete_cluster_api_v1_clusters__cluster_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}/reprobe': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}/reprobe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reprobe Cluster
+         * @description Re-run cluster capability probe (Story A9 / spec FR-2 + AC-14).
+         *
+         *     Concurrent calls serialize on ``SELECT … FOR UPDATE``. On probe failure
+         *     the row's engine_config is NOT updated (the transaction rolls back).
+         */
+        post: operations["reprobe_cluster_api_v1_clusters__cluster_id__reprobe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Reprobe Cluster
-     * @description Re-run cluster capability probe (Story A9 / spec FR-2 + AC-14).
-     *
-     *     Concurrent calls serialize on ``SELECT … FOR UPDATE``. On probe failure
-     *     the row's engine_config is NOT updated (the transaction rolls back).
-     */
-    post: operations['reprobe_cluster_api_v1_clusters__cluster_id__reprobe_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}/run_query': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}/run_query": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Query
+         * @description Execute one query DSL fragment against the cluster (FR-6 / AC-3).
+         */
+        post: operations["run_query_api_v1_clusters__cluster_id__run_query_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Run Query
-     * @description Execute one query DSL fragment against the cluster (FR-6 / AC-3).
-     */
-    post: operations['run_query_api_v1_clusters__cluster_id__run_query_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}/schema': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}/schema": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cluster Schema
+         * @description Return the field schema for ``target`` (FR-4 / AC-2).
+         */
+        get: operations["get_cluster_schema_api_v1_clusters__cluster_id__schema_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Cluster Schema
-     * @description Return the field schema for ``target`` (FR-4 / AC-2).
-     */
-    get: operations['get_cluster_schema_api_v1_clusters__cluster_id__schema_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}/targets': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}/targets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Cluster Targets
+         * @description List targets (indices/collections) on the cluster (FR-1 / AC-1).
+         *
+         *     Thin passthrough to ``ElasticAdapter.list_targets()`` (which filters out
+         *     system indices whose names start with ``.``). Mirrors the ``get_cluster_schema``
+         *     pattern: ``get_cluster`` → ``acquire_adapter`` async context → adapter call
+         *     → translate exceptions via the ``_err()`` helper to the spec §7.5 envelope.
+         *
+         *     Error mapping:
+         *     * cluster missing or soft-deleted → 404 ``CLUSTER_NOT_FOUND`` (retryable=false)
+         *     * adapter raises ``TargetsForbiddenError`` (ACL 401/403) → 403
+         *       ``TARGETS_FORBIDDEN`` (retryable=false) — frontend auto-engages manual mode
+         *     * adapter raises ``ClusterUnreachableError`` (5xx / connection failure) → 503
+         *       ``CLUSTER_UNREACHABLE`` (retryable=true)
+         */
+        get: operations["list_cluster_targets_api_v1_clusters__cluster_id__targets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Cluster Targets
-     * @description List targets (indices/collections) on the cluster (FR-1 / AC-1).
-     *
-     *     Thin passthrough to ``ElasticAdapter.list_targets()`` (which filters out
-     *     system indices whose names start with ``.``). Mirrors the ``get_cluster_schema``
-     *     pattern: ``get_cluster`` → ``acquire_adapter`` async context → adapter call
-     *     → translate exceptions via the ``_err()`` helper to the spec §7.5 envelope.
-     *
-     *     Error mapping:
-     *     * cluster missing or soft-deleted → 404 ``CLUSTER_NOT_FOUND`` (retryable=false)
-     *     * adapter raises ``TargetsForbiddenError`` (ACL 401/403) → 403
-     *       ``TARGETS_FORBIDDEN`` (retryable=false) — frontend auto-engages manual mode
-     *     * adapter raises ``ClusterUnreachableError`` (5xx / connection failure) → 503
-     *       ``CLUSTER_UNREACHABLE`` (retryable=true)
-     */
-    get: operations['list_cluster_targets_api_v1_clusters__cluster_id__targets_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}/targets/{target}/documents': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}/targets/{target}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Target Documents
+         * @description Paginated _id + truncated _source preview for a target (FR-3).
+         *
+         *     The endpoint asks the adapter for ``limit + 1`` rows so it can detect
+         *     end-of-data exactly (no extra round-trip). Only the first ``limit`` rows
+         *     are returned; ``next_cursor`` encodes the ES ``hits[i].sort`` of the
+         *     last visible row when ``has_more`` is True. ``X-Total-Count`` header
+         *     carries the engine's ``hits.total.value``.
+         */
+        get: operations["list_target_documents_api_v1_clusters__cluster_id__targets__target__documents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Target Documents
-     * @description Paginated _id + truncated _source preview for a target (FR-3).
-     *
-     *     The endpoint asks the adapter for ``limit + 1`` rows so it can detect
-     *     end-of-data exactly (no extra round-trip). Only the first ``limit`` rows
-     *     are returned; ``next_cursor`` encodes the ES ``hits[i].sort`` of the
-     *     last visible row when ``has_more`` is True. ``X-Total-Count`` header
-     *     carries the engine's ``hits.total.value``.
-     */
-    get: operations['list_target_documents_api_v1_clusters__cluster_id__targets__target__documents_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}/targets/{target}/documents/{doc_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}/targets/{target}/documents/{doc_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Target Document
+         * @description Fetch one document by ``_id`` (FR-4).
+         *
+         *     FastAPI's ``{doc_id:path}`` converter round-trips slashes verbatim, so
+         *     operator IDs containing ``/`` are supported (D-17 / AC-16). Returns the
+         *     adapter ``Document`` shape directly; on ``found: false`` returns 404
+         *     ``DOCUMENT_NOT_FOUND`` (distinct from ``TARGET_NOT_FOUND``).
+         */
+        get: operations["get_target_document_api_v1_clusters__cluster_id__targets__target__documents__doc_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Target Document
-     * @description Fetch one document by ``_id`` (FR-4).
-     *
-     *     FastAPI's ``{doc_id:path}`` converter round-trips slashes verbatim, so
-     *     operator IDs containing ``/`` are supported (D-17 / AC-16). Returns the
-     *     adapter ``Document`` shape directly; on ``found: false`` returns 404
-     *     ``DOCUMENT_NOT_FOUND`` (distinct from ``TARGET_NOT_FOUND``).
-     */
-    get: operations['get_target_document_api_v1_clusters__cluster_id__targets__target__documents__doc_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/clusters/{cluster_id}/ubi-readiness': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/clusters/{cluster_id}/ubi-readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cluster Ubi Readiness
+         * @description Classify ``(cluster, query_set, target)`` on the UBI rung ladder.
+         *
+         *     feat_ubi_judgments FR-7.
+         *
+         *     Required query params: ``query_set_id`` + ``target`` (Spec FR-7 +
+         *     cycle-3 D-10c: the endpoint MUST 422 without them — the classifier
+         *     can't compute a per-target rung without an application filter).
+         *
+         *     Error envelopes (all per spec §7.5):
+         *     * ``404 CLUSTER_NOT_FOUND`` — cluster row missing or soft-deleted.
+         *     * ``404 QUERY_SET_NOT_FOUND`` — query set row missing.
+         *     * ``422 VALIDATION_ERROR`` — missing required query params (FastAPI's
+         *       built-in handler, surfaces via ``api/errors.py``).
+         *     * ``503 CLUSTER_UNREACHABLE`` — adapter cannot reach the cluster.
+         *
+         *     The result is cached for 60 s in Redis per
+         *     ``(cluster_id, query_set_id, target)`` so back-to-back dialog-open
+         *     and dialog-submit calls don't re-probe.
+         */
+        get: operations["get_cluster_ubi_readiness_api_v1_clusters__cluster_id__ubi_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Cluster Ubi Readiness
-     * @description Classify ``(cluster, query_set, target)`` on the UBI rung ladder.
-     *
-     *     feat_ubi_judgments FR-7.
-     *
-     *     Required query params: ``query_set_id`` + ``target`` (Spec FR-7 +
-     *     cycle-3 D-10c: the endpoint MUST 422 without them — the classifier
-     *     can't compute a per-target rung without an application filter).
-     *
-     *     Error envelopes (all per spec §7.5):
-     *     * ``404 CLUSTER_NOT_FOUND`` — cluster row missing or soft-deleted.
-     *     * ``404 QUERY_SET_NOT_FOUND`` — query set row missing.
-     *     * ``422 VALIDATION_ERROR`` — missing required query params (FastAPI's
-     *       built-in handler, surfaces via ``api/errors.py``).
-     *     * ``503 CLUSTER_UNREACHABLE`` — adapter cannot reach the cluster.
-     *
-     *     The result is cached for 60 s in Redis per
-     *     ``(cluster_id, query_set_id, target)`` so back-to-back dialog-open
-     *     and dialog-submit calls don't re-probe.
-     */
-    get: operations['get_cluster_ubi_readiness_api_v1_clusters__cluster_id__ubi_readiness_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/config-repos': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/config-repos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Config Repos Endpoint
+         * @description Cursor-paginated config-repo list, newest first.
+         */
+        get: operations["list_config_repos_endpoint_api_v1_config_repos_get"];
+        put?: never;
+        /**
+         * Create Config Repo Endpoint
+         * @description Register a new config repo. ``provider`` is server-derived from ``repo_url``.
+         *
+         *     Preflight order matches spec FR-3:
+         *
+         *     1. ``validate_repo_url(repo_url)`` → 400 ``UNSUPPORTED_PROVIDER`` for
+         *        non-GitHub URLs (AC-8). GitLab + Bitbucket arrive at MVP3.
+         *     2. ``./secrets/{auth_ref}`` must exist → else 400 ``AUTH_REF_NOT_FOUND``
+         *        (AC-9). The contents check defers to the worker — operators may
+         *        populate the file between registration and first PR-open.
+         *     3. ``name`` uniqueness check → 409 ``CONFIG_REPO_NAME_TAKEN`` on collision.
+         *     4. Insert with server-derived ``provider="github"``.
+         *     5. **feat_github_webhook Story 4.2** — when ``webhook_secret_ref`` is
+         *        populated, best-effort enqueue ``register_webhook`` against the
+         *        newly created config_repo id. Enqueue failure (Redis down, pool
+         *        absent, transient blip) does NOT break the 201 — it logs WARN
+         *        and the operator drives recovery via the runbook.
+         */
+        post: operations["create_config_repo_endpoint_api_v1_config_repos_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Config Repos Endpoint
-     * @description Cursor-paginated config-repo list, newest first.
-     */
-    get: operations['list_config_repos_endpoint_api_v1_config_repos_get'];
-    put?: never;
-    /**
-     * Create Config Repo Endpoint
-     * @description Register a new config repo. ``provider`` is server-derived from ``repo_url``.
-     *
-     *     Preflight order matches spec FR-3:
-     *
-     *     1. ``validate_repo_url(repo_url)`` → 400 ``UNSUPPORTED_PROVIDER`` for
-     *        non-GitHub URLs (AC-8). GitLab + Bitbucket arrive at MVP3.
-     *     2. ``./secrets/{auth_ref}`` must exist → else 400 ``AUTH_REF_NOT_FOUND``
-     *        (AC-9). The contents check defers to the worker — operators may
-     *        populate the file between registration and first PR-open.
-     *     3. ``name`` uniqueness check → 409 ``CONFIG_REPO_NAME_TAKEN`` on collision.
-     *     4. Insert with server-derived ``provider="github"``.
-     *     5. **feat_github_webhook Story 4.2** — when ``webhook_secret_ref`` is
-     *        populated, best-effort enqueue ``register_webhook`` against the
-     *        newly created config_repo id. Enqueue failure (Redis down, pool
-     *        absent, transient blip) does NOT break the 201 — it logs WARN
-     *        and the operator drives recovery via the runbook.
-     */
-    post: operations['create_config_repo_endpoint_api_v1_config_repos_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/config-repos/{config_repo_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/config-repos/{config_repo_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Config Repo Endpoint
+         * @description Detail by id; 404 ``CONFIG_REPO_NOT_FOUND`` if missing.
+         *
+         *     feat_config_repo_baseline_tracking FR-4 — when
+         *     ``last_merged_proposal_id`` is set, embed the pointed-at proposal as a
+         *     :class:`ProposalSummary` with ``is_currently_live=True``. The embed-side
+         *     derivation uses the pointer context directly (NOT the generic
+         *     ``proposals → clusters → config_repos`` JOIN used elsewhere) so the
+         *     badge renders correctly even when the proposal's cluster was later
+         *     unwired from this config_repo (spec §19 "Cluster-with-config_repo-
+         *     rotated" decision-log entry).
+         */
+        get: operations["get_config_repo_endpoint_api_v1_config_repos__config_repo_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Config Repo Endpoint
-     * @description Detail by id; 404 ``CONFIG_REPO_NOT_FOUND`` if missing.
-     *
-     *     feat_config_repo_baseline_tracking FR-4 — when
-     *     ``last_merged_proposal_id`` is set, embed the pointed-at proposal as a
-     *     :class:`ProposalSummary` with ``is_currently_live=True``. The embed-side
-     *     derivation uses the pointer context directly (NOT the generic
-     *     ``proposals → clusters → config_repos`` JOIN used elsewhere) so the
-     *     badge renders correctly even when the proposal's cluster was later
-     *     unwired from this config_repo (spec §19 "Cluster-with-config_repo-
-     *     rotated" decision-log entry).
-     */
-    get: operations['get_config_repo_endpoint_api_v1_config_repos__config_repo_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/conversations': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/conversations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Conversations Endpoint
+         * @description List conversations newest-first with per-row message_count + X-Total-Count header.
+         *
+         *     ``?since=`` (Story 1.5 — closes api-conventions.md drift) filters by
+         *     ``created_at >= since``. ``?q=`` (Story 1.2) is a Postgres FTS match
+         *     against ``search_vector`` (coalesce(title, '')); 2-200 chars.
+         */
+        get: operations["list_conversations_endpoint_api_v1_conversations_get"];
+        put?: never;
+        /**
+         * Create Conversation Endpoint
+         * @description Create a new conversation. Title is optional (FR-1 auto-generates from first message).
+         */
+        post: operations["create_conversation_endpoint_api_v1_conversations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Conversations Endpoint
-     * @description List conversations newest-first with per-row message_count + X-Total-Count header.
-     *
-     *     ``?since=`` (Story 1.5 — closes api-conventions.md drift) filters by
-     *     ``created_at >= since``. ``?q=`` (Story 1.2) is a Postgres FTS match
-     *     against ``search_vector`` (coalesce(title, '')); 2-200 chars.
-     */
-    get: operations['list_conversations_endpoint_api_v1_conversations_get'];
-    put?: never;
-    /**
-     * Create Conversation Endpoint
-     * @description Create a new conversation. Title is optional (FR-1 auto-generates from first message).
-     */
-    post: operations['create_conversation_endpoint_api_v1_conversations_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/conversations/{conversation_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/conversations/{conversation_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Conversation Endpoint
+         * @description Return the conversation's full message history.
+         */
+        get: operations["get_conversation_endpoint_api_v1_conversations__conversation_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Conversation Endpoint
+         * @description Soft-delete the conversation; subsequent reads return 404.
+         */
+        delete: operations["delete_conversation_endpoint_api_v1_conversations__conversation_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Conversation Endpoint
-     * @description Return the conversation's full message history.
-     */
-    get: operations['get_conversation_endpoint_api_v1_conversations__conversation_id__get'];
-    put?: never;
-    post?: never;
-    /**
-     * Delete Conversation Endpoint
-     * @description Soft-delete the conversation; subsequent reads return 404.
-     */
-    delete: operations['delete_conversation_endpoint_api_v1_conversations__conversation_id__delete'];
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/conversations/{conversation_id}/messages': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/conversations/{conversation_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Message Endpoint
+         * @description Send a user message and stream the assistant turn as SSE.
+         *
+         *     Preflight (in order; returns plain JSON envelope, NOT a partial stream):
+         *       A. Conversation exists → else 404 ``CONVERSATION_NOT_FOUND``.
+         *       B. ``Settings.openai_api_key`` populated → else 503 ``OPENAI_NOT_CONFIGURED``.
+         *       C. Daily budget peek under cap → else 503 ``OPENAI_BUDGET_EXCEEDED``.
+         *
+         *     Successful preflight returns a ``StreamingResponse(text/event-stream)``
+         *     driven by :func:`agent_chat.send_user_message`.
+         */
+        post: operations["post_message_endpoint_api_v1_conversations__conversation_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Post Message Endpoint
-     * @description Send a user message and stream the assistant turn as SSE.
-     *
-     *     Preflight (in order; returns plain JSON envelope, NOT a partial stream):
-     *       A. Conversation exists → else 404 ``CONVERSATION_NOT_FOUND``.
-     *       B. ``Settings.openai_api_key`` populated → else 503 ``OPENAI_NOT_CONFIGURED``.
-     *       C. Daily budget peek under cap → else 503 ``OPENAI_BUDGET_EXCEEDED``.
-     *
-     *     Successful preflight returns a ``StreamingResponse(text/event-stream)``
-     *     driven by :func:`agent_chat.send_user_message`.
-     */
-    post: operations['post_message_endpoint_api_v1_conversations__conversation_id__messages_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/judgment-lists': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgment-lists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Judgment Lists Endpoint
+         * @description List judgment lists, newest-first with cursor pagination.
+         *
+         *     ``?since=`` filters by ``created_at >= since`` (Story 1.5). ``?q=`` FTS
+         *     match against ``search_vector`` (name + target). ``?sort=`` is a
+         *     :data:`JudgmentListSortKey` value with sort-aware cursor (Story 1.3).
+         *     ``?query_set_id`` / ``?cluster_id`` filter to lists belonging to the
+         *     supplied parent (``bug_judgment_lists_listing_ignores_query_set_filter``
+         *     — required by the create-study modal's Step-2 dropdown so the user
+         *     can only pick judgment-lists valid for the chosen query-set + cluster;
+         *     without these filters the modal returns all rows and the user can
+         *     pick a mismatched pair, which the ``POST /api/v1/studies`` cross-
+         *     entity integrity check then rejects at create time with a confusing
+         *     422 ``VALIDATION_ERROR: "judgment_list query_set_id does not match
+         *     study query_set_id"``).
+         *
+         *     ``?target=`` filters by exact target index/collection name
+         *     (``feat_study_target_judgment_mismatch_guard`` FR-2 — pairs with the
+         *     ``POST /studies`` ``JUDGMENT_TARGET_MISMATCH`` 422 so the create-study
+         *     modal can pre-filter the dropdown to only lists matching the chosen
+         *     study target). Bounded by the ES/OpenSearch index-name ceiling
+         *     (255 bytes).
+         */
+        get: operations["list_judgment_lists_endpoint_api_v1_judgment_lists_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Judgment Lists Endpoint
-     * @description List judgment lists, newest-first with cursor pagination.
-     *
-     *     ``?since=`` filters by ``created_at >= since`` (Story 1.5). ``?q=`` FTS
-     *     match against ``search_vector`` (name + target). ``?sort=`` is a
-     *     :data:`JudgmentListSortKey` value with sort-aware cursor (Story 1.3).
-     *     ``?query_set_id`` / ``?cluster_id`` filter to lists belonging to the
-     *     supplied parent (``bug_judgment_lists_listing_ignores_query_set_filter``
-     *     — required by the create-study modal's Step-2 dropdown so the user
-     *     can only pick judgment-lists valid for the chosen query-set + cluster;
-     *     without these filters the modal returns all rows and the user can
-     *     pick a mismatched pair, which the ``POST /api/v1/studies`` cross-
-     *     entity integrity check then rejects at create time with a confusing
-     *     422 ``VALIDATION_ERROR: "judgment_list query_set_id does not match
-     *     study query_set_id"``).
-     *
-     *     ``?target=`` filters by exact target index/collection name
-     *     (``feat_study_target_judgment_mismatch_guard`` FR-2 — pairs with the
-     *     ``POST /studies`` ``JUDGMENT_TARGET_MISMATCH`` 422 so the create-study
-     *     modal can pre-filter the dropdown to only lists matching the chosen
-     *     study target). Bounded by the ES/OpenSearch index-name ceiling
-     *     (255 bytes).
-     */
-    get: operations['list_judgment_lists_endpoint_api_v1_judgment_lists_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/judgment-lists/import': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgment-lists/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import Judgment List
+         * @description Create a judgment_lists row with status='complete' + bulk-insert judgments.
+         *
+         *     Tutorial path; no OpenAI involvement. Every supplied judgment must
+         *     reference a ``query_id`` that exists in ``body.query_set_id`` —
+         *     mismatches → 400 ``QUERY_NOT_IN_SET``.
+         */
+        post: operations["import_judgment_list_api_v1_judgment_lists_import_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Import Judgment List
-     * @description Create a judgment_lists row with status='complete' + bulk-insert judgments.
-     *
-     *     Tutorial path; no OpenAI involvement. Every supplied judgment must
-     *     reference a ``query_id`` that exists in ``body.query_set_id`` —
-     *     mismatches → 400 ``QUERY_NOT_IN_SET``.
-     */
-    post: operations['import_judgment_list_api_v1_judgment_lists_import_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/judgment-lists/{judgment_list_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgment-lists/{judgment_list_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Judgment List Endpoint */
+        get: operations["get_judgment_list_endpoint_api_v1_judgment_lists__judgment_list_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get Judgment List Endpoint */
-    get: operations['get_judgment_list_endpoint_api_v1_judgment_lists__judgment_list_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/judgment-lists/{judgment_list_id}/calibration': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgment-lists/{judgment_list_id}/calibration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calibrate Judgment List
+         * @description Compute Cohen's + weighted kappa from supplied human samples.
+         *
+         *     Pairs are built by joining each sample with the existing
+         *     ``source='llm'`` judgment at ``(query_id, doc_id)`` — overridden rows
+         *     (``source='human'``) are excluded (per spec FR-5 + GPT-5.5 cycle 1 F12).
+         */
+        post: operations["calibrate_judgment_list_api_v1_judgment_lists__judgment_list_id__calibration_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Calibrate Judgment List
-     * @description Compute Cohen's + weighted kappa from supplied human samples.
-     *
-     *     Pairs are built by joining each sample with the existing
-     *     ``source='llm'`` judgment at ``(query_id, doc_id)`` — overridden rows
-     *     (``source='human'``) are excluded (per spec FR-5 + GPT-5.5 cycle 1 F12).
-     */
-    post: operations['calibrate_judgment_list_api_v1_judgment_lists__judgment_list_id__calibration_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/judgment-lists/{judgment_list_id}/judgments': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgment-lists/{judgment_list_id}/judgments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Judgments Endpoint
+         * @description List per-list judgments with cursor pagination.
+         *
+         *     ``?sort=`` is :data:`JudgmentRowSortKey` with sort-aware cursor
+         *     (feat_data_table_primitive Story 1.3).
+         */
+        get: operations["list_judgments_endpoint_api_v1_judgment_lists__judgment_list_id__judgments_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Judgments Endpoint
-     * @description List per-list judgments with cursor pagination.
-     *
-     *     ``?sort=`` is :data:`JudgmentRowSortKey` with sort-aware cursor
-     *     (feat_data_table_primitive Story 1.3).
-     */
-    get: operations['list_judgments_endpoint_api_v1_judgment_lists__judgment_list_id__judgments_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/judgment-lists/{judgment_list_id}/judgments/{judgment_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgment-lists/{judgment_list_id}/judgments/{judgment_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Override Judgment
+         * @description Replace an LLM rating with a human override (UPSERT-replace).
+         */
+        patch: operations["override_judgment_api_v1_judgment_lists__judgment_list_id__judgments__judgment_id__patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /**
-     * Override Judgment
-     * @description Replace an LLM rating with a human override (UPSERT-replace).
-     */
-    patch: operations['override_judgment_api_v1_judgment_lists__judgment_list_id__judgments__judgment_id__patch'];
-    trace?: never;
-  };
-  '/api/v1/judgments/generate': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgments/generate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Judgments
+         * @description Create a judgment_lists row + enqueue the worker.
+         *
+         *     Delegates the full preflight + INSERT + Arq enqueue to
+         *     :func:`backend.app.services.agent_judgments_dispatch.start_judgment_generation`
+         *     so the chat-agent ``generate_judgments_llm`` tool reuses the exact same
+         *     checks (no duplicated preflight). Wire behavior is identical — same error
+         *     codes, same status codes, same response shape.
+         */
+        post: operations["generate_judgments_api_v1_judgments_generate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Generate Judgments
-     * @description Create a judgment_lists row + enqueue the worker.
-     *
-     *     Delegates the full preflight + INSERT + Arq enqueue to
-     *     :func:`backend.app.services.agent_judgments_dispatch.start_judgment_generation`
-     *     so the chat-agent ``generate_judgments_llm`` tool reuses the exact same
-     *     checks (no duplicated preflight). Wire behavior is identical — same error
-     *     codes, same status codes, same response shape.
-     */
-    post: operations['generate_judgments_api_v1_judgments_generate_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/judgments/generate-from-ubi': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/judgments/generate-from-ubi": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Generate Judgments From Ubi
+         * @description Start a UBI-derived judgment generation job.
+         *
+         *     Delegates to
+         *     :func:`backend.app.services.agent_judgments_dispatch.start_ubi_judgment_generation`
+         *     which runs the full FR-4 preflight (U-A..U-H) before INSERT + Arq
+         *     enqueue. The Pydantic ``model_validator`` on
+         *     :class:`CreateJudgmentListFromUbiRequest` already enforces the
+         *     hybrid conditional (``current_template_id`` + ``rubric`` required
+         *     iff ``converter == 'hybrid_ubi_llm'``); the dispatcher trusts the
+         *     validated request.
+         */
+        post: operations["generate_judgments_from_ubi_api_v1_judgments_generate_from_ubi_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Generate Judgments From Ubi
-     * @description Start a UBI-derived judgment generation job.
-     *
-     *     Delegates to
-     *     :func:`backend.app.services.agent_judgments_dispatch.start_ubi_judgment_generation`
-     *     which runs the full FR-4 preflight (U-A..U-H) before INSERT + Arq
-     *     enqueue. The Pydantic ``model_validator`` on
-     *     :class:`CreateJudgmentListFromUbiRequest` already enforces the
-     *     hybrid conditional (``current_template_id`` + ``rubric`` required
-     *     iff ``converter == 'hybrid_ubi_llm'``); the dispatcher trusts the
-     *     validated request.
-     */
-    post: operations['generate_judgments_from_ubi_api_v1_judgments_generate_from_ubi_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/proposals': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Proposals Endpoint
+         * @description List proposals with cursor pagination + filters.
+         *
+         *     ``?template_id=`` (Story 1.5) filters by ``proposals.template_id`` FK;
+         *     ``?study_id=`` filters by ``proposals.study_id`` FK (used by the
+         *     study-detail page's pending-proposal lookup). Both reject invalid
+         *     UUIDs with 422 via FastAPI's UUID parsing. ``?sort=`` (Story 1.3) is
+         *     a :data:`ProposalSortKey` value with sort-aware cursor.
+         */
+        get: operations["list_proposals_endpoint_api_v1_proposals_get"];
+        put?: never;
+        /**
+         * Create Manual Proposal
+         * @description Manually create a proposal (chat-agent hand-crafted tweaks).
+         *
+         *     ``study_id`` and ``study_trial_id`` are NULL for manual proposals.
+         *     Validates FK targets (cluster + template exist) before insert.
+         */
+        post: operations["create_manual_proposal_api_v1_proposals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Proposals Endpoint
-     * @description List proposals with cursor pagination + filters.
-     *
-     *     ``?template_id=`` (Story 1.5) filters by ``proposals.template_id`` FK;
-     *     ``?study_id=`` filters by ``proposals.study_id`` FK (used by the
-     *     study-detail page's pending-proposal lookup). Both reject invalid
-     *     UUIDs with 422 via FastAPI's UUID parsing. ``?sort=`` (Story 1.3) is
-     *     a :data:`ProposalSortKey` value with sort-aware cursor.
-     */
-    get: operations['list_proposals_endpoint_api_v1_proposals_get'];
-    put?: never;
-    /**
-     * Create Manual Proposal
-     * @description Manually create a proposal (chat-agent hand-crafted tweaks).
-     *
-     *     ``study_id`` and ``study_trial_id`` are NULL for manual proposals.
-     *     Validates FK targets (cluster + template exist) before insert.
-     */
-    post: operations['create_manual_proposal_api_v1_proposals_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/proposals/{proposal_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/proposals/{proposal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Proposal Endpoint */
+        get: operations["get_proposal_endpoint_api_v1_proposals__proposal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /** Get Proposal Endpoint */
-    get: operations['get_proposal_endpoint_api_v1_proposals__proposal_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/proposals/{proposal_id}/open_pr': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/proposals/{proposal_id}/open_pr": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open Pr Endpoint
+         * @description Enqueue the ``open_pr`` worker for an operator-approved proposal.
+         *
+         *     Delegates the full preflight + Arq enqueue to
+         *     :func:`backend.app.services.agent_proposals_dispatch.open_pr` so the
+         *     chat-agent ``open_pr`` tool reuses the same checks. Wire behavior is
+         *     identical — same error codes, status codes, response shape.
+         */
+        post: operations["open_pr_endpoint_api_v1_proposals__proposal_id__open_pr_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Open Pr Endpoint
-     * @description Enqueue the ``open_pr`` worker for an operator-approved proposal.
-     *
-     *     Delegates the full preflight + Arq enqueue to
-     *     :func:`backend.app.services.agent_proposals_dispatch.open_pr` so the
-     *     chat-agent ``open_pr`` tool reuses the same checks. Wire behavior is
-     *     identical — same error codes, status codes, response shape.
-     */
-    post: operations['open_pr_endpoint_api_v1_proposals__proposal_id__open_pr_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/proposals/{proposal_id}/reject': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/proposals/{proposal_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Proposal Endpoint
+         * @description AC-5: ``pending → rejected`` transition; 409 INVALID_STATE_TRANSITION otherwise.
+         */
+        post: operations["reject_proposal_endpoint_api_v1_proposals__proposal_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Reject Proposal Endpoint
-     * @description AC-5: ``pending → rejected`` transition; 409 INVALID_STATE_TRANSITION otherwise.
-     */
-    post: operations['reject_proposal_endpoint_api_v1_proposals__proposal_id__reject_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/query-sets': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/query-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Query Sets
+         * @description List query sets with cursor pagination + X-Total-Count.
+         *
+         *     ``?q=`` is FTS match against ``search_vector`` (name). ``?sort=`` is a
+         *     :data:`QuerySetSortKey` value; cursor is sort-aware.
+         */
+        get: operations["list_query_sets_api_v1_query_sets_get"];
+        put?: never;
+        /**
+         * Create Query Set
+         * @description Register a query set under a cluster (FR-3).
+         */
+        post: operations["create_query_set_api_v1_query_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Query Sets
-     * @description List query sets with cursor pagination + X-Total-Count.
-     *
-     *     ``?q=`` is FTS match against ``search_vector`` (name). ``?sort=`` is a
-     *     :data:`QuerySetSortKey` value; cursor is sort-aware.
-     */
-    get: operations['list_query_sets_api_v1_query_sets_get'];
-    put?: never;
-    /**
-     * Create Query Set
-     * @description Register a query set under a cluster (FR-3).
-     */
-    post: operations['create_query_set_api_v1_query_sets_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/query-sets/{query_set_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/query-sets/{query_set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Query Set Detail
+         * @description Return a query set by id (includes ``query_count``).
+         */
+        get: operations["get_query_set_detail_api_v1_query_sets__query_set_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Query Set Detail
-     * @description Return a query set by id (includes ``query_count``).
-     */
-    get: operations['get_query_set_detail_api_v1_query_sets__query_set_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/query-sets/{query_set_id}/queries': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/query-sets/{query_set_id}/queries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Queries In Set
+         * @description List per-query rows under a query set, with derived ``judgment_count``.
+         */
+        get: operations["list_queries_in_set_api_v1_query_sets__query_set_id__queries_get"];
+        put?: never;
+        /**
+         * Bulk Add Queries
+         * @description Bulk-add queries to a set (FR-3 + AC-8).
+         *
+         *     Dispatches on Content-Type:
+         *
+         *     * ``application/json`` → :class:`BulkQueriesJsonRequest` Pydantic-parse.
+         *     * ``text/csv`` → :func:`parse_queries_csv` (AC-8).
+         *
+         *     Other content types → 415-equivalent surfaced as 400 ``INVALID_CSV``
+         *     (the documented error code for content-type-mismatch in spec §7.5).
+         */
+        post: operations["bulk_add_queries_api_v1_query_sets__query_set_id__queries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Queries In Set
-     * @description List per-query rows under a query set, with derived ``judgment_count``.
-     */
-    get: operations['list_queries_in_set_api_v1_query_sets__query_set_id__queries_get'];
-    put?: never;
-    /**
-     * Bulk Add Queries
-     * @description Bulk-add queries to a set (FR-3 + AC-8).
-     *
-     *     Dispatches on Content-Type:
-     *
-     *     * ``application/json`` → :class:`BulkQueriesJsonRequest` Pydantic-parse.
-     *     * ``text/csv`` → :func:`parse_queries_csv` (AC-8).
-     *
-     *     Other content types → 415-equivalent surfaced as 400 ``INVALID_CSV``
-     *     (the documented error code for content-type-mismatch in spec §7.5).
-     */
-    post: operations['bulk_add_queries_api_v1_query_sets__query_set_id__queries_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/query-sets/{query_set_id}/queries/{query_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/query-sets/{query_set_id}/queries/{query_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Query Endpoint
+         * @description Hard-delete a query. FK-guarded — 409 if any judgment references it.
+         */
+        delete: operations["delete_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Query Endpoint
+         * @description Partial-update a query. Whole-object replace on ``query_metadata``.
+         */
+        patch: operations["update_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__patch"];
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    post?: never;
-    /**
-     * Delete Query Endpoint
-     * @description Hard-delete a query. FK-guarded — 409 if any judgment references it.
-     */
-    delete: operations['delete_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__delete'];
-    options?: never;
-    head?: never;
-    /**
-     * Update Query Endpoint
-     * @description Partial-update a query. Whole-object replace on ``query_metadata``.
-     */
-    patch: operations['update_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__patch'];
-    trace?: never;
-  };
-  '/api/v1/query-templates': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/query-templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Query Templates
+         * @description List query templates with cursor pagination + X-Total-Count header.
+         *
+         *     ``?q=`` FTS match (name). ``?sort=`` sort-aware cursor (Story 1.3).
+         *     ``?engine_type=`` filters by engine (Story 1.4).
+         */
+        get: operations["list_query_templates_api_v1_query_templates_get"];
+        put?: never;
+        /**
+         * Create Query Template
+         * @description Register a query template (FR-2 + AC-7).
+         *
+         *     AC-7: a body containing ``{{ os.system('rm -rf /') }}`` surfaces as
+         *     400 ``INVALID_TEMPLATE_SYNTAX`` (the AST walk catches the ``Call``
+         *     node before reaching the meta-vars cross-check that would otherwise
+         *     classify ``os`` as ``UndeclaredParamUsed``).
+         */
+        post: operations["create_query_template_api_v1_query_templates_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Query Templates
-     * @description List query templates with cursor pagination + X-Total-Count header.
-     *
-     *     ``?q=`` FTS match (name). ``?sort=`` sort-aware cursor (Story 1.3).
-     *     ``?engine_type=`` filters by engine (Story 1.4).
-     */
-    get: operations['list_query_templates_api_v1_query_templates_get'];
-    put?: never;
-    /**
-     * Create Query Template
-     * @description Register a query template (FR-2 + AC-7).
-     *
-     *     AC-7: a body containing ``{{ os.system('rm -rf /') }}`` surfaces as
-     *     400 ``INVALID_TEMPLATE_SYNTAX`` (the AST walk catches the ``Call``
-     *     node before reaching the meta-vars cross-check that would otherwise
-     *     classify ``os`` as ``UndeclaredParamUsed``).
-     */
-    post: operations['create_query_template_api_v1_query_templates_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/query-templates/{template_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/query-templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Query Template Detail
+         * @description Return a query template by id.
+         */
+        get: operations["get_query_template_detail_api_v1_query_templates__template_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Query Template Detail
-     * @description Return a query template by id.
-     */
-    get: operations['get_query_template_detail_api_v1_query_templates__template_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/studies': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/studies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Studies
+         * @description List studies with cursor pagination + X-Total-Count.
+         *
+         *     ``?status=`` is typed as :data:`StudyStatusWire` so FastAPI returns
+         *     422 ``VALIDATION_ERROR`` for unsupported values. ``?q=`` is a Postgres
+         *     FTS match against ``search_vector`` (name + target). ``?sort=`` is a
+         *     :data:`StudySortKey` value (``<col>:<asc|desc>``); the cursor is
+         *     sort-aware (feat_data_table_primitive Stories 1.2 + 1.3).
+         *
+         *     ``?target=`` (feat_index_document_browser FR-5) scopes the list to
+         *     studies targeting a single index/collection. Composes with all other
+         *     filters via AND.
+         */
+        get: operations["list_studies_api_v1_studies_get"];
+        put?: never;
+        /**
+         * Create Study
+         * @description Create a study (FR-1 + AC-1) and enqueue the orchestrator job.
+         */
+        post: operations["create_study_api_v1_studies_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Studies
-     * @description List studies with cursor pagination + X-Total-Count.
-     *
-     *     ``?status=`` is typed as :data:`StudyStatusWire` so FastAPI returns
-     *     422 ``VALIDATION_ERROR`` for unsupported values. ``?q=`` is a Postgres
-     *     FTS match against ``search_vector`` (name + target). ``?sort=`` is a
-     *     :data:`StudySortKey` value (``<col>:<asc|desc>``); the cursor is
-     *     sort-aware (feat_data_table_primitive Stories 1.2 + 1.3).
-     *
-     *     ``?target=`` (feat_index_document_browser FR-5) scopes the list to
-     *     studies targeting a single index/collection. Composes with all other
-     *     filters via AND.
-     */
-    get: operations['list_studies_api_v1_studies_get'];
-    put?: never;
-    /**
-     * Create Study
-     * @description Create a study (FR-1 + AC-1) and enqueue the orchestrator job.
-     */
-    post: operations['create_study_api_v1_studies_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/studies/{study_id}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/studies/{study_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Study Detail
+         * @description Return a study by id (includes ``trials_summary``).
+         */
+        get: operations["get_study_detail_api_v1_studies__study_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Study Detail
-     * @description Return a study by id (includes ``trials_summary``).
-     */
-    get: operations['get_study_detail_api_v1_studies__study_id__get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/studies/{study_id}/cancel': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/studies/{study_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Study
+         * @description Cancel a study (Story 2.3, FR-8 + AC-8/AC-9).
+         *
+         *     Optionally cascades to in-flight chain children.
+         *
+         *     ``?cascade=true`` (default): routes through
+         *     :func:`services.study_state.cancel_study_with_chain_cascade` —
+         *     cancels the parent (if in-flight) AND recursively cancels in-flight
+         *     descendants. Tolerates terminal parents (recurses through completed
+         *     intermediates to reach an in-flight grandchild).
+         *
+         *     ``?cascade=false``: routes through the original
+         *     :func:`services.study_state.cancel_study` — single-study cancel,
+         *     preserves the existing 409 error contract on terminal parents
+         *     (AC-9 wire contract).
+         */
+        post: operations["cancel_study_api_v1_studies__study_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Cancel Study
-     * @description Cancel a study (Story 2.3, FR-8 + AC-8/AC-9).
-     *
-     *     Optionally cascades to in-flight chain children.
-     *
-     *     ``?cascade=true`` (default): routes through
-     *     :func:`services.study_state.cancel_study_with_chain_cascade` —
-     *     cancels the parent (if in-flight) AND recursively cancels in-flight
-     *     descendants. Tolerates terminal parents (recurses through completed
-     *     intermediates to reach an in-flight grandchild).
-     *
-     *     ``?cascade=false``: routes through the original
-     *     :func:`services.study_state.cancel_study` — single-study cancel,
-     *     preserves the existing 409 error contract on terminal parents
-     *     (AC-9 wire contract).
-     */
-    post: operations['cancel_study_api_v1_studies__study_id__cancel_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/studies/{study_id}/chain': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/studies/{study_id}/chain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Study Chain
+         * @description Return the rolled-up chain summary for the study and its lineage (FR-3).
+         *
+         *     Walks to the chain anchor, aggregates the completed-link subset into a
+         *     best link + cumulative lift + derived stop reason, and emits per-link
+         *     deltas. The anchor's ``delta_from_prev`` is always ``None`` (spec §8.3).
+         *     Returns ``404 STUDY_NOT_FOUND`` when the study does not exist.
+         */
+        get: operations["get_study_chain_api_v1_studies__study_id__chain_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Study Chain
-     * @description Return the rolled-up chain summary for the study and its lineage (FR-3).
-     *
-     *     Walks to the chain anchor, aggregates the completed-link subset into a
-     *     best link + cumulative lift + derived stop reason, and emits per-link
-     *     deltas. The anchor's ``delta_from_prev`` is always ``None`` (spec §8.3).
-     *     Returns ``404 STUDY_NOT_FOUND`` when the study does not exist.
-     */
-    get: operations['get_study_chain_api_v1_studies__study_id__chain_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/studies/{study_id}/children': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/studies/{study_id}/children": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Study Children
+         * @description List direct child studies of a parent (FR-10 + D-13).
+         *
+         *     Returns ``{"data": [], "next_cursor": null}`` for a study with no
+         *     children — empty data array, NOT 404. 404 only fires when the parent
+         *     study itself is missing.
+         *
+         *     Per D-13 (direct-children-only): does NOT return transitive
+         *     descendants. The chain panel renders parent ↑ + direct children ↓;
+         *     operators walk lineage one hop per page navigation.
+         */
+        get: operations["list_study_children_api_v1_studies__study_id__children_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Study Children
-     * @description List direct child studies of a parent (FR-10 + D-13).
-     *
-     *     Returns ``{"data": [], "next_cursor": null}`` for a study with no
-     *     children — empty data array, NOT 404. 404 only fires when the parent
-     *     study itself is missing.
-     *
-     *     Per D-13 (direct-children-only): does NOT return transitive
-     *     descendants. The chain panel renders parent ↑ + direct children ↓;
-     *     operators walk lineage one hop per page navigation.
-     */
-    get: operations['list_study_children_api_v1_studies__study_id__children_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/studies/{study_id}/digest': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/studies/{study_id}/digest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Study Digest
+         * @description Fetch the digest for a completed study.
+         *
+         *     Returns 404 ``DIGEST_NOT_READY`` (``retryable=true``) when:
+         *     - the study is not in ``status='completed'``, OR
+         *     - the study is completed but the worker hasn't written the digest yet
+         *       (worker lag, or a worker-side terminal failure like
+         *       ``OPENAI_NOT_CONFIGURED`` deferred the run).
+         */
+        get: operations["get_study_digest_api_v1_studies__study_id__digest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Get Study Digest
-     * @description Fetch the digest for a completed study.
-     *
-     *     Returns 404 ``DIGEST_NOT_READY`` (``retryable=true``) when:
-     *     - the study is not in ``status='completed'``, OR
-     *     - the study is completed but the worker hasn't written the digest yet
-     *       (worker lag, or a worker-side terminal failure like
-     *       ``OPENAI_NOT_CONFIGURED`` deferred the run).
-     */
-    get: operations['get_study_digest_api_v1_studies__study_id__digest_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/api/v1/studies/{study_id}/trials': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/api/v1/studies/{study_id}/trials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Study Trials
+         * @description List trials in a study (FR-6).
+         *
+         *     Sort variants per spec §7.4: ``primary_metric_desc`` (default),
+         *     ``primary_metric_asc``, ``ended_at_desc``, ``ended_at_asc``,
+         *     ``optuna_trial_number_asc``.
+         */
+        get: operations["list_study_trials_api_v1_studies__study_id__trials_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * List Study Trials
-     * @description List trials in a study (FR-6).
-     *
-     *     Sort variants per spec §7.4: ``primary_metric_desc`` (default),
-     *     ``primary_metric_asc``, ``ended_at_desc``, ``ended_at_asc``,
-     *     ``optuna_trial_number_asc``.
-     */
-    get: operations['list_study_trials_api_v1_studies__study_id__trials_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/healthz': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/healthz": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Healthz
+         * @description Probe each subsystem in parallel and return the documented JSON shape.
+         *
+         *     Args:
+         *         settings: Application settings (DB URL, ES/OS URLs, OpenAI base URL, etc.)
+         *         redis_client: Redis client for ping probe + capability-cache read
+         *         es_client: shared httpx client for ES + OpenSearch HTTP probes
+         *         db: Async DB session for the registered-clusters aggregate (Story 3.5)
+         *
+         *     Returns:
+         *         JSONResponse with the HealthResponse body and HTTP 200 (healthy) or 503 (degraded).
+         */
+        get: operations["healthz_healthz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    /**
-     * Healthz
-     * @description Probe each subsystem in parallel and return the documented JSON shape.
-     *
-     *     Args:
-     *         settings: Application settings (DB URL, ES/OS URLs, OpenAI base URL, etc.)
-     *         redis_client: Redis client for ping probe + capability-cache read
-     *         es_client: shared httpx client for ES + OpenSearch HTTP probes
-     *         db: Async DB session for the registered-clusters aggregate (Story 3.5)
-     *
-     *     Returns:
-     *         JSONResponse with the HealthResponse body and HTTP 200 (healthy) or 503 (degraded).
-     */
-    get: operations['healthz_healthz_get'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/webhooks/github': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    "/webhooks/github": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Github Webhook
+         * @description Receive a single GitHub webhook delivery.
+         *
+         *     Returns ``{"status": "ok", "action": <wire_action>}`` where
+         *     ``wire_action`` is one of the four values in
+         *     :data:`WEBHOOK_ACTION_VALUES`.
+         *
+         *     Raises:
+         *         HTTPException(403, INVALID_SIGNATURE): bad signature or unknown
+         *             repository. Both share one error code so the receiver does
+         *             not reveal repo enumeration.
+         */
+        post: operations["github_webhook_webhooks_github_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
     };
-    get?: never;
-    put?: never;
-    /**
-     * Github Webhook
-     * @description Receive a single GitHub webhook delivery.
-     *
-     *     Returns ``{"status": "ok", "action": <wire_action>}`` where
-     *     ``wire_action`` is one of the four values in
-     *     :data:`WEBHOOK_ACTION_VALUES`.
-     *
-     *     Raises:
-     *         HTTPException(403, INVALID_SIGNATURE): bad signature or unknown
-     *             repository. Both share one error code so the receiver does
-     *             not reveal repo enumeration.
-     */
-    post: operations['github_webhook_webhooks_github_post'];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-  schemas: {
-    /**
-     * BulkQueriesResponse
-     * @description ``POST /api/v1/query-sets/{id}/queries`` response.
-     */
-    BulkQueriesResponse: {
-      /** Added */
-      added: number;
-    };
-    /**
-     * CIShape
-     * @description Bootstrap percentile CI on the winner's per-query metric values.
-     */
-    CIShape: {
-      /** High */
-      high: number;
-      /** Low */
-      low: number;
-      /**
-       * Method
-       * @constant
-       */
-      method: 'bootstrap_n1000';
-      /** N Samples */
-      n_samples: number;
-    };
-    /**
-     * CalibrationResponse
-     * @description Calibration endpoint response.
-     *
-     *     Mirrors :class:`backend.app.eval.calibration.CalibrationResult` —
-     *     persisted as ``judgment_lists.calibration`` JSONB.
-     */
-    CalibrationResponse: {
-      /** Cohens Kappa */
-      cohens_kappa: number | null;
-      /** N Samples */
-      n_samples: number;
-      /** Per Class */
-      per_class: {
-        [key: string]: number;
-      };
-      /** Warning */
-      warning: string | null;
-      /** Weighted Kappa */
-      weighted_kappa: number | null;
-    };
-    /**
-     * CalibrationSample
-     * @description One row in :class:`CalibrationSamplesRequest`.
-     */
-    CalibrationSample: {
-      /** Doc Id */
-      doc_id: string;
-      /** Query Id */
-      query_id: string;
-      /**
-       * Rating
-       * @enum {integer}
-       */
-      rating: 0 | 1 | 2 | 3;
-    };
-    /**
-     * CalibrationSamplesRequest
-     * @description Body for ``POST /api/v1/judgment-lists/{id}/calibration`` (Story 3.5).
-     */
-    CalibrationSamplesRequest: {
-      /** Human Samples */
-      human_samples: components['schemas']['CalibrationSample'][];
-    };
-    /**
-     * CategoricalParam
-     * @description Discrete choice parameter.
-     *
-     *     Optuna ``suggest_categorical`` handles strings, ints, floats, and bools
-     *     as choices.
-     */
-    CategoricalParam: {
-      /** Choices */
-      choices: (string | number | boolean)[];
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'categorical';
-    };
-    /**
-     * ClusterAggregateHealth
-     * @description Aggregate counts for the ``elasticsearch_clusters`` /healthz field (Story 3.5).
-     *
-     *     Per spec §2: probes only the *registered* user clusters (from the DB),
-     *     NOT the local Compose ES/OpenSearch — those have their own subsystem
-     *     fields. ``status`` is a count derived from the cached ``cluster:health:*``
-     *     entries; missing-cache or red/unreachable clusters are counted as
-     *     ``unreachable``.
-     */
-    ClusterAggregateHealth: {
-      /** Healthy */
-      healthy: number;
-      /** Registered */
-      registered: number;
-      /** Unreachable */
-      unreachable: number;
-    };
-    /**
-     * ClusterDetail
-     * @description ``GET /api/v1/clusters/{id}`` response.
-     */
-    ClusterDetail: {
-      /**
-       * Auth Kind
-       * @enum {string}
-       */
-      auth_kind:
-        | 'es_apikey'
-        | 'es_basic'
-        | 'opensearch_basic'
-        | 'opensearch_sigv4'
-        | 'solr_basic'
-        | 'solr_apikey';
-      /** Base Url */
-      base_url: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Engine Config */
-      engine_config?: {
-        [key: string]: unknown;
-      } | null;
-      /**
-       * Engine Type
-       * @enum {string}
-       */
-      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
-      /**
-       * Environment
-       * @enum {string}
-       */
-      environment: 'prod' | 'staging' | 'dev';
-      health_check: components['schemas']['HealthCheckResult'];
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Notes */
-      notes?: string | null;
-      /** Target Filter */
-      target_filter?: string | null;
-    };
-    /**
-     * ClusterListResponse
-     * @description Paginated list response.
-     */
-    ClusterListResponse: {
-      /** Data */
-      data: components['schemas']['ClusterSummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * ClusterSummary
-     * @description List-view; drops engine_config + notes for brevity.
-     */
-    ClusterSummary: {
-      /**
-       * Auth Kind
-       * @enum {string}
-       */
-      auth_kind:
-        | 'es_apikey'
-        | 'es_basic'
-        | 'opensearch_basic'
-        | 'opensearch_sigv4'
-        | 'solr_basic'
-        | 'solr_apikey';
-      /** Base Url */
-      base_url: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Engine Type
-       * @enum {string}
-       */
-      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
-      /**
-       * Environment
-       * @enum {string}
-       */
-      environment: 'prod' | 'staging' | 'dev';
-      health_check: components['schemas']['HealthCheckResult'];
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Target Filter */
-      target_filter?: string | null;
-    };
-    /**
-     * ConfidenceShape
-     * @description The top-level shape exposed via ``StudyDetail.confidence``.
-     *
-     *     Every sub-field is independently nullable per FR-7 — degraded paths
-     *     suppress only the sub-fields they affect, never the whole shape (the
-     *     orchestrator returns whole-object ``None`` only when the winner trial
-     *     row itself is missing).
-     */
-    ConfidenceShape: {
-      ci_95: components['schemas']['CIShape'] | null;
-      convergence: components['schemas']['ConvergenceShape'] | null;
-      headline: components['schemas']['HeadlineShape'];
-      late_trial_stddev: components['schemas']['LateTrialStddevShape'] | null;
-      per_query_outcomes: components['schemas']['PerQueryOutcomesShape'] | null;
-      runner_up_gap: components['schemas']['RunnerUpGapShape'] | null;
-    };
-    /**
-     * ConfigRepoDetail
-     * @description ``GET /api/v1/config-repos/{id}`` response + ``POST`` 201 body.
-     */
-    ConfigRepoDetail: {
-      /** Auth Ref */
-      auth_ref: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Default Branch */
-      default_branch: string;
-      /** Id */
-      id: string;
-      last_merged_proposal?: components['schemas']['ProposalSummary'] | null;
-      /** Name */
-      name: string;
-      /** Pr Base Branch */
-      pr_base_branch: string;
-      /**
-       * Provider
-       * @constant
-       */
-      provider: 'github';
-      /** Repo Url */
-      repo_url: string;
-      /** Webhook Registration Error */
-      webhook_registration_error: string | null;
-      /** Webhook Secret Ref */
-      webhook_secret_ref: string | null;
-    };
-    /**
-     * ConfigReposListResponse
-     * @description ``GET /api/v1/config-repos`` response.
-     */
-    ConfigReposListResponse: {
-      /** Data */
-      data: components['schemas']['ConfigRepoDetail'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * ConnectionTestRequest
-     * @description Body for ``POST /api/v1/clusters/test-connection`` (infra_adapter_solr Story A9).
-     *
-     *     Same shape as ``CreateClusterRequest`` minus the persisted-only fields
-     *     (``name``, ``environment``, ``notes``, ``target_filter``). ``engine_type``
-     *     + ``auth_kind`` are typed as ``str`` (not Literal) so a bad value yields
-     *     the project-standard 400 envelope rather than a raw 422 — same convention
-     *     as ``CreateClusterRequest``.
-     */
-    ConnectionTestRequest: {
-      /** Auth Kind */
-      auth_kind: string;
-      /** Base Url */
-      base_url: string;
-      /** Credentials Ref */
-      credentials_ref: string;
-      /** Engine Config */
-      engine_config?: {
-        [key: string]: unknown;
-      } | null;
-      /** Engine Type */
-      engine_type: string;
-    };
-    /**
-     * ConnectionTestResult
-     * @description Response for ``POST /api/v1/clusters/test-connection``.
-     *
-     *     Always 200 — reachable vs unreachable surfaces via ``reachable`` +
-     *     ``status`` fields. The endpoint is a diagnostic, never a mutation,
-     *     so it never returns 503; invalid engine×auth pairings 400 BEFORE the
-     *     network call. (Cycle-delta F1.)
-     */
-    ConnectionTestResult: {
-      /** Engine Capabilities */
-      engine_capabilities?: {
-        [key: string]: unknown;
-      } | null;
-      /** Error */
-      error?: string | null;
-      /** Reachable */
-      reachable: boolean;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'green' | 'yellow' | 'red' | 'unreachable';
-      /** Version */
-      version?: string | null;
-    };
-    /**
-     * ConvergenceShape
-     * @description Where the winner sits in the Optuna trial sequence + the classified regime.
-     */
-    ConvergenceShape: {
-      /** Best At Trial */
-      best_at_trial: number;
-      /**
-       * Regime
-       * @enum {string}
-       */
-      regime: 'early_held' | 'late_rising' | 'noisy';
-      /** Total Trials */
-      total_trials: number;
-    };
-    /**
-     * ConversationDetail
-     * @description ``GET /api/v1/conversations/{id}`` response.
-     */
-    ConversationDetail: {
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Id */
-      id: string;
-      /** Messages */
-      messages: components['schemas']['MessageWire'][];
-      /** Title */
-      title: string | null;
-    };
-    /**
-     * ConversationSummary
-     * @description ``GET /api/v1/conversations`` row + ``POST`` 201 body.
-     *
-     *     ``last_message_preview`` is the most recent user / assistant message's
-     *     ``content.text``, truncated at the repo layer to 120 chars (with ``…``
-     *     suffix when cut). Tool-role rows and assistant rows whose ``content.kind``
-     *     is ``system_notice`` are skipped. ``None`` for brand-new conversations
-     *     with no qualifying messages — see ``chore_chat_last_message_preview``.
-     *
-     *     ``last_message_at`` is the ``created_at`` of that same row, or ``None``
-     *     for empty conversations. The list page uses it to render "when did
-     *     anyone last touch this thread" instead of the conversation's
-     *     ``created_at``.
-     */
-    ConversationSummary: {
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Id */
-      id: string;
-      /** Last Message At */
-      last_message_at?: string | null;
-      /** Last Message Preview */
-      last_message_preview?: string | null;
-      /** Message Count */
-      message_count: number;
-      /** Title */
-      title: string | null;
-    };
-    /**
-     * ConversationsListResponse
-     * @description ``GET /api/v1/conversations`` response.
-     */
-    ConversationsListResponse: {
-      /** Data */
-      data: components['schemas']['ConversationSummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * CreateClusterRequest
-     * @description Request body for ``POST /api/v1/clusters``.
-     *
-     *     See module docstring for the deliberate ``str`` vs ``Literal`` split.
-     */
-    CreateClusterRequest: {
-      /** Auth Kind */
-      auth_kind: string;
-      /** Base Url */
-      base_url: string;
-      /** Credentials Ref */
-      credentials_ref: string;
-      /** Engine Config */
-      engine_config?: {
-        [key: string]: unknown;
-      } | null;
-      /** Engine Type */
-      engine_type: string;
-      /**
-       * Environment
-       * @enum {string}
-       */
-      environment: 'prod' | 'staging' | 'dev';
-      /** Name */
-      name: string;
-      /** Notes */
-      notes?: string | null;
-      /**
-       * Target Filter
-       * @description Optional glob pattern (fnmatch.fnmatchcase: *, ?, [seq], [!seq]; no brace expansion). Scopes GET /clusters/{id}/targets to matching index names. Null = no filter.
-       */
-      target_filter?: string | null;
-    };
-    /**
-     * CreateConfigRepoRequest
-     * @description Body of ``POST /api/v1/config-repos`` (FR-3).
-     *
-     *     ``provider`` is server-derived from ``repo_url`` (cycle-2 F4 from
-     *     spec review) — NOT in the payload. The validator enforces a strict
-     *     GitHub URL pattern; non-GitHub URLs surface as 400
-     *     ``UNSUPPORTED_PROVIDER`` at the router layer.
-     */
-    CreateConfigRepoRequest: {
-      /** Auth Ref */
-      auth_ref: string;
-      /**
-       * Default Branch
-       * @default main
-       */
-      default_branch: string;
-      /** Name */
-      name: string;
-      /**
-       * Pr Base Branch
-       * @default main
-       */
-      pr_base_branch: string;
-      /** Repo Url */
-      repo_url: string;
-      /** Webhook Secret Ref */
-      webhook_secret_ref?: string | null;
-    };
-    /**
-     * CreateConversationRequest
-     * @description ``POST /api/v1/conversations`` body.
-     */
-    CreateConversationRequest: {
-      /** Title */
-      title?: string | null;
-    };
-    /**
-     * CreateJudgmentListFromUbiRequest
-     * @description Body for ``POST /api/v1/judgments/generate-from-ubi`` (Story 3.2 / FR-3).
-     *
-     *     Mirrors :class:`backend.app.services.agent_judgments_dispatch.UbiJudgmentGenerationRequest`.
-     *     The ``@model_validator(mode="after")`` enforces the conditional
-     *     requiredness of ``current_template_id`` + ``rubric`` per the hybrid
-     *     converter: REQUIRED when ``converter == 'hybrid_ubi_llm'`` (the LLM-
-     *     fill path needs both); FORBIDDEN otherwise (pure UBI never calls
-     *     the LLM so accepting them silently would mask operator error).
-     */
-    CreateJudgmentListFromUbiRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      /**
-       * Converter
-       * @enum {string}
-       */
-      converter: 'ctr_threshold' | 'dwell_time' | 'hybrid_ubi_llm';
-      /** Converter Config */
-      converter_config?: {
-        [key: string]: unknown;
-      } | null;
-      /** Current Template Id */
-      current_template_id?: string | null;
-      /** Description */
-      description?: string | null;
-      /**
-       * Llm Fill Threshold
-       * @default 20
-       */
-      llm_fill_threshold: number | null;
-      /**
-       * Mapping Strategy
-       * @default reject
-       * @enum {string}
-       */
-      mapping_strategy: 'reject' | 'first_match' | 'most_recent';
-      /**
-       * Min Impressions Threshold
-       * @default 100
-       */
-      min_impressions_threshold: number | null;
-      /** Name */
-      name: string;
-      /** Query Set Id */
-      query_set_id: string;
-      /** Rubric */
-      rubric?: string | null;
-      /**
-       * Since
-       * Format: date-time
-       */
-      since: string;
-      /** Target */
-      target: string;
-      /** Until */
-      until?: string | null;
-    };
-    /**
-     * CreateJudgmentListGenerateRequest
-     * @description Body for ``POST /api/v1/judgments/generate`` (Story 3.1).
-     */
-    CreateJudgmentListGenerateRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      /** Current Template Id */
-      current_template_id: string;
-      /** Description */
-      description?: string | null;
-      /** Name */
-      name: string;
-      /** Query Set Id */
-      query_set_id: string;
-      /** Rubric */
-      rubric: string;
-      /** Target */
-      target: string;
-    };
-    /**
-     * CreateProposalRequest
-     * @description Body of ``POST /api/v1/proposals`` (manual proposal creation, FR-4 / AC-6).
-     */
-    CreateProposalRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      /** Config Diff */
-      config_diff: {
-        [key: string]: unknown;
-      };
-      /** Metric Delta */
-      metric_delta?: {
-        [key: string]: unknown;
-      } | null;
-      /** Template Id */
-      template_id: string;
-    };
-    /**
-     * CreateQuerySetRequest
-     * @description ``POST /api/v1/query-sets`` body.
-     *
-     *     ``cluster_id`` is required because Phase 1's shipped schema has
-     *     ``query_sets.cluster_id NOT NULL``. Spec FR-3 wording (``cluster_id?``)
-     *     is documented drift tracked at
-     *     ``docs/00_overview/planned_features/chore_spec_query_set_cluster_id_drift/idea.md``.
-     */
-    CreateQuerySetRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      /** Description */
-      description?: string | null;
-      /** Name */
-      name: string;
-    };
-    /**
-     * CreateQueryTemplateRequest
-     * @description Request body for ``POST /api/v1/query-templates``.
-     */
-    CreateQueryTemplateRequest: {
-      /** Body */
-      body: string;
-      /** Declared Params */
-      declared_params?: {
-        [key: string]: string;
-      };
-      /**
-       * Engine Type
-       * @enum {string}
-       */
-      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
-      /** Name */
-      name: string;
-      /** Parent Id */
-      parent_id?: string | null;
-    };
-    /**
-     * CreateStudyRequest
-     * @description ``POST /api/v1/studies`` body.
-     *
-     *     ``search_space`` is validated post-Pydantic-parse via
-     *     :class:`backend.app.domain.study.search_space.SearchSpace` so
-     *     :exc:`pydantic.ValidationError` produces the spec's 400
-     *     ``INVALID_SEARCH_SPACE`` (per Story 3.3 task 2).
-     *
-     *     feat_digest_executable_followups Story 4.2 — optional ``parent`` field
-     *     records the parent proposal + followup-index lineage when the study
-     *     was spawned from a digest "Run this followup" action (FR-11).
-     */
-    CreateStudyRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      config: components['schemas']['StudyConfigSpec'];
-      /** Judgment List Id */
-      judgment_list_id: string;
-      /** Name */
-      name: string;
-      objective: components['schemas']['ObjectiveSpec'];
-      parent?: components['schemas']['ParentFollowupRef'] | null;
-      /**
-       * Parent Study Id
-       * @description feat_study_clone_from_previous FR-7 — when the operator clones an existing study via the study-detail Clone button, this carries the source study's id. Server validates existence (404 PARENT_STUDY_NOT_FOUND) and same-cluster (422 PARENT_STUDY_WRONG_CLUSTER) before persisting to studies.parent_study_id. Independent of the proposal-lineage 'parent' field (D-5); both may be set.
-       */
-      parent_study_id?: string | null;
-      /** Query Set Id */
-      query_set_id: string;
-      /** Search Space */
-      search_space: {
-        [key: string]: unknown;
-      };
-      /** Target */
-      target: string;
-      /** Template Id */
-      template_id: string;
-    };
-    /**
-     * CurvePoint
-     * @description One point on the best-so-far curve.
-     *
-     *     ``trial_number`` is the trial's ``optuna_trial_number`` (the canonical
-     *     "trial order within the study" field — see ``auto_followup.py`` module
-     *     docstring for why we sort by this rather than ``started_at``).
-     *     ``best_so_far`` is the running extremum of ``primary_metric`` over all
-     *     earlier trials, sign-corrected to the study's optimization direction.
-     */
-    CurvePoint: {
-      /** Best So Far */
-      best_so_far: number;
-      /** Trial Number */
-      trial_number: number;
-    };
-    /**
-     * DigestResponse
-     * @description Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
-     *
-     *     feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
-     *     now a discriminated-union list (NarrowFollowup | WidenFollowup |
-     *     TextFollowup), populated by the digest handler via
-     *     ``parse_followup_list(digest.suggested_followups, ...)`` so legacy or
-     *     malformed JSONB payloads never crash the response.
-     */
-    DigestResponse: {
-      /**
-       * Generated At
-       * Format: date-time
-       */
-      generated_at: string;
-      /** Generated By */
-      generated_by: string;
-      /** Id */
-      id: string;
-      /** Narrative */
-      narrative: string;
-      /** Parameter Importance */
-      parameter_importance: {
-        [key: string]: number;
-      };
-      /** Recommended Config */
-      recommended_config: {
-        [key: string]: unknown;
-      };
-      /** Study Id */
-      study_id: string;
-      /** Suggested Followups */
-      suggested_followups: components['schemas']['FollowupItem'][];
-    };
-    /**
-     * Document
-     * @description A single document by ID — return shape of ``SearchAdapter.get_document``.
-     *
-     *     Mirrors :class:`ScoredHit` minus ``score`` (browsing doesn't need scoring).
-     *     ``source`` is ``None`` when the engine's index has ``_source: false`` mapping.
-     */
-    Document: {
-      /** Doc Id */
-      doc_id: string;
-      /** Source */
-      source?: {
-        [key: string]: unknown;
-      } | null;
-    };
-    /**
-     * DocumentListResponse
-     * @description ``GET /api/v1/clusters/{cluster_id}/targets/{target}/documents`` response.
-     *
-     *     ``next_cursor`` opaque-encodes the ES ``hits[-1].sort`` array of the
-     *     last visible row when ``has_more`` is True (see
-     *     ``backend.app.api.v1._documents_cursor``). The ``X-Total-Count`` header
-     *     on the response carries the engine's ``hits.total.value``.
-     */
-    DocumentListResponse: {
-      /** Data */
-      data: components['schemas']['DocumentSummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * DocumentSummary
-     * @description One row in the documents list (per FR-3 / FR-8).
-     *
-     *     ``source`` is the *truncated* preview emitted by
-     *     ``backend.app.services.documents.truncate_source_for_list``. The detail
-     *     endpoint returns the untruncated ``Document.source``.
-     */
-    DocumentSummary: {
-      /** Doc Id */
-      doc_id: string;
-      /** Source */
-      source: {
-        [key: string]: unknown;
-      } | null;
-    };
-    /**
-     * FieldSpec
-     * @description One field returned by ``get_schema``.
-     */
-    FieldSpec: {
-      /** Analyzer */
-      analyzer?: string | null;
-      /** Doc Count */
-      doc_count?: number | null;
-      /** Name */
-      name: string;
-      /** Type */
-      type: string;
-    };
-    /**
-     * FloatParam
-     * @description Continuous float parameter.
-     *
-     *     ``log=True`` enables log-uniform sampling
-     *     (Optuna's ``suggest_float(..., log=True)``); requires ``low > 0``.
-     */
-    FloatParam: {
-      /** High */
-      high: number;
-      /**
-       * Log
-       * @default false
-       */
-      log: boolean;
-      /** Low */
-      low: number;
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'float';
-    };
-    FollowupItem:
-      | components['schemas']['NarrowFollowup']
-      | components['schemas']['WidenFollowup']
-      | components['schemas']['TextFollowup']
-      | components['schemas']['SwapTemplateFollowup'];
-    /**
-     * GenerateJudgmentsResponse
-     * @description Response of ``POST /api/v1/judgments/generate``.
-     *
-     *     Per GPT-5.5 cycle 1 F5 — the endpoint registers a typed
-     *     ``response_model`` so OpenAPI introspection + contract tests can verify
-     *     the wire shape.
-     */
-    GenerateJudgmentsResponse: {
-      /** Judgment List Id */
-      judgment_list_id: string;
-      /**
-       * Status
-       * @constant
-       */
-      status: 'generating';
-    };
-    /** HTTPValidationError */
-    HTTPValidationError: {
-      /** Detail */
-      detail?: components['schemas']['ValidationError'][];
-    };
-    /**
-     * HeadlineShape
-     * @description Top-line metric value + N(queries) used in the CI.
-     *
-     *     ``metric`` uses ``str`` (not ``ObjectiveMetric``) to avoid a circular
-     *     import: ``schemas.py`` imports ``ConfidenceShape`` from here, so this
-     *     module cannot import back from ``schemas.py``. The upstream value is
-     *     already validated by the existing ``ObjectiveMetric`` Literal at the
-     *     create-study endpoint (``schemas.py:214``).
-     */
-    HeadlineShape: {
-      /** K */
-      k: number | null;
-      /** Metric */
-      metric: string;
-      /** N Queries */
-      n_queries: number | null;
-      /** Value */
-      value: number;
-    };
-    /**
-     * HealthCheckResult
-     * @description Wire shape of the per-cluster health probe (mirrors ``HealthStatus``).
-     */
-    HealthCheckResult: {
-      /** Checked At */
-      checked_at: string;
-      /** Error */
-      error?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'green' | 'yellow' | 'red' | 'unreachable';
-      /** Version */
-      version?: string | null;
-    };
-    /**
-     * HealthResponse
-     * @description The /healthz response body. Same shape for HTTP 200 and 503.
-     */
-    HealthResponse: {
-      openai_capabilities: components['schemas']['OpenAICapabilities'];
-      /**
-       * Openai Endpoint
-       * @description Configured OPENAI_BASE_URL
-       */
-      openai_endpoint: string;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'ok' | 'degraded';
-      subsystems: components['schemas']['Subsystems'];
-      /**
-       * Uptime Seconds
-       * @description Seconds since the API process started
-       */
-      uptime_seconds: number;
-      /**
-       * Version
-       * @description Application version (relyloop_git_sha)
-       */
-      version: string;
-    };
-    /**
-     * ImportJudgmentItem
-     * @description One row in :class:`ImportJudgmentListRequest`.
-     */
-    ImportJudgmentItem: {
-      /** Doc Id */
-      doc_id: string;
-      /** Notes */
-      notes?: string | null;
-      /** Query Id */
-      query_id: string;
-      /**
-       * Rating
-       * @enum {integer}
-       */
-      rating: 0 | 1 | 2 | 3;
-    };
-    /**
-     * ImportJudgmentListRequest
-     * @description Body for ``POST /api/v1/judgment-lists/import`` (Story 3.2).
-     */
-    ImportJudgmentListRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      /** Description */
-      description?: string | null;
-      /** Judgments */
-      judgments: components['schemas']['ImportJudgmentItem'][];
-      /** Name */
-      name: string;
-      /** Query Set Id */
-      query_set_id: string;
-      /** Rubric */
-      rubric: string;
-      /** Target */
-      target: string;
-    };
-    /**
-     * IntParam
-     * @description Integer parameter inclusive of both bounds.
-     */
-    IntParam: {
-      /** High */
-      high: number;
-      /** Low */
-      low: number;
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      type: 'int';
-    };
-    /**
-     * JudgmentListDetail
-     * @description ``GET /api/v1/judgment-lists/{id}`` response.
-     *
-     *     Note: ``generation_params`` is populated for UBI lists (feat_ubi_judgments
-     *     Story 1.1's JSONB column) and NULL for LLM lists. The Story 4.3 UI
-     *     (``<ValueDeltaCard>`` + ``<AmbiguousSkipRecoveryCard>``) reads the
-     *     payload to discriminate UBI/hybrid lists and to reconstruct the
-     *     original request for the ambiguous-skip "Re-run with most_recent"
-     *     affordance.
-     */
-    JudgmentListDetail: {
-      /** Calibration */
-      calibration: {
-        [key: string]: unknown;
-      } | null;
-      /** Cluster Id */
-      cluster_id: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Current Template Id */
-      current_template_id: string | null;
-      /** Description */
-      description: string | null;
-      /** Failed Reason */
-      failed_reason: string | null;
-      /** Generation Params */
-      generation_params: {
-        [key: string]: unknown;
-      } | null;
-      /** Id */
-      id: string;
-      /** Judgment Count */
-      judgment_count: number;
-      /** Name */
-      name: string;
-      /** Query Set Id */
-      query_set_id: string;
-      /** Rubric */
-      rubric: string;
-      source_breakdown: components['schemas']['_SourceBreakdown'];
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'generating' | 'complete' | 'failed';
-      /** Target */
-      target: string;
-    };
-    /**
-     * JudgmentListJudgmentsResponse
-     * @description ``GET /api/v1/judgment-lists/{id}/judgments`` response.
-     */
-    JudgmentListJudgmentsResponse: {
-      /** Data */
-      data: components['schemas']['JudgmentRow'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * JudgmentListListResponse
-     * @description ``GET /api/v1/judgment-lists`` response.
-     */
-    JudgmentListListResponse: {
-      /** Data */
-      data: components['schemas']['JudgmentListSummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * JudgmentListRef
-     * @description One entry in the ``QUERY_HAS_JUDGMENTS`` 409 envelope.
-     *
-     *     Lives in ``detail.judgment_lists``. Maps from the repo-layer
-     *     :class:`backend.app.db.repo.judgment.JudgmentListRefRow` at the
-     *     router boundary.
-     */
-    JudgmentListRef: {
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-    };
-    /**
-     * JudgmentListSummary
-     * @description List-view row on ``GET /api/v1/judgment-lists``.
-     */
-    JudgmentListSummary: {
-      /** Cluster Id */
-      cluster_id: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Description */
-      description: string | null;
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Query Set Id */
-      query_set_id: string;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'generating' | 'complete' | 'failed';
-      /** Target */
-      target: string;
-    };
-    /**
-     * JudgmentRow
-     * @description ``GET /api/v1/judgment-lists/{id}/judgments`` row + PATCH response.
-     */
-    JudgmentRow: {
-      /** Confidence */
-      confidence: number | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Doc Id */
-      doc_id: string;
-      /** Id */
-      id: string;
-      /** Judgment List Id */
-      judgment_list_id: string;
-      /** Notes */
-      notes: string | null;
-      /** Query Id */
-      query_id: string;
-      /** Rater Ref */
-      rater_ref: string | null;
-      /**
-       * Rating
-       * @enum {integer}
-       */
-      rating: 0 | 1 | 2 | 3;
-      /**
-       * Source
-       * @enum {string}
-       */
-      source: 'llm' | 'human' | 'click';
-    };
-    /**
-     * LateTrialStddevShape
-     * @description Sample stddev of ``primary_metric`` over the late-trial window.
-     */
-    LateTrialStddevShape: {
-      /** Min Window Required */
-      min_window_required: number;
-      /** Value */
-      value: number;
-      /** Window Size */
-      window_size: number;
-    };
-    /**
-     * MessageWire
-     * @description One row of ``GET /api/v1/conversations/{id}.messages``.
-     */
-    MessageWire: {
-      /** Content */
-      content: {
-        [key: string]: unknown;
-      };
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Id */
-      id: string;
-      /**
-       * Role
-       * @enum {string}
-       */
-      role: 'user' | 'assistant' | 'tool';
-      /** Tool Calls */
-      tool_calls?:
-        | {
-            [key: string]: unknown;
-          }[]
-        | null;
-    };
-    /**
-     * NarrowFollowup
-     * @description A 'narrow' followup — re-run with a tighter range than the parent.
-     */
-    NarrowFollowup: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      kind: 'narrow';
-      /** Rationale */
-      rationale: string;
-      search_space: components['schemas']['SearchSpace'];
-    };
-    /**
-     * ObjectiveSpec
-     * @description Wire shape of ``studies.objective`` (write-side validated at create).
-     *
-     *     ``k`` is required for ``ndcg`` / ``precision`` / ``recall`` (per
-     *     standard IR-evaluation conventions: those metrics are computed at a
-     *     cutoff rank). ``map`` accepts ``k`` optionally; ``mrr`` / ``err`` ignore
-     *     it. The model_validator enforces this so a malformed objective
-     *     surfaces as 400 ``INVALID_SEARCH_SPACE`` / 422 ``VALIDATION_ERROR``
-     *     at study-create time rather than failing later inside ``run_trial``
-     *     when the worker computes the metric.
-     */
-    ObjectiveSpec: {
-      /**
-       * Direction
-       * @default maximize
-       * @enum {string}
-       */
-      direction: 'maximize' | 'minimize';
-      /** K */
-      k?: (1 | 3 | 5 | 10 | 20 | 50 | 100) | null;
-      /**
-       * Metric
-       * @enum {string}
-       */
-      metric: 'ndcg' | 'map' | 'precision' | 'recall' | 'mrr';
-    };
-    /**
-     * OpenAICapabilities
-     * @description Cached results of the OpenAI capability check (Story 3.3 populates Redis).
-     *
-     *     Step 1 (``models_endpoint``) is reported first because it gates the rest:
-     *     when it fails, the other three are reported as ``"untested"``. The
-     *     ``models_endpoint_status_code`` field is required-but-nullable
-     *     (per ``bug_openai_capability_check_incapable_on_valid_key`` spec §19 D-3/D-8)
-     *     — always present in the JSON, ``null`` when not applicable. This lets
-     *     operators distinguish ``401 -> bad key``, ``429 -> quota``,
-     *     ``5xx -> upstream outage``, ``null -> network unreachable / cache miss``.
-     */
-    OpenAICapabilities: {
-      /**
-       * Chat
-       * @description Chat completion probe result
-       * @enum {string}
-       */
-      chat: 'ok' | 'fail' | 'untested';
-      /**
-       * Function Calling
-       * @description Function-calling probe result (tool_choice=required)
-       * @enum {string}
-       */
-      function_calling: 'ok' | 'fail' | 'untested';
-      /**
-       * Models Endpoint
-       * @description GET /models probe outcome. 'ok' / 'fail' are projected from CapabilityResult.models_endpoint; 'untested' is the cache-miss default, matching the existing chat / function_calling / structured_output cache-miss handling.
-       * @enum {string}
-       */
-      models_endpoint: 'ok' | 'fail' | 'untested';
-      /**
-       * Models Endpoint Status Code
-       * @description HTTP status code from the GET /models probe when it HTTP-failed (>= 400). null for the success path, network-class failure (timeout / DNS / connection-refused), or cache miss. Required-but-nullable: the JSON key is always present with explicit null when no value, never omitted.
-       */
-      models_endpoint_status_code: number | null;
-      /**
-       * Structured Output
-       * @description JSON-schema response_format probe result
-       * @enum {string}
-       */
-      structured_output: 'ok' | 'fail' | 'untested';
-    };
-    /**
-     * OpenPrResponse
-     * @description Body of ``POST /api/v1/proposals/{id}/open_pr`` (FR-1).
-     *
-     *     Returned with HTTP 202 on successful enqueue. Status is always
-     *     ``'pending'`` at enqueue time; the worker flips it to ``'pr_opened'``
-     *     after the PR is open.
-     */
-    OpenPrResponse: {
-      /** Message */
-      message: string;
-      /** Proposal Id */
-      proposal_id: string;
-      /**
-       * Status
-       * @constant
-       */
-      status: 'pending';
-    };
-    /**
-     * OverrideJudgmentRequest
-     * @description Body for ``PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}``.
-     *
-     *     ``rating`` is INTENTIONALLY unbounded at the Pydantic layer — spec §8.5
-     *     requires out-of-range failures to surface as 400 ``INVALID_RATING`` (not
-     *     Pydantic's default 422 ``VALIDATION_ERROR``). The handler validates the
-     *     value manually and raises the domain code (per GPT-5.5 cycle 1 F4).
-     */
-    OverrideJudgmentRequest: {
-      /** Notes */
-      notes?: string | null;
-      /** Rating */
-      rating: number;
-    };
-    /**
-     * ParentFollowupRef
-     * @description Optional lineage payload on ``POST /api/v1/studies``.
-     *
-     *     feat_digest_executable_followups FR-11 — when the operator clicks
-     *     "Run this followup" on a proposal's digest card, the create-study
-     *     payload carries the parent proposal's id + the 0-based index into
-     *     the digest's ``suggested_followups`` array so the spawned study
-     *     remembers where it came from.
-     *
-     *     ``proposal_id`` is a UUIDv7 (36-char hex). The exact-length bound
-     *     forces malformed strings to surface as 422 ``VALIDATION_ERROR``
-     *     rather than reach the DB FK check and emerge as a 404
-     *     ``PROPOSAL_NOT_FOUND``.
-     */
-    ParentFollowupRef: {
-      /** Followup Index */
-      followup_index: number;
-      /** Proposal Id */
-      proposal_id: string;
-    };
-    /**
-     * PerQueryOutcomesShape
-     * @description Per-query outcome counts + the top-5 named regressors and improvers.
-     */
-    PerQueryOutcomesShape: {
-      /**
-       * Comparison Against
-       * @enum {string}
-       */
-      comparison_against: 'runner_up' | 'baseline';
-      /** Improved */
-      improved: number;
-      /** Regressed */
-      regressed: number;
-      /**
-       * Top Improvers
-       * @default []
-       */
-      top_improvers: components['schemas']['RegressorRowShape'][];
-      /** Top Regressors */
-      top_regressors: components['schemas']['RegressorRowShape'][];
-      /** Unchanged */
-      unchanged: number;
-    };
-    /**
-     * ProposalDetail
-     * @description Body of the proposal detail endpoints.
-     *
-     *     Used by ``GET /api/v1/proposals/{id}``, ``POST /api/v1/proposals``,
-     *     and ``POST /api/v1/proposals/{id}/reject``.
-     */
-    ProposalDetail: {
-      cluster: components['schemas']['_ClusterEmbed'];
-      /** Config Diff */
-      config_diff: {
-        [key: string]: unknown;
-      };
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      digest: components['schemas']['_DigestEmbed'] | null;
-      /** Id */
-      id: string;
-      /**
-       * Is Currently Live
-       * @default false
-       */
-      is_currently_live: boolean;
-      /** Metric Delta */
-      metric_delta: {
-        [key: string]: unknown;
-      } | null;
-      /** Pr Merged At */
-      pr_merged_at: string | null;
-      /** Pr Open Error */
-      pr_open_error: string | null;
-      /** Pr State */
-      pr_state: ('open' | 'closed' | 'merged') | null;
-      /** Pr Url */
-      pr_url: string | null;
-      /** Rejected Reason */
-      rejected_reason: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'pending' | 'pr_opened' | 'pr_merged' | 'rejected';
-      /** Study Id */
-      study_id: string | null;
-      study_summary: components['schemas']['_StudySummary'] | null;
-      /** Study Trial Id */
-      study_trial_id: string | null;
-      template: components['schemas']['_TemplateEmbed'];
-    };
-    /**
-     * ProposalSummary
-     * @description Row in the ``GET /api/v1/proposals`` list response.
-     */
-    ProposalSummary: {
-      cluster: components['schemas']['_ClusterEmbed'];
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Id */
-      id: string;
-      /**
-       * Is Currently Live
-       * @default false
-       */
-      is_currently_live: boolean;
-      /** Metric Delta */
-      metric_delta: {
-        [key: string]: unknown;
-      } | null;
-      /** Pr State */
-      pr_state: ('open' | 'closed' | 'merged') | null;
-      /** Pr Url */
-      pr_url: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'pending' | 'pr_opened' | 'pr_merged' | 'rejected';
-      /** Study Id */
-      study_id: string | null;
-      template: components['schemas']['_TemplateEmbed'];
-    };
-    /**
-     * ProposalsListResponse
-     * @description Body of ``GET /api/v1/proposals``.
-     */
-    ProposalsListResponse: {
-      /** Data */
-      data: components['schemas']['ProposalSummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * QueryHasJudgmentsDetail
-     * @description The ``detail`` object of a 409 ``QUERY_HAS_JUDGMENTS`` response.
-     *
-     *     Extends the canonical ``{error_code, message, retryable}`` envelope
-     *     with two structured fields the frontend consumes directly
-     *     (``judgment_lists`` + ``overflow_count``). Wired into the FastAPI
-     *     route's ``responses={409: {"model": QueryHasJudgmentsEnvelope}}`` so
-     *     the OpenAPI schema documents the contract.
-     */
-    QueryHasJudgmentsDetail: {
-      /**
-       * Error Code
-       * @constant
-       */
-      error_code: 'QUERY_HAS_JUDGMENTS';
-      /** Judgment Lists */
-      judgment_lists: components['schemas']['JudgmentListRef'][];
-      /** Message */
-      message: string;
-      /** Overflow Count */
-      overflow_count: number;
-      /**
-       * Retryable
-       * @constant
-       */
-      retryable: false;
-    };
-    /**
-     * QueryHasJudgmentsEnvelope
-     * @description Top-level 409 wrapper (FastAPI nests under ``detail`` for HTTPException).
-     */
-    QueryHasJudgmentsEnvelope: {
-      detail: components['schemas']['QueryHasJudgmentsDetail'];
-    };
-    /**
-     * QueryListResponse
-     * @description ``GET /api/v1/query-sets/{set_id}/queries`` response.
-     */
-    QueryListResponse: {
-      /** Data */
-      data: components['schemas']['QueryRow'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * QueryRow
-     * @description Wire row returned by the per-query GET + PATCH endpoints.
-     *
-     *     Used by both ``GET /api/v1/query-sets/{set_id}/queries`` and
-     *     ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}``.
-     *     ``judgment_count`` is a derived field — single batched GROUP BY in the
-     *     router via :func:`backend.app.db.repo.judgment.count_judgments_per_query`.
-     */
-    QueryRow: {
-      /** Id */
-      id: string;
-      /** Judgment Count */
-      judgment_count: number;
-      /** Query Metadata */
-      query_metadata: {
-        [key: string]: unknown;
-      } | null;
-      /** Query Text */
-      query_text: string;
-      /** Reference Answer */
-      reference_answer: string | null;
-    };
-    /**
-     * QuerySetDetail
-     * @description ``GET /api/v1/query-sets/{id}`` response.
-     */
-    QuerySetDetail: {
-      /** Cluster Id */
-      cluster_id: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Description */
-      description: string | null;
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Query Count */
-      query_count: number;
-    };
-    /**
-     * QuerySetListResponse
-     * @description ``GET /api/v1/query-sets`` response.
-     */
-    QuerySetListResponse: {
-      /** Data */
-      data: components['schemas']['QuerySetSummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * QuerySetSummary
-     * @description List-view shape; omits ``query_count`` to avoid N+1 counts at list time.
-     */
-    QuerySetSummary: {
-      /** Cluster Id */
-      cluster_id: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-    };
-    /**
-     * QueryTemplateDetail
-     * @description ``GET /api/v1/query-templates/{id}`` response.
-     */
-    QueryTemplateDetail: {
-      /** Body */
-      body: string;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Declared Params */
-      declared_params: {
-        [key: string]: string;
-      };
-      /**
-       * Engine Type
-       * @enum {string}
-       */
-      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Parent Id */
-      parent_id: string | null;
-      /** Version */
-      version: number;
-    };
-    /**
-     * QueryTemplateListResponse
-     * @description ``GET /api/v1/query-templates`` response.
-     */
-    QueryTemplateListResponse: {
-      /** Data */
-      data: components['schemas']['QueryTemplateSummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * QueryTemplateSummary
-     * @description List-view shape; drops ``body`` + ``declared_params`` for brevity.
-     */
-    QueryTemplateSummary: {
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Engine Type
-       * @enum {string}
-       */
-      engine_type: 'elasticsearch' | 'opensearch' | 'solr';
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Version */
-      version: number;
-    };
-    /**
-     * RegressorRowShape
-     * @description One row in the named-regressors or named-improvers table.
-     *
-     *     Used for BOTH the ``top_regressors`` and ``top_improvers`` lists.
-     *     The wire shape is identical — ``delta = winner_score - comparison_score``
-     *     is negative on the regressor list, positive on the improver list. The
-     *     class name is historical (regressors shipped first); reusing the same
-     *     type keeps the schema and the per-row renderer compact.
-     */
-    RegressorRowShape: {
-      /** Comparison Score */
-      comparison_score: number;
-      /** Delta */
-      delta: number;
-      /** Query Id */
-      query_id: string;
-      /** Query Text */
-      query_text: string;
-      /** Winner Score */
-      winner_score: number;
-    };
-    /**
-     * RejectProposalRequest
-     * @description Body of ``POST /api/v1/proposals/{id}/reject`` (FR-4 / AC-5).
-     */
-    RejectProposalRequest: {
-      /** Reason */
-      reason?: string | null;
-    };
-    /**
-     * ReseedStatusResponse
-     * @description Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
-     *
-     *     Per ``bug_demo_reseed_fake_metric_regression`` D-2. Lives in Redis as a
-     *     single JSON blob keyed by :data:`DEMO_RESEED_STATUS_KEY` so the
-     *     handler reads it in one round-trip.
-     */
-    ReseedStatusResponse: {
-      /** Current Step */
-      current_step?: string | null;
-      /** Failed Reason */
-      failed_reason?: string | null;
-      /** Finished At */
-      finished_at?: string | null;
-      /**
-       * Scenarios Completed
-       * @default 0
-       */
-      scenarios_completed: number;
-      /** Scenarios Skipped */
-      scenarios_skipped?: string[];
-      /**
-       * Scenarios Total
-       * @default 0
-       */
-      scenarios_total: number;
-      /** Started At */
-      started_at?: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'idle' | 'running' | 'complete' | 'failed';
-      /** Steps */
-      steps?: string[];
-      summary?: components['schemas']['ReseedSummary'] | null;
-    };
-    /**
-     * ReseedSummary
-     * @description Returned by :func:`reseed_demo_state` on success.
-     *
-     *     Per spec §9 Required invariants, every counter is exactly 4 on the
-     *     happy path; ``duration_ms`` is wall-clock from orchestration start
-     *     to the rename commit.
-     */
-    ReseedSummary: {
-      /** Clusters Created */
-      clusters_created: number;
-      /** Duration Ms */
-      duration_ms: number;
-      /** Proposals Created */
-      proposals_created: number;
-      /** Query Sets Created */
-      query_sets_created: number;
-      /** Studies Completed */
-      studies_completed: number;
-    };
-    /**
-     * RunQueryHit
-     * @description One hit in the ``run_query`` response.
-     */
-    RunQueryHit: {
-      /** Doc Id */
-      doc_id: string;
-      /** Score */
-      score: number;
-      /** Source */
-      source?: {
-        [key: string]: unknown;
-      } | null;
-    };
-    /**
-     * RunQueryRequest
-     * @description ``POST /api/v1/clusters/{id}/run_query`` body.
-     */
-    RunQueryRequest: {
-      /** Query Dsl */
-      query_dsl: {
-        [key: string]: unknown;
-      };
-      /** Target */
-      target: string;
-      /**
-       * Top K
-       * @default 10
-       */
-      top_k: number;
-    };
-    /**
-     * RunQueryResponse
-     * @description ``POST /api/v1/clusters/{id}/run_query`` response.
-     */
-    RunQueryResponse: {
-      /** Hits */
-      hits: components['schemas']['RunQueryHit'][];
-    };
-    /**
-     * RunnerUpGapShape
-     * @description Runner-up trial's metric vs the winner.
-     *
-     *     The whole shape is suppressed to ``None`` when there are <2 complete
-     *     trials (FR-2 + FR-7); ``classification`` is non-null whenever this shape
-     *     is present.
-     */
-    RunnerUpGapShape: {
-      /**
-       * Classification
-       * @enum {string}
-       */
-      classification: 'robust_plateau' | 'sharp_peak';
-      /** Runner Up Metric */
-      runner_up_metric: number;
-      /** Top10 Within */
-      top10_within: number;
-      /** Value */
-      value: number;
-    };
-    /**
-     * Schema
-     * @description An index / collection's field schema.
-     */
-    Schema: {
-      /** Fields */
-      fields: components['schemas']['FieldSpec'][];
-      /** Name */
-      name: string;
-    };
-    /**
-     * SearchSpace
-     * @description Pydantic model for the ``studies.search_space`` JSONB column.
-     *
-     *     Wire format::
-     *
-     *         {
-     *             "params": {
-     *                 "boost_title": {"type": "float", "low": 0.1, "high": 10.0, "log": true},
-     *                 "min_should_match": {"type": "int", "low": 1, "high": 5},
-     *                 "operator": {"type": "categorical", "choices": ["and", "or"]},
-     *             }
-     *         }
-     */
-    SearchSpace: {
-      /** Params */
-      params: {
-        [key: string]:
-          | components['schemas']['FloatParam']
-          | components['schemas']['IntParam']
-          | components['schemas']['CategoricalParam'];
-      };
-    };
-    /**
-     * SeedAutoFollowupChainRequest
-     * @description Payload for ``POST /api/v1/_test/auto-followup/seed-chain``.
-     *
-     *     Seeds ``depth + 1`` linked studies (root → … → leaf) so E2E tests can
-     *     cover the chain-panel parent-link / children-table / cascade-radio paths
-     *     that the public ``POST /api/v1/studies`` endpoint can't drive
-     *     (``parent_study_id`` is set only by the auto-followup worker).
-     *
-     *     Closes ``chore_auto_followup_e2e_chain_seed_helper`` (idea #2).
-     */
-    SeedAutoFollowupChainRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      /**
-       * Depth
-       * @description Number of chain hops to seed. depth=1 → root + leaf (2 nodes). depth=2 → root + 1 middle + leaf (3 nodes).
-       */
-      depth: number;
-      /**
-       * In Flight Leaf
-       * @description When True (default), the deepest node is left at status='queued'. When False, it's driven to 'completed' too. Default True matches the primary E2E use case: cascade-radio coverage where the middle node needs an in-flight child.
-       * @default true
-       */
-      in_flight_leaf: boolean;
-      /**
-       * In Flight Middle
-       * @description When True (default), the immediate parent of the leaf is left at status='queued' so the Cancel button is enabled (canCancel = running || queued per study-action-bar.tsx:46). Required for the cancel-modal cascade-radio test. When False, all intermediates are completed (more realistic chain state but cancel modal won't open on the middle).
-       * @default true
-       */
-      in_flight_middle: boolean;
-      /** Judgment List Id */
-      judgment_list_id: string;
-      /** Query Set Id */
-      query_set_id: string;
-      /** Template Id */
-      template_id: string;
-    };
-    /**
-     * SeedAutoFollowupChainResponse
-     * @description IDs of every node in the seeded chain, in parent→child order.
-     */
-    SeedAutoFollowupChainResponse: {
-      /** Leaf Id */
-      leaf_id: string;
-      /** Middle Ids */
-      middle_ids: string[];
-      /** Root Id */
-      root_id: string;
-    };
-    /**
-     * SeedCompletedStudyRequest
-     * @description Payload for ``POST /api/v1/_test/studies/seed-completed``.
-     *
-     *     All four FK fields are required; the caller is responsible for
-     *     seeding the parent rows first (typically via the public
-     *     ``seedFullChain`` E2E helper).
-     */
-    SeedCompletedStudyRequest: {
-      /** Cluster Id */
-      cluster_id: string;
-      /**
-       * Extra Trial Metrics
-       * @description Optional list of additional complete-trial `primary_metric` values (numbered from 2 upward) seeded on top of the default winner (0.487) + runner-up (0.412). Used to push the study past the convergence classifier's usable-trial floor (5) so the `<ConvergencePanel>` renders a real verdict + curve instead of the too_few_trials null state (feat_study_convergence_indicator). Every value MUST be < 0.487 so the winner / best_metric / proposal / digest stay anchored to the unchanged 0.412 -> 0.487 story. Omit for the default 2-trial shape.
-       */
-      extra_trial_metrics?: number[] | null;
-      /** Judgment List Id */
-      judgment_list_id: string;
-      /** Query Set Id */
-      query_set_id: string;
-      /**
-       * Runner Up Per Query
-       * @description Optional per-query metrics for the runner-up trial; pairs with `winner_per_query`.
-       */
-      runner_up_per_query?: {
-        [key: string]: {
-          [key: string]: unknown;
+    schemas: {
+        /**
+         * BulkQueriesResponse
+         * @description ``POST /api/v1/query-sets/{id}/queries`` response.
+         */
+        BulkQueriesResponse: {
+            /** Added */
+            added: number;
         };
-      } | null;
-      /**
-       * Suggested Followups
-       * @description feat_digest_executable_followups Story 6.1 — optional structured FollowupItem list (`[{kind, rationale, search_space}]`) to seed on the digest. When omitted, the seeder writes two default text-kind items. The E2E Run-followup spec passes a `narrow` item so it can drive the per-card Run button + modal prefill flow.
-       */
-      suggested_followups?:
-        | {
-            [key: string]: unknown;
-          }[]
-        | null;
-      /** Template Id */
-      template_id: string;
-      /**
-       * Winner Per Query
-       * @description Optional per-query metrics dict to populate on the winner trial. Shape: `{query_id: {metric_token: float}}` where metric_token matches what `scoring.score()` emits (e.g. `ndcg@10`). Set alongside `runner_up_per_query` to drive the ConfidencePanel happy path on `/studies/[id]`. When omitted, the seeded trials have `per_query_metrics IS NULL` (the pre-feat_pr_metric_confidence shape).
-       */
-      winner_per_query?: {
-        [key: string]: {
-          [key: string]: unknown;
+        /**
+         * CIShape
+         * @description Bootstrap percentile CI on the winner's per-query metric values.
+         */
+        CIShape: {
+            /** High */
+            high: number;
+            /** Low */
+            low: number;
+            /**
+             * Method
+             * @constant
+             */
+            method: "bootstrap_n1000";
+            /** N Samples */
+            n_samples: number;
         };
-      } | null;
-      /**
-       * With Pending Proposal
-       * @description When true (default), also insert a `status='pending'` proposal linked to the study so the digest panel's Open PR button renders enabled. Set false to test the AC-11 aria-disabled-button + tooltip path.
-       * @default true
-       */
-      with_pending_proposal: boolean;
+        /**
+         * CalibrationResponse
+         * @description Calibration endpoint response.
+         *
+         *     Mirrors :class:`backend.app.eval.calibration.CalibrationResult` —
+         *     persisted as ``judgment_lists.calibration`` JSONB.
+         */
+        CalibrationResponse: {
+            /** Cohens Kappa */
+            cohens_kappa: number | null;
+            /** N Samples */
+            n_samples: number;
+            /** Per Class */
+            per_class: {
+                [key: string]: number;
+            };
+            /** Warning */
+            warning: string | null;
+            /** Weighted Kappa */
+            weighted_kappa: number | null;
+        };
+        /**
+         * CalibrationSample
+         * @description One row in :class:`CalibrationSamplesRequest`.
+         */
+        CalibrationSample: {
+            /** Doc Id */
+            doc_id: string;
+            /** Query Id */
+            query_id: string;
+            /**
+             * Rating
+             * @enum {integer}
+             */
+            rating: 0 | 1 | 2 | 3;
+        };
+        /**
+         * CalibrationSamplesRequest
+         * @description Body for ``POST /api/v1/judgment-lists/{id}/calibration`` (Story 3.5).
+         */
+        CalibrationSamplesRequest: {
+            /** Human Samples */
+            human_samples: components["schemas"]["CalibrationSample"][];
+        };
+        /**
+         * CategoricalParam
+         * @description Discrete choice parameter.
+         *
+         *     Optuna ``suggest_categorical`` handles strings, ints, floats, and bools
+         *     as choices.
+         */
+        CategoricalParam: {
+            /** Choices */
+            choices: (string | number | boolean)[];
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "categorical";
+        };
+        /**
+         * ClusterAggregateHealth
+         * @description Aggregate counts for the ``elasticsearch_clusters`` /healthz field (Story 3.5).
+         *
+         *     Per spec §2: probes only the *registered* user clusters (from the DB),
+         *     NOT the local Compose ES/OpenSearch — those have their own subsystem
+         *     fields. ``status`` is a count derived from the cached ``cluster:health:*``
+         *     entries; missing-cache or red/unreachable clusters are counted as
+         *     ``unreachable``.
+         */
+        ClusterAggregateHealth: {
+            /** Healthy */
+            healthy: number;
+            /** Registered */
+            registered: number;
+            /** Unreachable */
+            unreachable: number;
+        };
+        /**
+         * ClusterDetail
+         * @description ``GET /api/v1/clusters/{id}`` response.
+         */
+        ClusterDetail: {
+            /**
+             * Auth Kind
+             * @enum {string}
+             */
+            auth_kind: "es_apikey" | "es_basic" | "opensearch_basic" | "opensearch_sigv4" | "solr_basic" | "solr_apikey";
+            /** Base Url */
+            base_url: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Engine Config */
+            engine_config?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Engine Type
+             * @enum {string}
+             */
+            engine_type: "elasticsearch" | "opensearch" | "solr";
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "prod" | "staging" | "dev";
+            health_check: components["schemas"]["HealthCheckResult"];
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /** Target Filter */
+            target_filter?: string | null;
+        };
+        /**
+         * ClusterListResponse
+         * @description Paginated list response.
+         */
+        ClusterListResponse: {
+            /** Data */
+            data: components["schemas"]["ClusterSummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * ClusterSummary
+         * @description List-view; drops engine_config + notes for brevity.
+         */
+        ClusterSummary: {
+            /**
+             * Auth Kind
+             * @enum {string}
+             */
+            auth_kind: "es_apikey" | "es_basic" | "opensearch_basic" | "opensearch_sigv4" | "solr_basic" | "solr_apikey";
+            /** Base Url */
+            base_url: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Engine Type
+             * @enum {string}
+             */
+            engine_type: "elasticsearch" | "opensearch" | "solr";
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "prod" | "staging" | "dev";
+            health_check: components["schemas"]["HealthCheckResult"];
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Target Filter */
+            target_filter?: string | null;
+        };
+        /**
+         * ConfidenceShape
+         * @description The top-level shape exposed via ``StudyDetail.confidence``.
+         *
+         *     Every sub-field is independently nullable per FR-7 — degraded paths
+         *     suppress only the sub-fields they affect, never the whole shape (the
+         *     orchestrator returns whole-object ``None`` only when the winner trial
+         *     row itself is missing).
+         */
+        ConfidenceShape: {
+            ci_95: components["schemas"]["CIShape"] | null;
+            convergence: components["schemas"]["ConvergenceShape"] | null;
+            headline: components["schemas"]["HeadlineShape"];
+            late_trial_stddev: components["schemas"]["LateTrialStddevShape"] | null;
+            per_query_outcomes: components["schemas"]["PerQueryOutcomesShape"] | null;
+            runner_up_gap: components["schemas"]["RunnerUpGapShape"] | null;
+        };
+        /**
+         * ConfigRepoDetail
+         * @description ``GET /api/v1/config-repos/{id}`` response + ``POST`` 201 body.
+         */
+        ConfigRepoDetail: {
+            /** Auth Ref */
+            auth_ref: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Default Branch */
+            default_branch: string;
+            /** Id */
+            id: string;
+            last_merged_proposal?: components["schemas"]["ProposalSummary"] | null;
+            /** Name */
+            name: string;
+            /** Pr Base Branch */
+            pr_base_branch: string;
+            /**
+             * Provider
+             * @constant
+             */
+            provider: "github";
+            /** Repo Url */
+            repo_url: string;
+            /** Webhook Registration Error */
+            webhook_registration_error: string | null;
+            /** Webhook Secret Ref */
+            webhook_secret_ref: string | null;
+        };
+        /**
+         * ConfigReposListResponse
+         * @description ``GET /api/v1/config-repos`` response.
+         */
+        ConfigReposListResponse: {
+            /** Data */
+            data: components["schemas"]["ConfigRepoDetail"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * ConnectionTestRequest
+         * @description Body for ``POST /api/v1/clusters/test-connection`` (infra_adapter_solr Story A9).
+         *
+         *     Same shape as ``CreateClusterRequest`` minus the persisted-only fields
+         *     (``name``, ``environment``, ``notes``, ``target_filter``). ``engine_type``
+         *     + ``auth_kind`` are typed as ``str`` (not Literal) so a bad value yields
+         *     the project-standard 400 envelope rather than a raw 422 — same convention
+         *     as ``CreateClusterRequest``.
+         */
+        ConnectionTestRequest: {
+            /** Auth Kind */
+            auth_kind: string;
+            /** Base Url */
+            base_url: string;
+            /** Credentials Ref */
+            credentials_ref: string;
+            /** Engine Config */
+            engine_config?: {
+                [key: string]: unknown;
+            } | null;
+            /** Engine Type */
+            engine_type: string;
+        };
+        /**
+         * ConnectionTestResult
+         * @description Response for ``POST /api/v1/clusters/test-connection``.
+         *
+         *     Always 200 — reachable vs unreachable surfaces via ``reachable`` +
+         *     ``status`` fields. The endpoint is a diagnostic, never a mutation,
+         *     so it never returns 503; invalid engine×auth pairings 400 BEFORE the
+         *     network call. (Cycle-delta F1.)
+         */
+        ConnectionTestResult: {
+            /** Engine Capabilities */
+            engine_capabilities?: {
+                [key: string]: unknown;
+            } | null;
+            /** Error */
+            error?: string | null;
+            /** Reachable */
+            reachable: boolean;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "green" | "yellow" | "red" | "unreachable";
+            /** Version */
+            version?: string | null;
+        };
+        /**
+         * ConvergenceShape
+         * @description Where the winner sits in the Optuna trial sequence + the classified regime.
+         */
+        ConvergenceShape: {
+            /** Best At Trial */
+            best_at_trial: number;
+            /**
+             * Regime
+             * @enum {string}
+             */
+            regime: "early_held" | "late_rising" | "noisy";
+            /** Total Trials */
+            total_trials: number;
+        };
+        /**
+         * ConversationDetail
+         * @description ``GET /api/v1/conversations/{id}`` response.
+         */
+        ConversationDetail: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Messages */
+            messages: components["schemas"]["MessageWire"][];
+            /** Title */
+            title: string | null;
+        };
+        /**
+         * ConversationSummary
+         * @description ``GET /api/v1/conversations`` row + ``POST`` 201 body.
+         *
+         *     ``last_message_preview`` is the most recent user / assistant message's
+         *     ``content.text``, truncated at the repo layer to 120 chars (with ``…``
+         *     suffix when cut). Tool-role rows and assistant rows whose ``content.kind``
+         *     is ``system_notice`` are skipped. ``None`` for brand-new conversations
+         *     with no qualifying messages — see ``chore_chat_last_message_preview``.
+         *
+         *     ``last_message_at`` is the ``created_at`` of that same row, or ``None``
+         *     for empty conversations. The list page uses it to render "when did
+         *     anyone last touch this thread" instead of the conversation's
+         *     ``created_at``.
+         */
+        ConversationSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Last Message At */
+            last_message_at?: string | null;
+            /** Last Message Preview */
+            last_message_preview?: string | null;
+            /** Message Count */
+            message_count: number;
+            /** Title */
+            title: string | null;
+        };
+        /**
+         * ConversationsListResponse
+         * @description ``GET /api/v1/conversations`` response.
+         */
+        ConversationsListResponse: {
+            /** Data */
+            data: components["schemas"]["ConversationSummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * CreateClusterRequest
+         * @description Request body for ``POST /api/v1/clusters``.
+         *
+         *     See module docstring for the deliberate ``str`` vs ``Literal`` split.
+         */
+        CreateClusterRequest: {
+            /** Auth Kind */
+            auth_kind: string;
+            /** Base Url */
+            base_url: string;
+            /** Credentials Ref */
+            credentials_ref: string;
+            /** Engine Config */
+            engine_config?: {
+                [key: string]: unknown;
+            } | null;
+            /** Engine Type */
+            engine_type: string;
+            /**
+             * Environment
+             * @enum {string}
+             */
+            environment: "prod" | "staging" | "dev";
+            /** Name */
+            name: string;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Target Filter
+             * @description Optional glob pattern (fnmatch.fnmatchcase: *, ?, [seq], [!seq]; no brace expansion). Scopes GET /clusters/{id}/targets to matching index names. Null = no filter.
+             */
+            target_filter?: string | null;
+        };
+        /**
+         * CreateConfigRepoRequest
+         * @description Body of ``POST /api/v1/config-repos`` (FR-3).
+         *
+         *     ``provider`` is server-derived from ``repo_url`` (cycle-2 F4 from
+         *     spec review) — NOT in the payload. The validator enforces a strict
+         *     GitHub URL pattern; non-GitHub URLs surface as 400
+         *     ``UNSUPPORTED_PROVIDER`` at the router layer.
+         */
+        CreateConfigRepoRequest: {
+            /** Auth Ref */
+            auth_ref: string;
+            /**
+             * Default Branch
+             * @default main
+             */
+            default_branch: string;
+            /** Name */
+            name: string;
+            /**
+             * Pr Base Branch
+             * @default main
+             */
+            pr_base_branch: string;
+            /** Repo Url */
+            repo_url: string;
+            /** Webhook Secret Ref */
+            webhook_secret_ref?: string | null;
+        };
+        /**
+         * CreateConversationRequest
+         * @description ``POST /api/v1/conversations`` body.
+         */
+        CreateConversationRequest: {
+            /** Title */
+            title?: string | null;
+        };
+        /**
+         * CreateJudgmentListFromUbiRequest
+         * @description Body for ``POST /api/v1/judgments/generate-from-ubi`` (Story 3.2 / FR-3).
+         *
+         *     Mirrors :class:`backend.app.services.agent_judgments_dispatch.UbiJudgmentGenerationRequest`.
+         *     The ``@model_validator(mode="after")`` enforces the conditional
+         *     requiredness of ``current_template_id`` + ``rubric`` per the hybrid
+         *     converter: REQUIRED when ``converter == 'hybrid_ubi_llm'`` (the LLM-
+         *     fill path needs both); FORBIDDEN otherwise (pure UBI never calls
+         *     the LLM so accepting them silently would mask operator error).
+         */
+        CreateJudgmentListFromUbiRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            /**
+             * Converter
+             * @enum {string}
+             */
+            converter: "ctr_threshold" | "dwell_time" | "hybrid_ubi_llm";
+            /** Converter Config */
+            converter_config?: {
+                [key: string]: unknown;
+            } | null;
+            /** Current Template Id */
+            current_template_id?: string | null;
+            /** Description */
+            description?: string | null;
+            /**
+             * Llm Fill Threshold
+             * @default 20
+             */
+            llm_fill_threshold: number | null;
+            /**
+             * Mapping Strategy
+             * @default reject
+             * @enum {string}
+             */
+            mapping_strategy: "reject" | "first_match" | "most_recent";
+            /**
+             * Min Impressions Threshold
+             * @default 100
+             */
+            min_impressions_threshold: number | null;
+            /** Name */
+            name: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Rubric */
+            rubric?: string | null;
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+            /** Target */
+            target: string;
+            /** Until */
+            until?: string | null;
+        };
+        /**
+         * CreateJudgmentListGenerateRequest
+         * @description Body for ``POST /api/v1/judgments/generate`` (Story 3.1).
+         */
+        CreateJudgmentListGenerateRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            /** Current Template Id */
+            current_template_id: string;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Rubric */
+            rubric: string;
+            /** Target */
+            target: string;
+        };
+        /**
+         * CreateProposalRequest
+         * @description Body of ``POST /api/v1/proposals`` (manual proposal creation, FR-4 / AC-6).
+         */
+        CreateProposalRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            /** Config Diff */
+            config_diff: {
+                [key: string]: unknown;
+            };
+            /** Metric Delta */
+            metric_delta?: {
+                [key: string]: unknown;
+            } | null;
+            /** Template Id */
+            template_id: string;
+        };
+        /**
+         * CreateQuerySetRequest
+         * @description ``POST /api/v1/query-sets`` body.
+         *
+         *     ``cluster_id`` is required because Phase 1's shipped schema has
+         *     ``query_sets.cluster_id NOT NULL``. Spec FR-3 wording (``cluster_id?``)
+         *     is documented drift tracked at
+         *     ``docs/00_overview/planned_features/chore_spec_query_set_cluster_id_drift/idea.md``.
+         */
+        CreateQuerySetRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            /** Description */
+            description?: string | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * CreateQueryTemplateRequest
+         * @description Request body for ``POST /api/v1/query-templates``.
+         */
+        CreateQueryTemplateRequest: {
+            /** Body */
+            body: string;
+            /** Declared Params */
+            declared_params?: {
+                [key: string]: string;
+            };
+            /**
+             * Engine Type
+             * @enum {string}
+             */
+            engine_type: "elasticsearch" | "opensearch" | "solr";
+            /** Name */
+            name: string;
+            /** Parent Id */
+            parent_id?: string | null;
+        };
+        /**
+         * CreateStudyRequest
+         * @description ``POST /api/v1/studies`` body.
+         *
+         *     ``search_space`` is validated post-Pydantic-parse via
+         *     :class:`backend.app.domain.study.search_space.SearchSpace` so
+         *     :exc:`pydantic.ValidationError` produces the spec's 400
+         *     ``INVALID_SEARCH_SPACE`` (per Story 3.3 task 2).
+         *
+         *     feat_digest_executable_followups Story 4.2 — optional ``parent`` field
+         *     records the parent proposal + followup-index lineage when the study
+         *     was spawned from a digest "Run this followup" action (FR-11).
+         */
+        CreateStudyRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            config: components["schemas"]["StudyConfigSpec"];
+            /** Judgment List Id */
+            judgment_list_id: string;
+            /** Name */
+            name: string;
+            objective: components["schemas"]["ObjectiveSpec"];
+            parent?: components["schemas"]["ParentFollowupRef"] | null;
+            /**
+             * Parent Study Id
+             * @description feat_study_clone_from_previous FR-7 — when the operator clones an existing study via the study-detail Clone button, this carries the source study's id. Server validates existence (404 PARENT_STUDY_NOT_FOUND) and same-cluster (422 PARENT_STUDY_WRONG_CLUSTER) before persisting to studies.parent_study_id. Independent of the proposal-lineage 'parent' field (D-5); both may be set.
+             */
+            parent_study_id?: string | null;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Search Space */
+            search_space: {
+                [key: string]: unknown;
+            };
+            /** Target */
+            target: string;
+            /** Template Id */
+            template_id: string;
+        };
+        /**
+         * CurvePoint
+         * @description One point on the best-so-far curve.
+         *
+         *     ``trial_number`` is the trial's ``optuna_trial_number`` (the canonical
+         *     "trial order within the study" field — see ``auto_followup.py`` module
+         *     docstring for why we sort by this rather than ``started_at``).
+         *     ``best_so_far`` is the running extremum of ``primary_metric`` over all
+         *     earlier trials, sign-corrected to the study's optimization direction.
+         */
+        CurvePoint: {
+            /** Best So Far */
+            best_so_far: number;
+            /** Trial Number */
+            trial_number: number;
+        };
+        /**
+         * DigestResponse
+         * @description Body of ``GET /api/v1/studies/{id}/digest`` (FR-3 / AC-3).
+         *
+         *     feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+         *     now a discriminated-union list (NarrowFollowup | WidenFollowup |
+         *     TextFollowup), populated by the digest handler via
+         *     ``parse_followup_list(digest.suggested_followups, ...)`` so legacy or
+         *     malformed JSONB payloads never crash the response.
+         */
+        DigestResponse: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Generated By */
+            generated_by: string;
+            /** Id */
+            id: string;
+            /** Narrative */
+            narrative: string;
+            /** Parameter Importance */
+            parameter_importance: {
+                [key: string]: number;
+            };
+            /** Recommended Config */
+            recommended_config: {
+                [key: string]: unknown;
+            };
+            /** Study Id */
+            study_id: string;
+            /** Suggested Followups */
+            suggested_followups: components["schemas"]["FollowupItem"][];
+        };
+        /**
+         * Document
+         * @description A single document by ID — return shape of ``SearchAdapter.get_document``.
+         *
+         *     Mirrors :class:`ScoredHit` minus ``score`` (browsing doesn't need scoring).
+         *     ``source`` is ``None`` when the engine's index has ``_source: false`` mapping.
+         */
+        Document: {
+            /** Doc Id */
+            doc_id: string;
+            /** Source */
+            source?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * DocumentListResponse
+         * @description ``GET /api/v1/clusters/{cluster_id}/targets/{target}/documents`` response.
+         *
+         *     ``next_cursor`` opaque-encodes the ES ``hits[-1].sort`` array of the
+         *     last visible row when ``has_more`` is True (see
+         *     ``backend.app.api.v1._documents_cursor``). The ``X-Total-Count`` header
+         *     on the response carries the engine's ``hits.total.value``.
+         */
+        DocumentListResponse: {
+            /** Data */
+            data: components["schemas"]["DocumentSummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * DocumentSummary
+         * @description One row in the documents list (per FR-3 / FR-8).
+         *
+         *     ``source`` is the *truncated* preview emitted by
+         *     ``backend.app.services.documents.truncate_source_for_list``. The detail
+         *     endpoint returns the untruncated ``Document.source``.
+         */
+        DocumentSummary: {
+            /** Doc Id */
+            doc_id: string;
+            /** Source */
+            source: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * FieldSpec
+         * @description One field returned by ``get_schema``.
+         */
+        FieldSpec: {
+            /** Analyzer */
+            analyzer?: string | null;
+            /** Doc Count */
+            doc_count?: number | null;
+            /** Name */
+            name: string;
+            /** Type */
+            type: string;
+        };
+        /**
+         * FloatParam
+         * @description Continuous float parameter.
+         *
+         *     ``log=True`` enables log-uniform sampling
+         *     (Optuna's ``suggest_float(..., log=True)``); requires ``low > 0``.
+         */
+        FloatParam: {
+            /** High */
+            high: number;
+            /**
+             * Log
+             * @default false
+             */
+            log: boolean;
+            /** Low */
+            low: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "float";
+        };
+        FollowupItem: components["schemas"]["NarrowFollowup"] | components["schemas"]["WidenFollowup"] | components["schemas"]["TextFollowup"] | components["schemas"]["SwapTemplateFollowup"];
+        /**
+         * GenerateJudgmentsResponse
+         * @description Response of ``POST /api/v1/judgments/generate``.
+         *
+         *     Per GPT-5.5 cycle 1 F5 — the endpoint registers a typed
+         *     ``response_model`` so OpenAPI introspection + contract tests can verify
+         *     the wire shape.
+         */
+        GenerateJudgmentsResponse: {
+            /** Judgment List Id */
+            judgment_list_id: string;
+            /**
+             * Status
+             * @constant
+             */
+            status: "generating";
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /**
+         * HeadlineShape
+         * @description Top-line metric value + N(queries) used in the CI.
+         *
+         *     ``metric`` uses ``str`` (not ``ObjectiveMetric``) to avoid a circular
+         *     import: ``schemas.py`` imports ``ConfidenceShape`` from here, so this
+         *     module cannot import back from ``schemas.py``. The upstream value is
+         *     already validated by the existing ``ObjectiveMetric`` Literal at the
+         *     create-study endpoint (``schemas.py:214``).
+         */
+        HeadlineShape: {
+            /** K */
+            k: number | null;
+            /** Metric */
+            metric: string;
+            /** N Queries */
+            n_queries: number | null;
+            /** Value */
+            value: number;
+        };
+        /**
+         * HealthCheckResult
+         * @description Wire shape of the per-cluster health probe (mirrors ``HealthStatus``).
+         */
+        HealthCheckResult: {
+            /** Checked At */
+            checked_at: string;
+            /** Error */
+            error?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "green" | "yellow" | "red" | "unreachable";
+            /** Version */
+            version?: string | null;
+        };
+        /**
+         * HealthResponse
+         * @description The /healthz response body. Same shape for HTTP 200 and 503.
+         */
+        HealthResponse: {
+            openai_capabilities: components["schemas"]["OpenAICapabilities"];
+            /**
+             * Openai Endpoint
+             * @description Configured OPENAI_BASE_URL
+             */
+            openai_endpoint: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "degraded";
+            subsystems: components["schemas"]["Subsystems"];
+            /**
+             * Uptime Seconds
+             * @description Seconds since the API process started
+             */
+            uptime_seconds: number;
+            /**
+             * Version
+             * @description Application version (relyloop_git_sha)
+             */
+            version: string;
+        };
+        /**
+         * ImportJudgmentItem
+         * @description One row in :class:`ImportJudgmentListRequest`.
+         */
+        ImportJudgmentItem: {
+            /** Doc Id */
+            doc_id: string;
+            /** Notes */
+            notes?: string | null;
+            /** Query Id */
+            query_id: string;
+            /**
+             * Rating
+             * @enum {integer}
+             */
+            rating: 0 | 1 | 2 | 3;
+        };
+        /**
+         * ImportJudgmentListRequest
+         * @description Body for ``POST /api/v1/judgment-lists/import`` (Story 3.2).
+         */
+        ImportJudgmentListRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            /** Description */
+            description?: string | null;
+            /** Judgments */
+            judgments: components["schemas"]["ImportJudgmentItem"][];
+            /** Name */
+            name: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Rubric */
+            rubric: string;
+            /** Target */
+            target: string;
+        };
+        /**
+         * IntParam
+         * @description Integer parameter inclusive of both bounds.
+         */
+        IntParam: {
+            /** High */
+            high: number;
+            /** Low */
+            low: number;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            type: "int";
+        };
+        /**
+         * JudgmentListDetail
+         * @description ``GET /api/v1/judgment-lists/{id}`` response.
+         *
+         *     Note: ``generation_params`` is populated for UBI lists (feat_ubi_judgments
+         *     Story 1.1's JSONB column) and NULL for LLM lists. The Story 4.3 UI
+         *     (``<ValueDeltaCard>`` + ``<AmbiguousSkipRecoveryCard>``) reads the
+         *     payload to discriminate UBI/hybrid lists and to reconstruct the
+         *     original request for the ambiguous-skip "Re-run with most_recent"
+         *     affordance.
+         */
+        JudgmentListDetail: {
+            /** Calibration */
+            calibration: {
+                [key: string]: unknown;
+            } | null;
+            /** Cluster Id */
+            cluster_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Current Template Id */
+            current_template_id: string | null;
+            /** Description */
+            description: string | null;
+            /** Failed Reason */
+            failed_reason: string | null;
+            /** Generation Params */
+            generation_params: {
+                [key: string]: unknown;
+            } | null;
+            /** Id */
+            id: string;
+            /** Judgment Count */
+            judgment_count: number;
+            /** Name */
+            name: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Rubric */
+            rubric: string;
+            source_breakdown: components["schemas"]["_SourceBreakdown"];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "generating" | "complete" | "failed";
+            /** Target */
+            target: string;
+        };
+        /**
+         * JudgmentListJudgmentsResponse
+         * @description ``GET /api/v1/judgment-lists/{id}/judgments`` response.
+         */
+        JudgmentListJudgmentsResponse: {
+            /** Data */
+            data: components["schemas"]["JudgmentRow"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * JudgmentListListResponse
+         * @description ``GET /api/v1/judgment-lists`` response.
+         */
+        JudgmentListListResponse: {
+            /** Data */
+            data: components["schemas"]["JudgmentListSummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * JudgmentListRef
+         * @description One entry in the ``QUERY_HAS_JUDGMENTS`` 409 envelope.
+         *
+         *     Lives in ``detail.judgment_lists``. Maps from the repo-layer
+         *     :class:`backend.app.db.repo.judgment.JudgmentListRefRow` at the
+         *     router boundary.
+         */
+        JudgmentListRef: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * JudgmentListSummary
+         * @description List-view row on ``GET /api/v1/judgment-lists``.
+         */
+        JudgmentListSummary: {
+            /** Cluster Id */
+            cluster_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "generating" | "complete" | "failed";
+            /** Target */
+            target: string;
+        };
+        /**
+         * JudgmentRow
+         * @description ``GET /api/v1/judgment-lists/{id}/judgments`` row + PATCH response.
+         */
+        JudgmentRow: {
+            /** Confidence */
+            confidence: number | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Doc Id */
+            doc_id: string;
+            /** Id */
+            id: string;
+            /** Judgment List Id */
+            judgment_list_id: string;
+            /** Notes */
+            notes: string | null;
+            /** Query Id */
+            query_id: string;
+            /** Rater Ref */
+            rater_ref: string | null;
+            /**
+             * Rating
+             * @enum {integer}
+             */
+            rating: 0 | 1 | 2 | 3;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "llm" | "human" | "click";
+        };
+        /**
+         * LateTrialStddevShape
+         * @description Sample stddev of ``primary_metric`` over the late-trial window.
+         */
+        LateTrialStddevShape: {
+            /** Min Window Required */
+            min_window_required: number;
+            /** Value */
+            value: number;
+            /** Window Size */
+            window_size: number;
+        };
+        /**
+         * MessageWire
+         * @description One row of ``GET /api/v1/conversations/{id}.messages``.
+         */
+        MessageWire: {
+            /** Content */
+            content: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "assistant" | "tool";
+            /** Tool Calls */
+            tool_calls?: {
+                [key: string]: unknown;
+            }[] | null;
+        };
+        /**
+         * NarrowFollowup
+         * @description A 'narrow' followup — re-run with a tighter range than the parent.
+         */
+        NarrowFollowup: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "narrow";
+            /** Rationale */
+            rationale: string;
+            search_space: components["schemas"]["SearchSpace"];
+        };
+        /**
+         * ObjectiveSpec
+         * @description Wire shape of ``studies.objective`` (write-side validated at create).
+         *
+         *     ``k`` is required for ``ndcg`` / ``precision`` / ``recall`` (per
+         *     standard IR-evaluation conventions: those metrics are computed at a
+         *     cutoff rank). ``map`` accepts ``k`` optionally; ``mrr`` / ``err`` ignore
+         *     it. The model_validator enforces this so a malformed objective
+         *     surfaces as 400 ``INVALID_SEARCH_SPACE`` / 422 ``VALIDATION_ERROR``
+         *     at study-create time rather than failing later inside ``run_trial``
+         *     when the worker computes the metric.
+         */
+        ObjectiveSpec: {
+            /**
+             * Direction
+             * @default maximize
+             * @enum {string}
+             */
+            direction: "maximize" | "minimize";
+            /** K */
+            k?: (1 | 3 | 5 | 10 | 20 | 50 | 100) | null;
+            /**
+             * Metric
+             * @enum {string}
+             */
+            metric: "ndcg" | "map" | "precision" | "recall" | "mrr";
+        };
+        /**
+         * OpenAICapabilities
+         * @description Cached results of the OpenAI capability check (Story 3.3 populates Redis).
+         *
+         *     Step 1 (``models_endpoint``) is reported first because it gates the rest:
+         *     when it fails, the other three are reported as ``"untested"``. The
+         *     ``models_endpoint_status_code`` field is required-but-nullable
+         *     (per ``bug_openai_capability_check_incapable_on_valid_key`` spec §19 D-3/D-8)
+         *     — always present in the JSON, ``null`` when not applicable. This lets
+         *     operators distinguish ``401 -> bad key``, ``429 -> quota``,
+         *     ``5xx -> upstream outage``, ``null -> network unreachable / cache miss``.
+         */
+        OpenAICapabilities: {
+            /**
+             * Chat
+             * @description Chat completion probe result
+             * @enum {string}
+             */
+            chat: "ok" | "fail" | "untested";
+            /**
+             * Function Calling
+             * @description Function-calling probe result (tool_choice=required)
+             * @enum {string}
+             */
+            function_calling: "ok" | "fail" | "untested";
+            /**
+             * Models Endpoint
+             * @description GET /models probe outcome. 'ok' / 'fail' are projected from CapabilityResult.models_endpoint; 'untested' is the cache-miss default, matching the existing chat / function_calling / structured_output cache-miss handling.
+             * @enum {string}
+             */
+            models_endpoint: "ok" | "fail" | "untested";
+            /**
+             * Models Endpoint Status Code
+             * @description HTTP status code from the GET /models probe when it HTTP-failed (>= 400). null for the success path, network-class failure (timeout / DNS / connection-refused), or cache miss. Required-but-nullable: the JSON key is always present with explicit null when no value, never omitted.
+             */
+            models_endpoint_status_code: number | null;
+            /**
+             * Structured Output
+             * @description JSON-schema response_format probe result
+             * @enum {string}
+             */
+            structured_output: "ok" | "fail" | "untested";
+        };
+        /**
+         * OpenPrResponse
+         * @description Body of ``POST /api/v1/proposals/{id}/open_pr`` (FR-1).
+         *
+         *     Returned with HTTP 202 on successful enqueue. Status is always
+         *     ``'pending'`` at enqueue time; the worker flips it to ``'pr_opened'``
+         *     after the PR is open.
+         */
+        OpenPrResponse: {
+            /** Message */
+            message: string;
+            /** Proposal Id */
+            proposal_id: string;
+            /**
+             * Status
+             * @constant
+             */
+            status: "pending";
+        };
+        /**
+         * OverrideJudgmentRequest
+         * @description Body for ``PATCH /api/v1/judgment-lists/{id}/judgments/{judgment_id}``.
+         *
+         *     ``rating`` is INTENTIONALLY unbounded at the Pydantic layer — spec §8.5
+         *     requires out-of-range failures to surface as 400 ``INVALID_RATING`` (not
+         *     Pydantic's default 422 ``VALIDATION_ERROR``). The handler validates the
+         *     value manually and raises the domain code (per GPT-5.5 cycle 1 F4).
+         */
+        OverrideJudgmentRequest: {
+            /** Notes */
+            notes?: string | null;
+            /** Rating */
+            rating: number;
+        };
+        /**
+         * ParentFollowupRef
+         * @description Optional lineage payload on ``POST /api/v1/studies``.
+         *
+         *     feat_digest_executable_followups FR-11 — when the operator clicks
+         *     "Run this followup" on a proposal's digest card, the create-study
+         *     payload carries the parent proposal's id + the 0-based index into
+         *     the digest's ``suggested_followups`` array so the spawned study
+         *     remembers where it came from.
+         *
+         *     ``proposal_id`` is a UUIDv7 (36-char hex). The exact-length bound
+         *     forces malformed strings to surface as 422 ``VALIDATION_ERROR``
+         *     rather than reach the DB FK check and emerge as a 404
+         *     ``PROPOSAL_NOT_FOUND``.
+         */
+        ParentFollowupRef: {
+            /** Followup Index */
+            followup_index: number;
+            /** Proposal Id */
+            proposal_id: string;
+        };
+        /**
+         * PerQueryOutcomesShape
+         * @description Per-query outcome counts + the top-5 named regressors and improvers.
+         */
+        PerQueryOutcomesShape: {
+            /**
+             * Comparison Against
+             * @enum {string}
+             */
+            comparison_against: "runner_up" | "baseline";
+            /** Improved */
+            improved: number;
+            /** Regressed */
+            regressed: number;
+            /**
+             * Top Improvers
+             * @default []
+             */
+            top_improvers: components["schemas"]["RegressorRowShape"][];
+            /** Top Regressors */
+            top_regressors: components["schemas"]["RegressorRowShape"][];
+            /** Unchanged */
+            unchanged: number;
+        };
+        /**
+         * ProposalDetail
+         * @description Body of the proposal detail endpoints.
+         *
+         *     Used by ``GET /api/v1/proposals/{id}``, ``POST /api/v1/proposals``,
+         *     and ``POST /api/v1/proposals/{id}/reject``.
+         */
+        ProposalDetail: {
+            cluster: components["schemas"]["_ClusterEmbed"];
+            /** Config Diff */
+            config_diff: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            digest: components["schemas"]["_DigestEmbed"] | null;
+            /** Id */
+            id: string;
+            /**
+             * Is Currently Live
+             * @default false
+             */
+            is_currently_live: boolean;
+            /** Metric Delta */
+            metric_delta: {
+                [key: string]: unknown;
+            } | null;
+            /** Pr Merged At */
+            pr_merged_at: string | null;
+            /** Pr Open Error */
+            pr_open_error: string | null;
+            /** Pr State */
+            pr_state: ("open" | "closed" | "merged") | null;
+            /** Pr Url */
+            pr_url: string | null;
+            /** Rejected Reason */
+            rejected_reason: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "pr_opened" | "pr_merged" | "rejected";
+            /** Study Id */
+            study_id: string | null;
+            study_summary: components["schemas"]["_StudySummary"] | null;
+            /** Study Trial Id */
+            study_trial_id: string | null;
+            template: components["schemas"]["_TemplateEmbed"];
+        };
+        /**
+         * ProposalSummary
+         * @description Row in the ``GET /api/v1/proposals`` list response.
+         */
+        ProposalSummary: {
+            cluster: components["schemas"]["_ClusterEmbed"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /**
+             * Is Currently Live
+             * @default false
+             */
+            is_currently_live: boolean;
+            /** Metric Delta */
+            metric_delta: {
+                [key: string]: unknown;
+            } | null;
+            /** Pr State */
+            pr_state: ("open" | "closed" | "merged") | null;
+            /** Pr Url */
+            pr_url: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "pr_opened" | "pr_merged" | "rejected";
+            /** Study Id */
+            study_id: string | null;
+            template: components["schemas"]["_TemplateEmbed"];
+        };
+        /**
+         * ProposalsListResponse
+         * @description Body of ``GET /api/v1/proposals``.
+         */
+        ProposalsListResponse: {
+            /** Data */
+            data: components["schemas"]["ProposalSummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * QueryHasJudgmentsDetail
+         * @description The ``detail`` object of a 409 ``QUERY_HAS_JUDGMENTS`` response.
+         *
+         *     Extends the canonical ``{error_code, message, retryable}`` envelope
+         *     with two structured fields the frontend consumes directly
+         *     (``judgment_lists`` + ``overflow_count``). Wired into the FastAPI
+         *     route's ``responses={409: {"model": QueryHasJudgmentsEnvelope}}`` so
+         *     the OpenAPI schema documents the contract.
+         */
+        QueryHasJudgmentsDetail: {
+            /**
+             * Error Code
+             * @constant
+             */
+            error_code: "QUERY_HAS_JUDGMENTS";
+            /** Judgment Lists */
+            judgment_lists: components["schemas"]["JudgmentListRef"][];
+            /** Message */
+            message: string;
+            /** Overflow Count */
+            overflow_count: number;
+            /**
+             * Retryable
+             * @constant
+             */
+            retryable: false;
+        };
+        /**
+         * QueryHasJudgmentsEnvelope
+         * @description Top-level 409 wrapper (FastAPI nests under ``detail`` for HTTPException).
+         */
+        QueryHasJudgmentsEnvelope: {
+            detail: components["schemas"]["QueryHasJudgmentsDetail"];
+        };
+        /**
+         * QueryListResponse
+         * @description ``GET /api/v1/query-sets/{set_id}/queries`` response.
+         */
+        QueryListResponse: {
+            /** Data */
+            data: components["schemas"]["QueryRow"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * QueryRow
+         * @description Wire row returned by the per-query GET + PATCH endpoints.
+         *
+         *     Used by both ``GET /api/v1/query-sets/{set_id}/queries`` and
+         *     ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}``.
+         *     ``judgment_count`` is a derived field — single batched GROUP BY in the
+         *     router via :func:`backend.app.db.repo.judgment.count_judgments_per_query`.
+         */
+        QueryRow: {
+            /** Id */
+            id: string;
+            /** Judgment Count */
+            judgment_count: number;
+            /** Query Metadata */
+            query_metadata: {
+                [key: string]: unknown;
+            } | null;
+            /** Query Text */
+            query_text: string;
+            /** Reference Answer */
+            reference_answer: string | null;
+        };
+        /**
+         * QuerySetDetail
+         * @description ``GET /api/v1/query-sets/{id}`` response.
+         */
+        QuerySetDetail: {
+            /** Cluster Id */
+            cluster_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Description */
+            description: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Query Count */
+            query_count: number;
+        };
+        /**
+         * QuerySetListResponse
+         * @description ``GET /api/v1/query-sets`` response.
+         */
+        QuerySetListResponse: {
+            /** Data */
+            data: components["schemas"]["QuerySetSummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * QuerySetSummary
+         * @description List-view shape; omits ``query_count`` to avoid N+1 counts at list time.
+         */
+        QuerySetSummary: {
+            /** Cluster Id */
+            cluster_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * QueryTemplateDetail
+         * @description ``GET /api/v1/query-templates/{id}`` response.
+         */
+        QueryTemplateDetail: {
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Declared Params */
+            declared_params: {
+                [key: string]: string;
+            };
+            /**
+             * Engine Type
+             * @enum {string}
+             */
+            engine_type: "elasticsearch" | "opensearch" | "solr";
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Parent Id */
+            parent_id: string | null;
+            /** Version */
+            version: number;
+        };
+        /**
+         * QueryTemplateListResponse
+         * @description ``GET /api/v1/query-templates`` response.
+         */
+        QueryTemplateListResponse: {
+            /** Data */
+            data: components["schemas"]["QueryTemplateSummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * QueryTemplateSummary
+         * @description List-view shape; drops ``body`` + ``declared_params`` for brevity.
+         */
+        QueryTemplateSummary: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Engine Type
+             * @enum {string}
+             */
+            engine_type: "elasticsearch" | "opensearch" | "solr";
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+        };
+        /**
+         * RegressorRowShape
+         * @description One row in the named-regressors or named-improvers table.
+         *
+         *     Used for BOTH the ``top_regressors`` and ``top_improvers`` lists.
+         *     The wire shape is identical — ``delta = winner_score - comparison_score``
+         *     is negative on the regressor list, positive on the improver list. The
+         *     class name is historical (regressors shipped first); reusing the same
+         *     type keeps the schema and the per-row renderer compact.
+         */
+        RegressorRowShape: {
+            /** Comparison Score */
+            comparison_score: number;
+            /** Delta */
+            delta: number;
+            /** Query Id */
+            query_id: string;
+            /** Query Text */
+            query_text: string;
+            /** Winner Score */
+            winner_score: number;
+        };
+        /**
+         * RejectProposalRequest
+         * @description Body of ``POST /api/v1/proposals/{id}/reject`` (FR-4 / AC-5).
+         */
+        RejectProposalRequest: {
+            /** Reason */
+            reason?: string | null;
+        };
+        /**
+         * ReseedStatusResponse
+         * @description Polling-endpoint response for ``GET /api/v1/_test/demo/reseed/status``.
+         *
+         *     Per ``bug_demo_reseed_fake_metric_regression`` D-2. Lives in Redis as a
+         *     single JSON blob keyed by :data:`DEMO_RESEED_STATUS_KEY` so the
+         *     handler reads it in one round-trip.
+         */
+        ReseedStatusResponse: {
+            /** Current Step */
+            current_step?: string | null;
+            /** Failed Reason */
+            failed_reason?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /**
+             * Scenarios Completed
+             * @default 0
+             */
+            scenarios_completed: number;
+            /** Scenarios Skipped */
+            scenarios_skipped?: string[];
+            /**
+             * Scenarios Total
+             * @default 0
+             */
+            scenarios_total: number;
+            /** Started At */
+            started_at?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "idle" | "running" | "complete" | "failed";
+            /** Steps */
+            steps?: string[];
+            summary?: components["schemas"]["ReseedSummary"] | null;
+        };
+        /**
+         * ReseedSummary
+         * @description Returned by :func:`reseed_demo_state` on success.
+         *
+         *     Per spec §9 Required invariants, every counter is exactly 4 on the
+         *     happy path; ``duration_ms`` is wall-clock from orchestration start
+         *     to the rename commit.
+         */
+        ReseedSummary: {
+            /** Clusters Created */
+            clusters_created: number;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Proposals Created */
+            proposals_created: number;
+            /** Query Sets Created */
+            query_sets_created: number;
+            /** Studies Completed */
+            studies_completed: number;
+        };
+        /**
+         * RunQueryHit
+         * @description One hit in the ``run_query`` response.
+         */
+        RunQueryHit: {
+            /** Doc Id */
+            doc_id: string;
+            /** Score */
+            score: number;
+            /** Source */
+            source?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
+         * RunQueryRequest
+         * @description ``POST /api/v1/clusters/{id}/run_query`` body.
+         */
+        RunQueryRequest: {
+            /** Query Dsl */
+            query_dsl: {
+                [key: string]: unknown;
+            };
+            /** Target */
+            target: string;
+            /**
+             * Top K
+             * @default 10
+             */
+            top_k: number;
+        };
+        /**
+         * RunQueryResponse
+         * @description ``POST /api/v1/clusters/{id}/run_query`` response.
+         */
+        RunQueryResponse: {
+            /** Hits */
+            hits: components["schemas"]["RunQueryHit"][];
+        };
+        /**
+         * RunnerUpGapShape
+         * @description Runner-up trial's metric vs the winner.
+         *
+         *     The whole shape is suppressed to ``None`` when there are <2 complete
+         *     trials (FR-2 + FR-7); ``classification`` is non-null whenever this shape
+         *     is present.
+         */
+        RunnerUpGapShape: {
+            /**
+             * Classification
+             * @enum {string}
+             */
+            classification: "robust_plateau" | "sharp_peak";
+            /** Runner Up Metric */
+            runner_up_metric: number;
+            /** Top10 Within */
+            top10_within: number;
+            /** Value */
+            value: number;
+        };
+        /**
+         * Schema
+         * @description An index / collection's field schema.
+         */
+        Schema: {
+            /** Fields */
+            fields: components["schemas"]["FieldSpec"][];
+            /** Name */
+            name: string;
+        };
+        /**
+         * SearchSpace
+         * @description Pydantic model for the ``studies.search_space`` JSONB column.
+         *
+         *     Wire format::
+         *
+         *         {
+         *             "params": {
+         *                 "boost_title": {"type": "float", "low": 0.1, "high": 10.0, "log": true},
+         *                 "min_should_match": {"type": "int", "low": 1, "high": 5},
+         *                 "operator": {"type": "categorical", "choices": ["and", "or"]},
+         *             }
+         *         }
+         */
+        SearchSpace: {
+            /** Params */
+            params: {
+                [key: string]: components["schemas"]["FloatParam"] | components["schemas"]["IntParam"] | components["schemas"]["CategoricalParam"];
+            };
+        };
+        /**
+         * SeedAutoFollowupChainRequest
+         * @description Payload for ``POST /api/v1/_test/auto-followup/seed-chain``.
+         *
+         *     Seeds ``depth + 1`` linked studies (root → … → leaf) so E2E tests can
+         *     cover the chain-panel parent-link / children-table / cascade-radio paths
+         *     that the public ``POST /api/v1/studies`` endpoint can't drive
+         *     (``parent_study_id`` is set only by the auto-followup worker).
+         *
+         *     Closes ``chore_auto_followup_e2e_chain_seed_helper`` (idea #2).
+         */
+        SeedAutoFollowupChainRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            /**
+             * Depth
+             * @description Number of chain hops to seed. depth=1 → root + leaf (2 nodes). depth=2 → root + 1 middle + leaf (3 nodes).
+             */
+            depth: number;
+            /**
+             * In Flight Leaf
+             * @description When True (default), the deepest node is left at status='queued'. When False, it's driven to 'completed' too. Default True matches the primary E2E use case: cascade-radio coverage where the middle node needs an in-flight child.
+             * @default true
+             */
+            in_flight_leaf: boolean;
+            /**
+             * In Flight Middle
+             * @description When True (default), the immediate parent of the leaf is left at status='queued' so the Cancel button is enabled (canCancel = running || queued per study-action-bar.tsx:46). Required for the cancel-modal cascade-radio test. When False, all intermediates are completed (more realistic chain state but cancel modal won't open on the middle).
+             * @default true
+             */
+            in_flight_middle: boolean;
+            /** Judgment List Id */
+            judgment_list_id: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Template Id */
+            template_id: string;
+        };
+        /**
+         * SeedAutoFollowupChainResponse
+         * @description IDs of every node in the seeded chain, in parent→child order.
+         */
+        SeedAutoFollowupChainResponse: {
+            /** Leaf Id */
+            leaf_id: string;
+            /** Middle Ids */
+            middle_ids: string[];
+            /** Root Id */
+            root_id: string;
+        };
+        /**
+         * SeedCompletedStudyRequest
+         * @description Payload for ``POST /api/v1/_test/studies/seed-completed``.
+         *
+         *     All four FK fields are required; the caller is responsible for
+         *     seeding the parent rows first (typically via the public
+         *     ``seedFullChain`` E2E helper).
+         */
+        SeedCompletedStudyRequest: {
+            /** Cluster Id */
+            cluster_id: string;
+            /**
+             * Extra Trial Metrics
+             * @description Optional list of additional complete-trial `primary_metric` values (numbered from 2 upward) seeded on top of the default winner (0.487) + runner-up (0.412). Used to push the study past the convergence classifier's usable-trial floor (5) so the `<ConvergencePanel>` renders a real verdict + curve instead of the too_few_trials null state (feat_study_convergence_indicator). Every value MUST be < 0.487 so the winner / best_metric / proposal / digest stay anchored to the unchanged 0.412 -> 0.487 story. Omit for the default 2-trial shape.
+             */
+            extra_trial_metrics?: number[] | null;
+            /** Judgment List Id */
+            judgment_list_id: string;
+            /** Query Set Id */
+            query_set_id: string;
+            /**
+             * Runner Up Per Query
+             * @description Optional per-query metrics for the runner-up trial; pairs with `winner_per_query`.
+             */
+            runner_up_per_query?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /**
+             * Suggested Followups
+             * @description feat_digest_executable_followups Story 6.1 — optional structured FollowupItem list (`[{kind, rationale, search_space}]`) to seed on the digest. When omitted, the seeder writes two default text-kind items. The E2E Run-followup spec passes a `narrow` item so it can drive the per-card Run button + modal prefill flow.
+             */
+            suggested_followups?: {
+                [key: string]: unknown;
+            }[] | null;
+            /** Template Id */
+            template_id: string;
+            /**
+             * Winner Per Query
+             * @description Optional per-query metrics dict to populate on the winner trial. Shape: `{query_id: {metric_token: float}}` where metric_token matches what `scoring.score()` emits (e.g. `ndcg@10`). Set alongside `runner_up_per_query` to drive the ConfidencePanel happy path on `/studies/[id]`. When omitted, the seeded trials have `per_query_metrics IS NULL` (the pre-feat_pr_metric_confidence shape).
+             */
+            winner_per_query?: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            } | null;
+            /**
+             * With Pending Proposal
+             * @description When true (default), also insert a `status='pending'` proposal linked to the study so the digest panel's Open PR button renders enabled. Set false to test the AC-11 aria-disabled-button + tooltip path.
+             * @default true
+             */
+            with_pending_proposal: boolean;
+        };
+        /**
+         * SeedCompletedStudyResponse
+         * @description IDs of the inserted rows; mirrors :class:`SeededStudyTriple`.
+         */
+        SeedCompletedStudyResponse: {
+            /** Digest Id */
+            digest_id: string;
+            /** Proposal Id */
+            proposal_id: string | null;
+            /** Study Id */
+            study_id: string;
+        };
+        /**
+         * SendMessageRequest
+         * @description ``POST /api/v1/conversations/{id}/messages`` body (Story 3.2).
+         */
+        SendMessageRequest: {
+            content: components["schemas"]["SendMessageRequestContent"];
+            /**
+             * Role
+             * @default user
+             * @constant
+             */
+            role: "user";
+        };
+        /**
+         * SendMessageRequestContent
+         * @description Sub-shape inside :class:`SendMessageRequest`.
+         */
+        SendMessageRequestContent: {
+            /** Text */
+            text: string;
+        };
+        /**
+         * StudyChainLink
+         * @description One link in the rolled-up overnight-chain summary (feat_overnight_autopilot §8.3).
+         */
+        StudyChainLink: {
+            /** Auto Followup Depth Remaining */
+            auto_followup_depth_remaining: number | null;
+            /** Baseline Metric */
+            baseline_metric: number | null;
+            /** Best Metric */
+            best_metric: number | null;
+            /** Completed At */
+            completed_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Delta From Prev */
+            delta_from_prev: number | null;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "maximize" | "minimize";
+            /** Failed Reason */
+            failed_reason: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Proposal Id */
+            proposal_id: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "completed" | "cancelled" | "failed";
+        };
+        /**
+         * StudyChainResponse
+         * @description ``GET /api/v1/studies/{id}/chain`` response (feat_overnight_autopilot §8.3).
+         */
+        StudyChainResponse: {
+            /** Anchor Study Id */
+            anchor_study_id: string;
+            /** Best Link Id */
+            best_link_id: string | null;
+            /** Best Metric */
+            best_metric: number | null;
+            /** Cumulative Lift */
+            cumulative_lift: number | null;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "maximize" | "minimize";
+            /** Links */
+            links: components["schemas"]["StudyChainLink"][];
+            /** Proposal Id For Best Link */
+            proposal_id_for_best_link: string | null;
+            /**
+             * Stop Reason
+             * @enum {string}
+             */
+            stop_reason: "depth_exhausted" | "no_lift" | "budget" | "parent_failed" | "cancelled" | "in_flight";
+        };
+        /**
+         * StudyConfigSpec
+         * @description Wire shape of ``studies.config`` (write-side).
+         *
+         *     The model_validator below enforces that at least one stop condition is
+         *     set — otherwise the study has no terminating condition (FR-4).
+         *     ``parallelism`` / ``trial_timeout_s`` are optional; when absent the
+         *     worker reads ``Settings.studies_default_parallelism`` /
+         *     ``studies_default_timeout_s`` at job time. The API layer does NOT
+         *     materialize these fields into the stored row — see Story 1.5 +
+         *     Story 3.3's ``config.model_dump(exclude_none=True, exclude_unset=True)``
+         *     contract.
+         */
+        StudyConfigSpec: {
+            /** Auto Followup Depth */
+            auto_followup_depth?: number | null;
+            /** Baseline Params */
+            baseline_params?: {
+                [key: string]: string | number | boolean | null;
+            } | null;
+            /** Max Trials */
+            max_trials?: number | null;
+            /** Parallelism */
+            parallelism?: number | null;
+            /** Pruner */
+            pruner?: ("median" | "none") | null;
+            /** Sampler */
+            sampler?: ("tpe" | "random") | null;
+            /** Secondary Metrics */
+            secondary_metrics?: string[] | null;
+            /** Seed */
+            seed?: number | null;
+            /** Time Budget Min */
+            time_budget_min?: number | null;
+            /** Trial Timeout S */
+            trial_timeout_s?: number | null;
+        };
+        /**
+         * StudyConvergenceShape
+         * @description Verdict + supporting numerics for the UI panel and the digest narrative.
+         *
+         *     Mirrors the ``ConfidenceShape`` pattern from ``confidence.py``: the
+         *     domain module owns the Pydantic model, and ``backend.app.api.v1.schemas``
+         *     re-exports it for the ``StudyDetail.convergence`` field. The
+         *     ``best_so_far_curve`` is the chart's data series; ``verdict`` is the
+         *     badge label.
+         *
+         *     **Name discipline (plan §0).** The bare class name ``ConvergenceShape``
+         *     is already taken by :class:`backend.app.domain.study.confidence.ConvergenceShape`
+         *     (a different concept — winner-trial *timing*, not metric plateau).
+         *     ``StudyConvergenceShape`` is the study-level analogue; the confidence
+         *     sub-shape stays on its inner module. The two coexist on ``StudyDetail``
+         *     (``confidence.convergence`` is the inner one; ``convergence`` is this
+         *     one), and FastAPI emits both under their bare class names in the
+         *     OpenAPI schema — no fully-qualified disambiguation noise leaks to the
+         *     frontend.
+         */
+        StudyConvergenceShape: {
+            /** Best So Far Curve */
+            best_so_far_curve: components["schemas"]["CurvePoint"][];
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "maximize" | "minimize";
+            /** Epsilon */
+            epsilon: number;
+            /** Improvement In Window */
+            improvement_in_window: number;
+            /** Total Complete Trials */
+            total_complete_trials: number;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "converged" | "still_improving" | "too_few_trials";
+            /** Warmup Floor */
+            warmup_floor: number;
+            /** Window Size */
+            window_size: number;
+        };
+        /**
+         * StudyDetail
+         * @description ``GET /api/v1/studies/{id}`` response + ``POST/cancel`` response.
+         */
+        StudyDetail: {
+            /** Baseline Metric */
+            baseline_metric: number | null;
+            /** Baseline Trial Id */
+            baseline_trial_id: string | null;
+            /** Best Metric */
+            best_metric: number | null;
+            /** Best Trial Id */
+            best_trial_id: string | null;
+            /** Cluster Id */
+            cluster_id: string;
+            /** Completed At */
+            completed_at: string | null;
+            confidence?: components["schemas"]["ConfidenceShape"] | null;
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+            convergence?: components["schemas"]["StudyConvergenceShape"] | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Failed Reason */
+            failed_reason: string | null;
+            /** Id */
+            id: string;
+            /** Judgment List Id */
+            judgment_list_id: string;
+            /** Name */
+            name: string;
+            /** Objective */
+            objective: {
+                [key: string]: unknown;
+            };
+            /** Optuna Study Name */
+            optuna_study_name: string;
+            /** Parent Study Id */
+            parent_study_id: string | null;
+            /** Query Set Id */
+            query_set_id: string;
+            /** Search Space */
+            search_space: {
+                [key: string]: unknown;
+            };
+            /** Started At */
+            started_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "completed" | "cancelled" | "failed";
+            /** Target */
+            target: string;
+            /** Template Id */
+            template_id: string;
+            trials_summary: components["schemas"]["TrialsSummaryShape"];
+        };
+        /**
+         * StudyListResponse
+         * @description ``GET /api/v1/studies`` response.
+         */
+        StudyListResponse: {
+            /** Data */
+            data: components["schemas"]["StudySummary"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * StudySummary
+         * @description List-view shape.
+         */
+        StudySummary: {
+            /** Best Metric */
+            best_metric: number | null;
+            /** Cluster Id */
+            cluster_id: string;
+            /** Completed At */
+            completed_at: string | null;
+            /** Convergence Verdict */
+            convergence_verdict?: ("converged" | "still_improving" | "too_few_trials") | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Direction
+             * @default maximize
+             * @enum {string}
+             */
+            direction: "maximize" | "minimize";
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "running" | "completed" | "cancelled" | "failed";
+            /**
+             * Trial Count
+             * @default 0
+             */
+            trial_count: number;
+        };
+        /**
+         * Subsystems
+         * @description Per-subsystem reachability/configuration state. Wire values per spec §7.4.
+         */
+        Subsystems: {
+            /**
+             * Db
+             * @description Postgres reachability
+             * @enum {string}
+             */
+            db: "ok" | "down";
+            /**
+             * Elasticsearch
+             * @description Local Elasticsearch container reachability
+             * @enum {string}
+             */
+            elasticsearch: "reachable" | "unreachable";
+            /** @description Aggregate health of user-registered clusters (infra_adapter_elastic Story 3.5 / spec §2). registered=0 → all-zero counts; informational only — does NOT trigger overall `degraded`. */
+            elasticsearch_clusters: components["schemas"]["ClusterAggregateHealth"];
+            /**
+             * Openai
+             * @description OpenAI key + capability state. 'incapable' added per FR-2 vs. spec §7.4 enum table — see implementation_plan.md §13 Review log.
+             * @enum {string}
+             */
+            openai: "configured" | "missing_key" | "incapable";
+            /**
+             * Opensearch
+             * @description Local OpenSearch container reachability
+             * @enum {string}
+             */
+            opensearch: "reachable" | "unreachable";
+            /**
+             * Redis
+             * @description Redis reachability
+             * @enum {string}
+             */
+            redis: "ok" | "down";
+            /**
+             * Solr
+             * @description Local Apache Solr container reachability. 'not_configured' when SOLR_HOST is unset (operator opted out of running the Solr service). Added by infra_adapter_solr Story A10 / spec FR-12a.
+             * @default not_configured
+             * @enum {string}
+             */
+            solr: "reachable" | "unreachable" | "not_configured";
+        };
+        /**
+         * SwapTemplateFollowup
+         * @description A 'swap_template' followup — re-run against a different query template.
+         *
+         *     Carries the LLM-proposed bounds for params shared with the parent template
+         *     in ``search_space``. The digest worker calls
+         *     :func:`backend.app.domain.study.template_swap.remap_search_space_for_swap_target`
+         *     after parsing to merge these bounds with heuristic defaults for any
+         *     swap-target params not shared with the parent.
+         *
+         *     Owner: ``feat_digest_executable_followups_swap_template`` (Tier B).
+         */
+        SwapTemplateFollowup: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "swap_template";
+            /** Rationale */
+            rationale: string;
+            search_space: components["schemas"]["SearchSpace"];
+            /** Template Id */
+            template_id: string;
+        };
+        /**
+         * TargetInfo
+         * @description One target (index / collection) on a cluster.
+         */
+        TargetInfo: {
+            /** Doc Count */
+            doc_count?: number | null;
+            /** Name */
+            name: string;
+        };
+        /**
+         * TargetListResponse
+         * @description Response for ``GET /api/v1/clusters/{cluster_id}/targets`` (FR-1).
+         *
+         *     Unpaginated by design — see feature_spec.md §7.1 "pagination shape
+         *     rationale". The single-resource lookup pattern matches
+         *     ``/clusters/{id}/schema`` rather than the queryable ``/clusters`` list.
+         *     ``EntitySelectListPage<T>``'s ``next_cursor`` and ``has_more`` fields
+         *     are optional, so this bare ``data``-only shape consumes correctly on
+         *     the frontend without pretending to be a cursor endpoint.
+         */
+        TargetListResponse: {
+            /** Data */
+            data: components["schemas"]["TargetInfo"][];
+        };
+        /**
+         * TextFollowup
+         * @description A free-form textual suggestion — no auto-prefill, operator interprets.
+         */
+        TextFollowup: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "text";
+            /** Rationale */
+            rationale: string;
+            /** Search Space */
+            search_space?: null;
+        };
+        /**
+         * TrialDetail
+         * @description ``GET /api/v1/studies/{id}/trials`` response row.
+         */
+        TrialDetail: {
+            /** Duration Ms */
+            duration_ms: number | null;
+            /** Ended At */
+            ended_at: string | null;
+            /** Error */
+            error: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Is Baseline
+             * @default false
+             */
+            is_baseline: boolean;
+            /** Metrics */
+            metrics: {
+                [key: string]: unknown;
+            };
+            /** Optuna Trial Number */
+            optuna_trial_number: number;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Primary Metric */
+            primary_metric: number | null;
+            /** Started At */
+            started_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "complete" | "failed" | "pruned";
+            /** Study Id */
+            study_id: string;
+        };
+        /**
+         * TrialListResponse
+         * @description ``GET /api/v1/studies/{id}/trials`` response.
+         */
+        TrialListResponse: {
+            /** Data */
+            data: components["schemas"]["TrialDetail"][];
+            /** Has More */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * TrialsSummaryShape
+         * @description The ``trials_summary`` field embedded in :class:`StudyDetail`.
+         */
+        TrialsSummaryShape: {
+            /** Best Primary Metric */
+            best_primary_metric: number | null;
+            /** Complete */
+            complete: number;
+            /** Failed */
+            failed: number;
+            /** Pruned */
+            pruned: number;
+            /** Total */
+            total: number;
+        };
+        /**
+         * UbiReadinessResponse
+         * @description ``GET /api/v1/clusters/{cluster_id}/ubi-readiness`` response (FR-7).
+         *
+         *     ``covered_pairs_pct`` and ``head_covered`` are nullable — MVP2's
+         *     rung classifier uses event-count thresholds (the SearchAdapter
+         *     Protocol doesn't expose an exact ``_count`` endpoint). The fields
+         *     are reserved on the wire so a future ``infra_adapter_count_method``
+         *     can fill them without breaking the contract. See
+         *     :mod:`backend.app.services.ubi_readiness` for the rationale.
+         */
+        UbiReadinessResponse: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Covered Pairs Pct */
+            covered_pairs_pct: number | null;
+            /** Head Covered */
+            head_covered: boolean | null;
+            /**
+             * Rung
+             * @enum {string}
+             */
+            rung: "rung_0" | "rung_1" | "rung_2" | "rung_3";
+        };
+        /**
+         * UpdateQueryRequest
+         * @description ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}`` body.
+         *
+         *     Whole-object replace on ``query_metadata`` (NOT deep-merge); explicit
+         *     ``null`` removes a nullable field; omitted key = no change. Empty
+         *     body ``{}`` validates as a no-op (AC-28).
+         *
+         *     ``query_text`` is NOT NULL on the underlying table, so explicit-null
+         *     is rejected by the ``@model_validator`` below (a 422 surfaces sooner
+         *     than the SQL ``NotNullViolation``).
+         */
+        UpdateQueryRequest: {
+            /** Query Metadata */
+            query_metadata?: {
+                [key: string]: unknown;
+            } | null;
+            /** Query Text */
+            query_text?: string | null;
+            /** Reference Answer */
+            reference_answer?: string | null;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
+        /**
+         * WidenFollowup
+         * @description A 'widen' followup — re-run with a broader range than the parent.
+         */
+        WidenFollowup: {
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "widen";
+            /** Rationale */
+            rationale: string;
+            search_space: components["schemas"]["SearchSpace"];
+        };
+        /**
+         * _ClusterEmbed
+         * @description Inline cluster summary on proposal responses.
+         */
+        _ClusterEmbed: {
+            /** Engine Type */
+            engine_type: string;
+            /** Environment */
+            environment?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * _DigestEmbed
+         * @description Inline digest summary on the proposal-detail response.
+         *
+         *     feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
+         *     now a discriminated-union list (see ``DigestResponse``).
+         */
+        _DigestEmbed: {
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Id */
+            id: string;
+            /** Narrative */
+            narrative: string;
+            /** Parameter Importance */
+            parameter_importance: {
+                [key: string]: number;
+            };
+            /** Recommended Config */
+            recommended_config: {
+                [key: string]: unknown;
+            };
+            /** Suggested Followups */
+            suggested_followups: components["schemas"]["FollowupItem"][];
+        };
+        /**
+         * _SourceBreakdown
+         * @description Source-breakdown sub-shape on :class:`JudgmentListDetail`.
+         *
+         *     Evolved 2026-05-29 by ``feat_ubi_judgments`` FR-10 — now three terms
+         *     (``llm + human + click == judgment_count``). The cycle-2 F6
+         *     "click folds into human" contract is superseded the moment UBI ships
+         *     click rows; the UI's source-breakdown card now renders all three
+         *     buckets separately so operators see the mix at a glance.
+         */
+        _SourceBreakdown: {
+            /** Click */
+            click: number;
+            /** Human */
+            human: number;
+            /** Llm */
+            llm: number;
+        };
+        /**
+         * _StudySummary
+         * @description Inline study summary on the proposal-detail response.
+         */
+        _StudySummary: {
+            /** Best Metric */
+            best_metric: number | null;
+            /** Best Trial Id */
+            best_trial_id: string | null;
+            /** Id */
+            id: string;
+            /** Judgment List */
+            judgment_list: {
+                [key: string]: unknown;
+            };
+            /** Name */
+            name: string;
+            /** Query Set */
+            query_set: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+        };
+        /**
+         * _TemplateEmbed
+         * @description Inline template summary on proposal responses.
+         */
+        _TemplateEmbed: {
+            /** Engine Type */
+            engine_type?: string | null;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+        };
     };
-    /**
-     * SeedCompletedStudyResponse
-     * @description IDs of the inserted rows; mirrors :class:`SeededStudyTriple`.
-     */
-    SeedCompletedStudyResponse: {
-      /** Digest Id */
-      digest_id: string;
-      /** Proposal Id */
-      proposal_id: string | null;
-      /** Study Id */
-      study_id: string;
-    };
-    /**
-     * SendMessageRequest
-     * @description ``POST /api/v1/conversations/{id}/messages`` body (Story 3.2).
-     */
-    SendMessageRequest: {
-      content: components['schemas']['SendMessageRequestContent'];
-      /**
-       * Role
-       * @default user
-       * @constant
-       */
-      role: 'user';
-    };
-    /**
-     * SendMessageRequestContent
-     * @description Sub-shape inside :class:`SendMessageRequest`.
-     */
-    SendMessageRequestContent: {
-      /** Text */
-      text: string;
-    };
-    /**
-     * StudyChainLink
-     * @description One link in the rolled-up overnight-chain summary (feat_overnight_autopilot §8.3).
-     */
-    StudyChainLink: {
-      /** Auto Followup Depth Remaining */
-      auto_followup_depth_remaining: number | null;
-      /** Baseline Metric */
-      baseline_metric: number | null;
-      /** Best Metric */
-      best_metric: number | null;
-      /** Completed At */
-      completed_at: string | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Delta From Prev */
-      delta_from_prev: number | null;
-      /**
-       * Direction
-       * @enum {string}
-       */
-      direction: 'maximize' | 'minimize';
-      /** Failed Reason */
-      failed_reason: string | null;
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Proposal Id */
-      proposal_id: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
-    };
-    /**
-     * StudyChainResponse
-     * @description ``GET /api/v1/studies/{id}/chain`` response (feat_overnight_autopilot §8.3).
-     */
-    StudyChainResponse: {
-      /** Anchor Study Id */
-      anchor_study_id: string;
-      /** Best Link Id */
-      best_link_id: string | null;
-      /** Best Metric */
-      best_metric: number | null;
-      /** Cumulative Lift */
-      cumulative_lift: number | null;
-      /**
-       * Direction
-       * @enum {string}
-       */
-      direction: 'maximize' | 'minimize';
-      /** Links */
-      links: components['schemas']['StudyChainLink'][];
-      /** Proposal Id For Best Link */
-      proposal_id_for_best_link: string | null;
-      /**
-       * Stop Reason
-       * @enum {string}
-       */
-      stop_reason:
-        | 'depth_exhausted'
-        | 'no_lift'
-        | 'budget'
-        | 'parent_failed'
-        | 'cancelled'
-        | 'in_flight';
-    };
-    /**
-     * StudyConfigSpec
-     * @description Wire shape of ``studies.config`` (write-side).
-     *
-     *     The model_validator below enforces that at least one stop condition is
-     *     set — otherwise the study has no terminating condition (FR-4).
-     *     ``parallelism`` / ``trial_timeout_s`` are optional; when absent the
-     *     worker reads ``Settings.studies_default_parallelism`` /
-     *     ``studies_default_timeout_s`` at job time. The API layer does NOT
-     *     materialize these fields into the stored row — see Story 1.5 +
-     *     Story 3.3's ``config.model_dump(exclude_none=True, exclude_unset=True)``
-     *     contract.
-     */
-    StudyConfigSpec: {
-      /** Auto Followup Depth */
-      auto_followup_depth?: number | null;
-      /** Baseline Params */
-      baseline_params?: {
-        [key: string]: string | number | boolean | null;
-      } | null;
-      /** Max Trials */
-      max_trials?: number | null;
-      /** Parallelism */
-      parallelism?: number | null;
-      /** Pruner */
-      pruner?: ('median' | 'none') | null;
-      /** Sampler */
-      sampler?: ('tpe' | 'random') | null;
-      /** Secondary Metrics */
-      secondary_metrics?: string[] | null;
-      /** Seed */
-      seed?: number | null;
-      /** Time Budget Min */
-      time_budget_min?: number | null;
-      /** Trial Timeout S */
-      trial_timeout_s?: number | null;
-    };
-    /**
-     * StudyConvergenceShape
-     * @description Verdict + supporting numerics for the UI panel and the digest narrative.
-     *
-     *     Mirrors the ``ConfidenceShape`` pattern from ``confidence.py``: the
-     *     domain module owns the Pydantic model, and ``backend.app.api.v1.schemas``
-     *     re-exports it for the ``StudyDetail.convergence`` field. The
-     *     ``best_so_far_curve`` is the chart's data series; ``verdict`` is the
-     *     badge label.
-     *
-     *     **Name discipline (plan §0).** The bare class name ``ConvergenceShape``
-     *     is already taken by :class:`backend.app.domain.study.confidence.ConvergenceShape`
-     *     (a different concept — winner-trial *timing*, not metric plateau).
-     *     ``StudyConvergenceShape`` is the study-level analogue; the confidence
-     *     sub-shape stays on its inner module. The two coexist on ``StudyDetail``
-     *     (``confidence.convergence`` is the inner one; ``convergence`` is this
-     *     one), and FastAPI emits both under their bare class names in the
-     *     OpenAPI schema — no fully-qualified disambiguation noise leaks to the
-     *     frontend.
-     */
-    StudyConvergenceShape: {
-      /** Best So Far Curve */
-      best_so_far_curve: components['schemas']['CurvePoint'][];
-      /**
-       * Direction
-       * @enum {string}
-       */
-      direction: 'maximize' | 'minimize';
-      /** Epsilon */
-      epsilon: number;
-      /** Improvement In Window */
-      improvement_in_window: number;
-      /** Total Complete Trials */
-      total_complete_trials: number;
-      /**
-       * Verdict
-       * @enum {string}
-       */
-      verdict: 'converged' | 'still_improving' | 'too_few_trials';
-      /** Warmup Floor */
-      warmup_floor: number;
-      /** Window Size */
-      window_size: number;
-    };
-    /**
-     * StudyDetail
-     * @description ``GET /api/v1/studies/{id}`` response + ``POST/cancel`` response.
-     */
-    StudyDetail: {
-      /** Baseline Metric */
-      baseline_metric: number | null;
-      /** Baseline Trial Id */
-      baseline_trial_id: string | null;
-      /** Best Metric */
-      best_metric: number | null;
-      /** Best Trial Id */
-      best_trial_id: string | null;
-      /** Cluster Id */
-      cluster_id: string;
-      /** Completed At */
-      completed_at: string | null;
-      confidence?: components['schemas']['ConfidenceShape'] | null;
-      /** Config */
-      config: {
-        [key: string]: unknown;
-      };
-      convergence?: components['schemas']['StudyConvergenceShape'] | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /** Failed Reason */
-      failed_reason: string | null;
-      /** Id */
-      id: string;
-      /** Judgment List Id */
-      judgment_list_id: string;
-      /** Name */
-      name: string;
-      /** Objective */
-      objective: {
-        [key: string]: unknown;
-      };
-      /** Optuna Study Name */
-      optuna_study_name: string;
-      /** Parent Study Id */
-      parent_study_id: string | null;
-      /** Query Set Id */
-      query_set_id: string;
-      /** Search Space */
-      search_space: {
-        [key: string]: unknown;
-      };
-      /** Started At */
-      started_at: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
-      /** Target */
-      target: string;
-      /** Template Id */
-      template_id: string;
-      trials_summary: components['schemas']['TrialsSummaryShape'];
-    };
-    /**
-     * StudyListResponse
-     * @description ``GET /api/v1/studies`` response.
-     */
-    StudyListResponse: {
-      /** Data */
-      data: components['schemas']['StudySummary'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * StudySummary
-     * @description List-view shape.
-     */
-    StudySummary: {
-      /** Best Metric */
-      best_metric: number | null;
-      /** Cluster Id */
-      cluster_id: string;
-      /** Completed At */
-      completed_at: string | null;
-      /** Convergence Verdict */
-      convergence_verdict?: ('converged' | 'still_improving' | 'too_few_trials') | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-      /**
-       * Direction
-       * @default maximize
-       * @enum {string}
-       */
-      direction: 'maximize' | 'minimize';
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'queued' | 'running' | 'completed' | 'cancelled' | 'failed';
-      /**
-       * Trial Count
-       * @default 0
-       */
-      trial_count: number;
-    };
-    /**
-     * Subsystems
-     * @description Per-subsystem reachability/configuration state. Wire values per spec §7.4.
-     */
-    Subsystems: {
-      /**
-       * Db
-       * @description Postgres reachability
-       * @enum {string}
-       */
-      db: 'ok' | 'down';
-      /**
-       * Elasticsearch
-       * @description Local Elasticsearch container reachability
-       * @enum {string}
-       */
-      elasticsearch: 'reachable' | 'unreachable';
-      /** @description Aggregate health of user-registered clusters (infra_adapter_elastic Story 3.5 / spec §2). registered=0 → all-zero counts; informational only — does NOT trigger overall `degraded`. */
-      elasticsearch_clusters: components['schemas']['ClusterAggregateHealth'];
-      /**
-       * Openai
-       * @description OpenAI key + capability state. 'incapable' added per FR-2 vs. spec §7.4 enum table — see implementation_plan.md §13 Review log.
-       * @enum {string}
-       */
-      openai: 'configured' | 'missing_key' | 'incapable';
-      /**
-       * Opensearch
-       * @description Local OpenSearch container reachability
-       * @enum {string}
-       */
-      opensearch: 'reachable' | 'unreachable';
-      /**
-       * Redis
-       * @description Redis reachability
-       * @enum {string}
-       */
-      redis: 'ok' | 'down';
-      /**
-       * Solr
-       * @description Local Apache Solr container reachability. 'not_configured' when SOLR_HOST is unset (operator opted out of running the Solr service). Added by infra_adapter_solr Story A10 / spec FR-12a.
-       * @default not_configured
-       * @enum {string}
-       */
-      solr: 'reachable' | 'unreachable' | 'not_configured';
-    };
-    /**
-     * SwapTemplateFollowup
-     * @description A 'swap_template' followup — re-run against a different query template.
-     *
-     *     Carries the LLM-proposed bounds for params shared with the parent template
-     *     in ``search_space``. The digest worker calls
-     *     :func:`backend.app.domain.study.template_swap.remap_search_space_for_swap_target`
-     *     after parsing to merge these bounds with heuristic defaults for any
-     *     swap-target params not shared with the parent.
-     *
-     *     Owner: ``feat_digest_executable_followups_swap_template`` (Tier B).
-     */
-    SwapTemplateFollowup: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      kind: 'swap_template';
-      /** Rationale */
-      rationale: string;
-      search_space: components['schemas']['SearchSpace'];
-      /** Template Id */
-      template_id: string;
-    };
-    /**
-     * TargetInfo
-     * @description One target (index / collection) on a cluster.
-     */
-    TargetInfo: {
-      /** Doc Count */
-      doc_count?: number | null;
-      /** Name */
-      name: string;
-    };
-    /**
-     * TargetListResponse
-     * @description Response for ``GET /api/v1/clusters/{cluster_id}/targets`` (FR-1).
-     *
-     *     Unpaginated by design — see feature_spec.md §7.1 "pagination shape
-     *     rationale". The single-resource lookup pattern matches
-     *     ``/clusters/{id}/schema`` rather than the queryable ``/clusters`` list.
-     *     ``EntitySelectListPage<T>``'s ``next_cursor`` and ``has_more`` fields
-     *     are optional, so this bare ``data``-only shape consumes correctly on
-     *     the frontend without pretending to be a cursor endpoint.
-     */
-    TargetListResponse: {
-      /** Data */
-      data: components['schemas']['TargetInfo'][];
-    };
-    /**
-     * TextFollowup
-     * @description A free-form textual suggestion — no auto-prefill, operator interprets.
-     */
-    TextFollowup: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      kind: 'text';
-      /** Rationale */
-      rationale: string;
-      /** Search Space */
-      search_space?: null;
-    };
-    /**
-     * TrialDetail
-     * @description ``GET /api/v1/studies/{id}/trials`` response row.
-     */
-    TrialDetail: {
-      /** Duration Ms */
-      duration_ms: number | null;
-      /** Ended At */
-      ended_at: string | null;
-      /** Error */
-      error: string | null;
-      /** Id */
-      id: string;
-      /**
-       * Is Baseline
-       * @default false
-       */
-      is_baseline: boolean;
-      /** Metrics */
-      metrics: {
-        [key: string]: unknown;
-      };
-      /** Optuna Trial Number */
-      optuna_trial_number: number;
-      /** Params */
-      params: {
-        [key: string]: unknown;
-      };
-      /** Primary Metric */
-      primary_metric: number | null;
-      /** Started At */
-      started_at: string | null;
-      /**
-       * Status
-       * @enum {string}
-       */
-      status: 'complete' | 'failed' | 'pruned';
-      /** Study Id */
-      study_id: string;
-    };
-    /**
-     * TrialListResponse
-     * @description ``GET /api/v1/studies/{id}/trials`` response.
-     */
-    TrialListResponse: {
-      /** Data */
-      data: components['schemas']['TrialDetail'][];
-      /** Has More */
-      has_more: boolean;
-      /** Next Cursor */
-      next_cursor: string | null;
-    };
-    /**
-     * TrialsSummaryShape
-     * @description The ``trials_summary`` field embedded in :class:`StudyDetail`.
-     */
-    TrialsSummaryShape: {
-      /** Best Primary Metric */
-      best_primary_metric: number | null;
-      /** Complete */
-      complete: number;
-      /** Failed */
-      failed: number;
-      /** Pruned */
-      pruned: number;
-      /** Total */
-      total: number;
-    };
-    /**
-     * UbiReadinessResponse
-     * @description ``GET /api/v1/clusters/{cluster_id}/ubi-readiness`` response (FR-7).
-     *
-     *     ``covered_pairs_pct`` and ``head_covered`` are nullable — MVP2's
-     *     rung classifier uses event-count thresholds (the SearchAdapter
-     *     Protocol doesn't expose an exact ``_count`` endpoint). The fields
-     *     are reserved on the wire so a future ``infra_adapter_count_method``
-     *     can fill them without breaking the contract. See
-     *     :mod:`backend.app.services.ubi_readiness` for the rationale.
-     */
-    UbiReadinessResponse: {
-      /**
-       * Checked At
-       * Format: date-time
-       */
-      checked_at: string;
-      /** Covered Pairs Pct */
-      covered_pairs_pct: number | null;
-      /** Head Covered */
-      head_covered: boolean | null;
-      /**
-       * Rung
-       * @enum {string}
-       */
-      rung: 'rung_0' | 'rung_1' | 'rung_2' | 'rung_3';
-    };
-    /**
-     * UpdateQueryRequest
-     * @description ``PATCH /api/v1/query-sets/{set_id}/queries/{query_id}`` body.
-     *
-     *     Whole-object replace on ``query_metadata`` (NOT deep-merge); explicit
-     *     ``null`` removes a nullable field; omitted key = no change. Empty
-     *     body ``{}`` validates as a no-op (AC-28).
-     *
-     *     ``query_text`` is NOT NULL on the underlying table, so explicit-null
-     *     is rejected by the ``@model_validator`` below (a 422 surfaces sooner
-     *     than the SQL ``NotNullViolation``).
-     */
-    UpdateQueryRequest: {
-      /** Query Metadata */
-      query_metadata?: {
-        [key: string]: unknown;
-      } | null;
-      /** Query Text */
-      query_text?: string | null;
-      /** Reference Answer */
-      reference_answer?: string | null;
-    };
-    /** ValidationError */
-    ValidationError: {
-      /** Context */
-      ctx?: Record<string, never>;
-      /** Input */
-      input?: unknown;
-      /** Location */
-      loc: (string | number)[];
-      /** Message */
-      msg: string;
-      /** Error Type */
-      type: string;
-    };
-    /**
-     * WidenFollowup
-     * @description A 'widen' followup — re-run with a broader range than the parent.
-     */
-    WidenFollowup: {
-      /**
-       * @description discriminator enum property added by openapi-typescript
-       * @enum {string}
-       */
-      kind: 'widen';
-      /** Rationale */
-      rationale: string;
-      search_space: components['schemas']['SearchSpace'];
-    };
-    /**
-     * _ClusterEmbed
-     * @description Inline cluster summary on proposal responses.
-     */
-    _ClusterEmbed: {
-      /** Engine Type */
-      engine_type: string;
-      /** Environment */
-      environment?: string | null;
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-    };
-    /**
-     * _DigestEmbed
-     * @description Inline digest summary on the proposal-detail response.
-     *
-     *     feat_digest_executable_followups Story 4.1 — ``suggested_followups`` is
-     *     now a discriminated-union list (see ``DigestResponse``).
-     */
-    _DigestEmbed: {
-      /**
-       * Generated At
-       * Format: date-time
-       */
-      generated_at: string;
-      /** Id */
-      id: string;
-      /** Narrative */
-      narrative: string;
-      /** Parameter Importance */
-      parameter_importance: {
-        [key: string]: number;
-      };
-      /** Recommended Config */
-      recommended_config: {
-        [key: string]: unknown;
-      };
-      /** Suggested Followups */
-      suggested_followups: components['schemas']['FollowupItem'][];
-    };
-    /**
-     * _SourceBreakdown
-     * @description Source-breakdown sub-shape on :class:`JudgmentListDetail`.
-     *
-     *     Evolved 2026-05-29 by ``feat_ubi_judgments`` FR-10 — now three terms
-     *     (``llm + human + click == judgment_count``). The cycle-2 F6
-     *     "click folds into human" contract is superseded the moment UBI ships
-     *     click rows; the UI's source-breakdown card now renders all three
-     *     buckets separately so operators see the mix at a glance.
-     */
-    _SourceBreakdown: {
-      /** Click */
-      click: number;
-      /** Human */
-      human: number;
-      /** Llm */
-      llm: number;
-    };
-    /**
-     * _StudySummary
-     * @description Inline study summary on the proposal-detail response.
-     */
-    _StudySummary: {
-      /** Best Metric */
-      best_metric: number | null;
-      /** Best Trial Id */
-      best_trial_id: string | null;
-      /** Id */
-      id: string;
-      /** Judgment List */
-      judgment_list: {
-        [key: string]: unknown;
-      };
-      /** Name */
-      name: string;
-      /** Query Set */
-      query_set: {
-        [key: string]: unknown;
-      };
-      /** Status */
-      status: string;
-    };
-    /**
-     * _TemplateEmbed
-     * @description Inline template summary on proposal responses.
-     */
-    _TemplateEmbed: {
-      /** Engine Type */
-      engine_type?: string | null;
-      /** Id */
-      id: string;
-      /** Name */
-      name: string;
-      /** Version */
-      version: number;
-    };
-  };
-  responses: never;
-  parameters: never;
-  requestBodies: never;
-  headers: never;
-  pathItems: never;
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-  seed_auto_followup_chain_endpoint_api_v1__test_auto_followup_seed_chain_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
+    seed_auto_followup_chain_endpoint_api_v1__test_auto_followup_seed_chain_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeedAutoFollowupChainRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedAutoFollowupChainResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reseed_demo_api_v1__test_demo_reseed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReseedStatusResponse"];
+                };
+            };
+        };
+    };
+    reseed_demo_status_api_v1__test_demo_reseed_status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReseedStatusResponse"];
+                };
+            };
+        };
+    };
+    delete_test_digest_api_v1__test_digests__digest_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                digest_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
     };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SeedAutoFollowupChainRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['SeedAutoFollowupChainResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  reseed_demo_api_v1__test_demo_reseed_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReseedStatusResponse'];
-        };
-      };
-    };
-  };
-  reseed_demo_status_api_v1__test_demo_reseed_status_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ReseedStatusResponse'];
-        };
-      };
-    };
-  };
-  delete_test_digest_api_v1__test_digests__digest_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        digest_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_test_judgment_list_api_v1__test_judgment_lists__judgment_list_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        judgment_list_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_test_proposal_api_v1__test_proposals__proposal_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        proposal_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_test_query_set_api_v1__test_query_sets__query_set_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        query_set_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_test_query_template_api_v1__test_query_templates__template_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        template_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  seed_completed_study_api_v1__test_studies_seed_completed_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SeedCompletedStudyRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['SeedCompletedStudyResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_test_study_api_v1__test_studies__study_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        study_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_clusters_api_v1_clusters_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-        q?: string | null;
-        sort?:
-          | (
-              | 'name:asc'
-              | 'name:desc'
-              | 'created_at:asc'
-              | 'created_at:desc'
-              | 'environment:asc'
-              | 'environment:desc'
-            )
-          | null;
-        engine_type?: ('elasticsearch' | 'opensearch' | 'solr') | null;
-        environment?: ('prod' | 'staging' | 'dev') | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ClusterListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_cluster_api_v1_clusters_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateClusterRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ClusterDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  test_connection_api_v1_clusters_test_connection_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ConnectionTestRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConnectionTestResult'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_cluster_detail_api_v1_clusters__cluster_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        cluster_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ClusterDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_cluster_api_v1_clusters__cluster_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        cluster_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  reprobe_cluster_api_v1_clusters__cluster_id__reprobe_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        cluster_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ClusterDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  run_query_api_v1_clusters__cluster_id__run_query_post: {
-    parameters: {
-      query?: {
-        timeout_s?: number;
-      };
-      header?: never;
-      path: {
-        cluster_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RunQueryRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['RunQueryResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_cluster_schema_api_v1_clusters__cluster_id__schema_get: {
-    parameters: {
-      query: {
-        target: string;
-      };
-      header?: never;
-      path: {
-        cluster_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Schema'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_cluster_targets_api_v1_clusters__cluster_id__targets_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        cluster_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TargetListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_target_documents_api_v1_clusters__cluster_id__targets__target__documents_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        fields?: string | null;
-      };
-      header?: never;
-      path: {
-        cluster_id: string;
-        target: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['DocumentListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_target_document_api_v1_clusters__cluster_id__targets__target__documents__doc_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        cluster_id: string;
-        target: string;
-        doc_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['Document'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_cluster_ubi_readiness_api_v1_clusters__cluster_id__ubi_readiness_get: {
-    parameters: {
-      query: {
-        query_set_id: string;
-        target: string;
-      };
-      header?: never;
-      path: {
-        cluster_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['UbiReadinessResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_config_repos_endpoint_api_v1_config_repos_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConfigReposListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_config_repo_endpoint_api_v1_config_repos_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateConfigRepoRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConfigRepoDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_config_repo_endpoint_api_v1_config_repos__config_repo_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        config_repo_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConfigRepoDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_conversations_endpoint_api_v1_conversations_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-        q?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConversationsListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_conversation_endpoint_api_v1_conversations_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateConversationRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConversationSummary'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_conversation_endpoint_api_v1_conversations__conversation_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        conversation_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ConversationDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_conversation_endpoint_api_v1_conversations__conversation_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        conversation_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  post_message_endpoint_api_v1_conversations__conversation_id__messages_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        conversation_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['SendMessageRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_judgment_lists_endpoint_api_v1_judgment_lists_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-        q?: string | null;
-        sort?:
-          | (
-              | 'name:asc'
-              | 'name:desc'
-              | 'created_at:asc'
-              | 'created_at:desc'
-              | 'status:asc'
-              | 'status:desc'
-            )
-          | null;
-        query_set_id?: string | null;
-        cluster_id?: string | null;
-        target?: string | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['JudgmentListListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  import_judgment_list_api_v1_judgment_lists_import_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['ImportJudgmentListRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['JudgmentListDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_judgment_list_endpoint_api_v1_judgment_lists__judgment_list_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        judgment_list_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['JudgmentListDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  calibrate_judgment_list_api_v1_judgment_lists__judgment_list_id__calibration_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        judgment_list_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CalibrationSamplesRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['CalibrationResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_judgments_endpoint_api_v1_judgment_lists__judgment_list_id__judgments_get: {
-    parameters: {
-      query?: {
-        source?: ('llm' | 'human' | 'click') | null;
-        cursor?: string | null;
-        limit?: number;
-        sort?:
-          | (
-              | 'created_at:asc'
-              | 'created_at:desc'
-              | 'rating:asc'
-              | 'rating:desc'
-              | 'source:asc'
-              | 'source:desc'
-            )
-          | null;
-      };
-      header?: never;
-      path: {
-        judgment_list_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['JudgmentListJudgmentsResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  override_judgment_api_v1_judgment_lists__judgment_list_id__judgments__judgment_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        judgment_list_id: string;
-        judgment_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['OverrideJudgmentRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['JudgmentRow'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  generate_judgments_api_v1_judgments_generate_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateJudgmentListGenerateRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['GenerateJudgmentsResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  generate_judgments_from_ubi_api_v1_judgments_generate_from_ubi_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateJudgmentListFromUbiRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['GenerateJudgmentsResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_proposals_endpoint_api_v1_proposals_get: {
-    parameters: {
-      query?: {
-        status?: ('pending' | 'pr_opened' | 'pr_merged' | 'rejected') | null;
-        cluster_id?: string | null;
-        source?: ('study' | 'manual') | null;
-        template_id?: string | null;
-        study_id?: string | null;
-        is_last_merged?: boolean | null;
-        cursor?: string | null;
-        limit?: number;
-        sort?:
-          | (
-              | 'created_at:asc'
-              | 'created_at:desc'
-              | 'status:asc'
-              | 'status:desc'
-              | 'pr_state:asc'
-              | 'pr_state:desc'
-            )
-          | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProposalsListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_manual_proposal_api_v1_proposals_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateProposalRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProposalDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_proposal_endpoint_api_v1_proposals__proposal_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        proposal_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProposalDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  open_pr_endpoint_api_v1_proposals__proposal_id__open_pr_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        proposal_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      202: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['OpenPrResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  reject_proposal_endpoint_api_v1_proposals__proposal_id__reject_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        proposal_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['RejectProposalRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['ProposalDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_query_sets_api_v1_query_sets_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-        q?: string | null;
-        sort?: ('name:asc' | 'name:desc' | 'created_at:asc' | 'created_at:desc') | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QuerySetListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_query_set_api_v1_query_sets_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateQuerySetRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QuerySetDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_query_set_detail_api_v1_query_sets__query_set_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        query_set_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QuerySetDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_queries_in_set_api_v1_query_sets__query_set_id__queries_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-      };
-      header?: never;
-      path: {
-        query_set_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QueryListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  bulk_add_queries_api_v1_query_sets__query_set_id__queries_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        query_set_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['BulkQueriesResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  delete_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__delete: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        query_set_id: string;
-        query_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Conflict */
-      409: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QueryHasJudgmentsEnvelope'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  update_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__patch: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        query_set_id: string;
-        query_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['UpdateQueryRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QueryRow'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_query_templates_api_v1_query_templates_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-        q?: string | null;
-        sort?:
-          | (
-              | 'name:asc'
-              | 'name:desc'
-              | 'created_at:asc'
-              | 'created_at:desc'
-              | 'engine_type:asc'
-              | 'engine_type:desc'
-              | 'version:asc'
-              | 'version:desc'
-            )
-          | null;
-        engine_type?: ('elasticsearch' | 'opensearch' | 'solr') | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QueryTemplateListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_query_template_api_v1_query_templates_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateQueryTemplateRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QueryTemplateDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_query_template_detail_api_v1_query_templates__template_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        template_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['QueryTemplateDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_studies_api_v1_studies_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-        status?: ('queued' | 'running' | 'completed' | 'cancelled' | 'failed') | null;
-        cluster_id?: string | null;
-        target?: string | null;
-        q?: string | null;
-        sort?:
-          | (
-              | 'name:asc'
-              | 'name:desc'
-              | 'created_at:asc'
-              | 'created_at:desc'
-              | 'completed_at:asc'
-              | 'completed_at:desc'
-              | 'best_metric:asc'
-              | 'best_metric:desc'
-              | 'status:asc'
-              | 'status:desc'
-            )
-          | null;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StudyListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  create_study_api_v1_studies_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['CreateStudyRequest'];
-      };
-    };
-    responses: {
-      /** @description Successful Response */
-      201: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StudyDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_study_detail_api_v1_studies__study_id__get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        study_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StudyDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  cancel_study_api_v1_studies__study_id__cancel_post: {
-    parameters: {
-      query?: {
-        cascade?: string;
-      };
-      header?: never;
-      path: {
-        study_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StudyDetail'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_study_chain_api_v1_studies__study_id__chain_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        study_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StudyChainResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_study_children_api_v1_studies__study_id__children_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        study_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['StudyListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  get_study_digest_api_v1_studies__study_id__digest_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        study_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['DigestResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  list_study_trials_api_v1_studies__study_id__trials_get: {
-    parameters: {
-      query?: {
-        cursor?: string | null;
-        limit?: number;
-        since?: string | null;
-        sort?: string;
-      };
-      header?: never;
-      path: {
-        study_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['TrialListResponse'];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HTTPValidationError'];
-        };
-      };
-    };
-  };
-  healthz_healthz_get: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HealthResponse'];
-        };
-      };
-      /** @description One or more required subsystems is down */
-      503: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['HealthResponse'];
-        };
-      };
-    };
-  };
-  github_webhook_webhooks_github_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': {
-            [key: string]: string;
-          };
-        };
-      };
+    delete_test_judgment_list_api_v1__test_judgment_lists__judgment_list_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                judgment_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_test_proposal_api_v1__test_proposals__proposal_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_test_query_set_api_v1__test_query_sets__query_set_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                query_set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_test_query_template_api_v1__test_query_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    seed_completed_study_api_v1__test_studies_seed_completed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeedCompletedStudyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeedCompletedStudyResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_test_study_api_v1__test_studies__study_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_clusters_api_v1_clusters_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+                q?: string | null;
+                sort?: ("name:asc" | "name:desc" | "created_at:asc" | "created_at:desc" | "environment:asc" | "environment:desc") | null;
+                engine_type?: ("elasticsearch" | "opensearch" | "solr") | null;
+                environment?: ("prod" | "staging" | "dev") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_cluster_api_v1_clusters_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateClusterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_connection_api_v1_clusters_test_connection_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConnectionTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectionTestResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cluster_detail_api_v1_clusters__cluster_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_cluster_api_v1_clusters__cluster_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reprobe_cluster_api_v1_clusters__cluster_id__reprobe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClusterDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_query_api_v1_clusters__cluster_id__run_query_post: {
+        parameters: {
+            query?: {
+                timeout_s?: number;
+            };
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunQueryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunQueryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cluster_schema_api_v1_clusters__cluster_id__schema_get: {
+        parameters: {
+            query: {
+                target: string;
+            };
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Schema"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_cluster_targets_api_v1_clusters__cluster_id__targets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_target_documents_api_v1_clusters__cluster_id__targets__target__documents_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                fields?: string | null;
+            };
+            header?: never;
+            path: {
+                cluster_id: string;
+                target: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_target_document_api_v1_clusters__cluster_id__targets__target__documents__doc_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                cluster_id: string;
+                target: string;
+                doc_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cluster_ubi_readiness_api_v1_clusters__cluster_id__ubi_readiness_get: {
+        parameters: {
+            query: {
+                query_set_id: string;
+                target: string;
+            };
+            header?: never;
+            path: {
+                cluster_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UbiReadinessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_config_repos_endpoint_api_v1_config_repos_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigReposListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_config_repo_endpoint_api_v1_config_repos_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateConfigRepoRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigRepoDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_config_repo_endpoint_api_v1_config_repos__config_repo_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                config_repo_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConfigRepoDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_conversations_endpoint_api_v1_conversations_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+                q?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_conversation_endpoint_api_v1_conversations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateConversationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_conversation_endpoint_api_v1_conversations__conversation_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_conversation_endpoint_api_v1_conversations__conversation_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_message_endpoint_api_v1_conversations__conversation_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_judgment_lists_endpoint_api_v1_judgment_lists_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+                q?: string | null;
+                sort?: ("name:asc" | "name:desc" | "created_at:asc" | "created_at:desc" | "status:asc" | "status:desc") | null;
+                query_set_id?: string | null;
+                cluster_id?: string | null;
+                target?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JudgmentListListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    import_judgment_list_api_v1_judgment_lists_import_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportJudgmentListRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JudgmentListDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_judgment_list_endpoint_api_v1_judgment_lists__judgment_list_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                judgment_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JudgmentListDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    calibrate_judgment_list_api_v1_judgment_lists__judgment_list_id__calibration_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                judgment_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalibrationSamplesRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalibrationResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_judgments_endpoint_api_v1_judgment_lists__judgment_list_id__judgments_get: {
+        parameters: {
+            query?: {
+                source?: ("llm" | "human" | "click") | null;
+                cursor?: string | null;
+                limit?: number;
+                sort?: ("created_at:asc" | "created_at:desc" | "rating:asc" | "rating:desc" | "source:asc" | "source:desc") | null;
+            };
+            header?: never;
+            path: {
+                judgment_list_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JudgmentListJudgmentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    override_judgment_api_v1_judgment_lists__judgment_list_id__judgments__judgment_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                judgment_list_id: string;
+                judgment_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OverrideJudgmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JudgmentRow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_judgments_api_v1_judgments_generate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateJudgmentListGenerateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateJudgmentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    generate_judgments_from_ubi_api_v1_judgments_generate_from_ubi_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateJudgmentListFromUbiRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateJudgmentsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_proposals_endpoint_api_v1_proposals_get: {
+        parameters: {
+            query?: {
+                status?: ("pending" | "pr_opened" | "pr_merged" | "rejected") | null;
+                cluster_id?: string | null;
+                source?: ("study" | "manual") | null;
+                template_id?: string | null;
+                study_id?: string | null;
+                is_last_merged?: boolean | null;
+                cursor?: string | null;
+                limit?: number;
+                sort?: ("created_at:asc" | "created_at:desc" | "status:asc" | "status:desc" | "pr_state:asc" | "pr_state:desc") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_manual_proposal_api_v1_proposals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_proposal_endpoint_api_v1_proposals__proposal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_pr_endpoint_api_v1_proposals__proposal_id__open_pr_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OpenPrResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_proposal_endpoint_api_v1_proposals__proposal_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectProposalRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_query_sets_api_v1_query_sets_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+                q?: string | null;
+                sort?: ("name:asc" | "name:desc" | "created_at:asc" | "created_at:desc") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuerySetListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_query_set_api_v1_query_sets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateQuerySetRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuerySetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_query_set_detail_api_v1_query_sets__query_set_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                query_set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuerySetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_queries_in_set_api_v1_query_sets__query_set_id__queries_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+            };
+            header?: never;
+            path: {
+                query_set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    bulk_add_queries_api_v1_query_sets__query_set_id__queries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                query_set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkQueriesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                query_set_id: string;
+                query_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryHasJudgmentsEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_query_endpoint_api_v1_query_sets__query_set_id__queries__query_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                query_set_id: string;
+                query_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateQueryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryRow"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_query_templates_api_v1_query_templates_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+                q?: string | null;
+                sort?: ("name:asc" | "name:desc" | "created_at:asc" | "created_at:desc" | "engine_type:asc" | "engine_type:desc" | "version:asc" | "version:desc") | null;
+                engine_type?: ("elasticsearch" | "opensearch" | "solr") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryTemplateListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_query_template_api_v1_query_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateQueryTemplateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryTemplateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_query_template_detail_api_v1_query_templates__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueryTemplateDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_studies_api_v1_studies_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+                status?: ("queued" | "running" | "completed" | "cancelled" | "failed") | null;
+                cluster_id?: string | null;
+                target?: string | null;
+                q?: string | null;
+                sort?: ("name:asc" | "name:desc" | "created_at:asc" | "created_at:desc" | "completed_at:asc" | "completed_at:desc" | "best_metric:asc" | "best_metric:desc" | "status:asc" | "status:desc") | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_study_api_v1_studies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateStudyRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_study_detail_api_v1_studies__study_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_study_api_v1_studies__study_id__cancel_post: {
+        parameters: {
+            query?: {
+                cascade?: string;
+            };
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_study_chain_api_v1_studies__study_id__chain_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyChainResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_study_children_api_v1_studies__study_id__children_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudyListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_study_digest_api_v1_studies__study_id__digest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DigestResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_study_trials_api_v1_studies__study_id__trials_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                since?: string | null;
+                sort?: string;
+            };
+            header?: never;
+            path: {
+                study_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrialListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    healthz_healthz_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+            /** @description One or more required subsystems is down */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthResponse"];
+                };
+            };
+        };
+    };
+    github_webhook_webhooks_github_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
+                };
+            };
+        };
     };
-  };
 }
