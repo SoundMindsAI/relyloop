@@ -12,16 +12,17 @@
 # Per docs/01_architecture/deployment.md §"MVP1 deployment shape" + the
 # implementation_plan.md Story 4.1 "Decision rationale".
 
-# Single digest-pinned base image (PinnedDependencies / OSSF Scorecard).
-# tag + digest in one ARG so an override (`--build-arg BASE_IMAGE=...`) is
-# unambiguous — a separate version/digest pair would let the digest silently
-# win over a changed tag. Dependabot's docker ecosystem keeps this fresh.
-ARG BASE_IMAGE=python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97
-
 # ---------------------------------------------------------------------------
 # Stage 1 — base: Python + uv + system deps for healthcheck (curl)
 # ---------------------------------------------------------------------------
-FROM ${BASE_IMAGE} AS base
+# python:3.14-slim, digest-pinned (PinnedDependencies / OSSF Scorecard). The
+# digest is written literally on the FROM (not via an ARG) because Scorecard's
+# static parser only credits a pin it can see inline as `image@sha256:…`; an
+# ARG-indirected digest reads as "unpinned". Writing the tag + digest together
+# also removes the override footgun of a separate version/digest pair (the
+# digest would silently win over a changed tag). Dependabot's docker ecosystem
+# bumps the tag + digest together; refresh both when bumping Python.
+FROM python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
