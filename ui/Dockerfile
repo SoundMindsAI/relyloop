@@ -16,18 +16,19 @@
 # Node 26 to use the latest engine features without waiting for the
 # October LTS transition.
 
-# Single digest-pinned base image (PinnedDependencies / OSSF Scorecard),
-# declared once and reused by every stage. Dependabot's docker ecosystem
-# keeps the digest fresh.
-ARG BASE_IMAGE=node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16
-
-FROM ${BASE_IMAGE} AS deps
+# node:26-bookworm-slim, digest-pinned (PinnedDependencies / OSSF Scorecard).
+# The digest is written literally on every FROM (not via an ARG) because
+# Scorecard's static parser only credits a pin it can see inline as
+# `image@sha256:…`; an ARG-indirected digest reads as "unpinned". Dependabot's
+# docker ecosystem bumps every occurrence in lockstep, so the repetition is not
+# a sync hazard.
+FROM node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS deps
 WORKDIR /app
 RUN npm install -g pnpm@9
 COPY pnpm-lock.yaml package.json ./
 RUN pnpm install --frozen-lockfile
 
-FROM ${BASE_IMAGE} AS builder
+FROM node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS builder
 WORKDIR /app
 RUN npm install -g pnpm@9
 COPY --from=deps /app/node_modules ./node_modules
@@ -36,7 +37,7 @@ ARG NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 RUN pnpm build
 
-FROM ${BASE_IMAGE} AS runner
+FROM node:26-bookworm-slim@sha256:79723b41edbedf595f62e943a9f8b0ba9af5b1e61045c5f8f59c2c02c1212a16 AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000

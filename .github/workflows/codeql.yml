@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+# CodeQL — GitHub's first-party static analysis (SAST). Closes the OSSF
+# Scorecard "SAST tool is not run on all commits" finding and, more importantly,
+# surfaces real code-level security bugs on every PR. Scans both languages in
+# the repo: Python (backend) and JavaScript/TypeScript (ui). Both use
+# build-mode `none` — CodeQL extracts interpreted-language source directly, so
+# no compile step is needed (and no engine/cluster service containers).
+#
+# Action refs are pinned to commit SHAs to match the repo's pinned-dependencies
+# posture (chore_scorecard_pin_deps_postcss); Dependabot's github-actions
+# ecosystem keeps the SHAs fresh.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Mondays 04:31 UTC — offset from scorecard.yml's 04:27 to spread load.
+    - cron: "31 4 * * 1"
+
+# Least-privilege default; the analyze job widens to security-events: write.
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write # upload CodeQL SARIF to the Security tab
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: python
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@87557b9c84dde89fdd9b10e88954ac2f4248e463 # v4
+        with:
+          category: "/language:${{ matrix.language }}"
