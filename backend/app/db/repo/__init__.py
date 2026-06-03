@@ -107,6 +107,7 @@ from backend.app.db.repo.query import (
     update_query,
 )
 from backend.app.db.repo.query_set import (
+    count_queries_for_sets,
     count_queries_in_set,
     count_query_sets,
     create_query_set,
@@ -183,6 +184,7 @@ __all__ = [
     "TrialsSummary",
     "aggregate_trials_summary",
     "bulk_create_queries",
+    "count_queries_for_sets",
     "count_queries_in_set",
     "count_query_sets",
     "count_query_templates",

@@ -111,6 +111,9 @@ def _summary(row: QueryTemplate) -> QueryTemplateSummary:
         name=row.name,
         engine_type=row.engine_type,
         version=row.version,
+        # declared_params is a JSONB column already loaded on the row, so
+        # len() is free — no extra query, no N+1 (see QueryTemplateSummary).
+        param_count=len(row.declared_params),
         created_at=row.created_at,
     )
 

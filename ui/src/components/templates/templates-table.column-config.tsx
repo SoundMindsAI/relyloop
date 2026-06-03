@@ -5,8 +5,12 @@
 /**
  * Column configuration for `<TemplatesTable>` (feat_data_table_primitive Story 3.4).
  *
- * 4 columns: Name (link, sortable+sticky), Engine (sortable, filter enum),
- * Version (sortable), Created (sortable, hideable). FTS on `name` (Story 1.2).
+ * 5 columns: Name (link, sortable+sticky), Engine (sortable, filter enum),
+ * Version (sortable), Parameters (declared-param count), Created (sortable,
+ * hideable). FTS on `name` (Story 1.2). The Parameters column reads the
+ * `param_count` field (= len of declared_params) added to
+ * `QueryTemplateSummary` by feat_list_count_columns — it surfaces each
+ * template's tuning surface at a glance (0 = non-tunable).
  */
 import Link from 'next/link';
 
@@ -48,6 +52,14 @@ export const templatesColumns: DataTableColumnDef<QueryTemplateSummary>[] = [
     sortable: true,
     firstClickDirection: 'desc',
     cell: ({ row }) => `v${row.original.version}`,
+  },
+  {
+    id: 'param_count',
+    header: 'Parameters',
+    accessorKey: 'param_count',
+    cell: ({ row }) => (
+      <span className="tabular-nums">{row.original.param_count.toLocaleString()}</span>
+    ),
   },
   {
     id: 'created_at',
