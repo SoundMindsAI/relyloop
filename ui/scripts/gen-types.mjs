@@ -13,7 +13,7 @@
  * Or via the package script: pnpm types:gen
  */
 
-import { execSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
@@ -40,7 +40,14 @@ const BANNER = `// SPDX-FileCopyrightText: 2026 soundminds.ai
 `;
 
 console.log(`Generating ${OUTPUT} from ${SOURCE_URL}…`);
-execSync(`npx openapi-typescript ${SOURCE_URL} -o ${OUTPUT}`, {
+// execFileSync (no shell) instead of execSync with an interpolated string:
+// SOURCE_URL comes from the OPENAPI_URL env var, and an interpolated shell
+// command would let a crafted value inject. Passing args as an array runs the
+// binary directly with no shell, so there is nothing to inject into. On Windows
+// the launcher is `npx.cmd` (no shell to resolve the `.cmd` extension), so pick
+// the platform-correct executable name.
+const NPX = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+execFileSync(NPX, ['openapi-typescript', SOURCE_URL, '-o', OUTPUT], {
   stdio: 'inherit',
   cwd: UI_ROOT,
 });
