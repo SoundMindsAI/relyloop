@@ -257,6 +257,7 @@ markers) — every drift mode the gate exists to catch.
 |---|---|---|---|---|---|
 | 1 | `copy-docs-freshness` | own file (`copy-docs-freshness.yml`) — runs on every PR with no `paths-ignore` filter (FR-3 escape from `pr.yml`'s `docs/**` paths-ignore so docs-only PRs still get the check) | `docs/08_guides/*.md` → `ui/public/docs/*.md` | `node ui/scripts/copy-docs.mjs` (prunes the dest to `{README.md} ∪ {DOCS[].dest}` per FR-9, so a renamed entry never leaves a stale public copy behind) | `scripts/ci/test_verify_copy_docs_fresh.sh` exercises clean / source-drift / untracked-AC-9 cases against a disposable `mktemp` git fixture |
 | 2 | `generated-artifacts-fresh` (snapshot step) | `pr.yml` job — backend (`**/*.py`) + ui (`**/*.ts`) changes can both invalidate the snapshot, so the gate runs on every code-bearing PR | backend FastAPI route table → `ui/openapi.json` | `uv run python -m backend.app.openapi_export --out ui/openapi.json` (offline, no live services per Story 2.1) | `scripts/ci/test_verify_openapi_snapshot_fresh.sh` uses an `OPENAPI_SNAPSHOT_REGEN_SCRIPT` path-override + a disposable `mktemp` fixture to test the guard's diff-detection without needing `uv` in the fixture (the exporter has its own Story-2.1 unit test) |
+| 3 | `generated-artifacts-fresh` (types step) | same `pr.yml` job — chained after the snapshot step so they share the toolchain install | `ui/openapi.json` → `ui/src/lib/types.ts` | `OPENAPI_URL="$PWD/ui/openapi.json" pnpm --dir ui types:gen` (wraps the lockfile-pinned `openapi-typescript@7.x` binary; Story 2.3 ditched the `npx` fallback per FR-5) | `scripts/ci/test_verify_types_fresh.sh` uses a `TYPES_FRESH_REGEN_SCRIPT` path-override against a disposable fixture; `ui/src/__tests__/scripts/gen-types-banner.test.ts` covers banner source-invariance (FR-5 / AC-8) |
 
 The fix commands printed on failure:
 
@@ -266,6 +267,10 @@ cd ui && node scripts/copy-docs.mjs && git add public/docs
 
 # Gate 2 (openapi.json snapshot)
 uv run python -m backend.app.openapi_export --out ui/openapi.json && git add ui/openapi.json
+
+# Gate 3 (types.ts) — refreshes the snapshot too, so use the chained
+# fix landing in Story 2.4 (`scripts/regen-generated-artifacts.sh`)
+bash scripts/regen-generated-artifacts.sh && git add ui/openapi.json ui/src/lib/types.ts
 ```
 
 The freshness-gate scripts (`scripts/ci/verify_copy_docs_fresh.sh` + its

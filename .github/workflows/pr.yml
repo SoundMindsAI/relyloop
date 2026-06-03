@@ -257,6 +257,10 @@ jobs:
         run: bash scripts/ci/test_verify_openapi_snapshot_fresh.sh
       - name: Verify ui/openapi.json snapshot is fresh
         run: bash scripts/ci/verify_openapi_snapshot_fresh.sh
+      - name: Self-test types guard
+        run: bash scripts/ci/test_verify_types_fresh.sh
+      - name: Verify ui/src/lib/types.ts is fresh
+        run: bash scripts/ci/verify_types_fresh.sh
 
   # -------------------------------------------------------------------------
   # Static checks — ALWAYS run (not gated by SKIP_HEAVY_CI). Split into two
