@@ -1,0 +1,72 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: copy-docs-freshness
+
+# infra_generated_artifact_freshness_gate / Story 1.2.
+#
+# Catches the failure mode where a contributor edits a source guide under
+# `docs/08_guides/` without re-running `node ui/scripts/copy-docs.mjs`,
+# leaving the in-app `<MarkdownDoc>` reader serving stale `ui/public/docs/`
+# bytes. Regenerates the public copies and fails the PR if
+# `git status --porcelain -- ui/public/docs/` is non-empty (modified,
+# untracked, or deleted) — `git diff --exit-code` would silently miss the
+# untracked case (FR-1, FR-9).
+#
+# Lives in its OWN workflow file (mirrors `secrets-defense.yml`) on
+# `pull_request:` with NO `paths` / `paths-ignore` filter, so a docs-only
+# PR that pr.yml's `paths-ignore: ['docs/**']` filter skips still gets the
+# freshness check (FR-3 — own-workflow-to-escape-paths-ignore precedent).
+#
+# Action SHAs pinned per the `chore_scorecard_pin_deps_postcss` posture
+# (PR #430, 2026-06-03); Dependabot's github-actions ecosystem rotates the
+# `# v6` comment + the SHA together.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  copy-docs-freshness:
+    name: copy-docs freshness (ui/public/docs sync to docs/08_guides)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          # Enough history for the diagnostic `git status` to resolve cleanly.
+          fetch-depth: 50
+
+      - uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6
+        with:
+          version: 9
+
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: ui/pnpm-lock.yaml
+
+      # `copy-docs.mjs` itself imports only `node:fs`/`node:path`/`node:url`,
+      # so it does NOT need `pnpm install`. The frozen install still runs
+      # so the runner caches `ui/node_modules` for any future step on this
+      # job that needs ESLint/TS/etc.; remove later if the job stays
+      # node-only.
+      - name: pnpm install (frozen)
+        run: pnpm --dir ui install --frozen-lockfile
+
+      - name: Self-test the freshness guard
+        run: bash scripts/ci/test_verify_copy_docs_fresh.sh
+
+      - name: Verify ui/public/docs/ is in sync with docs/08_guides/
+        run: bash scripts/ci/verify_copy_docs_fresh.sh

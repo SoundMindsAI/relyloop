@@ -231,6 +231,37 @@ interpreter). Fault injection is via the `INFRA_OPTUNA_EVAL_FAULT` env
 var, which triggers `os._exit(1)` at one of two seams
 (`after_trial_load_before_execute`, `after_tell_before_insert`).
 
+## Generated-artifact freshness gates
+
+Three CI gates catch the failure mode where a developer edits a source
+file but forgets to regenerate the committed artifact built from it. Each
+gate **regenerates** the artifact in CI and fails the PR if
+`git status --porcelain` reports drift — a contributor never has to
+remember to run a regen step locally before pushing; CI does it for them
+and the gate's failure output prints the one-paste fix command.
+
+Why `git status --porcelain` (and not `git diff --exit-code`): `git diff`
+silently ignores untracked files. A freshly-added `DOCS` entry whose
+public copy was never committed would slip through. `--porcelain` reports
+the modified, untracked, AND deleted cases (the `M` / `??` / ` D`
+markers) — every drift mode the gate exists to catch.
+
+| # | Gate | Workflow | Source → Output | Regenerator | Self-test |
+|---|---|---|---|---|---|
+| 1 | `copy-docs-freshness` | own file (`copy-docs-freshness.yml`) — runs on every PR with no `paths-ignore` filter (FR-3 escape from `pr.yml`'s `docs/**` paths-ignore so docs-only PRs still get the check) | `docs/08_guides/*.md` → `ui/public/docs/*.md` | `node ui/scripts/copy-docs.mjs` (prunes the dest to `{README.md} ∪ {DOCS[].dest}` per FR-9, so a renamed entry never leaves a stale public copy behind) | `scripts/ci/test_verify_copy_docs_fresh.sh` exercises clean / source-drift / untracked-AC-9 cases against a disposable `mktemp` git fixture |
+
+The fix command printed on failure:
+
+```bash
+cd ui && node scripts/copy-docs.mjs && git add public/docs
+```
+
+The freshness-gate scripts (`scripts/ci/verify_copy_docs_fresh.sh` + its
+self-test) follow the canonical `scripts/ci/` shape: `set -euo pipefail`,
+SPDX header, `git status --porcelain` (never bare `git diff`), and a
+sibling `test_<name>.sh` that drives the guard against disposable
+fixtures.
+
 ## Where to look
 
 - [`backend/tests/conftest.py`](../../backend/tests/conftest.py) — shared
