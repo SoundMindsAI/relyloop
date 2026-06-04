@@ -11,7 +11,7 @@
  *  - the refetchInterval option does NOT leak into the request params / query key.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -102,15 +102,17 @@ describe('useJudgmentLists — conditional refetchInterval (Story 1.3)', () => {
         useJudgmentLists({ query_set_id: 'qs1', target: 'products' }, { refetchInterval: 4000 }),
       { wrapper: wrapper() },
     );
-    await new Promise((r) => setTimeout(r, 10));
-    expect(getSpy).toHaveBeenCalledWith('/api/v1/judgment-lists', {
-      params: {
-        query_set_id: 'qs1',
-        cluster_id: undefined,
-        target: 'products',
-        cursor: undefined,
-        limit: undefined,
-      },
-    });
+    // Poll for the GET rather than a fixed sleep (robust on busy CI — Gemini PR #453).
+    await waitFor(() =>
+      expect(getSpy).toHaveBeenCalledWith('/api/v1/judgment-lists', {
+        params: {
+          query_set_id: 'qs1',
+          cluster_id: undefined,
+          target: 'products',
+          cursor: undefined,
+          limit: undefined,
+        },
+      }),
+    );
   });
 });
