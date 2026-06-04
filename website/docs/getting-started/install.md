@@ -82,7 +82,7 @@ endpoint:
 
 For Bedrock, Vertex, or Anthropic-native, put a LiteLLM proxy or OpenRouter in
 front and point `OPENAI_BASE_URL` at it. Full matrix:
-[`docs/08_guides/llm-endpoint-setup.md`](https://github.com/SoundMindsAI/relyloop/blob/main/docs/08_guides/llm-endpoint-setup.md).
+[LLM endpoint setup](../guides/in-depth/llm-endpoint-setup.md).
 
 ## Next step
 

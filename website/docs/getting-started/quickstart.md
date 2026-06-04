@@ -63,6 +63,6 @@ You ran the full loop end-to-end against bundled data. Next, do it with a real
 example and a real PR in [Your First Optimization Loop](first-loop.md).
 
 !!! tip "Prefer the guided tutorial?"
-    The repo's [`tutorial-first-study.md`](https://github.com/SoundMindsAI/relyloop/blob/main/docs/08_guides/tutorial-first-study.md)
+    The [first-study tutorial](../guides/in-depth/tutorial-first-study.md)
     walks the entire path from `git clone` to "PR opened in GitHub" with
     screenshots, including a local-LLM (Ollama) variant.

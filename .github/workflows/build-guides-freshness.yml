@@ -1,0 +1,92 @@
+# SPDX-FileCopyrightText: 2026 soundminds.ai
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: build-guides-freshness
+
+# feat_website_walkthrough_guides / Story 2.1.
+#
+# Catches the failure mode where a contributor edits a walkthrough source
+# asset (ui/public/guides/<slug>/*) or a long-form guide (docs/08_guides/*.md)
+# without re-running `python website/scripts/build_guides.py`, leaving the
+# published relyloop.com Guides pages stale.
+#
+# Lives in its OWN workflow file (mirrors copy-docs-freshness.yml) on
+# `pull_request:` with NO `paths` / `paths-ignore` filter, so a website-only
+# PR that pr.yml's `paths-ignore: ['website/**', 'docs/**']` filter skips
+# still gets the freshness + strict-build checks (FR-6 / D-7 own-workflow
+# escape).
+#
+# Steps:
+#   1. pytest the generator unit tests — pr.yml skips backend tests on a
+#      website-only PR, so this brings AC-14's unit-testable assertions
+#      (glightbox-skip markup + skip_classes config) into the website-PR
+#      signal path (D-33).
+#   2. self-test the freshness guard (4 cases).
+#   3. run the freshness gate (regen + git-status drift, MP4 excluded).
+#   4. `mkdocs build --strict` — PR-gates broken nav/links BEFORE merge, since
+#      pr.yml's paths-ignore lets a website-only PR skip every other check
+#      (FR-9 / C1-B2).
+#
+# Action SHAs pinned per the chore_scorecard_pin_deps_postcss posture
+# (PR #430, 2026-06-03); Dependabot's github-actions ecosystem rotates the
+# `# vN` comment + the SHA together.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-guides-freshness:
+    name: build-guides freshness (website Guides pages sync)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          # Enough history for the diagnostic `git status` to resolve cleanly.
+          fetch-depth: 50
+
+      - name: Set up Python (site + generator runtime)
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: website/requirements.txt
+
+      - name: Install site build deps (mkdocs-material + glightbox)
+        run: pip install -r website/requirements.txt
+
+      - name: Install uv (for the generator unit tests)
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
+        with:
+          enable-cache: true
+          version: "0.5.7"
+
+      - name: Install Python deps (frozen)
+        run: uv sync --frozen
+
+      # The generator is stdlib-only, but its unit tests use pytest/PyYAML from
+      # the backend toolchain. Running them here is the only way AC-14's
+      # unit-testable half fires on a website-only PR (pr.yml skips it).
+      - name: Generator unit tests
+        run: uv run pytest backend/tests/unit/scripts/test_build_guides.py -q
+
+      - name: Self-test the freshness guard
+        run: bash scripts/ci/test_verify_build_guides_fresh.sh
+
+      - name: Verify website Guides pages are in sync
+        run: bash scripts/ci/verify_build_guides_fresh.sh
+
+      - name: mkdocs build --strict (PR-time, catches broken nav/links)
+        run: mkdocs build --strict
+        working-directory: website
