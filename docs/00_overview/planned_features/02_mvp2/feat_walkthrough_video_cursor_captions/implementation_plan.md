@@ -359,16 +359,16 @@ Parallel: Epic 1 (ui/) and Epic 2 (website/ + backend tests) are disjoint and ca
 ## 9) Execution tracker
 
 ### Current sprint
-- [ ] Story 1.1 — captions-vtt.ts + vitest
-- [ ] Story 1.2 — demo-cursor.ts
-- [ ] Story 1.3 — adopt helper in 10 specs + lower slowMo
-- [ ] Story 2.1 — build_video_block `<track>` + vtt copy
-- [ ] Story 2.2 — vtt↔metadata consistency + self-test sub-case
-- [ ] Story 2.3 — runbook
-- [ ] Story 3.1 — re-record + transcode + regenerate + commit (operator-path)
+- [x] Story 1.1 — captions-vtt.ts + vitest
+- [x] Story 1.2 — demo-cursor.ts
+- [x] Story 1.3 — adopt helper in 10 specs + lower slowMo
+- [x] Story 2.1 — build_video_block `<track>` + vtt copy
+- [x] Story 2.2 — vtt↔metadata consistency + self-test sub-case
+- [x] Story 2.3 — runbook
+- [x] Story 3.1 — re-record + transcode + regenerate + commit (operator-path)
 
 ### Blocked items
-- Story 3.1 blocked on the live stack (operator-provided).
+- None — Story 3.1 ran against the operator's live local stack.
 
 ## 10) Story-by-Story Verification Gate
 
