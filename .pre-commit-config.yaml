@@ -175,6 +175,12 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=500]
+        # Walkthrough-guide media (screenshots + slow-mo WebM/MP4) is
+        # intentionally committed and mirrored to the public site
+        # (feat_website_walkthrough_guides, commit-and-mirror per spec D-1).
+        # A few screenshots exceed 500 KB; the guardrail is for *accidental*
+        # large files, not these curated media trees.
+        exclude: ^(ui/public/guides/|website/docs/assets/guides/)
       - id: mixed-line-ending
         args: [--fix=lf]
 

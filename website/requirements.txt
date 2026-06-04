@@ -13,3 +13,7 @@
 
 mkdocs-material[imaging]==9.7.6
 pymdown-extensions==10.21.3
+# Pinch/click-zoom lightbox for the Guides screenshots
+# (feat_website_walkthrough_guides). Honors the `glightbox-skip` class so
+# index-card thumbnails navigate instead of opening an overlay.
+mkdocs-glightbox==0.5.2

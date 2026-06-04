@@ -1,0 +1,42 @@
+/*
+ * SPDX-FileCopyrightText: 2026 soundminds.ai
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Extra styles for the RelyLoop public site — primarily the Guides pages
+ * (feat_website_walkthrough_guides). Keeps the walkthrough video and the
+ * screenshots fluid-width so nothing overflows at phone widths. No JS, no
+ * media queries — max-width:100% is sufficient for both web and mobile.
+ */
+
+/* Responsive walkthrough video — never wider than its column. */
+.walkthrough-video {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.4rem;
+  margin: 0.5rem 0;
+  background: #000;
+}
+
+/* The always-visible iOS-Safari fallback link below the video. */
+.walkthrough-video-download {
+  font-size: 0.85em;
+  opacity: 0.75;
+  margin-top: 0.25rem;
+}
+
+/* Screenshots inside a walkthrough/in-depth page never overflow. glightbox
+ * wraps each in a zoomable anchor; this keeps the inline render fluid. */
+.md-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Card-grid thumbnails on the Walkthroughs index — fixed aspect, cover crop,
+ * so the card heights stay even regardless of source screenshot dimensions. */
+.md-typeset .grid.cards img {
+  width: 100%;
+  height: auto;
+  border-radius: 0.3rem;
+}
