@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">14 / 25</div>
-      <div class="sub">56% specced · 46 filed under MVP2</div>
-      <div class="bar"><span style="width:56%"></span></div>
+      <div class="value">15 / 25</div>
+      <div class="sub">60% specced · 48 filed under MVP2</div>
+      <div class="bar"><span style="width:60%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">30</div>
+      <div class="value">31</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -420,29 +420,29 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">25</div>
+      <div class="value">26</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
       <div class="label">Backlog</div>
-      <div class="value">4</div>
+      <div class="value">5</div>
       <div class="sub">captured for record, not planned</div>
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">26</div>
+      <div class="value">25</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      4 idea-only feat/infra folders (not yet scoped into MVP2)
+      6 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,7 +463,20 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">17</span></h3>
+  <h3>Idea <span class="count">19</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase2">Overnight Final Solution Phase2</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">After Phase 1 ships, an operator who picks `follow_suggestions` overnight wakes up to:</div>
+
+
+</div>
+
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_proposal_full_param_space_view">Proposal Full Param Space View</a></div>
@@ -647,6 +660,19 @@ footer {
 </div>
 
 
+<div class="card feat" data-prefix="feat" data-priority="Backlog">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase3">Overnight Final Solution Phase3</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
+
+  </div>
+  <div class="one-liner">When `follow_suggestions` runs a 4-link chain, today&#x27;s proposal-creation logic ([`backend/workers/orchestrator.py`](../backend/workers/orchestrator.py) `_on_study_complete`) creates **one `pending` pr</div>
+
+
+</div>
+
+
 <div class="card infra" data-prefix="infra" data-priority="Backlog">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test">Arq Subprocess Test</a></div>
   <div class="meta">
@@ -693,20 +719,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">13</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution/feature_spec.md">Overnight Final Solution</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner">The wizard exposes a strategy choice alongside the existing depth: keep today&#x27;s predictable `narrow` loop OR opt into `follow_suggestions`, which lets each chain link consume the parent digest&#x27;s top *</div>
-  <div class="deferred">deferred: Phase 2, Phase 3</div>
-
-</div>
-
+  <h3>Plan <span class="count">12</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -871,7 +884,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">16</span></h3>
+  <h3>Done <span class="count">17</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -907,6 +920,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/343">PR #343</a> <span>merged 2026-05-31</span>
   </div>
   <div class="one-liner">an operator can (a) discover the overnight path while creating a study because the wizard control is reframed as a labeled &quot;🌙 Run overnight (compound automatically)&quot; toggle with explicit copy about th</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md">Overnight Final Solution</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/440">PR #440</a> <span>merged 2026-06-04</span>
+  </div>
+  <div class="one-liner">The wizard exposes a strategy choice alongside the existing depth: keep today&#x27;s predictable `narrow` loop OR opt into `follow_suggestions`, which lets each chain link consume the parent digest&#x27;s top *</div>
 
 
 </div>
@@ -1105,8 +1131,6 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_overnight_final_solution[&quot;overnight final solution&quot;]
-  class feat_overnight_final_solution plan;
   feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
   class feat_overnight_studies_summary_card plan;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
@@ -1143,6 +1167,8 @@ footer {
   class infra_solr_smoke_stability done;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate done;
+  feat_overnight_final_solution[&quot;overnight final solution&quot;]
+  class feat_overnight_final_solution done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1162,8 +1188,6 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_overnight_final_solution[&quot;overnight final solution&quot;]
-  class feat_overnight_final_solution plan;
   feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
   class feat_overnight_studies_summary_card plan;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
@@ -1200,6 +1224,8 @@ footer {
   class infra_solr_smoke_stability done;
   infra_generated_artifact_freshness_gate[&quot;generated artifact freshness gate&quot;]
   class infra_generated_artifact_freshness_gate done;
+  feat_overnight_final_solution[&quot;overnight final solution&quot;]
+  class feat_overnight_final_solution done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>
