@@ -24,7 +24,7 @@ Also deferred from Phase 1: the **strategy read-only line on the study detail pa
 
 ### Cap 1 — Top-of-page "Overnight result" card on `/studies/{id}` when the chain terminated
 
-- New card mounted above `LinkedEntitiesRow` on `/studies/{study_id}` when `chain.links.length >= 2` AND `chain.stop_reason in {"no_lift", "depth_exhausted", "budget", "parent_failed", "cancelled"}` (i.e., terminal chain).
+- New card mounted above [`LinkedEntitiesRow`](../../../../ui/src/components/studies/linked-entities-row.tsx) on [`/studies/{study_id}`](../../../../ui/src/app/studies/[id]/page.tsx) when the chain has terminated. **Visibility predicate is OQ-2 (below)** — current default-recommendation is `chain.links.length >= 2` AND `chain.stop_reason in {"no_lift", "depth_exhausted", "budget", "parent_failed", "cancelled"}` (the five non-`in_flight` values per [`chain_summary.py CHAIN_STOP_REASONS`](../../../../backend/app/domain/study/chain_summary.py)). Locking this is a spec-time call.
 - Content:
   - Headline: *"Overnight exploration complete — {N} studies, +{X.YY}% lift"*.
   - One-line path summary: *"Explored: {kind₁} → {kind₂} → {kind₃}"* using the per-link `selected_followup_kind` values from `StudyChainLink` (Phase 1 FR-6).
@@ -34,12 +34,12 @@ Also deferred from Phase 1: the **strategy read-only line on the study detail pa
 
 ### Cap 2 — `/studies` list "ran while away" badge
 
-- Coordinates with sibling [`feat_overnight_studies_summary_card`](../feat_overnight_studies_summary_card/idea.md) (already in 02_mvp2). The two ideas overlap — the morning card on the detail page (Cap 1 here) is the deep view; the index-page badge from the sibling idea is the discoverability cue. Resolve at Phase 2 spec time whether to fold them or coordinate them.
+- Coordinates with sibling [`feat_overnight_studies_summary_card`](../feat_overnight_studies_summary_card/idea.md) (already in 02_mvp2). The two ideas overlap — the morning card on the detail page (Cap 1 here) is the deep view; the index-page "ran while away" card from the sibling idea is the discoverability cue. **Sibling has already locked two relevant design forks** at idea time: (a) visited-state model = cookie-only / localStorage (no users table needed), and (b) chain-discovery mechanism = a new `GET /api/v1/studies/chains/recent?since=<ts>` read-only endpoint (rejected: pure client-side fan-out, because `StudySummary` does not expose `parent_study_id`). Resolve at Phase 2 spec time whether to fold them or coordinate them — both directions are now concretely costed.
 
 ### Cap 3 — Strategy read-only line on the study detail page
 
 - When the local study has `config.auto_followup_strategy = "follow_suggestions"`, surface a one-line "Strategy: Try suggested follow-ups" badge in the existing study-detail config summary (above or beside `LinkedEntitiesRow`).
-- For `"narrow"` / `None` / `"narrow"` (default), surface nothing (or a subtle "Strategy: Refine same knobs" line, depending on UX call).
+- For `"narrow"` / `None` (default, treated as narrow), surface nothing (or a subtle "Strategy: Refine same knobs" line, depending on UX call).
 
 ### Cap 4 — Narrative summary in the morning card
 
@@ -61,11 +61,13 @@ Phase 1's job was the **capability** — let the autopilot explore across knobs 
 
 - **Builds on** [`feat_overnight_final_solution`](../../implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md) Phase 1 — depends on its `selected_followup_kind` field and the strategy persistence.
 - **Coordinates with** [`feat_overnight_studies_summary_card`](../feat_overnight_studies_summary_card/idea.md) — index-page "ran while away" surface; resolve overlap at Phase 2 spec time.
-- **Composes with** [`feat_study_convergence_indicator`](../../implemented_features/2026_05_31_feat_study_convergence_indicator/feature_spec.md) — the morning card may want to surface the winning link's convergence verdict too.
+- **Composes with** [`feat_study_convergence_indicator`](../../implemented_features/2026_06_01_feat_study_convergence_indicator/feature_spec.md) — the morning card may want to surface the winning link's convergence verdict too. **Implementation note:** `convergence_verdict` is NOT exposed on `StudyChainLink` today (it lives on `StudyDetail.convergence` at [`schemas.py:937`](../../../../backend/app/api/v1/schemas.py#L937) and on `StudySummary.convergence_verdict` at [`schemas.py:1039`](../../../../backend/app/api/v1/schemas.py#L1039)), so Cap 4 needs either (a) a separate `GET /api/v1/studies/{best_link_id}` fetch on the card, or (b) an additive `convergence_verdict` field on `StudyChainLink` (mirrors the soft-contract precedent in `feat_studies_convergence_visibility`). Spec-time decision.
 
 ## Open questions
 
-- **Q1** — Mount point: top of `/studies/{id}` (above all panels) vs a new tab? Recommend top-of-page banner card; tabs hide information.
-- **Q2** — Card visibility predicate: every terminated chain, or only `follow_suggestions` chains? Recommend every terminated chain ≥ 2 links — the rollup is useful for narrow-only chains too.
+- **Q1** — Mount point: top of `/studies/{id}` (above all panels, currently above `LinkedEntitiesRow` at [`page.tsx:96`](../../../../ui/src/app/studies/[id]/page.tsx#L96)) vs a new tab? Recommend top-of-page banner card; tabs hide information.
+- **Q2** — Card visibility predicate: every terminated chain, or only `follow_suggestions` chains? Recommend every terminated chain ≥ 2 links — the rollup is useful for narrow-only chains too (legacy `narrow` chains have `selected_followup_kind == null` per Phase 1 D-12, so the path summary in Cap 1's "Explored: …" line would just be a sequence of `null`s; the card can degrade gracefully or hide the path line for legacy chains).
 - **Q3** — Fold Cap 3 (strategy line) into Cap 1 (card) or keep separate? Recommend keep separate — Cap 1 fires only on terminal chains, Cap 3 also helps mid-chain operators.
-- **Q4** — Fold with `feat_overnight_studies_summary_card`? Spec-time decision.
+- **Q4** — Fold with `feat_overnight_studies_summary_card`? Spec-time decision. Sibling has locked cookie-only visited-state + a new `GET /api/v1/studies/chains/recent` discovery endpoint; the two could share that endpoint (Cap 1 hydrates from `/chain` on the detail page, sibling card hydrates from `/chains/recent` on the index).
+- **Q5** — Cap 4 narrative source: reuse the winning link's existing `digests.narrative` (zero new LLM cost), or generate a chain-level narrative via a small LLM call? Recommend reuse the winning digest's narrative for Phase 2 — defers a new LLM call until operator feedback says the chain-level synthesis is missing, keeps the Phase 2 PR LLM-budget-neutral.
+- **Q6** — Cap 4 convergence-verdict source (per the implementation note in "Relationship to other work"): does Phase 2 fetch `GET /api/v1/studies/{best_link_id}` for the verdict, or extend `StudyChainLink` with an additive `convergence_verdict` field? Recommend the per-link fetch — at most one extra request per card render, TanStack-Query-cached, keeps `/chain`'s response shape stable (mirrors Phase 1 D-11's reasoning for the swap-template name resolution).
