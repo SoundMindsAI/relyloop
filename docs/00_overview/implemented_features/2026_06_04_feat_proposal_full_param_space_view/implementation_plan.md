@@ -1,7 +1,7 @@
 # Implementation Plan — Proposal Full-Parameter-Space View
 
 **Date:** 2026-06-04
-**Status:** Draft
+**Status:** Complete (PR #446, squash-merged `3baea3f0` on 2026-06-04)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md), [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md)
 
