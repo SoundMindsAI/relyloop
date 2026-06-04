@@ -273,7 +273,7 @@ def test_emit_indepth_index_lists_long_form(tmp_path: Path) -> None:
 # Story 1.3 — video block + transcode                                          #
 # --------------------------------------------------------------------------- #
 def test_build_video_block_mp4_first(tmp_path: Path) -> None:
-    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True)
+    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=False)
     mp4_idx = block.index('type="video/mp4"')
     webm_idx = block.index('type="video/webm"')
     assert mp4_idx < webm_idx  # MP4 first for iOS Safari
@@ -289,7 +289,7 @@ def test_build_video_block_uses_root_relative_asset_depth() -> None:
     # /guides/walkthroughs/<slug>/ so the browser-correct path to /assets/ needs
     # THREE ../ — matching the depth MkDocs rewrites the markdown screenshot
     # images to. Two ../ (the source-relative depth) 404s in the browser.
-    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True)
+    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=False)
     assert '<source src="../../../assets/guides/01_x/walkthrough.mp4"' in block
     assert '<source src="../../../assets/guides/01_x/walkthrough.webm"' in block
     assert 'href="../../../assets/guides/01_x/walkthrough.webm"' in block
@@ -298,16 +298,52 @@ def test_build_video_block_uses_root_relative_asset_depth() -> None:
 
 
 def test_build_video_block_no_mp4(tmp_path: Path) -> None:
-    block = bg.build_video_block("01_x", has_webm=True, has_mp4=False)
+    block = bg.build_video_block("01_x", has_webm=True, has_mp4=False, has_vtt=False)
     assert 'type="video/mp4"' not in block
     assert 'type="video/webm"' in block
     assert 'class="walkthrough-video-download"' in block  # still present
 
 
 def test_build_video_block_no_webm_returns_empty() -> None:
-    assert bg.build_video_block("01_x", has_webm=False, has_mp4=False) == ""
+    assert bg.build_video_block("01_x", has_webm=False, has_mp4=False, has_vtt=False) == ""
     # Even if a stale MP4 somehow flagged True, no WebM => no block.
-    assert bg.build_video_block("01_x", has_webm=False, has_mp4=True) == ""
+    assert bg.build_video_block("01_x", has_webm=False, has_mp4=True, has_vtt=False) == ""
+
+
+def test_build_video_block_track_present_iff_vtt() -> None:
+    # FR-4 / AC-5: a captions <track> is emitted only when has_vtt, with the
+    # same ../../../assets/<slug> root-relative depth as the <source>s.
+    with_vtt = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=True)
+    assert (
+        '<track kind="captions" src="../../../assets/guides/01_x/captions.vtt" '
+        'srclang="en" label="Steps" default>'
+    ) in with_vtt
+    # Track sits inside the <video> element (before </video>).
+    assert with_vtt.index("<track") < with_vtt.index("</video>")
+
+    without_vtt = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=False)
+    assert "<track" not in without_vtt
+
+
+def test_copy_deck_assets_copies_captions_vtt_when_present(tmp_path: Path) -> None:
+    # FR-4 / AC-6: captions.vtt is copied + in the returned set when the source exists.
+    src = tmp_path / "guides"
+    _make_deck(src, "01_x", with_webm=True, with_mp4=False)
+    (src / "01_x" / "captions.vtt").write_text("WEBVTT\n\n", encoding="utf-8")
+    deck = bg.discover_decks(src)[0]
+    dst = tmp_path / "out" / "01_x"
+    copied = bg.copy_deck_assets(deck, src / "01_x", dst)
+    assert "captions.vtt" in copied
+    assert (dst / "captions.vtt").is_file()
+
+
+def test_copy_deck_assets_no_captions_vtt_when_absent(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    _make_deck(src, "01_x", with_webm=True)
+    deck = bg.discover_decks(src)[0]
+    dst = tmp_path / "out" / "01_x"
+    copied = bg.copy_deck_assets(deck, src / "01_x", dst)
+    assert "captions.vtt" not in copied
 
 
 def test_default_generate_makes_no_ffmpeg_call(tmp_path: Path, monkeypatch) -> None:
