@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { CreateStudyModal, type PrefillValues } from '@/components/studies/create-study-modal';
 import { buildPrefillFromStudy } from '@/components/studies/prefill-from-study';
+import { RecentChainsCard } from '@/components/studies/recent-chains-card';
 import { StudiesTable } from '@/components/studies/studies-table';
 import { studiesColumns } from '@/components/studies/studies-table.column-config';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
@@ -118,6 +119,13 @@ function StudiesPageInner() {
           Create study
         </Button>
       </div>
+      {/*
+        feat_overnight_studies_summary_card Story 2.2 — "Ran while you
+        were away" card. Self-contained (owns its own data + visited-
+        state); early-returns null on empty / error / pending so the
+        studies table below always renders predictably.
+      */}
+      <RecentChainsCard />
       {targetFromUrl && (
         <div className="flex items-center gap-2 text-sm" data-testid="studies-active-filters">
           <span className="text-muted-foreground">Active filters:</span>
