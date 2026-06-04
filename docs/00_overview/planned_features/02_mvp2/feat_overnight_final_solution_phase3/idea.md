@@ -3,7 +3,7 @@
 **Date:** 2026-06-03
 **Status:** Idea — deferred Phase 3 from `feat_overnight_final_solution` Phase 1 spec
 **Priority:** Backlog
-**Origin:** Carried out of `feat_overnight_final_solution/feature_spec.md` §3 "Phase boundaries" + §19 D-8. Phase 1 ships the cross-knob exploration capability and leans on `best_link_id` + `proposal_id_for_best_link` from the existing `/chain` endpoint to surface the morning artifact as a single proposal. Phase 3 polishes the `/proposals` index by marking non-winning chain links' proposals `superseded` so the morning view is unambiguously "one answer."
+**Origin:** Carried out of `docs/00_overview/implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md` §3 "Phase boundaries" + §19 D-8. Phase 1 ships the cross-knob exploration capability and leans on `best_link_id` + `proposal_id_for_best_link` from the existing `/chain` endpoint to surface the morning artifact as a single proposal. Phase 3 polishes the `/proposals` index by marking non-winning chain links' proposals `superseded` so the morning view is unambiguously "one answer."
 **Depends on:** `feat_overnight_final_solution` Phase 1 must be merged first. Independent of Phase 2 (the morning summary card).
 
 > **Priority guidance:** Backlog — defer-until-incident. The Phase 1 capability does not require this. File once an operator (or design partner) reports `/proposals` clutter as friction during morning review.
@@ -61,8 +61,8 @@ Critically: Phase 3 requires a migration that **reopens shipped schema** (the `p
 
 ## Relationship to other work
 
-- **Depends on** [`feat_overnight_final_solution`](feature_spec.md) Phase 1 — uses its chain-termination signal.
-- **Adjacent to** [`feat_overnight_final_solution`](feature_spec.md) Phase 2 — the morning card (Phase 2) may want to know which intermediate proposals are superseded for cleaner rendering.
+- **Depends on** [`feat_overnight_final_solution`](../../implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md) Phase 1 — uses its chain-termination signal.
+- **Adjacent to** [`feat_overnight_final_solution`](../../implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md) Phase 2 — the morning card (Phase 2) may want to know which intermediate proposals are superseded for cleaner rendering.
 - **Independent of** `feat_overnight_studies_summary_card` — different surface.
 
 ## Open questions

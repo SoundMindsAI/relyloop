@@ -3,8 +3,8 @@
 **Date:** 2026-06-03
 **Status:** Idea — deferred Phase 2 from `feat_overnight_final_solution` Phase 1 spec
 **Priority:** P2
-**Origin:** Carried out of `feat_overnight_final_solution/feature_spec.md` §3 "Phase boundaries" + §19 D-5/D-15. Phase 1 delivered cross-knob/cross-template autonomous exploration with the rollup data already available via the existing `/chain` endpoint; Phase 2 polishes the morning-review surface.
-**Depends on:** `feat_overnight_final_solution` Phase 1 (this folder's `feature_spec.md`) must be merged first.
+**Origin:** Carried out of `docs/00_overview/implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md` §3 "Phase boundaries" + §19 D-5/D-15. Phase 1 delivered cross-knob/cross-template autonomous exploration with the rollup data already available via the existing `/chain` endpoint; Phase 2 polishes the morning-review surface.
+**Depends on:** `feat_overnight_final_solution` Phase 1 (now at `implemented_features/2026_06_04_feat_overnight_final_solution/`) must be merged first.
 
 > **Priority guidance:** P2 — UX polish. Not blocking the capability the Phase 1 spec delivers; lifts the morning-review experience from "open the study detail page → scroll to the chain panel" to "one card at the top says here's the answer."
 
@@ -59,7 +59,7 @@ Phase 1's job was the **capability** — let the autopilot explore across knobs 
 
 ## Relationship to other work
 
-- **Builds on** [`feat_overnight_final_solution`](feature_spec.md) Phase 1 — depends on its `selected_followup_kind` field and the strategy persistence.
+- **Builds on** [`feat_overnight_final_solution`](../../implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md) Phase 1 — depends on its `selected_followup_kind` field and the strategy persistence.
 - **Coordinates with** [`feat_overnight_studies_summary_card`](../feat_overnight_studies_summary_card/idea.md) — index-page "ran while away" surface; resolve overlap at Phase 2 spec time.
 - **Composes with** [`feat_study_convergence_indicator`](../../implemented_features/2026_05_31_feat_study_convergence_indicator/feature_spec.md) — the morning card may want to surface the winning link's convergence verdict too.
 

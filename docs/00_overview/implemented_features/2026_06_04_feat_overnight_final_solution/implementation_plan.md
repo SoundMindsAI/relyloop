@@ -1,7 +1,7 @@
 # Implementation Plan — Overnight → final solution (autonomous cross-knob tuning)
 
 **Date:** 2026-06-03
-**Status:** Ready for Execution
+**Status:** Complete (PR #440, squash-merged `1e9522a0` 2026-06-04)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) (Absolute Rules), [`docs/01_architecture/api-conventions.md`](../../../../01_architecture/api-conventions.md)
 
@@ -30,7 +30,7 @@
 | FR-9 (glossary key) | Epic 1 / Story 1.2 | `overnight_strategy` glossary key ships with the wizard toggle |
 | FR-9 (tutorial + runbook) | Epic 4 / Story 4.1 | Tutorial Step 12 sub-section + autopilot runbook event section |
 
-All spec FRs covered. No deferred FRs in Phase 1 (Phase 2 + Phase 3 tracked in `phase2_idea.md` + `phase3_idea.md`).
+All spec FRs covered. No deferred FRs in Phase 1 (Phase 2 + Phase 3 tracked in `feat_overnight_final_solution_phase2/idea.md` + `feat_overnight_final_solution_phase3/idea.md`).
 
 ## 2) Delivery structure
 
