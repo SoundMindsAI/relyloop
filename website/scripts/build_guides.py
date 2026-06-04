@@ -163,7 +163,7 @@ def discover_decks(guides_src: Path) -> list[dict[str, Any]]:
                 f"ERROR: deck slug {slug!r} is not a safe identifier (must match {SLUG_RE.pattern})"
             )
         try:
-            meta = json.loads(meta_path.read_text())
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise SystemExit(f"ERROR: deck={slug} metadata.json is not valid JSON: {exc}") from exc
         for key in ("title", "screenshots"):
@@ -500,7 +500,7 @@ def port_long_form_guide(src: Path, repo_root: Path) -> str:
     rel = src.relative_to(repo_root).as_posix()
     if not src.is_file():
         raise SystemExit(f"ERROR: long-form guide source missing: {rel}")
-    text = PRESENTER_COMMENT_RE.sub("", src.read_text())
+    text = PRESENTER_COMMENT_RE.sub("", src.read_text(encoding="utf-8"))
     detect_unsupported_relative_links(text, rel)
 
     # Process the WHOLE text (not line-by-line) so a link wrapped across a line
@@ -657,12 +657,12 @@ def splice_nav_fragment(text: str, fragment: str) -> str:
 def update_mkdocs_nav(decks: list[dict[str, Any]]) -> bool:
     """Read mkdocs.yml, validate, splice the fragment, write back only if
     changed. Returns True if the file was modified."""
-    text = MKDOCS_YML.read_text()
+    text = MKDOCS_YML.read_text(encoding="utf-8")
     validate_mkdocs_anchor(text)
     fragment = render_nav_fragment(decks)
     new_text = splice_nav_fragment(text, fragment)
     if new_text != text:
-        MKDOCS_YML.write_text(new_text)
+        MKDOCS_YML.write_text(new_text, encoding="utf-8")
         return True
     return False
 
@@ -759,15 +759,17 @@ def generate(transcode: bool = False) -> None:
         has_webm = LOCKED_VIDEO_NAME in copied
         has_mp4 = LOCKED_VIDEO_MP4 in copied
         page = emit_deck_page(deck, has_webm, has_mp4, copied)
-        (WALKTHROUGHS_OUT / f"{deck['slug']}.md").write_text(page)
+        (WALKTHROUGHS_OUT / f"{deck['slug']}.md").write_text(page, encoding="utf-8")
 
-    (WALKTHROUGHS_OUT / "index.md").write_text(emit_walkthroughs_index(decks))
-    (INDEPTH_OUT / "index.md").write_text(emit_indepth_index(list(LONG_FORM_GUIDES)))
+    (WALKTHROUGHS_OUT / "index.md").write_text(emit_walkthroughs_index(decks), encoding="utf-8")
+    (INDEPTH_OUT / "index.md").write_text(
+        emit_indepth_index(list(LONG_FORM_GUIDES)), encoding="utf-8"
+    )
 
     # Port the 4 long-form guides (link rewriting + presenter-comment strip).
     for basename in LONG_FORM_GUIDES:
         ported = port_long_form_guide(DOCS_SRC / basename, REPO_ROOT)
-        (INDEPTH_OUT / basename).write_text(ported)
+        (INDEPTH_OUT / basename).write_text(ported, encoding="utf-8")
 
     # Prune the generator-owned dirs to exactly the regenerated set.
     prune_all(decks, copied_by_slug)
