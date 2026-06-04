@@ -123,11 +123,13 @@ describe('feat_overnight_final_solution Story 1.2 — overnight_strategy glossar
     expect(glossary['overnight_strategy']?.long).toBeTruthy();
   });
 
-  it('short ≤ 140 chars and contains both wire values verbatim', () => {
+  it('short ≤ 120 chars and contains both wire values verbatim', () => {
     const entry = glossary['overnight_strategy'];
     expect(entry).toBeDefined();
     const short = entry!.short!;
-    expect(short.length).toBeLessThanOrEqual(140);
+    // Spec FR-9 requires ≤ 120 — tightened from the relaxed 140-char
+    // limit after GPT-5.5 final review (F3).
+    expect(short.length).toBeLessThanOrEqual(120);
     // AC-16 — the two wire values must appear verbatim in `short` so the
     // frontend mapping never drifts silently from the backend allowlist.
     expect(short).toContain('"narrow"');

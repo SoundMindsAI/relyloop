@@ -944,7 +944,7 @@ export const glossary = {
   // AC-16 value-lock at ui/src/__tests__/lib/glossary.test.ts.
   overnight_strategy: {
     short:
-      'How follow-ups are chosen. "narrow": tighter bounds on the same knobs. "follow_suggestions": digest\'s top runnable suggestion.',
+      'How follow-ups are picked. "narrow": tighter bounds, same knobs. "follow_suggestions": digest\'s top runnable item.',
     long: [
       'Choose how the autopilot picks the next study in an overnight chain.',
       '',

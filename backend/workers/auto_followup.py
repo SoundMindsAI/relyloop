@@ -251,6 +251,19 @@ async def enqueue_followup_study(ctx: dict[str, Any], parent_study_id: str) -> N
             # reliability MUST NOT regress vs the legacy path.
             try:
                 digest = await repo.get_digest_for_study(db, parent.id)
+                # F2 (GPT-5.5 final review): a missing digest under
+                # follow_suggestions is the defensive edge case spec FR-3
+                # flagged — the digest worker normally enqueues this
+                # worker AFTER persisting, so a None here means manual
+                # digest deletion / persistence drift. WARN with the
+                # distinct event_type so operators can grep this case
+                # apart from the routine text-only-digest fallback.
+                if digest is None:
+                    logger.warning(
+                        "auto_followup follow_suggestions: parent digest missing",
+                        event_type="auto_followup_strategy_digest_missing",
+                        parent_study_id=parent.id,
+                    )
                 raw_followups = digest.suggested_followups if digest else []
                 followups = parse_followup_list(raw_followups, study_id=parent.id)
                 # Capture diagnostics for the post-commit telemetry.

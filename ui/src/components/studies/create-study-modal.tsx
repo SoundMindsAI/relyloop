@@ -1486,10 +1486,23 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   value={String(values.auto_followup_depth ?? 0)}
                   onValueChange={(v: string) => {
                     const n = Number.parseInt(v, 10);
+                    const wasOff =
+                      values.auto_followup_depth === undefined || values.auto_followup_depth === 0;
                     if (n === 0) {
                       form.setValue('auto_followup_depth', undefined);
+                      // feat_overnight_final_solution F1 (GPT-5.5 final review)
+                      // — clear the strategy when the toggle hides so the
+                      // next reveal deterministically starts from the
+                      // safe "narrow" default rather than a stale value.
+                      form.setValue('auto_followup_strategy', undefined);
                     } else {
                       form.setValue('auto_followup_depth', n as 1 | 2 | 3 | 4 | 5);
+                      // F1 reset: when transitioning Off (0/undefined) → ≥ 1
+                      // the spec FR-2 says the toggle defaults to "narrow"
+                      // whenever it becomes visible.
+                      if (wasOff) {
+                        form.setValue('auto_followup_strategy', 'narrow');
+                      }
                     }
                   }}
                 >
