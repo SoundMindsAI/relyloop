@@ -12,6 +12,7 @@ import { InfoTooltip } from '@/components/common/info-tooltip';
 import { MetricDelta } from '@/components/common/metric-delta';
 import { ConfigDiffPanel } from '@/components/proposals/config-diff-panel';
 import { CurrentlyLiveBadge } from '@/components/proposals/currently-live-badge';
+import { FullParamSpacePanel } from '@/components/proposals/full-param-space-panel';
 import { PrPanel } from '@/components/proposals/pr-panel';
 import { ProposalHeader } from '@/components/proposals/proposal-header';
 import { RejectDialog } from '@/components/proposals/reject-dialog';
@@ -164,23 +165,27 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
   const [runFollowupIndex, setRunFollowupIndex] = useState<number | null>(null);
   const proposal = proposalQ.data ?? null;
   const followups = proposal?.digest?.suggested_followups ?? [];
-  // feat_digest_executable_followups_swap_template Story 3.3 (FR-9 / D-28):
-  // widen the actionable gate to include swap_template via the exhaustive
-  // ACTIONABLE_FOLLOWUP_KINDS lookup. swap_template-only digests must
-  // still enable the parent-study fetch (cycle-1 F1 regression guard).
-  const hasActionableFollowup = followups.some((f) => ACTIONABLE_FOLLOWUP_KINDS[f.kind]);
   const parentStudyId = proposal?.study_id ?? null;
-  // GPT-5.5 cycle-1 F2: enable the parent fetch whenever the proposal has
-  // at least one actionable followup, not only on Run click, so the panel's
-  // "Show search space" detail can render the diff vs parent pre-click.
+  // feat_proposal_full_param_space_view FR-3 (D-13): the source study is
+  // fetched for EVERY study-backed proposal (the old `&& hasActionableFollowup`
+  // gate was dropped). The new <FullParamSpacePanel> needs search_space.params
+  // to classify the tunedUnchanged group even when the digest has no actionable
+  // followups — without this lift, study proposals with text-only/empty digests
+  // would mis-classify search-space params as "untuned". <SuggestedFollowupsPanel>
+  // continues to consume parentStudy.data?.search_space (it branches defensively
+  // when the parent isn't an actionable-followup case), so this is strictly more
+  // information for it.
   const parentStudy = useStudy(parentStudyId ?? '', {
-    enabled: parentStudyId !== null && hasActionableFollowup,
+    enabled: parentStudyId !== null,
   });
-  // feat_digest_executable_followups_swap_template Story 3.3 (FR-10): lazy
-  // parent-template fetch so swap_template cards can render the declared-
-  // params diff. Per-target swap fetches live INSIDE SwapTemplateCard (see
-  // Story 3.2 / GPT-5.5 cycle-1 F2/F3 fix) so this stays a single fetch.
-  const parentTemplateQuery = useTemplate(parentStudy.data?.template_id);
+  // feat_proposal_full_param_space_view FR-3 (D-1): source declared_params
+  // from the proposal's OWN template_id (null-safe via ?. — `proposal` is
+  // null during the initial loading render; the hook's `enabled: Boolean(id)`
+  // short-circuits when the optional chain yields undefined). For study-backed
+  // proposals this equals parentStudy.data?.template_id by construction
+  // (backend/workers/digest.py:488-494), so <SuggestedFollowupsPanel> receives
+  // the same value; for manual proposals it fires where the old gating did not.
+  const parentTemplateQuery = useTemplate(proposal?.template.id);
 
   const prefillValues: PrefillValues | undefined = useMemo(() => {
     if (runFollowupIndex === null) return undefined;
@@ -317,6 +322,25 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
             </p>
             <ProposalHeader proposal={proposal} />
             <ConfigDiffPanel diff={proposal.config_diff} />
+            {/* feat_proposal_full_param_space_view FR-4 — race-aware mount.
+                Mount only once the template fetch resolves AND, for
+                study-backed proposals, once the study query has settled
+                (success OR error) so the tunedUnchanged group never flashes
+                through a transient mis-classification. Manual proposals
+                (study_id === null) skip the study wait. */}
+            {parentTemplateQuery.data && (proposal.study_id === null || !parentStudy.isPending) && (
+              <FullParamSpacePanel
+                configDiff={proposal.config_diff}
+                declaredParams={parentTemplateQuery.data.declared_params}
+                searchSpaceParams={
+                  (
+                    parentStudy.data?.search_space as
+                      | { params?: Record<string, unknown> }
+                      | undefined
+                  )?.params
+                }
+              />
+            )}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-1 text-base">

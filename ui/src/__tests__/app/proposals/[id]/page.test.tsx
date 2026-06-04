@@ -465,3 +465,259 @@ describe('Proposal detail page — Story 3.2 (PR panel + polling + auto-trigger)
     ]);
   });
 });
+
+// feat_proposal_full_param_space_view Story 1.4 — page-level integration of
+// <FullParamSpacePanel>. Lifted fetches (useTemplate(proposal.template.id) +
+// useStudy(study_id) for every study-backed proposal) + race-aware mount.
+describe('Proposal detail page — Story 1.4 (full-param-space mount + lifted fetches)', () => {
+  function templateDetail(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 't1',
+      name: 'products',
+      engine_type: 'elasticsearch',
+      version: 2,
+      body: '{}',
+      parent_id: null,
+      declared_params: { boost: 'float' },
+      created_at: '2026-05-12T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  function studyDetail(overrides: Record<string, unknown> = {}) {
+    return {
+      id: 's1',
+      name: 'demo study',
+      cluster_id: 'c1',
+      target: 'products',
+      template_id: 't1',
+      query_set_id: 'qs1',
+      judgment_list_id: 'jl1',
+      search_space: { params: {} },
+      objective: { metric: 'ndcg', k: 10, direction: 'maximize' },
+      config: {},
+      status: 'completed',
+      best_metric: 0.62,
+      best_trial_id: 'tr1',
+      created_at: '2026-05-12T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  it('Test 1 (AC-1): study-backed proposal mounts the panel with tunedChanged + untuned groups', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () =>
+        HttpResponse.json(
+          proposalDetailPayload({
+            study_id: 's1',
+            config_diff: { boost: { from: 1, to: 2.5 } },
+            digest: {
+              id: 'd1',
+              narrative: '## Summary',
+              parameter_importance: {},
+              recommended_config: {},
+              suggested_followups: [
+                {
+                  kind: 'swap_template',
+                  rationale: 'try other tpl',
+                  search_space: null,
+                  template_id: 't9',
+                },
+              ],
+              generated_at: '2026-05-12T00:00:00Z',
+            },
+          }),
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/studies/s1`, () =>
+        HttpResponse.json(studyDetail({ search_space: { params: { boost: { min: 0, max: 3 } } } })),
+      ),
+      http.get(`${API_BASE}/api/v1/query-templates/t1`, () =>
+        HttpResponse.json(templateDetail({ declared_params: { boost: 'float', other: 'int' } })),
+      ),
+      // The swap_template card lazily fetches t9; provide a stub so it doesn't 404-noise.
+      http.get(`${API_BASE}/api/v1/query-templates/t9`, () =>
+        HttpResponse.json(templateDetail({ id: 't9', declared_params: { other: 'int' } })),
+      ),
+    );
+    await renderPage('p1');
+    await waitFor(() =>
+      expect(screen.getByTestId('param-space-row-tuned_changed-boost')).toBeInTheDocument(),
+    );
+    // `other` is declared but NOT in search_space → untuned.
+    expect(screen.getByTestId('param-space-row-untuned-other')).toBeInTheDocument();
+  });
+
+  it('Test 2 (AC-3): manual proposal (study_id null) mounts as soon as the template resolves', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/pm`, () =>
+        HttpResponse.json(
+          proposalDetailPayload({
+            id: 'pm',
+            study_id: null,
+            study_summary: null,
+            config_diff: { boost: { from: 1, to: 2 } },
+            digest: null,
+          }),
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/query-templates/t1`, () =>
+        HttpResponse.json(
+          templateDetail({ declared_params: { boost: 'float', title_weight: 'float' } }),
+        ),
+      ),
+    );
+    await renderPage('pm');
+    await waitFor(() =>
+      expect(screen.getByTestId('param-space-row-tuned_changed-boost')).toBeInTheDocument(),
+    );
+    // No source study → tunedUnchanged group absent; title_weight (declared, not tuned) → untuned.
+    expect(screen.queryByTestId('param-space-group-tuned_unchanged')).toBeNull();
+    expect(screen.getByTestId('param-space-row-untuned-title_weight')).toBeInTheDocument();
+  });
+
+  it('Test 3 (AC-4): template fetch 404 → panel does NOT mount, rest of page renders', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p404`, () =>
+        HttpResponse.json(
+          proposalDetailPayload({ id: 'p404', study_id: null, study_summary: null, digest: null }),
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/query-templates/t1`, () =>
+        HttpResponse.json(
+          { detail: { error_code: 'TEMPLATE_NOT_FOUND', message: 'gone', retryable: false } },
+          { status: 404 },
+        ),
+      ),
+    );
+    await renderPage('p404');
+    // ConfigDiffPanel + metric-delta still render.
+    await waitFor(() => expect(screen.getByTestId('config-diff-table')).toBeInTheDocument());
+    expect(screen.getByText('Metric delta')).toBeInTheDocument();
+    // Panel did NOT mount.
+    expect(screen.queryByTestId('param-space-group-tuned_changed')).toBeNull();
+    expect(screen.queryByTestId('param-space-empty')).toBeNull();
+  });
+
+  it('Test 4 (AC-11): race-aware gating — template resolves first, panel waits for study to settle', async () => {
+    let resolveStudy!: (resp: Response) => void;
+    const studyPromise = new Promise<Response>((r) => {
+      resolveStudy = r;
+    });
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p1`, () =>
+        HttpResponse.json(
+          proposalDetailPayload({
+            study_id: 's1',
+            config_diff: {},
+            digest: null,
+          }),
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/query-templates/t1`, () =>
+        HttpResponse.json(templateDetail({ declared_params: { foo: 'float' } })),
+      ),
+      http.get(`${API_BASE}/api/v1/studies/s1`, async () => studyPromise),
+    );
+
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { ProposalDetailView } = await import('@/app/proposals/[id]/page');
+    render(
+      <QueryClientProvider client={qc}>
+        <TooltipProvider delayDuration={0}>
+          <ProposalDetailView proposalId="p1" />
+        </TooltipProvider>
+      </QueryClientProvider>,
+    );
+
+    // Proposal + template resolve; study held pending. (config_diff is empty
+    // here, so the ConfigDiffPanel shows its empty state, not the table.)
+    await waitFor(() => expect(screen.getByText('Proposal detail')).toBeInTheDocument());
+    await waitFor(() =>
+      expect(qc.getQueryState(['query-templates', 't1'])?.status).toBe('success'),
+    );
+    // Race-specific assertion: template ready, study pending → panel ABSENT.
+    expect(screen.queryByTestId('param-space-group-tuned_unchanged')).toBeNull();
+    expect(screen.queryByTestId('param-space-empty')).toBeNull();
+
+    // Resolve the study fetch — panel now mounts with the correct classification.
+    resolveStudy(
+      HttpResponse.json(studyDetail({ search_space: { params: { foo: { min: 0, max: 1 } } } })),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('param-space-row-tuned_unchanged-foo')).toBeInTheDocument(),
+    );
+  });
+
+  it('Test 5 (FR-3 regression guard): study proposal with NO actionable followups still fetches the study', async () => {
+    // Cycle-3 F1: without lifting the useStudy gate, a text-only digest would
+    // leave search_space undefined and mis-classify `foo` as untuned.
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p2`, () =>
+        HttpResponse.json(
+          proposalDetailPayload({
+            id: 'p2',
+            study_id: 's2',
+            config_diff: {},
+            digest: {
+              id: 'd2',
+              narrative: '## Summary',
+              parameter_importance: {},
+              recommended_config: {},
+              suggested_followups: [{ kind: 'text', rationale: 'tweak BM25', search_space: null }],
+              generated_at: '2026-05-12T00:00:00Z',
+            },
+          }),
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/studies/s2`, () =>
+        HttpResponse.json(
+          studyDetail({ id: 's2', search_space: { params: { foo: { min: 0, max: 1 } } } }),
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/query-templates/t1`, () =>
+        HttpResponse.json(templateDetail({ declared_params: { foo: 'float', bar: 'int' } })),
+      ),
+    );
+    await renderPage('p2');
+    // foo is in search_space → tunedUnchanged (NOT untuned). This fails if the
+    // useStudy lift were missing.
+    await waitFor(() =>
+      expect(screen.getByTestId('param-space-row-tuned_unchanged-foo')).toBeInTheDocument(),
+    );
+    expect(screen.queryByTestId('param-space-row-untuned-foo')).toBeNull();
+    // bar is declared but NOT in search_space → untuned.
+    expect(screen.getByTestId('param-space-row-untuned-bar')).toBeInTheDocument();
+  });
+
+  it('Test 6 (FR-7 edge A): source-study fetch error → panel still mounts, tunedUnchanged empty', async () => {
+    server.use(
+      http.get(`${API_BASE}/api/v1/proposals/p3`, () =>
+        HttpResponse.json(
+          proposalDetailPayload({
+            id: 'p3',
+            study_id: 's3',
+            config_diff: {},
+            digest: null,
+          }),
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/studies/s3`, () =>
+        HttpResponse.json(
+          { detail: { error_code: 'STUDY_NOT_FOUND', message: 'gone', retryable: false } },
+          { status: 404 },
+        ),
+      ),
+      http.get(`${API_BASE}/api/v1/query-templates/t1`, () =>
+        HttpResponse.json(templateDetail({ declared_params: { foo: 'float', bar: 'int' } })),
+      ),
+    );
+    await renderPage('p3');
+    // Study errored → searchSpaceParams undefined → every declared param is untuned.
+    await waitFor(() =>
+      expect(screen.getByTestId('param-space-row-untuned-foo')).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('param-space-row-untuned-bar')).toBeInTheDocument();
+    expect(screen.queryByTestId('param-space-group-tuned_unchanged')).toBeNull();
+  });
+});
