@@ -482,6 +482,49 @@ study tells you the path the autopilot took.
 PR on your behalf. The chain ends with a proposal you review and merge —
 your one decision.**
 
+### In the morning — read the overnight result card
+
+When the chain has terminated and has at least two links, the study detail
+page mounts an **Overnight result** card at the very top — above the
+linked-entities row — so the morning glance is the answer, not a scroll.
+The card compresses the rolled-up answer into one screen:
+
+- **Headline** — *"Overnight exploration complete — N studies, +0.NNNN
+  lift"*. Lift is the cumulative direction-normalized improvement from
+  the anchor to the winning link.
+- **Convergence chip** — *Converged* / *Still improving* / *Too few
+  trials*, reading the winning link's verdict via
+  [`feat_study_convergence_indicator`](../00_overview/implemented_features/2026_06_01_feat_study_convergence_indicator/feature_spec.md).
+  Hidden when the verdict is null.
+- **Explored path** — *"Explored: narrow → swap to function-score-v1 →
+  widen"*. The per-link tokens come from each chain link's
+  `selected_followup_kind`; the anchor is dropped (it had no parent
+  follow-up to consume). Legacy `narrow` chains where every kind is null
+  get a path-less card — the line is omitted entirely rather than
+  showing blanks.
+- **Best config** — links straight to the winning link's proposal at
+  `/proposals/{id}`. When the proposal hasn't been created yet (race
+  with the digest worker), the line reads *"Best config: {name}
+  (Awaiting proposal)"* without a link.
+- **Stop reason** — friendly phrase for `chain.stop_reason` (e.g. *"no
+  further improvement"*, *"depth budget exhausted"*). The
+  `depth_exhausted` and `budget` reasons carry the same inline tooltip
+  as the chain panel below.
+- **Summary** — short excerpt from the winning link's `digests.narrative`
+  (truncated to ~240 chars at a sentence boundary), with a *"View full
+  digest →"* link to the winning link's full digest panel.
+
+The morning card is the **glance**. The existing chain panel still mounts
+mid-page and surfaces the per-link detail (the table of links, per-link
+strategy badges, per-link metrics) for when you want to walk the chain
+link by link.
+
+You'll also notice a **Strategy** line inside the linked-entities row of
+EVERY study that runs under an explicit strategy — *"Strategy: Refine
+same knobs"* or *"Strategy: Try suggested follow-ups"*. It's read-only;
+the strategy is locked at study creation and inherited verbatim by every
+chain descendant. To switch, create a new study.
+
 ---
 
 ## Where to go next

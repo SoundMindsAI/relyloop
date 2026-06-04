@@ -116,6 +116,28 @@ describe('feat_digest_executable_followups Story 5.3 — followup glossary keys'
   });
 });
 
+describe('feat_overnight_final_solution_phase2 Story 1 / FR-6 — morning card + strategy line glossary keys (AC-12)', () => {
+  it('overnight_result entry exists with short + long', () => {
+    expect(glossary['overnight_result'], 'glossary[overnight_result] missing').toBeDefined();
+    expect(glossary['overnight_result']?.short).toBeTruthy();
+    expect(glossary['overnight_result']?.long).toBeTruthy();
+  });
+
+  it('auto_followup_strategy_line entry exists with short + long', () => {
+    expect(
+      glossary['auto_followup_strategy_line'],
+      'glossary[auto_followup_strategy_line] missing',
+    ).toBeDefined();
+    expect(glossary['auto_followup_strategy_line']?.short).toBeTruthy();
+    expect(glossary['auto_followup_strategy_line']?.long).toBeTruthy();
+  });
+
+  it('both new entries have short ≤ 140 chars (per glossary.ts policy)', () => {
+    expect(glossary['overnight_result']?.short?.length ?? 0).toBeLessThanOrEqual(140);
+    expect(glossary['auto_followup_strategy_line']?.short?.length ?? 0).toBeLessThanOrEqual(140);
+  });
+});
+
 describe('feat_overnight_final_solution Story 1.2 — overnight_strategy glossary key (AC-16)', () => {
   it('overnight_strategy entry exists with short + long', () => {
     expect(glossary['overnight_strategy'], 'glossary[overnight_strategy] missing').toBeDefined();
