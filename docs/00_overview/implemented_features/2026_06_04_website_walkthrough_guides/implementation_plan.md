@@ -1,7 +1,7 @@
 # Implementation Plan — Walkthrough guides on the public website (relyloop.com)
 
 **Date:** 2026-06-04
-**Status:** Draft
+**Status:** Complete (PR #448, squash-merged `36932256`, 2026-06-04)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Generated-artifacts freshness-gate convention), [`copy-docs-freshness.yml`](../../../../../.github/workflows/copy-docs-freshness.yml) (own-workflow precedent), [`ui/scripts/copy-docs.mjs`](../../../../../ui/scripts/copy-docs.mjs) (single-direction-mirror + prune pattern)
 
