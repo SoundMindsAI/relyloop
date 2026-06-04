@@ -132,6 +132,7 @@ from backend.app.db.repo.study import (
     hard_delete_study,
     list_children_of_study,
     list_queued_study_ids,
+    list_recent_completed_chains,
     list_running_study_ids,
     list_studies,
 )
@@ -201,6 +202,9 @@ __all__ = [
     # overnight-chain summary (FR-3).
     "ChainTraversalResult",
     "get_chain_for_study",
+    # feat_overnight_studies_summary_card Story 1.1 — recent-completed-chains
+    # discovery feeding the "Ran while you were away" card on /studies (FR-1).
+    "list_recent_completed_chains",
     # feat_llm_judgments Story 1.2 (judgments child table + judgment_list extensions)
     "bulk_create_judgments",
     "count_judgment_lists",

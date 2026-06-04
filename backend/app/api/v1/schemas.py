@@ -1008,6 +1008,63 @@ class StudyChainResponse(BaseModel):
     links: list[StudyChainLink]
 
 
+class RecentChainSummary(BaseModel):
+    """One row in the ``GET /api/v1/studies/chains/recent`` response.
+
+    Per spec §8.1 (feat_overnight_studies_summary_card). Per-chain
+    rollup feeding the "Ran while you were away" card on ``/studies``
+    — anchor identity + chain length + the best link's metric + the
+    chain's cumulative lift + the derived stop reason + the
+    surfaceable proposal id for the best link. Read-only; no state
+    transitions, no audit events.
+    """
+
+    anchor_study_id: str
+    anchor_name: str
+    chain_length: int
+    """``len(traversal.links)`` — guaranteed ``>= 2`` by the discovery
+    repo (FR-1)."""
+    best_metric: float | None
+    """``None`` when every link's ``best_metric IS NULL`` (e.g. a
+    terminal-failed chain). The card renders the stop-reason phrase in
+    place of the numeric line on this path (AC-11)."""
+    objective_metric: str
+    """``traversal.links[0].objective.get('metric')`` — surfaced so the
+    card can render "Best <metric>: <value>" without an extra request."""
+    cumulative_lift: float | None
+    """Direction-normalized lift via
+    :func:`backend.app.domain.study.chain_summary.compute_cumulative_lift`.
+    ``None`` when the completed-link subset is empty OR no baseline is
+    derivable (mirrors the chain panel's null-lift contract)."""
+    direction: ObjectiveDirection
+    stop_reason: ChainStopReason
+    """Derived per spec §9. Values must match
+    backend/app/domain/study/chain_summary.py CHAIN_STOP_REASONS."""
+    best_link_proposal_id: str | None
+    """The selected (newest non-rejected) proposal for the best link,
+    surfaced so the card's "Review chain" link can deep-link directly
+    to the proposal when one exists."""
+    tail_completed_at: datetime
+    """``traversal.links[-1].completed_at`` — the chain tail's terminal
+    timestamp. Drives the card's localStorage dismissal cutoff
+    (``max(tail_completed_at) + 1ms`` per FR-5)."""
+
+
+class RecentChainsResponse(BaseModel):
+    """``GET /api/v1/studies/chains/recent`` response shape.
+
+    Inert pagination: this endpoint emits ``next_cursor=null`` and
+    ``has_more=false`` always (OQ-2 resolved — limit-cap only). The
+    fields stay on the wire for consistency with the rest of the
+    studies surface, so a future MVP3 keyset-pagination story can
+    populate them without breaking clients (idea filed in this PR).
+    """
+
+    data: list[RecentChainSummary]
+    next_cursor: str | None = None
+    has_more: bool = False
+
+
 class StudySummary(BaseModel):
     """List-view shape."""
 

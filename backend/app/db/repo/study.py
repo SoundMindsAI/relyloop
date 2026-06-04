@@ -33,6 +33,7 @@ from backend.app.db.repo._sort import (
     order_by_clauses,
     parse_sort,
 )
+from backend.app.domain.study.chain_summary import derive_chain_stop_reason
 
 logger = logging.getLogger(__name__)
 
@@ -370,6 +371,117 @@ async def get_chain_for_study(
         proposal_id_by_link_id=proposal_id_by_link_id,
         anchor_trials=anchor_trials,
     )
+
+
+# ---------------------------------------------------------------------------
+# feat_overnight_studies_summary_card Story 1.1 — recent-completed-chains
+# discovery feeding the "Ran while you were away" card on /studies (FR-1).
+# Pure read; one row per chain (anchor-deduped); terminal-only; length >= 2;
+# in-flight defensively excluded; tail-completion-DESC ordering.
+# ---------------------------------------------------------------------------
+
+
+_TERMINAL_STUDY_STATUSES: tuple[str, ...] = ("completed", "cancelled", "failed")
+
+
+async def list_recent_completed_chains(
+    db: AsyncSession,
+    *,
+    since: datetime | None = None,
+    limit: int = 20,
+) -> list[ChainTraversalResult]:
+    """Return de-duplicated completed overnight chains (length >= 2).
+
+    Newest tail-completion first, capped at ``limit`` distinct chains.
+
+    Algorithm (FR-1):
+
+    1. SELECT candidate member ids — studies that ARE follow-up children
+       (``parent_study_id IS NOT NULL``, which guarantees their chain has
+       length >= 2) AND have terminated (``completed_at IS NOT NULL`` AND
+       ``status IN ('completed','cancelled','failed')``) AND, when
+       ``since`` is supplied, completed since that cutoff. Ordered by
+       ``completed_at DESC``. Scan-capped at ``limit * _CHAIN_MAX_DESCENDANTS``
+       so dedup-to-anchor can still fill ``limit`` distinct chains in the
+       worst case where every chain is fully maxed out (anchor + 5
+       descendants).
+    2. For each candidate (newest first), resolve its anchor via
+       :func:`get_chain_for_study` and key into an ordered dict on
+       ``anchor_id`` to deduplicate to one row per chain. Skip anchors
+       already collected.
+    3. Skip any chain whose
+       :func:`backend.app.domain.study.chain_summary.derive_chain_stop_reason`
+       returns ``"in_flight"`` — step 1 already excludes non-terminal
+       tails, but a chain with a still-running *interior* link must also
+       be excluded (mirrors the chain panel's terminal-only contract).
+    4. Skip any chain whose ``len(links) < 2`` — defensive; the
+       ``parent_study_id IS NOT NULL`` candidate filter already implies
+       length >= 2, but a concurrent hard-delete of the anchor (no
+       ``ondelete='SET NULL'`` on the self-FK, so this is rare) could
+       leave a single-row traversal.
+    5. Skip candidates whose :func:`get_chain_for_study` returns ``None``
+       — the concurrent-delete race where a chain member is hard-deleted
+       between the candidate query and the traversal (reachable via the
+       ``hard_delete_study`` test teardown path). Mirrors the defensive
+       skip already in ``get_chain_for_study`` at the hydration step.
+    6. Stop once ``limit`` distinct chains are collected. Return the
+       ``ChainTraversalResult`` list in tail-completion-DESC order
+       (preserved by the candidate-order traversal — the *first*
+       candidate hit for any chain is its newest terminal child, which
+       is the chain's tail).
+    """
+    scan_cap = max(1, limit * _CHAIN_MAX_DESCENDANTS)
+    candidate_stmt = (
+        select(Study.id)
+        .where(
+            Study.parent_study_id.is_not(None),
+            Study.completed_at.is_not(None),
+            Study.status.in_(_TERMINAL_STUDY_STATUSES),
+        )
+        .order_by(Study.completed_at.desc(), Study.id.desc())
+        .limit(scan_cap)
+    )
+    if since is not None:
+        candidate_stmt = candidate_stmt.where(Study.completed_at >= since)
+    candidate_ids: list[str] = list((await db.execute(candidate_stmt)).scalars().all())
+
+    # Insertion-ordered dict — first hit per anchor wins, preserving
+    # tail-completion-DESC order. ``seen_study_ids`` tracks every member
+    # of every chain we've already resolved so subsequent candidates
+    # that belong to the same chain (a 6-link chain produces up to 5
+    # qualifying candidates) skip the redundant traversal call. Per
+    # Gemini Code Assist PR-444 finding #1 — eliminates the N+1 pattern
+    # without changing the dedup outcome.
+    by_anchor: dict[str, ChainTraversalResult] = {}
+    seen_study_ids: set[str] = set()
+    for candidate_id in candidate_ids:
+        if len(by_anchor) >= limit:
+            break
+        if candidate_id in seen_study_ids:
+            continue
+        traversal = await get_chain_for_study(db, candidate_id)
+        if traversal is None:
+            # Concurrent hard-delete between candidate query and traversal
+            # (e.g. test teardown). Skip silently per Story 1.1 task 5.
+            continue
+        # Mark every walked link as seen BEFORE the dedup check so a
+        # candidate from the same chain is skipped early on the next
+        # iteration even if this chain ends up excluded by the in-flight /
+        # length guards below.
+        seen_study_ids.update(link.id for link in traversal.links)
+        if traversal.anchor_id in by_anchor:
+            continue
+        if len(traversal.links) < 2:
+            # Defensive; the candidate filter implies length >= 2 unless
+            # the anchor was concurrently deleted out of the chain.
+            continue
+        stop_reason = derive_chain_stop_reason(traversal.links, traversal.anchor_trials)
+        if stop_reason == "in_flight":
+            # Interior link still running — chain isn't done; exclude.
+            continue
+        by_anchor[traversal.anchor_id] = traversal
+
+    return list(by_anchor.values())
 
 
 # ---------------------------------------------------------------------------

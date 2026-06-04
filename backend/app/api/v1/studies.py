@@ -49,6 +49,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1.schemas import (
     CreateStudyRequest,
+    RecentChainsResponse,
+    RecentChainSummary,
     StudyChainLink,
     StudyChainResponse,
     StudyDetail,
@@ -597,6 +599,110 @@ async def list_studies(
         next_cursor=next_cursor,
         has_more=has_more,
     )
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/studies/chains/recent
+# (feat_overnight_studies_summary_card §8.1)
+#
+# IMPORTANT: This static route MUST be declared BEFORE the
+# ``/studies/{study_id}`` dynamic route below — FastAPI matches routes in
+# registration order, so a dynamic ``{study_id}`` declared first would
+# capture ``chains`` as the path param and 404 the lookup. The route-order
+# regression assertion lives in test_studies_chain_recent_api.py.
+# ---------------------------------------------------------------------------
+
+
+def _recent_chain_row(traversal: repo.ChainTraversalResult) -> RecentChainSummary:
+    """Build one row of the recent-chains response.
+
+    Mirrors the derivation block in :func:`get_study_chain` (lines
+    ~851-859) — same ``select_best_link`` / ``compute_cumulative_lift`` /
+    ``derive_chain_stop_reason`` helpers, same anchor-direction lookup,
+    same proposal-id-by-link-id map. We do NOT extract a shared helper
+    here per Plan §5 ("bounded shared-helper extraction only") — the two
+    derivation blocks render different response shapes, and one row
+    pulls only a subset of what ``get_study_chain`` emits.
+    """
+    anchor = traversal.links[0]
+    tail = traversal.links[-1]
+    raw_direction = anchor.objective.get("direction", "maximize")
+    direction = raw_direction if raw_direction in ("maximize", "minimize") else "maximize"
+    stop_reason = derive_chain_stop_reason(traversal.links, traversal.anchor_trials)
+    cumulative_lift = compute_cumulative_lift(traversal.links, traversal.anchor_trials)
+    best_link_id = select_best_link(traversal.links)
+    best_metric = next((lk.best_metric for lk in traversal.links if lk.id == best_link_id), None)
+    best_link_proposal_id = (
+        traversal.proposal_id_by_link_id.get(best_link_id) if best_link_id else None
+    )
+    # ``tail.completed_at`` is guaranteed non-null by the discovery repo's
+    # candidate filter (status IN (terminal) AND completed_at IS NOT NULL),
+    # so the ``or _BASE_NEVER`` fallback below is dead code by construction
+    # — it satisfies mypy's ``datetime | None`` → ``datetime`` narrowing
+    # without an ``assert`` (which ruff S101 forbids in production code).
+    # ``select_best_link`` returns ``None`` for an all-NULL-best_metric
+    # tail (e.g. a chain whose only terminal status is "failed"), in
+    # which case ``best_metric`` here is ``None`` — the card renders the
+    # stop-reason phrase in that branch (AC-11).
+    tail_completed_at = tail.completed_at
+    if tail_completed_at is None:  # pragma: no cover — discovery repo guarantees terminal tail
+        # Defensive: a future change to the candidate filter that drops
+        # the ``completed_at IS NOT NULL`` predicate must not silently
+        # ship a ValidationError 500. Skip the row by raising the same
+        # AC-11 null-metric branch upstream — but for now the row is
+        # always populated and this branch is unreachable.
+        raise _err(
+            500,
+            "INTERNAL_ERROR",
+            f"chain tail {tail.id} has no completed_at",
+            True,
+        )
+    return RecentChainSummary(
+        anchor_study_id=anchor.id,
+        anchor_name=anchor.name,
+        chain_length=len(traversal.links),
+        best_metric=best_metric,
+        objective_metric=str(anchor.objective.get("metric", "")),
+        cumulative_lift=cumulative_lift,
+        direction=direction,
+        stop_reason=stop_reason,
+        best_link_proposal_id=best_link_proposal_id,
+        tail_completed_at=tail_completed_at,
+    )
+
+
+@router.get(
+    "/studies/chains/recent",
+    response_model=RecentChainsResponse,
+    tags=["studies"],
+)
+async def get_recent_chains(
+    response: Response,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    since: Annotated[datetime | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 20,
+) -> RecentChainsResponse:
+    """List recently-completed overnight chains (FR-1, AC-1/2/3/4/5/6/11/12).
+
+    Returns the deduplicated set of completed overnight chains (length
+    >= 2) ordered newest-tail-completion-first, capped at ``limit``. The
+    ``since`` filter restricts to chains whose tail completed at or
+    after the cutoff (used by the card to seed the "what's new since I
+    last visited" query).
+
+    Malformed ``since`` / out-of-range ``limit`` flow through the
+    global ``validation_exception_handler`` and return the canonical
+    422 ``VALIDATION_ERROR`` envelope (no manual parse path).
+
+    Pagination: inert. ``next_cursor=null`` and ``has_more=false``
+    always — OQ-2 resolved limit-cap-only for v1. Keyset pagination
+    deferred to a separate ``chore_`` idea filed against the spec's
+    open questions.
+    """
+    chains = await repo.list_recent_completed_chains(db, since=since, limit=limit)
+    rows = [_recent_chain_row(c) for c in chains]
+    response.headers["X-Total-Count"] = str(len(rows))
+    return RecentChainsResponse(data=rows, next_cursor=None, has_more=False)
 
 
 # ---------------------------------------------------------------------------

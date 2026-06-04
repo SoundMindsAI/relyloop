@@ -983,6 +983,21 @@ export const glossary = {
     ].join('\n'),
     ariaLabel: 'More information about the auto-followup strategy line',
   },
+  // feat_overnight_studies_summary_card Story 2.3 / FR-6 — new key for the
+  // "Ran while you were away" card on the /studies index page. Compresses
+  // the spec §11 tooltip-inventory copy into ≤140-char short + 800-char long.
+  recent_chains_card: {
+    short:
+      "RelyLoop ran follow-up studies overnight. This card shows chains that finished since your last visit; 'Got it' hides it.",
+    long: [
+      'Appears at the top of `/studies` when one or more auto-followup chains have completed (at least 2 linked studies, terminated) since the last time you visited this page. Each row summarizes one chain: the anchor study, how many links it ran, the best metric the chain produced, the total lift over the anchor baseline, and why the chain stopped.',
+      '',
+      'Click `Review chain` to open the anchor study and inspect the full chain panel. Click `Got it` to dismiss every row currently shown — the card stays hidden until a brand-new chain finishes after that dismissal.',
+      '',
+      'The card is best-effort: when the backend is unreachable or no chains have finished since your last visit, it simply does not render — it never blocks the studies table from loading.',
+    ].join('\n'),
+    ariaLabel: 'More information about the recent chains card',
+  },
   auto_followup_chain: {
     short:
       'RelyLoop ran follow-up studies automatically based on this study’s winner. Each follow-up narrowed the search bounds.',
