@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">16 / 26</div>
-      <div class="sub">62% specced · 50 filed under MVP2</div>
-      <div class="bar"><span style="width:62%"></span></div>
+      <div class="value">17 / 26</div>
+      <div class="sub">65% specced · 50 filed under MVP2</div>
+      <div class="bar"><span style="width:65%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">32</div>
+      <div class="value">31</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">27</div>
+      <div class="value">26</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">26</div>
+      <div class="value">25</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -732,7 +732,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">12</span></h3>
+  <h3>Plan <span class="count">11</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -742,19 +742,6 @@ footer {
 
   </div>
   <div class="one-liner">The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose.</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_studies_summary_card/feature_spec.md">Overnight Studies Summary Card</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/343">PR #343</a>
-  </div>
-  <div class="one-liner">A &quot;ran while you were away&quot; card surfaces at the top of `/studies` when at least one overnight chain has completed since the operator&#x27;s last visit.</div>
 
 
 </div>
@@ -897,7 +884,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">18</span></h3>
+  <h3>Done <span class="count">19</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -959,6 +946,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/442">PR #442</a> <span>merged 2026-06-04</span>
   </div>
   <div class="one-liner">When the chain that this study belongs to has terminated (`stop_reason` ≠ `in_flight`) and has at least 2 links, a top-of-page **Overnight result card** mounts above `LinkedEntitiesRow` and compresses</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_04_feat_overnight_studies_summary_card/feature_spec.md">Overnight Studies Summary Card</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/444">PR #444</a> <span>merged 2026-06-04</span>
+  </div>
+  <div class="one-liner">A &quot;ran while you were away&quot; card surfaces at the top of `/studies` when at least one overnight chain has completed since the operator&#x27;s last visit.</div>
 
 
 </div>
@@ -1157,8 +1157,6 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
-  class feat_overnight_studies_summary_card plan;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
@@ -1197,6 +1195,8 @@ footer {
   class feat_overnight_final_solution done;
   feat_overnight_final_solution_phase2[&quot;overnight final solution phase2&quot;]
   class feat_overnight_final_solution_phase2 done;
+  feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
+  class feat_overnight_studies_summary_card done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1216,8 +1216,6 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
-  class feat_overnight_studies_summary_card plan;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
@@ -1256,6 +1254,8 @@ footer {
   class feat_overnight_final_solution done;
   feat_overnight_final_solution_phase2[&quot;overnight final solution phase2&quot;]
   class feat_overnight_final_solution_phase2 done;
+  feat_overnight_studies_summary_card[&quot;overnight studies summary card&quot;]
+  class feat_overnight_studies_summary_card done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>

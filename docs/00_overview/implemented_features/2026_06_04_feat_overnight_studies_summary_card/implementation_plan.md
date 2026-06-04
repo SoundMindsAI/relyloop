@@ -1,7 +1,7 @@
 # Implementation Plan — Overnight "Ran While You Were Away" Summary Card
 
 **Date:** 2026-06-01
-**Status:** Draft
+**Status:** Complete (PR #444, merged 2026-06-04)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) (Absolute Rules, enum discipline), [`docs/01_architecture/api-conventions.md`](../../../01_architecture/api-conventions.md), [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md)
 
