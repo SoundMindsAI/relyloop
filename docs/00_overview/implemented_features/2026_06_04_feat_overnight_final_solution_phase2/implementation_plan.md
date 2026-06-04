@@ -1,7 +1,7 @@
 # Implementation Plan — Overnight final solution Phase 2 (morning summary card + strategy line)
 
 **Date:** 2026-06-03
-**Status:** Draft
+**Status:** Complete (PR #442, merged 2026-06-04)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) (frontend conventions, Enumerated Value Contract Discipline, form-select-discipline rule, E2E rules), [`docs/01_architecture/ui-architecture.md`](../../../../01_architecture/ui-architecture.md)
 

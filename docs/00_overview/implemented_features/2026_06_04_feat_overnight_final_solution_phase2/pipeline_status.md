@@ -1,5 +1,7 @@
 # Pipeline Status — Overnight final solution Phase 2 (morning summary card + strategy line)
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: [idea.md](idea.md)
@@ -21,4 +23,10 @@
 - Phases covered: Phase 2 (single phase).
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-04
+- PR: #442 (squash-merged `0c4e0358`)
+- CI: all 17 `pr.yml` checks green (smoke skipped — opt-in/off)
+- Stories: 6 / 6 complete across 1 epic
+- Cross-model review: Gemini cycle-1 1 finding (accepted + fixed); GPT-5.5 final 2 findings (1 accepted + fixed, 1 deferred via `chore_overnight_result_card_screenshot`)
+- Deferred: FR-9 populated-stack screenshot → [`chore_overnight_result_card_screenshot`](../chore_overnight_result_card_screenshot/idea.md) (demo seed can't produce a follow_suggestions chain with winning digest+proposal)
