@@ -956,6 +956,33 @@ export const glossary = {
     ].join('\n'),
     ariaLabel: 'More information about the overnight strategy choice',
   },
+  // feat_overnight_final_solution_phase2 Story 1 / FR-6 — two new keys for the
+  // morning summary card and the read-only strategy line. AC-12 in the
+  // glossary lock test asserts both exist with `short` + `long`.
+  overnight_result: {
+    short:
+      "Morning summary card on any chain link's detail page. Headline + explored path + winning config + stop reason at a glance.",
+    long: [
+      "Renders at the top of `/studies/{id}` when the auto-followup chain has terminated and has at least 2 links. Compresses the rolled-up answer — total lift, the strategy path the chain explored (narrow / widen / swap_template tokens), the winning config link, the stop reason, and a short excerpt from the winning link's digest narrative — into one glance.",
+      '',
+      'The chain panel below still surfaces the per-link detail; the card is the morning-review glance, the panel is the deep view. Both shipped together so operators can read top-down through whichever they need.',
+    ].join('\n'),
+    ariaLabel: 'More information about the overnight result card',
+  },
+  auto_followup_strategy_line: {
+    short:
+      "This study's overnight-followup strategy. Set at study create; inherited by chain descendants.",
+    long: [
+      'Read-only line in the linked-entities row showing which auto-followup strategy this study runs under.',
+      '',
+      '**Refine same knobs ("narrow"):** the safe default — each follow-up re-narrows the same template with tighter bounds around the previous winner.',
+      '',
+      '**Try suggested follow-ups ("follow_suggestions"):** each chain link branches onto the digest\'s top executable follow-up, which may switch knobs (`widen`) or templates (`swap_template`).',
+      '',
+      'Inherited verbatim by every chain descendant; cannot be changed mid-chain. To switch strategies, create a new study.',
+    ].join('\n'),
+    ariaLabel: 'More information about the auto-followup strategy line',
+  },
   auto_followup_chain: {
     short:
       'RelyLoop ran follow-up studies automatically based on this study’s winner. Each follow-up narrowed the search bounds.',

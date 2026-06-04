@@ -16,6 +16,8 @@ import {
   type StudySummary,
 } from '@/lib/api/studies';
 import { useTemplate } from '@/lib/api/query-templates';
+import { CHAIN_STOP_REASON_PHRASE } from '@/lib/chain-stop-reason';
+import { formatSignedLift } from '@/lib/format-lift';
 
 export interface AutoFollowupChainPanelProps {
   study: StudyDetail;
@@ -29,27 +31,11 @@ export interface AutoFollowupChainPanelProps {
   chainChildren: StudySummary[];
 }
 
-// feat_overnight_autopilot FR-4 — wire stop_reason → human phrase.
-// Source-of-truth: backend/app/domain/study/chain_summary.py CHAIN_STOP_REASONS
-const CHAIN_STOP_REASON_PHRASE: Record<NonNullable<StudyChainResponse['stop_reason']>, string> = {
-  depth_exhausted: 'depth budget exhausted',
-  no_lift: 'no further improvement',
-  budget: 'daily LLM budget reached',
-  parent_failed: 'parent study failed or was cancelled',
-  cancelled: 'operator cancelled the chain',
-  in_flight: 'chain still running',
-};
+// feat_overnight_final_solution_phase2 Story 1 / FR-8 — CHAIN_STOP_REASON_PHRASE
+// and formatSignedLift were extracted to shared modules so the new
+// <OvernightResultCard> can consume identical formatting without re-deriving.
 
 const TERMINAL_STUDY_STATUSES: ReadonlySet<string> = new Set(['completed', 'cancelled', 'failed']);
-
-/**
- * Format a signed lift/delta value with a leading `+`/`-` and 4 decimals.
- * Returns '—' for null (matches the children-table empty-cell convention).
- */
-function formatSignedLift(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '—';
-  return `${value >= 0 ? '+' : ''}${value.toFixed(4)}`;
-}
 
 /** Per-link delta string: '' (empty) for the anchor / in-flight links. */
 function formatDelta(value: number | null | undefined): string {
