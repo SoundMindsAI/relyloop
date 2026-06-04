@@ -15,6 +15,7 @@ import { AutoFollowupChainPanel } from '@/components/studies/auto-followup-chain
 import { ConfidencePanel } from '@/components/studies/confidence-panel';
 import { ConvergencePanel } from '@/components/studies/convergence-panel';
 import { LinkedEntitiesRow } from '@/components/studies/linked-entities-row';
+import { OvernightResultCard } from '@/components/studies/overnight-result-card';
 import { DigestPanel } from '@/components/studies/digest-panel';
 import { StudyActionBar } from '@/components/studies/study-action-bar';
 import { StudyHeader } from '@/components/studies/study-header';
@@ -93,6 +94,7 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
               (bottom-right) for the step-by-step walkthrough.
             </p>
             <StudyHeaderWithSyntheticChip study={study} />
+            <OvernightResultCard study={study} />
             <LinkedEntitiesRow study={study} />
             {proposalQ.data && (
               <p className="text-sm" data-testid="study-proposal-link">
