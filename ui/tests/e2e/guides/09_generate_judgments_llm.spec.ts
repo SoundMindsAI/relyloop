@@ -30,7 +30,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
 import metadata from '../../../public/guides/09_generate_judgments_llm/metadata.json';
-import { glide, installCursor, loadStepCaptions, shot, StepTimer, writeCaptionsVtt } from '../helpers/demo-cursor';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, finalizeCaptions } from '../helpers/demo-cursor';
 import { seedQuerySet, seedTemplate } from '../helpers/seed';
 
 const SLUG = '09_generate_judgments_llm';
@@ -72,16 +72,24 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
     await nameField.fill(listName);
     const targetField = page.getByLabel(/Target index/);
     await glide(page, targetField, 400);
+    // Filling the target enables the UBI-readiness probe
+    // (GET .../ubi-readiness?...&target=products), which auto-selects a method
+    // from the cluster's rung — for a UBI-rich seeded cluster that can be a
+    // UBI-only method (ctr_threshold / dwell_time) that HIDES the #gen-template
+    // field. Wait DETERMINISTICALLY for that response (set up BEFORE the fill so
+    // there's no listener race; best-effort — fall through if it never fires),
+    // THEN force method=LLM-as-judge. Doing it after the auto-select means the
+    // value genuinely changes, so react-hook-form marks the field dirty and the
+    // rung effect can't override it again. Pre-existing footgun independent of
+    // the cursor/caption work.
+    const readinessSettled = page
+      .waitForResponse(
+        (r) => r.url().includes('/ubi-readiness') && r.url().includes('target=products'),
+        { timeout: 10_000 },
+      )
+      .catch(() => undefined);
     await targetField.fill('products');
-    // Filling the target fires the UBI-readiness probe, which auto-selects a
-    // method from the cluster's rung — for a UBI-rich seeded cluster that can be
-    // a UBI-only method (ctr_threshold / dwell_time) that HIDES the #gen-template
-    // field. Wait for readiness to settle, then force method=LLM-as-judge so the
-    // template select reliably mounts. We do this AFTER the auto-select fires (so
-    // the value genuinely changes and react-hook-form marks the field dirty,
-    // which stops the rung effect from overriding it again). Pre-existing footgun
-    // independent of the cursor/caption work.
-    await page.waitForTimeout(800);
+    await readinessSettled;
     await glide(page, page.getByTestId('gen-method'), 300);
     await page.getByTestId('gen-method').click();
     await page.getByRole('option', { name: 'LLM-as-judge' }).click();
@@ -164,16 +172,6 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
       fullPage: true,
     });
 
-    if (captions.length === 0) {
-      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
-      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
-    } else {
-      if (timer.timings.length !== captions.length) {
-        throw new Error(
-          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-        );
-      }
-      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
-    }
+    finalizeCaptions(timer, captions, SLUG, GUIDES_ROOT);
   });
 });

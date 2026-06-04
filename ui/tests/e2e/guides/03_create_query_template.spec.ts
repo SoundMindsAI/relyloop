@@ -22,7 +22,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 
 import metadata from '../../../public/guides/03_create_query_template/metadata.json';
-import { glide, installCursor, loadStepCaptions, shot, StepTimer, writeCaptionsVtt } from '../helpers/demo-cursor';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, finalizeCaptions } from '../helpers/demo-cursor';
 
 const SLUG = '03_create_query_template';
 const GUIDES_ROOT = path.resolve(__dirname, '../../../public/guides');
@@ -105,16 +105,6 @@ test.describe('Walkthrough: Create a query template', () => {
       fullPage: true,
     });
 
-    if (captions.length === 0) {
-      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
-      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
-    } else {
-      if (timer.timings.length !== captions.length) {
-        throw new Error(
-          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-        );
-      }
-      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
-    }
+    finalizeCaptions(timer, captions, SLUG, GUIDES_ROOT);
   });
 });

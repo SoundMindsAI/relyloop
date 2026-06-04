@@ -25,7 +25,7 @@ import path from 'node:path';
 import { expect, test } from '@playwright/test';
 
 import metadata from '../../../public/guides/05_import_judgments_and_calibrate/metadata.json';
-import { glide, installCursor, loadStepCaptions, shot, StepTimer, writeCaptionsVtt } from '../helpers/demo-cursor';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, finalizeCaptions } from '../helpers/demo-cursor';
 import { seedJudgmentList, seedQuerySet } from '../helpers/seed';
 
 const SLUG = '05_import_judgments_and_calibrate';
@@ -106,16 +106,6 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
       fullPage: false,
     });
 
-    if (captions.length === 0) {
-      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
-      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
-    } else {
-      if (timer.timings.length !== captions.length) {
-        throw new Error(
-          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-        );
-      }
-      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
-    }
+    finalizeCaptions(timer, captions, SLUG, GUIDES_ROOT);
   });
 });

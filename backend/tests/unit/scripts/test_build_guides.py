@@ -779,6 +779,33 @@ def test_verify_captions_consistency_fails_on_text_mismatch(tmp_path: Path) -> N
     assert "out of sync" in str(exc.value)
 
 
+def test_verify_captions_consistency_fails_on_missing_vtt_with_captions(tmp_path: Path) -> None:
+    # Gemini PR #451: a deck WITH captions in metadata but NO captions.vtt is a
+    # silent drift the freshness copy-check can't see — must fail loud.
+    src = tmp_path / "guides"
+    shots = [{"file": "01-x.png", "caption": "Open the page"}]
+    _make_deck(src, "01_x", screenshots=shots, with_webm=True)  # no captions.vtt written
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src), pytest.raises(SystemExit) as exc:
+        bg.verify_captions_consistency(decks)
+    assert "no captions.vtt" in str(exc.value)
+
+
+def test_verify_captions_consistency_passes_on_missing_vtt_no_captions(tmp_path: Path) -> None:
+    # The zero-caption path: a deck with only empty captions legitimately has no
+    # captions.vtt (the recording side deletes/skips it) — must NOT raise.
+    src = tmp_path / "guides"
+    shots = [{"file": "01-x.png", "caption": ""}, {"file": "02-x.png", "caption": "   "}]
+    _make_deck(src, "01_x", screenshots=shots, with_webm=True)  # no captions.vtt written
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src):
+        bg.verify_captions_consistency(decks)  # no raise
+
+
 def test_parse_vtt_cue_bodies_requires_webvtt_header() -> None:
     # Phase-gate hardening: a vtt without the WEBVTT header is rejected loudly.
     assert bg.parse_vtt_cue_bodies("WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nhi\n") == ["hi"]

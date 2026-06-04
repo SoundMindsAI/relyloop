@@ -1,16 +1,16 @@
 WEBVTT
 
-00:00:00.777 --> 00:00:02.618
+00:00:00.834 --> 00:00:02.673
 Open a query set's detail page. The 'Associated judgment lists' card on the right shows what's already been generated — or, on a fresh set, an empty state with the 'Generate judgments' button as the next action.
 
-00:00:02.618 --> 00:00:06.314
+00:00:02.673 --> 00:00:05.596
 Click 'Generate judgments' to open the dialog. The form has four fields: a name for the judgment list, the target index/collection on the cluster, the query template that produces candidate docs, and the rubric the LLM judge uses to score relevance.
 
-00:00:06.314 --> 00:00:08.203
+00:00:05.596 --> 00:00:07.488
 Fill the text fields: a unique name for the judgment list, the target index/collection on the cluster (e.g., 'products'), and customize the rubric if needed. The default rubric is a 0-3 relevance scale; tailor it to your domain ('Rate ecommerce search relevance' vs. 'Rate documentation search relevance').
 
-00:00:08.203 --> 00:00:10.935
+00:00:07.488 --> 00:00:10.211
 Open the template dropdown and pick the query template that produces candidate docs for each query. The worker renders this template per query, runs the search, and rates every returned doc — so template choice + top-K determine both the cost of generation and the judgments' downstream usefulness.
 
-00:00:10.935 --> 00:00:14.935
+00:00:10.211 --> 00:00:14.211
 Submit. The worker enqueues immediately (202 ACCEPTED) and begins hitting OpenAI per (query, doc) pair. The `/judgments/{id}` page polls for status. On success (`complete`), the per-judgment rows populate with rating + brief reasoning; on failure (`failed`), check the worker logs — common causes are cluster unreachable from the API container, daily budget exceeded, or LLM_PROVIDER_INCAPABLE (the configured model lacks structured output). Cost ~$0.01-0.05 with gpt-4o-mini for a small set.

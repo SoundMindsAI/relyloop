@@ -180,3 +180,29 @@ export function writeCaptionsVtt(timings: StepTiming[], slug: string, guidesRoot
   mkdirSync(dir, { recursive: true });
   writeFileSync(out, buildCaptionsVtt(timings), 'utf-8');
 }
+
+/**
+ * End-of-spec caption finalization — the single call every guide spec makes
+ * after marking each step. Enforces the all-or-nothing contract `loadStepCaptions`
+ * sets up: a zero-caption deck writes no vtt (and clears any stale one); a
+ * captioned deck must have exactly one `timer.mark()` per caption, then writes
+ * the vtt. Replaces the duplicated if/else boilerplate across the 10 specs
+ * (Gemini PR #451).
+ */
+export function finalizeCaptions(
+  timer: StepTimer,
+  captions: string[],
+  slug: string,
+  guidesRoot: string,
+): void {
+  if (captions.length === 0) {
+    writeCaptionsVtt([], slug, guidesRoot);
+    return;
+  }
+  if (timer.timings.length !== captions.length) {
+    throw new Error(
+      `caption/step mismatch for ${slug}: ${timer.timings.length} marks vs ${captions.length} captions`,
+    );
+  }
+  writeCaptionsVtt(timer.timings, slug, guidesRoot);
+}

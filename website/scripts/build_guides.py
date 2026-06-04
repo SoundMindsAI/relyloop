@@ -814,10 +814,21 @@ def verify_captions_consistency(decks: list[dict[str, Any]]) -> None:
     gate's copy check does NOT cover this)."""
     for deck in decks:
         vtt_path = GUIDES_SRC / deck["slug"] / LOCKED_CAPTIONS_NAME
+        captions = [s.get("caption", "") for s in deck["screenshots"]]
+        has_any_caption = any(c.strip() for c in captions)
         if not vtt_path.is_file():
+            # A deck with NO non-empty captions legitimately has no captions.vtt
+            # (the recording side's zero-caption path deletes/skips it). But a
+            # deck that DOES have captions in metadata with a missing vtt is a
+            # drift the freshness gate's copy check can't see — fail loud, the
+            # same all-or-nothing contract loadStepCaptions enforces on record.
+            if has_any_caption:
+                raise SystemExit(
+                    f"ERROR: deck={deck['slug']} has captions in metadata.json but no "
+                    f"{LOCKED_CAPTIONS_NAME}. Re-record (pnpm capture-guides) to emit it."
+                )
             continue
         bodies = parse_vtt_cue_bodies(vtt_path.read_text(encoding="utf-8"))
-        captions = [s.get("caption", "") for s in deck["screenshots"]]
         expected = [escape_vtt_cue_text(normalize_caption(c)) for c in captions]
         if bodies != expected:
             raise SystemExit(

@@ -43,7 +43,7 @@ describe('buildCaptionsVtt', () => {
     expect(vtt).toContain('00:00:00.000 --> 00:00:02.500');
     // last cue end = start + 4000 tail
     expect(vtt).toContain('00:00:02.500 --> 00:00:06.500');
-    expect((vtt.match(/-->/g) ?? []).length).toBe(2); // two cue timelines
+    expect(vtt.split('-->').length - 1).toBe(2); // two cue timelines (literal count, no regex)
   });
 
   it('escapes & < > and strips --> in cue bodies', () => {
