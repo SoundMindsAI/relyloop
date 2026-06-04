@@ -51,7 +51,12 @@ interface ChainRowProps {
 }
 
 function ChainRow({ row }: ChainRowProps) {
-  const stopPhrase = CHAIN_STOP_REASON_PHRASE[row.stop_reason] ?? row.stop_reason;
+  // CHAIN_STOP_REASON_PHRASE is typed Record<ChainStopReason, string> so this
+  // lookup is exhaustive under TypeScript. The runtime `?? 'Chain stopped'`
+  // is defensive: if the backend ever ships a NEW wire value before the
+  // frontend redeploys, we render a generic phrase rather than leak the raw
+  // enum (e.g. "no_lift_v2") to the user.
+  const stopPhrase = CHAIN_STOP_REASON_PHRASE[row.stop_reason] ?? 'Chain stopped';
   const hasMetric = row.best_metric !== null && row.best_metric !== undefined;
 
   return (
