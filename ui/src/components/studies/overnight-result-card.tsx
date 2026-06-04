@@ -8,10 +8,16 @@ import Link from 'next/link';
 import type React from 'react';
 
 import { InfoTooltip } from '@/components/common/info-tooltip';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useStudyDigest } from '@/lib/api/digests';
 import { useTemplate } from '@/lib/api/query-templates';
-import { useStudyChain, type StudyChainResponse, type StudyDetail } from '@/lib/api/studies';
+import {
+  useStudy,
+  useStudyChain,
+  type StudyChainResponse,
+  type StudyDetail,
+} from '@/lib/api/studies';
 import { CHAIN_STOP_REASON_PHRASE } from '@/lib/chain-stop-reason';
 import { pathTokenForLink } from '@/lib/chain-path-tokens';
 import { formatSignedLift } from '@/lib/format-lift';
@@ -93,6 +99,51 @@ export function truncateNarrative(text: string, maxChars: number = 240): string 
 }
 
 /**
+ * FR-4 — winning-link convergence verdict chip.
+ *
+ * Parent-gates-mount pattern per spec D-18: the parent renders this child
+ * ONLY when `chain.best_link_id !== null`, so `linkId` is type-narrowed to
+ * `string` here. The hook fires unconditionally at the top of the child;
+ * the `enabled` gate skips the cross-study fetch when the operator is
+ * already on the winner's own page (then the verdict reads from
+ * `viewedStudy.convergence?.verdict` directly via the page-level
+ * `useStudy(studyId)` already loaded at `page.tsx:60`).
+ *
+ * Display mapping per spec FR-4. Null verdict → hide chip entirely; the
+ * `StudyConvergenceShape | null` graceful-degrade contract from
+ * `feat_study_convergence_indicator` FR-3 is honored.
+ */
+const VERDICT_LABEL: Record<
+  NonNullable<NonNullable<StudyDetail['convergence']>['verdict']>,
+  string
+> = {
+  converged: 'Converged',
+  still_improving: 'Still improving',
+  too_few_trials: 'Too few trials',
+};
+
+function WinningLinkConvergenceChip({
+  linkId,
+  viewedStudy,
+}: {
+  linkId: string;
+  viewedStudy: StudyDetail;
+}): React.ReactNode {
+  // Hook always runs; `enabled: false` when we're already on the winner.
+  const studyQ = useStudy(linkId, { enabled: linkId !== viewedStudy.id });
+  const verdict =
+    linkId === viewedStudy.id
+      ? (viewedStudy.convergence?.verdict ?? null)
+      : (studyQ.data?.convergence?.verdict ?? null);
+  if (verdict === null) return null;
+  return (
+    <Badge variant="secondary" data-testid="overnight-result-convergence-chip" className="ml-2">
+      {VERDICT_LABEL[verdict]}
+    </Badge>
+  );
+}
+
+/**
  * FR-3 — child component per Rules-of-Hooks discipline (D-11).
  *
  * The hook runs at the TOP of this child unconditionally; the `enabled`
@@ -154,12 +205,15 @@ export function OvernightResultCard({ study }: OvernightResultCardProps): React.
     <Card data-testid="overnight-result-card">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          {/* Headline; Story 4 mounts <WinningLinkConvergenceChip> here. */}
           {`Overnight exploration complete — ${chain.links.length} ${chain.links.length === 1 ? 'study' : 'studies'}${
             chain.cumulative_lift !== null
               ? `, ${formatSignedLift(chain.cumulative_lift)} lift`
               : ''
           }`}
+          {/* FR-4 — chip mounted only when there's a winner link to inspect. */}
+          {chain.best_link_id !== null && (
+            <WinningLinkConvergenceChip linkId={chain.best_link_id} viewedStudy={study} />
+          )}
           <InfoTooltip glossaryKey="overnight_result" />
         </CardTitle>
       </CardHeader>

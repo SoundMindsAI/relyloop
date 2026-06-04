@@ -37,7 +37,12 @@ export function DigestPanel({
 }: DigestPanelProps) {
   const followups = digest.suggested_followups ?? [];
   return (
-    <Card>
+    // `id="digest"` is the in-page anchor target for
+    // <OvernightResultCard>'s "View full digest →" link (feat_overnight_final_solution_phase2
+    // Story 4 / FR-5 / D-22). The chain panel's anchor wrapper is the
+    // only thing changing here; the panel's rendering is otherwise
+    // unchanged.
+    <Card id="digest">
       <CardHeader>
         <CardTitle className="text-base">Digest</CardTitle>
       </CardHeader>

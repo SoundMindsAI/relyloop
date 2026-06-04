@@ -30,11 +30,11 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import type { DigestResponse } from '@/lib/api/digests';
 import { useStudyDigest } from '@/lib/api/digests';
 import type { StudyChainLink, StudyChainResponse, StudyDetail } from '@/lib/api/studies';
-import { useStudyChain } from '@/lib/api/studies';
+import { useStudy, useStudyChain } from '@/lib/api/studies';
 
 vi.mock('@/lib/api/studies', async (importOriginal) => {
   const mod = await importOriginal<typeof import('@/lib/api/studies')>();
-  return { ...mod, useStudyChain: vi.fn() };
+  return { ...mod, useStudyChain: vi.fn(), useStudy: vi.fn() };
 });
 
 vi.mock('@/lib/api/digests', async (importOriginal) => {
@@ -44,6 +44,18 @@ vi.mock('@/lib/api/digests', async (importOriginal) => {
 
 const mockedUseStudyChain = vi.mocked(useStudyChain);
 const mockedUseStudyDigest = vi.mocked(useStudyDigest);
+const mockedUseStudy = vi.mocked(useStudy);
+
+/**
+ * Default useStudy return — most tests don't render the chip, but the
+ * hook still fires (always-call rule). Returning `data: undefined` keeps
+ * the chip silent without forcing every test to set it.
+ */
+function setUseStudy(data: StudyDetail | undefined): void {
+  mockedUseStudy.mockReturnValue({
+    data,
+  } as unknown as UseQueryResult<StudyDetail, never>);
+}
 
 function setChain(data: StudyChainResponse | undefined): void {
   mockedUseStudyChain.mockReturnValue({
@@ -155,6 +167,7 @@ describe('OvernightResultCard', () => {
   beforeEach(() => {
     setChain(undefined);
     setDigest(undefined);
+    setUseStudy(undefined);
   });
   afterEach(() => {
     cleanup();
@@ -524,6 +537,120 @@ describe('OvernightResultCard', () => {
   // second network request. We verify this by asserting the mocked hook was
   // called exactly twice (once per consumer) and returned the same data.
   // ---------------------------------------------------------------------------
+
+  // ---------------------------------------------------------------------------
+  // Story 4 — AC-1 full chip + AC-6 + AC-10.
+  // ---------------------------------------------------------------------------
+
+  describe('WinningLinkConvergenceChip', () => {
+    it('AC-1 full chip: renders "Converged" badge from cross-study useStudy result', () => {
+      setChain(
+        makeChain({
+          best_link_id: 'link-c',
+          cumulative_lift: 0.1245,
+          stop_reason: 'no_lift',
+          proposal_id_for_best_link: 'proposal-c',
+          links: [
+            makeLink({ id: 'link-a', selected_followup_kind: null }),
+            makeLink({ id: 'link-b', selected_followup_kind: 'narrow' }),
+            makeLink({ id: 'link-c', name: 'C', selected_followup_kind: 'narrow' }),
+          ],
+        }),
+      );
+      // study.id is 'study-anchor', best_link_id is 'link-c' → cross-study path.
+      setUseStudy(
+        makeStudy({
+          id: 'link-c',
+          convergence: {
+            verdict: 'converged',
+            best_so_far: [],
+            window_size: 5,
+            relative_improvement: 0.001,
+            epsilon: 0.005,
+            warmup_floor: 5,
+          },
+        } as unknown as StudyDetail),
+      );
+      renderCard({ study: makeStudy() });
+
+      const chip = screen.getByTestId('overnight-result-convergence-chip');
+      expect(chip).toBeInTheDocument();
+      expect(chip).toHaveTextContent('Converged');
+    });
+
+    it('AC-6: hides chip when winning-link convergence is null (graceful-degrade)', () => {
+      setChain(
+        makeChain({
+          best_link_id: 'link-c',
+          cumulative_lift: 0.1245,
+          stop_reason: 'no_lift',
+          proposal_id_for_best_link: 'proposal-c',
+          links: [
+            makeLink({ id: 'link-a', selected_followup_kind: null }),
+            makeLink({ id: 'link-b', selected_followup_kind: 'narrow' }),
+            makeLink({ id: 'link-c', name: 'C', selected_followup_kind: 'narrow' }),
+          ],
+        }),
+      );
+      setUseStudy(makeStudy({ id: 'link-c', convergence: null }));
+      renderCard({ study: makeStudy() });
+
+      expect(screen.queryByTestId('overnight-result-convergence-chip')).not.toBeInTheDocument();
+      // Card still renders all other sections.
+      expect(screen.getByTestId('overnight-result-card')).toBeInTheDocument();
+    });
+
+    it('AC-10: when viewed study IS the winner, chip reads convergence from viewedStudy directly (no cross-study fetch)', () => {
+      setChain(
+        makeChain({
+          // Best link == the viewed study itself.
+          best_link_id: 'study-anchor',
+          cumulative_lift: 0.1245,
+          stop_reason: 'no_lift',
+          proposal_id_for_best_link: 'proposal-a',
+          links: [
+            makeLink({ id: 'study-anchor', name: 'Anchor', selected_followup_kind: null }),
+            makeLink({ id: 'link-b', selected_followup_kind: 'narrow' }),
+          ],
+        }),
+      );
+      // viewedStudy carries the convergence verdict directly.
+      const viewedStudy = makeStudy({
+        id: 'study-anchor',
+        convergence: {
+          verdict: 'still_improving',
+          best_so_far: [],
+          window_size: 5,
+          relative_improvement: 0.05,
+          epsilon: 0.005,
+          warmup_floor: 5,
+        } as unknown as StudyDetail['convergence'],
+      });
+      // Cross-study useStudy mock MUST return undefined — verifies the
+      // `enabled: false` branch took the viewed-study path.
+      setUseStudy(undefined);
+      renderCard({ study: viewedStudy });
+
+      const chip = screen.getByTestId('overnight-result-convergence-chip');
+      expect(chip).toHaveTextContent('Still improving');
+    });
+
+    it('chip is not mounted when chain.best_link_id is null', () => {
+      setChain(
+        makeChain({
+          best_link_id: null,
+          cumulative_lift: 0.05,
+          stop_reason: 'no_lift',
+          links: [
+            makeLink({ id: 'link-a', selected_followup_kind: null }),
+            makeLink({ id: 'link-b', selected_followup_kind: 'narrow' }),
+          ],
+        }),
+      );
+      renderCard({ study: makeStudy() });
+      expect(screen.queryByTestId('overnight-result-convergence-chip')).not.toBeInTheDocument();
+    });
+  });
 
   it('AC-11: useStudyDigest is called via the shared mock; no network proxy is invoked twice', () => {
     setChain(
