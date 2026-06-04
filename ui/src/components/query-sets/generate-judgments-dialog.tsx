@@ -277,7 +277,16 @@ export function GenerateJudgmentsDialog({
           />
         )}
         <form
-          onSubmit={form.handleSubmit(submit)}
+          // stopPropagation defends against the React-synthetic-event bubbling
+          // that survives Radix's DOM portal: when this dialog is mounted inside
+          // another form's React subtree (e.g. the Create-Study wizard), a submit
+          // here would otherwise bubble up the React tree to that parent form's
+          // onSubmit. Harmless on the standalone /judgments call sites.
+          // (feat_study_wizard_inline_judgment_generation — GPT-5.5 final review)
+          onSubmit={(e) => {
+            e.stopPropagation();
+            void form.handleSubmit(submit)(e);
+          }}
           className="space-y-4"
           data-testid="generate-form"
         >
