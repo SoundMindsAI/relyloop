@@ -21,20 +21,20 @@ Plan approved; run /impl-execute to ship
 | Metric | Value |
 |---|---|
 | Filed under MVP2 | **50** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **17 / 27** (63%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **31** items (every not-done feat/infra/chore/bug across all priorities) |
+| Specced features done | **18 / 27** (67%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **30** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 26 important to file, not blocking |
+| → P2 (default) | 25 important to file, not blocking |
 | → Backlog | 5 captured for record, not planned |
 | Open bugs | 9 |
-| Legacy "Path to MVP2" | 26 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 25 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 5 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
 ## Pipeline
 
-### Done (19)
+### Done (20)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -44,6 +44,7 @@ Plan approved; run /impl-execute to ship
 | [feat_overnight_final_solution](implemented_features/2026_06_04_feat_overnight_final_solution/feature_spec.md) | Feature | The wizard exposes a strategy choice alongside the existing depth: keep today's predictable `narrow` loop OR opt into `follow_suggestions`, which lets each chain link consume the parent digest's top * | — | [PR #440](https://github.com/SoundMindsAI/relyloop/pull/440) merged 2026-06-04 |
 | [feat_overnight_final_solution_phase2](implemented_features/2026_06_04_feat_overnight_final_solution_phase2/feature_spec.md) | Feature | When the chain that this study belongs to has terminated (`stop_reason` ≠ `in_flight`) and has at least 2 links, a top-of-page **Overnight result card** mounts above `LinkedEntitiesRow` and compresses | — | [PR #442](https://github.com/SoundMindsAI/relyloop/pull/442) merged 2026-06-04 |
 | [feat_overnight_studies_summary_card](implemented_features/2026_06_04_feat_overnight_studies_summary_card/feature_spec.md) | Feature | A "ran while you were away" card surfaces at the top of `/studies` when at least one overnight chain has completed since the operator's last visit. | — | [PR #444](https://github.com/SoundMindsAI/relyloop/pull/444) merged 2026-06-04 |
+| [feat_proposal_full_param_space_view](implemented_features/2026_06_04_feat_proposal_full_param_space_view/feature_spec.md) | Feature | A new `<FullParamSpacePanel>` renders below `<ConfigDiffPanel>` on `/proposals/[id]`. | — | [PR #446](https://github.com/SoundMindsAI/relyloop/pull/446) merged 2026-06-04 |
 | [feat_studies_convergence_visibility](implemented_features/2026_06_02_feat_studies_convergence_visibility/feature_spec.md) | Feature | The studies list shows a completed-trial count and a convergence badge (`Converged` / `Still improving` / `Too few trials`) per study, reusing the shipped classifier. | — | [PR #421](https://github.com/SoundMindsAI/relyloop/pull/421) merged 2026-06-02 |
 | [feat_study_convergence_indicator](implemented_features/2026_06_01_feat_study_convergence_indicator/feature_spec.md) | Feature | Every completed study carries a plain-language **convergence verdict** — `converged` / `still_improving` / `too_few_trials` — backed by a best-metric-so-far curve. | — | [PR #352](https://github.com/SoundMindsAI/relyloop/pull/352) merged 2026-06-01 |
 | [feat_study_sub_warmup_guard](implemented_features/2026_05_29_feat_study_sub_warmup_guard/feature_spec.md) | Feature | A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials < STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme | — | [PR #316](https://github.com/SoundMindsAI/relyloop/pull/316) merged 2026-05-29 |
@@ -62,22 +63,21 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (12)
+### Plan (11)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
-| 2 | P2 | [feat_proposal_full_param_space_view](planned_features/02_mvp2/feat_proposal_full_param_space_view/feature_spec.md) | Feature | A new `<FullParamSpacePanel>` renders below `<ConfigDiffPanel>` on `/proposals/[id]`. | — | [PR #440](https://github.com/SoundMindsAI/relyloop/pull/440) |
-| 3 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
-| 4 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | — |
-| 5 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
-| 6 | P2 | [chore_arq_pool_aclose_deprecation](planned_features/02_mvp2/chore_arq_pool_aclose_deprecation/feature_spec.md) | Chore | Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close( | — | — |
-| 7 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
-| 8 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
-| 9 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/feature_spec.md) | Chore | A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [("start | — | — |
-| 10 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md) | Chore | A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg | — | [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413) |
-| 11 | P2 | [bug_baseline_phase_test_isolation](planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md) | Bug | The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on | — | — |
-| 12 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/02_mvp2/bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | — |
+| 2 | P2 | [feat_query_normalization_tuning](planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md) | Feature | A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator's judgment set — whether lowercasing, trimming, or contractio | — | — |
+| 3 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | — |
+| 4 | P2 | [feat_ubi_llm_study_comparison](planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md) | Feature | A single dedicated route `/studies/compare?a={id}&b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 5 | P2 | [chore_arq_pool_aclose_deprecation](planned_features/02_mvp2/chore_arq_pool_aclose_deprecation/feature_spec.md) | Chore | Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close( | — | — |
+| 6 | P2 | [chore_cluster_detail_rung_badge](planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #320](https://github.com/SoundMindsAI/relyloop/pull/320) |
+| 7 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
+| 8 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/feature_spec.md) | Chore | A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [("start | — | — |
+| 9 | P2 | [chore_ubi_reader_search_after_pagination](planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md) | Chore | A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg | — | [PR #413](https://github.com/SoundMindsAI/relyloop/pull/413) |
+| 10 | P2 | [bug_baseline_phase_test_isolation](planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md) | Bug | The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on | — | — |
+| 11 | P2 | [bug_judgment_header_omits_click_bucket](planned_features/02_mvp2/bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | — |
 
 ### Spec (0)
 
@@ -130,8 +130,6 @@ graph LR
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration["apply path normalizer declaration"]
   class feat_apply_path_normalizer_declaration plan;
-  feat_proposal_full_param_space_view["proposal full param space view"]
-  class feat_proposal_full_param_space_view plan;
   feat_query_normalization_tuning["query normalization tuning"]
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline["query normalizer typed pipeline"]
@@ -172,6 +170,8 @@ graph LR
   class feat_overnight_final_solution_phase2 done;
   feat_overnight_studies_summary_card["overnight studies summary card"]
   class feat_overnight_studies_summary_card done;
+  feat_proposal_full_param_space_view["proposal full param space view"]
+  class feat_proposal_full_param_space_view done;
   feat_ubi_judgments --> infra_adapter_solr
 ```
 
