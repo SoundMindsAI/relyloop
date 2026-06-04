@@ -81,6 +81,11 @@ LONG_FORM_TITLES: dict[str, str] = {
 }
 
 SLUG_RE = re.compile(r"^[a-zA-Z0-9_-]+$")
+# Declared screenshot filenames must be plain basenames (no path separators,
+# no `..`, no leading `/`) ending in .png — they come from metadata.json, which
+# is contributor-editable, so this is the path-traversal guard for the copy +
+# emit steps. (The video filename is locked separately to "walkthrough.webm".)
+SCREENSHOT_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]*\.png$")
 SCREENSHOT_PREFIX_RE = re.compile(r"^(\d+)")
 LOCKED_VIDEO_NAME = "walkthrough.webm"
 LOCKED_VIDEO_MP4 = "walkthrough.mp4"
@@ -174,6 +179,15 @@ def discover_decks(guides_src: Path) -> list[dict[str, Any]]:
             meta.get("screenshots", []),
             key=lambda s: _screenshot_sort_key(s.get("file", "")),
         )
+        # Path-traversal guard: declared screenshot filenames must be plain
+        # .png basenames (metadata.json is contributor-editable).
+        for shot in screenshots:
+            fname = shot.get("file", "")
+            if not SCREENSHOT_NAME_RE.match(fname):
+                raise SystemExit(
+                    f"ERROR: deck={slug} screenshot file {fname!r} is not a safe "
+                    f".png basename (must match {SCREENSHOT_NAME_RE.pattern})"
+                )
         decks.append(
             {
                 "slug": slug,
@@ -228,12 +242,14 @@ def _first_words(text: str, n: int = 8) -> str:
     return head + ("…" if len(words) > n else "")
 
 
-def emit_deck_page(deck: dict[str, Any], has_webm: bool, has_mp4: bool) -> str:
+def emit_deck_page(deck: dict[str, Any], has_webm: bool, has_mp4: bool, copied: set[str]) -> str:
     """Return the full markdown body for walkthroughs/<slug>.md.
 
-    has_webm/has_mp4 are passed by main() (derived from copy_deck_assets's
-    returned set) — emit_deck_page does NOT re-stat the dest tree, so a stale
-    dest file that the current run will prune cannot influence the markup.
+    has_webm/has_mp4/copied are passed by main() (derived from
+    copy_deck_assets's returned set) — emit_deck_page does NOT re-stat the dest
+    tree, so a stale dest file that the current run will prune cannot influence
+    the markup. A screenshot whose source was missing (not in ``copied``) is
+    skipped so the page never references an asset that was not copied.
     """
     slug = deck["slug"]
     lines: list[str] = [
@@ -263,7 +279,9 @@ def emit_deck_page(deck: dict[str, Any], has_webm: bool, has_mp4: bool) -> str:
     for shot in deck["screenshots"]:
         fname = shot.get("file")
         caption = shot.get("caption", "")
-        if not fname:
+        if not fname or fname not in copied:
+            # Skip the row when the source screenshot was missing (and thus not
+            # copied) — never emit a Markdown link to an asset that isn't there.
             continue
         step += 1
         heading = _first_words(caption) or fname
@@ -591,8 +609,10 @@ def render_nav_fragment(decks: list[dict[str, Any]]) -> str:
 
 def validate_mkdocs_anchor(text: str) -> None:
     """Validate mkdocs.yml shape before editing. Raises SystemExit(1) on:
-    not-exactly-one anchor line; partial (only one) marker; markers present
-    but the anchor missing."""
+    a partial (only one) marker; markers in the wrong order; not-exactly-one
+    anchor line. The anchor is required even once the markers exist — the
+    fragment is inserted BEFORE the anchor, never replacing it, so a missing or
+    duplicate anchor is always a corruption (catches a hand-edit on a re-run)."""
     lines = text.splitlines()
     anchor_count = sum(1 for ln in lines if ln == ANCHOR_LINE)
     has_begin = NAV_BEGIN in lines
@@ -602,7 +622,12 @@ def validate_mkdocs_anchor(text: str) -> None:
             "ERROR: mkdocs.yml has a partial GENERATED Guides nav marker — "
             "restore both markers or remove both"
         )
-    if not (has_begin and has_end) and anchor_count != 1:
+    if has_begin and has_end and lines.index(NAV_BEGIN) >= lines.index(NAV_END):
+        raise SystemExit(
+            "ERROR: mkdocs.yml GENERATED Guides nav markers are out of order "
+            "(BEGIN must precede END)"
+        )
+    if anchor_count != 1:
         raise SystemExit(
             f"ERROR: mkdocs.yml expected exactly one '{ANCHOR_LINE.strip()}' anchor, "
             f"found {anchor_count}"
@@ -733,7 +758,7 @@ def generate(transcode: bool = False) -> None:
         copied_by_slug[deck["slug"]] = copied
         has_webm = LOCKED_VIDEO_NAME in copied
         has_mp4 = LOCKED_VIDEO_MP4 in copied
-        page = emit_deck_page(deck, has_webm, has_mp4)
+        page = emit_deck_page(deck, has_webm, has_mp4, copied)
         (WALKTHROUGHS_OUT / f"{deck['slug']}.md").write_text(page)
 
     (WALKTHROUGHS_OUT / "index.md").write_text(emit_walkthroughs_index(decks))
