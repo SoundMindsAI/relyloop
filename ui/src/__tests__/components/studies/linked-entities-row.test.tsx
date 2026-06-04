@@ -122,7 +122,9 @@ describe('LinkedEntitiesRow — StrategyLine (Story 5)', () => {
     );
     const line = await screen.findByTestId('study-strategy-line');
     expect(line).toBeInTheDocument();
-    expect(line).toHaveTextContent(/Strategy:\s+Try suggested follow-ups/);
+    // Whitespace between label and value is rendered via CSS gap-1, not a
+    // literal text node — match with \s* (zero or more).
+    expect(line).toHaveTextContent(/Strategy:\s*Try suggested follow-ups/);
   });
 
   it('AC-9: renders "Refine same knobs" line when config.auto_followup_strategy = "narrow"', async () => {
@@ -133,7 +135,7 @@ describe('LinkedEntitiesRow — StrategyLine (Story 5)', () => {
       />,
     );
     const line = await screen.findByTestId('study-strategy-line');
-    expect(line).toHaveTextContent(/Strategy:\s+Refine same knobs/);
+    expect(line).toHaveTextContent(/Strategy:\s*Refine same knobs/);
   });
 
   it('AC-8: hidden when config has no auto_followup_strategy key', async () => {

@@ -120,11 +120,14 @@ function StrategyLine({ study }: { study: StudyDetail }) {
   if (!(OVERNIGHT_STRATEGY_VALUES as readonly string[]).includes(raw)) return null;
   const strategy = raw as OvernightStrategy;
   return (
-    <span data-testid="study-strategy-line">
-      <span className="text-muted-foreground">Strategy:</span> {STRATEGY_DISPLAY[strategy]}
-      <span className="ml-1 inline-flex">
-        <InfoTooltip glossaryKey="auto_followup_strategy_line" />
-      </span>
+    // Per Gemini cycle-1 review on PR #442: use inline-flex + gap-1 for
+    // tighter vertical alignment of label + value + tooltip icon, mirroring
+    // the spacing rhythm used by InfoTooltip inline icons elsewhere in the
+    // study detail page.
+    <span data-testid="study-strategy-line" className="inline-flex items-center gap-1">
+      <span className="text-muted-foreground">Strategy:</span>
+      <span>{STRATEGY_DISPLAY[strategy]}</span>
+      <InfoTooltip glossaryKey="auto_followup_strategy_line" />
     </span>
   );
 }
