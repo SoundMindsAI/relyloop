@@ -19,14 +19,25 @@
  *   - secrets/openai_key populated; /healthz reports
  *     function_calling: ok and structured_output: ok
  *   - At least one cluster registered (seeded by this spec)
+ *
+ * Cursor + smoother pacing + WebVTT step captions via the shared demo-cursor
+ * helper (feat_walkthrough_video_cursor_captions). Run video-only so the
+ * committed screenshots don't churn:
+ *   cd ui
+ *   DEMO_VIDEO_ONLY=1 pnpm playwright test -c playwright.demo.config.ts \
+ *     tests/e2e/guides/10_chat_with_agent.spec.ts
  */
 import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
+import metadata from '../../../public/guides/10_chat_with_agent/metadata.json';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, writeCaptionsVtt } from '../helpers/demo-cursor';
 import { seedCluster, seedConversation } from '../helpers/seed';
 
-const SCREENSHOTS = path.resolve(__dirname, '../../../public/guides/10_chat_with_agent');
+const SLUG = '10_chat_with_agent';
+const GUIDES_ROOT = path.resolve(__dirname, '../../../public/guides');
+const SCREENSHOTS = path.join(GUIDES_ROOT, SLUG);
 
 test.describe('Walkthrough: Chat with the agent', () => {
   // LLM round-trip with a tool dispatch typically completes in 8-15s but can
@@ -34,6 +45,10 @@ test.describe('Walkthrough: Chat with the agent', () => {
   test.setTimeout(180_000);
 
   test('captures a real LLM chat turn with tool dispatch', async ({ page }) => {
+    await installCursor(page);
+    const captions = loadStepCaptions(metadata);
+    const timer = new StepTimer(Date.now());
+
     // Seed a cluster so the agent's list_clusters tool returns something
     // meaningful. Without this the chat would say "no clusters registered"
     // which is technically correct but a less informative screenshot.
@@ -49,28 +64,35 @@ test.describe('Walkthrough: Chat with the agent', () => {
       await page.getByTestId('dismiss-secrets-warning').click();
     }
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[0]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '01-chat-empty-composer.png'),
       fullPage: false,
     });
 
     // 02: Type a prompt that reliably triggers the list_clusters tool.
     const prompt = 'What clusters do we have set up? Please use the list_clusters tool.';
-    await page.getByTestId('composer-input').fill(prompt);
+    const composer = page.getByTestId('composer-input');
+    await glide(page, composer);
+    await composer.click();
+    await composer.pressSequentially(prompt, { delay: 55 });
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[1]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '02-message-typed.png'),
       fullPage: false,
     });
 
     // 03: Send + wait for the user message bubble to render.
+    await glide(page, page.getByTestId('composer-send'));
     await page.getByTestId('composer-send').click();
     await expect(page.getByTestId('message-bubble-user').first()).toBeVisible({
       timeout: 10_000,
     });
     await expect(page.getByTestId('message-bubble-user').first()).toContainText(/list_clusters/i);
     await page.waitForTimeout(800);
-    await page.screenshot({
+    timer.mark(captions[2]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '03-user-message-sent.png'),
       fullPage: false,
     });
@@ -79,7 +101,8 @@ test.describe('Walkthrough: Chat with the agent', () => {
     // list_clusters in response to the prompt.
     await expect(page.getByTestId('tool-call-card').first()).toBeVisible({ timeout: 60_000 });
     await page.waitForTimeout(1_000);
-    await page.screenshot({
+    timer.mark(captions[3]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '04-tool-call-card.png'),
       fullPage: true,
     });
@@ -90,9 +113,17 @@ test.describe('Walkthrough: Chat with the agent', () => {
     // input is empty, so it's not a reliable streaming-done signal.)
     await expect(page.getByTestId('composer-input')).toBeEnabled({ timeout: 120_000 });
     await page.waitForTimeout(1_500);
-    await page.screenshot({
+    timer.mark(captions[4]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '05-assistant-response.png'),
       fullPage: true,
     });
+
+    if (captions.length > 0 && timer.timings.length !== captions.length) {
+      throw new Error(
+        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+      );
+    }
+    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

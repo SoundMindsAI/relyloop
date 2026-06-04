@@ -12,20 +12,32 @@
  * Uses the import path (POST /api/v1/judgment-lists/import) rather than
  * the LLM generation path, so the guide is deterministic + doesn't
  * require an OpenAI key to run.
+ *
+ * Cursor + smoother pacing + WebVTT step captions via the shared demo-cursor
+ * helper (feat_walkthrough_video_cursor_captions). Run video-only so the
+ * committed screenshots don't churn:
+ *   cd ui
+ *   DEMO_VIDEO_ONLY=1 pnpm playwright test -c playwright.demo.config.ts \
+ *     tests/e2e/guides/05_import_judgments_and_calibrate.spec.ts
  */
 import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
+import metadata from '../../../public/guides/05_import_judgments_and_calibrate/metadata.json';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, writeCaptionsVtt } from '../helpers/demo-cursor';
 import { seedJudgmentList, seedQuerySet } from '../helpers/seed';
 
-const SCREENSHOTS = path.resolve(
-  __dirname,
-  '../../../public/guides/05_import_judgments_and_calibrate',
-);
+const SLUG = '05_import_judgments_and_calibrate';
+const GUIDES_ROOT = path.resolve(__dirname, '../../../public/guides');
+const SCREENSHOTS = path.join(GUIDES_ROOT, SLUG);
 
 test.describe('Walkthrough: Import judgments + calibrate', () => {
   test('captures the import + review + calibrate flow', async ({ page }) => {
+    await installCursor(page);
+    const captions = loadStepCaptions(metadata);
+    const timer = new StepTimer(Date.now());
+
     const qs = await seedQuerySet(12);
     const jl = await seedJudgmentList({
       clusterId: qs.clusterId,
@@ -36,16 +48,19 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
     await page.goto(`/judgments/${jl.id}`);
     await expect(page.getByTestId('header-count')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[0]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '01-judgments-list.png'),
       fullPage: true,
     });
 
     // Open the calibration modal.
+    await glide(page, page.getByTestId('open-calibration'));
     await page.getByTestId('open-calibration').click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({
+    timer.mark(captions[1]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '02-calibration-modal-empty.png'),
       fullPage: false,
     });
@@ -57,9 +72,14 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
       .slice(0, 12)
       .map((qid, i) => `${qid},e2e-doc-${i},${(i % 4)}`)
       .join('\n');
-    await page.getByTestId('cal-samples').fill(`query_id,doc_id,rating\n${samplesCsv}`);
+    await glide(page, page.getByTestId('cal-samples'), 400);
+    await page.getByTestId('cal-samples').click();
+    await page
+      .getByTestId('cal-samples')
+      .pressSequentially(`query_id,doc_id,rating\n${samplesCsv}`, { delay: 55 });
     await page.waitForTimeout(400);
-    await page.screenshot({
+    timer.mark(captions[2]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '03-calibration-modal-filled.png'),
       fullPage: false,
     });
@@ -72,6 +92,7 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
         resp.request().method() === 'POST',
       { timeout: 15_000 },
     );
+    await glide(page, page.getByTestId('cal-submit'));
     await page.getByTestId('cal-submit').click();
     const calResp = await calPromise;
     // Any HTTP status is OK for the walkthrough — the goal is to capture the
@@ -79,9 +100,17 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
     // when the sample CSV doesn't meet the ≥10 distinct-pairs requirement).
     expect(calResp.status()).toBeGreaterThan(0);
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[3]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '04-calibration-result.png'),
       fullPage: false,
     });
+
+    if (captions.length > 0 && timer.timings.length !== captions.length) {
+      throw new Error(
+        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+      );
+    }
+    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

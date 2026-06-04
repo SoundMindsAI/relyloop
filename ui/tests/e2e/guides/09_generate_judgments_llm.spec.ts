@@ -16,48 +16,75 @@
  * This sidesteps a Radix Select interaction issue where the
  * portal-mounted listbox renders options outside the viewport when many
  * templates are seeded, leaving keyboard nav unable to select reliably.
+ *
+ * Cursor + smoother pacing + WebVTT step captions via the shared demo-cursor
+ * helper (feat_walkthrough_video_cursor_captions). Run video-only so the
+ * committed screenshots don't churn:
+ *   cd ui
+ *   DEMO_VIDEO_ONLY=1 pnpm playwright test -c playwright.demo.config.ts \
+ *     tests/e2e/guides/09_generate_judgments_llm.spec.ts
  */
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 import { expect, test } from '@playwright/test';
 
+import metadata from '../../../public/guides/09_generate_judgments_llm/metadata.json';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, writeCaptionsVtt } from '../helpers/demo-cursor';
 import { seedQuerySet, seedTemplate } from '../helpers/seed';
 
-const SCREENSHOTS = path.resolve(__dirname, '../../../public/guides/09_generate_judgments_llm');
+const SLUG = '09_generate_judgments_llm';
+const GUIDES_ROOT = path.resolve(__dirname, '../../../public/guides');
+const SCREENSHOTS = path.join(GUIDES_ROOT, SLUG);
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
 test.describe('Walkthrough: Generate judgments via LLM', () => {
   test.setTimeout(240_000);
 
   test('captures the generate-judgments LLM flow', async ({ page, request }) => {
+    await installCursor(page);
+    const captions = loadStepCaptions(metadata);
+    const timer = new StepTimer(Date.now());
+
     const tpl = await seedTemplate();
     const { querySetId, clusterId } = await seedQuerySet(2);
 
     // ── 01: Query set detail ──────────────────────────────────────────
     await page.goto(`/query-sets/${querySetId}`);
     await page.waitForTimeout(600);
-    await page.screenshot({
+    timer.mark(captions[0]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '01-query-set-detail-no-judgments.png'),
     });
 
     // ── 02: Open the Generate dialog ──────────────────────────────────
+    await glide(page, page.getByTestId('open-generate-judgments'));
     await page.getByTestId('open-generate-judgments').click();
     await expect(page.getByTestId('generate-form')).toBeVisible({ timeout: 5_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(SCREENSHOTS, '02-generate-dialog-empty.png') });
+    timer.mark(captions[1]!, Date.now());
+    await shot(page, { path: path.join(SCREENSHOTS, '02-generate-dialog-empty.png') });
 
     // ── 03: Fill the text fields ──────────────────────────────────────
     const listName = `walkthrough-${randomUUID().slice(0, 6)}`;
-    await page.getByLabel('Judgment list name', { exact: true }).fill(listName);
-    await page.getByLabel(/Target index/).fill('products');
+    const nameField = page.getByLabel('Judgment list name', { exact: true });
+    await glide(page, nameField, 400);
+    await nameField.click();
+    await nameField.pressSequentially(listName, { delay: 55 });
+    const targetField = page.getByLabel(/Target index/);
+    await glide(page, targetField, 400);
+    await targetField.click();
+    await targetField.pressSequentially('products', { delay: 55 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(SCREENSHOTS, '03-generate-dialog-text-filled.png') });
+    timer.mark(captions[2]!, Date.now());
+    await shot(page, { path: path.join(SCREENSHOTS, '03-generate-dialog-text-filled.png') });
 
     // ── 04: Open the template dropdown so the screenshot shows options ─
+    await glide(page, page.locator('#gen-template'));
     await page.locator('#gen-template').click();
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[3]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '04-template-dropdown-open.png'),
       fullPage: false,
     });
@@ -92,7 +119,7 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
     // Navigate to the judgment list detail page; worker is now generating.
     await page.goto(`/judgments/${judgmentListId}`);
     await page.waitForTimeout(800);
-    await page.screenshot({
+    await shot(page, {
       path: path.join(SCREENSHOTS, '05-judgment-list-terminal-state.png'),
       fullPage: true,
     });
@@ -120,9 +147,17 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
         ? '05-judgment-list-terminal-state.png'
         : '05-judgment-list-terminal-state.png';
     void filename; // same path either way — we want the final state
-    await page.screenshot({
+    timer.mark(captions[4]!, Date.now());
+    await shot(page, {
       path: path.join(SCREENSHOTS, '05-judgment-list-terminal-state.png'),
       fullPage: true,
     });
+
+    if (captions.length > 0 && timer.timings.length !== captions.length) {
+      throw new Error(
+        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+      );
+    }
+    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });
