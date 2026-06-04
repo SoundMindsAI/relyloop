@@ -88,6 +88,45 @@ Decks are discovered dynamically from `ui/public/guides/`:
 2. Transcode the MP4 (see below).
 3. Regenerate + commit.
 
+## Cursor, smoother pacing, and on-screen captions
+
+The walkthrough videos carry a **synthetic arrow cursor** that glides to each
+control + pulses on click, **smoother stepped pacing**, and **WebVTT step
+captions** synced to the action — all from the shared
+[`ui/tests/e2e/helpers/demo-cursor.ts`](../../ui/tests/e2e/helpers/demo-cursor.ts)
+helper (`feat_walkthrough_video_cursor_captions`). Every guide spec installs the
+cursor, glides to targets, and writes a `captions.vtt` next to its
+`walkthrough.webm`.
+
+**Captions are sourced from `metadata.json`** — each deck's
+`screenshots[].caption` (the same text shown under the on-page screenshots), so
+the video captions and screenshot captions can't drift. The website `<video>`
+player picks up a `<track kind="captions" … default>` whenever a deck has a
+`captions.vtt`; a generator-side check (`verify_captions_consistency`) fails
+loudly if a committed `captions.vtt`'s cue text/count drifts from its
+`metadata.json`.
+
+**Re-record in video-only mode** so the committed screenshots don't churn — the
+`DEMO_VIDEO_ONLY=1` env var makes the specs skip `page.screenshot` (the cursor
+is also hidden around any screenshot defensively), regenerating ONLY the videos
++ captions:
+
+```bash
+cd ui
+DEMO_VIDEO_ONLY=1 pnpm capture-guides   # re-records all 10: walkthrough.webm + captions.vtt
+```
+
+Then transcode the MP4s + regenerate the website (below). A deck with **no**
+captions in its `metadata.json` simply gets no `captions.vtt` and no `<track>`
+(graceful); a deck with **partial** captions (some screenshots missing one)
+fails the recording loudly — fix the metadata and re-record.
+
+The pure WebVTT formatter (`captions-vtt.ts`) and its Python mirror in
+`build_guides.py` are kept in lockstep by a shared golden corpus
+(`ui/tests/e2e/helpers/captions-vtt-golden.json`) asserted by both the vitest
+and the pytest — so the escape/normalize logic can't diverge across the two
+languages.
+
 ## MP4 transcode + iOS Safari (operational details)
 
 The website embeds a mobile-safe `<video>` with the **MP4 source first** (iOS

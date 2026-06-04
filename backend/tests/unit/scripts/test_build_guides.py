@@ -273,7 +273,7 @@ def test_emit_indepth_index_lists_long_form(tmp_path: Path) -> None:
 # Story 1.3 — video block + transcode                                          #
 # --------------------------------------------------------------------------- #
 def test_build_video_block_mp4_first(tmp_path: Path) -> None:
-    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True)
+    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=False)
     mp4_idx = block.index('type="video/mp4"')
     webm_idx = block.index('type="video/webm"')
     assert mp4_idx < webm_idx  # MP4 first for iOS Safari
@@ -289,7 +289,7 @@ def test_build_video_block_uses_root_relative_asset_depth() -> None:
     # /guides/walkthroughs/<slug>/ so the browser-correct path to /assets/ needs
     # THREE ../ — matching the depth MkDocs rewrites the markdown screenshot
     # images to. Two ../ (the source-relative depth) 404s in the browser.
-    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True)
+    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=False)
     assert '<source src="../../../assets/guides/01_x/walkthrough.mp4"' in block
     assert '<source src="../../../assets/guides/01_x/walkthrough.webm"' in block
     assert 'href="../../../assets/guides/01_x/walkthrough.webm"' in block
@@ -298,16 +298,52 @@ def test_build_video_block_uses_root_relative_asset_depth() -> None:
 
 
 def test_build_video_block_no_mp4(tmp_path: Path) -> None:
-    block = bg.build_video_block("01_x", has_webm=True, has_mp4=False)
+    block = bg.build_video_block("01_x", has_webm=True, has_mp4=False, has_vtt=False)
     assert 'type="video/mp4"' not in block
     assert 'type="video/webm"' in block
     assert 'class="walkthrough-video-download"' in block  # still present
 
 
 def test_build_video_block_no_webm_returns_empty() -> None:
-    assert bg.build_video_block("01_x", has_webm=False, has_mp4=False) == ""
+    assert bg.build_video_block("01_x", has_webm=False, has_mp4=False, has_vtt=False) == ""
     # Even if a stale MP4 somehow flagged True, no WebM => no block.
-    assert bg.build_video_block("01_x", has_webm=False, has_mp4=True) == ""
+    assert bg.build_video_block("01_x", has_webm=False, has_mp4=True, has_vtt=False) == ""
+
+
+def test_build_video_block_track_present_iff_vtt() -> None:
+    # FR-4 / AC-5: a captions <track> is emitted only when has_vtt, with the
+    # same ../../../assets/<slug> root-relative depth as the <source>s.
+    with_vtt = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=True)
+    assert (
+        '<track kind="captions" src="../../../assets/guides/01_x/captions.vtt" '
+        'srclang="en" label="Steps" default>'
+    ) in with_vtt
+    # Track sits inside the <video> element (before </video>).
+    assert with_vtt.index("<track") < with_vtt.index("</video>")
+
+    without_vtt = bg.build_video_block("01_x", has_webm=True, has_mp4=True, has_vtt=False)
+    assert "<track" not in without_vtt
+
+
+def test_copy_deck_assets_copies_captions_vtt_when_present(tmp_path: Path) -> None:
+    # FR-4 / AC-6: captions.vtt is copied + in the returned set when the source exists.
+    src = tmp_path / "guides"
+    _make_deck(src, "01_x", with_webm=True, with_mp4=False)
+    (src / "01_x" / "captions.vtt").write_text("WEBVTT\n\n", encoding="utf-8")
+    deck = bg.discover_decks(src)[0]
+    dst = tmp_path / "out" / "01_x"
+    copied = bg.copy_deck_assets(deck, src / "01_x", dst)
+    assert "captions.vtt" in copied
+    assert (dst / "captions.vtt").is_file()
+
+
+def test_copy_deck_assets_no_captions_vtt_when_absent(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    _make_deck(src, "01_x", with_webm=True)
+    deck = bg.discover_decks(src)[0]
+    dst = tmp_path / "out" / "01_x"
+    copied = bg.copy_deck_assets(deck, src / "01_x", dst)
+    assert "captions.vtt" not in copied
 
 
 def test_default_generate_makes_no_ffmpeg_call(tmp_path: Path, monkeypatch) -> None:
@@ -680,3 +716,99 @@ def test_detect_unsupported_single_quoted_html_href(tmp_path: Path) -> None:
     with pytest.raises(SystemExit) as exc:
         bg.port_long_form_guide(src, root)
     assert "unsupported HTML <a> link" in str(exc.value)
+
+
+# --------------------------------------------------------------------------- #
+# Story 2.2 — caption transform parity + vtt↔metadata consistency             #
+# --------------------------------------------------------------------------- #
+def test_caption_transform_matches_shared_golden_corpus() -> None:
+    # Cross-language parity (C3-B1): the Python normalize/escape mirrors are
+    # driven by the SAME ui/tests/e2e/helpers/captions-vtt-golden.json the
+    # vitest uses, so the TS + Python transforms cannot drift.
+    golden_path = _REPO_ROOT / "ui" / "tests" / "e2e" / "helpers" / "captions-vtt-golden.json"
+    golden = json.loads(golden_path.read_text())
+    for case in golden["cases"]:
+        assert bg.normalize_caption(case["input"]) == case["normalized"], case["input"]
+        assert bg.escape_vtt_cue_text(case["normalized"]) == case["escaped"], case["input"]
+
+
+def _write_deck_with_vtt(src: Path, slug: str, captions: list[str], vtt_bodies: list[str]) -> None:
+    shots = [{"file": f"{i + 1:02d}-x.png", "caption": c} for i, c in enumerate(captions)]
+    _make_deck(src, slug, screenshots=shots, with_webm=True)
+    lines = ["WEBVTT", ""]
+    for i, body in enumerate(vtt_bodies):
+        lines.append(f"00:00:{i:02d}.000 --> 00:00:{i + 1:02d}.000")
+        lines.append(body)
+        lines.append("")
+    (src / slug / "captions.vtt").write_text("\n".join(lines), encoding="utf-8")
+
+
+def test_verify_captions_consistency_passes_on_match(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    caps = ["Open the page", "Boost title & description <strong>2.5×</strong>"]
+    bodies = [bg.escape_vtt_cue_text(bg.normalize_caption(c)) for c in caps]
+    _write_deck_with_vtt(src, "01_x", caps, bodies)
+    decks = bg.discover_decks(src)
+    # Point the module's GUIDES_SRC at the fixture for the duration of the check.
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src):
+        bg.verify_captions_consistency(decks)  # no raise
+
+
+def test_verify_captions_consistency_fails_on_count_mismatch(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    _write_deck_with_vtt(src, "01_x", ["a", "b"], ["a"])  # 1 cue vs 2 captions
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src), pytest.raises(SystemExit) as exc:
+        bg.verify_captions_consistency(decks)
+    assert "out of sync" in str(exc.value)
+
+
+def test_verify_captions_consistency_fails_on_text_mismatch(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    # vtt body is the RAW (unescaped) caption — must fail vs the escaped expectation.
+    _write_deck_with_vtt(src, "01_x", ["a & b"], ["a & b"])
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src), pytest.raises(SystemExit) as exc:
+        bg.verify_captions_consistency(decks)
+    assert "out of sync" in str(exc.value)
+
+
+def test_verify_captions_consistency_fails_on_missing_vtt_with_captions(tmp_path: Path) -> None:
+    # Gemini PR #451: a deck WITH captions in metadata but NO captions.vtt is a
+    # silent drift the freshness copy-check can't see — must fail loud.
+    src = tmp_path / "guides"
+    shots = [{"file": "01-x.png", "caption": "Open the page"}]
+    _make_deck(src, "01_x", screenshots=shots, with_webm=True)  # no captions.vtt written
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src), pytest.raises(SystemExit) as exc:
+        bg.verify_captions_consistency(decks)
+    assert "no captions.vtt" in str(exc.value)
+
+
+def test_verify_captions_consistency_passes_on_missing_vtt_no_captions(tmp_path: Path) -> None:
+    # The zero-caption path: a deck with only empty captions legitimately has no
+    # captions.vtt (the recording side deletes/skips it) — must NOT raise.
+    src = tmp_path / "guides"
+    shots = [{"file": "01-x.png", "caption": ""}, {"file": "02-x.png", "caption": "   "}]
+    _make_deck(src, "01_x", screenshots=shots, with_webm=True)  # no captions.vtt written
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src):
+        bg.verify_captions_consistency(decks)  # no raise
+
+
+def test_parse_vtt_cue_bodies_requires_webvtt_header() -> None:
+    # Phase-gate hardening: a vtt without the WEBVTT header is rejected loudly.
+    assert bg.parse_vtt_cue_bodies("WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nhi\n") == ["hi"]
+    with pytest.raises(SystemExit) as exc:
+        bg.parse_vtt_cue_bodies("00:00:00.000 --> 00:00:01.000\nhi\n")
+    assert "WEBVTT header" in str(exc.value)

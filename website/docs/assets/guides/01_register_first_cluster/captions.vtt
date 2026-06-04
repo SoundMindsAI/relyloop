@@ -1,0 +1,16 @@
+WEBVTT
+
+00:00:00.946 --> 00:00:02.809
+Open the Clusters page. The list shows every registered cluster across all three supported engines — Elasticsearch, OpenSearch, and Apache Solr — each with its own engine badge, health probe result, and base URL. The filter chips (all / elasticsearch / opensearch / solr) scope the list by engine. Click 'Register cluster' in the top right to add your own.
+
+00:00:02.809 --> 00:00:20.139
+The registration modal opens with sensible defaults: Engine = elasticsearch, Environment = dev, Auth kind = es_apikey. Fill the Name, Base URL, and Credentials ref fields — and scroll down within the modal to reveal the Notes and Target filter inputs further below.
+
+00:00:20.139 --> 00:00:22.144
+Fill in realistic values for a production e-commerce cluster: Name = acme-products-prod-*, Base URL = http://elasticsearch:9200, Credentials ref = local-es, Environment = prod, Auth kind = es_basic. Set the optional Target filter to a glob like `products*` so this cluster's index picker (used later by the create-study modal) only shows matching indices instead of every index on the box. Brace expansion (`docs-{en,fr}*`) isn't supported — use a wider glob like `docs-*` or register multiple clusters. Scroll to the Register button and click it.
+
+00:00:22.144 --> 00:00:24.140
+RelyLoop fires a connection probe through the engine adapter. If the cluster is reachable, it's added to the list with a health badge (green when healthy, yellow when only partially reachable, red on `CLUSTER_UNREACHABLE`). The toast in the bottom right confirms the registration and the probe result.
+
+00:00:24.140 --> 00:00:28.140
+Click the new cluster row to open its detail page. You see the live health probe result, version, base URL, auth kind, notes, and the Target filter you set (here `products*` scopes this cluster's index picker). The 'Studies using this cluster' section underneath is empty for a fresh cluster — it fills in once you start running studies against it. Guide 06 walks you through creating one.
