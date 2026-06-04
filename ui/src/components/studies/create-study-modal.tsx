@@ -49,11 +49,13 @@ import {
   OBJECTIVE_DIRECTION_VALUES,
   OBJECTIVE_K_VALUES,
   OBJECTIVE_METRIC_VALUES,
+  OVERNIGHT_STRATEGY_VALUES,
   PRUNER_VALUES,
   SAMPLER_VALUES,
   type ObjectiveDirection,
   type ObjectiveK,
   type ObjectiveMetric,
+  type OvernightStrategy,
   type PrunerKind,
   type SamplerKind,
 } from '@/lib/enums';
@@ -161,6 +163,12 @@ interface FormValues {
   // the wire, which the backend treats as "off"). Wire-`0` is reserved for
   // the worker's decrement path per FR-1 + D-12 — the wizard never sends it.
   auto_followup_depth?: 0 | 1 | 2 | 3 | 4 | 5;
+  // feat_overnight_final_solution Story 1.2 / FR-2 — strategy toggle.
+  // Visible only when `auto_followup_depth >= 1`. Default `'narrow'` when
+  // visible. Wire values mirror `OVERNIGHT_STRATEGY_VALUES` from `enums.ts`
+  // (source-of-truth: backend/app/api/v1/schemas.py
+  // AUTO_FOLLOWUP_STRATEGY_VALUES).
+  auto_followup_strategy?: OvernightStrategy;
 }
 
 const STEP_TITLES = [
@@ -713,6 +721,9 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
       pruner?: PrunerKind;
       seed?: number;
       auto_followup_depth?: number;
+      // feat_overnight_final_solution Story 1.2 / FR-2 — Strategy wire field,
+      // written only when auto_followup_depth >= 1 (pair-rule).
+      auto_followup_strategy?: OvernightStrategy;
     };
     const config: ConfigSpec = {};
     if (typeof values.max_trials === 'number') config.max_trials = values.max_trials;
@@ -727,6 +738,13 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
     // the worker's decrement-to-terminal path per FR-1 + D-12.
     if (typeof values.auto_followup_depth === 'number' && values.auto_followup_depth > 0) {
       config.auto_followup_depth = values.auto_followup_depth;
+      // feat_overnight_final_solution Story 1.2 / FR-2 — write the strategy
+      // ONLY when depth >= 1 (the backend pair-rule validator at
+      // schemas.py:_validate_auto_followup_strategy would 422 otherwise).
+      // Defaults to `'narrow'` for byte-identical legacy behavior; the
+      // wizard toggle replaces this value when the operator opts in to
+      // `'follow_suggestions'`.
+      config.auto_followup_strategy = values.auto_followup_strategy ?? 'narrow';
     }
 
     setSubmitting(true);
@@ -1468,10 +1486,23 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   value={String(values.auto_followup_depth ?? 0)}
                   onValueChange={(v: string) => {
                     const n = Number.parseInt(v, 10);
+                    const wasOff =
+                      values.auto_followup_depth === undefined || values.auto_followup_depth === 0;
                     if (n === 0) {
                       form.setValue('auto_followup_depth', undefined);
+                      // feat_overnight_final_solution F1 (GPT-5.5 final review)
+                      // — clear the strategy when the toggle hides so the
+                      // next reveal deterministically starts from the
+                      // safe "narrow" default rather than a stale value.
+                      form.setValue('auto_followup_strategy', undefined);
                     } else {
                       form.setValue('auto_followup_depth', n as 1 | 2 | 3 | 4 | 5);
+                      // F1 reset: when transitioning Off (0/undefined) → ≥ 1
+                      // the spec FR-2 says the toggle defaults to "narrow"
+                      // whenever it becomes visible.
+                      if (wasOff) {
+                        form.setValue('auto_followup_strategy', 'narrow');
+                      }
                     }
                   }}
                 >
@@ -1493,6 +1524,46 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   you still open every PR by hand.
                 </p>
               </div>
+              {/*
+                feat_overnight_final_solution Story 1.2 / FR-2 — strategy toggle.
+                Visible only when auto_followup_depth >= 1 (pair-rule per backend
+                _validate_auto_followup_strategy at schemas.py:_validate_auto_followup_strategy).
+                Source-of-truth: backend/app/api/v1/schemas.py AUTO_FOLLOWUP_STRATEGY_VALUES.
+              */}
+              {typeof values.auto_followup_depth === 'number' &&
+                values.auto_followup_depth >= 1 && (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1">
+                      <Label htmlFor="cs-overnight-strategy">Strategy</Label>
+                      <InfoTooltip glossaryKey="overnight_strategy" />
+                    </div>
+                    <Select
+                      value={values.auto_followup_strategy ?? 'narrow'}
+                      onValueChange={(v: string) =>
+                        form.setValue('auto_followup_strategy', v as OvernightStrategy)
+                      }
+                    >
+                      <SelectTrigger id="cs-overnight-strategy" data-testid="cs-overnight-strategy">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {OVERNIGHT_STRATEGY_VALUES.map((s) => (
+                          <SelectItem key={s} value={s}>
+                            {s === 'narrow'
+                              ? 'Refine the same knobs (predictable)'
+                              : 'Try suggested follow-ups (broader exploration)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Refine: each follow-up tightens around the previous winner on the same knobs.
+                      Try suggestions: each follow-up acts on the digest&rsquo;s top runnable
+                      recommendation, which may switch knobs or templates. Refine is the safer
+                      default; Try suggestions explores broader.
+                    </p>
+                  </div>
+                )}
             </div>
           )}
           <DialogFooter>

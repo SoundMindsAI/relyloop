@@ -3255,11 +3255,15 @@ export interface components {
             name: string;
             /** Proposal Id */
             proposal_id: string | null;
+            /** Selected Followup Kind */
+            selected_followup_kind?: ("narrow_default" | "narrow" | "widen" | "swap_template") | null;
             /**
              * Status
              * @enum {string}
              */
             status: "queued" | "running" | "completed" | "cancelled" | "failed";
+            /** Template Id */
+            template_id: string;
         };
         /**
          * StudyChainResponse
@@ -3305,6 +3309,8 @@ export interface components {
         StudyConfigSpec: {
             /** Auto Followup Depth */
             auto_followup_depth?: number | null;
+            /** Auto Followup Strategy */
+            auto_followup_strategy?: string | null;
             /** Baseline Params */
             baseline_params?: {
                 [key: string]: string | number | boolean | null;

@@ -22,7 +22,21 @@ Every chain enqueue / skip / cancel branch emits a distinct `event_type` so a si
 | 7 | `auto_followup_enqueued_duplicate_dropped` | worker (layer-2 backstop) | Worker found existing children via `list_children_of_study` and refused to create a second — fires only on Arq `_job_id` dedup miss |
 | 8 | `auto_followup_cancelled_with_parent` | cascade service | Direct child got cancelled as part of `cancel_study_with_chain_cascade` |
 
-Plus 4 auxiliary events (intentionally outside the FR-9 catalog per cycle-1 C1-5 + cycle-2 C2-3 — they're warning paths, not chain-state events):
+Plus 3 events added by `feat_overnight_final_solution` Story 2.2 (only emitted under the `auto_followup_strategy = "follow_suggestions"` path — the legacy/missing/`"narrow"` path stays log-quiet):
+
+| Event | Where | When |
+|---|---|---|
+| `auto_followup_strategy_selected` | worker (post-INSERT) | The worker took a selection-driven path (narrow / widen / swap_template). Fields: `parent_study_id`, `child_study_id`, `strategy: "follow_suggestions"`, `selected_kind`, `source_index`, `candidate_count`, `dropped_template_ids`. The `dropped_template_ids` field carries cycle-guard activity on the same line — a non-empty list with `selected_kind = "narrow"` or `"widen"` means the chain wanted to swap to a visited template but the guard fired. |
+| `auto_followup_no_executable_candidate_fell_back_to_narrow` | worker (post-INSERT) | `select_executable_followup` returned no candidate (digest had only `text` items, OR every executable was a swap to a visited template). The chain did NOT stall — fell back to today's narrow path. Frequent firing usually means the digest is text-heavy (typical of `still_improving` / `too_few_trials` parent verdicts); the operator should re-run with a larger trial budget rather than continue chaining. Fields: `parent_study_id`, `child_study_id`, `digest_followup_kinds`, `visited_template_id_count`, `dropped_template_ids`. |
+| `auto_followup_swap_target_missing` | worker (pre-fallback WARN) | A `swap_template` follow-up pointed at a template that no longer exists (hard-deleted between digest persist and dispatch). Logged BEFORE the fallback decision so `child_study_id` is NOT populated (the fallback child gets created next). Operator action: investigate why a template was deleted while a chain referenced it. Fields: `parent_study_id`, `swap_target_template_id`. |
+
+Plus 1 auxiliary error event from the same Story 2.2 defensive try/except:
+
+| Event | Where | When |
+|---|---|---|
+| `auto_followup_strategy_dispatch_error` | worker (pre-fallback WARN) | An unexpected exception fired inside the `follow_suggestions` dispatch block (digest read / parse / select). The chain falls back to the narrow path; reliability does not regress vs the legacy path. Fields: `parent_study_id`, `error` (truncated to 200 chars). |
+
+Plus 4 long-standing auxiliary events (intentionally outside the FR-9 catalog per cycle-1 C1-5 + cycle-2 C2-3 — they're warning paths, not chain-state events):
 
 | Event | Where | When |
 |---|---|---|

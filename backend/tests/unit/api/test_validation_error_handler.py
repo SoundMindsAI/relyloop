@@ -66,6 +66,69 @@ def test_auto_followup_depth_emits_canonical_error_code() -> None:
     assert detail["retryable"] is False
 
 
+def test_auto_followup_strategy_value_emits_canonical_error_code() -> None:
+    """feat_overnight_final_solution Story 1.1 — bad strategy VALUE → envelope
+    ``error_code=AUTO_FOLLOWUP_STRATEGY_INVALID``. AC-2."""
+    try:
+        StudyConfigSpec(
+            max_trials=20, auto_followup_depth=3, auto_followup_strategy="broaden_everything"
+        )
+    except ValidationError as e:
+        body = _run_handler(RequestValidationError(e.errors()))
+    else:
+        raise AssertionError("StudyConfigSpec did not raise on unknown strategy value")
+
+    assert body["__status__"] == 422
+    detail = body["detail"]
+    assert isinstance(detail, dict)
+    assert detail["error_code"] == "AUTO_FOLLOWUP_STRATEGY_INVALID"
+    assert "narrow" in detail["message"] and "follow_suggestions" in detail["message"]
+
+
+def test_auto_followup_strategy_pair_rule_emits_canonical_error_code() -> None:
+    """feat_overnight_final_solution Story 1.1 — strategy set without
+    depth >= 1 → ``AUTO_FOLLOWUP_STRATEGY_INVALID``. AC-1."""
+    try:
+        StudyConfigSpec(max_trials=20, auto_followup_strategy="follow_suggestions")
+    except ValidationError as e:
+        body = _run_handler(RequestValidationError(e.errors()))
+    else:
+        raise AssertionError("StudyConfigSpec did not raise on pair-rule violation")
+
+    assert body["__status__"] == 422
+    detail = body["detail"]
+    assert isinstance(detail, dict)
+    assert detail["error_code"] == "AUTO_FOLLOWUP_STRATEGY_INVALID"
+    assert "auto_followup_depth" in detail["message"]
+
+
+def test_auto_followup_strategy_visited_list_reject_emits_canonical_error_code() -> None:
+    """D-14: operator-submitted ``auto_followup_visited_template_ids``
+    → ``AUTO_FOLLOWUP_STRATEGY_INVALID``. The ``mode='before'`` validator
+    fires BEFORE Pydantic's default ``extra='ignore'`` would silently drop
+    the key — confirming the single-writer rule is enforced at the wire
+    contract."""
+    try:
+        StudyConfigSpec.model_validate(
+            {
+                "max_trials": 20,
+                "auto_followup_depth": 3,
+                "auto_followup_strategy": "follow_suggestions",
+                "auto_followup_visited_template_ids": ["TEMPLATE_A"],
+            }
+        )
+    except ValidationError as e:
+        body = _run_handler(RequestValidationError(e.errors()))
+    else:
+        raise AssertionError("StudyConfigSpec did not raise on operator-submitted visited list")
+
+    assert body["__status__"] == 422
+    detail = body["detail"]
+    assert isinstance(detail, dict)
+    assert detail["error_code"] == "AUTO_FOLLOWUP_STRATEGY_INVALID"
+    assert "worker-managed" in detail["message"]
+
+
 def test_non_prefixed_validation_error_falls_back_to_generic_envelope() -> None:
     """Regression guard (cycle-2 finding C2-1): a Pydantic validator that
     raises ValueError WITHOUT a recognized prefix (e.g., the existing

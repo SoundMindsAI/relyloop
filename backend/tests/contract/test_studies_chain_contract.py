@@ -33,7 +33,13 @@ def test_chain_response_top_level_keys() -> None:
     }
 
 
-def test_chain_link_twelve_fields() -> None:
+def test_chain_link_fourteen_fields() -> None:
+    """feat_overnight_final_solution Story 3.1 — two additive fields:
+    ``template_id`` (P1-B5; needed by the chain panel's swap_template
+    badge to resolve the target template's display name) and
+    ``selected_followup_kind`` (FR-6; soft-contract additive Literal).
+    Both are additive — older clients still parse the response.
+    Field count rises 12 → 14."""
     assert set(StudyChainLink.model_fields) == {
         "id",
         "name",
@@ -47,8 +53,37 @@ def test_chain_link_twelve_fields() -> None:
         "failed_reason",
         "created_at",
         "completed_at",
+        "template_id",
+        "selected_followup_kind",
     }
-    assert len(StudyChainLink.model_fields) == 12
+    assert len(StudyChainLink.model_fields) == 14
+
+
+def test_chain_link_selected_followup_kind_is_literal_with_four_values() -> None:
+    """feat_overnight_final_solution Story 3.1 / FR-6 — the Literal
+    on the response model must mirror SELECTED_FOLLOWUP_KIND_VALUES
+    character-for-character so the frontend mirror in enums.ts and
+    this contract cannot silently drift."""
+    from backend.app.domain.study.auto_followup_strategy import (
+        SELECTED_FOLLOWUP_KIND_VALUES,
+    )
+
+    annotation = StudyChainLink.model_fields["selected_followup_kind"].annotation
+    args = typing.get_args(annotation)
+    # Optional[Literal[...]] renders as Union[Literal[...], None]; the
+    # Literal is the non-None entry.
+    literal_arg = next(a for a in args if a is not type(None))
+    assert set(typing.get_args(literal_arg)) == set(SELECTED_FOLLOWUP_KIND_VALUES)
+
+
+def test_chain_link_template_id_is_required_string() -> None:
+    """feat_overnight_final_solution Story 3.1 / P1-B5 — every study
+    has a template_id, so this field is non-optional. The chain panel's
+    swap_template badge depends on it for the per-link template-name
+    fetch (Story 3.2)."""
+    info = StudyChainLink.model_fields["template_id"]
+    assert info.annotation is str
+    assert info.is_required()
 
 
 def test_stop_reason_literal_matches_frozenset() -> None:

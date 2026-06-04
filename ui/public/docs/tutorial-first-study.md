@@ -447,13 +447,36 @@ deterministically, and stops on its own when the lift plateaus.
 
 1. Open the **Create study** wizard. Pick the **Deep (1000)** preset.
 2. Set **🌙 Run overnight (compound automatically)** to **depth 3**.
-3. Click **Create study** before you log off.
-4. In the morning, open the study detail page. The **Overnight chain**
+3. Pick a **Strategy** (see below).
+4. Click **Create study** before you log off.
+5. In the morning, open the study detail page. The **Overnight chain**
    panel summarises what ran, the cumulative lift across the chain, which
    link won, and why the chain stopped.
-5. The summary points at a proposal — click it, review the diff, open the
+6. The summary points at a proposal — click it, review the diff, open the
    PR. (You can also cancel any mid-chain study with `?cascade=true` (the
    default) to halt pending children.)
+
+### Strategy — Refine vs. Try suggestions
+
+The new **Strategy** toggle (visible only after depth ≥ 1 is selected)
+picks how each follow-up is chosen:
+
+- **Refine the same knobs (predictable)** — the safer default. Each
+  follow-up tightens the search space around the previous winner *on the
+  same template*. The chain hill-climbs one set of knobs deterministically.
+  Use this when you trust the template + the parameters you're tuning and
+  you just want better numbers on them.
+- **Try suggested follow-ups (broader exploration)** — each follow-up
+  acts on the parent digest's top runnable recommendation, which may
+  *widen* the bounds OR *swap* the template (e.g. from `multi-match` to
+  `function-score-decay`). A cycle guard prevents the chain from
+  ping-ponging between two templates. When the digest has no runnable
+  suggestion, the chain falls back to today's narrow behavior so it
+  never stalls.
+
+You'll see what each link did on the chain panel: a small `narrow ↓` /
+`widen ↑` / `swapped to {template_name}` / `refined` badge next to each
+study tells you the path the autopilot took.
 
 **RelyLoop runs the exploration overnight unattended, but it never opens a
 PR on your behalf. The chain ends with a proposal you review and merge —
