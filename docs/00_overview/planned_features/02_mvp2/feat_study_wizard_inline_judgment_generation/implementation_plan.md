@@ -297,9 +297,9 @@ No cross-subsystem dependency, no migration, no backend story.
 ## 8) Execution tracker
 
 ### Current sprint
-- [ ] Story 1.1 — `<GenerateJudgmentsDialog>` `defaultTarget` (lock + seed-on-open)
-- [ ] Story 1.2 — wizard inline generate button + refetch on close
-- [ ] Story 1.3 — status in option label + conditional poll
+- [x] Story 1.1 — `<GenerateJudgmentsDialog>` `defaultTarget` (lock + seed-on-open)
+- [x] Story 1.2 — wizard inline generate button + refetch on close
+- [x] Story 1.3 — status in option label + conditional poll
 
 ### Blocked items
 - None.
