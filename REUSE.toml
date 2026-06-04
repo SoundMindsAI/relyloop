@@ -19,8 +19,11 @@ SPDX-FileCopyrightText = "2026 soundminds.ai"
 SPDX-License-Identifier = "Apache-2.0"
 
 # --- Structured data with no comment syntax ----------------------------------
+# WebVTT (*.vtt) caption files must begin with the literal `WEBVTT` signature on
+# line 1, so an inline SPDX header is impossible — they are generated alongside
+# each walkthrough video from the deck's metadata.json captions.
 [[annotations]]
-path = ["**/*.json", "**/*.csv", "**/*.ndjson", "**/*.cff"]
+path = ["**/*.json", "**/*.csv", "**/*.ndjson", "**/*.cff", "**/*.vtt"]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 soundminds.ai"
 SPDX-License-Identifier = "Apache-2.0"

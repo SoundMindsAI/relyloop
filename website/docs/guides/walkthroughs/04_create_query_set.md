@@ -11,6 +11,7 @@ Define the benchmark queries you want to tune for — the stable list every stud
 <video controls playsinline preload="metadata" class="walkthrough-video">
   <source src="../../../assets/guides/04_create_query_set/walkthrough.mp4" type="video/mp4">
   <source src="../../../assets/guides/04_create_query_set/walkthrough.webm" type="video/webm">
+  <track kind="captions" src="../../../assets/guides/04_create_query_set/captions.vtt" srclang="en" label="Steps" default>
   <p>Your browser cannot play the embedded video.</p>
 </video>
 <p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/04_create_query_set/walkthrough.webm">Download the walkthrough video</a>.</p>

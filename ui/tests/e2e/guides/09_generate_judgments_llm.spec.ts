@@ -16,48 +16,94 @@
  * This sidesteps a Radix Select interaction issue where the
  * portal-mounted listbox renders options outside the viewport when many
  * templates are seeded, leaving keyboard nav unable to select reliably.
+ *
+ * Cursor + smoother pacing + WebVTT step captions via the shared demo-cursor
+ * helper (feat_walkthrough_video_cursor_captions). Run video-only so the
+ * committed screenshots don't churn:
+ *   cd ui
+ *   DEMO_VIDEO_ONLY=1 pnpm playwright test -c playwright.demo.config.ts \
+ *     tests/e2e/guides/09_generate_judgments_llm.spec.ts
  */
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 import { expect, test } from '@playwright/test';
 
+import metadata from '../../../public/guides/09_generate_judgments_llm/metadata.json';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, finalizeCaptions } from '../helpers/demo-cursor';
 import { seedQuerySet, seedTemplate } from '../helpers/seed';
 
-const SCREENSHOTS = path.resolve(__dirname, '../../../public/guides/09_generate_judgments_llm');
+const SLUG = '09_generate_judgments_llm';
+const GUIDES_ROOT = path.resolve(__dirname, '../../../public/guides');
+const SCREENSHOTS = path.join(GUIDES_ROOT, SLUG);
 const API_BASE = process.env.PLAYWRIGHT_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
 test.describe('Walkthrough: Generate judgments via LLM', () => {
   test.setTimeout(240_000);
 
   test('captures the generate-judgments LLM flow', async ({ page, request }) => {
+    await installCursor(page);
+    const captions = loadStepCaptions(metadata);
+    const timer = new StepTimer();
+
     const tpl = await seedTemplate();
     const { querySetId, clusterId } = await seedQuerySet(2);
 
     // ── 01: Query set detail ──────────────────────────────────────────
     await page.goto(`/query-sets/${querySetId}`);
     await page.waitForTimeout(600);
-    await page.screenshot({
+    timer.mark(captions[0]!);
+    await shot(page, {
       path: path.join(SCREENSHOTS, '01-query-set-detail-no-judgments.png'),
     });
 
     // ── 02: Open the Generate dialog ──────────────────────────────────
+    await glide(page, page.getByTestId('open-generate-judgments'));
     await page.getByTestId('open-generate-judgments').click();
     await expect(page.getByTestId('generate-form')).toBeVisible({ timeout: 5_000 });
     await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(SCREENSHOTS, '02-generate-dialog-empty.png') });
+    timer.mark(captions[1]!);
+    await shot(page, { path: path.join(SCREENSHOTS, '02-generate-dialog-empty.png') });
 
     // ── 03: Fill the text fields ──────────────────────────────────────
     const listName = `walkthrough-${randomUUID().slice(0, 6)}`;
-    await page.getByLabel('Judgment list name', { exact: true }).fill(listName);
-    await page.getByLabel(/Target index/).fill('products');
-    await page.waitForTimeout(400);
-    await page.screenshot({ path: path.join(SCREENSHOTS, '03-generate-dialog-text-filled.png') });
+    const nameField = page.getByLabel('Judgment list name', { exact: true });
+    await glide(page, nameField, 400);
+    await nameField.fill(listName);
+    const targetField = page.getByLabel(/Target index/);
+    await glide(page, targetField, 400);
+    // Filling the target enables the UBI-readiness probe
+    // (GET .../ubi-readiness?...&target=products), which auto-selects a method
+    // from the cluster's rung — for a UBI-rich seeded cluster that can be a
+    // UBI-only method (ctr_threshold / dwell_time) that HIDES the #gen-template
+    // field. Wait DETERMINISTICALLY for that response (set up BEFORE the fill so
+    // there's no listener race; best-effort — fall through if it never fires),
+    // THEN force method=LLM-as-judge. Doing it after the auto-select means the
+    // value genuinely changes, so react-hook-form marks the field dirty and the
+    // rung effect can't override it again. Pre-existing footgun independent of
+    // the cursor/caption work.
+    const readinessSettled = page
+      .waitForResponse(
+        (r) => r.url().includes('/ubi-readiness') && r.url().includes('target=products'),
+        { timeout: 10_000 },
+      )
+      .catch(() => undefined);
+    await targetField.fill('products');
+    await readinessSettled;
+    await glide(page, page.getByTestId('gen-method'), 300);
+    await page.getByTestId('gen-method').click();
+    await page.getByRole('option', { name: 'LLM-as-judge' }).click();
+    await expect(page.locator('#gen-template')).toBeVisible({ timeout: 5_000 });
+    await page.waitForTimeout(300);
+    timer.mark(captions[2]!);
+    await shot(page, { path: path.join(SCREENSHOTS, '03-generate-dialog-text-filled.png') });
 
     // ── 04: Open the template dropdown so the screenshot shows options ─
+    await glide(page, page.locator('#gen-template'));
     await page.locator('#gen-template').click();
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[3]!);
+    await shot(page, {
       path: path.join(SCREENSHOTS, '04-template-dropdown-open.png'),
       fullPage: false,
     });
@@ -92,7 +138,7 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
     // Navigate to the judgment list detail page; worker is now generating.
     await page.goto(`/judgments/${judgmentListId}`);
     await page.waitForTimeout(800);
-    await page.screenshot({
+    await shot(page, {
       path: path.join(SCREENSHOTS, '05-judgment-list-terminal-state.png'),
       fullPage: true,
     });
@@ -120,9 +166,12 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
         ? '05-judgment-list-terminal-state.png'
         : '05-judgment-list-terminal-state.png';
     void filename; // same path either way — we want the final state
-    await page.screenshot({
+    timer.mark(captions[4]!);
+    await shot(page, {
       path: path.join(SCREENSHOTS, '05-judgment-list-terminal-state.png'),
       fullPage: true,
     });
+
+    finalizeCaptions(timer, captions, SLUG, GUIDES_ROOT);
   });
 });

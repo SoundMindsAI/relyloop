@@ -39,7 +39,7 @@ export default defineConfig({
     viewport: { width: 1440, height: 960 },
     video: 'on',
     trace: 'retain-on-failure',
-    launchOptions: { slowMo: 350 },
+    launchOptions: { slowMo: 60 },
   },
   projects: [
     {
@@ -47,7 +47,7 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         launchOptions: {
-          slowMo: 350,
+          slowMo: 60,
           // --disable-extensions prevents browser extensions (e.g. Notion Web
           // Clipper, password managers) from injecting overlays into
           // screenshots. Critical for stable visual output across machines.

@@ -1,0 +1,12 @@
+{
+  "_comment": "Shared golden corpus for the caption text transform. Driven by BOTH the vitest (ui/tests/e2e/helpers/__tests__/captions-vtt.test.ts) AND the pytest (backend/tests/unit/scripts/test_build_guides.py) so the TS normalizeCaption/escapeVttCueText and their Python mirrors cannot drift. Each case: input then normalized then escaped (escaped = escapeVttCueText(normalizeCaption(input))). Licensed Apache-2.0 via REUSE.toml.",
+  "cases": [
+    { "input": "Open the Proposals page.", "normalized": "Open the Proposals page.", "escaped": "Open the Proposals page." },
+    { "input": "a & b", "normalized": "a & b", "escaped": "a &amp; b" },
+    { "input": "<strong>hi</strong>", "normalized": "<strong>hi</strong>", "escaped": "&lt;strong&gt;hi&lt;/strong&gt;" },
+    { "input": "go --> there", "normalized": "go -> there", "escaped": "go -&gt; there" },
+    { "input": "line1\n\nline2", "normalized": "line1 line2", "escaped": "line1 line2" },
+    { "input": "  a   b  ", "normalized": "a b", "escaped": "a b" },
+    { "input": "Boost title & description <strong>2.5×</strong>", "normalized": "Boost title & description <strong>2.5×</strong>", "escaped": "Boost title &amp; description &lt;strong&gt;2.5×&lt;/strong&gt;" }
+  ]
+}

@@ -1,0 +1,16 @@
+WEBVTT
+
+00:00:00.691 --> 00:00:02.618
+Open the Proposals page. Every winning study config and every manually-authored proposal lands here. Filter chips at the top scope by status, source, and cluster — start with 'All' to see everything.
+
+00:00:02.618 --> 00:00:03.269
+Click the 'pending' chip to narrow to proposals that haven't been opened as a PR or rejected yet. The URL updates with ?status=pending so the filter survives page reloads and is sharable.
+
+00:00:03.269 --> 00:00:04.866
+Click a proposal row to open its detail page. You'll see the source (study or manual), the cluster + template it targets, the proposed config changes, and the metric delta (when the proposal came from a completed study).
+
+00:00:04.866 --> 00:00:10.388
+The Config diff panel is the load-bearing review surface. Each row is one parameter key being changed: title.boost from 1.0 → 2.5, description.boost from 1.0 → 0.8. The 'FROM' column shows the cluster's current value; 'TO' shows what the PR will write. (Manual proposals don't carry a baseline metric — those only ship from completed studies.)
+
+00:00:10.388 --> 00:00:14.388
+If the proposal isn't right — wrong cluster, regressed a query class the metric didn't capture, off-target for the current sprint — click 'Reject'. Provide a brief reason; rejected proposals stay in the queue but are filtered out by default. Alternatively, click 'Open PR' (top right of the detail page) to enqueue the GitHub PR worker.

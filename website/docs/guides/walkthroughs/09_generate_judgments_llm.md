@@ -11,6 +11,7 @@ Trigger the LLM-as-judge worker against a query set — every (query, top-K doc)
 <video controls playsinline preload="metadata" class="walkthrough-video">
   <source src="../../../assets/guides/09_generate_judgments_llm/walkthrough.mp4" type="video/mp4">
   <source src="../../../assets/guides/09_generate_judgments_llm/walkthrough.webm" type="video/webm">
+  <track kind="captions" src="../../../assets/guides/09_generate_judgments_llm/captions.vtt" srclang="en" label="Steps" default>
   <p>Your browser cannot play the embedded video.</p>
 </video>
 <p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/09_generate_judgments_llm/walkthrough.webm">Download the walkthrough video</a>.</p>

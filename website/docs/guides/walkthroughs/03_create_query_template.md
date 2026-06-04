@@ -11,6 +11,7 @@ Define the Jinja2 query template — the 'knobs' Optuna will tune across trials 
 <video controls playsinline preload="metadata" class="walkthrough-video">
   <source src="../../../assets/guides/03_create_query_template/walkthrough.mp4" type="video/mp4">
   <source src="../../../assets/guides/03_create_query_template/walkthrough.webm" type="video/webm">
+  <track kind="captions" src="../../../assets/guides/03_create_query_template/captions.vtt" srclang="en" label="Steps" default>
   <p>Your browser cannot play the embedded video.</p>
 </video>
 <p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/03_create_query_template/walkthrough.webm">Download the walkthrough video</a>.</p>

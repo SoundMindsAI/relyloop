@@ -18,9 +18,11 @@
  * artifacts. Mirrors the guide-01 precedent (PR #177). The spec is
  * self-contained — it does NOT depend on `make seed-demo` having run.
  *
- * Usage:
+ * Cursor + smoother pacing + WebVTT step captions via the shared demo-cursor
+ * helper (feat_walkthrough_video_cursor_captions). Run video-only so the
+ * committed screenshots don't churn:
  *   cd ui
- *   pnpm playwright test -c playwright.demo.config.ts \
+ *   DEMO_VIDEO_ONLY=1 pnpm playwright test -c playwright.demo.config.ts \
  *     tests/e2e/guides/06_create_and_monitor_study.spec.ts
  *
  * Prerequisite: `make up` stack running (UI at :3000, API at :8000).
@@ -29,27 +31,38 @@ import path from 'node:path';
 
 import { expect, test } from '@playwright/test';
 
+import metadata from '../../../public/guides/06_create_and_monitor_study/metadata.json';
+import { glide, installCursor, loadStepCaptions, shot, StepTimer, finalizeCaptions } from '../helpers/demo-cursor';
 import { seedAcmeProductsChain } from '../helpers/seed';
 
-const SCREENSHOTS = path.resolve(__dirname, '../../../public/guides/06_create_and_monitor_study');
+const SLUG = '06_create_and_monitor_study';
+const GUIDES_ROOT = path.resolve(__dirname, '../../../public/guides');
+const SCREENSHOTS = path.join(GUIDES_ROOT, SLUG);
 
 test.describe('Walkthrough: Create and monitor a study', () => {
   test('captures the studies list + create modal + monitoring view', async ({ page }) => {
+    await installCursor(page);
+    const captions = loadStepCaptions(metadata);
+    const timer = new StepTimer();
+
     const chain = await seedAcmeProductsChain();
 
     // 01: Studies list.
     await page.goto('/studies');
     await expect(page.getByTestId('studies-table')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[0]!);
+    await shot(page, {
       path: path.join(SCREENSHOTS, '01-studies-list.png'),
       fullPage: false,
     });
 
     // 02: Status filter chips driving the URL.
+    await glide(page, page.getByTestId('filter-chip-status-queued'));
     await page.getByTestId('filter-chip-status-queued').click();
     await page.waitForTimeout(400);
-    await page.screenshot({
+    timer.mark(captions[1]!);
+    await shot(page, {
       path: path.join(SCREENSHOTS, '02-studies-status-filter.png'),
       fullPage: false,
     });
@@ -61,10 +74,12 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     // Step-1 state so the new picker UI is visible.
     await page.getByTestId('filter-chip-status-all').click();
     await page.waitForTimeout(200);
+    await glide(page, page.getByTestId('open-create-study'));
     await page.getByTestId('open-create-study').click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.waitForTimeout(500);
-    await page.screenshot({
+    timer.mark(captions[2]!);
+    await shot(page, {
       path: path.join(SCREENSHOTS, '03-create-study-modal.png'),
       fullPage: false,
     });
@@ -95,7 +110,8 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await expect(page.getByTestId('convergence-curve')).toBeVisible({ timeout: 5_000 });
     // Brief settle for the Recharts render + any in-flight animations / fonts.
     await page.waitForTimeout(900);
-    await page.screenshot({
+    timer.mark(captions[3]!);
+    await shot(page, {
       path: path.join(SCREENSHOTS, '04-study-detail.png'),
       fullPage: true,
     });
@@ -103,9 +119,11 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     // 05: Cancel-study confirmation (operator's mid-flight kill switch).
     const cancelBtn = page.getByTestId('cancel-study');
     if (await cancelBtn.isEnabled().catch(() => false)) {
+      await glide(page, cancelBtn);
       await cancelBtn.click();
       await page.waitForTimeout(400);
-      await page.screenshot({
+      timer.mark(captions[4]!);
+      await shot(page, {
         path: path.join(SCREENSHOTS, '05-cancel-confirmation.png'),
         fullPage: false,
       });
@@ -113,10 +131,13 @@ test.describe('Walkthrough: Create and monitor a study', () => {
       // The orchestrator may already have terminated the 2-trial study.
       // Capture the terminal-state screenshot in that case.
       await page.waitForTimeout(400);
-      await page.screenshot({
+      timer.mark(captions[4]!);
+      await shot(page, {
         path: path.join(SCREENSHOTS, '05-study-terminal-state.png'),
         fullPage: false,
       });
     }
+
+    finalizeCaptions(timer, captions, SLUG, GUIDES_ROOT);
   });
 });
