@@ -159,7 +159,8 @@ async function walkToJudgmentStep(): Promise<void> {
 function jl(status: JudgmentList['status']): JudgmentList {
   return {
     id: 'jl1',
-    name: 'demo',
+    // Distinct from the query-set name ('demo') so option-role queries don't collide.
+    name: 'jl-demo',
     description: null,
     query_set_id: 'qs1',
     cluster_id: 'c1',
@@ -198,7 +199,7 @@ describe('CreateStudyModal — inline judgment generation', () => {
     wrap(<CreateStudyModal open onOpenChange={() => {}} />);
     await walkToJudgmentStep();
     await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'demo · generating' })).toBeInTheDocument(),
+      expect(screen.getByRole('option', { name: 'jl-demo · generating' })).toBeInTheDocument(),
     );
   });
 
@@ -207,20 +208,59 @@ describe('CreateStudyModal — inline judgment generation', () => {
     wrap(<CreateStudyModal open onOpenChange={() => {}} />);
     await walkToJudgmentStep();
     await waitFor(() =>
-      expect(screen.queryAllByRole('option', { name: 'demo' }).length).toBeGreaterThanOrEqual(1),
+      expect(screen.getByRole('option', { name: 'jl-demo' })).toBeInTheDocument(),
     );
-    expect(screen.queryByRole('option', { name: 'demo · complete' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'jl-demo · complete' })).not.toBeInTheDocument();
   });
 
-  it('AC-3/AC-7: closing the dialog refetches the judgment-list query', async () => {
-    const { jlGetCount } = mockBackend([]);
+  it('AC-3/AC-7: closing the dialog refetches and the newly-present list appears', async () => {
+    // Start empty; after the dialog closes, a list "exists" (simulating a
+    // dispatched generation) — the on-close invalidation must surface it.
+    const lists: JudgmentList[] = [];
+    const { jlGetCount } = mockBackend(lists);
     wrap(<CreateStudyModal open onOpenChange={() => {}} />);
     await walkToJudgmentStep();
-    fireEvent.click(await screen.findByTestId('cs-generate-judgments'));
+    // No list yet → only the inline generate button, no 'jl-demo' option.
+    expect(await screen.findByTestId('cs-generate-judgments')).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'jl-demo' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('cs-generate-judgments'));
     expect(await screen.findByTestId('generate-form')).toBeInTheDocument();
     const before = jlGetCount();
-    // Close the dialog (Escape) → onOpenChange(false) → invalidate ['judgment-lists'].
+    // Generation "completed": the backend now has a complete list.
+    lists.push(jl('complete'));
+    // Close the dialog → onOpenChange(false) → invalidate ['judgment-lists'].
     fireEvent.keyDown(document.body, { key: 'Escape' });
     await waitFor(() => expect(jlGetCount()).toBeGreaterThan(before));
+    // The refetch surfaced the new list as a selectable option.
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: 'jl-demo' })).toBeInTheDocument(),
+    );
+  });
+
+  it('AC-5 (component): the option label updates from generating to complete on refetch', async () => {
+    const lists: JudgmentList[] = [jl('generating')];
+    const { jlGetCount } = mockBackend(lists);
+    wrap(<CreateStudyModal open onOpenChange={() => {}} />);
+    await walkToJudgmentStep();
+    // Initially labelled with the generating status.
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: 'jl-demo · generating' })).toBeInTheDocument(),
+    );
+    // Generation completes; a refetch (triggered here via the dialog-close
+    // invalidation; in production the conditional poll fires it) updates the
+    // rendered label to the plain name — no manual page refresh.
+    lists[0] = jl('complete');
+    fireEvent.click(await screen.findByTestId('cs-generate-judgments'));
+    await screen.findByTestId('generate-form');
+    const before = jlGetCount();
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+    await waitFor(() => expect(jlGetCount()).toBeGreaterThan(before));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('option', { name: 'jl-demo · generating' }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getByRole('option', { name: 'jl-demo' })).toBeInTheDocument();
   });
 });

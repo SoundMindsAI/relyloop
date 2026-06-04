@@ -999,7 +999,9 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   // Story 1.3 (FR-4): surface non-complete status so a freshly
                   // generated `generating` list (or a `failed` one) is visibly
                   // flagged. Informational only — not hard-gated (D-3/D-7).
-                  getLabel={(j) => (j.status !== JL_COMPLETE ? `${j.name} · ${j.status}` : j.name)}
+                  getLabel={(j) =>
+                    j.status && j.status !== JL_COMPLETE ? `${j.name} · ${j.status}` : j.name
+                  }
                   value={values.judgment_list_id || undefined}
                   onChange={(v) => form.setValue('judgment_list_id', v ?? '')}
                   placeholder="Choose a judgment list"
@@ -1008,8 +1010,8 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   // before this dropdown renders), so the empty-state copy
                   // is unconditional — no "no target yet" fallback branch.
                   emptyState={{
-                    message: `No judgment lists for target "${target}" on this cluster + query set. Generate one below, or open the full judgments page.`,
-                    cta: { label: 'Open judgments page', href: '/judgments' },
+                    message: `No judgment lists for target "${target}" on this cluster + query set. Generate a new one from /judgments.`,
+                    cta: { label: 'Generate judgments', href: '/judgments' },
                   }}
                 />
                 {/* feat_study_wizard_inline_judgment_generation Story 1.2 (FR-1):
