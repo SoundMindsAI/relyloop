@@ -425,12 +425,12 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">25</div>
+      <div class="value">26</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
       <div class="label">Backlog</div>
-      <div class="value">5</div>
+      <div class="value">4</div>
       <div class="sub">captured for record, not planned</div>
     </div>
     <div class="kpi">
@@ -464,6 +464,19 @@ footer {
   <div class="kanban">
 <div class="col idea">
   <h3>Idea <span class="count">19</span></h3>
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase3">Overnight Final Solution Phase3</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">When `follow_suggestions` runs a 4-link chain, today&#x27;s proposal-creation logic at [`backend/workers/orchestrator.py:693-740`](../backend/workers/orchestrator.py#L693-L740)…</div>
+
+
+</div>
+
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_website_walkthrough_guides">Website Walkthrough Guides</a></div>
@@ -655,19 +668,6 @@ footer {
 
   </div>
   <div class="one-liner">`feat_data_table_primitive` shipped filter-only FTS — `?q=foo` matches rows where `search_vector @@ plainto_tsquery(&#x27;english&#x27;, &#x27;foo&#x27;)` is true but orders results by `created_at DESC, id DESC` (the def</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="Backlog">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase3">Overnight Final Solution Phase3</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="Backlog">Backlog</span>
-
-  </div>
-  <div class="one-liner">When `follow_suggestions` runs a 4-link chain, today&#x27;s proposal-creation logic ([`backend/workers/orchestrator.py`](../backend/workers/orchestrator.py) `_on_study_complete`) creates **one `pending` pr</div>
 
 
 </div>
