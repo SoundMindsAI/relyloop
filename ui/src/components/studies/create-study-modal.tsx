@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useForm, type SubmitHandler } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { HelpPopover } from '@/components/common/help-popover';
@@ -39,6 +40,8 @@ import {
 } from '@/lib/api/clusters';
 import { useStudyDigest } from '@/lib/api/digests';
 import { useJudgmentLists } from '@/lib/api/judgments';
+import { GenerateJudgmentsDialog } from '@/components/query-sets/generate-judgments-dialog';
+import { type JudgmentListStatus } from '@/lib/enums';
 import { useTemplates, useTemplate } from '@/lib/api/query-templates';
 import { useQuerySets } from '@/lib/api/query-sets';
 import { useCreateStudy } from '@/lib/api/studies';
@@ -79,6 +82,12 @@ export const K_IGNORED: ReadonlySet<ObjectiveMetric> = new Set(['mrr']);
 // Sentinel value used by the optional-k "—" SelectItem (Radix SelectItem
 // rejects empty-string values).
 const K_CLEAR_SENTINEL = '__clear__';
+
+// Judgment-list status constants, typed against the enum source of truth so a
+// drifted literal is a compile error (spec §7.4 — no inline status literals).
+// Source-of-truth: ui/src/lib/enums.ts JUDGMENT_LIST_STATUS_VALUES.
+const JL_COMPLETE: JudgmentListStatus = 'complete';
+const JL_GENERATING: JudgmentListStatus = 'generating';
 
 export type KTier = 'required' | 'optional' | 'ignored';
 
@@ -259,6 +268,10 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
   const clusterId = form.watch('cluster_id');
   const target = form.watch('target');
   const querySetId = form.watch('query_set_id');
+  // feat_study_wizard_inline_judgment_generation Story 1.2 — inline judgment
+  // generation so a query set with no judgment list doesn't dead-end the wizard.
+  const qc = useQueryClient();
+  const [genOpen, setGenOpen] = useState(false);
   const templateId = form.watch('template_id');
   const metric = form.watch('metric');
 
@@ -383,12 +396,21 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
   // valid pairings. The backend's POST /studies validators (FR-1 + FR-1b) are
   // the contract; this client-side filter is the UX prefetch so the operator
   // can't even submit a mismatch.
-  const judgmentLists = useJudgmentLists({
-    query_set_id: querySetId || undefined,
-    cluster_id: clusterId || undefined,
-    target: target || undefined,
-    limit: 200,
-  });
+  const judgmentLists = useJudgmentLists(
+    {
+      query_set_id: querySetId || undefined,
+      cluster_id: clusterId || undefined,
+      target: target || undefined,
+      limit: 200,
+    },
+    {
+      // Story 1.3 (FR-4 / D-6): poll ONLY while a list is still generating, so a
+      // list freshly created via the inline dialog flips to `complete` in place
+      // without a manual refresh. Resolves to `false` (no polling) otherwise.
+      refetchInterval: (q) =>
+        q.state.data?.data?.some((j) => j.status === JL_GENERATING) ? 4000 : false,
+    },
+  );
   const templates = useTemplates({
     engine_type: selectedCluster?.engine_type,
     limit: 200,
@@ -974,7 +996,10 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   data-testid="cs-jl"
                   query={judgmentLists}
                   getId={(j) => j.id}
-                  getLabel={(j) => j.name}
+                  // Story 1.3 (FR-4): surface non-complete status so a freshly
+                  // generated `generating` list (or a `failed` one) is visibly
+                  // flagged. Informational only — not hard-gated (D-3/D-7).
+                  getLabel={(j) => (j.status !== JL_COMPLETE ? `${j.name} · ${j.status}` : j.name)}
                   value={values.judgment_list_id || undefined}
                   onChange={(v) => form.setValue('judgment_list_id', v ?? '')}
                   placeholder="Choose a judgment list"
@@ -983,9 +1008,39 @@ export function CreateStudyModal({ open, onOpenChange, initialValues }: CreateSt
                   // before this dropdown renders), so the empty-state copy
                   // is unconditional — no "no target yet" fallback branch.
                   emptyState={{
-                    message: `No judgment lists for target "${target}" on this cluster + query set. Generate a new one from /judgments.`,
-                    cta: { label: 'Generate judgments', href: '/judgments' },
+                    message: `No judgment lists for target "${target}" on this cluster + query set. Generate one below, or open the full judgments page.`,
+                    cta: { label: 'Open judgments page', href: '/judgments' },
                   }}
+                />
+                {/* feat_study_wizard_inline_judgment_generation Story 1.2 (FR-1):
+                    persistent inline generate affordance so a query set with no
+                    judgment list (or only a failed/generating one) never
+                    dead-ends study creation. Prominent (secondary) when the
+                    dropdown is empty, a lighter ghost action otherwise. */}
+                {querySetId && target && (
+                  <Button
+                    type="button"
+                    variant={judgmentLists.data?.data?.length ? 'ghost' : 'secondary'}
+                    size="sm"
+                    data-testid="cs-generate-judgments"
+                    onClick={() => setGenOpen(true)}
+                  >
+                    Generate judgments for this query set
+                  </Button>
+                )}
+                <GenerateJudgmentsDialog
+                  open={genOpen}
+                  onOpenChange={(o) => {
+                    setGenOpen(o);
+                    // Refetch on close: the LLM path already invalidates
+                    // ['judgment-lists'] (judgments.ts:154), but the UBI path
+                    // (useGenerateJudgmentsFromUbi) does NOT — so invalidate here
+                    // too. Idempotent; also covers the cancel/reopen case. (FR-3)
+                    if (!o) void qc.invalidateQueries({ queryKey: ['judgment-lists'] });
+                  }}
+                  clusterId={clusterId}
+                  querySetId={querySetId}
+                  defaultTarget={target}
                 />
               </div>
             </div>
