@@ -303,9 +303,13 @@ async def test_ac6_follow_suggestions_narrow_consumed() -> None:
     assert child.config["auto_followup_selected_kind"] == "narrow"
     assert child.config["auto_followup_visited_template_ids"] == [seeded["template_id"]]
     assert child.config["auto_followup_strategy"] == "follow_suggestions"  # AC-10
-    # The child's search_space mirrors the follow-up's bounds, not the
-    # ±50% narrow on the parent's bounds.
-    assert child.search_space == _VALID_SEARCH_SPACE_DICT
+    # The child's search_space mirrors the follow-up's bounds (the
+    # follow-up's SearchSpace serializes through model_dump() which adds
+    # type/log defaults — compare structural fields instead of full
+    # dict equality).
+    assert set(child.search_space["params"].keys()) == {"title_boost"}
+    assert child.search_space["params"]["title_boost"]["low"] == 0.5
+    assert child.search_space["params"]["title_boost"]["high"] == 2.0
 
 
 # ---------------------------------------------------------------------------
@@ -320,14 +324,16 @@ async def test_ac7_follow_suggestions_swap_template_branches_template_id() -> No
     from backend.workers.auto_followup import enqueue_followup_study
 
     await _clear_budget_key()
+    # digest_followups=None — skip helper's empty-digest creation so this
+    # test can create the digest with the swap target's id (known only
+    # after the helper returns).
     seeded = await _seed_parent_with_digest(
         strategy="follow_suggestions",
         extra_template_ids=1,
-        digest_followups=[],  # filled in after we know the extra id
+        digest_followups=None,
     )
     swap_target_id = seeded["extra_template_ids"].split(",")[0]
-    # Re-seed digest now that we have the swap target's id. (Two-stage seed
-    # keeps the helper signature simple; only this test needs it.)
+    # Now create the digest with the swap target's real id.
     factory = get_session_factory()
     async with factory() as db:
         await repo.create_digest(
@@ -360,7 +366,10 @@ async def test_ac7_follow_suggestions_swap_template_branches_template_id() -> No
         seeded["template_id"],
         swap_target_id,
     ]
-    assert child.search_space == _VALID_SEARCH_SPACE_DICT
+    # Same model_dump-defaults normalization as AC-6.
+    assert set(child.search_space["params"].keys()) == {"title_boost"}
+    assert child.search_space["params"]["title_boost"]["low"] == 0.5
+    assert child.search_space["params"]["title_boost"]["high"] == 2.0
 
 
 # ---------------------------------------------------------------------------
@@ -408,11 +417,14 @@ async def test_ac8_cycle_guard_drops_swap_to_visited_and_selects_widen() -> None
 
     await _clear_budget_key()
     # Seed with extra templates + pre-populated visited list including both.
+    # digest_followups=None — skip helper's digest so this test creates
+    # the digest with the swap target's id below (avoids
+    # digests_study_id_key UNIQUE violation).
     seeded = await _seed_parent_with_digest(
         strategy="follow_suggestions",
         extra_template_ids=1,
         visited_template_ids=None,  # set below once we know the extra id
-        digest_followups=[],
+        digest_followups=None,
     )
     swap_target_id = seeded["extra_template_ids"].split(",")[0]
     # Pre-populate the parent's visited list to include the swap target
@@ -500,18 +512,20 @@ async def test_ac10_strategy_inherited_verbatim() -> None:
 # ---------------------------------------------------------------------------
 
 
-async def test_ac17_deleted_swap_target_falls_back_to_narrow(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
+async def test_ac17_deleted_swap_target_falls_back_to_narrow() -> None:
     """Digest points at a template_id that doesn't exist (deleted between
     persist + dispatch). Worker logs WARN with event_type
     ``auto_followup_swap_target_missing`` and falls back to narrow on
-    parent.template_id (selected_kind = "narrow_default")."""
-    import logging
+    parent.template_id (selected_kind = "narrow_default").
+
+    Uses ``structlog.testing.capture_logs`` — the worker emits via
+    ``structlog.get_logger`` directly so pytest's caplog (which captures
+    stdlib logging records) doesn't see these events. Mirrors the
+    existing ``test_enqueue_emits_auto_followup_enqueued_event`` pattern
+    in ``test_auto_followup.py``."""
+    import structlog.testing
 
     from backend.workers.auto_followup import enqueue_followup_study
-
-    caplog.set_level(logging.WARNING, logger="backend.workers.auto_followup")
 
     await _clear_budget_key()
     fake_template_id = str(uuid.uuid4())  # never created in DB
@@ -528,15 +542,13 @@ async def test_ac17_deleted_swap_target_falls_back_to_narrow(
     )
     ctx, _ = _make_arq_ctx()
 
-    await enqueue_followup_study(ctx, seeded["parent_id"])
+    with structlog.testing.capture_logs() as captured:
+        await enqueue_followup_study(ctx, seeded["parent_id"])
 
     child = await _get_child(seeded["parent_id"])
     assert child.template_id == seeded["template_id"]  # fell back
     assert child.config["auto_followup_selected_kind"] == "narrow_default"
-    # WARN event captured.
-    event_types = [
-        getattr(r, "event_type", None) for r in caplog.records if getattr(r, "event_type", None)
-    ]
+    event_types = [e.get("event_type") for e in captured]
     assert "auto_followup_swap_target_missing" in event_types
 
 
@@ -601,19 +613,21 @@ async def test_ac18_follow_suggestions_overwrites_stale_parent_kind() -> None:
 
 async def test_exception_in_follow_suggestions_dispatch_falls_back_to_narrow(
     monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Force a synthetic exception inside the follow_suggestions dispatch
     block (by monkeypatching ``select_executable_followup`` to raise). The
     worker must catch it, emit the ``auto_followup_strategy_dispatch_error``
     WARN, and create the child on the legacy narrow path. Chain reliability
-    MUST NOT regress vs the legacy path (spec §13 Reliability + P1-B4)."""
-    import logging
+    MUST NOT regress vs the legacy path (spec §13 Reliability + P1-B4).
+
+    Uses ``structlog.testing.capture_logs`` per the same pattern as
+    ``test_ac17_deleted_swap_target_falls_back_to_narrow`` — the worker
+    emits via structlog directly so pytest's caplog doesn't see these
+    events."""
+    import structlog.testing
 
     from backend.workers import auto_followup as worker_module
     from backend.workers.auto_followup import enqueue_followup_study
-
-    caplog.set_level(logging.WARNING, logger="backend.workers.auto_followup")
 
     def boom(*_args: Any, **_kwargs: Any) -> Any:
         raise RuntimeError("synthetic failure for the defensive fallback test")
@@ -634,13 +648,12 @@ async def test_exception_in_follow_suggestions_dispatch_falls_back_to_narrow(
     ctx, _ = _make_arq_ctx()
 
     # Should NOT raise — the worker swallows + falls back.
-    await enqueue_followup_study(ctx, seeded["parent_id"])
+    with structlog.testing.capture_logs() as captured:
+        await enqueue_followup_study(ctx, seeded["parent_id"])
 
     child = await _get_child(seeded["parent_id"])
     assert child.template_id == seeded["template_id"]
     # Per D-12: fallback under follow_suggestions persists "narrow_default".
     assert child.config["auto_followup_selected_kind"] == "narrow_default"
-    event_types = [
-        getattr(r, "event_type", None) for r in caplog.records if getattr(r, "event_type", None)
-    ]
+    event_types = [e.get("event_type") for e in captured]
     assert "auto_followup_strategy_dispatch_error" in event_types
