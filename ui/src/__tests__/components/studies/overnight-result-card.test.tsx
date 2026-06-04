@@ -652,7 +652,7 @@ describe('OvernightResultCard', () => {
     });
   });
 
-  it('AC-11: useStudyDigest is called via the shared mock; no network proxy is invoked twice', () => {
+  it('AC-11: useStudyDigest is called with chain.best_link_id (queryKey alignment with page-level call enables TanStack cache dedup)', () => {
     setChain(
       makeChain({
         best_link_id: 'link-c',
@@ -669,11 +669,45 @@ describe('OvernightResultCard', () => {
     setDigest(makeDigest({ narrative: 'Excerpt.' }));
     renderCard({ study: makeStudy() });
 
-    // The card mounts; the hook is the single source of truth for digest
-    // data — when both the page and the card consume it, TanStack Query's
-    // shared cache keys them by ['studies', id, 'digest']. The vitest
-    // mock substitutes for the cache, so calling pattern reflects the
-    // post-cache shape: one consumer per render path.
+    // AC-11's correctness depends on the card and the page calling
+    // useStudyDigest with the SAME id, so the TanStack cache key
+    // (['studies', id, 'digest']) is identical and the hook resolves to
+    // a single network request shared between consumers. We assert the
+    // hook was invoked with `'link-c'` (the chain's best_link_id, NOT
+    // `study.id = 'study-anchor'`) — that's the wiring the cache dedup
+    // depends on.
     expect(mockedUseStudyDigest).toHaveBeenCalled();
+    const firstCallId = mockedUseStudyDigest.mock.calls[0]?.[0];
+    expect(firstCallId).toBe('link-c');
+    // And the enabled gate is true (predicate fires + best_link_id non-null).
+    const firstCallOpts = mockedUseStudyDigest.mock.calls[0]?.[1] as
+      | { enabled?: boolean }
+      | undefined;
+    expect(firstCallOpts?.enabled).toBe(true);
+  });
+
+  it('AC-11 negative: useStudyDigest is called with `undefined` + enabled=false when no winner', () => {
+    setChain(
+      makeChain({
+        best_link_id: null,
+        cumulative_lift: 0.05,
+        stop_reason: 'no_lift',
+        links: [
+          makeLink({ id: 'link-a', selected_followup_kind: null }),
+          makeLink({ id: 'link-b', selected_followup_kind: 'narrow' }),
+        ],
+      }),
+    );
+    renderCard({ study: makeStudy() });
+
+    // D-22: chain?.best_link_id ?? undefined — coerces null to undefined for
+    // the hook's `string | undefined` signature; enabled is false so the
+    // network call is skipped entirely.
+    const firstCallId = mockedUseStudyDigest.mock.calls[0]?.[0];
+    expect(firstCallId).toBeUndefined();
+    const firstCallOpts = mockedUseStudyDigest.mock.calls[0]?.[1] as
+      | { enabled?: boolean }
+      | undefined;
+    expect(firstCallOpts?.enabled).toBe(false);
   });
 });
