@@ -9,11 +9,11 @@
 Skip LLM generation by importing pre-curated judgments, then run the kappa calibration to measure agreement against human ground truth.
 
 <video controls playsinline preload="metadata" class="walkthrough-video">
-  <source src="../../assets/guides/05_import_judgments_and_calibrate/walkthrough.mp4" type="video/mp4">
-  <source src="../../assets/guides/05_import_judgments_and_calibrate/walkthrough.webm" type="video/webm">
+  <source src="../../../assets/guides/05_import_judgments_and_calibrate/walkthrough.mp4" type="video/mp4">
+  <source src="../../../assets/guides/05_import_judgments_and_calibrate/walkthrough.webm" type="video/webm">
   <p>Your browser cannot play the embedded video.</p>
 </video>
-<p class="walkthrough-video-download">Trouble playing? <a href="../../assets/guides/05_import_judgments_and_calibrate/walkthrough.webm">Download the walkthrough video</a>.</p>
+<p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/05_import_judgments_and_calibrate/walkthrough.webm">Download the walkthrough video</a>.</p>
 
 ## Step 1 — Open a judgment list's detail page (`/judgments/{id}`). The…
 

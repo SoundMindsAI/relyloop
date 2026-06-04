@@ -9,11 +9,11 @@
 Add an Elasticsearch, OpenSearch, or Apache Solr cluster to RelyLoop, scope its index picker with the optional Target filter, and verify the connection probe succeeds.
 
 <video controls playsinline preload="metadata" class="walkthrough-video">
-  <source src="../../assets/guides/01_register_first_cluster/walkthrough.mp4" type="video/mp4">
-  <source src="../../assets/guides/01_register_first_cluster/walkthrough.webm" type="video/webm">
+  <source src="../../../assets/guides/01_register_first_cluster/walkthrough.mp4" type="video/mp4">
+  <source src="../../../assets/guides/01_register_first_cluster/walkthrough.webm" type="video/webm">
   <p>Your browser cannot play the embedded video.</p>
 </video>
-<p class="walkthrough-video-download">Trouble playing? <a href="../../assets/guides/01_register_first_cluster/walkthrough.webm">Download the walkthrough video</a>.</p>
+<p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/01_register_first_cluster/walkthrough.webm">Download the walkthrough video</a>.</p>
 
 ## Step 1 — Open the Clusters page. The list shows every…
 
