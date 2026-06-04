@@ -649,6 +649,12 @@ export const glossary = {
       'Compare parent template params to swap target. Shared keep LLM bounds; new get defaults; dropped are removed.',
     ariaLabel: 'More information about the declared-params diff',
   },
+  // feat_proposal_full_param_space_view FR-6 — Full parameter space panel.
+  'proposal.full_param_space': {
+    short:
+      'Every parameter the template declares — grouped by whether the study tuned it and whether tuning changed the value.',
+    ariaLabel: 'More information about the full parameter space',
+  },
   'proposal.status_filter': {
     short:
       'Filter the proposals list by lifecycle state. "All" shows every proposal regardless of where it is in the open-PR / merge flow.',
