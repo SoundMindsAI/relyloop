@@ -391,4 +391,96 @@ describe('AutoFollowupChainPanel', () => {
     // Whole panel hidden too (no other chain context).
     expect(screen.queryByTestId('auto-followup-chain-panel')).toBeNull();
   });
+
+  // -------------------------------------------------------------------------
+  // feat_overnight_final_solution Story 3.2 — per-link Strategy badge
+  // (AC-13: badge renders per kind; AC-14: no badge when all null).
+  // -------------------------------------------------------------------------
+
+  it('AC-13: renders the badge for each non-null selected_followup_kind', () => {
+    // 5-link chain: anchor (no badge) + 4 strategy kinds.
+    setChain(
+      makeChain({
+        anchor_study_id: 'L0',
+        best_link_id: 'L0',
+        cumulative_lift: 0.05,
+        direction: 'maximize',
+        stop_reason: 'no_lift',
+        links: [
+          makeLink({
+            id: 'L0',
+            name: 'Anchor',
+            selected_followup_kind: null,
+            template_id: 'tpl-anchor',
+          }),
+          makeLink({
+            id: 'L1',
+            name: 'L1',
+            selected_followup_kind: 'narrow',
+            template_id: 'tpl-anchor',
+          }),
+          makeLink({
+            id: 'L2',
+            name: 'L2',
+            selected_followup_kind: 'widen',
+            template_id: 'tpl-anchor',
+          }),
+          makeLink({
+            id: 'L3',
+            name: 'L3',
+            selected_followup_kind: 'narrow_default',
+            template_id: 'tpl-anchor',
+          }),
+          makeLink({
+            id: 'L4',
+            name: 'L4',
+            selected_followup_kind: 'swap_template',
+            template_id: 'tpl-swap-target-aaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa',
+          }),
+        ],
+      }),
+    );
+    const study = makeStudy({
+      id: 'L1',
+      parent_study_id: 'L0',
+      config: { auto_followup_depth: 3 },
+    });
+    renderPanel({ study, chainChildren: [] });
+    // Anchor (null kind) — no badge.
+    expect(screen.queryByTestId('chain-link-strategy-L0')).toBeNull();
+    // narrow / widen / narrow_default — explicit labels.
+    expect(screen.getByTestId('chain-link-strategy-L1').textContent).toBe('narrow ↓');
+    expect(screen.getByTestId('chain-link-strategy-L2').textContent).toBe('widen ↑');
+    expect(screen.getByTestId('chain-link-strategy-L3').textContent).toBe('refined');
+    // swap_template — falls back to a short id slice while the template
+    // fetch is pending (no msw handler registered in this test).
+    const swapBadge = screen.getByTestId('chain-link-strategy-L4').textContent ?? '';
+    expect(swapBadge.startsWith('swapped to ')).toBe(true);
+  });
+
+  it('AC-14: legacy chain with all-null selected_followup_kind renders no badges', () => {
+    setChain(
+      makeChain({
+        anchor_study_id: 'L0',
+        best_link_id: 'L1',
+        cumulative_lift: 0.05,
+        direction: 'maximize',
+        stop_reason: 'no_lift',
+        links: [
+          makeLink({ id: 'L0', name: 'Anchor', selected_followup_kind: null }),
+          makeLink({ id: 'L1', name: 'L1', selected_followup_kind: null }),
+          makeLink({ id: 'L2', name: 'L2', selected_followup_kind: null }),
+        ],
+      }),
+    );
+    const study = makeStudy({
+      id: 'L1',
+      parent_study_id: 'L0',
+      config: { auto_followup_depth: 2 },
+    });
+    renderPanel({ study, chainChildren: [] });
+    expect(screen.queryByTestId('chain-link-strategy-L0')).toBeNull();
+    expect(screen.queryByTestId('chain-link-strategy-L1')).toBeNull();
+    expect(screen.queryByTestId('chain-link-strategy-L2')).toBeNull();
+  });
 });

@@ -15,6 +15,7 @@ import {
   type StudyDetail,
   type StudySummary,
 } from '@/lib/api/studies';
+import { useTemplate } from '@/lib/api/query-templates';
 
 export interface AutoFollowupChainPanelProps {
   study: StudyDetail;
@@ -54,6 +55,65 @@ function formatSignedLift(value: number | null | undefined): string {
 function formatDelta(value: number | null | undefined): string {
   if (value === null || value === undefined) return '';
   return `${value >= 0 ? '+' : ''}${value.toFixed(4)}`;
+}
+
+/**
+ * feat_overnight_final_solution Story 3.2 / FR-7 — per-link Strategy badge.
+ *
+ * Renders nothing when `link.selected_followup_kind` is null (anchor, or
+ * any chain under the legacy "narrow" strategy per D-12). When set, maps
+ * the wire kind to a compact label:
+ *
+ *   - "narrow_default" → "refined" (follow_suggestions fallback path —
+ *      operator picked suggestions but the autopilot had nothing
+ *      executable to run; the "refined" badge is the audit signal).
+ *   - "narrow"         → "narrow ↓" (digest's narrow suggestion was run).
+ *   - "widen"          → "widen ↑" (digest's widen suggestion was run).
+ *   - "swap_template"  → "swapped to {short_name}" — resolved via a per-
+ *      link GET /api/v1/query-templates/{link.template_id} fetch (per
+ *      D-11 / OQ-1 resolution; chain payload is kept stable). Falls back
+ *      to a 6-char id prefix while the fetch is pending or errors.
+ *
+ * Values must match backend/app/domain/study/auto_followup_strategy.py
+ * SELECTED_FOLLOWUP_KIND_VALUES.
+ */
+function ChainLinkStrategyBadge({
+  link,
+}: {
+  link: StudyChainResponse['links'][number];
+}): React.ReactNode {
+  const kind = link.selected_followup_kind;
+  // Hooks must run unconditionally; we ALWAYS call useTemplate but pass
+  // null for non-swap links so it stays disabled (the hook's `enabled`
+  // gate handles the null id).
+  const templateQ = useTemplate(kind === 'swap_template' ? link.template_id : null);
+  if (!kind) return null;
+  let label: string;
+  if (kind === 'narrow_default') {
+    label = 'refined';
+  } else if (kind === 'narrow') {
+    label = 'narrow ↓';
+  } else if (kind === 'widen') {
+    label = 'widen ↑';
+  } else {
+    // swap_template — show the swap target's short name. Truncate
+    // long names to 30 chars so the badge stays compact.
+    const fullName = templateQ.data?.name;
+    const truncated = fullName
+      ? fullName.length > 30
+        ? `${fullName.slice(0, 30)}…`
+        : fullName
+      : link.template_id.slice(0, 6);
+    label = `swapped to ${truncated}`;
+  }
+  return (
+    <span
+      data-testid={`chain-link-strategy-${link.id}`}
+      className="ml-2 inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
+    >
+      {label}
+    </span>
+  );
 }
 
 /**
@@ -203,6 +263,7 @@ export function AutoFollowupChainPanel({
                       ? link.best_metric.toFixed(4)
                       : '—'}
                     {delta && <span className="ml-1 text-muted-foreground">({delta})</span>}
+                    <ChainLinkStrategyBadge link={link} />
                   </li>
                 );
               })}
