@@ -81,7 +81,15 @@ The studies endpoint surfaces two template-mismatch codes (added by `chore_creat
 | `JUDGMENT_TARGET_MISMATCH` | 422 | `judgment_list.target` does not equal the study's `target` on `POST /api/v1/studies` (added by `feat_study_target_judgment_mismatch_guard`, 2026-05-21). `retryable: false`. Fires AFTER the cluster check. Recovery: pick a judgment list authored against the study's target, or change the study's target. Catches the literal study2 incident — judgments authored on `e2e-target` paired with a study against `docs-articles` would otherwise burn the entire trial budget scoring 0.0 on every (params, query) pair. |
 | `INSUFFICIENT_JUDGMENT_OVERLAP` | 422 | `POST /api/v1/studies` create-time probe sampled up to `MAX_PROBED_DOCS=200` judged `doc_id`s from the first qid in the query set with any judgments (by `id ASC`); the count present in the study's target index was below `min(MIN_OVERLAP=3, max(judged_doc_count, 1))` (added by `feat_study_preflight_overlap_probe`, 2026-05-22). `retryable: false`. Recovery: regenerate judgments against the current index (most common cause: target index was rebuilt or `_reindex`'d with new doc IDs since the judgments were authored), or rebuild the index from the snapshot the judgments were authored on. Fires AFTER `JUDGMENT_TARGET_MISMATCH`. Probe is skipped (with WARN log `studies.preflight.overlap_probe.skipped`, `reason ∈ {unreachable, timeout, invalid_query_dsl}`) when the cluster is unreachable / probe times out / engine rejects the bare ids query — the orchestrator's per-trial failure handling catches those cases mid-flight. |
 
-The studies endpoint also surfaces three new codes for the "Run this followup" lineage payload (added by `feat_digest_executable_followups`, 2026-05-24):
+The studies endpoint also surfaces one error code for the overnight Strategy toggle (added by `feat_overnight_final_solution`, 2026-06-03):
+
+| Code | HTTP Status | Meaning |
+|---|---|---|
+| `AUTO_FOLLOWUP_STRATEGY_INVALID` | 422 | `POST /api/v1/studies` body carried either an unknown `config.auto_followup_strategy` value (allowed: `"narrow"` or `"follow_suggestions"`), `auto_followup_strategy` set without `auto_followup_depth >= 1` (pair-rule), OR an operator-submitted worker-managed key (`config.auto_followup_visited_template_ids` or `config.auto_followup_selected_kind`; both single-writer per D-14). `retryable: false`. Source-of-truth tuple: `AUTO_FOLLOWUP_STRATEGY_VALUES` at `backend/app/api/v1/schemas.py` (mirrored by `OVERNIGHT_STRATEGY_VALUES` in `ui/src/lib/enums.ts`). |
+
+The `/api/v1/studies/{id}/chain` endpoint's `StudyChainLink` response model gained two additive fields in the same feature (no new endpoints): `template_id: str` (needed by the chain panel's `swap_template` badge to resolve the target template's display name via `GET /api/v1/query-templates/{id}`) and `selected_followup_kind: Literal["narrow_default","narrow","widen","swap_template"] | None` (the path the autopilot took for each link; null for anchors + legacy/`"narrow"` strategy chains per D-12). Existing clients ignore both — backward-compatible.
+
+The studies endpoint also surfaces three codes for the "Run this followup" lineage payload (added by `feat_digest_executable_followups`, 2026-05-24):
 
 | Code | HTTP Status | Meaning |
 |---|---|---|

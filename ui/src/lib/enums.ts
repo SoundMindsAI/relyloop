@@ -81,6 +81,32 @@ export const CONVERGENCE_VERDICT_VALUES = [
 ] as const;
 export type ConvergenceVerdict = (typeof CONVERGENCE_VERDICT_VALUES)[number];
 
+// Values must match backend/app/api/v1/schemas.py AUTO_FOLLOWUP_STRATEGY_VALUES.
+// feat_overnight_final_solution Story 1.1 / D-13 — the backend Pydantic field is
+// `str | None` (NOT a Literal) so the canonical AUTO_FOLLOWUP_STRATEGY_INVALID
+// error envelope works; the enum tuple is the source of truth that both the
+// backend validator and this frontend mirror cite. Value-lock vitest at
+// ui/src/__tests__/lib/enums-overnight-strategy-discipline.test.ts asserts the
+// exact array contents AND order.
+export const OVERNIGHT_STRATEGY_VALUES = ['narrow', 'follow_suggestions'] as const;
+export type OvernightStrategy = (typeof OVERNIGHT_STRATEGY_VALUES)[number];
+
+// Values must match backend/app/domain/study/auto_followup_strategy.py SELECTED_FOLLOWUP_KIND_VALUES.
+// feat_overnight_final_solution Story 3.2 / FR-6 — mirrors the additive
+// `selected_followup_kind` field on StudyChainLink. `narrow_default` marks
+// the follow_suggestions fallback path (operator picked suggestions but
+// the autopilot fell back); the legacy/default narrow path persists no
+// key at all per D-12 (the API field is null, no badge rendered).
+// Value-lock vitest at
+// ui/src/__tests__/lib/enums-selected-followup-kind-discipline.test.ts.
+export const SELECTED_FOLLOWUP_KIND_VALUES = [
+  'narrow_default',
+  'narrow',
+  'widen',
+  'swap_template',
+] as const;
+export type SelectedFollowupKind = (typeof SELECTED_FOLLOWUP_KIND_VALUES)[number];
+
 // Values must match backend/app/api/v1/schemas.py ObjectiveMetric.
 // ERR@k is deferred to MVP2 per infra_optuna_eval feature_spec.md §3 / §FR-3 / §13;
 // add it back here when scoring.py SUPPORTED_METRICS grows the entry.

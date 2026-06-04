@@ -41,6 +41,7 @@ import json
 from datetime import datetime
 from typing import Annotated, Any
 
+import structlog
 import uuid_utils
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from pydantic import ValidationError
@@ -62,6 +63,9 @@ from backend.app.api.v1.schemas import (
 from backend.app.db import repo
 from backend.app.db.models import Study
 from backend.app.db.session import get_db
+from backend.app.domain.study.auto_followup_strategy import (
+    SELECTED_FOLLOWUP_KIND_VALUES,
+)
 from backend.app.domain.study.chain_summary import (
     _direction_normalized_delta_from_prev,
     compute_cumulative_lift,
@@ -84,6 +88,7 @@ from backend.app.services.study_convergence import (
 )
 from backend.app.services.study_preflight import MIN_OVERLAP, probe_judgment_overlap
 
+logger = structlog.get_logger(__name__)
 router = APIRouter()
 
 DEFAULT_PAGE_LIMIT = 50
@@ -863,6 +868,26 @@ async def get_study_chain(
             if not link_entries
             else _direction_normalized_delta_from_prev(lk.best_metric, prev_metric, link_direction)
         )
+        # feat_overnight_final_solution Story 3.1 / FR-6 — defensive
+        # coercion for the new selected_followup_kind field. studies.config
+        # is JSONB with no CHECK; a malformed value (manual INSERT, schema
+        # drift, future version row read by an older deploy) must NOT
+        # surface as a Pydantic ValidationError that 500s the endpoint.
+        # Mirrors the parse_followup_list defensive-ingest contract for
+        # digests.suggested_followups. Per spec D-12, legacy/default
+        # chains write no key at all, so the absent case is the COMMON
+        # path here — only unknown non-None values trigger the WARN.
+        raw_selected_kind = lk.config.get("auto_followup_selected_kind")
+        selected_kind: str | None = (
+            raw_selected_kind if raw_selected_kind in SELECTED_FOLLOWUP_KIND_VALUES else None
+        )
+        if raw_selected_kind is not None and raw_selected_kind not in SELECTED_FOLLOWUP_KIND_VALUES:
+            logger.warning(
+                "chain selected_followup_kind has unknown value; coerced to null",
+                event_type="chain_selected_kind_unknown",
+                study_id=lk.id,
+                raw_value=str(raw_selected_kind)[:64],
+            )
         link_entries.append(
             StudyChainLink(
                 id=lk.id,
@@ -877,6 +902,8 @@ async def get_study_chain(
                 failed_reason=lk.failed_reason,
                 created_at=lk.created_at,
                 completed_at=lk.completed_at,
+                template_id=lk.template_id,
+                selected_followup_kind=selected_kind,
             )
         )
         prev_metric = lk.best_metric
