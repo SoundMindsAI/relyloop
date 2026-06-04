@@ -772,6 +772,59 @@ def run_transcode_pass(guides_src: Path) -> None:
 
 
 # --------------------------------------------------------------------------- #
+# Caption consistency (Story 2.2) — Python mirror of the TS transform           #
+# --------------------------------------------------------------------------- #
+# These MUST stay byte-identical to ui/tests/e2e/helpers/captions-vtt.ts
+# (normalizeCaption / escapeVttCueText). The shared
+# ui/tests/e2e/helpers/captions-vtt-golden.json corpus is asserted against BOTH
+# this Python and the TS in their unit tests so they cannot drift.
+_VTT_CUE_TIMING_RE = re.compile(r"^\d\d:\d\d:\d\d\.\d\d\d --> \d\d:\d\d:\d\d\.\d\d\d")
+
+
+def normalize_caption(s: str) -> str:
+    """Strip the WebVTT cue separator `-->` and collapse whitespace/blank lines."""
+    return re.sub(r"\s+", " ", s.replace("-->", "->")).strip()
+
+
+def escape_vtt_cue_text(s: str) -> str:
+    """Escape the three WebVTT cue-markup characters (& first)."""
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def parse_vtt_cue_bodies(text: str) -> list[str]:
+    """Return the cue body of each cue (the line after each timing line), in
+    order — a minimal parser for the single-line bodies build_guides emits."""
+    lines = text.splitlines()
+    bodies: list[str] = []
+    for i, line in enumerate(lines):
+        if _VTT_CUE_TIMING_RE.match(line) and i + 1 < len(lines):
+            bodies.append(lines[i + 1])
+    return bodies
+
+
+def verify_captions_consistency(decks: list[dict[str, Any]]) -> None:
+    """For each deck whose source captions.vtt exists, assert the cue count
+    equals the screenshot count AND each cue body equals
+    escape_vtt_cue_text(normalize_caption(<matching metadata caption>)) — the
+    same transform the TS formatter applied. Raises SystemExit(1) on a mismatch.
+    Catches caption text/count drift (the deterministic half — the freshness
+    gate's copy check does NOT cover this)."""
+    for deck in decks:
+        vtt_path = GUIDES_SRC / deck["slug"] / LOCKED_CAPTIONS_NAME
+        if not vtt_path.is_file():
+            continue
+        bodies = parse_vtt_cue_bodies(vtt_path.read_text(encoding="utf-8"))
+        captions = [s.get("caption", "") for s in deck["screenshots"]]
+        expected = [escape_vtt_cue_text(normalize_caption(c)) for c in captions]
+        if bodies != expected:
+            raise SystemExit(
+                f"ERROR: deck={deck['slug']} captions.vtt is out of sync with metadata.json "
+                f"({len(bodies)} cues vs {len(expected)} captions, or a text mismatch). "
+                f"Re-record (pnpm capture-guides) or fix the metadata captions."
+            )
+
+
+# --------------------------------------------------------------------------- #
 # Orchestration                                                                #
 # --------------------------------------------------------------------------- #
 def generate(transcode: bool = False) -> None:
@@ -783,6 +836,9 @@ def generate(transcode: bool = False) -> None:
         run_transcode_pass(GUIDES_SRC)
 
     decks = discover_decks(GUIDES_SRC)
+
+    # Fail loud if any committed captions.vtt drifted from its metadata captions.
+    verify_captions_consistency(decks)
 
     WALKTHROUGHS_OUT.mkdir(parents=True, exist_ok=True)
     INDEPTH_OUT.mkdir(parents=True, exist_ok=True)

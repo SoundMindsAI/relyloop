@@ -716,3 +716,64 @@ def test_detect_unsupported_single_quoted_html_href(tmp_path: Path) -> None:
     with pytest.raises(SystemExit) as exc:
         bg.port_long_form_guide(src, root)
     assert "unsupported HTML <a> link" in str(exc.value)
+
+
+# --------------------------------------------------------------------------- #
+# Story 2.2 — caption transform parity + vtt↔metadata consistency             #
+# --------------------------------------------------------------------------- #
+def test_caption_transform_matches_shared_golden_corpus() -> None:
+    # Cross-language parity (C3-B1): the Python normalize/escape mirrors are
+    # driven by the SAME ui/tests/e2e/helpers/captions-vtt-golden.json the
+    # vitest uses, so the TS + Python transforms cannot drift.
+    golden_path = _REPO_ROOT / "ui" / "tests" / "e2e" / "helpers" / "captions-vtt-golden.json"
+    golden = json.loads(golden_path.read_text())
+    for case in golden["cases"]:
+        assert bg.normalize_caption(case["input"]) == case["normalized"], case["input"]
+        assert bg.escape_vtt_cue_text(case["normalized"]) == case["escaped"], case["input"]
+
+
+def _write_deck_with_vtt(src: Path, slug: str, captions: list[str], vtt_bodies: list[str]) -> None:
+    shots = [{"file": f"{i + 1:02d}-x.png", "caption": c} for i, c in enumerate(captions)]
+    _make_deck(src, slug, screenshots=shots, with_webm=True)
+    lines = ["WEBVTT", ""]
+    for i, body in enumerate(vtt_bodies):
+        lines.append(f"00:00:{i:02d}.000 --> 00:00:{i + 1:02d}.000")
+        lines.append(body)
+        lines.append("")
+    (src / slug / "captions.vtt").write_text("\n".join(lines), encoding="utf-8")
+
+
+def test_verify_captions_consistency_passes_on_match(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    caps = ["Open the page", "Boost title & description <strong>2.5×</strong>"]
+    bodies = [bg.escape_vtt_cue_text(bg.normalize_caption(c)) for c in caps]
+    _write_deck_with_vtt(src, "01_x", caps, bodies)
+    decks = bg.discover_decks(src)
+    # Point the module's GUIDES_SRC at the fixture for the duration of the check.
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src):
+        bg.verify_captions_consistency(decks)  # no raise
+
+
+def test_verify_captions_consistency_fails_on_count_mismatch(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    _write_deck_with_vtt(src, "01_x", ["a", "b"], ["a"])  # 1 cue vs 2 captions
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src), pytest.raises(SystemExit) as exc:
+        bg.verify_captions_consistency(decks)
+    assert "out of sync" in str(exc.value)
+
+
+def test_verify_captions_consistency_fails_on_text_mismatch(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    # vtt body is the RAW (unescaped) caption — must fail vs the escaped expectation.
+    _write_deck_with_vtt(src, "01_x", ["a & b"], ["a & b"])
+    decks = bg.discover_decks(src)
+    import unittest.mock as _m
+
+    with _m.patch.object(bg, "GUIDES_SRC", src), pytest.raises(SystemExit) as exc:
+        bg.verify_captions_consistency(decks)
+    assert "out of sync" in str(exc.value)

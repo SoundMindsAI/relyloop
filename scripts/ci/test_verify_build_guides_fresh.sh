@@ -70,6 +70,15 @@ _seed_deck() {
   ]
 }
 JSON
+  # A captions.vtt matching the single caption (no special chars → normalize+
+  # escape is identity), so the generator emits the <track> + copies the vtt
+  # and the vtt↔metadata consistency check passes (Story 2.2).
+  cat >"${d}/captions.vtt" <<VTT
+WEBVTT
+
+00:00:00.000 --> 00:00:04.000
+The first screen of the test flow.
+VTT
 }
 
 build_fixture() {
@@ -141,27 +150,50 @@ assert_contains() {
 # --- Case 1: clean tree → exit 0 -----------------------------------------
 echo "Case 1: clean tree"
 TMP1="$(mktemp -d -t rl-build-guides-1.XXXXXX)"
-trap 'rm -rf "${TMP1}" "${TMP2:-}" "${TMP3:-}" "${TMP4:-}"' EXIT
+trap 'rm -rf "${TMP1}" "${TMP2:-}" "${TMP2B:-}" "${TMP3:-}" "${TMP4:-}"' EXIT
 build_fixture "${TMP1}"
 LOG1="${TMP1}.log"; actual=0
 run_guard "${TMP1}" "${LOG1}" || actual=$?
 assert_eq 0 "${actual}" "clean tree → exit 0"
 assert_contains "OK: website Guides pages are fresh." "${LOG1}" "clean tree → success message"
+# vtt coverage (Story 2.2): the generated deck page carries the <track> and the
+# captions.vtt was copied into the website assets.
+assert_contains '<track kind="captions"' \
+  "${TMP1}/website/docs/guides/walkthroughs/01_alpha.md" "clean tree → deck page has <track>"
+if [[ -f "${TMP1}/website/docs/assets/guides/01_alpha/captions.vtt" ]]; then
+  echo "  ok   clean tree → captions.vtt copied into website assets"; PASS=$((PASS + 1))
+else
+  echo "  FAIL clean tree → captions.vtt NOT copied into website assets"; FAIL=$((FAIL + 1))
+fi
 
 # --- Case 2: source-drift → exit 1 + fix command -------------------------
-echo "Case 2: source-drift (edit a deck caption, leave generated page unchanged)"
+# Drift a source SCREENSHOT (not the caption — editing the caption would trip
+# the vtt↔metadata consistency check, a different exit-1 path). The regen
+# re-copies the changed PNG into the website assets, so `git status` reports
+# drift and the gate prints the canonical fix command.
+echo "Case 2: source-drift (edit a source screenshot, leave generated copy unchanged)"
 TMP2="$(mktemp -d -t rl-build-guides-2.XXXXXX)"
 build_fixture "${TMP2}"
-# Change a caption in the source metadata; the regen will rewrite the page.
-sed -i.bak 's/The first screen of the test flow./A DRIFTED caption./' \
-  "${TMP2}/ui/public/guides/01_alpha/metadata.json"
-rm -f "${TMP2}/ui/public/guides/01_alpha/metadata.json.bak"
+printf 'DRIFTED-PNG-BYTES' >"${TMP2}/ui/public/guides/01_alpha/01-first.png"
 LOG2="${TMP2}.log"; actual=0
 run_guard "${TMP2}" "${LOG2}" || actual=$?
 assert_eq 1 "${actual}" "source-drift → exit 1"
 assert_contains "website Guides pages are stale" "${LOG2}" "source-drift → error header"
 assert_contains "bash scripts/regen-generated-artifacts.sh" "${LOG2}" \
   "source-drift → canonical fix-command text"
+
+# --- Case 2b: caption drift → consistency check fails loudly -------------
+echo "Case 2b: caption drift trips the vtt↔metadata consistency check"
+TMP2B="$(mktemp -d -t rl-build-guides-2b.XXXXXX)"
+build_fixture "${TMP2B}"
+sed -i.bak 's/The first screen of the test flow./A DRIFTED caption./' \
+  "${TMP2B}/ui/public/guides/01_alpha/metadata.json"
+rm -f "${TMP2B}/ui/public/guides/01_alpha/metadata.json.bak"
+LOG2B="${TMP2B}.log"; actual=0
+run_guard "${TMP2B}" "${LOG2B}" || actual=$?
+assert_eq 1 "${actual}" "caption drift → exit 1"
+assert_contains "out of sync with metadata.json" "${LOG2B}" \
+  "caption drift → consistency-check error"
 
 # --- Case 3: git rm --cached an existing page → exit 1 (??) ---------------
 echo "Case 3: un-index an existing generated page (stays on disk)"
