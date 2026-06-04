@@ -32,14 +32,21 @@ describe('FullParamSpacePanel', () => {
         }}
       />,
     );
-    expect(screen.getByTestId('param-space-group-tuned_changed')).toBeInTheDocument();
+    // Group headers carry the count text (FR-2).
+    expect(screen.getByTestId('param-space-group-tuned_changed')).toHaveTextContent(
+      'Tuned (changed by this proposal) — 2 parameters',
+    );
     expect(screen.getByTestId('param-space-row-tuned_changed-title_boost')).toBeInTheDocument();
     expect(
       screen.getByTestId('param-space-row-tuned_changed-description_boost'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('param-space-group-tuned_unchanged')).toBeInTheDocument();
+    expect(screen.getByTestId('param-space-group-tuned_unchanged')).toHaveTextContent(
+      'Tuned (unchanged) — 1 parameter',
+    );
     expect(screen.getByTestId('param-space-row-tuned_unchanged-fuzziness')).toBeInTheDocument();
-    expect(screen.getByTestId('param-space-group-untuned')).toBeInTheDocument();
+    expect(screen.getByTestId('param-space-group-untuned')).toHaveTextContent(
+      'Not in search space — 1 parameter',
+    );
     expect(screen.getByTestId('param-space-row-untuned-function_score_decay')).toBeInTheDocument();
 
     // Alphabetical within the tunedChanged group: description_boost before title_boost.

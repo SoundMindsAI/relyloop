@@ -84,7 +84,9 @@ describe('partitionTemplateParams', () => {
   it('Test 5 (D-9 / search-space drift): key only in searchSpaceParams is silently dropped', () => {
     const result = partitionTemplateParams({
       configDiff: {},
-      searchSpaceParams: { phantom: {}, foo: {} },
+      // `phantom` is in searchSpaceParams but NOT declared (template-evolution
+      // drift); `foo` is declared but NOT in searchSpaceParams.
+      searchSpaceParams: { phantom: {} },
       declaredParams: { foo: 'int' },
     });
     // phantom is in searchSpaceParams but NOT in declaredParams → dropped entirely.
@@ -94,8 +96,9 @@ describe('partitionTemplateParams', () => {
       ...result.untuned.map((r) => r.name),
     ];
     expect(allNames).not.toContain('phantom');
-    // foo is declared AND in search_space → tunedUnchanged.
-    expect(result.tunedUnchanged).toEqual([{ name: 'foo', type: 'int' }]);
+    // foo is declared but NOT in search_space → untuned (it was never tuned).
+    expect(result.tunedUnchanged).toEqual([]);
+    expect(result.untuned).toEqual([{ name: 'foo', type: 'int' }]);
   });
 
   it('Test 6 (AC-2 / legacy 2-tuple): config_diff 2-tuple is normalized via extractFromTo', () => {

@@ -591,9 +591,10 @@ describe('Proposal detail page — Story 1.4 (full-param-space mount + lifted fe
       ),
     );
     await renderPage('p404');
-    // ConfigDiffPanel + metric-delta still render.
+    // ConfigDiffPanel + metric-delta + PR panel still render unaffected.
     await waitFor(() => expect(screen.getByTestId('config-diff-table')).toBeInTheDocument());
     expect(screen.getByText('Metric delta')).toBeInTheDocument();
+    expect(screen.getByTestId('open-pr-button')).toBeInTheDocument();
     // Panel did NOT mount.
     expect(screen.queryByTestId('param-space-group-tuned_changed')).toBeNull();
     expect(screen.queryByTestId('param-space-empty')).toBeNull();
@@ -603,6 +604,15 @@ describe('Proposal detail page — Story 1.4 (full-param-space mount + lifted fe
     let resolveStudy!: (resp: Response) => void;
     const studyPromise = new Promise<Response>((r) => {
       resolveStudy = r;
+    });
+    // Dual-deferred: defer BOTH template and study so the test deterministically
+    // controls the resolution order. This avoids the vacuous-pass risk where an
+    // immediate template might still be pending when we assert "panel absent"
+    // (i.e. the panel would be absent because BOTH gates are unmet, not because
+    // of the race-specific gate).
+    let resolveTemplate!: (resp: Response) => void;
+    const templatePromise = new Promise<Response>((r) => {
+      resolveTemplate = r;
     });
     server.use(
       http.get(`${API_BASE}/api/v1/proposals/p1`, () =>
@@ -614,9 +624,7 @@ describe('Proposal detail page — Story 1.4 (full-param-space mount + lifted fe
           }),
         ),
       ),
-      http.get(`${API_BASE}/api/v1/query-templates/t1`, () =>
-        HttpResponse.json(templateDetail({ declared_params: { foo: 'float' } })),
-      ),
+      http.get(`${API_BASE}/api/v1/query-templates/t1`, async () => templatePromise),
       http.get(`${API_BASE}/api/v1/studies/s1`, async () => studyPromise),
     );
 
@@ -630,9 +638,13 @@ describe('Proposal detail page — Story 1.4 (full-param-space mount + lifted fe
       </QueryClientProvider>,
     );
 
-    // Proposal + template resolve; study held pending. (config_diff is empty
-    // here, so the ConfigDiffPanel shows its empty state, not the table.)
+    // Proposal resolves; both template + study held pending. (config_diff is
+    // empty here, so the ConfigDiffPanel shows its empty state, not the table.)
     await waitFor(() => expect(screen.getByText('Proposal detail')).toBeInTheDocument());
+
+    // Step 1: resolve the TEMPLATE only — study remains pending. This is the
+    // race-specific state the FR-4 gating defends against.
+    resolveTemplate(HttpResponse.json(templateDetail({ declared_params: { foo: 'float' } })));
     await waitFor(() =>
       expect(qc.getQueryState(['query-templates', 't1'])?.status).toBe('success'),
     );
@@ -640,7 +652,7 @@ describe('Proposal detail page — Story 1.4 (full-param-space mount + lifted fe
     expect(screen.queryByTestId('param-space-group-tuned_unchanged')).toBeNull();
     expect(screen.queryByTestId('param-space-empty')).toBeNull();
 
-    // Resolve the study fetch — panel now mounts with the correct classification.
+    // Step 2: resolve the study fetch — panel now mounts with correct classification.
     resolveStudy(
       HttpResponse.json(studyDetail({ search_space: { params: { foo: { min: 0, max: 1 } } } })),
     );
