@@ -55,6 +55,7 @@
 - ✅ [Study Lifecycle](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_10_feat_study_lifecycle) · [#18](https://github.com/SoundMindsAI/relyloop/pull/18)
 - ✅ [Study Preflight Overlap Probe](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_22_feat_study_preflight_overlap_probe) · [#193](https://github.com/SoundMindsAI/relyloop/pull/193)
 - ✅ [Study Target Judgment Mismatch Guard](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_21_feat_study_target_judgment_mismatch_guard) · [#184](https://github.com/SoundMindsAI/relyloop/pull/184)
+- ✅ [Walkthrough Video Cursor Captions](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_walkthrough_video_cursor_captions) · [#451](https://github.com/SoundMindsAI/relyloop/pull/451)
 
 ??? note "Infrastructure & tooling (18)"
 
@@ -185,7 +186,6 @@
 - 🟡 [Query Normalization Tuning](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning)
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
 - 🟡 [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison)
-- 🟡 [Walkthrough Video Cursor Captions](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_walkthrough_video_cursor_captions)
 
 ??? note "Infrastructure & tooling (7)"
 
