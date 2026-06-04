@@ -28,4 +28,10 @@
 - Phases covered: single phase (all of spec scope)
 
 ## Implementation
-- Status: Not started
+- Status: Complete — merged to main as PR #451 (squash `199a3ed5`), 2026-06-04
+- All 7 stories implemented; all 10 decks re-recorded operator-path (video-only).
+- Post-PR review: Gemini + CodeQL 5 findings accepted; final GPT-5.5 1 finding rejected (golden corpus committed `f71d0e70`, partial-diff false positive). CodeQL clean ("No new alerts").
+- Gates: 1154 vitest · 61 build_guides pytest · 13 freshness self-test · asset-ref guard (30 refs) · mkdocs build --strict · reuse lint. All 18 pr.yml checks green.
+
+## Done
+- Status: Complete. Folder moved to `implemented_features/2026_06_04_feat_walkthrough_video_cursor_captions/` (this finalization PR).
