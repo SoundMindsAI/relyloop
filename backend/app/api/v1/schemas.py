@@ -969,6 +969,28 @@ class StudyChainLink(BaseModel):
     failed_reason: str | None
     created_at: datetime
     completed_at: datetime | None
+    template_id: str
+    """``studies.template_id`` — needed by the chain panel's swap_template
+    badge so the frontend can resolve the target template's display name
+    via ``GET /api/v1/query-templates/{id}``. Added by Story 3.1 per
+    P1-B5 (the badge is otherwise not buildable from the chain payload
+    alone). Non-optional — every study has a template."""
+    selected_followup_kind: Literal["narrow_default", "narrow", "widen", "swap_template"] | None = (
+        None
+    )
+    """feat_overnight_final_solution Story 3.1 / FR-6 — the path
+    :func:`backend.app.workers.auto_followup.enqueue_followup_study` took
+    when creating this link. ``null`` for the anchor (no parent
+    follow-up to consume) and for every link created under the legacy
+    ``"narrow"`` strategy (per D-12 the legacy path persists no
+    ``auto_followup_selected_kind`` key). The chain endpoint applies a
+    defensive coercion before populating this field: an unknown JSONB
+    value in ``studies.config.auto_followup_selected_kind`` (manual DB
+    INSERT, schema drift) coerces to ``null`` + a
+    ``chain_selected_kind_unknown`` WARN — never raises a Pydantic
+    ``ValidationError`` that would 500 the endpoint. Mirrored
+    character-for-character by ``ui/src/lib/enums.ts SELECTED_FOLLOWUP_KIND_VALUES``
+    (Story 3.2)."""
 
 
 class StudyChainResponse(BaseModel):
