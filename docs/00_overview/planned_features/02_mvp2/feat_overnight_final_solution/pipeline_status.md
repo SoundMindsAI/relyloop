@@ -14,7 +14,12 @@
 - Phases: 3 total (Phase 1 covered by this spec; Phase 2 + Phase 3 deferred with `phase2_idea.md` + `phase3_idea.md`)
 
 ## Plan
-- Status: Not started
+- Status: Approved
+- Date: 2026-06-03
+- File: implementation_plan.md
+- Cross-model review: GPT-5.5 passed (2 cycles; cycle 1: 10 findings (5 High, 5 Medium) all accepted+applied; cycle 2: 0 findings — converged)
+- Stories: 7 across 4 epics (Epic 1 schema+wizard, Epic 2 worker dispatch, Epic 3 chain surface, Epic 4 docs)
+- Phases covered: Phase 1 (Phase 2 + 3 deferred via phase2_idea.md + phase3_idea.md)
 
 ## Implementation
 - Status: Not started

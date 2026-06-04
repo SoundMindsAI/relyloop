@@ -297,11 +297,12 @@ No new endpoints. Both modifications are additive on existing routes.
 
 ### 8.3 Response schema (additive deltas only)
 
-**`StudyChainLink` — new optional field:**
+**`StudyChainLink` — new fields:**
 
 | Field | Type | Nullable | Notes |
 |---|---|---|---|
 | `selected_followup_kind` | `Literal["narrow_default","narrow","widen","swap_template"]` | yes | The path FR-3 took when creating this link. Null for the anchor and for any link created under `"narrow"` strategy. |
+| `template_id` | `str` | no | The link's `studies.template_id`. Added so FR-7's chain-panel swap_template badge can resolve the target template's display name via `GET /api/v1/query-templates/{id}` without a second `/chain` round-trip. Non-optional — every study has a template. (Added at plan-stage GPT-5.5 review P1-B5; the badge is otherwise not buildable.) |
 
 All other `StudyChainLink` fields per [`feat_overnight_autopilot` §8.3](../../implemented_features/2026_05_31_feat_overnight_autopilot/feature_spec.md). All other `StudyChainResponse` fields unchanged.
 
