@@ -9,11 +9,11 @@
 Define the benchmark queries you want to tune for — the stable list every study scores against.
 
 <video controls playsinline preload="metadata" class="walkthrough-video">
-  <source src="../../assets/guides/04_create_query_set/walkthrough.mp4" type="video/mp4">
-  <source src="../../assets/guides/04_create_query_set/walkthrough.webm" type="video/webm">
+  <source src="../../../assets/guides/04_create_query_set/walkthrough.mp4" type="video/mp4">
+  <source src="../../../assets/guides/04_create_query_set/walkthrough.webm" type="video/webm">
   <p>Your browser cannot play the embedded video.</p>
 </video>
-<p class="walkthrough-video-download">Trouble playing? <a href="../../assets/guides/04_create_query_set/walkthrough.webm">Download the walkthrough video</a>.</p>
+<p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/04_create_query_set/walkthrough.webm">Download the walkthrough video</a>.</p>
 
 ## Step 1 — Open the Query Sets page. A 'query set'…
 

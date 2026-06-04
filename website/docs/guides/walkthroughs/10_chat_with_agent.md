@@ -9,11 +9,11 @@
 Send a prompt, watch the agent dispatch a tool call, and read the final assistant response. Exercises the full SSE streaming pipeline against the live OpenAI endpoint.
 
 <video controls playsinline preload="metadata" class="walkthrough-video">
-  <source src="../../assets/guides/10_chat_with_agent/walkthrough.mp4" type="video/mp4">
-  <source src="../../assets/guides/10_chat_with_agent/walkthrough.webm" type="video/webm">
+  <source src="../../../assets/guides/10_chat_with_agent/walkthrough.mp4" type="video/mp4">
+  <source src="../../../assets/guides/10_chat_with_agent/walkthrough.webm" type="video/webm">
   <p>Your browser cannot play the embedded video.</p>
 </video>
-<p class="walkthrough-video-download">Trouble playing? <a href="../../assets/guides/10_chat_with_agent/walkthrough.webm">Download the walkthrough video</a>.</p>
+<p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/10_chat_with_agent/walkthrough.webm">Download the walkthrough video</a>.</p>
 
 ## Step 1 — Open a chat conversation. The composer at the…
 

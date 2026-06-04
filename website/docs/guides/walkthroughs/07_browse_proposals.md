@@ -9,11 +9,11 @@
 Filter the proposal queue by status, source, and cluster — three-axis URL-backed filtering with 30-second pulse-refetch when PRs are open.
 
 <video controls playsinline preload="metadata" class="walkthrough-video">
-  <source src="../../assets/guides/07_browse_proposals/walkthrough.mp4" type="video/mp4">
-  <source src="../../assets/guides/07_browse_proposals/walkthrough.webm" type="video/webm">
+  <source src="../../../assets/guides/07_browse_proposals/walkthrough.mp4" type="video/mp4">
+  <source src="../../../assets/guides/07_browse_proposals/walkthrough.webm" type="video/webm">
   <p>Your browser cannot play the embedded video.</p>
 </video>
-<p class="walkthrough-video-download">Trouble playing? <a href="../../assets/guides/07_browse_proposals/walkthrough.webm">Download the walkthrough video</a>.</p>
+<p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/07_browse_proposals/walkthrough.webm">Download the walkthrough video</a>.</p>
 
 ## Step 1 — Open the Proposals page. Every winning study config…
 
