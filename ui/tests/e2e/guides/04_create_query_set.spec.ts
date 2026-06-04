@@ -33,14 +33,14 @@ test.describe('Walkthrough: Create a query set', () => {
   test('captures the query-set-creation + add-queries journey', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     const cluster = await seedCluster();
     const name = `qs-${randomUUID().slice(0, 6)}`;
 
     await page.goto('/query-sets');
     await page.waitForTimeout(500);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, { path: path.join(SCREENSHOTS, '01-query-sets-list.png') });
 
     // Open the create modal.
@@ -48,7 +48,7 @@ test.describe('Walkthrough: Create a query set', () => {
     await page.getByTestId('open-create-query-set').click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.waitForTimeout(400);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, { path: path.join(SCREENSHOTS, '02-create-modal-empty.png') });
 
     // Fill the form.
@@ -68,7 +68,7 @@ test.describe('Walkthrough: Create a query set', () => {
     await page.getByTestId('qs-cluster').click();
     await page.getByRole('option', { name: cluster.name, exact: true }).dispatchEvent('click');
     await page.waitForTimeout(400);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, { path: path.join(SCREENSHOTS, '03-create-modal-filled.png') });
 
     // Submit.
@@ -94,7 +94,7 @@ test.describe('Walkthrough: Create a query set', () => {
     await page.getByText(name).first().click();
     await page.waitForURL(/\/query-sets\/[a-f0-9-]+$/, { timeout: 10_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '04-query-set-detail-empty.png'),
       fullPage: false,
@@ -105,17 +105,22 @@ test.describe('Walkthrough: Create a query set', () => {
     await page.getByTestId('open-add-queries').click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[4]!, Date.now());
+    timer.mark(captions[4]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '05-add-queries-dialog.png'),
       fullPage: false,
     });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

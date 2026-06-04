@@ -777,3 +777,11 @@ def test_verify_captions_consistency_fails_on_text_mismatch(tmp_path: Path) -> N
     with _m.patch.object(bg, "GUIDES_SRC", src), pytest.raises(SystemExit) as exc:
         bg.verify_captions_consistency(decks)
     assert "out of sync" in str(exc.value)
+
+
+def test_parse_vtt_cue_bodies_requires_webvtt_header() -> None:
+    # Phase-gate hardening: a vtt without the WEBVTT header is rejected loudly.
+    assert bg.parse_vtt_cue_bodies("WEBVTT\n\n00:00:00.000 --> 00:00:01.000\nhi\n") == ["hi"]
+    with pytest.raises(SystemExit) as exc:
+        bg.parse_vtt_cue_bodies("00:00:00.000 --> 00:00:01.000\nhi\n")
+    assert "WEBVTT header" in str(exc.value)

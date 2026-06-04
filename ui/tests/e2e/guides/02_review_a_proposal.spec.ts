@@ -37,7 +37,7 @@ test.describe('Walkthrough: Review a proposal', () => {
   test('captures the full proposal-review journey', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     const cluster = await seedCluster();
     const template = await seedTemplate();
@@ -48,14 +48,14 @@ test.describe('Walkthrough: Review a proposal', () => {
     await expect(page.getByTestId('filter-chip-status-all')).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(500);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, { path: path.join(SCREENSHOTS, '01-proposals-list.png'), fullPage: false });
 
     // ── 02: Filter to pending ──────────────────────────────────────────
     await glide(page, page.getByTestId('filter-chip-status-pending'));
     await page.getByTestId('filter-chip-status-pending').click();
     await page.waitForTimeout(500);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '02-proposals-pending-filter.png'),
       fullPage: false,
@@ -66,12 +66,12 @@ test.describe('Walkthrough: Review a proposal', () => {
     await expect(page.getByTestId('config-diff-table')).toBeVisible({ timeout: 10_000 });
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(500);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, { path: path.join(SCREENSHOTS, '03-proposal-detail.png'), fullPage: true });
 
     // ── 04: Highlight the config diff ─────────────────────────────────
     await glide(page, page.getByTestId('config-diff-table'), 1200);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, { path: path.join(SCREENSHOTS, '04-config-diff.png'), fullPage: false });
 
     // ── 05: Open the reject dialog (shows the alternative path) ──────
@@ -84,14 +84,19 @@ test.describe('Walkthrough: Review a proposal', () => {
       .getByTestId('reject-reason-input')
       .pressSequentially('Not the right time — saving as walkthrough demo', { delay: 55 });
     await page.waitForTimeout(400);
-    timer.mark(captions[4]!, Date.now());
+    timer.mark(captions[4]!);
     await shot(page, { path: path.join(SCREENSHOTS, '05-reject-dialog.png'), fullPage: false });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

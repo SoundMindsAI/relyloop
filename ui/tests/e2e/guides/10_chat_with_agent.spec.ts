@@ -47,7 +47,7 @@ test.describe('Walkthrough: Chat with the agent', () => {
   test('captures a real LLM chat turn with tool dispatch', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     // Seed a cluster so the agent's list_clusters tool returns something
     // meaningful. Without this the chat would say "no clusters registered"
@@ -64,7 +64,7 @@ test.describe('Walkthrough: Chat with the agent', () => {
       await page.getByTestId('dismiss-secrets-warning').click();
     }
     await page.waitForTimeout(500);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '01-chat-empty-composer.png'),
       fullPage: false,
@@ -77,7 +77,7 @@ test.describe('Walkthrough: Chat with the agent', () => {
     await composer.click();
     await composer.pressSequentially(prompt, { delay: 55 });
     await page.waitForTimeout(500);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '02-message-typed.png'),
       fullPage: false,
@@ -91,7 +91,7 @@ test.describe('Walkthrough: Chat with the agent', () => {
     });
     await expect(page.getByTestId('message-bubble-user').first()).toContainText(/list_clusters/i);
     await page.waitForTimeout(800);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '03-user-message-sent.png'),
       fullPage: false,
@@ -101,7 +101,7 @@ test.describe('Walkthrough: Chat with the agent', () => {
     // list_clusters in response to the prompt.
     await expect(page.getByTestId('tool-call-card').first()).toBeVisible({ timeout: 60_000 });
     await page.waitForTimeout(1_000);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '04-tool-call-card.png'),
       fullPage: true,
@@ -113,17 +113,22 @@ test.describe('Walkthrough: Chat with the agent', () => {
     // input is empty, so it's not a reliable streaming-done signal.)
     await expect(page.getByTestId('composer-input')).toBeEnabled({ timeout: 120_000 });
     await page.waitForTimeout(1_500);
-    timer.mark(captions[4]!, Date.now());
+    timer.mark(captions[4]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '05-assistant-response.png'),
       fullPage: true,
     });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

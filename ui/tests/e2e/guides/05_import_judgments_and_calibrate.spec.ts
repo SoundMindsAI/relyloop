@@ -36,7 +36,7 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
   test('captures the import + review + calibrate flow', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     const qs = await seedQuerySet(12);
     const jl = await seedJudgmentList({
@@ -48,7 +48,7 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
     await page.goto(`/judgments/${jl.id}`);
     await expect(page.getByTestId('header-count')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '01-judgments-list.png'),
       fullPage: true,
@@ -59,7 +59,7 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
     await page.getByTestId('open-calibration').click();
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5_000 });
     await page.waitForTimeout(400);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '02-calibration-modal-empty.png'),
       fullPage: false,
@@ -78,7 +78,7 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
       .getByTestId('cal-samples')
       .pressSequentially(`query_id,doc_id,rating\n${samplesCsv}`, { delay: 55 });
     await page.waitForTimeout(400);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '03-calibration-modal-filled.png'),
       fullPage: false,
@@ -100,17 +100,22 @@ test.describe('Walkthrough: Import judgments + calibrate', () => {
     // when the sample CSV doesn't meet the ≥10 distinct-pairs requirement).
     expect(calResp.status()).toBeGreaterThan(0);
     await page.waitForTimeout(500);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '04-calibration-result.png'),
       fullPage: false,
     });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

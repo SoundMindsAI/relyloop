@@ -793,8 +793,11 @@ def escape_vtt_cue_text(s: str) -> str:
 
 def parse_vtt_cue_bodies(text: str) -> list[str]:
     """Return the cue body of each cue (the line after each timing line), in
-    order — a minimal parser for the single-line bodies build_guides emits."""
-    lines = text.splitlines()
+    order — a parser for the single-line bodies build_guides emits. Requires a
+    leading WEBVTT header (a BOM is tolerated); raises SystemExit(1) otherwise."""
+    lines = text.lstrip("﻿").splitlines()
+    if not lines or lines[0].strip() != "WEBVTT":
+        raise SystemExit("ERROR: captions.vtt missing the leading WEBVTT header")
     bodies: list[str] = []
     for i, line in enumerate(lines):
         if _VTT_CUE_TIMING_RE.match(line) and i + 1 < len(lines):

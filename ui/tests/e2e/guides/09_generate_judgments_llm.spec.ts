@@ -44,7 +44,7 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
   test('captures the generate-judgments LLM flow', async ({ page, request }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     const tpl = await seedTemplate();
     const { querySetId, clusterId } = await seedQuerySet(2);
@@ -52,7 +52,7 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
     // ── 01: Query set detail ──────────────────────────────────────────
     await page.goto(`/query-sets/${querySetId}`);
     await page.waitForTimeout(600);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '01-query-set-detail-no-judgments.png'),
     });
@@ -62,7 +62,7 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
     await page.getByTestId('open-generate-judgments').click();
     await expect(page.getByTestId('generate-form')).toBeVisible({ timeout: 5_000 });
     await page.waitForTimeout(400);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, { path: path.join(SCREENSHOTS, '02-generate-dialog-empty.png') });
 
     // ── 03: Fill the text fields ──────────────────────────────────────
@@ -76,14 +76,14 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
     await targetField.click();
     await targetField.pressSequentially('products', { delay: 55 });
     await page.waitForTimeout(400);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, { path: path.join(SCREENSHOTS, '03-generate-dialog-text-filled.png') });
 
     // ── 04: Open the template dropdown so the screenshot shows options ─
     await glide(page, page.locator('#gen-template'));
     await page.locator('#gen-template').click();
     await page.waitForTimeout(500);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '04-template-dropdown-open.png'),
       fullPage: false,
@@ -147,17 +147,22 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
         ? '05-judgment-list-terminal-state.png'
         : '05-judgment-list-terminal-state.png';
     void filename; // same path either way — we want the final state
-    timer.mark(captions[4]!, Date.now());
+    timer.mark(captions[4]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '05-judgment-list-terminal-state.png'),
       fullPage: true,
     });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

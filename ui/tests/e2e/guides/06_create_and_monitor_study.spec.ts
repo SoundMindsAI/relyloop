@@ -43,7 +43,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
   test('captures the studies list + create modal + monitoring view', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     const chain = await seedAcmeProductsChain();
 
@@ -51,7 +51,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await page.goto('/studies');
     await expect(page.getByTestId('studies-table')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '01-studies-list.png'),
       fullPage: false,
@@ -61,7 +61,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await glide(page, page.getByTestId('filter-chip-status-queued'));
     await page.getByTestId('filter-chip-status-queued').click();
     await page.waitForTimeout(400);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '02-studies-status-filter.png'),
       fullPage: false,
@@ -78,7 +78,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await page.getByTestId('open-create-study').click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.waitForTimeout(500);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '03-create-study-modal.png'),
       fullPage: false,
@@ -110,7 +110,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
     await expect(page.getByTestId('convergence-curve')).toBeVisible({ timeout: 5_000 });
     // Brief settle for the Recharts render + any in-flight animations / fonts.
     await page.waitForTimeout(900);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '04-study-detail.png'),
       fullPage: true,
@@ -122,7 +122,7 @@ test.describe('Walkthrough: Create and monitor a study', () => {
       await glide(page, cancelBtn);
       await cancelBtn.click();
       await page.waitForTimeout(400);
-      timer.mark(captions[4]!, Date.now());
+      timer.mark(captions[4]!);
       await shot(page, {
         path: path.join(SCREENSHOTS, '05-cancel-confirmation.png'),
         fullPage: false,
@@ -131,18 +131,23 @@ test.describe('Walkthrough: Create and monitor a study', () => {
       // The orchestrator may already have terminated the 2-trial study.
       // Capture the terminal-state screenshot in that case.
       await page.waitForTimeout(400);
-      timer.mark(captions[4]!, Date.now());
+      timer.mark(captions[4]!);
       await shot(page, {
         path: path.join(SCREENSHOTS, '05-study-terminal-state.png'),
         fullPage: false,
       });
     }
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

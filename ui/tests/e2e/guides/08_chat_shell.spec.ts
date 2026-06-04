@@ -37,7 +37,7 @@ test.describe('Walkthrough: Chat shell', () => {
   test('captures conversation list + new + secrets banner', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     const seeded = await seedConversation('e2e walkthrough conversation');
 
@@ -45,7 +45,7 @@ test.describe('Walkthrough: Chat shell', () => {
     await page.goto('/chat');
     await expect(page.getByTestId('conversation-list')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '01-chat-list.png'),
       fullPage: false,
@@ -55,7 +55,7 @@ test.describe('Walkthrough: Chat shell', () => {
     await page.goto(`/chat/${seeded.id}`);
     await expect(page.getByTestId('secrets-warning')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '02-chat-detail-with-banner.png'),
       fullPage: false,
@@ -66,7 +66,7 @@ test.describe('Walkthrough: Chat shell', () => {
     await page.getByTestId('dismiss-secrets-warning').click();
     await expect(page.getByTestId('secrets-warning')).not.toBeVisible();
     await page.waitForTimeout(400);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '03-chat-banner-dismissed.png'),
       fullPage: false,
@@ -80,17 +80,22 @@ test.describe('Walkthrough: Chat shell', () => {
     await page.waitForURL(/\/chat\/[a-f0-9-]+$/, { timeout: 10_000 });
     await expect(page.getByTestId('composer-input')).toBeVisible({ timeout: 5_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '04-chat-new-conversation.png'),
       fullPage: false,
     });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

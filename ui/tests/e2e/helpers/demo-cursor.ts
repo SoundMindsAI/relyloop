@@ -93,15 +93,12 @@ export async function glide(page: Page, loc: Locator, settleMs = DEFAULT_SETTLE_
   await page.waitForTimeout(settleMs);
 }
 
-/** Accumulates {startMs, caption} per step relative to a recording start. */
+/** Accumulates {startMs, caption} per step relative to construction time. */
 export class StepTimer {
-  private readonly t0: number;
+  private readonly t0 = Date.now();
   readonly timings: StepTiming[] = [];
-  constructor(startNowMs: number) {
-    this.t0 = startNowMs;
-  }
-  mark(caption: string, nowMs: number): void {
-    this.timings.push({ startMs: nowMs - this.t0, caption });
+  mark(caption: string): void {
+    this.timings.push({ startMs: Date.now() - this.t0, caption });
   }
 }
 
@@ -119,13 +116,18 @@ export async function shot(page: Page, opts: Parameters<Page['screenshot']>[0]):
       if (el) (el as HTMLElement).style.visibility = 'hidden';
     }
   });
-  await page.screenshot(opts);
-  await page.evaluate(() => {
-    for (const id of ['__mh_cursor', '__mh_ring']) {
-      const el = document.getElementById(id);
-      if (el) (el as HTMLElement).style.visibility = 'visible';
-    }
-  });
+  try {
+    await page.screenshot(opts);
+  } finally {
+    // Restore the cursor even if the screenshot throws, so the rest of the
+    // recording (and any debugging frames) still shows the pointer.
+    await page.evaluate(() => {
+      for (const id of ['__mh_cursor', '__mh_ring']) {
+        const el = document.getElementById(id);
+        if (el) (el as HTMLElement).style.visibility = 'visible';
+      }
+    });
+  }
 }
 
 /**

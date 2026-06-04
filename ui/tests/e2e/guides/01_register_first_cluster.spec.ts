@@ -44,7 +44,7 @@ test.describe('Walkthrough: Register your first cluster', () => {
   test('captures the full cluster-registration journey', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     // Mirror scripts/seed_meaningful_demos.py SCENARIOS[0] (acme-products-prod)
     // with a UUID suffix so reruns and the already-seeded canonical cluster
@@ -96,7 +96,7 @@ test.describe('Walkthrough: Register your first cluster', () => {
     await expect(page.getByTestId('open-register-cluster')).toBeVisible();
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(400);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '01-clusters-list.png'),
       fullPage: false,
@@ -107,7 +107,7 @@ test.describe('Walkthrough: Register your first cluster', () => {
     await page.getByTestId('open-register-cluster').click();
     await expect(page.getByTestId('register-form')).toBeVisible();
     await page.waitForTimeout(400);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '02-register-modal-empty.png'),
       fullPage: false,
@@ -153,7 +153,7 @@ test.describe('Walkthrough: Register your first cluster', () => {
 
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(400);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '03-register-modal-filled.png'),
       fullPage: true,
@@ -177,7 +177,7 @@ test.describe('Walkthrough: Register your first cluster', () => {
     await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
     await page.evaluate(() => window.scrollTo(0, 0));
     await page.waitForTimeout(600);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '04-cluster-registered.png'),
       fullPage: false,
@@ -188,17 +188,22 @@ test.describe('Walkthrough: Register your first cluster', () => {
     await page.getByText(name).first().click();
     await page.waitForURL(/\/clusters\/[a-f0-9-]+$/, { timeout: 10_000 });
     await page.waitForTimeout(600);
-    timer.mark(captions[4]!, Date.now());
+    timer.mark(captions[4]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '05-cluster-detail.png'),
       fullPage: false,
     });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });

@@ -32,13 +32,13 @@ test.describe('Walkthrough: Create a query template', () => {
   test('captures the template-creation journey', async ({ page }) => {
     await installCursor(page);
     const captions = loadStepCaptions(metadata);
-    const timer = new StepTimer(Date.now());
+    const timer = new StepTimer();
 
     const name = `tpl-${randomUUID().slice(0, 6)}`;
 
     await page.goto('/templates');
     await page.waitForTimeout(500);
-    timer.mark(captions[0]!, Date.now());
+    timer.mark(captions[0]!);
     await shot(page, { path: path.join(SCREENSHOTS, '01-templates-list.png') });
 
     // Open the create modal.
@@ -46,7 +46,7 @@ test.describe('Walkthrough: Create a query template', () => {
     await page.getByRole('button', { name: /Create template/i }).click();
     await expect(page.getByRole('dialog')).toBeVisible();
     await page.waitForTimeout(400);
-    timer.mark(captions[1]!, Date.now());
+    timer.mark(captions[1]!);
     await shot(page, { path: path.join(SCREENSHOTS, '02-create-modal-empty.png') });
 
     // Fill the form. The Body field is a custom <TemplateBodyEditor> with a
@@ -71,7 +71,7 @@ test.describe('Walkthrough: Create a query template', () => {
       .getByLabel(/Declared params/)
       .pressSequentially('boost:float\nquery_text:string', { delay: 55 });
     await page.waitForTimeout(400);
-    timer.mark(captions[2]!, Date.now());
+    timer.mark(captions[2]!);
     await shot(page, { path: path.join(SCREENSHOTS, '03-create-modal-filled.png') });
 
     // Submit.
@@ -91,7 +91,7 @@ test.describe('Walkthrough: Create a query template', () => {
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(name).first()).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[3]!, Date.now());
+    timer.mark(captions[3]!);
     await shot(page, { path: path.join(SCREENSHOTS, '04-template-created.png') });
 
     // Drill into the detail page — shows fork-to-v2 affordance.
@@ -99,17 +99,22 @@ test.describe('Walkthrough: Create a query template', () => {
     await page.getByText(name).first().click();
     await expect(page.getByTestId('open-fork-modal')).toBeVisible({ timeout: 10_000 });
     await page.waitForTimeout(500);
-    timer.mark(captions[4]!, Date.now());
+    timer.mark(captions[4]!);
     await shot(page, {
       path: path.join(SCREENSHOTS, '05-template-detail-fork-button.png'),
       fullPage: true,
     });
 
-    if (captions.length > 0 && timer.timings.length !== captions.length) {
-      throw new Error(
-        `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
-      );
+    if (captions.length === 0) {
+      // Zero-caption deck: delete any stale captions.vtt, emit no <track>.
+      writeCaptionsVtt([], SLUG, GUIDES_ROOT);
+    } else {
+      if (timer.timings.length !== captions.length) {
+        throw new Error(
+          `caption/step mismatch for ${SLUG}: ${timer.timings.length} marks vs ${captions.length} captions`,
+        );
+      }
+      writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
     }
-    writeCaptionsVtt(timer.timings, SLUG, GUIDES_ROOT);
   });
 });
