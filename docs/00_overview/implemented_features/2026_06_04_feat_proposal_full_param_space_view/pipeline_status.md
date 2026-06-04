@@ -1,5 +1,7 @@
 # Pipeline Status — Proposal Full-Parameter-Space View
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: idea.md (preflight-refreshed 2026-06-04)
@@ -20,4 +22,11 @@
 - Phases covered: single-phase (all 8 FRs in this plan; no deferred phases per D-14).
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-04
+- PR: #446 (squash-merged `3baea3f0`)
+- CI: 17/17 checks green on the final commit
+- Stories completed: 4/4 (1.1 helper promotion, 1.2 partition helper, 1.3 panel + glossary, 1.4 page integration)
+- Tests: 9 partition unit + 7 config-diff unit + 7 component + 18 page (12 existing + 6 new) + 5 E2E (4 existing + 1 new); full UI suite 1143+ green
+- Cross-model review: phase-gate GPT-5.5 (4 accepted / 1 rejected), Gemini (2 accepted — null-safety + grid alignment), final GPT-5.5 (1 accepted — race-gating coverage hole / 1 rejected — ACTIONABLE_FOLLOWUP_KINDS still used)
+- Guide impact: guide 02 screenshots regenerated (proposal-detail now shows the panel)
