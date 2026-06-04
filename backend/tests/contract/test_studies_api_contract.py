@@ -302,6 +302,81 @@ def test_study_config_coerces_string_depth_per_pydantic_v2() -> None:
     assert cfg.auto_followup_depth == 3
 
 
+# ---------------------------------------------------------------------------
+# feat_overnight_final_solution Story 1.1 — StudyConfigSpec.auto_followup_strategy
+# ---------------------------------------------------------------------------
+
+
+def test_study_config_accepts_none_auto_followup_strategy() -> None:
+    """FR-1: None (or missing key) is the wire default — treated as 'narrow'
+    by the worker. No depth requirement when strategy is None."""
+    cfg = StudyConfigSpec(max_trials=20)
+    assert cfg.auto_followup_strategy is None
+
+
+@pytest.mark.parametrize("strategy", ["narrow", "follow_suggestions"])
+def test_study_config_accepts_valid_auto_followup_strategy(strategy: str) -> None:
+    """FR-1: both wire values are accepted when paired with depth >= 1."""
+    cfg = StudyConfigSpec(max_trials=20, auto_followup_depth=3, auto_followup_strategy=strategy)
+    assert cfg.auto_followup_strategy == strategy
+
+
+def test_study_config_rejects_unknown_auto_followup_strategy_value() -> None:
+    """FR-1 + D-13 value-rule: a non-allowed value raises ValidationError
+    carrying the AUTO_FOLLOWUP_STRATEGY_INVALID prefix that the error
+    handler unwraps. AC-2."""
+    with pytest.raises(ValidationError, match="AUTO_FOLLOWUP_STRATEGY_INVALID"):
+        StudyConfigSpec(
+            max_trials=20, auto_followup_depth=3, auto_followup_strategy="broaden_everything"
+        )
+
+
+def test_study_config_rejects_strategy_without_depth() -> None:
+    """FR-1 pair-rule: strategy set but depth is None raises with the
+    AUTO_FOLLOWUP_STRATEGY_INVALID prefix. AC-1."""
+    with pytest.raises(ValidationError, match="AUTO_FOLLOWUP_STRATEGY_INVALID"):
+        StudyConfigSpec(max_trials=20, auto_followup_strategy="follow_suggestions")
+
+
+def test_study_config_rejects_strategy_with_depth_zero() -> None:
+    """FR-1 pair-rule: strategy set but depth==0 (the worker-internal
+    terminal value) raises — the operator-facing rule is depth >= 1."""
+    with pytest.raises(ValidationError, match="AUTO_FOLLOWUP_STRATEGY_INVALID"):
+        StudyConfigSpec(
+            max_trials=20, auto_followup_depth=0, auto_followup_strategy="follow_suggestions"
+        )
+
+
+def test_study_config_rejects_operator_submitted_visited_template_ids() -> None:
+    """D-14: ``auto_followup_visited_template_ids`` is worker-managed —
+    operators cannot seed it at study creation. The ``mode='before'``
+    validator catches it before Pydantic's default ``extra='ignore'`` would
+    silently drop it. AC-D14 / single-writer rule."""
+    with pytest.raises(ValidationError, match="AUTO_FOLLOWUP_STRATEGY_INVALID"):
+        StudyConfigSpec.model_validate(
+            {
+                "max_trials": 20,
+                "auto_followup_depth": 3,
+                "auto_followup_strategy": "follow_suggestions",
+                "auto_followup_visited_template_ids": ["TEMPLATE_A"],
+            }
+        )
+
+
+def test_study_config_rejects_operator_submitted_selected_kind() -> None:
+    """D-14: ``auto_followup_selected_kind`` is per-link worker-managed
+    state. Same single-writer rule."""
+    with pytest.raises(ValidationError, match="AUTO_FOLLOWUP_STRATEGY_INVALID"):
+        StudyConfigSpec.model_validate(
+            {
+                "max_trials": 20,
+                "auto_followup_depth": 3,
+                "auto_followup_strategy": "follow_suggestions",
+                "auto_followup_selected_kind": "swap_template",
+            }
+        )
+
+
 def test_objective_spec_rejects_invalid_k() -> None:
     with pytest.raises(ValidationError):
         ObjectiveSpec(metric="ndcg", k=7)

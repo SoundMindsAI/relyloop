@@ -64,6 +64,11 @@ _CUSTOM_ERROR_CODE_ALLOWLIST: frozenset[str] = frozenset(
     {
         # feat_auto_followup_studies Story 1.1 — StudyConfigSpec.auto_followup_depth
         "AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE",
+        # feat_overnight_final_solution Story 1.1 — StudyConfigSpec.auto_followup_strategy
+        # Covers both the value-rule and pair-rule (depth ≥ 1) failures, plus
+        # the worker-managed-key reject (auto_followup_visited_template_ids
+        # / auto_followup_selected_kind set by an operator at create time).
+        "AUTO_FOLLOWUP_STRATEGY_INVALID",
     }
 )
 

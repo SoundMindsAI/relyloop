@@ -721,6 +721,56 @@ class StudyConfigSpec(BaseModel):
     carry ``AUTO_FOLLOWUP_DEPTH_OUT_OF_RANGE`` per spec §8.5 (the prefix
     parser in :mod:`backend.app.api.errors` picks up the ``<CODE>:``
     prefix from the raised ValueError message)."""
+    auto_followup_strategy: str | None = Field(default=None)
+    """feat_overnight_final_solution FR-1 + D-13: ``"narrow"`` | ``"follow_suggestions"``
+    | ``None`` (treated as ``"narrow"`` by the worker).
+
+    **Field type is ``str | None`` (NOT ``Literal[...]``)** — per spec D-13,
+    a field-level ``Literal`` would surface bad values as Pydantic's generic
+    ``VALIDATION_ERROR`` envelope BEFORE the ``mode="after"`` validator
+    could emit the canonical ``AUTO_FOLLOWUP_STRATEGY_INVALID`` code. Same
+    pattern as ``auto_followup_depth`` above: enum check + pair rule done
+    in :meth:`_validate_auto_followup_strategy` via the ``<CODE>:`` prefix
+    convention so :func:`backend.app.api.errors.validation_exception_handler`
+    unwraps the canonical envelope. The two accepted values are exposed as
+    the module-level :data:`AUTO_FOLLOWUP_STRATEGY_VALUES` tuple (consumed
+    by the CI source-of-truth grep gate and mirrored as
+    ``OVERNIGHT_STRATEGY_VALUES`` in ``ui/src/lib/enums.ts``)."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_worker_managed_keys(cls, data: object) -> object:
+        """Reject operator-submitted worker-managed JSONB keys (D-14).
+
+        ``auto_followup_visited_template_ids`` + ``auto_followup_selected_kind``
+        are written ONLY by the autopilot worker on chain children. Allowing
+        the wizard to seed them would break the single-writer rule for the
+        cycle-guard list and risk spoofed badges on the chain panel.
+
+        ``StudyConfigSpec`` defaults to ``extra="ignore"`` (Pydantic default
+        — no ``model_config`` declared above), so an unknown key is silently
+        dropped before any ``mode="after"`` validator runs. This
+        ``mode="before"`` validator inspects the raw dict so the keys
+        actually get rejected with the canonical envelope.
+
+        We deliberately do NOT set ``extra="forbid"`` model-wide: that would
+        broaden the blast radius and reject any future config key during
+        rollout (a stored config re-validated through this model in a
+        worker would fail).
+        """
+        if not isinstance(data, dict):
+            return data
+        forbidden_keys = (
+            "auto_followup_visited_template_ids",
+            "auto_followup_selected_kind",
+        )
+        for key in forbidden_keys:
+            if key in data:
+                raise ValueError(
+                    f"AUTO_FOLLOWUP_STRATEGY_INVALID: config.{key} is worker-managed "
+                    "and may not be set at study creation"
+                )
+        return data
 
     @model_validator(mode="after")
     def _require_one_stop_condition(self) -> StudyConfigSpec:
@@ -747,6 +797,42 @@ class StudyConfigSpec(BaseModel):
                 f"got {self.auto_followup_depth}"
             )
         return self
+
+    @model_validator(mode="after")
+    def _validate_auto_followup_strategy(self) -> StudyConfigSpec:
+        """feat_overnight_final_solution FR-1 + D-13: enum + pair check.
+
+        Two rules: (a) value MUST be in :data:`AUTO_FOLLOWUP_STRATEGY_VALUES`
+        when set, (b) value MUST only be set when ``auto_followup_depth >= 1``
+        (a strategy choice on a depth-0 study is meaningless).
+
+        Both surface as ``AUTO_FOLLOWUP_STRATEGY_INVALID`` via the
+        ``<CODE>:`` prefix convention (allowlisted in
+        :data:`backend.app.api.errors._CUSTOM_ERROR_CODE_ALLOWLIST`).
+        """
+        if self.auto_followup_strategy is None:
+            return self
+        if self.auto_followup_strategy not in AUTO_FOLLOWUP_STRATEGY_VALUES:
+            raise ValueError(
+                "AUTO_FOLLOWUP_STRATEGY_INVALID: config.auto_followup_strategy "
+                f"must be 'narrow' or 'follow_suggestions'; "
+                f"got {self.auto_followup_strategy!r}"
+            )
+        if self.auto_followup_depth is None or self.auto_followup_depth < 1:
+            raise ValueError(
+                "AUTO_FOLLOWUP_STRATEGY_INVALID: config.auto_followup_strategy "
+                "only applies when config.auto_followup_depth >= 1"
+            )
+        return self
+
+
+# feat_overnight_final_solution Story 1.1 / D-13 — wire-value source of truth
+# for ``StudyConfigSpec.auto_followup_strategy``. Mirrored by the frontend
+# ``OVERNIGHT_STRATEGY_VALUES`` in ``ui/src/lib/enums.ts`` and consumed by
+# the CI grep gate at ``scripts/ci/verify_enum_source_of_truth.sh``. Keep
+# this declaration module-level (NOT inside the class) so the grep gate's
+# AST resolver finds the bare tuple assignment.
+AUTO_FOLLOWUP_STRATEGY_VALUES: tuple[str, ...] = ("narrow", "follow_suggestions")
 
 
 class ParentFollowupRef(BaseModel):
