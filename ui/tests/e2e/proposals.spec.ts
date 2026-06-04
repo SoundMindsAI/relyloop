@@ -63,6 +63,23 @@ test.describe('/proposals', () => {
     await expect(page.getByTestId('config-diff-row-description.boost')).toBeVisible();
   });
 
+  test('detail page renders the full-parameter-space panel for a manual proposal', async ({
+    page,
+  }) => {
+    // feat_proposal_full_param_space_view Story 1.4 E2E. The seeded manual
+    // proposal has a config_diff (title.boost + description.boost) and a
+    // template declaring `boost: 'float'`. config_diff keys render under
+    // "Tuned (changed)"; the template's `boost` (NOT in config_diff —
+    // string-keyed differently) falls into "Not in search space".
+    const { proposalId } = await seedManualProposal();
+
+    await page.goto(`/proposals/${proposalId}`);
+    await expect(page.getByTestId('param-space-group-tuned_changed')).toBeVisible({
+      timeout: 5_000,
+    });
+    await expect(page.getByTestId('param-space-group-untuned')).toBeVisible({ timeout: 5_000 });
+  });
+
   test('reject dialog transitions a pending proposal to rejected with a reason', async ({
     page,
   }) => {
