@@ -446,16 +446,29 @@ async def list_recent_completed_chains(
     candidate_ids: list[str] = list((await db.execute(candidate_stmt)).scalars().all())
 
     # Insertion-ordered dict — first hit per anchor wins, preserving
-    # tail-completion-DESC order.
+    # tail-completion-DESC order. ``seen_study_ids`` tracks every member
+    # of every chain we've already resolved so subsequent candidates
+    # that belong to the same chain (a 6-link chain produces up to 5
+    # qualifying candidates) skip the redundant traversal call. Per
+    # Gemini Code Assist PR-444 finding #1 — eliminates the N+1 pattern
+    # without changing the dedup outcome.
     by_anchor: dict[str, ChainTraversalResult] = {}
+    seen_study_ids: set[str] = set()
     for candidate_id in candidate_ids:
         if len(by_anchor) >= limit:
             break
+        if candidate_id in seen_study_ids:
+            continue
         traversal = await get_chain_for_study(db, candidate_id)
         if traversal is None:
             # Concurrent hard-delete between candidate query and traversal
             # (e.g. test teardown). Skip silently per Story 1.1 task 5.
             continue
+        # Mark every walked link as seen BEFORE the dedup check so a
+        # candidate from the same chain is skipped early on the next
+        # iteration even if this chain ends up excluded by the in-flight /
+        # length guards below.
+        seen_study_ids.update(link.id for link in traversal.links)
         if traversal.anchor_id in by_anchor:
             continue
         if len(traversal.links) < 2:

@@ -44,7 +44,12 @@ function readVisitedAt(): string {
   if (typeof window === 'undefined') return defaultSince();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) return raw;
+    // Guard against a corrupt localStorage value (operator manual edit,
+    // partial write, stored value from an older release with a different
+    // shape). An invalid date would otherwise propagate to
+    // GET /api/v1/studies/chains/recent?since=<garbage> → 422 cascade.
+    // Per Gemini Code Assist PR-444 finding #4.
+    if (raw && !Number.isNaN(Date.parse(raw))) return raw;
   } catch {
     // Private browsing / quota / corrupt — fall back to default.
   }
