@@ -152,6 +152,9 @@ ignore = [
 "migrations/versions/*.py" = ["D", "E501"]
 "scripts/**" = ["D"]                  # operator tooling (e.g., dashboard generator)
                                       # — same rationale as tests: not library code
+"website/scripts/**" = ["D", "S603", "S607"]  # website build tooling (build_guides.py
+                                      # generator) — same rationale as scripts/**; S603/S607
+                                      # allow the controlled ffmpeg subprocess invocation
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"

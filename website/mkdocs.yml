@@ -67,6 +67,11 @@ plugins:
   - blog:
       blog_dir: blog
       post_url_format: "{slug}"
+  # glightbox: pinch/click-zoom lightbox for screenshots on the Guides pages.
+  # skip_classes lets index-card thumbnails opt OUT of the lightbox so a click
+  # navigates to the deck page instead of opening an overlay (feat_website_walkthrough_guides).
+  - glightbox:
+      skip_classes: ["glightbox-skip"]
 
 markdown_extensions:
   - abbr
@@ -105,6 +110,9 @@ markdown_extensions:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
+extra_css:
+  - stylesheets/extra.css
+
 extra:
   # Footer build stamp — populated by deploy-docs.yml at build time so the
   # deployed site records the exact commit + PR that produced it. Local
@@ -140,6 +148,27 @@ nav:
       - Elasticsearch: engines/elasticsearch.md
       - OpenSearch: engines/opensearch.md
       - Apache Solr: engines/solr.md
+  # >>> GENERATED Guides nav — DO NOT EDIT
+  - Guides:
+      - Walkthroughs:
+          - 'Overview': guides/walkthroughs/index.md
+          - 'Register your first cluster': guides/walkthroughs/01_register_first_cluster.md
+          - 'Review a proposal': guides/walkthroughs/02_review_a_proposal.md
+          - 'Create a query template': guides/walkthroughs/03_create_query_template.md
+          - 'Create a query set': guides/walkthroughs/04_create_query_set.md
+          - 'Import judgments + calibrate': guides/walkthroughs/05_import_judgments_and_calibrate.md
+          - 'Create and monitor a study': guides/walkthroughs/06_create_and_monitor_study.md
+          - 'Browse proposals': guides/walkthroughs/07_browse_proposals.md
+          - 'Chat shell — conversations + composer': guides/walkthroughs/08_chat_shell.md
+          - 'Generate judgments via LLM': guides/walkthroughs/09_generate_judgments_llm.md
+          - 'Chat with the agent (real LLM)': guides/walkthroughs/10_chat_with_agent.md
+      - In-depth:
+          - 'Overview': guides/in-depth/index.md
+          - 'Tutorial — first study': guides/in-depth/tutorial-first-study.md
+          - 'Quick tour': guides/in-depth/quick-tour.md
+          - 'Workflows overview': guides/in-depth/workflows-overview.md
+          - 'LLM endpoint setup': guides/in-depth/llm-endpoint-setup.md
+  # <<< END GENERATED Guides nav
   - API Reference: api/index.md
   - Blog:
       - blog/index.md
