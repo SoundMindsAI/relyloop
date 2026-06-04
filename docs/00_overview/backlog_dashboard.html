@@ -398,12 +398,12 @@ footer {
     <div class="kpi ">
       <div class="label">Specced features done</div>
       <div class="value">0 / 1</div>
-      <div class="sub">0% specced · 3 filed under BACKLOG</div>
+      <div class="sub">0% specced · 5 filed under BACKLOG</div>
       <div class="bar"><span style="width:0%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">3</div>
+      <div class="value">5</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -430,12 +430,12 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Backlog</div>
-      <div class="value">1</div>
+      <div class="value">3</div>
       <div class="sub">captured for record, not planned</div>
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to BACKLOG"</div>
-      <div class="value">3</div>
+      <div class="value">5</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">2</span></h3>
+  <h3>Idea <span class="count">4</span></h3>
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/99_backlog/bug_starlette_request_poisons_fastapi_depends_tests">Starlette Request Poisons Fastapi Depends Tests</a></div>
@@ -486,6 +486,32 @@ footer {
 
   </div>
   <div class="one-liner">PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="Backlog">
+  <div class="name"><a href="../../docs/00_overview/planned_features/99_backlog/chore_studies_chain_recent_indexes">Studies Chain Recent Indexes</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
+
+  </div>
+  <div class="one-liner">`list_recent_completed_chains` at [`backend/app/db/repo/study.py`](planned_features/implemented_features/2026_06_04_feat_overnight_studies_summary_card) executes a single SQL query of the shape:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="Backlog">
+  <div class="name"><a href="../../docs/00_overview/planned_features/99_backlog/chore_studies_chain_recent_keyset_pagination">Studies Chain Recent Keyset Pagination</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
+
+  </div>
+  <div class="one-liner">`GET /api/v1/studies/chains/recent` ships with a fixed `limit` ceiling of 50 and inert pagination fields kept on the wire for forward compatibility — `next_cursor` is always `null`, `has_more` is alwa</div>
 
 
 </div>

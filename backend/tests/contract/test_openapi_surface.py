@@ -95,6 +95,9 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("get", "/api/v1/studies/{study_id}/trials", "200"),
     # feat_overnight_autopilot (PR #343) — auto-followup chain rollup.
     ("get", "/api/v1/studies/{study_id}/chain", "200"),
+    # feat_overnight_studies_summary_card (this PR) — recent-chains discovery
+    # feeding the "Ran while you were away" card on /studies.
+    ("get", "/api/v1/studies/chains/recent", "200"),
     # ----- /api/v1/proposals (feat_digest_proposal + feat_github_pr_worker) -----
     ("get", "/api/v1/studies/{study_id}/digest", "200"),
     ("post", "/api/v1/proposals", "201"),

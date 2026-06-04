@@ -20,15 +20,15 @@ Implementation in progress — resume to finish
 
 | Metric | Value |
 |---|---|
-| Filed under BACKLOG | **3** folders total (done + specced not-done + idea backlog + bugs) |
+| Filed under BACKLOG | **5** folders total (done + specced not-done + idea backlog + bugs) |
 | Specced features done | **0 / 1** (0%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **3** items (every not-done feat/infra/chore/bug across all priorities) |
+| Pending work | **5** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
 | → P2 (default) | 2 important to file, not blocking |
-| → Backlog | 1 captured for record, not planned |
+| → Backlog | 3 captured for record, not planned |
 | Open bugs | 1 |
-| Legacy "Path to BACKLOG" | 3 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to BACKLOG" | 5 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 0 idea-only feat/infra (not yet scoped into BACKLOG) |
 | In flight | 1 feature(s) actively shipping |
 
@@ -52,12 +52,14 @@ _None._
 
 _None._
 
-### Idea (2)
+### Idea (4)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [bug_starlette_request_poisons_fastapi_depends_tests](planned_features/99_backlog/bug_starlette_request_poisons_fastapi_depends_tests/idea.md) | Bug | There is shared state somewhere in starlette / FastAPI that is mutated by `Request(scope={"type": "http", ...})` and breaks subsequent `Depends` resolution. Possible suspects: | — | Idea — bug captured during feat_index_document_browser Story 2.1 |
 | 2 | Backlog | [chore_demo_reseed_stale_recovery_atomic_cas](planned_features/99_backlog/chore_demo_reseed_stale_recovery_atomic_cas/idea.md) | Chore | PR #299 added stale-status auto-recovery to the demo-reseed POST handler ([`_test.py`](../backend/app/api/v1/_test.py)): when the Redis status is `running` but `started_at` is older than `DEMO_RESEED_ | — | Idea — captured during PR #299 GPT-5.5 final review (finding #2, adjudicated non-regression) |
+| 3 | Backlog | [chore_studies_chain_recent_indexes](planned_features/99_backlog/chore_studies_chain_recent_indexes/idea.md) | Chore | `list_recent_completed_chains` at [`backend/app/db/repo/study.py`](planned_features/implemented_features/2026_06_04_feat_overnight_studies_summary_card) executes a single SQL query of the shape: | — | Idea — deferred follow-on from `feat_overnight_studies_summary_card` Story 1.1 |
+| 4 | Backlog | [chore_studies_chain_recent_keyset_pagination](planned_features/99_backlog/chore_studies_chain_recent_keyset_pagination/idea.md) | Chore | `GET /api/v1/studies/chains/recent` ships with a fixed `limit` ceiling of 50 and inert pagination fields kept on the wire for forward compatibility — `next_cursor` is always `null`, `has_more` is alwa | — | Idea — deferred follow-on from `feat_overnight_studies_summary_card` Story 1.2 |
 
 ## Dependency graph
 

@@ -23,6 +23,8 @@ export type TrialListResponse = components['schemas']['TrialListResponse'];
 export type CreateStudyRequest = components['schemas']['CreateStudyRequest'];
 export type StudyChainResponse = components['schemas']['StudyChainResponse'];
 export type StudyChainLink = components['schemas']['StudyChainLink'];
+export type RecentChainSummary = components['schemas']['RecentChainSummary'];
+export type RecentChainsResponse = components['schemas']['RecentChainsResponse'];
 
 /** Single-page list response augmented with the parsed `X-Total-Count` header. */
 export type StudyListPage = StudyListResponse & { totalCount: number };
@@ -235,5 +237,44 @@ export function useStudyChain(
       }),
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
+  });
+}
+
+// =============================================================================
+// feat_overnight_studies_summary_card Story 2.1 — recent-chains discovery hook
+// =============================================================================
+
+export interface UseRecentChainsOptions {
+  enabled?: boolean;
+}
+
+/**
+ * Fetch recently-completed overnight chains for the "Ran while you were
+ * away" card on `/studies` (FR-1).
+ *
+ * `since` is the cutoff supplied by `useStudiesVisited()` — chains whose
+ * tail completed at or after this ISO-8601 timestamp are returned. The
+ * default page size of 20 matches the backend's `limit` ceiling for the
+ * v1 endpoint; pagination is inert (`next_cursor: null`, `has_more:
+ * false`) per OQ-2.
+ *
+ * Refetch contract: window focus + reconnect only, no aggressive
+ * polling — the card is best-effort discoverability, not a live feed.
+ */
+export function useRecentChains(
+  since: string,
+  options: UseRecentChainsOptions = {},
+): UseQueryResult<RecentChainsResponse, ApiError> {
+  return useQuery<RecentChainsResponse, ApiError>({
+    queryKey: ['studies', 'recent-chains', since],
+    queryFn: async () => {
+      const { data } = await apiClient.get<RecentChainsResponse>('/api/v1/studies/chains/recent', {
+        params: { since, limit: 20 },
+      });
+      return data;
+    },
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    enabled: options.enabled ?? true,
   });
 }

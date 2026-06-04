@@ -182,6 +182,8 @@ The `search_vector` column is **not declared in the ORM models** — it is datab
 
 **MVP1 status:** `?cursor=`, `?limit=`, `?since=` active for `GET /api/v1/clusters`, `GET /api/v1/studies`, `GET /api/v1/proposals`, `GET /api/v1/conversations`, `GET /api/v1/query-sets`, `GET /api/v1/query-sets/{id}/queries` (per-query list, added by `feat_query_inline_crud` with id-only UUIDv7 cursor + UUIDv7-lower-bound `?since`), `GET /api/v1/query-templates`, `GET /api/v1/judgment-lists`, `GET /api/v1/config-repos`. `?q=` + `?sort=` added by `feat_data_table_primitive` to the 6/7 endpoints in the tables above. Not used on resource-detail endpoints.
 
+**Read-only discovery endpoints with inert pagination.** A small handful of list endpoints serve a fixed-cap discovery view rather than a cursor-paginated browse view. They emit `X-Total-Count = len(data)` (the count and the data are always equal — the response is the whole answer, not page 1 of N) and always return `next_cursor: null` + `has_more: false`. Today the only entry is `GET /api/v1/studies/chains/recent` (`feat_overnight_studies_summary_card`) — the read-only discovery surface backing the "Ran while you were away" card on `/studies`. Query params: `?since=<ISO-8601>` (optional cutoff), `?limit=<1..50>` (default 20). The `next_cursor` / `has_more` fields stay on the wire for forward compatibility with a possible MVP3 keyset pagination story; clients should NOT branch on `has_more`. The route is declared BEFORE the `/studies/{study_id}` dynamic route in `backend/app/api/v1/studies.py` so the static `chains` segment isn't captured as a study id.
+
 ## Idempotency
 
 **MVP1:** Not enforced. Clients are responsible for retry-safe code paths.

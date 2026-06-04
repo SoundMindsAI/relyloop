@@ -1133,6 +1133,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/studies/chains/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Recent Chains
+         * @description List recently-completed overnight chains (FR-1, AC-1/2/3/4/5/6/11/12).
+         *
+         *     Returns the deduplicated set of completed overnight chains (length
+         *     >= 2) ordered newest-tail-completion-first, capped at ``limit``. The
+         *     ``since`` filter restricts to chains whose tail completed at or
+         *     after the cutoff (used by the card to seed the "what's new since I
+         *     last visited" query).
+         *
+         *     Malformed ``since`` / out-of-range ``limit`` flow through the
+         *     global ``validation_exception_handler`` and return the canonical
+         *     422 ``VALIDATION_ERROR`` envelope (no manual parse path).
+         *
+         *     Pagination: inert. ``next_cursor=null`` and ``has_more=false``
+         *     always — OQ-2 resolved limit-cap-only for v1. Keyset pagination
+         *     deferred to a separate ``chore_`` idea filed against the spec's
+         *     open questions.
+         */
+        get: operations["get_recent_chains_api_v1_studies_chains_recent_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/studies/{study_id}": {
         parameters: {
             query?: never;
@@ -2906,6 +2941,69 @@ export interface components {
             param_count: number;
             /** Version */
             version: number;
+        };
+        /**
+         * RecentChainSummary
+         * @description One row in the ``GET /api/v1/studies/chains/recent`` response.
+         *
+         *     Per spec §8.1 (feat_overnight_studies_summary_card). Per-chain
+         *     rollup feeding the "Ran while you were away" card on ``/studies``
+         *     — anchor identity + chain length + the best link's metric + the
+         *     chain's cumulative lift + the derived stop reason + the
+         *     surfaceable proposal id for the best link. Read-only; no state
+         *     transitions, no audit events.
+         */
+        RecentChainSummary: {
+            /** Anchor Name */
+            anchor_name: string;
+            /** Anchor Study Id */
+            anchor_study_id: string;
+            /** Best Link Proposal Id */
+            best_link_proposal_id: string | null;
+            /** Best Metric */
+            best_metric: number | null;
+            /** Chain Length */
+            chain_length: number;
+            /** Cumulative Lift */
+            cumulative_lift: number | null;
+            /**
+             * Direction
+             * @enum {string}
+             */
+            direction: "maximize" | "minimize";
+            /** Objective Metric */
+            objective_metric: string;
+            /**
+             * Stop Reason
+             * @enum {string}
+             */
+            stop_reason: "depth_exhausted" | "no_lift" | "budget" | "parent_failed" | "cancelled" | "in_flight";
+            /**
+             * Tail Completed At
+             * Format: date-time
+             */
+            tail_completed_at: string;
+        };
+        /**
+         * RecentChainsResponse
+         * @description ``GET /api/v1/studies/chains/recent`` response shape.
+         *
+         *     Inert pagination: this endpoint emits ``next_cursor=null`` and
+         *     ``has_more=false`` always (OQ-2 resolved — limit-cap only). The
+         *     fields stay on the wire for consistency with the rest of the
+         *     studies surface, so a future MVP3 keyset-pagination story can
+         *     populate them without breaking clients (idea filed in this PR).
+         */
+        RecentChainsResponse: {
+            /** Data */
+            data: components["schemas"]["RecentChainSummary"][];
+            /**
+             * Has More
+             * @default false
+             */
+            has_more: boolean;
+            /** Next Cursor */
+            next_cursor?: string | null;
         };
         /**
          * RegressorRowShape
@@ -5628,6 +5726,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StudyDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_recent_chains_api_v1_studies_chains_recent_get: {
+        parameters: {
+            query?: {
+                since?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentChainsResponse"];
                 };
             };
             /** @description Validation Error */
