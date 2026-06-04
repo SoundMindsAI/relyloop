@@ -937,6 +937,25 @@ export const glossary = {
     ].join('\n'),
     ariaLabel: 'More information about the overnight autopilot',
   },
+  // feat_overnight_final_solution Story 1.2 / FR-9 — new key for the Strategy
+  // <Select> directly beneath the overnight depth selector. Two wire values
+  // ('narrow' / 'follow_suggestions') are quoted verbatim in `short` so the
+  // frontend mapping never drifts silently from the backend allowlist.
+  // AC-16 value-lock at ui/src/__tests__/lib/glossary.test.ts.
+  overnight_strategy: {
+    short:
+      'How follow-ups are chosen. "narrow": tighter bounds on the same knobs. "follow_suggestions": digest\'s top runnable suggestion.',
+    long: [
+      'Choose how the autopilot picks the next study in an overnight chain.',
+      '',
+      '**Refine the same knobs ("narrow"):** each follow-up tightens the search space around the previous winner on the same template. Predictable, deterministic, and the safer default.',
+      '',
+      '**Try suggested follow-ups ("follow_suggestions"):** each follow-up acts on the parent digest\'s top runnable recommendation, which may switch knobs (`widen`) or templates (`swap_template`). A cycle guard prevents the chain from ping-ponging between templates. When the digest has no runnable suggestion, the chain falls back to the narrow behavior so it never stalls.',
+      '',
+      'Either way: RelyLoop never opens a pull request on your behalf — the chain ends with a proposal you review and merge.',
+    ].join('\n'),
+    ariaLabel: 'More information about the overnight strategy choice',
+  },
   auto_followup_chain: {
     short:
       'RelyLoop ran follow-up studies automatically based on this study’s winner. Each follow-up narrowed the search bounds.',

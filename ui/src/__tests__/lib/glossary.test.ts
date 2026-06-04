@@ -116,6 +116,25 @@ describe('feat_digest_executable_followups Story 5.3 — followup glossary keys'
   });
 });
 
+describe('feat_overnight_final_solution Story 1.2 — overnight_strategy glossary key (AC-16)', () => {
+  it('overnight_strategy entry exists with short + long', () => {
+    expect(glossary['overnight_strategy'], 'glossary[overnight_strategy] missing').toBeDefined();
+    expect(glossary['overnight_strategy']?.short).toBeTruthy();
+    expect(glossary['overnight_strategy']?.long).toBeTruthy();
+  });
+
+  it('short ≤ 140 chars and contains both wire values verbatim', () => {
+    const entry = glossary['overnight_strategy'];
+    expect(entry).toBeDefined();
+    const short = entry!.short!;
+    expect(short.length).toBeLessThanOrEqual(140);
+    // AC-16 — the two wire values must appear verbatim in `short` so the
+    // frontend mapping never drifts silently from the backend allowlist.
+    expect(short).toContain('"narrow"');
+    expect(short).toContain('"follow_suggestions"');
+  });
+});
+
 describe('glossary content shape (FR-5)', () => {
   it('every `short` field is ≤140 characters', () => {
     for (const [key, entry] of Object.entries(glossary)) {
