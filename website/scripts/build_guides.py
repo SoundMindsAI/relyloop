@@ -294,9 +294,17 @@ def emit_deck_page(deck: dict[str, Any], has_webm: bool, has_mp4: bool, copied: 
     return "\n".join(lines)
 
 
-def emit_walkthroughs_index(decks: list[dict[str, Any]]) -> str:
+def emit_walkthroughs_index(
+    decks: list[dict[str, Any]], copied_by_slug: dict[str, set[str]] | None = None
+) -> str:
     """Return walkthroughs/index.md — a Material card grid, one card per deck,
-    in lexicographic slug order (decks already sorted by discover_decks)."""
+    in lexicographic slug order (decks already sorted by discover_decks).
+
+    The card thumbnail is the first screenshot whose source was actually copied
+    (per ``copied_by_slug``) — never a missing asset. When ``copied_by_slug`` is
+    None (callers that don't track copies, e.g. some tests) it falls back to the
+    first declared screenshot.
+    """
     lines: list[str] = [
         GENERATED_HEADER_FMT.format(source="ui/public/guides/*/metadata.json"),
         "",
@@ -312,7 +320,16 @@ def emit_walkthroughs_index(decks: list[dict[str, Any]]) -> str:
     ]
     for deck in decks:
         slug = deck["slug"]
-        thumb = deck["screenshots"][0]["file"] if deck["screenshots"] else ""
+        # Pick the first screenshot whose source was copied — never reference a
+        # missing asset (the index would otherwise ship a broken thumbnail and
+        # the freshness gate, which excludes nothing here, would still pass).
+        copied = copied_by_slug.get(slug) if copied_by_slug is not None else None
+        thumb = ""
+        for shot in deck["screenshots"]:
+            fname = shot.get("file", "")
+            if fname and (copied is None or fname in copied):
+                thumb = fname
+                break
         card: list[str] = [f"-   ### [{deck['title']}]({slug}.md)", ""]
         if thumb:
             # {.glightbox-skip} so clicking the thumbnail navigates to the deck
@@ -469,7 +486,11 @@ def detect_unsupported_relative_links(text: str, source_rel: str) -> None:
     patterns = [
         (re.compile(r"!\[[^\]]*\]\((?P<url>[^)]+)\)"), "image link"),
         (re.compile(r"^\s*\[[^\]]+\]:\s*(?P<url>\S+)", re.MULTILINE), "reference-style link"),
-        (re.compile(r'<a\s+[^>]*href="(?P<url>[^"]+)"', re.IGNORECASE), "HTML <a> link"),
+        # Both quote styles for HTML href.
+        (
+            re.compile(r"""<a\s+[^>]*href=(?P<q>["'])(?P<url>.*?)(?P=q)""", re.IGNORECASE),
+            "HTML <a> link",
+        ),
     ]
     for line_no, line in enumerate(text.splitlines(), start=1):
         for regex, label in patterns:
@@ -761,7 +782,9 @@ def generate(transcode: bool = False) -> None:
         page = emit_deck_page(deck, has_webm, has_mp4, copied)
         (WALKTHROUGHS_OUT / f"{deck['slug']}.md").write_text(page, encoding="utf-8")
 
-    (WALKTHROUGHS_OUT / "index.md").write_text(emit_walkthroughs_index(decks), encoding="utf-8")
+    (WALKTHROUGHS_OUT / "index.md").write_text(
+        emit_walkthroughs_index(decks, copied_by_slug), encoding="utf-8"
+    )
     (INDEPTH_OUT / "index.md").write_text(
         emit_indepth_index(list(LONG_FORM_GUIDES)), encoding="utf-8"
     )

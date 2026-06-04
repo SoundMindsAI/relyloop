@@ -626,3 +626,43 @@ def test_validate_anchor_duplicate_with_markers_present_fails() -> None:
     with pytest.raises(SystemExit) as exc:
         bg.validate_mkdocs_anchor(dup)
     assert "exactly one" in str(exc.value)
+
+
+def test_index_thumbnail_skips_missing_first_screenshot(tmp_path: Path) -> None:
+    # If the first declared screenshot's source is missing (not copied), the
+    # index card thumbnail must use the next copied one — never a broken asset.
+    src = tmp_path / "guides"
+    _make_deck(
+        src,
+        "01_x",
+        title="Deck X",
+        screenshots=[
+            {"file": "01-gone.png", "caption": "missing"},
+            {"file": "02-here.png", "caption": "present"},
+        ],
+    )
+    decks = bg.discover_decks(src)
+    # Only the second screenshot was copied.
+    idx = bg.emit_walkthroughs_index(decks, {"01_x": {"02-here.png"}})
+    assert "02-here.png" in idx
+    assert "01-gone.png" not in idx
+
+
+def test_index_thumbnail_omitted_when_none_copied(tmp_path: Path) -> None:
+    src = tmp_path / "guides"
+    _make_deck(src, "01_x", title="Deck X")
+    decks = bg.discover_decks(src)
+    idx = bg.emit_walkthroughs_index(decks, {"01_x": set()})
+    # No thumbnail image at all, but the card + open-link still render.
+    assert "../../assets/guides/01_x/" not in idx
+    assert "[Open walkthrough →](01_x.md)" in idx
+
+
+def test_detect_unsupported_single_quoted_html_href(tmp_path: Path) -> None:
+    # Single-quoted <a href='...'> relative repo links must fail loudly too.
+    root = _repo_with(tmp_path)
+    src = root / "docs" / "08_guides" / "tutorial-first-study.md"
+    src.write_text("# T\n\n<a href='../03_runbooks/x.md'>link</a>\n")
+    with pytest.raises(SystemExit) as exc:
+        bg.port_long_form_guide(src, root)
+    assert "unsupported HTML <a> link" in str(exc.value)
