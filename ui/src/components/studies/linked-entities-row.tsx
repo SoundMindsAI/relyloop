@@ -5,11 +5,13 @@
 'use client';
 import Link from 'next/link';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { useCluster } from '@/lib/api/clusters';
 import { useJudgmentList } from '@/lib/api/judgments';
 import { useTemplate } from '@/lib/api/query-templates';
 import { useQuerySet } from '@/lib/api/query-sets';
 import type { StudyDetail } from '@/lib/api/studies';
+import { OVERNIGHT_STRATEGY_VALUES, type OvernightStrategy } from '@/lib/enums';
 
 /**
  * Named + linked row of the four entities a study references — cluster,
@@ -88,6 +90,41 @@ export function LinkedEntitiesRow({ study }: { study: StudyDetail }) {
         fallback={study.target}
         testid="linked-index"
       />
+      <StrategyLine study={study} />
     </div>
+  );
+}
+
+// Source-of-truth: ui/src/lib/enums.ts OVERNIGHT_STRATEGY_VALUES
+// (mirrors backend/app/api/v1/schemas.py AUTO_FOLLOWUP_STRATEGY_VALUES).
+// Per CLAUDE.md "Enumerated Value Contract Discipline" — the display
+// mapping is keyed by the typed OvernightStrategy literal so a new wire
+// value lands a build break until the mapping is extended.
+const STRATEGY_DISPLAY: Record<OvernightStrategy, string> = {
+  narrow: 'Refine same knobs',
+  follow_suggestions: 'Try suggested follow-ups',
+};
+
+/**
+ * feat_overnight_final_solution_phase2 Story 5 / FR-2 — read-only line
+ * surfacing this study's overnight-followup strategy. Renders ONLY when
+ * `study.config.auto_followup_strategy` is one of the values in
+ * OVERNIGHT_STRATEGY_VALUES. Hidden for null / missing / unknown values
+ * (defensive — Phase 1 D-13 makes the backend field `str | None`, so a
+ * malformed JSONB value could in principle reach the frontend).
+ */
+function StrategyLine({ study }: { study: StudyDetail }) {
+  const raw = (study.config as { auto_followup_strategy?: unknown } | null | undefined)
+    ?.auto_followup_strategy;
+  if (typeof raw !== 'string') return null;
+  if (!(OVERNIGHT_STRATEGY_VALUES as readonly string[]).includes(raw)) return null;
+  const strategy = raw as OvernightStrategy;
+  return (
+    <span data-testid="study-strategy-line">
+      <span className="text-muted-foreground">Strategy:</span> {STRATEGY_DISPLAY[strategy]}
+      <span className="ml-1 inline-flex">
+        <InfoTooltip glossaryKey="auto_followup_strategy_line" />
+      </span>
+    </span>
   );
 }

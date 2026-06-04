@@ -17,6 +17,7 @@ import { render, screen } from '@testing-library/react';
 import { server } from '../../setup';
 import { LinkedEntitiesRow } from '@/components/studies/linked-entities-row';
 import type { StudyDetail } from '@/lib/api/studies';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const API_BASE = 'http://api.test';
 
@@ -32,7 +33,11 @@ const STUDY = {
 
 function wrap(node: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}>{node}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={qc}>
+      <TooltipProvider>{node}</TooltipProvider>
+    </QueryClientProvider>,
+  );
 }
 
 function happyHandlers() {
@@ -95,5 +100,70 @@ describe('LinkedEntitiesRow', () => {
     const index = await screen.findByTestId('linked-index');
     const anchor = index.querySelector('a');
     expect(anchor?.getAttribute('href')).toBe('/clusters/cluster-1/indices/has%2Fslash');
+  });
+});
+
+// ===========================================================================
+// feat_overnight_final_solution_phase2 Story 5 / FR-2 — StrategyLine tests
+// ===========================================================================
+
+describe('LinkedEntitiesRow — StrategyLine (Story 5)', () => {
+  it('AC-7: renders "Try suggested follow-ups" line when config.auto_followup_strategy = "follow_suggestions"', async () => {
+    server.use(...happyHandlers());
+    wrap(
+      <LinkedEntitiesRow
+        study={
+          {
+            ...STUDY,
+            config: { auto_followup_strategy: 'follow_suggestions' },
+          } as unknown as StudyDetail
+        }
+      />,
+    );
+    const line = await screen.findByTestId('study-strategy-line');
+    expect(line).toBeInTheDocument();
+    expect(line).toHaveTextContent(/Strategy:\s+Try suggested follow-ups/);
+  });
+
+  it('AC-9: renders "Refine same knobs" line when config.auto_followup_strategy = "narrow"', async () => {
+    server.use(...happyHandlers());
+    wrap(
+      <LinkedEntitiesRow
+        study={{ ...STUDY, config: { auto_followup_strategy: 'narrow' } } as unknown as StudyDetail}
+      />,
+    );
+    const line = await screen.findByTestId('study-strategy-line');
+    expect(line).toHaveTextContent(/Strategy:\s+Refine same knobs/);
+  });
+
+  it('AC-8: hidden when config has no auto_followup_strategy key', async () => {
+    server.use(...happyHandlers());
+    wrap(<LinkedEntitiesRow study={{ ...STUDY, config: {} } as unknown as StudyDetail} />);
+    // Wait for the four existing entries to render, then assert the strategy line is absent.
+    await screen.findByTestId('linked-cluster');
+    expect(screen.queryByTestId('study-strategy-line')).not.toBeInTheDocument();
+  });
+
+  it('hidden when config is null (legacy / Phase 1 default behavior)', async () => {
+    server.use(...happyHandlers());
+    wrap(<LinkedEntitiesRow study={{ ...STUDY, config: null } as unknown as StudyDetail} />);
+    await screen.findByTestId('linked-cluster');
+    expect(screen.queryByTestId('study-strategy-line')).not.toBeInTheDocument();
+  });
+
+  it('defensive: hidden for unknown wire values (allowlist check)', async () => {
+    server.use(...happyHandlers());
+    wrap(
+      <LinkedEntitiesRow
+        study={
+          {
+            ...STUDY,
+            config: { auto_followup_strategy: 'unrecognized_strategy' },
+          } as unknown as StudyDetail
+        }
+      />,
+    );
+    await screen.findByTestId('linked-cluster');
+    expect(screen.queryByTestId('study-strategy-line')).not.toBeInTheDocument();
   });
 });
