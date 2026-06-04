@@ -218,7 +218,7 @@ CREATE TABLE studies (
     judgment_list_id    UUID NOT NULL REFERENCES judgment_lists(id),
     search_space        JSONB NOT NULL,                -- per-parameter range/choice spec
     objective           JSONB NOT NULL,                -- {metric, k, direction}
-    config              JSONB NOT NULL,                -- {max_trials, time_budget_min, parallelism, sampler, pruner, seed, trial_timeout_s}
+    config              JSONB NOT NULL,                -- {max_trials, time_budget_min, parallelism, sampler, pruner, seed, trial_timeout_s, auto_followup_depth, auto_followup_strategy, auto_followup_visited_template_ids (worker-managed), auto_followup_selected_kind (worker-managed)} — last three keys added by feat_overnight_final_solution (2026-06-03); see "Studies config keys" note below
     status              TEXT NOT NULL CHECK (status IN ('queued', 'running', 'completed', 'cancelled', 'failed')),
     failed_reason       TEXT,                          -- populated when status='failed'
     optuna_study_name   TEXT NOT NULL UNIQUE,          -- convention: optuna_study_name = str(studies.id)
@@ -233,6 +233,24 @@ CREATE TABLE studies (
     started_at          TIMESTAMPTZ,
     completed_at        TIMESTAMPTZ
 );
+
+-- Studies config keys (no schema change; all keys are JSONB inner shape).
+-- feat_overnight_final_solution (2026-06-03) added three optional keys:
+--   * auto_followup_strategy — operator-facing wire field, "narrow" | "follow_suggestions" | absent.
+--     Validated by StudyConfigSpec._validate_auto_followup_strategy via the
+--     AUTO_FOLLOWUP_STRATEGY_INVALID error-code prefix (D-13). Default (absent or
+--     "narrow") is byte-identical to pre-feature behavior.
+--   * auto_followup_visited_template_ids — worker-managed cycle-guard list,
+--     ordered-unique. Persisted ONLY by the autopilot worker under
+--     "follow_suggestions" strategy (D-12); the wizard 422-rejects operator-
+--     submitted values (single-writer rule per D-14).
+--   * auto_followup_selected_kind — per-link audit field; one of
+--     "narrow_default" | "narrow" | "widen" | "swap_template" or absent.
+--     Persisted ONLY by the autopilot worker under "follow_suggestions"; the
+--     legacy/default narrow path persists no key at all (D-12). Surfaced as
+--     StudyChainLink.selected_followup_kind on the /chain endpoint with a
+--     defensive coercion against unknown values (chain_selected_kind_unknown
+--     WARN; never raises ValidationError that would 500 the endpoint).
 
 CREATE TABLE trials (
     id                  UUID PRIMARY KEY,
