@@ -649,6 +649,13 @@ describe('Proposal detail page — Story 1.4 (full-param-space mount + lifted fe
       expect(qc.getQueryState(['query-templates', 't1'])?.status).toBe('success'),
     );
     // Race-specific assertion: template ready, study pending → panel ABSENT.
+    // Crucially assert the `untuned` group + the `foo` untuned row are absent:
+    // if the panel mounted prematurely (searchSpaceParams undefined while the
+    // study is pending), `foo` would mis-classify as untuned and render here.
+    // The tuned_unchanged + empty checks alone would pass even on a premature
+    // mount (foo→untuned), so they don't catch the race (final-review FF1).
+    expect(screen.queryByTestId('param-space-group-untuned')).toBeNull();
+    expect(screen.queryByTestId('param-space-row-untuned-foo')).toBeNull();
     expect(screen.queryByTestId('param-space-group-tuned_unchanged')).toBeNull();
     expect(screen.queryByTestId('param-space-empty')).toBeNull();
 
