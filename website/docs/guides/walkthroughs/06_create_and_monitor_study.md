@@ -11,6 +11,7 @@ Configure a study, watch the trials fill in live, and read the terminal state â€
 <video controls playsinline preload="metadata" class="walkthrough-video">
   <source src="../../../assets/guides/06_create_and_monitor_study/walkthrough.mp4" type="video/mp4">
   <source src="../../../assets/guides/06_create_and_monitor_study/walkthrough.webm" type="video/webm">
+  <track kind="captions" src="../../../assets/guides/06_create_and_monitor_study/captions.vtt" srclang="en" label="Steps" default>
   <p>Your browser cannot play the embedded video.</p>
 </video>
 <p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/06_create_and_monitor_study/walkthrough.webm">Download the walkthrough video</a>.</p>

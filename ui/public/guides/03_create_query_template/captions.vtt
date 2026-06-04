@@ -1,0 +1,16 @@
+WEBVTT
+
+00:00:00.645 --> 00:00:02.521
+Open the Templates page. Every query template defines a Jinja2-rendered query DSL with named parameters — those parameters are what Optuna varies across trials. Click 'Create template' in the top right.
+
+00:00:02.521 --> 00:00:13.601
+The create modal expects three things: a name, the Jinja2 body of the query, and a `name:type` list of declared parameters (one per line).
+
+00:00:13.601 --> 00:00:15.495
+The body is a JSON template that embeds Jinja2 expressions for runtime substitution. `{{ query_text }}` and `{{ boost }}` are the parameters Optuna fills per trial. The Declared params block tells the platform their types — `boost:float` and `query_text:string` here.
+
+00:00:15.495 --> 00:00:17.382
+Submit. RelyLoop validates the Jinja2 syntax + checks that declared params match the params actually referenced in the body. On success, the new template lands in the list at version 1.
+
+00:00:17.382 --> 00:00:21.382
+Templates are immutable — to evolve them, you fork. Click 'Fork to v2' on the detail page to create a new version with the same name but version=2. The parent_id field on the new template preserves the lineage so studies can reference a specific historical version.

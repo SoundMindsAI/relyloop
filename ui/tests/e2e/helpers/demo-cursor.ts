@@ -83,12 +83,22 @@ export async function installCursor(page: Page): Promise<void> {
   await page.addInitScript(MOUSE_HELPER);
 }
 
-/** Glide the synthetic cursor to a locator's centre, then dwell. */
+/**
+ * Glide the synthetic cursor to a locator's centre, then dwell. Resilient: if a
+ * fragile element (e.g. a portal-mounted listbox trigger) can't be scrolled into
+ * view or has no stable bounding box, the cursor move is skipped (the spec's
+ * own click still drives the action) — one finicky element never fails the
+ * whole re-record.
+ */
 export async function glide(page: Page, loc: Locator, settleMs = DEFAULT_SETTLE_MS): Promise<void> {
-  await loc.scrollIntoViewIfNeeded();
-  const box = await loc.boundingBox();
-  if (box) {
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: GLIDE_STEPS });
+  try {
+    await loc.scrollIntoViewIfNeeded({ timeout: 3000 });
+    const box = await loc.boundingBox();
+    if (box) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: GLIDE_STEPS });
+    }
+  } catch {
+    // Non-fatal — skip the visible glide for this target, still dwell below.
   }
   await page.waitForTimeout(settleMs);
 }

@@ -69,13 +69,24 @@ test.describe('Walkthrough: Generate judgments via LLM', () => {
     const listName = `walkthrough-${randomUUID().slice(0, 6)}`;
     const nameField = page.getByLabel('Judgment list name', { exact: true });
     await glide(page, nameField, 400);
-    await nameField.click();
-    await nameField.pressSequentially(listName, { delay: 55 });
+    await nameField.fill(listName);
     const targetField = page.getByLabel(/Target index/);
     await glide(page, targetField, 400);
-    await targetField.click();
-    await targetField.pressSequentially('products', { delay: 55 });
-    await page.waitForTimeout(400);
+    await targetField.fill('products');
+    // Filling the target fires the UBI-readiness probe, which auto-selects a
+    // method from the cluster's rung — for a UBI-rich seeded cluster that can be
+    // a UBI-only method (ctr_threshold / dwell_time) that HIDES the #gen-template
+    // field. Wait for readiness to settle, then force method=LLM-as-judge so the
+    // template select reliably mounts. We do this AFTER the auto-select fires (so
+    // the value genuinely changes and react-hook-form marks the field dirty,
+    // which stops the rung effect from overriding it again). Pre-existing footgun
+    // independent of the cursor/caption work.
+    await page.waitForTimeout(800);
+    await glide(page, page.getByTestId('gen-method'), 300);
+    await page.getByTestId('gen-method').click();
+    await page.getByRole('option', { name: 'LLM-as-judge' }).click();
+    await expect(page.locator('#gen-template')).toBeVisible({ timeout: 5_000 });
+    await page.waitForTimeout(300);
     timer.mark(captions[2]!);
     await shot(page, { path: path.join(SCREENSHOTS, '03-generate-dialog-text-filled.png') });
 

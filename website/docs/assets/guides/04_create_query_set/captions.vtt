@@ -1,0 +1,16 @@
+WEBVTT
+
+00:00:00.663 --> 00:00:02.524
+Open the Query Sets page. A 'query set' is a named collection of queries scoped to one cluster — your stable evaluation benchmark. Click 'Create query set' to begin.
+
+00:00:02.524 --> 00:00:05.889
+The modal expects three things: a name, the cluster ID (UUIDv7), and an optional description. Cluster ID can be copied from the Clusters page.
+
+00:00:05.889 --> 00:00:09.689
+Fill in the name and cluster ID. The cluster_id is a UUIDv7 — paste it directly from the Clusters list. (A future improvement will swap this text input for a cluster picker dropdown.)
+
+00:00:09.689 --> 00:00:11.583
+After submit, the new query set lands in the list and you can drill into its detail page. The set starts empty — you load queries next.
+
+00:00:11.583 --> 00:00:15.583
+Click 'Add queries' to open the upload dialog. RelyLoop accepts JSON (an array of `{query_text, reference_answer?, query_metadata?}` objects) OR CSV (the tutorial uses CSV with `query_id,query_text` columns). Queries are validated, bulk-inserted, and assigned UUIDv7 IDs.

@@ -11,6 +11,7 @@ Skip LLM generation by importing pre-curated judgments, then run the kappa calib
 <video controls playsinline preload="metadata" class="walkthrough-video">
   <source src="../../../assets/guides/05_import_judgments_and_calibrate/walkthrough.mp4" type="video/mp4">
   <source src="../../../assets/guides/05_import_judgments_and_calibrate/walkthrough.webm" type="video/webm">
+  <track kind="captions" src="../../../assets/guides/05_import_judgments_and_calibrate/captions.vtt" srclang="en" label="Steps" default>
   <p>Your browser cannot play the embedded video.</p>
 </video>
 <p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/05_import_judgments_and_calibrate/walkthrough.webm">Download the walkthrough video</a>.</p>
