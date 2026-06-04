@@ -101,6 +101,19 @@ describe('partitionTemplateParams', () => {
     expect(result.untuned).toEqual([{ name: 'foo', type: 'int' }]);
   });
 
+  it('Test 5b (Gemini G1 / null search space): null searchSpaceParams does not throw; declared params → untuned', () => {
+    // JSONB study.search_space.params may be null at runtime; `key in null`
+    // would throw a TypeError without the truthiness guard.
+    const result = partitionTemplateParams({
+      configDiff: { boost: { from: 1, to: 2 } },
+      searchSpaceParams: null,
+      declaredParams: { boost: 'float', title_weight: 'float' },
+    });
+    expect(result.tunedChanged).toEqual([{ name: 'boost', type: 'float', from: 1, to: 2 }]);
+    expect(result.tunedUnchanged).toEqual([]);
+    expect(result.untuned).toEqual([{ name: 'title_weight', type: 'float' }]);
+  });
+
   it('Test 6 (AC-2 / legacy 2-tuple): config_diff 2-tuple is normalized via extractFromTo', () => {
     const result = partitionTemplateParams({
       configDiff: { boost: [1.0, 1.5] },

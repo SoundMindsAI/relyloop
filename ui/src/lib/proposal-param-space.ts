@@ -51,7 +51,10 @@ export interface PartitionResult {
 export interface PartitionInput {
   declaredParams: Record<string, string>;
   configDiff: Record<string, unknown>;
-  searchSpaceParams?: Record<string, unknown> | undefined;
+  // `null` is reachable at runtime: JSONB `study.search_space.params` may be
+  // explicitly null, and the page's `(search_space as {params?})?.params` cast
+  // yields null in that case. Widen the type to be honest about it.
+  searchSpaceParams?: Record<string, unknown> | null | undefined;
 }
 
 const byName = (a: { name: string }, b: { name: string }): number => a.name.localeCompare(b.name);
@@ -81,7 +84,9 @@ export function partitionTemplateParams({
   const seen = new Set(Object.keys(configDiff));
   for (const [key, type] of Object.entries(declaredParams)) {
     if (seen.has(key)) continue; // already in tunedChanged
-    if (searchSpaceParams !== undefined && key in searchSpaceParams) {
+    // Truthiness guard (NOT `!== undefined`): `searchSpaceParams` can be null
+    // at runtime, and `key in null` throws a TypeError (Gemini G1).
+    if (searchSpaceParams && key in searchSpaceParams) {
       tunedUnchanged.push({ name: key, type });
     } else {
       untuned.push({ name: key, type });

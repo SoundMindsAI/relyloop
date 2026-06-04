@@ -24,7 +24,8 @@ import {
 export interface FullParamSpacePanelProps {
   configDiff: Record<string, unknown>;
   declaredParams: Record<string, string>;
-  searchSpaceParams?: Record<string, unknown> | undefined;
+  // `null` is reachable from JSONB `search_space.params` (see PartitionInput).
+  searchSpaceParams?: Record<string, unknown> | null | undefined;
 }
 
 // Human-facing group headers, keyed by the internal ParamSpaceGroup discriminant.
@@ -47,18 +48,23 @@ function GroupHeader({ group, count }: { group: ParamSpaceGroup; count: number }
 }
 
 function TunedChangedRows({ rows }: { rows: TunedChangedRow[] }) {
+  // Grid (not flex) so name / type / from / → / to align vertically across
+  // rows of varying name lengths — matches <ConfigDiffPanel>'s table columns
+  // (Gemini G2).
   return (
     <ul className="mt-1 space-y-0.5">
       {rows.map((row) => (
         <li
           key={row.name}
           data-testid={`param-space-row-tuned_changed-${row.name}`}
-          className="flex items-center gap-2 font-mono text-xs text-gray-700"
+          className="grid grid-cols-[1.5fr_1fr_1fr_auto_1fr] items-center gap-x-3 font-mono text-xs text-gray-700"
         >
           <code>{row.name}</code>
           <span className="text-muted-foreground">{row.type}</span>
-          <span>{renderValue(row.from)}</span>
-          <span aria-hidden="true">→</span>
+          <span className="justify-self-end">{renderValue(row.from)}</span>
+          <span aria-hidden="true" className="text-center text-muted-foreground">
+            →
+          </span>
           <span>{renderValue(row.to)}</span>
         </li>
       ))}
