@@ -395,7 +395,18 @@ def build_video_block(slug: str, has_webm: bool, has_mp4: bool) -> str:
     """
     if not has_webm:
         return ""
-    base = f"../../assets/guides/{slug}"
+    # CRITICAL: this is RAW HTML inside md_in_html, which MkDocs passes through
+    # VERBATIM — unlike markdown ![](...) images, it does NOT rewrite the path
+    # for the output URL. The deck page is served at /guides/walkthroughs/<slug>/
+    # (use_directory_urls), and the assets live at /assets/guides/<slug>/, so the
+    # browser-correct relative path needs THREE ../ to climb back to the site
+    # root. (Markdown screenshot images write "../../assets/..." source-relative
+    # and MkDocs rewrites them to "../../../assets/..." — this raw HTML must emit
+    # the rewritten depth itself, or the <source>/<a> 404s. `mkdocs build
+    # --strict` does NOT catch this — it only validates markdown links, not raw
+    # HTML src/href attributes; the post-build asset-ref check in
+    # build-guides-freshness.yml is the guard.)
+    base = f"../../../assets/guides/{slug}"
     sources: list[str] = []
     if has_mp4:
         sources.append(f'  <source src="{base}/walkthrough.mp4" type="video/mp4">')

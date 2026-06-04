@@ -283,6 +283,20 @@ def test_build_video_block_mp4_first(tmp_path: Path) -> None:
     assert block.index("</video>") < block.index("walkthrough-video-download")
 
 
+def test_build_video_block_uses_root_relative_asset_depth() -> None:
+    # REGRESSION (video-404 hotfix): the <video>/<source>/<a> are RAW HTML that
+    # MkDocs does NOT path-rewrite. The deck page renders at
+    # /guides/walkthroughs/<slug>/ so the browser-correct path to /assets/ needs
+    # THREE ../ — matching the depth MkDocs rewrites the markdown screenshot
+    # images to. Two ../ (the source-relative depth) 404s in the browser.
+    block = bg.build_video_block("01_x", has_webm=True, has_mp4=True)
+    assert '<source src="../../../assets/guides/01_x/walkthrough.mp4"' in block
+    assert '<source src="../../../assets/guides/01_x/walkthrough.webm"' in block
+    assert 'href="../../../assets/guides/01_x/walkthrough.webm"' in block
+    # The buggy two-level depth must NOT appear.
+    assert '"../../assets/guides/01_x/walkthrough' not in block
+
+
 def test_build_video_block_no_mp4(tmp_path: Path) -> None:
     block = bg.build_video_block("01_x", has_webm=True, has_mp4=False)
     assert 'type="video/mp4"' not in block

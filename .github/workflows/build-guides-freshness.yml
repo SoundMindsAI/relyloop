@@ -90,3 +90,10 @@ jobs:
       - name: mkdocs build --strict (PR-time, catches broken nav/links)
         run: mkdocs build --strict
         working-directory: website
+
+      # --strict validates markdown links/images but NOT src/href inside raw
+      # HTML (the <video><source> + download <a> in the deck pages). This guard
+      # resolves those against the built site/ so a wrong relative depth (the
+      # video-404 bug) fails the PR instead of shipping a broken player.
+      - name: Verify raw-HTML asset refs resolve in the built site
+        run: bash scripts/ci/verify_built_site_asset_refs.sh website/site

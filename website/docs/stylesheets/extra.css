@@ -40,3 +40,26 @@
   height: auto;
   border-radius: 0.3rem;
 }
+
+/* ---------------------------------------------------------------------------
+ * Top-nav tabs at laptop widths.
+ *
+ * Material shows the horizontal `navigation.tabs` bar only at >= 76.25em
+ * (~1220px) and collapses to the hamburger drawer below that — so a typical
+ * 13" laptop window (~1200px) falls just under the line and sees the drawer.
+ * Lower the threshold to 60em (~960px) so the top-level menu sits across the
+ * top on standard laptops; phones (<60em) keep the hamburger.
+ *
+ * We deliberately do NOT force the desktop primary sidebar in this band — at
+ * <76.25em Material's nav tree is structured for the slide-in drawer, and
+ * forcing it into a static column leaves a broken, near-empty rail. Instead we
+ * KEEP the hamburger so the section sub-pages (the Walkthroughs deck list,
+ * etc.) stay reachable; the tabs give the across-the-top look, the hamburger
+ * covers the deeper tree. At >= 76.25em Material's own rules take over (tabs +
+ * static sidebar, no hamburger) exactly as before.
+ * ------------------------------------------------------------------------- */
+@media screen and (min-width: 60em) and (max-width: 76.234375em) {
+  .md-tabs {
+    display: block;
+  }
+}

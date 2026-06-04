@@ -9,11 +9,11 @@
 Open a pending proposal, read the config diff and metric delta, then decide whether to open a PR or reject.
 
 <video controls playsinline preload="metadata" class="walkthrough-video">
-  <source src="../../assets/guides/02_review_a_proposal/walkthrough.mp4" type="video/mp4">
-  <source src="../../assets/guides/02_review_a_proposal/walkthrough.webm" type="video/webm">
+  <source src="../../../assets/guides/02_review_a_proposal/walkthrough.mp4" type="video/mp4">
+  <source src="../../../assets/guides/02_review_a_proposal/walkthrough.webm" type="video/webm">
   <p>Your browser cannot play the embedded video.</p>
 </video>
-<p class="walkthrough-video-download">Trouble playing? <a href="../../assets/guides/02_review_a_proposal/walkthrough.webm">Download the walkthrough video</a>.</p>
+<p class="walkthrough-video-download">Trouble playing? <a href="../../../assets/guides/02_review_a_proposal/walkthrough.webm">Download the walkthrough video</a>.</p>
 
 ## Step 1 — Open the Proposals page. Every winning study config…
 
