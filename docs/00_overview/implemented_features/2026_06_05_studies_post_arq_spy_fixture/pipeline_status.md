@@ -1,5 +1,7 @@
 # Pipeline Status — `arq_pool_spy` fixture for POST /api/v1/studies tests
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete (preflighted 2026-06-02)
 - File: idea.md
@@ -20,4 +22,10 @@
 - Phases covered: 1 of 1 (single-phase)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-05
+- PR: #476 (squash-merged `ed85d84`)
+- CI: all 19 `pr.yml` checks green (smoke skipped — opt-in/off)
+- Stories completed: 2 of 2 (1.1, 1.2)
+- Cross-model review: GPT-5.5 unreachable in this env → Opus self-review substitution (test-only, zero production diff) — clean
+- Gemini Code Assist: 1 theme / 2 line comments — 1 accepted (drop redundant `@pytest.mark.asyncio`), 1 rejected with cited evidence (module `pytestmark` unnecessary under `asyncio_mode = "auto"`)
