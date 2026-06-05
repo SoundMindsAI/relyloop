@@ -37,10 +37,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: website/requirements.txt
+          cache-dependency-path: website/requirements.lock
 
       - name: Install dependencies
-        run: pip install -r website/requirements.txt
+        # Hash-pinned lock (OSSF Scorecard Pinned-Dependencies). Regenerate via
+        # `uv pip compile website/requirements.txt --generate-hashes -o website/requirements.lock`.
+        run: pip install --require-hashes -r website/requirements.lock
 
       - name: Compute build stamp
         # Short commit SHA + merged PR number (parsed from the squash-merge
