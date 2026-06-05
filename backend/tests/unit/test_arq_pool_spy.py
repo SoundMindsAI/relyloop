@@ -13,9 +13,15 @@ wiring (install-after-lifespan ordering, restore branches) is covered in
 
 from __future__ import annotations
 
-import pytest
-
 from backend.tests.integration.conftest import SpyArqPool
+
+# NB: no per-test @pytest.mark.asyncio and no module-level
+# `pytestmark = pytest.mark.asyncio` — the project sets
+# `asyncio_mode = "auto"` (pyproject.toml), so async tests are collected
+# automatically. This matches the dominant codebase convention (e.g.
+# backend/tests/unit/services/test_ubi_reader.py: 17 async tests, zero
+# asyncio markers). (Gemini review: the line-18 suggestion assumed
+# asyncio_mode=strict — it's auto, so no marker is needed.)
 
 
 async def test_records_flattened_name_and_args() -> None:
@@ -49,7 +55,6 @@ async def test_empty_args_records_name_only() -> None:
     assert pool.calls == [("noargs",)]
 
 
-@pytest.mark.asyncio
 async def test_enqueue_job_is_a_coroutine() -> None:
     """``enqueue_job`` must be awaitable to match the production await site."""
     import inspect
