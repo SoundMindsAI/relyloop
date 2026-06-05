@@ -91,6 +91,7 @@ def _install_canned_seed_path(monkeypatch: pytest.MonkeyPatch) -> None:
         url: str,
         *,
         params: Any = None,
+        auth: Any = None,
         client_label: str = "",
         step: str = "",
     ) -> dict[str, Any]:
@@ -136,7 +137,9 @@ def _install_canned_seed_path(monkeypatch: pytest.MonkeyPatch) -> None:
 def _only_solr_unreachable() -> Any:
     """An ``is_engine_reachable`` replacement: every engine up except Solr."""
 
-    async def _probe(url: str, engine_type: str) -> bool:
+    async def _probe(url: str, engine_type: str, **kwargs: Any) -> bool:
+        # **kwargs absorbs the real is_engine_reachable's keyword-only
+        # `timeout_s` (and any future kwargs) so the mock can't TypeError.
         return engine_type != "solr"
 
     return _probe
@@ -228,7 +231,8 @@ async def test_reachable_scenario_failure_is_hard_error_not_a_skip(
     # tolerated all-unreachable verdict.
     assert not isinstance(exc_info.value, AllEnginesUnreachableError)
     # And the failing scenario is NOT in scenarios_skipped — skip accounting
-    # only happens at the reachability gate, never in the seed body.
-    progress = captured.get("progress")
-    if progress is not None:
-        assert "acme-products-prod" not in progress.scenarios_skipped
+    # only happens at the reachability gate, never in the seed body. progress is
+    # always captured (several _emit_progress calls precede the step-2h study
+    # failure), so access it directly — a missing capture should fail the test.
+    progress = captured["progress"]
+    assert "acme-products-prod" not in progress.scenarios_skipped
