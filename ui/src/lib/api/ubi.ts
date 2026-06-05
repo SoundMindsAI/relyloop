@@ -4,6 +4,7 @@
 
 'use client';
 import {
+  keepPreviousData,
   useMutation,
   useQuery,
   type UseMutationResult,
@@ -79,6 +80,10 @@ export function useUbiReadiness(
     queryKey: ['ubi-readiness', clusterId, querySetId, target],
     enabled,
     staleTime: UBI_READINESS_STALE_MS,
+    // chore_cluster_detail_rung_badge D-15: retain the previous rung across
+    // (query_set_id, target) edits so the badge persists without a skeleton
+    // flash. No-op for the cold-mount generate-judgments dialog consumer.
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       try {
         const { data } = await apiClient.get<UbiReadinessResponse>(

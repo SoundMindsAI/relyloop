@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClusterActionBar } from '@/components/clusters/cluster-action-bar';
 import { ClusterDetailIndicesCard } from '@/components/clusters/cluster-detail-indices-card';
 import { ClusterDetailSummary } from '@/components/clusters/cluster-detail-summary';
+import { ClusterDetailUbiReadinessCard } from '@/components/clusters/cluster-detail-ubi-readiness-card';
 import { StudiesByClusterTable } from '@/components/clusters/studies-by-cluster-table';
 import { useCluster } from '@/lib/api/clusters';
 
@@ -33,6 +34,7 @@ export function ClusterDetailView({ clusterId }: { clusterId: string }) {
           <>
             <ClusterDetailSummary cluster={cluster} />
             <ClusterActionBar cluster={cluster} />
+            <ClusterDetailUbiReadinessCard cluster={cluster} />
             <ClusterDetailIndicesCard clusterId={cluster.id} />
             <Card>
               <CardHeader>
