@@ -1,7 +1,7 @@
 # Implementation Plan — Rank-ordered FTS results
 
 **Date:** 2026-06-05
-**Status:** Ready for Execution (self-reviewed — see §8)
+**Status:** Complete (PR #472, squash-merged `f970c05`, 2026-06-05; self-reviewed — see §8)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../../CLAUDE.md) (repo/router conventions, cursor pagination, test layers); [`docs/01_architecture/api-conventions.md`](../../../../01_architecture/api-conventions.md)
 

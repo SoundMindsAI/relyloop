@@ -14,8 +14,8 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under MVP1 | **135** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **97 / 97** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Filed under MVP1 | **136** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **98 / 98** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -28,7 +28,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (135)
+### Done (136)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -44,6 +44,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [feat_digest_executable_followups](implemented_features/2026_05_24_feat_digest_executable_followups/feature_spec.md) | Feature | The LLM emits a discriminated union (`narrow` \| `widen` \| `text`) for each followup with a structured `search_space` when applicable. | — | [PR #225](https://github.com/SoundMindsAI/relyloop/pull/225) merged 2026-05-24 |
 | [feat_digest_executable_followups_swap_template](implemented_features/2026_05_24_feat_digest_executable_followups_swap_template/feature_spec.md) | Feature | The LLM emits a fourth `kind: "swap_template"` variant carrying `{rationale, template_id, search_space}` where `template_id` references a different `query_templates.id` than the parent study used. | — | [PR #232](https://github.com/SoundMindsAI/relyloop/pull/232) merged 2026-05-24 |
 | [feat_digest_proposal](implemented_features/2026_05_11_feat_digest_proposal/feature_spec.md) | Feature | When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config. | `feat_study_lifecycle` `feat_llm_judgments` | [PR #41](https://github.com/SoundMindsAI/relyloop/pull/41) merged 2026-05-11 |
+| [feat_fts_rank_ordering](implemented_features/2026_06_05_feat_fts_rank_ordering/feature_spec.md) | Feature | When `?q=` is present **and no explicit `?sort=` is supplied**, the 6 search-enabled list endpoints order results by relevance: `ORDER BY rank_bucket DESC, created_at DESC, id DESC`, where `rank_bucke | — | Ready for Execution (self-reviewed — see §8) |
 | [feat_github_pr_worker](implemented_features/2026_05_12_feat_github_pr_worker/feature_spec.md) | Feature | `POST /api/v1/proposals/{id}/open_pr` enqueues a Git worker job that clones the configured repo, edits `*.params.json`, commits with a structured message, pushes a branch, opens a GitHub PR, attaches  | `infra_foundation` `infra_adapter_elastic` `feat_study_lifecycle` `feat_digest_proposal` | [PR #45](https://github.com/SoundMindsAI/relyloop/pull/45) merged 2026-05-12 |
 | [feat_github_webhook](implemented_features/2026_05_12_feat_github_webhook/feature_spec.md) | Feature | GitHub posts to `POST /webhooks/github` with HMAC-SHA256 signature; the receiver verifies the signature, looks up the proposal by `pr_url`, updates `pr_state` and `pr_merged_at`. | `infra_foundation` `infra_adapter_elastic` `feat_github_pr_worker` | [PR #56](https://github.com/SoundMindsAI/relyloop/pull/56) merged 2026-05-12 |
 | [feat_home_demo_reseed_endpoint](implemented_features/2026_05_24_feat_home_demo_reseed_endpoint/feature_spec.md) | Feature | A dev-only `POST /api/v1/_test/demo/reseed` endpoint plus a "Reset to demo state" button inside `StartHereChecklist` that lets an operator wipe + re-seed the 4 demo scenarios from the browser. | — | [PR #228](https://github.com/SoundMindsAI/relyloop/pull/228) merged 2026-05-24 |
@@ -151,7 +152,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_e2e_target_dropdown_flake](implemented_features/2026_05_20_bug_e2e_target_dropdown_flake/idea.md) | Bug | The skipped test seeds two ES indices via Playwright's `request.put` (Node), opens the create-study modal, picks the seeded cluster via the cluster `<EntitySelect>`… | — | Complete |
 | [bug_env_file_corrupted_during_session](implemented_features/2026_05_13_bug_env_file_corrupted_during_session/idea.md) | Bug | The user's working `.env` (containing the OpenAI API key referenced by [`CLAUDE.md`](../CLAUDE.md) "Cross-model review policy") was renamed to `.env.old` during the agent's implementation session.… | — | Complete |
 | [bug_get_schema_unhandled_connect_error](implemented_features/2026_05_20_bug_get_schema_unhandled_connect_error/idea.md) | Bug | `ElasticAdapter.get_schema()` at [`backend/app/adapters/elastic.py:399-416`](../../backend/app/adapters/elastic.py#L399-L416) calls `_request(..., translate_errors=False)` and maps HTTP status codes e | — | Complete |
-| [bug_judgment_header_omits_click_bucket](implemented_features/2026_06_05_bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | Ready for Execution |
+| [bug_judgment_header_omits_click_bucket](implemented_features/2026_06_05_bug_judgment_header_omits_click_bucket/feature_spec.md) | Bug | The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim ("the UI's source-breakdown card now renders all th | — | [PR #470](https://github.com/SoundMindsAI/relyloop/pull/470) merged 2026-06-05 |
 | [bug_judgment_lists_listing_ignores_query_set_filter](implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter/idea.md) | Bug | The frontend hook at [`ui/src/lib/api/judgments.ts:37-46`](../../ui/src/lib/api/judgments.ts#L37-L46) (`useJudgmentLists`) passes `query_set_id` and `cluster_id` query parameters when listing judgment | — | Complete |
 | [bug_judgment_template_default_params_contract](implemented_features/2026_05_13_bug_judgment_template_default_params_contract/idea.md) | Bug | The `query_templates` API endpoint stores `declared_params` as `dict[str, str]` (per [`backend/app/api/v1/schemas.py:202`](../../backend/app/api/v1/schemas.py) — `declared_params: dict[str, str] = Fie | — | Complete |
 | [bug_llm_capability_cache_no_refresh](implemented_features/2026_06_02_bug_llm_capability_cache_no_refresh/idea.md) | Bug | The OpenAI capability check runs **exactly once**, as a fire-and-forget task in the FastAPI `lifespan` startup hook ([`backend/app/main.py:94`](../../backend/app/main.py) — `run_capability_check_backg | — | Complete |
@@ -389,6 +390,8 @@ graph LR
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge["cluster detail rung badge"]
   class chore_cluster_detail_rung_badge done;
+  feat_fts_rank_ordering["fts rank ordering"]
+  class feat_fts_rank_ordering done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
