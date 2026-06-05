@@ -64,6 +64,7 @@ from backend.app.core.logging import get_logger
 from backend.app.core.settings import get_settings
 from backend.app.db import repo
 from backend.app.db.models import Judgment, JudgmentList
+from backend.app.db.repo._fts import rank_active, rank_bucket_of
 from backend.app.db.repo._sort import (
     cursor_value_is_datetime,
     parse_sort,
@@ -452,11 +453,13 @@ async def list_judgment_lists_endpoint(
     (255 bytes).
     """
     parsed_sort = parse_sort(sort, _JUDGMENT_LIST_SORT_COLUMNS)
+    is_rank = rank_active(q, parsed_sort)  # feat_fts_rank_ordering
     decoded_cursor: tuple[object, str] | None = None
     if cursor:
         try:
             decoded_cursor = _sort_decode_cursor(
-                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+                cursor,
+                value_is_datetime=False if is_rank else cursor_value_is_datetime(parsed_sort),
             )
         except Exception as exc:
             raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
@@ -486,8 +489,10 @@ async def list_judgment_lists_endpoint(
     next_cursor: str | None = None
     if has_more and rows:
         last = rows[-1]
-        if parsed_sort is None:
-            cursor_value: object = last.created_at
+        if is_rank:
+            cursor_value: object = rank_bucket_of(last)
+        elif parsed_sort is None:
+            cursor_value = last.created_at
         else:
             cursor_value = getattr(last, parsed_sort.col_name)
         next_cursor = _sort_encode_cursor(cursor_value, last.id)
