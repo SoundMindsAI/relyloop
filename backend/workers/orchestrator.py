@@ -467,8 +467,11 @@ async def _run_baseline_phase(
 
 def _compute_baseline_wait_s(study: Study) -> float:
     """FR-2 step 5: ``min(600, max(60, trial_timeout_s + 30))``."""
-    settings = get_settings()
-    trial_timeout_s = study.config.get("trial_timeout_s") or settings.studies_default_timeout_s
+    trial_timeout_s = study.config.get("trial_timeout_s")
+    if not trial_timeout_s:
+        # Fallback only when the study config omits an explicit timeout — read
+        # settings lazily so explicit-timeout callers never construct Settings.
+        trial_timeout_s = get_settings().studies_default_timeout_s
     return min(
         _BASELINE_WAIT_CEILING_S,
         max(_BASELINE_WAIT_FLOOR_S, float(trial_timeout_s) + _BASELINE_WAIT_MARGIN_S),
