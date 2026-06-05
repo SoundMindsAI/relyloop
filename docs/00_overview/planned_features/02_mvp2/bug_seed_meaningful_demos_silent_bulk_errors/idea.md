@@ -6,9 +6,15 @@
 **Origin:** Surfaced while tracing the bulk-error handling in `seed_es.py`. The sibling script `scripts/seed_meaningful_demos.py` has its OWN bulk-index loop using `urllib.request` (not httpx) that never inspects the response body — fundamentally the same write-allocation race exposed in [bug_smoke_seed_es_unavailable_shards_race](../../../implemented_features/2026_05_29_bug_smoke_seed_es_unavailable_shards_race/idea.md), but unguarded.
 **Depends on:** None.
 
+> **PREFLIGHT (2026-06-05) — stale citations corrected; design locked.** Live audit:
+> - **Line drift:** the bulk loop is at `scripts/seed_meaningful_demos.py` **~2549-2571** (`seed_rich_scenario`), not 917-935 (that range is now news-scenario doc fixtures).
+> - **Sibling moved:** the retry reference is `backend/app/scripts/seed_es.py` (`_bulk_with_retry`/`_first_bulk_error`/`BULK_RETRY_ATTEMPTS`), NOT a top-level `scripts/seed_es.py` (which doesn't exist). It uses **httpx**; this script uses **urllib** — so the shared-helper "bonus" is rejected (see below).
+> - **Decisions locked:** Option A (parse + retry) over B; **standalone urllib helper** (no `scripts/_es_bulk.py` extraction — the two scripts use different HTTP libs and `backend` already imports `SCENARIOS` *from* this script, so importing backend here risks a cycle); injectable `send`/`sleep` for unit-testability. Full rationale in [bug_fix.md](./bug_fix.md).
+> - **Verifiability:** `scripts.seed_meaningful_demos` is importable in tests (demo_seeding + `test_scenarios_ubi_config.py` already import it), so the new unit test runs offline via `.venv/bin/pytest`.
+
 ## Problem
 
-[`scripts/seed_meaningful_demos.py:917-935`](../../../../../scripts/seed_meaningful_demos.py#L917-L935) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario:
+[`scripts/seed_meaningful_demos.py` ~2549-2571](../../../../../scripts/seed_meaningful_demos.py) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario:
 
 ```python
 with urllib.request.urlopen(req, timeout=60) as resp:
