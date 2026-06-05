@@ -52,6 +52,7 @@ Test surface (per Story 3.1 + 3.2 plan):
 from __future__ import annotations
 
 import math
+from collections.abc import MutableMapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -964,6 +965,141 @@ class TestExactCeilingEnforcement:
         # impressions (+1 each), d-3 is a click. d-4/d-5 never reach the
         # aggregator.
         assert set(out.keys()) == {("q-1", "d-1"), ("q-1", "d-2"), ("q-1", "d-3")}
+
+
+# ----------------------------------------------------------------------------
+# Truncation-WARN accounting (cross-model review F2 + F3)
+# ----------------------------------------------------------------------------
+
+
+class TestTruncationWarnAccounting:
+    """The `ubi_reader_scan_truncated` WARN must fire ONLY on genuine
+    truncation (review F2) and report rows INSPECTED, not rows KEPT
+    (review F3). Uses ``structlog.testing.capture_logs`` — the
+    codebase-canonical way to assert on structured WARNs (pytest
+    ``caplog`` does not capture structlog events)."""
+
+    @staticmethod
+    def _truncation_events(
+        captured: list[MutableMapping[str, Any]],
+    ) -> list[MutableMapping[str, Any]]:
+        return [e for e in captured if e.get("event") == "ubi_reader_scan_truncated"]
+
+    async def test_terminal_exact_fill_does_not_warn(self) -> None:
+        """A terminal page (cursor=None) that delivers EXACTLY the budget is
+        a clean full read — NOT truncation. The WARN must NOT fire (F2)."""
+        import structlog.testing
+
+        adapter = _StubUbiAdapter(
+            pages_by_target={
+                UBI_QUERIES_INDEX: _single_page([_query_hit("q-1", "red")]),
+                UBI_EVENTS_INDEX: [
+                    (
+                        [
+                            _nested_event(query_id="q-1", doc_id=f"d-{i}", action="click")
+                            for i in range(3)
+                        ],
+                        None,  # terminal cursor — stream ended here
+                    )
+                ],
+            }
+        )
+        with structlog.testing.capture_logs() as captured:
+            await UbiReader(adapter, max_events=3, max_queries=10).read_features(
+                target="products", since=datetime(2026, 5, 1, tzinfo=UTC)
+            )
+        assert self._truncation_events(captured) == [], (
+            "terminal exact-fill is a clean read; WARN must not fire"
+        )
+
+    async def test_non_terminal_exact_fill_warns(self) -> None:
+        """A NON-terminal page (cursor set) that delivers exactly the budget
+        means more data existed → truncation. The WARN MUST fire (F2)."""
+        import structlog.testing
+
+        adapter = _StubUbiAdapter(
+            pages_by_target={
+                UBI_QUERIES_INDEX: _single_page([_query_hit("q-1", "red")]),
+                UBI_EVENTS_INDEX: [
+                    (
+                        [
+                            _nested_event(query_id="q-1", doc_id=f"d-{i}", action="click")
+                            for i in range(3)
+                        ],
+                        "more-cursor",  # NON-terminal — more data available
+                    )
+                ],
+            }
+        )
+        with structlog.testing.capture_logs() as captured:
+            await UbiReader(adapter, max_events=3, max_queries=10).read_features(
+                target="products", since=datetime(2026, 5, 1, tzinfo=UTC)
+            )
+        assert len(self._truncation_events(captured)) >= 1, (
+            "non-terminal exact-fill means more data existed → must WARN"
+        )
+
+    async def test_skipped_batch_warns(self) -> None:
+        """When the budget is exhausted in chunk 1 and chunk 2 is skipped,
+        that's truncation even if chunk 1's last page was terminal (F2)."""
+        import structlog.testing
+
+        # 4 query_ids, batch_size=2 → two chunks. max_events=2 → chunk 1
+        # exhausts the budget on a terminal page; chunk 2 is skipped.
+        query_hits = [_query_hit(f"q-{i}", "x") for i in range(4)]
+        adapter = _StubUbiAdapter(
+            pages_by_target={
+                UBI_QUERIES_INDEX: _single_page(query_hits),
+                UBI_EVENTS_INDEX: [
+                    (
+                        [
+                            _nested_event(query_id="q-0", doc_id="d-1", action="click"),
+                            _nested_event(query_id="q-1", doc_id="d-2", action="click"),
+                        ],
+                        None,  # chunk-1 terminal, but budget now exhausted
+                    )
+                ],
+            }
+        )
+        with structlog.testing.capture_logs() as captured:
+            await UbiReader(adapter, max_events=2, query_id_batch_size=2).read_features(
+                target="products", since=datetime(2026, 5, 1, tzinfo=UTC)
+            )
+        assert len(self._truncation_events(captured)) >= 1, (
+            "a skipped chunk (more query_ids unscanned) is truncation"
+        )
+
+    async def test_scanned_counts_inspected_not_kept_rows(self) -> None:
+        """F3: when some hits have source=None (dropped before `out`), the
+        WARN's `scanned` field reports rows INSPECTED (budget consumed),
+        not rows KEPT in the output."""
+        import structlog.testing
+
+        # 5 hits, 2 of which have source=None. max_events=5, NON-terminal so
+        # the WARN fires. `out` ends up with 3 entries but scanned must be 5.
+        events_hits: list[ScoredHit] = [
+            _nested_event(query_id="q-1", doc_id="d-1", action="click"),
+            ScoredHit(doc_id="evt-none-1", score=0.0, source=None),
+            _nested_event(query_id="q-1", doc_id="d-2", action="click"),
+            ScoredHit(doc_id="evt-none-2", score=0.0, source=None),
+            _nested_event(query_id="q-1", doc_id="d-3", action="click"),
+        ]
+        adapter = _StubUbiAdapter(
+            pages_by_target={
+                UBI_QUERIES_INDEX: _single_page([_query_hit("q-1", "red")]),
+                UBI_EVENTS_INDEX: [(events_hits, "more-cursor")],
+            }
+        )
+        with structlog.testing.capture_logs() as captured:
+            await UbiReader(adapter, max_events=5, max_queries=10).read_features(
+                target="products", since=datetime(2026, 5, 1, tzinfo=UTC)
+            )
+        events = self._truncation_events(captured)
+        assert len(events) >= 1
+        # The structured `scanned` field == budget consumed (5), NOT len(out)=3.
+        assert events[0]["scanned"] == 5, (
+            f"scanned should be inspected rows (5), got {events[0]['scanned']}"
+        )
 
 
 # ----------------------------------------------------------------------------

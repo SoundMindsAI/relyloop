@@ -689,12 +689,17 @@ class UbiReader:
                     error_type=type(exc).__name__,
                 )
 
-        if ceiling_hit or remaining <= 0:
+        # Truncation = we stopped before the stream ended. Either a ceiling
+        # hit mid-page (ceiling_hit) OR the budget hit exactly a page
+        # boundary while MORE data remained (remaining<=0 AND a non-terminal
+        # cursor is still held). A terminal page that happens to fill the
+        # budget exactly (cursor is None) is NOT truncation — don't WARN.
+        if ceiling_hit or (remaining <= 0 and cursor is not None):
             logger.warning(
                 "ubi_reader_scan_truncated",
                 event_type="ubi_reader_scan_truncated",
                 target=UBI_QUERIES_INDEX,
-                scanned=len(accumulated),
+                scanned=max_queries - remaining,
                 ceiling=max_queries,
                 engine_type=self._adapter.engine_type,
             )
@@ -730,7 +735,10 @@ class UbiReader:
         engine_type = self._adapter.engine_type
         out: list[dict[str, Any]] = []
         remaining = max_events
-        ceiling_hit = False
+        # ``truncated`` is set explicitly at each genuine truncation point so
+        # the end-of-scan WARN never fires on a clean full read that merely
+        # happened to consume exactly the budget on a terminal page.
+        truncated = False
 
         for batch in _chunk_query_ids(
             query_ids,
@@ -739,6 +747,9 @@ class UbiReader:
             engine_type=engine_type,
         ):
             if remaining <= 0:
+                # The budget was exhausted by a prior batch and there are
+                # still batches (query_ids) left to scan — that's truncation.
+                truncated = True
                 break
             body = self._build_ubi_events_body(
                 target=target, since=since, until=until, query_ids=batch
@@ -762,8 +773,16 @@ class UbiReader:
                     if cursor is None:
                         break
                     if len(take) < len(page.hits):
-                        ceiling_hit = True
+                        # Ceiling reached mid-page (more hits on this page
+                        # than the budget allowed) — truncation.
+                        truncated = True
                         break
+                else:
+                    # Inner loop exited via `while remaining > 0` going false
+                    # (budget hit exactly a page boundary) while a non-terminal
+                    # cursor is still held → more data existed in THIS batch.
+                    if cursor is not None:
+                        truncated = True
             finally:
                 # Best-effort cleanup (P3-A2).
                 try:
@@ -778,12 +797,14 @@ class UbiReader:
                         error_type=type(exc).__name__,
                     )
 
-        if ceiling_hit or remaining <= 0:
+        if truncated:
             logger.warning(
                 "ubi_reader_scan_truncated",
                 event_type="ubi_reader_scan_truncated",
                 target=UBI_EVENTS_INDEX,
-                scanned=len(out),
+                # scanned = rows INSPECTED (budget consumed), not rows KEPT —
+                # some hits may have source=None and never enter `out` (F3).
+                scanned=max_events - remaining,
                 ceiling=max_events,
                 engine_type=engine_type,
             )
