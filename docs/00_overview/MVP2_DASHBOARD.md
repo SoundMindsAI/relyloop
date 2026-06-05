@@ -20,15 +20,15 @@ Plan approved; run /impl-execute to ship
 
 | Metric | Value |
 |---|---|
-| Filed under MVP2 | **44** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **22 / 26** (85%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
-| Pending work | **20** items (every not-done feat/infra/chore/bug across all priorities) |
+| Filed under MVP2 | **43** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **22 / 25** (88%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Pending work | **19** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
-| → P2 (default) | 17 important to file, not blocking |
+| → P2 (default) | 16 important to file, not blocking |
 | → Backlog | 3 captured for record, not planned |
 | Open bugs | 7 |
-| Legacy "Path to MVP2" | 18 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
+| Legacy "Path to MVP2" | 17 items — scoped-not-done + bugs + chore-ideas only (excludes feat/infra ideas) |
 | Backlog ideas | 2 idea-only feat/infra (not yet scoped into MVP2) |
 | In flight | 0 feature(s) actively shipping |
 
@@ -67,14 +67,13 @@ Plan approved; run /impl-execute to ship
 
 _None._
 
-### Plan (4)
+### Plan (3)
 
 | # | Priority | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|---|---|
 | 1 | P2 | [feat_apply_path_normalizer_declaration](planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md) | Feature | The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose. | — | — |
 | 2 | P2 | [feat_query_normalizer_typed_pipeline](planned_features/02_mvp2/feat_query_normalizer_typed_pipeline/feature_spec.md) | Feature | A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t | — | — |
 | 3 | P2 | [chore_demo_seeding_integration_tests_rewrite](planned_features/02_mvp2/chore_demo_seeding_integration_tests_rewrite/feature_spec.md) | Chore | The 9 skipped cases are rewritten to the async "POST + poll-until-terminal" shape, the timeout case is re-homed to the worker layer, a new `AC-Async` case asserts the `running → complete` polling tran | — | [PR #286](https://github.com/SoundMindsAI/relyloop/pull/286) |
-| 4 | P2 | [chore_studies_post_arq_spy_fixture](planned_features/02_mvp2/chore_studies_post_arq_spy_fixture/feature_spec.md) | Chore | A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [("start | — | — |
 
 ### Spec (0)
 
@@ -114,8 +113,6 @@ graph LR
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
   chore_demo_seeding_integration_tests_rewrite["demo seeding integration tests rewrite"]
   class chore_demo_seeding_integration_tests_rewrite plan;
-  chore_studies_post_arq_spy_fixture["studies post arq spy fixture"]
-  class chore_studies_post_arq_spy_fixture plan;
   feat_apply_path_normalizer_declaration["apply path normalizer declaration"]
   class feat_apply_path_normalizer_declaration plan;
   feat_query_normalizer_typed_pipeline["query normalizer typed pipeline"]
