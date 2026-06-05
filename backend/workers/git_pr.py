@@ -90,6 +90,10 @@ from backend.app.domain.git import (
     validate_repo_url,
 )
 from backend.app.domain.study.confidence import ConfidenceShape
+from backend.app.domain.study.normalizers import (
+    _PR_BODY_NORMALIZER_SNIPPETS,
+    NORMALIZER_CHOICES,
+)
 from backend.app.git import HTTP_TIMEOUT_S, github_request
 from backend.app.services.study_confidence import fetch_study_confidence
 
@@ -537,6 +541,44 @@ def _render_confidence_section(confidence: ConfidenceShape) -> list[str]:
     return lines
 
 
+def _render_normalizer_requirement(choice: Any) -> list[str]:
+    """Render the FR-5 "Operator-side requirement" section lines.
+
+    ``choice`` is ``config_diff["query_normalizer"]["to"]``. Validates it
+    against :data:`NORMALIZER_CHOICES`; an out-of-allowlist value (unreachable
+    in normal flow per FR-2) logs a warning and falls through to the ``none``
+    branch. The ``none`` branch renders an explanatory line with no snippet;
+    the other choices embed the verbatim Python snippet.
+    """
+    lines: list[str] = ["## Operator-side requirement", ""]
+    if choice not in NORMALIZER_CHOICES:
+        logger.warning("pr_body_unknown_normalizer", choice=choice)
+        choice = "none"
+    if choice == "none":
+        lines.append(
+            "**Chosen normalizer:** `none`. No production-side change is "
+            "required — the loop confirmed the un-normalized query already wins."
+        )
+        lines.append("")
+        return lines
+    lines.append(
+        "RelyLoop measured the gain above against a query-time normalizer it "
+        "applied before the query reached the engine. To reproduce the gain in "
+        "production, your query-serving layer **MUST** apply the same normalizer "
+        "to incoming queries before they hit the engine."
+    )
+    lines.append("")
+    lines.append(f"**Chosen normalizer:** `{choice}`")
+    lines.append("")
+    lines.append("Reference implementation (Python — adapt to your language as needed):")
+    lines.append("")
+    lines.append("```python")
+    lines.append(_PR_BODY_NORMALIZER_SNIPPETS[choice])
+    lines.append("```")
+    lines.append("")
+    return lines
+
+
 def _render_pr_body_study_backed(
     *,
     proposal: Any,
@@ -578,6 +620,13 @@ def _render_pr_body_study_backed(
     for param, change in sorted(config_diff.items()):
         lines.append(f"| `{param}` | `{change.get('from')}` | `{change.get('to')}` |")
     lines.append("")
+    # FR-5: Operator-side requirement section. Renders ONLY when the study
+    # tuned query_normalizer (the digest worker always emits a {from,to} entry
+    # for every winning param, so this fires whenever the key is present —
+    # including the no-op none winner). I-3: _render_pr_body_manual never adds
+    # this section.
+    if "query_normalizer" in config_diff:
+        lines.extend(_render_normalizer_requirement(config_diff["query_normalizer"].get("to")))
     if digest is not None and digest.suggested_followups:
         lines.append("## Suggested follow-ups")
         for followup in digest.suggested_followups:

@@ -110,6 +110,34 @@
       "expected_cap_aware_fallback_param_names": []
     },
     {
+      "name": "reserved_query_normalizer_autofills_full_choices",
+      "_note": "feat_query_normalization_tuning: the reserved key is seeded with the full NORMALIZER_CHOICES regardless of its declared 'string' type, NOT the __placeholder__ sentinel.",
+      "declared_params": { "query_normalizer": "string" },
+      "expected_search_space": {
+        "params": {
+          "query_normalizer": {
+            "type": "categorical",
+            "choices": ["none", "lowercase", "lowercase+trim", "lowercase+trim+expand_contractions"]
+          }
+        }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
+      "name": "reserved_query_normalizer_alongside_boost",
+      "declared_params": { "query_normalizer": "string", "title_boost": "float" },
+      "expected_search_space": {
+        "params": {
+          "query_normalizer": {
+            "type": "categorical",
+            "choices": ["none", "lowercase", "lowercase+trim", "lowercase+trim+expand_contractions"]
+          },
+          "title_boost": { "type": "float", "low": 0.5, "high": 10.0, "log": true }
+        }
+      },
+      "expected_cap_aware_fallback_param_names": []
+    },
+    {
       "name": "default_fallback_unknown_type",
       "declared_params": { "exotic": "matrix" },
       "expected_search_space": {

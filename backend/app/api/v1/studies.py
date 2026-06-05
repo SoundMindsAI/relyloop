@@ -76,6 +76,11 @@ from backend.app.domain.study.chain_summary import (
 )
 from backend.app.domain.study.convergence import ConvergenceVerdict
 from backend.app.domain.study.followups import parse_followup_list
+from backend.app.domain.study.normalizers import (
+    NormalizerChoiceInvalidError,
+    NormalizerParamShapeError,
+    validate_normalizer_reservation,
+)
 from backend.app.domain.study.search_space import (
     MissingDeclaredParamError,
     SearchSpace,
@@ -251,9 +256,12 @@ async def create_study(
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> StudyDetail:
     """Create a study (FR-1 + AC-1) and enqueue the orchestrator job."""
-    # 1. SearchSpace validation.
+    # 1. SearchSpace validation. Validate once and reuse the parsed object for
+    # the template cross-check + normalizer reservation below (Gemini PR #459 —
+    # the plan §5 pre-approved this consolidation; model_validate is
+    # deterministic so re-parsing was pure overhead).
     try:
-        SearchSpace.model_validate(body.search_space)
+        validated_space = SearchSpace.model_validate(body.search_space)
     except ValidationError as exc:
         raise _err(400, "INVALID_SEARCH_SPACE", str(exc), False) from exc
 
@@ -299,7 +307,7 @@ async def create_study(
     # backend/app/adapters/elastic.py:493-495).
     try:
         validate_against_template(
-            SearchSpace.model_validate(body.search_space),
+            validated_space,
             template.declared_params,
             template.name,
         )
@@ -307,6 +315,17 @@ async def create_study(
         raise _err(400, "SEARCH_SPACE_UNKNOWN_PARAM", str(exc), False) from exc
     except MissingDeclaredParamError as exc:
         raise _err(400, "SEARCH_SPACE_MISSING_DECLARED_PARAM", str(exc), False) from exc
+
+    # FR-2: enforce the reserved query_normalizer Categorical contract. Runs
+    # only on an already-validated SearchSpace, so INVALID_SEARCH_SPACE (above)
+    # takes precedence on unrelated shape errors. Pure-domain check — no FK
+    # lookup, kept before the query_set/judgment_list resolution below.
+    try:
+        validate_normalizer_reservation(validated_space)
+    except NormalizerChoiceInvalidError as exc:
+        raise _err(400, "NORMALIZER_CHOICE_INVALID", str(exc), False) from exc
+    except NormalizerParamShapeError as exc:
+        raise _err(400, "NORMALIZER_PARAM_SHAPE", str(exc), False) from exc
 
     query_set = await repo.get_query_set(db, body.query_set_id)
     if query_set is None:

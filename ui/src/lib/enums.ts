@@ -12,6 +12,8 @@
  * `STUDY_STATUS_VALUES.map(...)` — they don't repeat the comment.
  */
 
+import type { ShortGlossaryKey } from './glossary';
+
 // Values must match backend/app/api/v1/schemas.py StudyStatusWire.
 export const STUDY_STATUS_VALUES = [
   'queued',
@@ -329,3 +331,24 @@ export type ProposalSource = (typeof PROPOSAL_SOURCE_VALUES)[number];
 // Values must match backend/app/domain/study/followups.py FOLLOWUP_KIND_VALUES
 export const FOLLOWUP_KIND_VALUES = ['narrow', 'widen', 'text', 'swap_template'] as const;
 export type FollowupKind = (typeof FOLLOWUP_KIND_VALUES)[number];
+
+// feat_query_normalization_tuning FR-7 — the reserved query_normalizer choices.
+// Values must match backend/app/domain/study/normalizers.py NORMALIZER_CHOICES
+export const NORMALIZER_VALUES = [
+  'none',
+  'lowercase',
+  'lowercase+trim',
+  'lowercase+trim+expand_contractions',
+] as const;
+export type NormalizerValue = (typeof NORMALIZER_VALUES)[number];
+
+// Wire value → glossary key. The `+`-bearing wire values are unsafe as glossary
+// identifier suffixes, so the keys sanitize `+`→`_`. The create-study row
+// resolves a choice's label via glossary[NORMALIZER_GLOSSARY_KEYS[value]].
+export const NORMALIZER_GLOSSARY_KEYS: Record<NormalizerValue, ShortGlossaryKey> = {
+  none: 'search_space.query_normalizer.choice.none',
+  lowercase: 'search_space.query_normalizer.choice.lowercase',
+  'lowercase+trim': 'search_space.query_normalizer.choice.lowercase_trim',
+  'lowercase+trim+expand_contractions':
+    'search_space.query_normalizer.choice.lowercase_trim_expand_contractions',
+};
