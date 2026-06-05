@@ -216,15 +216,29 @@ def _first_bulk_error(payload: dict[str, Any]) -> dict[str, Any] | None:
 
     ES bulk responses set top-level ``errors: true`` and put each failure under
     ``items[*].<action>.error``. Mirrors ``backend/app/scripts/seed_es.py``.
+
+    Unlike the sibling, this caller (``_bulk_index_with_retry``) treats a
+    ``None`` return as success, so a malformed body must NOT slip through as
+    ``None``: a non-dict payload raises, and an ``errors=true`` body with no
+    discoverable item error returns a synthetic ``unknown_bulk_error`` so the
+    seed still fails loud rather than reporting a phantom success.
     """
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"bulk response was not a JSON object (got {type(payload).__name__})")
     if not payload.get("errors"):
         return None
-    for item in payload.get("items", []):
-        for action in item.values():
-            err = action.get("error")
-            if err:
-                return cast("dict[str, Any]", err)
-    return None
+    items = payload.get("items")
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            for action in item.values():
+                if isinstance(action, dict) and isinstance(action.get("error"), dict):
+                    return cast("dict[str, Any]", action["error"])
+    return {
+        "type": "unknown_bulk_error",
+        "reason": "bulk response set errors=true but no item-level error was found",
+    }
 
 
 def _post_bulk_ndjson(body: bytes) -> dict[str, Any]:

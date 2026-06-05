@@ -152,3 +152,18 @@ def test_first_bulk_error_extracts_or_none() -> None:
     err = _first_bulk_error(_unavailable_shards())
     assert err is not None
     assert err["type"] == "unavailable_shards_exception"
+
+
+def test_errors_true_but_no_item_error_still_fails_loud() -> None:
+    """A malformed errors=true body with no discoverable item error must NOT be
+    treated as success — _first_bulk_error returns a synthetic error so
+    _bulk_index_with_retry raises (Gemini PR #482)."""
+    malformed = {"errors": True, "items": []}
+    err = _first_bulk_error(malformed)
+    assert err is not None
+    assert err["type"] == "unknown_bulk_error"
+    send = _FakeSender([malformed])
+    sleep = _RecordingSleep()
+    with pytest.raises(RuntimeError, match="unknown_bulk_error"):
+        _bulk_index_with_retry(_BODY, send=send, sleep=sleep)
+    assert sleep.calls == []  # unknown error is non-retryable
