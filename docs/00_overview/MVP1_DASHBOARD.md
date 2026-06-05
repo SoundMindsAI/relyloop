@@ -14,8 +14,8 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under MVP1 | **136** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **98 / 98** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Filed under MVP1 | **137** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **99 / 99** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -28,7 +28,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (136)
+### Done (137)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -118,6 +118,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_infra_foundation_github_token_file_retirement](implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement/idea.md) | Chore | After `feat_github_pr_worker` ships, `GITHUB_TOKEN_FILE` is: | — | Complete |
 | [chore_migration_test_head_brittleness](implemented_features/2026_05_23_chore_migration_test_head_brittleness/feature_spec.md) | Chore | Replace the two hardcoded `"0017"` literals with a dynamic `_current_head()` helper that shells out to `uv run alembic heads` and returns the current head revision id. | — | [PR #219](https://github.com/SoundMindsAI/relyloop/pull/219) merged 2026-05-23 |
 | [chore_openapi_contract_validation](implemented_features/2026_05_13_chore_openapi_contract_validation/idea.md) | Chore | Complete | — | Complete |
+| [chore_pr_yml_parallelize_backend_job](implemented_features/2026_06_05_chore_pr_yml_parallelize_backend_job/idea.md) | Chore | `.github/workflows/pr.yml` has a job named `backend (lint + typecheck + tests + coverage)` that runs four sequential things in one job: ruff/lint, mypy, the full pytest matrix (unit + integration + co | — | Complete |
 | [chore_precommit_node_path_resolution](implemented_features/2026_05_21_chore_precommit_node_path_resolution/idea.md) | Chore | Every UI-touching commit fails at the eslint-ui pre-commit hook unless the developer remembers to inject the nvm Node into PATH manually. The error message is clear, but the friction is constant. | — | [PR #171](https://github.com/SoundMindsAI/relyloop/pull/171) merged 2026-05-21 |
 | [chore_proposals_list_wire_param_e2e_test](implemented_features/2026_05_13_chore_proposals_list_wire_param_e2e_test/idea.md) | Chore | The `__tests__/app/proposals/page.test.tsx` suite covers AC-6 by asserting: | — | Complete |
 | [chore_proposals_page_usememo_deps](implemented_features/2026_05_13_chore_proposals_page_usememo_deps/idea.md) | Chore | `pnpm lint` emits one new warning on the proposals list page: | — | Complete |
@@ -390,6 +391,8 @@ graph LR
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge["cluster detail rung badge"]
   class chore_cluster_detail_rung_badge done;
+  chore_pr_yml_parallelize_backend_job["pr yml parallelize backend job"]
+  class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering["fts rank ordering"]
   class feat_fts_rank_ordering done;
   feat_study_lifecycle --> feat_digest_proposal
