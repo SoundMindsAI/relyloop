@@ -173,6 +173,7 @@ async def list_proposals_paginated(
     study_id: str | None = None,
     is_last_merged: bool | None = None,
     sort: str | None = None,
+    include_superseded: bool = False,
 ) -> Sequence[Proposal]:
     """Cursor-paginated proposal list. Sort-aware (Story 1.3).
 
@@ -185,11 +186,20 @@ async def list_proposals_paginated(
     (used by the study-detail page's pending-proposal lookup).
     ``is_last_merged`` (feat_config_repo_baseline_tracking FR-6) filters
     to proposals tracked (or not) as some config_repo's live pointer.
+
+    Phase 3 D-15 revised: ``include_superseded`` defaults to ``False``;
+    when ``False`` AND ``status is None``, the implicit filter
+    ``Proposal.status != 'superseded'`` is applied so the default list
+    omits non-winning chain links. Explicit ``status`` overrides this
+    (e.g., ``status='superseded'`` returns only superseded rows).
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
     stmt = select(Proposal)
     if status is not None:
         stmt = stmt.where(Proposal.status == status)
+    elif not include_superseded:
+        # Phase 3 D-15 revised: default response excludes superseded rows.
+        stmt = stmt.where(Proposal.status != "superseded")
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
     if template_id is not None:
@@ -224,17 +234,21 @@ async def count_proposals(
     template_id: str | None = None,
     study_id: str | None = None,
     is_last_merged: bool | None = None,
+    include_superseded: bool = False,
 ) -> int:
     """COUNT(*) for the ``X-Total-Count`` header on ``GET /api/v1/proposals``.
 
     ``template_id`` filter (Story 1.5) narrows by FK. ``study_id`` filter
     narrows to a single study. ``is_last_merged``
     (feat_config_repo_baseline_tracking FR-6) restricts to the live-pointer
-    set or its complement.
+    set or its complement. ``include_superseded`` mirrors the rule on
+    :func:`list_proposals_paginated` — Phase 3 D-15 revised.
     """
     stmt = select(func.count()).select_from(Proposal)
     if status is not None:
         stmt = stmt.where(Proposal.status == status)
+    elif not include_superseded:
+        stmt = stmt.where(Proposal.status != "superseded")
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
     if template_id is not None:

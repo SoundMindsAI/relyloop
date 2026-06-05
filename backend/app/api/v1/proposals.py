@@ -376,6 +376,7 @@ async def list_proposals_endpoint(
     cursor: Annotated[str | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=MAX_PAGE_LIMIT)] = DEFAULT_PAGE_LIMIT,
     sort: Annotated[ProposalSortKey | None, Query()] = None,
+    include_superseded: Annotated[bool, Query()] = False,
 ) -> ProposalsListResponse:
     """List proposals with cursor pagination + filters.
 
@@ -384,6 +385,11 @@ async def list_proposals_endpoint(
     study-detail page's pending-proposal lookup). Both reject invalid
     UUIDs with 422 via FastAPI's UUID parsing. ``?sort=`` (Story 1.3) is
     a :data:`ProposalSortKey` value with sort-aware cursor.
+
+    Phase 3 D-15 revised: ``?include_superseded`` defaults to ``False``;
+    when ``False`` AND no ``?status=`` is set, the response omits
+    ``superseded`` rows. Explicit ``?status=`` always beats implicit
+    ``include_superseded`` (single-value backward compat preserved).
     """
     parsed_sort = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
     decoded_cursor: tuple[object, str] | None = None
@@ -408,6 +414,7 @@ async def list_proposals_endpoint(
             study_id=study_id_str,
             is_last_merged=is_last_merged,
             sort=sort,
+            include_superseded=include_superseded,
         )
     )
     has_more = len(rows) > limit
@@ -421,6 +428,7 @@ async def list_proposals_endpoint(
         template_id=template_id_str,
         study_id=study_id_str,
         is_last_merged=is_last_merged,
+        include_superseded=include_superseded,
     )
     response.headers["X-Total-Count"] = str(total)
     next_cursor: str | None = None
@@ -529,6 +537,61 @@ async def open_pr_endpoint(
         status=result.status,
         message=result.message,
     )
+
+
+# ---------------------------------------------------------------------------
+# POST /api/v1/proposals/{id}/reinstate  (Phase 3, FR-6)
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/proposals/{proposal_id}/reinstate",
+    response_model=ProposalDetail,
+    tags=["proposals"],
+)
+async def reinstate_proposal_endpoint(
+    proposal_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ProposalDetail:
+    """Phase 3 FR-6: ``superseded → pending`` transition.
+
+    Mirrors :func:`reject_proposal_endpoint` (D-17 — read-check-mutate so
+    404 vs 409 stays deterministic). Reuses ``INVALID_STATE_TRANSITION``
+    per D-16; emits ``chain_proposal_reinstated`` structlog AFTER commit
+    per D-19.
+    """
+    proposal = await repo.get_proposal(db, proposal_id)
+    if proposal is None:
+        raise _err(404, "PROPOSAL_NOT_FOUND", f"proposal {proposal_id} not found", False)
+    try:
+        await repo.reinstate_from_superseded(db, proposal_id=proposal_id)
+    except InvalidStateTransition as exc:
+        raise _err(
+            409,
+            "INVALID_STATE_TRANSITION",
+            f"proposal {proposal_id} is in status {exc.current_status!r}; "
+            "only 'superseded' proposals can be reinstated",
+            False,
+        ) from exc
+    await db.commit()
+    # D-19: emit AFTER commit succeeds (pre-commit emission risks the
+    # transaction rolling back while the log claims a durable transition).
+    logger.info(
+        "chain_proposal_reinstated",
+        event_type="chain_proposal_reinstated",
+        proposal_id=proposal_id,
+        study_id=proposal.study_id,
+        prior_status="superseded",
+    )
+    refreshed = await repo.get_proposal(db, proposal_id)
+    if refreshed is None:
+        raise _err(
+            404,
+            "PROPOSAL_NOT_FOUND",
+            f"proposal {proposal_id} disappeared mid-update",
+            False,
+        )
+    return await _assemble_proposal_detail(db, refreshed)
 
 
 __all__ = ["router"]
