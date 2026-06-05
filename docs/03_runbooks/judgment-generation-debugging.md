@@ -248,6 +248,74 @@ FROM judgments
 GROUP BY judgment_list_id;
 ```
 
+## UBI full-traffic scans + operator ceilings
+
+(`chore_ubi_reader_search_after_pagination`)
+
+UBI judgment generation no longer samples a single 10k-event page —
+the reader (`backend/app/services/ubi_reader.py`) loops
+`adapter.scan_all` until the engine signals terminal or the
+configured per-window ceiling is hit. The ceilings live in
+`Settings` so operators can tune them without a code change:
+
+| Env var | Default | Effect |
+|---|---|---|
+| `UBI_MAX_EVENTS_SCAN` | `1_000_000` | High-but-finite ceiling on rows scanned from `ubi_events` per window. The reader truncates at this value and emits a `ubi_reader_scan_truncated` WARN with the exact count. |
+| `UBI_MAX_QUERIES_SCAN` | `200_000` | Same for `ubi_queries`. |
+| `UBI_QUERY_ID_BATCH_SIZE` | `1024` | Id-count ceiling per `{!terms f=query_id}` (Solr) / `terms` filter (ES) chunk on the events scan. |
+| `UBI_QUERY_ID_BATCH_MAX_BYTES` | `32_768` | Encoded byte-length HARD ceiling per chunk — measured on the fully-serialized filter fragment. A batch splits whenever EITHER ceiling is breached. |
+| `UBI_NO_PIT_TIEBREAKER_FIELD` | `None` | ES/OpenSearch doc-values unique field (e.g. `event_id`) used as the secondary `search_after` tiebreaker on the no-PIT fallback path. **Never `_id`** — ES 9 disables `_id` fielddata by default. Unset → fallback degrades to a single sampled 10k-row query + WARN. |
+
+**Reading `ubi_reader_scan_truncated`.** Emitted at WARN when the
+ceiling truncates a scan:
+
+```json
+{
+  "event": "ubi_reader_scan_truncated",
+  "target": "ubi_events",
+  "ceiling": 1000000,
+  "scanned": 1000000,
+  "engine_type": "elasticsearch"
+}
+```
+
+The aggregated `FeatureVec` map reflects what the reader saw —
+operators with denser traffic should narrow the window via
+`since`/`until` rather than raise the ceiling indefinitely.
+
+**PIT-fallback WARN meaning.** The reader's adapter
+(`ElasticAdapter.scan_all`) opens a Point-In-Time on the first page
+so cursor continuations see a stable snapshot. When the cluster
+returns 405/501/400-unsupported on `POST /<idx>/_pit` (e.g. older
+OSS distribution without PIT), the adapter degrades:
+
+* If `UBI_NO_PIT_TIEBREAKER_FIELD` is configured → paginated
+  `[timestamp, <tiebreaker>]` with `search_after` (no PIT).
+* Otherwise → a single sampled query bounded by the page size +
+  this WARN:
+
+  ```json
+  {
+    "event": "elastic_scan_no_pit_sampled_fallback",
+    "engine_type": "elasticsearch",
+    "target": "ubi_events",
+    "reason": "pit_unsupported_and_no_tiebreaker_configured"
+  }
+  ```
+
+  The WARN is the operator's signal that exact full-traffic
+  aggregation is degraded on this cluster.
+
+**Best-effort-under-live-writes caveat.** The PIT (ES/OS) gives the
+scan a consistent snapshot for the duration of the lifecycle, so
+concurrent writes during a scan don't disrupt continuation. Solr has
+no PIT analog — its `cursorMark` is snapshot-exact only when the
+window is **finalized** (no further commits inside it); under live
+writes the scan is best-effort, like the ES no-PIT path. UBI
+judgment windows are normally historical, so the precondition holds
+operationally. If you must run a scan over a still-active window,
+narrow `since`/`until` to a finalized prefix.
+
 ## Known limitations (MVP1)
 
 * **Resolved** — boot-time + periodic-cron resume sweeps both ship in MVP1.

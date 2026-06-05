@@ -371,8 +371,17 @@ async def generate_judgments_from_ubi(ctx: dict[str, Any], judgment_list_id: str
             query_set_rows = await repo.list_queries_for_set(db, judgment_list.query_set_id)
 
         # Build adapter + reader (UbiReader respects the no-writes invariant).
+        # Inject the paginated-scan ceilings from Settings (FR-5/FR-7) so this
+        # worker never falls back to the reader's pre-pagination 10k default.
         adapter = build_adapter(cluster)
-        reader = UbiReader(adapter, position_bias_prior=settings.ubi_position_bias_prior)
+        reader = UbiReader(
+            adapter,
+            position_bias_prior=settings.ubi_position_bias_prior,
+            max_events=settings.ubi_max_events_scan,
+            max_queries=settings.ubi_max_queries_scan,
+            query_id_batch_size=settings.ubi_query_id_batch_size,
+            query_id_batch_max_bytes=settings.ubi_query_id_batch_max_bytes,
+        )
 
         target = params["target"]
         since = datetime.fromisoformat(params["since"])

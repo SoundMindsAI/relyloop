@@ -29,8 +29,10 @@ import fnmatch
 import json
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import quote
 
 import httpx
+import structlog
 
 from backend.app.adapters.credentials import resolve_credentials
 from backend.app.adapters.errors import (
@@ -49,6 +51,7 @@ from backend.app.adapters.protocol import (
     NativeQuery,
     ParamValue,
     QueryTemplate,
+    ScanPage,
     Schema,
     ScoredHit,
     TargetInfo,
@@ -76,6 +79,8 @@ from backend.app.adapters.registry import (
     SUPPORTED_ENVIRONMENTS as SUPPORTED_ENVIRONMENTS,
 )
 from backend.app.domain.study.normalizers import DEFAULT_NORMALIZER, normalize
+
+logger = structlog.get_logger(__name__)
 
 ES_MIN_VERSION: tuple[int, int] = (8, 11)
 """Elasticsearch minimum supported version (per spec §11)."""
@@ -771,7 +776,8 @@ class ElasticAdapter:
                 payload = None
             if (
                 isinstance(payload, dict)
-                and payload.get("error", {}).get("type") == "index_not_found_exception"
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
             ):
                 raise TargetNotFoundError(target)
             # found: false → return None
@@ -855,7 +861,8 @@ class ElasticAdapter:
                 payload = None
             if (
                 isinstance(payload, dict)
-                and payload.get("error", {}).get("type") == "index_not_found_exception"
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
             ):
                 raise TargetNotFoundError(target)
             raise ClusterUnreachableError(
@@ -876,6 +883,512 @@ class ElasticAdapter:
             for h in hits_raw
         ]
         return DocumentPage(hits=hits, total=total)
+
+    # ------------------------------------------------------------------
+    # Cursor scan (chore_ubi_reader_search_after_pagination Story 2.1)
+    # ------------------------------------------------------------------
+
+    async def scan_all(
+        self,
+        target: str,
+        body: dict[str, Any],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage:
+        """ES + OpenSearch ``search_after``+PIT page (FR-2 / AC-2..AC-11).
+
+        First page opens a PIT (engine-branched endpoint per
+        :data:`_PIT_PATHS`) and issues the PIT-bound ``POST /_search``
+        with the deterministic total-order sort
+        ``[{timestamp: asc}, {_shard_doc: asc}]`` and ``size=page_size``.
+        Each response's ``pit_id`` (when present) rotates the cursor's
+        PIT id; the last hit's raw ``sort`` array becomes the next
+        page's ``search_after``. Terminal page (short page) closes the
+        PIT best-effort and returns ``cursor=None``.
+
+        Continuation pages carry a non-None ``cursor`` produced by this
+        method on the prior page — the caller round-trips it verbatim.
+        Cursor shape (engine-internal, never inspected by the caller)::
+
+            {"pit_id": "<rotated id>", "search_after": [...], "no_pit": False}
+
+        Narrow PIT-unsupported fallback (405/501 from PIT open):
+
+        * If ``Settings.ubi_no_pit_tiebreaker_field`` is configured →
+          paginate ``[timestamp, <tiebreaker>]`` with ``search_after``
+          and a ``no_pit=True`` cursor — terminal on short page.
+        * Otherwise → single sampled query bounded by ``page_size`` and
+          a WARN log; terminal immediately (``cursor=None``).
+
+        401/403/404 propagate as ``TargetsForbiddenError`` /
+        ``TargetNotFoundError`` — never silently fall back.
+
+        Pagination keys are adapter-owned: caller-supplied ``pit`` /
+        ``sort`` / ``size`` / ``search_after`` / ``from`` keys in
+        ``body`` are stripped before request construction (so a stray
+        caller ``pit`` does not leak into either the PIT-mode body
+        merge or the no-PIT fallback request — P3-A1 / P5-A1).
+
+        On any exception during the PIT-mode page, the PIT is closed
+        best-effort in ``finally`` (catch+log close failures, re-raise
+        the primary — P3-A2). Terminal-close failure is also best-
+        effort: log + still return ``ScanPage(cursor=None)`` so a close
+        failure cannot mask a successful final page (P4-A3).
+        """
+        # ----- Decode + validate the inbound cursor -----
+        pit_id: str | None = None
+        search_after: list[Any] | None = None
+        no_pit = False
+        if cursor is not None:
+            if not isinstance(cursor, dict):
+                # Defensive: an unrecognized cursor shape is operator error.
+                # Treat as terminal so we never run an unbounded scan; the
+                # caller-side test surfaces the contract violation loudly.
+                raise ClusterUnreachableError(
+                    f"ElasticAdapter.scan_all: unrecognized cursor shape "
+                    f"{type(cursor).__name__!r} — must be a dict produced by this adapter"
+                )
+            pit_id = cursor.get("pit_id") if isinstance(cursor.get("pit_id"), str) else None
+            sa = cursor.get("search_after")
+            if isinstance(sa, list):
+                search_after = sa
+            no_pit = bool(cursor.get("no_pit"))
+
+        # ----- Strip caller-owned pagination keys (P3-A1 / P5-A1) -----
+        safe_body = {k: v for k, v in body.items() if k not in _ES_PAGINATION_STRIP_KEYS}
+        if fl is not None:
+            safe_body["_source"] = {"includes": list(fl)}
+
+        # ----- First-page PIT open (or no-PIT fallback trigger) -----
+        if cursor is None:
+            try:
+                pit_id = await self._open_pit(target, request_id=request_id)
+            except _PitUnsupportedError:
+                # Narrow fallback — degrade to no-PIT path.
+                return await self._scan_no_pit(
+                    target,
+                    safe_body,
+                    page_size=page_size,
+                    search_after=None,
+                    request_id=request_id,
+                )
+
+        # ----- No-PIT continuation -----
+        if no_pit:
+            return await self._scan_no_pit(
+                target,
+                safe_body,
+                page_size=page_size,
+                search_after=search_after,
+                request_id=request_id,
+            )
+
+        # ----- PIT-mode page (first or continuation) -----
+        # `pit_id` is guaranteed non-None here: either the open succeeded
+        # (first page) or the continuation cursor carried one. mypy narrows
+        # via the explicit guard below.
+        if not pit_id:
+            raise ClusterUnreachableError(
+                "ElasticAdapter.scan_all: PIT-mode continuation cursor missing pit_id"
+            )
+
+        try:
+            request_body: dict[str, Any] = {
+                **safe_body,
+                "pit": {"id": pit_id, "keep_alive": _PIT_KEEP_ALIVE},
+                "sort": [{"timestamp": "asc"}, {"_shard_doc": "asc"}],
+                "size": page_size,
+            }
+            if search_after is not None:
+                request_body["search_after"] = search_after
+
+            # PIT-bound search is INDEX-LESS (the PIT binds the target).
+            resp = await self._request(
+                "POST",
+                "/_search",
+                json=request_body,
+                request_id=request_id,
+                translate_errors=False,
+            )
+            self._raise_scan_search_errors(resp, path="/_search (PIT)")
+            payload = resp.json()
+
+            # Rotate the PIT id. Both ES + OpenSearch echo the rotated id
+            # under "pit_id" in the PIT-mode _search response. If absent,
+            # retain the prior id (the server kept it stable).
+            rotated = payload.get("pit_id")
+            if isinstance(rotated, str) and rotated:
+                pit_id = rotated
+
+            hits_raw = payload.get("hits", {}).get("hits", [])
+            hits: list[ScoredHit] = []
+            last_sort: list[Any] | None = None
+            for h in hits_raw:
+                hits.append(
+                    ScoredHit(
+                        doc_id=str(h.get("_id", "")),
+                        score=float(h.get("_score") or 0.0),
+                        source=h.get("_source"),
+                    )
+                )
+                sort_arr = h.get("sort")
+                if isinstance(sort_arr, list):
+                    last_sort = sort_arr
+
+            # Terminal detection: short page or no usable last_sort.
+            terminal = last_sort is None or len(hits) < page_size
+
+            if terminal:
+                # Best-effort terminal close (P4-A3) — log + swallow on
+                # failure so the final page is still returned.
+                await self._close_pit_best_effort(pit_id, request_id=request_id)
+                return ScanPage(hits=hits, cursor=None)
+
+            return ScanPage(
+                hits=hits,
+                cursor={
+                    "pit_id": pit_id,
+                    "search_after": last_sort,
+                    "no_pit": False,
+                },
+            )
+        except Exception:
+            # Best-effort exception-path cleanup (P3-A2).
+            await self._close_pit_best_effort(pit_id, request_id=request_id)
+            raise
+
+    async def close_scan(
+        self,
+        cursor: object | None,
+        *,
+        request_id: str | None = None,
+    ) -> None:
+        """Release any PIT held by a non-terminal ``scan_all`` cursor.
+
+        No-op when ``cursor`` is ``None``, when the cursor was produced
+        by the no-PIT fallback path (``no_pit=True``), or when its
+        ``pit_id`` is missing. Idempotent. Cleanup is best-effort: a
+        close failure is logged and swallowed (never re-raised) so the
+        caller's primary exception is never masked.
+
+        Wire shape:
+
+        * ES → ``DELETE /_pit`` body ``{"id": <pit_id>}``.
+        * OpenSearch → ``DELETE /_search/point_in_time`` body
+          ``{"pit_id": [<pit_id>]}``.
+        """
+        if cursor is None or not isinstance(cursor, dict):
+            return
+        if cursor.get("no_pit"):
+            return
+        pit_id = cursor.get("pit_id")
+        if not isinstance(pit_id, str) or not pit_id:
+            return
+        await self._close_pit_best_effort(pit_id, request_id=request_id)
+
+    # ----- scan_all helpers (private) -----
+
+    async def _open_pit(self, target: str, *, request_id: str | None) -> str:
+        """Open a PIT against ``target``; return its id.
+
+        Engine-branched (P4-A1):
+
+        * ES: ``POST /<target>/_pit?keep_alive=<ttl>`` → response carries
+          ``{"id": <pit_id>}``.
+        * OpenSearch: ``POST /<target>/_search/point_in_time?keep_alive=<ttl>``
+          → response carries ``{"pit_id": <pit_id>}`` (P2-A2).
+
+        Narrow PIT-unsupported fallback signals (raise
+        :class:`_PitUnsupportedError`): HTTP 405, 501, or 400 whose
+        response body indicates the endpoint is unsupported.
+
+        Other statuses propagate via the standard error taxonomy
+        (``TargetsForbiddenError`` on 401/403,
+        ``TargetNotFoundError`` when the response carries
+        ``index_not_found_exception``, otherwise
+        ``ClusterUnreachableError``).
+        """
+        encoded = quote(target, safe="")
+        open_path, _ = _PIT_PATHS[self.engine_type]
+        path = open_path.format(idx=encoded)
+        response_id_field = "id" if self.engine_type == "elasticsearch" else "pit_id"
+
+        try:
+            resp = await self._request(
+                "POST",
+                path,
+                params={"keep_alive": _PIT_KEEP_ALIVE},
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+
+        if resp.status_code in (401, 403):
+            raise TargetsForbiddenError(
+                f"cluster denied PIT open (HTTP {resp.status_code} from {path})"
+            )
+        if resp.status_code == 404:
+            try:
+                payload = resp.json()
+            except (ValueError, TypeError):
+                payload = None
+            if (
+                isinstance(payload, dict)
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
+            ):
+                raise TargetNotFoundError(target)
+            # 404 on the PIT endpoint itself — propagate as unreachable.
+            raise ClusterUnreachableError(f"HTTP 404 from {path}")
+        if resp.status_code in (405, 501):
+            raise _PitUnsupportedError(f"HTTP {resp.status_code} from {path}")
+        if resp.status_code == 400:
+            # 400 may be a real client error OR "endpoint unsupported" on
+            # an older OSS distribution. Narrow: look for the unsupported
+            # hint in the response body before treating as a fallback
+            # trigger.
+            body_text = resp.text or ""
+            lowered = body_text.lower()
+            if (
+                "no handler" in lowered
+                or "unsupported" in lowered
+                or "not supported" in lowered
+                or "unknown" in lowered
+            ):
+                raise _PitUnsupportedError(
+                    f"HTTP 400 from {path} indicates PIT unsupported: {body_text[:200]}"
+                )
+            raise ClusterUnreachableError(f"HTTP 400 from {path}: {body_text[:200]}")
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from {path}")
+
+        try:
+            payload = resp.json()
+        except (ValueError, TypeError) as exc:
+            raise ClusterUnreachableError(f"PIT open response not JSON: {exc}") from exc
+
+        pit_id = payload.get(response_id_field)
+        if not isinstance(pit_id, str) or not pit_id:
+            raise ClusterUnreachableError(
+                f"PIT open response missing {response_id_field!r}: {payload}"
+            )
+        return pit_id
+
+    async def _close_pit_best_effort(self, pit_id: str | None, *, request_id: str | None) -> None:
+        """Close a PIT; catch + log any failure (never re-raise).
+
+        Engine-branched (P4-A1) wire bodies (P2-A2):
+
+        * ES → ``DELETE /_pit`` body ``{"id": <pit_id>}``.
+        * OpenSearch → ``DELETE /_search/point_in_time`` body
+          ``{"pit_id": [<pit_id>]}``.
+        """
+        if not pit_id:
+            return
+        _, close_path = _PIT_PATHS[self.engine_type]
+        if self.engine_type == "opensearch":
+            close_body: dict[str, Any] = {"pit_id": [pit_id]}
+        else:
+            close_body = {"id": pit_id}
+        try:
+            await self._request(
+                "DELETE",
+                close_path,
+                json=close_body,
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except Exception as exc:  # noqa: BLE001 — best-effort cleanup
+            logger.warning(
+                "elastic_scan_close_pit_failed",
+                event_type="elastic_scan_close_pit_failed",
+                cluster_id=self.cluster_id,
+                engine_type=self.engine_type,
+                error_type=type(exc).__name__,
+            )
+
+    async def _scan_no_pit(
+        self,
+        target: str,
+        safe_body: dict[str, Any],
+        *,
+        page_size: int,
+        search_after: list[Any] | None,
+        request_id: str | None,
+    ) -> ScanPage:
+        """No-PIT fallback page.
+
+        Two sub-paths (D-8 / AC-3 / AC-3b):
+
+        * If :attr:`Settings.ubi_no_pit_tiebreaker_field` is configured
+          → paginate ``[timestamp, <tiebreaker>]`` with
+          ``search_after``; terminal on short page; non-terminal cursor
+          carries ``{search_after, no_pit: True}``.
+        * Otherwise → single sampled query (size capped to
+          ``page_size``); WARN logged; terminal immediately
+          (``cursor=None``). Sampled mode IS the documented fallback —
+          callers see WARN in their logs as the signal that exact
+          full-traffic aggregation is degraded on this cluster.
+
+        NEVER sorts on ``_id`` (ES 9 disallows ``_id`` fielddata).
+        """
+        # Lazy import — Settings is constructed at request time and
+        # avoids a module-import cycle (Settings imports adapters
+        # transitively at boot).
+        from backend.app.core.settings import get_settings
+
+        settings = get_settings()
+        tiebreaker = settings.ubi_no_pit_tiebreaker_field
+
+        encoded = quote(target, safe="")
+        path = f"/{encoded}/_search"
+
+        if tiebreaker:
+            request_body: dict[str, Any] = {
+                **safe_body,
+                "sort": [{"timestamp": "asc"}, {tiebreaker: "asc"}],
+                "size": page_size,
+            }
+            if search_after is not None:
+                request_body["search_after"] = search_after
+        else:
+            # Sampled mode — single page, no continuation.
+            logger.warning(
+                "elastic_scan_no_pit_sampled_fallback",
+                event_type="elastic_scan_no_pit_sampled_fallback",
+                cluster_id=self.cluster_id,
+                engine_type=self.engine_type,
+                target=target,
+                reason="pit_unsupported_and_no_tiebreaker_configured",
+                page_size=page_size,
+            )
+            request_body = {**safe_body, "size": page_size}
+
+        try:
+            resp = await self._request(
+                "POST",
+                path,
+                json=request_body,
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+        self._raise_scan_search_errors(resp, path=path)
+        payload = resp.json()
+
+        hits_raw = payload.get("hits", {}).get("hits", [])
+        hits: list[ScoredHit] = []
+        last_sort: list[Any] | None = None
+        for h in hits_raw:
+            hits.append(
+                ScoredHit(
+                    doc_id=str(h.get("_id", "")),
+                    score=float(h.get("_score") or 0.0),
+                    source=h.get("_source"),
+                )
+            )
+            sort_arr = h.get("sort")
+            if isinstance(sort_arr, list):
+                last_sort = sort_arr
+
+        # Sampled mode is single-page; tiebreaker mode walks until short.
+        if not tiebreaker:
+            return ScanPage(hits=hits, cursor=None)
+        if last_sort is None or len(hits) < page_size:
+            return ScanPage(hits=hits, cursor=None)
+        return ScanPage(
+            hits=hits,
+            cursor={"pit_id": None, "search_after": last_sort, "no_pit": True},
+        )
+
+    def _raise_scan_search_errors(self, resp: httpx.Response, *, path: str) -> None:
+        """Translate non-2xx ``_search`` responses for the scan path.
+
+        Same envelope as :meth:`list_documents` (401/403 → TargetsForbidden,
+        404 + ``index_not_found_exception`` → TargetNotFoundError, other
+        4xx/5xx → ClusterUnreachableError). Extracted so PIT-mode and
+        no-PIT-mode both apply it identically.
+        """
+        if resp.status_code in (401, 403):
+            raise TargetsForbiddenError(
+                f"cluster denied _search (HTTP {resp.status_code} from {path})"
+            )
+        if resp.status_code == 404:
+            try:
+                payload = resp.json()
+            except (ValueError, TypeError):
+                payload = None
+            if (
+                isinstance(payload, dict)
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
+            ):
+                # We don't have the un-encoded target here; the path string is
+                # the next-best diagnostic anchor for operators.
+                raise TargetNotFoundError(path)
+            raise ClusterUnreachableError(f"HTTP 404 from {path}")
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from {path}")
+
+
+# ------------------------------------------------------------------
+# Cursor scan module-level constants (Story 2.1)
+# ------------------------------------------------------------------
+
+_PIT_KEEP_ALIVE = "1m"
+"""Default ``keep_alive`` sent on PIT open + every PIT-mode continuation.
+
+1 minute is long enough that a multi-page reader scan doesn't expire
+between consecutive ``POST /_search`` calls under normal latency, and
+short enough that a leaked PIT (e.g. operator kills the worker mid-
+scan) self-clears quickly. Sent on EVERY continuation — the engine
+extends the TTL on each touch."""
+
+
+_PIT_PATHS: dict[EngineType, tuple[str, str]] = {
+    # (open_path_template, close_path) — open is indexed, close is unindexed.
+    "elasticsearch": ("/{idx}/_pit", "/_pit"),
+    "opensearch": ("/{idx}/_search/point_in_time", "/_search/point_in_time"),
+    # solr is handled by SolrAdapter (cursorMark) — never reaches here.
+    "solr": ("", ""),
+}
+"""Engine-branched PIT endpoints (P4-A1 / P2-A2).
+
+The plan locks the open vs close split: open is indexed (the PIT binds
+the target); close is unindexed (the PIT id alone identifies the
+resource). The no-writes allowlist in
+``test_ubi_reader_no_writes.py`` permits only the unindexed close
+paths."""
+
+
+_ES_PAGINATION_STRIP_KEYS: frozenset[str] = frozenset(
+    {"from", "search_after", "size", "sort", "pit"}
+)
+"""Caller-supplied keys stripped from the inherited ``body`` before
+``scan_all`` constructs the request (P3-A1 / P5-A1).
+
+Pagination is adapter-owned: any of these keys in the caller's body
+gets stripped (in BOTH the PIT and no-PIT fallback paths) so a stray
+key cannot leak into the request and disrupt cursor continuity. ``pit``
+is included so a caller PIT object does NOT leak into the no-PIT
+fallback ``POST /<target>/_search`` after PIT open returned a fallback
+signal (P5-A1)."""
+
+
+class _PitUnsupportedError(Exception):
+    """Internal signal: PIT open returned a narrow-fallback status.
+
+    Raised by :meth:`ElasticAdapter._open_pit` on HTTP 405/501 or 400
+    whose body indicates the endpoint is unsupported. Caught by
+    :meth:`ElasticAdapter.scan_all` to trigger the no-PIT fallback.
+    Never propagates to callers — it is strictly an adapter-internal
+    control-flow signal.
+    """
 
 
 def _build_explain_tree(node: dict[str, Any], doc_id: str, matched: bool) -> ExplainTree:

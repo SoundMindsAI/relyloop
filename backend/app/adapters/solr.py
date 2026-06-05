@@ -66,6 +66,7 @@ from backend.app.adapters.protocol import (
     NativeQuery,
     ParamValue,
     QueryTemplate,
+    ScanPage,
     Schema,
     ScoredHit,
     TargetInfo,
@@ -77,6 +78,18 @@ from backend.app.adapters.registry import (
 
 SOLR_MIN_VERSION: tuple[int, int] = (9, 0)
 """Apache Solr minimum supported version (spec FR-2)."""
+
+_SOLR_SCAN_PAGINATION_STRIP_KEYS: frozenset[str] = frozenset(
+    {"start", "rows", "cursorMark", "sort"}
+)
+"""Caller-supplied keys stripped from the inherited ``body`` before
+``SolrAdapter.scan_all`` constructs the request (P4-A2).
+
+Pagination is adapter-owned: any of these keys in the caller's body
+gets stripped so a stray key cannot disrupt cursor continuity.
+``start`` is especially load-bearing — it is INVALID combined with
+``cursorMark`` and would either 400 from the server or, on older
+Solr, silently skip/duplicate rows."""
 
 SOLR_MODE_VALUES = Literal["cloud", "standalone"]
 """Solr deployment mode — auto-detected by the capability probe."""
@@ -1702,6 +1715,176 @@ class SolrAdapter:
             next_cursor_token = None
 
         return DocumentPage(hits=hits, total=total, next_cursor_token=next_cursor_token)
+
+    # ------------------------------------------------------------------
+    # Cursor scan (chore_ubi_reader_search_after_pagination Story 2.2)
+    # ------------------------------------------------------------------
+
+    async def scan_all(
+        self,
+        target: str,
+        body: dict[str, Any],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage:
+        """Solr full-stream paginated read via ``cursorMark`` (FR-3 / AC-4).
+
+        Issues ``POST /solr/<target>/select`` with the request params in
+        the **form body** (NOT a GET URL — so a multi-thousand-id
+        ``{!terms f=query_id}`` ``fq`` from the caller never overflows
+        URL/header limits, P1-B1).
+
+        First page sets ``cursorMark=*``; continuation pages round-trip
+        the previous page's ``nextCursorMark`` verbatim. Sort terminates
+        on the uniqueKey (resolved via :meth:`_resolve_unique_key`) so
+        cursorMark walks a deterministic total ordering — required by
+        Solr's cursor contract.
+
+        Terminal page (``cursor=None`` in the returned :class:`ScanPage`):
+
+        * ``nextCursorMark`` echoes back the request's ``cursorMark``
+          (Solr's "stable" signal), OR
+        * the page is short (``< page_size`` hits) — secondary guard
+          mirroring :meth:`list_documents`.
+
+        Caller-owned pagination keys (``start`` / ``rows`` /
+        ``cursorMark`` / ``sort``) are stripped from the inherited
+        ``body`` before request construction (P4-A2). ``start`` is
+        especially load-bearing: it is **invalid** combined with
+        ``cursorMark`` and would either error or silently skip /
+        duplicate rows.
+
+        Snapshot-exactness precondition (P1-A3): the result is exact
+        only when the scanned window is finalized (no further commits).
+        Under concurrent writes the scan is best-effort. UBI judgment
+        windows are normally historical so the precondition holds
+        operationally.
+        """
+        from urllib.parse import urlencode
+
+        unique_key = await self._resolve_unique_key(target, request_id=request_id)
+
+        # ----- Decode + validate the inbound cursor -----
+        if cursor is None:
+            cursor_mark = "*"
+        elif isinstance(cursor, str) and cursor:
+            cursor_mark = cursor
+        else:
+            # Defensive: an unrecognized cursor shape is operator error.
+            raise ClusterUnreachableError(
+                f"SolrAdapter.scan_all: unrecognized cursor shape "
+                f"{type(cursor).__name__!r} — must be a string (nextCursorMark) "
+                "produced by this adapter"
+            )
+
+        # ----- Strip caller-owned pagination keys (P4-A2) -----
+        safe_body = {k: v for k, v in body.items() if k not in _SOLR_SCAN_PAGINATION_STRIP_KEYS}
+
+        # ----- Build adapter-owned params -----
+        params: dict[str, Any] = {
+            **safe_body,
+            "rows": str(page_size),
+            "cursorMark": cursor_mark,
+            # uniqueKey-terminated sort — cursorMark REQUIRES a deterministic
+            # total ordering. ``<unique_key> asc`` is the simplest correct
+            # choice; the UBI reader doesn't depend on a specific order, only
+            # that every event is visited once.
+            "sort": f"{unique_key} asc",
+        }
+
+        # ``fl`` handling — always normalize so ``score`` + ``unique_key``
+        # are guaranteed in the response (consistency with the other Solr
+        # paths ``search_batch`` / ``list_documents`` — both run every
+        # caller-provided ``fl`` through ``_normalize_fl``). An explicit
+        # ``fl`` kwarg overrides any caller-body ``fl``; otherwise the
+        # inherited caller body's ``fl`` is normalized; otherwise (no fl
+        # anywhere) ``_normalize_fl(None, ...)`` defaults to ``"*,score"``
+        # which gives the reader full doc shape + score field.
+        existing_fl = ",".join(fl) if fl is not None else safe_body.get("fl")
+        params["fl"] = _normalize_fl(existing_fl, unique_key)
+
+        # Reject nested dict/list-of-non-scalars (operator might have smuggled
+        # an ES-style ``query`` dict into the body — this would silently emit
+        # the wrong form fields, then Solr would 400 with a cryptic error).
+        _validate_solr_param_values(params)
+
+        # Form-encode the params. ``doseq=True`` is mandatory so list-valued
+        # params (e.g. ``fq`` with multiple filter clauses, or any multi-
+        # valued caller-supplied param) emit as repeated key=value pairs the
+        # way Solr expects.
+        form_body = urlencode(params, doseq=True)
+
+        try:
+            resp = await self._request(
+                "POST",
+                f"/solr/{target}/select",
+                content=form_body,
+                extra_headers={"Content-Type": "application/x-www-form-urlencoded"},
+                request_id=request_id,
+                translate_errors=False,
+            )
+        except httpx.HTTPError as exc:
+            raise ClusterUnreachableError(str(exc)) from exc
+
+        if resp.status_code == 404:
+            raise TargetNotFoundError(target)
+        if resp.status_code in (401, 403):
+            raise ClusterUnreachableError(
+                f"Authentication failed (HTTP {resp.status_code}) on /{target}/select (scan)"
+            )
+        if resp.status_code >= 400:
+            raise ClusterUnreachableError(f"HTTP {resp.status_code} from /{target}/select (scan)")
+
+        payload = resp.json()
+        response_block = payload.get("response") or {}
+        docs = response_block.get("docs") or []
+        hits: list[ScoredHit] = []
+        for doc in docs:
+            if not isinstance(doc, dict):
+                continue
+            raw_id = doc.get(unique_key)
+            if raw_id is None:
+                continue
+            score_val = doc.get("score")
+            score_f = float(score_val) if isinstance(score_val, (int, float)) else 0.0
+            hits.append(
+                ScoredHit(
+                    doc_id=str(raw_id),
+                    score=score_f,
+                    source=doc,
+                )
+            )
+
+        # Terminal detection: Solr signals "no more" by echoing back the
+        # same cursorMark, OR a short page (secondary guard — review F3
+        # pattern from list_documents).
+        next_cursor_mark = payload.get("nextCursorMark")
+        if not isinstance(next_cursor_mark, str):
+            return ScanPage(hits=hits, cursor=None)
+        if next_cursor_mark == cursor_mark:
+            return ScanPage(hits=hits, cursor=None)
+        if len(hits) < page_size:
+            return ScanPage(hits=hits, cursor=None)
+        return ScanPage(hits=hits, cursor=next_cursor_mark)
+
+    async def close_scan(
+        self,
+        cursor: object | None,
+        *,
+        request_id: str | None = None,
+    ) -> None:
+        """Release any server-side resource held by a non-terminal cursor.
+
+        Solr-specific: ``cursorMark`` is a client-side token, NOT a
+        server-side resource — there is nothing to release. The method
+        is a no-op for any cursor (``None`` or string), present to
+        satisfy the :class:`SearchAdapter` Protocol so callers can
+        unconditionally invoke it in a ``finally`` block.
+        """
+        return None
 
 
 # Solr-native request param keys that the templates may emit. Anything

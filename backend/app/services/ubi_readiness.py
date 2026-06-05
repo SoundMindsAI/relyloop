@@ -179,6 +179,18 @@ async def classify_rung(
             )
             # fall through to fresh probe
 
+    # chore_ubi_reader_search_after_pagination FR-5 / plan §3.2 task 3:
+    # this construction site DELIBERATELY stays at the reader's default
+    # ceilings (no Settings injection). The readiness path only calls
+    # `reader._probe_enabled()` below — it NEVER iterates the event/query
+    # stream, so the scan ceilings are never exercised here. Injecting
+    # `get_settings()` would couple this probe-only path to the DB-secret
+    # Settings (breaking the readiness unit tests, which have no secret
+    # fixture) for a value that is provably dead. INVARIANT: if a future
+    # readiness probe is ever changed to delegate to a paginated reader
+    # method (read_features / read_user_query_map), THIS construction
+    # site MUST grow the 4-kwarg Settings injection that the worker
+    # (judgments_ubi.py) + dispatcher (agent_judgments_dispatch.py) use.
     reader = UbiReader(adapter)
     try:
         await reader._probe_enabled()

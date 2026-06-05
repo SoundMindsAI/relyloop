@@ -2,32 +2,35 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-"""``UbiReader`` write-safety invariant (feat_ubi_judgments §10 threat #2).
+"""``UbiReader`` write-safety invariant (feat_ubi_judgments §10 threat #2
++ chore_ubi_reader_search_after_pagination Story 3.1 / FR-6).
 
 Boots a real :class:`ElasticAdapter` against a recording
 :class:`httpx.MockTransport`, runs :meth:`UbiReader.read_features`
-end-to-end against canned ``_mapping`` + ``_msearch`` responses, and
-asserts that ZERO requests with write-shaped methods (``PUT``,
-``DELETE``, ``POST`` against write-only paths) or write-shaped paths
-(``_bulk``, ``_update``, ``_doc``, ``_create``) ever escape the
-reader's call boundary.
+end-to-end against canned ``_mapping`` + PIT + ``_search`` responses,
+and asserts that ZERO requests with write-shaped methods (``PUT``,
+``DELETE`` against an INDEXED path, ``POST`` against write-only paths)
+or write-shaped paths (``_bulk``, ``_update``, ``_doc``, ``_create``)
+ever escape the reader's call boundary.
 
-This is a *defense-in-depth* test — the unit test
-:func:`test_ubi_reader.test_read_features_no_writes_in_search_body`
-already asserts the reader builds no write-shaped Query DSL bodies, but
-this transport-mounted test catches any future change that might bypass
-the reader's body construction (e.g., a refactor that switches to a raw
-``_request`` call, or a misconfigured adapter that re-routes a search
-through a write endpoint). Spec §13 + spec §10 threat #2 both lock the
-guarantee that RelyLoop NEVER writes to a UBI-bearing cluster.
+The pagination upgrade (FR-4) added two new request shapes to the
+allowlist:
 
-Lives under ``backend/tests/unit/services/`` (not
-``backend/tests/integration/services/`` as the plan §3.2 stated) —
-mirrors the sibling ``test_elastic_get_document.py`` pattern
-(``httpx.MockTransport`` against a real ``ElasticAdapter``; no DB /
-Redis / engine container needed). The codebase reserves
-``backend/tests/integration/`` for tests that genuinely hit a service
-container.
+* ``POST /<idx>/_pit`` (ES open PIT) /
+  ``POST /<idx>/_search/point_in_time`` (OpenSearch open PIT) — both
+  open a read-only Point-In-Time snapshot.
+* ``DELETE /_pit`` (ES close, **unindexed**) /
+  ``DELETE /_search/point_in_time`` (OpenSearch close, **unindexed**)
+  — release the snapshot. The unindexed-path constraint is the
+  no-writes invariant: an indexed ``DELETE`` would be a real
+  document-delete request; the unindexed PIT-close paths only
+  release ephemeral read state.
+
+Lives under ``backend/tests/unit/services/`` mirroring the sibling
+``test_elastic_get_document.py`` pattern (httpx.MockTransport against
+a real adapter; no DB/Redis/engine needed). Spec §13 + spec §10
+threat #2 both lock the guarantee that RelyLoop NEVER writes to a
+UBI-bearing cluster.
 """
 
 from __future__ import annotations
@@ -40,36 +43,92 @@ from backend.app.core.settings import get_settings
 from backend.app.services.ubi_reader import UbiReader
 
 # ----------------------------------------------------------------------------
-# Recording transport — captures every (method, path) the reader emits so we
-# can assert the safety invariant.
+# Allow / forbid sets
 # ----------------------------------------------------------------------------
 
 
-WRITE_METHODS = frozenset({"PUT", "DELETE", "PATCH"})
+WRITE_METHODS = frozenset({"PUT", "PATCH"})
+"""HTTP methods that ALWAYS indicate a cluster write — never permitted.
+
+``DELETE`` is NOT in this set because the PIT-close path uses
+``DELETE`` against an UNINDEXED path (``/_pit`` /
+``/_search/point_in_time``) to release a read snapshot. Indexed
+``DELETE`` (e.g. ``DELETE /<idx>/_doc/<id>``) IS forbidden — the
+``WRITE_PATH_SEGMENTS`` check below catches it via ``_doc``.
+"""
+
 WRITE_PATH_SEGMENTS = ("_bulk", "_update", "_create", "_doc")
+"""Path segments that always indicate write-shaped intent on ES/OpenSearch."""
+
+# PIT-close paths are exact strings — they MUST be unindexed for the
+# no-writes invariant to hold.
+ALLOWED_PIT_CLOSE_PATHS = frozenset({"/_pit", "/_search/point_in_time"})
+
+
+def _is_allowed_request(method: str, path: str) -> tuple[bool, str | None]:
+    """Return (allowed, reason-if-forbidden) for one request.
+
+    Allowed shapes (all read-only):
+
+    * ``GET /<idx>/_mapping`` (schema probe).
+    * ``GET /<idx>/_settings`` (analyzer probe — called by get_schema).
+    * ``POST /<idx>/_pit`` (ES PIT open).
+    * ``POST /<idx>/_search/point_in_time`` (OpenSearch PIT open).
+    * ``POST /_search`` (PIT-mode search — index-less).
+    * ``POST /<idx>/_search`` (no-PIT fallback search).
+    * ``DELETE /_pit`` (ES PIT close — unindexed).
+    * ``DELETE /_search/point_in_time`` (OpenSearch PIT close — unindexed).
+    """
+    method_u = method.upper()
+    if method_u in WRITE_METHODS:
+        return False, f"forbidden write method {method_u}"
+    for forbidden in WRITE_PATH_SEGMENTS:
+        if forbidden in path.split("/"):
+            return False, f"write-shaped path segment {forbidden!r}"
+    # DELETE is allowed ONLY for the two unindexed PIT-close paths.
+    if method_u == "DELETE":
+        if path not in ALLOWED_PIT_CLOSE_PATHS:
+            return False, f"DELETE on indexed path {path!r} is a write"
+    return True, None
+
+
+# ----------------------------------------------------------------------------
+# Recording transport — serves PIT + paginated search responses
+# ----------------------------------------------------------------------------
+
+
+def _empty_pit_search_response() -> httpx.Response:
+    """Return an empty terminal PIT-mode _search page."""
+    return httpx.Response(
+        200,
+        json={
+            "took": 1,
+            "timed_out": False,
+            "hits": {
+                "total": {"value": 0, "relation": "eq"},
+                "max_score": None,
+                "hits": [],
+            },
+            "pit_id": "pit-1",
+        },
+    )
 
 
 class _RecordingTransport(httpx.MockTransport):
-    """Mock transport that records every (method, path) and returns canned UBI responses.
-
-    Two canned responses keyed by URL path:
-
-    * ``/ubi_queries/_mapping`` → minimal mapping body (probe succeeds).
-    * ``/_msearch`` → an NDJSON ``_msearch`` body with one shard of
-      canned hits for both the queries scan and the events scan. The
-      reader issues two ``_msearch`` calls (one per index); the
-      transport returns the same shape both times for simplicity (the
-      events-scan body has ``application_name`` events for query_id
-      ``ubi-q-1``).
+    """Mock transport that records every (method, path) and serves canned
+    UBI responses through the PIT pagination path.
     """
 
     def __init__(self) -> None:
         super().__init__(self._handler)
         self.calls: list[tuple[str, str]] = []
+        self._pit_id = "pit-ubi-1"
 
     def _handler(self, request: httpx.Request) -> httpx.Response:
         self.calls.append((request.method, request.url.path))
         path = request.url.path
+
+        # Schema probe (UbiNotEnabled check) — ubi_queries /_mapping.
         if path.endswith("/_mapping"):
             return httpx.Response(
                 200,
@@ -86,6 +145,7 @@ class _RecordingTransport(httpx.MockTransport):
                     }
                 },
             )
+        # Analyzer probe (called by get_schema).
         if path.endswith("/_settings"):
             return httpx.Response(
                 200,
@@ -95,69 +155,110 @@ class _RecordingTransport(httpx.MockTransport):
                     }
                 },
             )
-        if path == "/_msearch":
-            # Two msearch calls fire in sequence; differentiate by ordinal so
-            # the queries scan returns query hits and the events scan returns
-            # event hits.
-            msearch_count = sum(1 for m, p in self.calls if p == "/_msearch")
-            if msearch_count == 1:
+        # PIT open — OpenSearch shape returns `pit_id`; ES returns `id`.
+        # The fixture uses OpenSearch via the adapter, so respond with pit_id.
+        if path.endswith("/_search/point_in_time"):
+            return httpx.Response(200, json={"pit_id": self._pit_id})
+        if path.endswith("/_pit"):
+            return httpx.Response(200, json={"id": self._pit_id})
+        # PIT-bound search — INDEX-LESS POST /_search.
+        if path == "/_search":
+            # Differentiate by call order — first PIT-mode search is the
+            # ubi_queries scan; subsequent ones are the ubi_events scan.
+            pit_searches = sum(1 for m, p in self.calls if p == "/_search")
+            if pit_searches == 1:
+                # ubi_queries scan — return ONE query hit, terminal page.
                 return httpx.Response(
                     200,
                     json={
-                        "responses": [
-                            {
-                                "hits": {
-                                    "hits": [
-                                        {
-                                            "_id": "ubi-q-1",
-                                            "_score": 1.0,
-                                            "_source": {
-                                                "query_id": "ubi-q-1",
-                                                "user_query": "red shoes",
-                                                "application": "products",
-                                                "timestamp": "2026-05-20T10:00:00Z",
-                                            },
-                                        }
-                                    ]
+                        "took": 1,
+                        "timed_out": False,
+                        "hits": {
+                            "total": {"value": 1, "relation": "eq"},
+                            "hits": [
+                                {
+                                    "_id": "ubi-q-1",
+                                    "_score": 0.0,
+                                    "_source": {
+                                        "query_id": "ubi-q-1",
+                                        "user_query": "red shoes",
+                                        "application": "products",
+                                        "timestamp": "2026-05-20T10:00:00Z",
+                                    },
+                                    "sort": [1, "shard-0"],
                                 }
-                            }
-                        ]
+                            ],
+                        },
+                        "pit_id": self._pit_id,
                     },
                 )
+            # ubi_events scan — return ONE event hit, terminal page.
             return httpx.Response(
                 200,
                 json={
-                    "responses": [
-                        {
-                            "hits": {
-                                "hits": [
-                                    {
-                                        "_id": "evt-1",
-                                        "_score": 0.0,
-                                        "_source": {
-                                            "query_id": "ubi-q-1",
-                                            "action_name": "click",
-                                            "object_id": "doc-a",
-                                            "timestamp": "2026-05-20T10:01:00Z",
-                                        },
-                                    },
-                                    {
-                                        "_id": "evt-2",
-                                        "_score": 0.0,
-                                        "_source": {
-                                            "query_id": "ubi-q-1",
-                                            "action_name": "impression",
-                                            "object_id": "doc-a",
-                                            "position": 1,
-                                            "timestamp": "2026-05-20T10:00:30Z",
-                                        },
-                                    },
-                                ]
-                            }
-                        }
-                    ]
+                    "took": 1,
+                    "timed_out": False,
+                    "hits": {
+                        "total": {"value": 2, "relation": "eq"},
+                        "hits": [
+                            {
+                                "_id": "evt-1",
+                                "_score": 0.0,
+                                "_source": {
+                                    "query_id": "ubi-q-1",
+                                    "action_name": "click",
+                                    "object_id": "doc-a",
+                                    "timestamp": "2026-05-20T10:01:00Z",
+                                },
+                                "sort": [2, "shard-1"],
+                            },
+                            {
+                                "_id": "evt-2",
+                                "_score": 0.0,
+                                "_source": {
+                                    "query_id": "ubi-q-1",
+                                    "action_name": "impression",
+                                    "object_id": "doc-a",
+                                    "position": 1,
+                                    "timestamp": "2026-05-20T10:00:30Z",
+                                },
+                                "sort": [3, "shard-2"],
+                            },
+                        ],
+                    },
+                    "pit_id": self._pit_id,
                 },
             )
+        # PIT close — body shape verified by the adapter tests; here we just
+        # echo OK so the reader's `finally` cleanup completes silently.
+        if request.method == "DELETE" and path in ALLOWED_PIT_CLOSE_PATHS:
+            return httpx.Response(200, json={"succeeded": True})
+        raise AssertionError(f"unexpected request to {request.method} {path}")
+
+
+class _EmptyTransport(httpx.MockTransport):
+    """Variant: PIT scans return empty pages immediately."""
+
+    def __init__(self) -> None:
+        super().__init__(self._handler)
+        self.calls: list[tuple[str, str]] = []
+        self._pit_id = "pit-empty"
+
+    def _handler(self, request: httpx.Request) -> httpx.Response:
+        self.calls.append((request.method, request.url.path))
+        path = request.url.path
+        if path.endswith("/_mapping"):
+            return httpx.Response(200, json={"ubi_queries": {"mappings": {"properties": {}}}})
+        if path.endswith("/_settings"):
+            return httpx.Response(200, json={"ubi_queries": {"settings": {"index": {}}}})
+        if path.endswith("/_search/point_in_time"):
+            return httpx.Response(200, json={"pit_id": self._pit_id})
+        if path.endswith("/_pit"):
+            return httpx.Response(200, json={"id": self._pit_id})
+        if path == "/_search":
+            return _empty_pit_search_response()
+        if request.method == "DELETE" and path in ALLOWED_PIT_CLOSE_PATHS:
+            return httpx.Response(200, json={"succeeded": True})
         raise AssertionError(f"unexpected request to {request.method} {path}")
 
 
@@ -181,7 +282,7 @@ def _stub_credentials(tmp_path, monkeypatch):
     get_settings.cache_clear()
 
 
-def _build_adapter(transport: _RecordingTransport) -> ElasticAdapter:
+def _build_adapter(transport: httpx.MockTransport) -> ElasticAdapter:
     return ElasticAdapter(
         cluster_id="ubi-test",
         engine_type="opensearch",
@@ -199,9 +300,14 @@ def _build_adapter(transport: _RecordingTransport) -> ElasticAdapter:
 
 
 async def test_read_features_issues_no_write_shaped_requests(
-    _stub_credentials,  # noqa: ARG001  — autouse-like fixture
+    _stub_credentials,  # noqa: ARG001 — autouse-like fixture
 ) -> None:
-    """Full read pipeline → no write-shaped HTTP methods or paths."""
+    """Full read pipeline → no write-shaped HTTP methods or paths.
+
+    Allowlist includes the new PIT pagination shapes (open / search /
+    close) — verifies the reader stays read-only AND the new request
+    shapes still respect the unindexed-DELETE constraint for PIT close.
+    """
     from datetime import UTC, datetime
 
     transport = _RecordingTransport()
@@ -224,44 +330,34 @@ async def test_read_features_issues_no_write_shaped_requests(
 
     # Invariant: every recorded call is READ-shaped.
     for method, path in transport.calls:
-        assert method.upper() not in WRITE_METHODS, (
-            f"reader issued forbidden write method {method} {path}"
-        )
-        for forbidden_segment in WRITE_PATH_SEGMENTS:
-            # `_doc` / `_bulk` / `_update` / `_create` are write endpoints in
-            # ES/OpenSearch. Anywhere in the path is forbidden.
-            assert forbidden_segment not in path.split("/"), (
-                f"reader hit write-shaped path segment {forbidden_segment!r} in {path}"
-            )
+        allowed, reason = _is_allowed_request(method, path)
+        assert allowed, f"reader issued forbidden request {method} {path}: {reason}"
 
-    # Exact expected call profile — one mapping probe, one settings lookup
-    # (the adapter's get_schema also pulls _settings for analyzer derivation),
-    # two _msearch calls (queries scan + events scan).
+    # Exact expected call profile — one mapping probe, one settings lookup,
+    # one PIT open per scan (ubi_queries + ubi_events = 2 opens), two PIT-
+    # bound searches (one per scan), two PIT closes (one per scan terminal).
     methods_and_paths = transport.calls
     assert ("GET", "/ubi_queries/_mapping") in methods_and_paths
     assert ("GET", "/ubi_queries/_settings") in methods_and_paths
-    msearch_calls = [c for c in methods_and_paths if c[1] == "/_msearch"]
-    assert len(msearch_calls) == 2, methods_and_paths
-    assert all(m == "POST" for m, _ in msearch_calls)
+    # PIT opens are indexed at /<idx>/_search/point_in_time (OpenSearch).
+    pit_opens = [
+        c for c in methods_and_paths if c[0] == "POST" and c[1].endswith("/_search/point_in_time")
+    ]
+    assert len(pit_opens) == 2  # queries + events scans
+    # PIT-bound searches are INDEX-LESS POST /_search.
+    pit_searches = [c for c in methods_and_paths if c == ("POST", "/_search")]
+    assert len(pit_searches) == 2  # queries + events scans
+    # PIT closes are UNINDEXED DELETEs (the no-writes invariant relies on
+    # the unindexed shape — an indexed DELETE would be a write).
+    pit_closes = [c for c in methods_and_paths if c == ("DELETE", "/_search/point_in_time")]
+    assert len(pit_closes) >= 2  # one per terminal scan
 
 
 async def test_read_features_zero_writes_when_window_empty(
     _stub_credentials,  # noqa: ARG001
 ) -> None:
-    """Even when the reader bails on empty queries, no writes leak."""
+    """Even when the reader bails on an empty queries scan, no writes leak."""
     from datetime import UTC, datetime
-
-    class _EmptyTransport(_RecordingTransport):
-        def _handler(self, request: httpx.Request) -> httpx.Response:
-            self.calls.append((request.method, request.url.path))
-            if request.url.path.endswith("/_mapping"):
-                return httpx.Response(200, json={"ubi_queries": {"mappings": {"properties": {}}}})
-            if request.url.path.endswith("/_settings"):
-                return httpx.Response(200, json={"ubi_queries": {"settings": {"index": {}}}})
-            if request.url.path == "/_msearch":
-                # Empty hits — triggers the empty-window early return path.
-                return httpx.Response(200, json={"responses": [{"hits": {"hits": []}}]})
-            raise AssertionError(f"unexpected request to {request.method} {request.url.path}")
 
     transport = _EmptyTransport()
     adapter = _build_adapter(transport)
@@ -273,13 +369,44 @@ async def test_read_features_zero_writes_when_window_empty(
         await adapter.aclose()
 
     assert out == {}
-    # The reader short-circuits after the empty queries scan; only one
-    # _msearch fires, not two.
-    msearch_calls = [c for c in transport.calls if c[1] == "/_msearch"]
-    assert len(msearch_calls) == 1
+    # The reader short-circuits after the empty queries scan — only one
+    # PIT lifecycle fires (queries scan), not two.
+    pit_opens = [
+        c for c in transport.calls if c[1].endswith("/_search/point_in_time") and c[0] == "POST"
+    ]
+    assert len(pit_opens) == 1
+    pit_searches = [c for c in transport.calls if c == ("POST", "/_search")]
+    assert len(pit_searches) == 1
 
     # Same invariant.
     for method, path in transport.calls:
-        assert method.upper() not in WRITE_METHODS
-        for forbidden_segment in WRITE_PATH_SEGMENTS:
-            assert forbidden_segment not in path.split("/")
+        allowed, reason = _is_allowed_request(method, path)
+        assert allowed, f"reader issued forbidden request {method} {path}: {reason}"
+
+
+# ----------------------------------------------------------------------------
+# Static — verify the allow / forbid taxonomy itself
+# ----------------------------------------------------------------------------
+
+
+def test_indexed_delete_is_forbidden() -> None:
+    """The taxonomy MUST reject an indexed DELETE — that would be a write
+    even though DELETE is conditionally permitted for PIT close."""
+    allowed, reason = _is_allowed_request("DELETE", "/products/_doc/abc")
+    assert not allowed
+    # The check fires on `_doc` segment before the DELETE-path check
+    # (write-shape path segments are checked first).
+    assert reason is not None
+
+
+def test_unindexed_pit_delete_is_allowed() -> None:
+    allowed, _ = _is_allowed_request("DELETE", "/_pit")
+    assert allowed
+    allowed, _ = _is_allowed_request("DELETE", "/_search/point_in_time")
+    assert allowed
+
+
+def test_put_is_always_write() -> None:
+    allowed, reason = _is_allowed_request("PUT", "/_anywhere")
+    assert not allowed
+    assert reason is not None

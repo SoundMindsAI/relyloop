@@ -49,7 +49,62 @@ class SearchAdapter(Protocol):
         query: NativeQuery,
         doc_id: str,
     ) -> ExplainTree: ...
+
+    # Cursor-scan surface (chore_ubi_reader_search_after_pagination Story 1.1)
+    async def scan_all(
+        self,
+        target: str,
+        body: dict[str, Any],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage: ...
+    # Full-stream paginated read; loops until ScanPage.cursor is None.
+
+    async def close_scan(
+        self,
+        cursor: object | None,
+        *,
+        request_id: str | None = None,
+    ) -> None: ...
+    # Release any engine-side resource (e.g. PIT) held by a non-terminal cursor.
 ```
+
+**Cursor-scan surface (`scan_all` / `close_scan`).** Added by
+[`chore_ubi_reader_search_after_pagination`](../00_overview/planned_features/02_mvp2/chore_ubi_reader_search_after_pagination/feature_spec.md)
+for the full-traffic UBI aggregation path. Abstracts the two engine
+pagination idioms:
+
+- **ES + OpenSearch** — `search_after` over an injected deterministic
+  total-order sort `[{timestamp: asc}, {_shard_doc: asc}]`, anchored
+  inside a PIT (Point-In-Time). The PIT id rotates with each response;
+  the adapter packs the latest id into the opaque cursor so
+  continuations carry it forward. Narrow fallback (only on
+  405/501/400-unsupported PIT-open) to a no-PIT path that uses a
+  configured `Settings.ubi_no_pit_tiebreaker_field`; if no tiebreaker is
+  configured, degrades further to a single sampled query bounded by the
+  10k result window + WARN log. **Never sorts on `_id`** (ES 9 disables
+  `_id` fielddata by default — sorting on it returns 400). The wire
+  shape for close differs per engine: ES `DELETE /_pit` body
+  `{"id": <pit_id>}`; OpenSearch `DELETE /_search/point_in_time` body
+  `{"pit_id": [<pit_id>]}`. The PIT-close paths are **unindexed** —
+  required by the read-only invariant (`UbiReader` issues no indexed
+  DELETEs).
+- **Solr** — `cursorMark` over a uniqueKey-terminated sort. Requests
+  **POST** `/solr/<target>/select` with form-encoded body params (NOT
+  GET) so large `{!terms f=query_id}` filters don't overflow URL
+  limits. Terminal when the engine returns `nextCursorMark` equal to
+  the request's cursorMark (or a short page). `close_scan` is a no-op
+  — cursorMark holds no server-side resource.
+
+The cursor token is opaque and engine-internal — the caller round-trips
+it verbatim. `UbiReader._scan_ubi_events` + `_scan_ubi_queries` consume
+this surface page-by-page; the reader's per-call ceiling
+(`Settings.ubi_max_events_scan` / `Settings.ubi_max_queries_scan`)
+bounds total work and `close_scan` is invoked in a `finally` block on
+every exit path so PITs cannot leak beyond their `keep_alive`.
 
 `search_batch` is the **only hot-path method** during a study (called once per Optuna trial). Every other method is define-time (`get_schema`, `list_targets` — called during cluster registration and study creation) or debug-time (`explain` — called from the UI when a user wants to see why a doc ranked where it did).
 

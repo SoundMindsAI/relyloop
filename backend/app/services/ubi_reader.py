@@ -5,19 +5,27 @@
 """``UbiReader`` — engine-neutral UBI scan + client-side join (feat_ubi_judgments Story 2.1 / FR-1).
 
 Reads ``ubi_queries`` + ``ubi_events`` via
-:meth:`SearchAdapter.search_batch` (no new adapter method per CLAUDE.md
-Absolute Rule #4 — UBI works on every engine the adapter Protocol
-supports), performs the ``query_id`` join client-side, and aggregates
-into per-(query_id, doc_id) :class:`FeatureVec` via the pure-domain
+:meth:`SearchAdapter.scan_all` + :meth:`SearchAdapter.close_scan`
+(``chore_ubi_reader_search_after_pagination`` FR-4 — the
+generic cursor-scan surface replaced the original single-page
+``search_batch`` call so dense (>10k-event) clusters get exact
+full-traffic aggregation instead of a silent 10k-row sample), performs
+the ``query_id`` join client-side, and aggregates into
+per-(query_id, doc_id) :class:`FeatureVec` via the pure-domain
 :func:`aggregate_features`.
 
 **Read-only contract.** This module issues only ``GET /<index>/_mapping``
-(via ``adapter.get_schema``) and ``POST /_msearch`` (via
-``adapter.search_batch``). No ``PUT``, ``DELETE``, ``_bulk``, ``_update``,
-``_doc``, or ``_create`` calls. The
-:func:`backend.tests.integration.test_ubi_reader_no_writes` invariant
-test mocks the underlying ``httpx`` transport and asserts zero
-write-shaped requests escape the reader's call boundary.
+(via ``adapter.get_schema``), the engine's paginated read surface
+(ES/OpenSearch: ``POST /<index>/_pit`` + ``POST /_search`` +
+``DELETE /_pit`` / ``DELETE /_search/point_in_time``; Solr:
+``POST /<target>/select``), and ``adapter.search_batch`` for the
+narrow no-PIT sampled fallback. No ``PUT``, ``DELETE`` against
+indexed paths, ``_bulk``, ``_update``, ``_doc``, or ``_create``
+calls — the only ``DELETE`` is the unindexed PIT-close which
+releases a read snapshot. The
+:func:`backend.tests.unit.services.test_ubi_reader_no_writes`
+invariant test mocks the underlying ``httpx`` transport and asserts
+zero write-shaped requests escape the reader's call boundary.
 
 **Multi-application disambiguation.** UBI's standardized schema includes
 an ``application`` field on both indices so operators running multiple
@@ -56,13 +64,15 @@ for the same window so the worker doesn't have to re-scan
 
 from __future__ import annotations
 
+import json
+from collections.abc import Iterator
 from datetime import UTC, datetime
 from typing import Any
 
 import structlog
 
 from backend.app.adapters.errors import TargetNotFoundError
-from backend.app.adapters.protocol import NativeQuery, ScoredHit, SearchAdapter
+from backend.app.adapters.protocol import ScoredHit, SearchAdapter
 from backend.app.domain.ubi import FeatureVec, aggregate_features
 from backend.app.domain.ubi.features import UbiEvent
 from backend.app.services.ubi_errors import UbiNotEnabledError
@@ -78,31 +88,113 @@ UBI_EVENTS_INDEX = "ubi_events"
 ES_MAX_RESULT_WINDOW = 10_000
 """Elasticsearch/OpenSearch default ``index.max_result_window``.
 
-A single ``search_batch`` call is a ``size``-limited query (NOT a
-scroll / ``search_after`` paginator), so requesting ``size`` above this
-window makes the engine fail the query with "Result window is too
-large / all shards failed". The adapter swallows that per-query error
-in non-strict mode and returns ``[]`` — which previously surfaced as a
-spurious ``UBI_INSUFFICIENT_DATA`` even on dense clusters (found via
-the rung-3 E2E against a real engine; a stubbed adapter can't catch an
-engine-side window error). Both scan caps below MUST stay <= this.
+A single paginated request still caps individual page sizes at this
+value — the engine rejects ``size`` above it with "Result window is
+too large / all shards failed". With
+``chore_ubi_reader_search_after_pagination`` (FR-4) the reader now
+loops :meth:`SearchAdapter.scan_all` so the overall scan can read far
+more than 10k events — but each PAGE still respects this cap.
 """
 
-DEFAULT_MAX_QUERIES = 5000
-"""Default cap on ``ubi_queries`` rows per window. < ES_MAX_RESULT_WINDOW."""
+DEFAULT_MAX_QUERIES = 200_000
+"""Default ceiling on ``ubi_queries`` rows per window (FR-5).
 
-DEFAULT_MAX_EVENTS = ES_MAX_RESULT_WINDOW
-"""Default cap on ``ubi_events`` rows scanned per window.
-
-Capped at :data:`ES_MAX_RESULT_WINDOW` because a single ``search_batch``
-is ``size``-limited, not scrolling — requesting more makes the engine
-reject the query (see :data:`ES_MAX_RESULT_WINDOW`). 10k events is a
-representative sample for CTR/dwell rating derivation on any single
-(target, window); operators with denser traffic narrow the window via
-``since``/``until``. Exact full-traffic aggregation via ``search_after``
-pagination is a documented future enhancement
-(``chore_ubi_reader_search_after_pagination``), not MVP scope.
+High-but-finite — operators with denser traffic see exact
+aggregation, not a sample. Overridden by the caller via
+:meth:`UbiReader.__init__` (workers resolve from
+:attr:`backend.app.core.settings.Settings.ubi_max_queries_scan`).
 """
+
+DEFAULT_MAX_EVENTS = 1_000_000
+"""Default ceiling on ``ubi_events`` rows scanned per window (FR-5).
+
+High-but-finite — the prior 10k single-page cap (``ES_MAX_RESULT_WINDOW``)
+became a per-page cap once ``scan_all`` shipped; the overall scan is
+bounded by this ceiling instead and operators can lift it via
+:attr:`backend.app.core.settings.Settings.ubi_max_events_scan`.
+Overridden by the caller via :meth:`UbiReader.__init__`.
+"""
+
+DEFAULT_UBI_QUERY_ID_BATCH_SIZE = 1024
+"""Default id-count ceiling per ``query_id`` batch on the events scan (FR-7).
+
+A batch splits whenever EITHER this OR
+:data:`DEFAULT_UBI_QUERY_ID_BATCH_MAX_BYTES` would be exceeded.
+Operators override via
+:attr:`backend.app.core.settings.Settings.ubi_query_id_batch_size`.
+"""
+
+DEFAULT_UBI_QUERY_ID_BATCH_MAX_BYTES = 32_768
+"""Default encoded byte-length ceiling per ``query_id`` batch (FR-7 / P2-B1).
+
+Measured on the FULLY-SERIALIZED filter fragment (Solr
+``{!terms f=query_id}a,b,c`` / ES JSON terms list) — so the request
+body stays bounded regardless of id length. Operators override via
+:attr:`backend.app.core.settings.Settings.ubi_query_id_batch_max_bytes`.
+"""
+
+
+def _serialized_terms_fragment_size(engine_type: str, ids: list[str]) -> int:
+    """Return the encoded byte-length of the engine's terms-filter fragment.
+
+    The byte budget is measured on the **fully-serialized** filter
+    fragment so wrapper + separator overhead are counted (P2-B1) — that
+    is what enforces the request-size ceiling at the wire level, not the
+    summed raw id-byte total.
+
+    Solr: ``{!terms f=query_id}id1,id2,...``.
+    ES / OpenSearch: ``{"terms": {"query_id": ["id1", "id2", ...]}}`` —
+    JSON-encoded (matches the terms-filter shape ``_build_ubi_events_body``
+    emits in the ``query.bool.filter`` list).
+    """
+    if engine_type == "solr":
+        fragment = "{!terms f=query_id}" + ",".join(ids)
+        return len(fragment.encode("utf-8"))
+    return len(json.dumps({"terms": {"query_id": ids}}).encode("utf-8"))
+
+
+def _chunk_query_ids(
+    query_ids: list[str],
+    *,
+    max_count: int,
+    max_bytes: int,
+    engine_type: str,
+) -> Iterator[list[str]]:
+    """Split ``query_ids`` into ceiling-bounded chunks (FR-7 / P2-B1).
+
+    Chunks are bounded by BOTH the id-count AND the encoded byte-length
+    of the engine's terms-filter fragment.
+
+    A chunk is flushed whenever appending the next id would breach
+    EITHER ceiling. The byte ceiling is the HARD limit — a single id
+    that, alone, exceeds ``max_bytes`` is yielded by itself (the engine
+    request will likely succeed since UBI ids are UUID-shaped and well
+    under any reasonable per-id length; pathological-id-size config is
+    an operator concern surfaced through the resulting engine error,
+    not silently dropped).
+    """
+    if not query_ids:
+        return
+    current: list[str] = []
+    for qid in query_ids:
+        candidate = current + [qid]
+        over_count = len(candidate) > max_count
+        over_bytes = _serialized_terms_fragment_size(engine_type, candidate) > max_bytes
+        if over_count or over_bytes:
+            if current:
+                yield current
+                current = [qid]
+            else:
+                # Single-id batch exceeds the byte ceiling — yield alone
+                # so the operator sees the engine-side error (preferable
+                # to silent drops). UBI query_id values are UUIDs so this
+                # branch is effectively unreachable in normal operation.
+                yield [qid]
+                current = []
+        else:
+            current = candidate
+    if current:
+        yield current
 
 
 def _to_solr_instant(value: datetime) -> str:
@@ -196,8 +288,13 @@ class UbiReader:
         self,
         adapter: SearchAdapter,
         position_bias_prior: dict[int, float] | None = None,
+        *,
+        max_events: int = DEFAULT_MAX_EVENTS,
+        max_queries: int = DEFAULT_MAX_QUERIES,
+        query_id_batch_size: int = DEFAULT_UBI_QUERY_ID_BATCH_SIZE,
+        query_id_batch_max_bytes: int = DEFAULT_UBI_QUERY_ID_BATCH_MAX_BYTES,
     ) -> None:
-        """Bind the reader to an adapter + (optional) position-bias prior.
+        """Bind the reader to an adapter + (optional) position-bias prior + ceilings.
 
         Args:
             adapter: Any :class:`SearchAdapter` implementation — UBI is
@@ -208,9 +305,30 @@ class UbiReader:
                 :func:`aggregate_features`. ``None`` (default) is the
                 uninformed prior — every rank weighted 1.0 (corrected
                 CTR == raw CTR).
+            max_events: Default ceiling on per-window ``ubi_events`` rows
+                aggregated via the paginated scan (FR-5). Caller may
+                override per-call via :meth:`read_features`. Workers
+                resolve this from
+                :attr:`backend.app.core.settings.Settings.ubi_max_events_scan`
+                and inject it here so the reader stays decoupled from
+                ``Settings`` (mirrors the ``position_bias_prior`` injection
+                pattern).
+            max_queries: Default ceiling on per-window ``ubi_queries`` rows.
+                Same injection pattern as ``max_events``.
+            query_id_batch_size: Id-count ceiling per ``query_id`` chunk on
+                the events scan (FR-7). A batch splits whenever EITHER this
+                OR ``query_id_batch_max_bytes`` would be exceeded.
+            query_id_batch_max_bytes: Encoded byte-length ceiling per chunk
+                — measured on the FULLY-SERIALIZED filter fragment
+                (P2-B1). HARD limit: a batch splits when this is hit even
+                if the id-count ceiling has not been.
         """
         self._adapter = adapter
         self._position_bias_prior = position_bias_prior or {}
+        self._max_events = max_events
+        self._max_queries = max_queries
+        self._ubi_query_id_batch_size = query_id_batch_size
+        self._ubi_query_id_batch_max_bytes = query_id_batch_max_bytes
 
     async def _probe_enabled(self) -> None:
         """Probe ``ubi_queries`` mapping; raise :class:`UbiNotEnabledError` on 404.
@@ -243,8 +361,8 @@ class UbiReader:
         since: datetime,
         until: datetime | None = None,
         query_filter: str | None = None,
-        max_queries: int = DEFAULT_MAX_QUERIES,
-        max_events: int = DEFAULT_MAX_EVENTS,
+        max_queries: int | None = None,
+        max_events: int | None = None,
         request_id: str | None = None,
     ) -> dict[tuple[str, str], FeatureVec]:
         """Two-index scan + client-side join → per-(query, doc) features.
@@ -278,10 +396,13 @@ class UbiReader:
                 ``ubi_queries`` scan narrows to queries whose
                 ``user_query`` contains this substring (wildcard match —
                 ``*<filter>*``).
-            max_queries: Cap on ``ubi_queries`` hits; default
-                ``DEFAULT_MAX_QUERIES``.
-            max_events: Cap on ``ubi_events`` hits; default
-                ``DEFAULT_MAX_EVENTS``.
+            max_queries: Per-call override of the ceiling injected at
+                construction. ``None`` (default) → use
+                ``self._max_queries`` (FR-5: workers inject
+                :attr:`Settings.ubi_max_queries_scan`).
+            max_events: Per-call override of the ``max_events`` ceiling
+                injected at construction. ``None`` (default) → use
+                ``self._max_events``.
             request_id: Optional correlation id surfaced to the engine
                 via ``X-Opaque-Id`` (carried through ``search_batch``).
 
@@ -295,13 +416,15 @@ class UbiReader:
         await self._probe_enabled()
 
         effective_until = until or datetime.now(UTC)
+        effective_max_queries = max_queries if max_queries is not None else self._max_queries
+        effective_max_events = max_events if max_events is not None else self._max_events
 
         queries_payload = await self._scan_ubi_queries(
             target=target,
             since=since,
             until=effective_until,
             query_filter=query_filter,
-            max_queries=max_queries,
+            max_queries=effective_max_queries,
             request_id=request_id,
         )
 
@@ -324,7 +447,7 @@ class UbiReader:
             since=since,
             until=effective_until,
             query_ids=query_ids,
-            max_events=max_events,
+            max_events=effective_max_events,
             request_id=request_id,
         )
 
@@ -360,7 +483,7 @@ class UbiReader:
         since: datetime,
         until: datetime | None = None,
         query_filter: str | None = None,
-        max_queries: int = DEFAULT_MAX_QUERIES,
+        max_queries: int | None = None,
         request_id: str | None = None,
     ) -> dict[str, str]:
         """Surface the ``{ubi_query_id: user_query}`` map for the same window.
@@ -376,15 +499,130 @@ class UbiReader:
         re-probe; callers expected to have already invoked
         ``read_features`` which triggers the probe).
         """
+        effective_max_queries = max_queries if max_queries is not None else self._max_queries
         queries_payload = await self._scan_ubi_queries(
             target=target,
             since=since,
             until=until or datetime.now(UTC),
             query_filter=query_filter,
-            max_queries=max_queries,
+            max_queries=effective_max_queries,
             request_id=request_id,
         )
         return {entry["query_id"]: entry["user_query"] for entry in queries_payload}
+
+    def _build_ubi_queries_body(
+        self,
+        *,
+        target: str,
+        since: datetime,
+        until: datetime,
+        query_filter: str | None,
+    ) -> dict[str, Any]:
+        """Build the engine-native filter body for a ``ubi_queries`` scan.
+
+        Engine-aware (the only place the read path branches on
+        ``engine_type`` outside the adapters per Rule #4 — same
+        precedent as the pre-pagination code; the adapter Protocol
+        accepts the body as opaque).
+
+        Solr: ``q``/``fq``/``fl`` request params (the SolrAdapter rejects
+        ES DSL via ``_validate_solr_param_values``).
+        ES/OpenSearch: a ``query.bool.filter`` DSL body with
+        ``_source`` field selection.
+        """
+        if self._adapter.engine_type == "solr":
+            body: dict[str, Any] = _build_solr_ubi_body(
+                target=target,
+                since=since,
+                until=until,
+                query_ids=None,
+                # ``rows`` is supplied by the adapter's scan_all (it owns
+                # the page-size param); we still pass a non-zero ``rows``
+                # to keep the build helper's contract intact — it gets
+                # stripped by the adapter's pagination-key stripper.
+                rows=1,
+                fl="query_id,user_query,application,timestamp",
+            )
+            if query_filter:
+                body["fq"].append(f"user_query:*{query_filter}*")
+            return body
+
+        filters: list[dict[str, Any]] = [
+            {
+                "range": {
+                    "timestamp": {
+                        "gte": since.isoformat(),
+                        "lt": until.isoformat(),
+                    }
+                }
+            },
+            {"term": {"application": target}},
+        ]
+        if query_filter:
+            filters.append({"wildcard": {"user_query": f"*{query_filter}*"}})
+        return {
+            "query": {"bool": {"filter": filters}},
+            "_source": ["query_id", "user_query", "application", "timestamp"],
+            "track_total_hits": False,
+        }
+
+    def _build_ubi_events_body(
+        self,
+        *,
+        target: str,
+        since: datetime,
+        until: datetime,
+        query_ids: list[str],
+    ) -> dict[str, Any]:
+        """Build the engine-native filter body for a ``ubi_events`` scan.
+
+        Solr: flat docs (``object_id``/``position``/``dwell_seconds``
+        top-level — see ``demo_ubi_seed._to_solr_docs``). ``fl="*"`` so
+        :func:`_extract_event` reads every field via its top-level
+        fallback path. ES/OpenSearch: nested
+        ``event_attributes.{position, object.object_id,
+        dwell_time_seconds}`` per the OpenSearch UBI plugin reference
+        schema.
+        """
+        if self._adapter.engine_type == "solr":
+            return _build_solr_ubi_body(
+                target=target,
+                since=since,
+                until=until,
+                query_ids=query_ids,
+                # See ``_build_ubi_queries_body`` — ``rows`` is overwritten
+                # by the adapter's scan_all page-size.
+                rows=1,
+                fl="*",
+            )
+        return {
+            "query": {
+                "bool": {
+                    "filter": [
+                        {
+                            "range": {
+                                "timestamp": {
+                                    "gte": since.isoformat(),
+                                    "lt": until.isoformat(),
+                                }
+                            }
+                        },
+                        {"term": {"application": target}},
+                        {"terms": {"query_id": query_ids}},
+                    ]
+                }
+            },
+            "_source": [
+                "query_id",
+                "action_name",
+                "event_attributes",
+                "object_id",
+                "position",
+                "dwell_seconds",
+                "timestamp",
+            ],
+            "track_total_hits": False,
+        }
 
     async def _scan_ubi_queries(
         self,
@@ -396,56 +634,76 @@ class UbiReader:
         max_queries: int,
         request_id: str | None,
     ) -> list[dict[str, Any]]:
-        """Issue one ``_msearch`` call against ``ubi_queries``; return source dicts.
+        """Loop ``adapter.scan_all`` over ``ubi_queries`` (FR-4).
 
-        Each returned dict has at minimum ``query_id`` (string) and
-        ``user_query`` (string). Hits missing either field are dropped
-        (logged at DEBUG) — defensive against operator UBI mis-config.
+        Pages through the full stream, enforces the ``max_queries`` ceiling
+        exactly (clamped per page + sliced on the final page), and closes
+        the cursor in ``finally`` on every exit path (terminal, ceiling,
+        exception — P3-A2 best-effort cleanup).
+
+        Returns ``{query_id, user_query, application, timestamp}`` dicts;
+        hits missing required fields are dropped (logged at DEBUG inside
+        :func:`_extract_query_hits`).
         """
-        scan_rows = min(max_queries, ES_MAX_RESULT_WINDOW)
-        if self._adapter.engine_type == "solr":
-            body: dict[str, Any] = _build_solr_ubi_body(
-                target=target,
-                since=since,
-                until=until,
-                query_ids=None,
-                rows=scan_rows,
-                fl="query_id,user_query,application,timestamp",
-            )
-            if query_filter:
-                body["fq"].append(f"user_query:*{query_filter}*")
-        else:
-            filters: list[dict[str, Any]] = [
-                {
-                    "range": {
-                        "timestamp": {
-                            "gte": since.isoformat(),
-                            "lt": until.isoformat(),
-                        }
-                    }
-                },
-                {"term": {"application": target}},
-            ]
-            if query_filter:
-                filters.append({"wildcard": {"user_query": f"*{query_filter}*"}})
-
-            body = {
-                "query": {"bool": {"filter": filters}},
-                "_source": ["query_id", "user_query", "application", "timestamp"],
-                "track_total_hits": False,
-            }
-        native = NativeQuery(query_id="ubi_queries_scan", body=body)
-
-        result = await self._adapter.search_batch(
-            UBI_QUERIES_INDEX,
-            queries=[native],
-            # Clamp to the engine result-window — search_batch is size-limited,
-            # not scrolling; a larger size makes the engine reject the query.
-            top_k=scan_rows,
-            request_id=request_id,
+        body = self._build_ubi_queries_body(
+            target=target, since=since, until=until, query_filter=query_filter
         )
-        hits = result.get("ubi_queries_scan", [])
-        return _extract_query_hits(hits)
+        accumulated: list[ScoredHit] = []
+        remaining = max_queries
+        cursor: object | None = None
+        ceiling_hit = False
+        try:
+            while remaining > 0:
+                page_size = min(ES_MAX_RESULT_WINDOW, remaining)
+                page = await self._adapter.scan_all(
+                    UBI_QUERIES_INDEX,
+                    body,
+                    page_size=page_size,
+                    cursor=cursor,
+                    request_id=request_id,
+                )
+                # P1-B2: assign cursor IMMEDIATELY after await, BEFORE any
+                # folding — so a fold-time exception still closes the
+                # rotated PIT in `finally`.
+                cursor = page.cursor
+                take = page.hits[:remaining]
+                accumulated.extend(take)
+                remaining -= len(take)
+                if cursor is None:
+                    break
+                if len(take) < len(page.hits):
+                    # Ceiling reached mid-page.
+                    ceiling_hit = True
+                    break
+        finally:
+            # Best-effort cleanup (P3-A2) — never mask a primary exception.
+            try:
+                await self._adapter.close_scan(cursor, request_id=request_id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "ubi_reader_close_scan_failed",
+                    event_type="ubi_reader_close_scan_failed",
+                    cluster_id=getattr(self._adapter, "cluster_id", None),
+                    engine_type=self._adapter.engine_type,
+                    target=UBI_QUERIES_INDEX,
+                    error_type=type(exc).__name__,
+                )
+
+        # Truncation = we stopped before the stream ended. Either a ceiling
+        # hit mid-page (ceiling_hit) OR the budget hit exactly a page
+        # boundary while MORE data remained (remaining<=0 AND a non-terminal
+        # cursor is still held). A terminal page that happens to fill the
+        # budget exactly (cursor is None) is NOT truncation — don't WARN.
+        if ceiling_hit or (remaining <= 0 and cursor is not None):
+            logger.warning(
+                "ubi_reader_scan_truncated",
+                event_type="ubi_reader_scan_truncated",
+                target=UBI_QUERIES_INDEX,
+                scanned=max_queries - remaining,
+                ceiling=max_queries,
+                engine_type=self._adapter.engine_type,
+            )
+        return _extract_query_hits(accumulated)
 
     async def _scan_ubi_events(
         self,
@@ -457,70 +715,100 @@ class UbiReader:
         max_events: int,
         request_id: str | None,
     ) -> list[dict[str, Any]]:
-        """Issue one ``_msearch`` call against ``ubi_events``; return source dicts.
+        """Loop ``adapter.scan_all`` over ``ubi_events`` with ``query_id`` chunking.
 
-        Filters by the same window + ``application`` + ``query_id IN
-        <step-1 ids>``. Returns raw ``_source`` dicts; field extraction
-        happens in :func:`_extract_event`.
+        Splits ``query_ids`` into chunks bounded by the configured
+        id-count AND byte-length ceilings (FR-7) so no single request
+        emits an oversized ``{!terms}`` fq (Solr) or ``terms`` filter
+        (ES). Iterates each chunk's full page stream via ``scan_all``,
+        folds incrementally, and respects the global ``max_events``
+        ceiling across chunks.
+
+        Closes the cursor in ``finally`` on every exit path (P3-A2).
+        Cursor is assigned immediately after the ``scan_all`` await —
+        BEFORE any folding — so a fold-time exception still closes the
+        rotated PIT (P1-B2).
         """
         if not query_ids:
             return []
 
-        scan_rows = min(max_events, ES_MAX_RESULT_WINDOW)
-        if self._adapter.engine_type == "solr":
-            # Solr UBI event docs are flat (object_id / position /
-            # dwell_seconds — see demo_ubi_seed._to_solr_docs), so fl="*"
-            # returns every field _extract_event reads via its top-level
-            # fallback path.
-            body: dict[str, Any] = _build_solr_ubi_body(
-                target=target,
-                since=since,
-                until=until,
-                query_ids=query_ids,
-                rows=scan_rows,
-                fl="*",
-            )
-        else:
-            body = {
-                "query": {
-                    "bool": {
-                        "filter": [
-                            {
-                                "range": {
-                                    "timestamp": {
-                                        "gte": since.isoformat(),
-                                        "lt": until.isoformat(),
-                                    }
-                                }
-                            },
-                            {"term": {"application": target}},
-                            {"terms": {"query_id": query_ids}},
-                        ]
-                    }
-                },
-                "_source": [
-                    "query_id",
-                    "action_name",
-                    "event_attributes",
-                    "object_id",
-                    "position",
-                    "dwell_seconds",
-                    "timestamp",
-                ],
-                "track_total_hits": False,
-            }
-        native = NativeQuery(query_id="ubi_events_scan", body=body)
+        engine_type = self._adapter.engine_type
+        out: list[dict[str, Any]] = []
+        remaining = max_events
+        # ``truncated`` is set explicitly at each genuine truncation point so
+        # the end-of-scan WARN never fires on a clean full read that merely
+        # happened to consume exactly the budget on a terminal page.
+        truncated = False
 
-        result = await self._adapter.search_batch(
-            UBI_EVENTS_INDEX,
-            queries=[native],
-            # Clamp to the engine result-window (see ES_MAX_RESULT_WINDOW) —
-            # exceeding it makes the engine fail the query ("all shards
-            # failed"), which the adapter swallows to an empty result.
-            top_k=scan_rows,
-            request_id=request_id,
-        )
-        return [hit.source for hit in result.get("ubi_events_scan", []) if hit.source is not None]
+        for batch in _chunk_query_ids(
+            query_ids,
+            max_count=self._ubi_query_id_batch_size,
+            max_bytes=self._ubi_query_id_batch_max_bytes,
+            engine_type=engine_type,
+        ):
+            if remaining <= 0:
+                # The budget was exhausted by a prior batch and there are
+                # still batches (query_ids) left to scan — that's truncation.
+                truncated = True
+                break
+            body = self._build_ubi_events_body(
+                target=target, since=since, until=until, query_ids=batch
+            )
+            cursor: object | None = None
+            try:
+                while remaining > 0:
+                    page_size = min(ES_MAX_RESULT_WINDOW, remaining)
+                    page = await self._adapter.scan_all(
+                        UBI_EVENTS_INDEX,
+                        body,
+                        page_size=page_size,
+                        cursor=cursor,
+                        request_id=request_id,
+                    )
+                    # P1-B2 — cursor assignment BEFORE folding.
+                    cursor = page.cursor
+                    take = page.hits[:remaining]
+                    out.extend(h.source for h in take if h.source is not None)
+                    remaining -= len(take)
+                    if cursor is None:
+                        break
+                    if len(take) < len(page.hits):
+                        # Ceiling reached mid-page (more hits on this page
+                        # than the budget allowed) — truncation.
+                        truncated = True
+                        break
+                else:
+                    # Inner loop exited via `while remaining > 0` going false
+                    # (budget hit exactly a page boundary) while a non-terminal
+                    # cursor is still held → more data existed in THIS batch.
+                    if cursor is not None:
+                        truncated = True
+            finally:
+                # Best-effort cleanup (P3-A2).
+                try:
+                    await self._adapter.close_scan(cursor, request_id=request_id)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "ubi_reader_close_scan_failed",
+                        event_type="ubi_reader_close_scan_failed",
+                        cluster_id=getattr(self._adapter, "cluster_id", None),
+                        engine_type=engine_type,
+                        target=UBI_EVENTS_INDEX,
+                        error_type=type(exc).__name__,
+                    )
+
+        if truncated:
+            logger.warning(
+                "ubi_reader_scan_truncated",
+                event_type="ubi_reader_scan_truncated",
+                target=UBI_EVENTS_INDEX,
+                # scanned = rows INSPECTED (budget consumed), not rows KEPT —
+                # some hits may have source=None and never enter `out` (F3).
+                scanned=max_events - remaining,
+                ceiling=max_events,
+                engine_type=engine_type,
+            )
+        return out
 
 
 def _extract_query_hits(hits: list[ScoredHit]) -> list[dict[str, Any]]:
