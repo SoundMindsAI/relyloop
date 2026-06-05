@@ -1,10 +1,19 @@
-# chore_pr_yml_parallelize_backend_job — Split the 8m20s backend job into parallel lanes
+# chore_pr_yml_parallelize_backend_job — Drop redundant lint/typecheck from the heavy backend job
 
-**Date:** 2026-06-02
-**Status:** Idea — captured during PR #426 CI watch
+**Date:** 2026-06-02 (preflighted + refreshed 2026-06-05; **descoped to lint-dedup 2026-06-05**)
+**Status:** **Shipped (ad-hoc) 2026-06-05** — the only actionable residual (drop the redundant `ruff`/`format`/`mypy` steps from the heavy `backend` job) shipped as a ~zero-risk YAML edit. **The lane-split (Win 2′) + split-by-service (Win 3) were carved out to a deferred infra idea — see [`infra_pr_yml_split_backend_test_lanes`](../infra_pr_yml_split_backend_test_lanes/idea.md).**
 **Priority:** P2 — operator iteration cost, not a correctness gate
-**Origin:** PR #426 CI watch. Operator noticed the `backend (lint + typecheck + tests + coverage)` job ran for **8m20s** while the rest of the suite finished in 2-3 min. Operator asked: "is it possible to run this quicker? Can we parallelize this?" The answer is yes — three orthogonal wins, all of which fit the existing `pr.yml` shape without architectural change.
+**Origin:** PR #426 CI watch. Operator noticed the `backend (lint + typecheck + tests + coverage)` job ran for **8m20s** while the rest of the suite finished in 2-3 min. Operator asked: "is it possible to run this quicker? Can we parallelize this?" The answer is yes — but as of the 2026-06-05 preflight the cheap wins were done/dead and the remaining safe win was the lint-dedup below; the lane-split's real ROI proved marginal (see descope note).
 **Depends on:** None.
+
+> **DESCOPE (2026-06-05).** During plan design the lane-split's expected win was re-quantified and found **marginal**: the ~8min critical path is dominated by the **integration** layer, which *cannot* run under `-n auto` (the FK-teardown collision documented at `pr.yml`, reverted on PR #291). Only the unit (~40s) + lint (~40s) portions can move off the critical path, and lint already runs in parallel via `static-checks-backend`. So the lane-split recovers only ~1–1.5 min, and only at the cost of a fiddly, blind-CI-validated `coverage combine` merge job. The operator chose to ship **only the lint-dedup** (the reliable, zero-risk part of the win — ~30-40s, ~5-line edit) here, and defer the lane-split + coverage-combine + split-by-service to [`infra_pr_yml_split_backend_test_lanes`](../infra_pr_yml_split_backend_test_lanes/idea.md), to be picked up only if the integration layer ever becomes the binding constraint after other CI work lands.
+
+> **PREFLIGHT REFRESH (2026-06-05).** A live-codebase audit found the idea materially overtaken by events:
+> - **Win 1's main thrust shipped.** A dedicated `static-checks (backend — ruff + mypy + guards, always-run)` job already exists at [`.github/workflows/pr.yml:297-328`](../../../../../.github/workflows/pr.yml) — runs `ruff check` + `ruff format --check` + `mypy --strict`, no Postgres/ES/OS service containers, always-run. The open question "confirm `static-checks-backend` exists and what it covers" is **resolved: yes, it covers all of ruff/format/mypy.**
+> - **Win 2 (naive `-n auto`) was tried and reverted.** [`pr.yml:504-515`](../../../../../.github/workflows/pr.yml) documents it: attempted on PR #291, reverted because the **integration** layer hit FK collisions (`query_sets_cluster_id_fkey` violation when parallel workers tear down a cluster another worker still references). `pytest-xdist>=3.6` is already a dev dep ([`pyproject.toml:78`](../../../../../pyproject.toml)) for local opt-in. So naive whole-matrix `-n auto` is OFF THE TABLE; the real win is the **lane-split** (Win 2′ below).
+> - **The heavy `backend` job still redundantly re-runs lint/typecheck** ([`pr.yml:479-486`](../../../../../.github/workflows/pr.yml): `ruff check` + `Format check` + `mypy --strict`) before the pytest matrix — duplicating `static-checks-backend`. Dropping those 3 steps is the Win-1 residual.
+> - **Timing today:** the heavy job ran ~9m20s on PR #476 (2026-06-05), still the critical-path bottleneck.
+> - **Dangling reference:** the `chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md` cited in `pr.yml:514` + `pyproject.toml:77` does NOT exist under `planned_features/` (never filed, or shipped+moved). This chore subsumes its "split into parallel-safe unit+contract + serial integration lane" recommendation.
 
 ## Problem
 
@@ -20,56 +29,46 @@ Three concrete operator costs:
 
 Three wins, ordered by effort/reward:
 
-### Win 1 — Split lint + typecheck into their own job (~30-40s)
+### Win 1 — Split lint + typecheck into their own job (~30-40s) — ✅ SHIPPED (residual remains)
 
-A new `backend-static-checks` job that runs `make lint && make typecheck` against a checkout-only container (no Postgres / ES / OpenSearch service containers, no `uv sync` for full pytest deps). The existing `backend (unit tests — fast lane)` already does ~38s with the dev-deps-only install; the lint+typecheck job can be even leaner.
+**STATUS (preflight 2026-06-05): the split SHIPPED.** `static-checks (backend — ruff + mypy + guards, always-run)` (`pr.yml:297-328`) already runs ruff + format-check + mypy with no service containers, always-run, giving sub-minute lint feedback in parallel with everything else.
 
-Today there's a `static-checks-backend` job near the top of `pr.yml` (line ~10 in run logs) — verify what it covers and either extend it (preferred — fewer jobs to manage) or add a sibling. If it already covers lint + typecheck, the heavy `backend (lint + typecheck + ...)` job can drop those steps entirely.
+**Residual (the only remaining Win-1 work):** the heavy `backend (lint + typecheck + tests + coverage)` job STILL re-runs `ruff check` (`pr.yml:479`), `Format check` (`:483`), and `mypy --strict` (`:486`) before its pytest matrix — redundant with `static-checks-backend`. **Drop those 3 steps from the heavy job.** Net: ~30-40s off the heavy lane; lint/typecheck fast-feedback is preserved by the parallel `static-checks-backend` job (a lint error still goes red in <1 min). Trade-off: on a lint-failing PR the heavy job no longer self-aborts early, wasting runner-minutes on a doomed run — acceptable, since the PR is already red from `static-checks-backend` and GHA doesn't auto-cancel.
 
-**Effort:** ~30 min of YAML editing. **Expected wall-clock cut:** 3-4 min off the critical path (lint/typecheck failures surface in <1 min instead of ~5 min, and the heavy lane stops paying for the redundant work).
+**Effort:** ~5-line YAML edit. **Expected wall-clock cut:** ~30-40s off the critical path.
 
-### Win 2 — Use `pytest -n auto` on unit + contract layers
+### Win 2′ (lane-split) + Win 3 (split-by-service) — DEFERRED to `infra_pr_yml_split_backend_test_lanes`
 
-Both `backend/tests/unit/` and `backend/tests/contract/` are hermetic (no DB, no Compose). On a 2-core GHA runner, `pytest -n auto` halves wall-clock for embarrassingly parallel suites. Local timing: `pytest backend/tests/unit/` at 2191 tests runs in ~8s already; on CI's slower runner it's currently 3-4 min serial. With `-n auto` it's likely <90s.
+**Both deferred at the 2026-06-05 descope.** The lane-split (parallel `unit+contract` + serial `integration` + a `coverage combine` merge/gate job) and the split-integration-by-service-container work were moved to [`infra_pr_yml_split_backend_test_lanes`](../infra_pr_yml_split_backend_test_lanes/idea.md). Rationale captured in the DESCOPE note above: the integration layer is the binding constraint and cannot parallelize (FK-teardown collision, reverted on PR #291), so the recoverable win is only ~1–1.5 min and requires a blind-CI-validated `coverage combine` path — not worth the risk until integration becomes the limiting factor. See the infra idea for the full design surface (coverage-combine option (a) vs feedback-only option (b), contract-layer `-n auto`-safety, per-service-container lanes).
 
-**Effort:** add `pytest-xdist` to the dev deps (it's already widely used in the ecosystem; check `uv.lock`), update `make test-unit` and `make test-contract` to pass `-n auto`, verify no test-ordering assumptions break (`@pytest.mark.order` or `pytest-ordering` if any test relies on specific ordering). Per CLAUDE.md "Common Pitfalls" the codebase already gates flaky tests behind `pytest-randomly` randomization — that's a sibling concern, not a blocker. **Expected wall-clock cut:** 2-3 min off the unit + contract portion of the heavy job.
+## Decisions
 
-### Win 3 — Split integration tests by service-container they need (~2-3 hours, deserves its own spec)
+- **D-1. Ship only the lint-dedup in this chore; defer the lane-split + split-by-service to `infra_pr_yml_split_backend_test_lanes`.** (Descoped 2026-06-05 — supersedes the original "Wins 1+2 here, Win 3 separate" decision.) Rationale in the DESCOPE note: the lint-dedup is a zero-risk ~5-line edit with a reliable ~30-40s win; the lane-split's incremental win is only ~1-1.5 min (integration can't parallelize) and carries blind-CI `coverage combine` risk — not worth bundling.
+- **D-2. NO change to the coverage gate (this chore).** The heavy job still runs the full `pytest backend/tests/` matrix with `--cov`; dropping the lint/format/mypy steps doesn't touch coverage (those don't contribute to coverage). The `coverage combine` design lives in the deferred infra idea.
+- **D-3. NO change to the fast-lane job.** The ~38s fast-lane (`pr.yml`, `backend (unit tests — fast lane)`) stays as-is — it's the canary for unit-test correctness.
 
-Today all integration tests share one job that boots Postgres + Elasticsearch + OpenSearch. But:
-- Most tests need only Postgres (the demo-data + repo-layer suites).
-- A subset needs Elasticsearch (the adapter integration tests).
-- A subset needs OpenSearch (also adapter integration tests).
-- A tiny subset needs Solr (when reachable; mostly skip-gated today).
+## What shipped (ad-hoc, 2026-06-05)
 
-Splitting into `integration:postgres` / `integration:elastic` / `integration:opensearch` (using pytest markers + targeted `-m` selection) lets each lane scale to what it actually needs and run concurrently. The Postgres-only lane gets a faster service-container boot since it doesn't wait for ES/OS to settle.
+Three redundant steps removed from the heavy `backend` job in `.github/workflows/pr.yml` (each already covered by the always-run `static-checks-backend` job):
+- `ruff check .`
+- `ruff format --check .`
+- `mypy backend/`
 
-**Effort:** larger — needs pytest marker pass + per-lane service-container config + makefile target split + verification that test ordering still works under independent runs. **Recommend escalating Win 3 to a separate `infra_pr_yml_split_integration_by_service` spec via `/pipeline` if pursued.** Not in scope for this chore.
-
-## Decisions (locked at idea time)
-
-- **D-1. Wins 1 + 2 only in this chore; Win 3 deferred to a separate `infra_` spec.** Rationale: Wins 1 + 2 are ~1 hour of YAML/Makefile editing each, fit cleanly under the `chore_` prefix, and capture ~5-6 min of the 8m20s. Win 3 is multi-file with test-ordering implications across the full integration suite — that's `infra_`-shaped work warranting `/pipeline` ceremony (a spec + plan, not a `bug_fix.md`).
-- **D-2. NO change to the coverage gate.** Coverage runs last as an aggregation step that needs the full pytest output. Splitting it naively (e.g., coverage per shard with merge) is its own rabbit hole. Keep the coverage step in whatever job ends up running the full pytest matrix; only the lint/typecheck split affects it (those don't contribute to coverage).
-- **D-3. NO change to the fast-lane job.** The 38s fast-lane stays as-is — it's the canary for unit-test correctness. If Win 1 lands and lint/typecheck split out, the fast-lane becomes literally the unit-test subset; if Win 2 adds `-n auto` to it too, fast-lane drops to ~10s.
-
-## Open questions for spec/impl-execute
-
-- **Confirm `static-checks-backend` already exists and what it covers.** If it covers ruff/format and mypy already, then Win 1 reduces to dropping the redundant steps from the heavy job (a 5-line YAML edit). If it covers only one of those, the chore extends it. Worth a 5-minute audit of `pr.yml` before starting.
-- **`pytest-xdist` test-isolation audit.** A small subset of tests may rely on shared fixture state (rare in this codebase but worth a one-pass grep for `@pytest.mark.serial`, module-level `_GLOBAL = ...` patterns, or `conftest.py` autouse fixtures with side effects). If any are found, the chore either marks them `@pytest.mark.serial` (xdist supports a single-worker serial group) or rewrites them — depends on count.
+Plus the now-unused `Restore mypy + ruff caches` step (it only served the removed ruff/mypy steps), and a job display-name update (`backend (lint + typecheck + tests + coverage)` → `backend (tests + coverage)`). Net: ~30-40s off the critical path; lint/type fast-feedback preserved by the parallel `static-checks-backend` job. The dangling `chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md` reference in the pytest-step comment was repointed at the new `infra_pr_yml_split_backend_test_lanes` idea.
 
 ## Scope signals
 
 - **Backend:** none (no `backend/app/` source touched).
 - **Frontend:** none.
 - **Migration:** none.
-- **Config:** `.github/workflows/pr.yml` (job split), `Makefile` (test target update), `pyproject.toml` (add `pytest-xdist` to dev deps if not already there).
+- **Config:** `.github/workflows/pr.yml` only (remove 3 redundant steps + 1 unused cache step + rename display name). No `Makefile` / `pyproject.toml` change (those were lane-split concerns, now deferred).
 - **Audit events:** N/A — CI workflow config.
 - **Operator impact:** none on operator-path behavior. Affects CI feedback latency only. Operators flipping `SKIP_HEAVY_CI=true` see no change.
 
 ## Relationship to other work
 
 - Sibling of `infra_smoke_reseed_runtime_budget` (shipped 2026-06-02 in PR #424) — that work made the `smoke` job feasible to opt-in via `SMOKE_TEST=true`. This chore reduces the *default* per-PR critical path (smoke is opt-in/off), so even when smoke runs it stops being the wall-clock bottleneck.
-- Coordinates with — but does NOT block — Win 3 (`infra_pr_yml_split_integration_by_service`). Wins 1 + 2 are pure subtractions from the heavy job; Win 3 is a structural split. Either can ship first.
+- Hands off the lane-split + split-by-service residual to [`infra_pr_yml_split_backend_test_lanes`](../infra_pr_yml_split_backend_test_lanes/idea.md) (deferred). The lint-dedup shipped here is a pure subtraction from the heavy job; the deferred work is a structural split.
 - Captured during `bug_llm_capability_cache_no_refresh` (PR #426) CI watch — the slow backend job made the operator wait through two cycles (initial push + post-Gemini-fixes push); each waited the same 8 min on the same backend lane.
 
 ## Why filed instead of fixed inline during PR #426
