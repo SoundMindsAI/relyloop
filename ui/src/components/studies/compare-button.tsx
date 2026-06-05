@@ -7,7 +7,6 @@
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
-import { useJudgmentList } from '@/lib/api/judgments';
 import { useStudyPair, type StudyDetail } from '@/lib/api/studies';
 
 /**
@@ -15,22 +14,21 @@ import { useStudyPair, type StudyDetail } from '@/lib/api/studies';
  * study has a unique LLM↔UBI counterpart. The label names the *other* kind; the
  * link is canonical (LLM study as `a`, UBI study as `b`). Hidden entirely when
  * there is no pair — no disabled state.
+ *
+ * This study's kind is the OPPOSITE of the counterpart's `kind`, so no extra
+ * judgment-list fetch is needed (Gemini PR #461).
  */
 export function CompareButton({ study }: { study: StudyDetail }) {
   const pairQ = useStudyPair(study.id);
-  const jlQ = useJudgmentList(study.judgment_list_id);
 
   const counterpartId = pairQ.data?.study_id ?? null;
-  if (counterpartId == null) return null;
+  const counterpartKind = pairQ.data?.kind ?? null;
+  if (counterpartId == null || counterpartKind == null) return null;
 
-  const thisIsUbi =
-    (jlQ.data?.generation_params as Record<string, unknown> | null | undefined)?.[
-      'generation_kind'
-    ] === 'ubi';
-  const llmId = thisIsUbi ? counterpartId : study.id;
-  const ubiId = thisIsUbi ? study.id : counterpartId;
-  // The button labels the OTHER study's kind (== pairQ.data.kind).
-  const otherKindLabel = pairQ.data?.kind === 'ubi' ? 'UBI' : 'LLM';
+  // counterpart is UBI ⟺ this study is LLM (and vice versa).
+  const llmId = counterpartKind === 'ubi' ? study.id : counterpartId;
+  const ubiId = counterpartKind === 'ubi' ? counterpartId : study.id;
+  const otherKindLabel = counterpartKind === 'ubi' ? 'UBI' : 'LLM';
 
   return (
     <Button asChild variant="outline" size="sm" data-testid="study-compare-button">

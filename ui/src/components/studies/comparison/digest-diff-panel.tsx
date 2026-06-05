@@ -21,8 +21,11 @@ const MISSING = 'digest not available for this study';
  * digest is missing; `+`/`−` text markers (not color-only) for accessibility.
  */
 export function DigestDiffPanel({ llmNarrative, ubiNarrative }: DigestDiffPanelProps) {
-  const bothPresent = llmNarrative != null && ubiNarrative != null;
-  const diff = bothPresent ? diffNarratives(llmNarrative, ubiNarrative) : null;
+  // Treat empty / whitespace-only narratives as missing (Gemini PR #461).
+  const hasLlm = Boolean(llmNarrative?.trim());
+  const hasUbi = Boolean(ubiNarrative?.trim());
+  const diff =
+    hasLlm && hasUbi ? diffNarratives(llmNarrative as string, ubiNarrative as string) : null;
 
   return (
     <Card data-testid="compare-digest-diff-panel">
@@ -38,7 +41,7 @@ export function DigestDiffPanel({ llmNarrative, ubiNarrative }: DigestDiffPanelP
         <div className="grid gap-4 md:grid-cols-2">
           <div data-testid="compare-digest-llm">
             <p className="text-xs uppercase text-muted-foreground">LLM</p>
-            {llmNarrative == null ? (
+            {!hasLlm ? (
               <p className="mt-1 text-sm italic text-muted-foreground">{MISSING}</p>
             ) : (
               <p className="mt-1 whitespace-pre-wrap text-sm">{llmNarrative}</p>
@@ -46,7 +49,7 @@ export function DigestDiffPanel({ llmNarrative, ubiNarrative }: DigestDiffPanelP
           </div>
           <div data-testid="compare-digest-ubi">
             <p className="text-xs uppercase text-muted-foreground">UBI</p>
-            {ubiNarrative == null ? (
+            {!hasUbi ? (
               <p className="mt-1 text-sm italic text-muted-foreground">{MISSING}</p>
             ) : (
               <p className="mt-1 whitespace-pre-wrap text-sm">{ubiNarrative}</p>

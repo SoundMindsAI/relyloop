@@ -32,6 +32,15 @@ describe('BestMetricPanel (FR-6)', () => {
     expect(screen.queryByTestId('compare-best-metric-delta')).toBeNull();
   });
 
+  it('zero delta renders "no change" (not "UBI worse")', () => {
+    render(
+      <BestMetricPanel llmMetric={0.5} ubiMetric={0.5} direction="maximize" metricLabel="ndcg" />,
+    );
+    const delta = screen.getByTestId('compare-best-metric-delta');
+    expect(delta).toHaveTextContent('no change');
+    expect(delta).not.toHaveTextContent('UBI worse');
+  });
+
   it('objectiveMismatch renders the qualifier caption', () => {
     render(
       <BestMetricPanel

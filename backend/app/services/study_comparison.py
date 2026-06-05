@@ -162,7 +162,7 @@ def _objective_key(objective: Any) -> tuple[Any, Any]:
     """
     if not isinstance(objective, dict):
         return (None, None)
-    return (objective.get("metric"), objective.get("direction", "maximize"))
+    return (objective.get("metric"), objective.get("direction") or "maximize")
 
 
 __all__ = [

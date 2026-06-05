@@ -35,6 +35,7 @@ export function BestMetricPanel({
 }: BestMetricPanelProps) {
   const haveBoth = llmMetric != null && ubiMetric != null;
   const delta = haveBoth ? (ubiMetric as number) - (llmMetric as number) : null;
+  const isZero = delta !== null && Math.abs(delta) < 1e-9;
   // "better" = the UBI study improved on the objective relative to LLM.
   const ubiBetter = delta == null ? null : direction === 'minimize' ? delta < 0 : delta > 0;
 
@@ -60,12 +61,20 @@ export function BestMetricPanel({
         </div>
         {delta != null && (
           <p className="text-center text-sm" data-testid="compare-best-metric-delta">
-            <span className={ubiBetter ? 'text-emerald-600' : 'text-destructive'}>
-              {delta >= 0 ? '+' : ''}
+            <span
+              className={
+                isZero
+                  ? 'text-muted-foreground'
+                  : ubiBetter
+                    ? 'text-emerald-600'
+                    : 'text-destructive'
+              }
+            >
+              {delta > 0 ? '+' : ''}
               {delta.toFixed(3)}
             </span>{' '}
             <span className="text-muted-foreground">
-              ({ubiBetter ? 'UBI better' : 'UBI worse'}, {direction})
+              ({isZero ? 'no change' : ubiBetter ? 'UBI better' : 'UBI worse'}, {direction})
             </span>
           </p>
         )}

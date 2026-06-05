@@ -33,7 +33,7 @@ export function deriveBestSoFarCurve(
   direction: 'maximize' | 'minimize',
 ): CurvePoint[] {
   const usable = trials
-    .filter((t) => t.status === 'complete' && !t.is_baseline && t.primary_metric !== null)
+    .filter((t) => t.status === 'complete' && !t.is_baseline && t.primary_metric != null)
     .slice()
     .sort((x, y) => x.optuna_trial_number - y.optuna_trial_number);
 
