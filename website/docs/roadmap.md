@@ -37,6 +37,7 @@
 - ✅ [Digest Executable Followups](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_24_feat_digest_executable_followups) · [#225](https://github.com/SoundMindsAI/relyloop/pull/225)
 - ✅ [Digest Executable Followups Swap Template](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_24_feat_digest_executable_followups_swap_template) · [#232](https://github.com/SoundMindsAI/relyloop/pull/232)
 - ✅ [Digest Proposal](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_11_feat_digest_proposal) · [#41](https://github.com/SoundMindsAI/relyloop/pull/41)
+- ✅ [FTS Rank Ordering](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_feat_fts_rank_ordering)
 - ✅ [Github PR Worker](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_12_feat_github_pr_worker) · [#45](https://github.com/SoundMindsAI/relyloop/pull/45)
 - ✅ [Github Webhook](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_12_feat_github_webhook) · [#56](https://github.com/SoundMindsAI/relyloop/pull/56)
 - ✅ [Home Demo Reseed Endpoint](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_24_feat_home_demo_reseed_endpoint) · [#228](https://github.com/SoundMindsAI/relyloop/pull/228)
@@ -136,7 +137,7 @@
     - ✅ [Guides Faq](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_22_chore_guides_faq)
     - ✅ [Guides Glossary Route](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_22_chore_guides_glossary_route)
     - ✅ [Infra Foundation Github Token File Retirement](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_13_chore_infra_foundation_github_token_file_retirement)
-    - ✅ [Judgment Header Omits Click Bucket](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_bug_judgment_header_omits_click_bucket)
+    - ✅ [Judgment Header Omits Click Bucket](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_bug_judgment_header_omits_click_bucket) · [#470](https://github.com/SoundMindsAI/relyloop/pull/470)
     - ✅ [Judgment Lists Listing Ignores Query Set Filter](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_20_bug_judgment_lists_listing_ignores_query_set_filter)
     - ✅ [Judgment Template Default Params Contract](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_13_bug_judgment_template_default_params_contract)
     - ✅ [LLM Capability Cache No Refresh](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_bug_llm_capability_cache_no_refresh)
@@ -189,7 +190,6 @@
 - ✅ [UBI Judgments](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_feat_ubi_judgments) · [#317](https://github.com/SoundMindsAI/relyloop/pull/317)
 - ✅ [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_05_feat_ubi_llm_study_comparison) · [#461](https://github.com/SoundMindsAI/relyloop/pull/461)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
-- 🟡 [FTS Rank Ordering](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering)
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
 
 ??? note "Infrastructure & tooling (7)"
