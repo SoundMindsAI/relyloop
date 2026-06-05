@@ -88,7 +88,7 @@ describe('wire-value arrays match documented spec table', () => {
     [
       'PROPOSAL_STATUS_VALUES',
       PROPOSAL_STATUS_VALUES,
-      ['pending', 'pr_opened', 'pr_merged', 'rejected'],
+      ['pending', 'pr_opened', 'pr_merged', 'rejected', 'superseded'],
     ],
     ['PROPOSAL_PR_STATE_VALUES', PROPOSAL_PR_STATE_VALUES, ['open', 'closed', 'merged']],
     ['CONFIG_REPO_PROVIDER_VALUES', CONFIG_REPO_PROVIDER_VALUES, ['github']],

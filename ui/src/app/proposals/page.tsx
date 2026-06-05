@@ -8,6 +8,7 @@ import { Suspense } from 'react';
 import { CurrentlyLiveFilterChip } from '@/components/proposals/currently-live-filter-chip';
 import { ProposalsTable } from '@/components/proposals/proposals-table';
 import { proposalsColumns } from '@/components/proposals/proposals-table.column-config';
+import { ShowSupersededFilterChip } from '@/components/proposals/show-superseded-filter-chip';
 import { Card, CardContent } from '@/components/ui/card';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useProposals } from '@/lib/api/proposals';
@@ -35,6 +36,11 @@ function ProposalsPageInner() {
   // stays API-only per spec §19 decision-log).
   const isLastMergedActive = urlState.filters['is_last_merged'] === 'true';
 
+  // Phase 3 D-15 revised: ``?include_superseded=true`` opts the list
+  // into surfacing superseded rows. Default URL omits the param; the
+  // backend's implicit-exclusion default keeps superseded rows hidden.
+  const includeSupersededActive = urlState.filters['include_superseded'] === 'true';
+
   const query = useProposals(
     {
       status,
@@ -45,6 +51,7 @@ function ProposalsPageInner() {
       sort: urlState.sort ?? undefined,
       cursor: urlState.cursor ?? undefined,
       limit: urlState.pageSize,
+      include_superseded: includeSupersededActive ? true : undefined,
     },
     {
       // FR-1: 30s refetch when any row has status='pr_opened' AND pr_state='open'
@@ -60,10 +67,20 @@ function ProposalsPageInner() {
     <main className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight">Proposals</h1>
-        <CurrentlyLiveFilterChip
-          isActive={isLastMergedActive}
-          onToggle={() => urlState.setFilter('is_last_merged', isLastMergedActive ? null : 'true')}
-        />
+        <div className="flex items-center gap-2">
+          <ShowSupersededFilterChip
+            isActive={includeSupersededActive}
+            onToggle={() =>
+              urlState.setFilter('include_superseded', includeSupersededActive ? null : 'true')
+            }
+          />
+          <CurrentlyLiveFilterChip
+            isActive={isLastMergedActive}
+            onToggle={() =>
+              urlState.setFilter('is_last_merged', isLastMergedActive ? null : 'true')
+            }
+          />
+        </div>
       </div>
       <Card>
         <CardContent className="pt-6">

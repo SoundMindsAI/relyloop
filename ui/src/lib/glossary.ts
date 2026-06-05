@@ -572,6 +572,17 @@ export const glossary = {
   'proposal.status.rejected': {
     short: 'Rejected by an operator. See "Rejected reason" for context; no PR will be opened.',
   },
+  'proposal.status.superseded': {
+    short:
+      'A non-winning sibling from an overnight chain. Preserved for audit; reinstate to ship it instead.',
+  },
+  'proposal.reinstate': {
+    short:
+      "Flip this superseded proposal back to pending so you can ship it — when the chain's pick doesn't match your judgment.",
+  },
+  'proposal.show_superseded_filter': {
+    short: 'Show non-winning chain-link proposals. Hidden by default to focus on actionable rows.',
+  },
 
   // Source-of-truth: backend/app/api/v1/schemas.py ProposalPrStateWire
   // (mirrored in ui/src/lib/enums.ts PROPOSAL_PR_STATE_VALUES).
