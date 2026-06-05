@@ -408,6 +408,13 @@ export const glossary = {
       'Next-study suggestions from the LLM, based on which parameters mattered most. Treat as hypotheses, not commands.',
     ariaLabel: 'More information about suggested follow-ups',
   },
+  // feat_query_normalization_tuning FR-6 — the analyzer-redundancy advisory.
+  // Long-only: the canonical copy exceeds the 140-char `short` bound, and the
+  // advisory line itself is self-explanatory (rendered inline above the
+  // recommended-config JSON), so it carries no nested info-tooltip.
+  'digest.normalizer_advisory': {
+    long: 'The winning normalizer applies lowercasing, which your field analyzer already does. The loop still found a measurable gain — the duplication is harmless. Production parity is required for the gain to reproduce.',
+  },
   'digest.open_pr_button': {
     short:
       'Open a GitHub PR with the recommended config in the cluster’s config repo. An operator merges the PR to deploy.',

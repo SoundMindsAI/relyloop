@@ -22,11 +22,11 @@ import { StudyHeader } from '@/components/studies/study-header';
 import { TrialsTable } from '@/components/studies/trials-table';
 import { trialsColumns } from '@/components/studies/trials-table.column-config';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
-import { useCluster } from '@/lib/api/clusters';
-import { useStudyDigest } from '@/lib/api/digests';
+import { useCluster, useClusterSchema } from '@/lib/api/clusters';
+import { useStudyDigest, type DigestResponse } from '@/lib/api/digests';
 import { useJudgmentList } from '@/lib/api/judgments';
-import { useProposalForStudy } from '@/lib/api/proposals';
-import { useStudy, useStudyChildren, useStudyTrials } from '@/lib/api/studies';
+import { useProposalForStudy, type ProposalSummary } from '@/lib/api/proposals';
+import { useStudy, useStudyChildren, useStudyTrials, type StudyDetail } from '@/lib/api/studies';
 import { isDemoSyntheticUbiClusterName } from '@/lib/demo-data';
 import { TRIAL_SORT_VALUES, type TrialSort } from '@/lib/enums';
 
@@ -118,7 +118,8 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
             />
             <TrialsCard trialsQ={trialsQ} urlState={urlState} tableId={`trials-${studyId}`} />
             {study.status === 'completed' && digestQ.data && (
-              <DigestPanel
+              <DigestSection
+                study={study}
                 digest={digestQ.data}
                 baselineMetric={study.baseline_metric ?? null}
                 bestMetric={study.best_metric ?? null}
@@ -129,6 +130,44 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
         )}
       </DetailPageShell>
     </main>
+  );
+}
+
+/**
+ * Wrapper that resolves the study's cluster engine + target schema (FR-6)
+ * and feeds them to <DigestPanel> for the analyzer-redundancy advisory.
+ *
+ * Lives as its own component (not inline in the DetailPageShell render-prop)
+ * because the two TanStack Query hooks must run at a component's top level —
+ * calling them inside the render-prop callback would violate the rules of
+ * hooks. The advisory predicate evaluates false while either query is
+ * loading/errored, so the panel renders identically to before until the
+ * cluster + schema resolve.
+ */
+function DigestSection({
+  study,
+  digest,
+  baselineMetric,
+  bestMetric,
+  pendingProposal,
+}: {
+  study: StudyDetail;
+  digest: DigestResponse;
+  baselineMetric: number | null;
+  bestMetric: number | null;
+  pendingProposal: ProposalSummary | null;
+}) {
+  const clusterQ = useCluster(study.cluster_id);
+  const schemaQ = useClusterSchema(study.cluster_id, study.target);
+  return (
+    <DigestPanel
+      digest={digest}
+      baselineMetric={baselineMetric}
+      bestMetric={bestMetric}
+      pendingProposal={pendingProposal}
+      engineType={clusterQ.data?.engine_type}
+      schema={schemaQ.data}
+    />
   );
 }
 

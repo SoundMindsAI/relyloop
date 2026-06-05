@@ -12,13 +12,54 @@ import { ParameterImportanceChart } from '@/components/common/parameter-importan
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { DigestResponse } from '@/lib/api/digests';
+import type { Schema } from '@/lib/api/clusters';
 import type { ProposalSummary } from '@/lib/api/proposals';
+import type { EngineType } from '@/lib/enums';
+import { glossary } from '@/lib/glossary';
 
 export interface DigestPanelProps {
   digest: DigestResponse;
   baselineMetric: number | null;
   bestMetric: number | null;
   pendingProposal: ProposalSummary | null;
+  /** Engine of the study's cluster (FR-6). Undefined while the cluster query
+   * is loading/errored — the advisory predicate then evaluates false. */
+  engineType?: EngineType | undefined;
+  /** Target-field schema for the study (FR-6). Undefined while the schema
+   * query is loading/errored/404 — advisory hidden, panel otherwise intact. */
+  schema?: Schema | undefined;
+}
+
+// ES/OpenSearch analyzers that apply a lowercase token filter. The
+// `whitespace` analyzer is intentionally EXCLUDED — it tokenizes on
+// whitespace but does NOT lowercase, so including it would produce
+// false-positive advisories (spec FR-6).
+const LOWERCASE_APPLYING_ANALYZERS = new Set(['standard', 'english', 'simple']);
+
+/**
+ * FR-6 predicate: render the analyzer-redundancy advisory only when ALL of:
+ *  1. engine is elasticsearch / opensearch (Solr has no per-field analyzer);
+ *  2. `recommended_config.query_normalizer` is a lowercasing choice (not none);
+ *  3. the schema has ≥1 `text` field whose analyzer overlaps (a known
+ *     lowercase-applying analyzer OR a custom name containing "lowercase").
+ * Returns false when engineType or schema is undefined (loading / error).
+ */
+export function shouldShowNormalizerAdvisory(
+  recommendedConfig: Record<string, unknown> | null | undefined,
+  engineType: EngineType | undefined,
+  schema: Schema | undefined,
+): boolean {
+  if (!engineType || !schema) return false;
+  if (engineType === 'solr') return false;
+  const choice = recommendedConfig?.['query_normalizer'];
+  if (typeof choice !== 'string') return false;
+  if (choice === 'none') return false;
+  return schema.fields.some((f) => {
+    if (f.type !== 'text') return false;
+    const a = f.analyzer;
+    if (!a) return false;
+    return LOWERCASE_APPLYING_ANALYZERS.has(a) || a.includes('lowercase');
+  });
 }
 
 function deltaPct(baseline: number | null, best: number | null): string {
@@ -34,6 +75,8 @@ export function DigestPanel({
   baselineMetric,
   bestMetric,
   pendingProposal,
+  engineType,
+  schema,
 }: DigestPanelProps) {
   const followups = digest.suggested_followups ?? [];
   return (
@@ -89,6 +132,14 @@ export function DigestPanel({
                 Recommended config
                 <InfoTooltip glossaryKey="digest.recommended_config" />
               </p>
+              {shouldShowNormalizerAdvisory(digest.recommended_config, engineType, schema) && (
+                <p
+                  className="mt-1 text-sm text-muted-foreground"
+                  data-testid="digest-normalizer-advisory"
+                >
+                  {glossary['digest.normalizer_advisory'].long}
+                </p>
+              )}
               <pre className="mt-1 max-h-48 overflow-auto rounded-md border bg-muted/40 p-2 text-xs">
                 {JSON.stringify(digest.recommended_config, null, 2)}
               </pre>
