@@ -1,7 +1,7 @@
 # Implementation Plan — `arq_pool_spy` fixture for POST /api/v1/studies integration tests
 
 **Date:** 2026-06-02
-**Status:** Ready for Execution
+**Status:** Complete (PR #476, squash-merged `ed85d84` 2026-06-05)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../../CLAUDE.md) (Integration Test Mocking Policy, test layers); [`docs/05_quality/testing.md`](../../../../05_quality/testing.md)
 
