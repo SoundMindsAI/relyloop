@@ -1,7 +1,7 @@
 # Implementation Plan — Exact full-traffic UBI aggregation via cursor pagination (`scan_all`)
 
 **Date:** 2026-06-02
-**Status:** Ready for Execution
+**Status:** Complete (PR #474, squash-merged `d9afbce` 2026-06-05)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Absolute Rule #4 — engine code only in adapters; Conventional Commits + DCO sign-off; read-only UBI contract; no migration)
 
