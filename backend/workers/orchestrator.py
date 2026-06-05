@@ -56,9 +56,10 @@ from backend.app.db.models import Study, Trial
 from backend.app.db.repo.trial import TrialsSummary, aggregate_trials_summary
 from backend.app.db.session import get_session_factory
 from backend.app.domain.study.baseline_resolver import resolve_baseline_params
+from backend.app.domain.study.chain_summary import select_best_link
 from backend.app.domain.study.search_space import SearchSpace, apply_search_space
 from backend.app.eval.optuna_runtime import build_pruner, build_sampler, get_or_create_study
-from backend.app.services import study_state
+from backend.app.services import chain_rollup, study_state
 
 logger = structlog.get_logger(__name__)
 
@@ -712,6 +713,12 @@ async def _stop(
     picked up by ``feat_digest_proposal``'s boot-time scan when that
     feature ships.
     """
+    # Phase 3 FR-5/FR-7: chain-rollup payload captured inside the
+    # transaction; structlog event fires AFTER commit per spec D-19.
+    superseded_count = 0
+    superseded_ids: list[str] = []
+    chain_anchor_id: str | None = None
+    best_link_id: str | None = None
     try:
         await study_state.complete_study(
             db,
@@ -738,6 +745,22 @@ async def _stop(
                 metric_delta=None,
                 status="pending",
             )
+            # Phase 3 FR-5: chain rollup runs in the same transaction as
+            # the link's pending proposal insert. Cheap heuristic gate to
+            # skip standalone (non-chain) studies entirely:
+            config_depth = (study.config or {}).get("auto_followup_depth")
+            could_be_in_chain = study.parent_study_id is not None or config_depth not in (None, 0)
+            if could_be_in_chain:
+                # Capture anchor + winner for the post-commit log payload.
+                traversal = await repo.get_chain_for_study(db, study_id)
+                if traversal is not None and len(traversal.links) >= 2:
+                    chain_anchor_id = traversal.anchor_id
+                    best_link_id = select_best_link(traversal.links)
+                count, ids = await chain_rollup.mark_non_winning_chain_proposals_superseded(
+                    db, study_id=study_id
+                )
+                superseded_count = count
+                superseded_ids = ids
         await db.commit()
     except study_state.InvalidStateTransition:
         await db.rollback()
@@ -748,6 +771,20 @@ async def _stop(
             attempted_reason=reason,
         )
         return
+
+    # Phase 3 FR-7 / D-19: emit the chain-rollup structlog event AFTER
+    # commit succeeds — pre-commit emission would risk the transaction
+    # rolling back while the log claims durable supersession.
+    if superseded_count > 0:
+        logger.info(
+            "chain_proposals_superseded",
+            event_type="chain_proposals_superseded",
+            study_id=study_id,
+            chain_anchor_id=chain_anchor_id,
+            best_link_id=best_link_id,
+            superseded_count=superseded_count,
+            superseded_proposal_ids=superseded_ids,
+        )
 
     # Best-effort fast-path digest enqueue.
     try:
