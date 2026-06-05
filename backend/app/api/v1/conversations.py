@@ -138,6 +138,10 @@ async def list_conversations_endpoint(
         if is_rank:
             try:
                 parsed_cursor = _sort_decode_cursor(cursor, value_is_datetime=False)
+                if not isinstance(parsed_cursor[0], int):
+                    # A stale non-rank cursor (datetime str) would hit the int
+                    # rank_bucket column -> Postgres type error (500); reject 422.
+                    raise ValueError("rank cursor value must be an integer")
             except Exception as exc:
                 raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
         else:

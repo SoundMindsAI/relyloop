@@ -137,6 +137,5 @@ class TestRankKeysetExactness:
 
     def test_cursor_at_bucket_edge_includes_lower_bucket(self) -> None:
         rows = [(500, "id-a"), (499, "id-z"), (499, "id-y")]
-        ordered = self._sorted(rows)  # (500,id-a),(499,id-z),(499,id-y)
         after = self._sorted(_keyset_after(rows, (500, "id-a")))
         assert after == [(499, "id-z"), (499, "id-y")]

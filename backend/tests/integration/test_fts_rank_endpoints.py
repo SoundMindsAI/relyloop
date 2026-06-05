@@ -16,6 +16,8 @@ Marked ``@pytest.mark.integration``; skipped when Postgres is not reachable.
 
 from __future__ import annotations
 
+import base64
+import json
 import uuid
 
 import httpx
@@ -312,6 +314,21 @@ async def test_tampered_rank_cursor_returns_422(async_client: httpx.AsyncClient)
     not 500 (the rank path decodes with value_is_datetime=False but the same
     shape/type guards apply)."""
     resp = await async_client.get("/api/v1/clusters?q=anything&cursor=not-a-valid-cursor")
+    assert resp.status_code == 422, resp.text
+    assert resp.json()["detail"]["error_code"] == "VALIDATION_ERROR"
+
+
+async def test_stale_datetime_cursor_on_rank_path_returns_422(
+    async_client: httpx.AsyncClient,
+) -> None:
+    """Regression (Gemini PR #472): a *valid* non-rank cursor (datetime
+    value-half) reused on the rank path must 422 — NOT 500. Without the int
+    guard the str value-half would compare against the int rank_bucket column
+    and Postgres would raise a type error."""
+    stale = base64.urlsafe_b64encode(
+        json.dumps(["2026-01-01T00:00:00+00:00", str(uuid.uuid4())]).encode()
+    ).decode()
+    resp = await async_client.get(f"/api/v1/clusters?q=anything&cursor={stale}")
     assert resp.status_code == 422, resp.text
     assert resp.json()["detail"]["error_code"] == "VALIDATION_ERROR"
 
