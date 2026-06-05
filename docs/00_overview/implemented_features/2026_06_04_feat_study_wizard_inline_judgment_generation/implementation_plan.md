@@ -3,7 +3,7 @@
 - **Primary spec:** [`feature_spec.md`](feature_spec.md)
 - **Feature slug:** `feat_study_wizard_inline_judgment_generation`
 - **Bucket:** `02_mvp2`
-- **Status:** Draft
+- **Status:** Complete (PR #453, squash-merged `c40bfe4f`, 2026-06-04)
 - **Scope:** Frontend-only. No backend, no migration, no new endpoints (Alembic head unchanged at `0022`).
 
 ## 1) FR → story traceability

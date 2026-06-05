@@ -179,13 +179,13 @@
 - ✅ [Studies Convergence Visibility](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_02_feat_studies_convergence_visibility) · [#421](https://github.com/SoundMindsAI/relyloop/pull/421)
 - ✅ [Study Convergence Indicator](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_feat_study_convergence_indicator) · [#352](https://github.com/SoundMindsAI/relyloop/pull/352)
 - ✅ [Study Sub Warmup Guard](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_feat_study_sub_warmup_guard) · [#316](https://github.com/SoundMindsAI/relyloop/pull/316)
+- ✅ [Study Wizard Inline Judgment Generation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_04_feat_study_wizard_inline_judgment_generation) · [#453](https://github.com/SoundMindsAI/relyloop/pull/453)
 - ✅ [UBI Judgments](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_05_29_feat_ubi_judgments) · [#317](https://github.com/SoundMindsAI/relyloop/pull/317)
 - 🟡 [Apply Path Normalizer Declaration](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration)
 - 🟡 [FTS Rank Ordering](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_fts_rank_ordering)
 - 🟡 [Overnight Final Solution Phase3](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase3)
 - 🟡 [Query Normalization Tuning](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning)
 - 🟡 [Query Normalizer Typed Pipeline](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_query_normalizer_typed_pipeline)
-- 🟡 [Study Wizard Inline Judgment Generation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_study_wizard_inline_judgment_generation)
 - 🟡 [UBI LLM Study Comparison](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison)
 
 ??? note "Infrastructure & tooling (7)"
@@ -198,7 +198,7 @@
     - 🟡 [Arq Subprocess Test](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_arq_subprocess_test)
     - 🟡 [Smoke Fork PR Secret Skip](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip)
 
-??? note "Maintenance & fixes (26)"
+??? note "Maintenance & fixes (25)"
 
     - ✅ [Backend Suite Nondeterministic Caplog Isolation](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_backend_suite_nondeterministic_caplog_isolation) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
     - ✅ [Contract Allowlists Outdated After Mvp2 Features](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/implemented_features/2026_06_01_bug_contract_allowlists_outdated_after_mvp2_features) · [#364](https://github.com/SoundMindsAI/relyloop/pull/364)
@@ -222,7 +222,6 @@
     - 🟡 [Solr Post Pipeline Followups](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_solr_post_pipeline_followups)
     - 🟡 [Studies Detail Vitest Intermittent Timeout](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_studies_detail_vitest_intermittent_timeout)
     - 🟡 [Studies Post Arq Spy Fixture](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_studies_post_arq_spy_fixture)
-    - 🟡 [UBI Dispatch Naive Datetime Error Code Flake](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_ubi_dispatch_naive_datetime_error_code_flake)
     - 🟡 [UBI Hybrid Template Render](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render)
     - 🟡 [UBI Reader Search After Pagination](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/chore_ubi_reader_search_after_pagination)
     - 🟡 [Webhook Concurrent Merge Race Timing Sensitive](https://github.com/SoundMindsAI/relyloop/tree/main/docs/00_overview/planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive)
