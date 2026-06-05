@@ -397,18 +397,18 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">18 / 28</div>
-      <div class="sub">64% specced · 51 filed under MVP2</div>
-      <div class="bar"><span style="width:64%"></span></div>
+      <div class="value">19 / 28</div>
+      <div class="sub">68% specced · 50 filed under MVP2</div>
+      <div class="bar"><span style="width:68%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">31</div>
+      <div class="value">29</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">10</div>
+      <div class="value">9</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -420,12 +420,12 @@ footer {
   <div class="kpi-row">
     <div class="kpi">
       <div class="label">P1</div>
-      <div class="value">1</div>
+      <div class="value">0</div>
       <div class="sub">high-value, ready when P0 clears</div>
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">26</div>
+      <div class="value">25</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">27</div>
+      <div class="value">25</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -463,7 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">19</span></h3>
+  <h3>Idea <span class="count">18</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase3">Overnight Final Solution Phase3</a></div>
@@ -635,19 +635,6 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_ubi_dispatch_naive_datetime_error_code_flake">Ubi Dispatch Naive Datetime Error Code Flake</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`backend/tests/unit/services/test_agent_judgments_dispatch_ubi.py::test_naive_since_with_none_until_does_not_crash` (around `:324`) is flaky:</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_webhook_concurrent_merge_race_timing_sensitive">Webhook Concurrent Merge Race Timing Sensitive</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -719,20 +706,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">12</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P1">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_study_wizard_inline_judgment_generation/feature_spec.md">Study Wizard Inline Judgment Generation</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P1">P1</span>
-
-  </div>
-  <div class="one-liner"></div>
-
-
-</div>
-
+  <h3>Plan <span class="count">11</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -884,7 +858,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">20</span></h3>
+  <h3>Done <span class="count">21</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -1011,6 +985,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/316">PR #316</a> <span>merged 2026-05-29</span>
   </div>
   <div class="one-liner">A non-blocking inline warning appears under the `max_trials` input whenever the derived preset is `custom` AND `max_trials &lt; STUDIES_TPE_WARMUP_FLOOR (= 50)`, naming Focused/Standard as one-click reme</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_04_feat_study_wizard_inline_judgment_generation/feature_spec.md">Study Wizard Inline Judgment Generation</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/453">PR #453</a> <span>merged 2026-06-04</span>
+  </div>
+  <div class="one-liner">Complete</div>
 
 
 </div>
@@ -1174,8 +1161,6 @@ footer {
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
-  feat_study_wizard_inline_judgment_generation[&quot;study wizard inline judgment generation&quot;]
-  class feat_study_wizard_inline_judgment_generation plan;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
   class feat_ubi_llm_study_comparison plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
@@ -1214,6 +1199,8 @@ footer {
   class feat_overnight_studies_summary_card done;
   feat_proposal_full_param_space_view[&quot;proposal full param space view&quot;]
   class feat_proposal_full_param_space_view done;
+  feat_study_wizard_inline_judgment_generation[&quot;study wizard inline judgment generation&quot;]
+  class feat_study_wizard_inline_judgment_generation done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1237,8 +1224,6 @@ footer {
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
-  feat_study_wizard_inline_judgment_generation[&quot;study wizard inline judgment generation&quot;]
-  class feat_study_wizard_inline_judgment_generation plan;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
   class feat_ubi_llm_study_comparison plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
@@ -1277,6 +1262,8 @@ footer {
   class feat_overnight_studies_summary_card done;
   feat_proposal_full_param_space_view[&quot;proposal full param space view&quot;]
   class feat_proposal_full_param_space_view done;
+  feat_study_wizard_inline_judgment_generation[&quot;study wizard inline judgment generation&quot;]
+  class feat_study_wizard_inline_judgment_generation done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>
