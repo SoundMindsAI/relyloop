@@ -1,5 +1,7 @@
 # Pipeline Status — feat_query_normalization_tuning
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: [`idea.md`](idea.md)
@@ -27,4 +29,12 @@
 - Cross-engine portability: explicit parametrized test in Story 2.3 + integration test asserts ES + OpenSearch + Solr behave identically
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-05
+- PR: [#459](https://github.com/SoundMindsAI/relyloop/pull/459) (squash-merged `7436bf92`)
+- CI: all 18 `pr.yml` checks green (smoke skipped — opt-in/off)
+- Stories: 11/11 complete across 6 epics
+- Gemini review: 2 medium findings, both accepted + fixed (case-insensitive analyzer match; single `model_validate` in `create_study`)
+- Tangential inline fixes: wizard auto-fill seeds the reserved key to the full `NORMALIZER_CHOICES` (parity-locked Python + TS) instead of the `__placeholder__` sentinel; spec FR-6 schema-endpoint path corrected
+- Final cross-model (GPT-5.5) review: skipped, consistent with the plan's recorded operator decision (Opus-only internal passes); Gemini reviewed the diff + CI green
+
