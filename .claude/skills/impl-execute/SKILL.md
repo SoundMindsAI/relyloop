@@ -776,7 +776,7 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
 
 ### Step 8: Finalize — verify completion, update docs, move to implemented
 
-> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (post-merge branch setup — derive the finalization branch slug from the **feature branch name** instead of a feature directory; e.g., feature branch `bug_study_status_transition` → `docs/finalize-study-status-transition`), 1a / 2 (guide impact), 5 (`state.md` if applicable), 8 (commit + push), 9 (report completion) still apply.
+> **Ad-hoc mode:** sub-steps 1, 3 (`pipeline_status.md`), 4 (`implementation_plan.md`), 6 (phase idea files), 7 (folder move), 8 (dashboard/roadmap regen — no folder moved, so the generated tree is unchanged) are SKIPPED — there is no plan, pipeline_status, or feature folder to update. Sub-steps 0 (post-merge branch setup — derive the finalization branch slug from the **feature branch name** instead of a feature directory; e.g., feature branch `bug_study_status_transition` → `docs/finalize-study-status-transition`), 1a / 2 (guide impact), 5 (`state.md` if applicable), 10 (commit + push), 11 (report completion) still apply.
 
 **This step is MANDATORY after CI passes and Gemini review comments are addressed.** It closes out the feature lifecycle and ensures the feature is properly archived.
 
@@ -888,7 +888,38 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
    - Short name is a snake_case slug derived from the feature directory name.
    - The entire folder moves — spec, plan, pipeline_status, phase idea files all travel together.
 
-8. **Close the tracking issue** (if one exists) per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
+8. **Regenerate the dashboards + public roadmap — BLOCKING.** Moving the
+   feature folder (step 7) changes the `planned_features/` ↔ `implemented_features/`
+   tree that the dashboards and the **public website roadmap** are generated
+   from. These regens are wired as pre-commit hooks (`mvp1-dashboard-regen`,
+   `public-roadmap-regen`), but **the remote-execution container does not have
+   pre-commit installed and there is no CI freshness-gate backstop for these
+   artifacts** — so the hook silently does not fire and the generated files
+   ship stale (shipped features keep showing as 🟡 planned; the relyloop.com
+   roadmap never updates because `website/docs/roadmap.md` never changes, and
+   `deploy-docs` is paths-filtered to `website/**`). Run both regen scripts
+   explicitly, here, every finalization:
+   ```bash
+   python3 scripts/build_mvp1_dashboard.py    # DASHBOARD/MVP1/MVP2 .md + .html
+   python3 scripts/build_public_roadmap.py     # website/docs/roadmap.md
+   ```
+   Both are deterministic (a second run produces no further diff). `git add`
+   the regenerated outputs in step 10 — the `website/docs/roadmap.md` change is
+   what triggers `deploy-docs` to refresh relyloop.com on merge.
+
+   **This bundles into the finalization commit / PR — it does NOT create a
+   separate PR.** Every cycle stays exactly two PRs: (1) the code PR, (2) the
+   finalization docs PR. The regen belongs in PR (2) because it depends on the
+   folder having already moved to `implemented_features/` (step 7), which only
+   happens at finalization, after the code PR merges — so it cannot live in the
+   code PR. Do NOT open a third PR for the regen. (The 2026-06-05 PR #468
+   incident — four finalizations committed without regenerating, leaving the
+   dashboards + public roadmap stale and relyloop.com frozen — was a one-time
+   *remediation* needed only because those finalization PRs had already merged;
+   running this step in-line is exactly what prevents both the drift and the
+   extra PR.)
+
+9. **Close the tracking issue** (if one exists) per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md):
    ```bash
    N=$(gh issue list --state all --limit 300 --json number,title \
         --jq '.[] | select(.title|startswith("<feature-dir-slug>:")) | .number')
@@ -896,13 +927,16 @@ Send to GPT-5.5 with the full implementation plan. This catches cross-story issu
    ```
    If the folder still carries `phase*_idea.md` follow-ups, leave the issue **open** and comment what remains instead of closing.
 
-9. **Commit and push** the finalization changes:
+10. **Commit and push** the finalization changes — include the regenerated
+    dashboards + `website/docs/roadmap.md` from step 8:
    ```bash
-   git add <all changed files> && git commit -s -m "docs: move <feature> to implemented, update state.md"
+   git add <all changed files including docs/00_overview/*DASHBOARD*.md \
+       docs/00_overview/*dashboard*.html website/docs/roadmap.md> \
+     && git commit -s -m "docs: move <feature> to implemented, update state.md"
    git push
    ```
 
-10. **Report completion** to the user with the final PR URL and a summary of what was archived.
+11. **Report completion** to the user with the final PR URL and a summary of what was archived.
 
 **Why this step exists:** Without explicit finalization, completed features linger in `planned_features/` and `pipeline_status.md` stays at "PR created" indefinitely. This creates stale state that confuses future planning sessions and the `/pipeline --status` command.
 
