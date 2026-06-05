@@ -20,15 +20,82 @@
 
 import * as React from 'react';
 
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { NORMALIZER_GLOSSARY_KEYS, NORMALIZER_VALUES, type NormalizerValue } from '@/lib/enums';
+import { glossary } from '@/lib/glossary';
 
 type Choice = string | number | boolean;
+
+/** Reserved non-render param consumed by the adapter (FR-2). Its create-study
+ * row is a constrained <Select>, not the free-form chip input. */
+const QUERY_NORMALIZER = 'query_normalizer';
 
 export interface RowCategoricalProps {
   paramName: string;
   choices: Choice[];
   onChange: (next: Choice[]) => void;
+}
+
+function isNormalizerValue(c: Choice): c is NormalizerValue {
+  return typeof c === 'string' && (NORMALIZER_VALUES as readonly string[]).includes(c);
+}
+
+/**
+ * Constrained select for the reserved `query_normalizer` param (FR-7).
+ *
+ * The option universe is bounded by NORMALIZER_VALUES, but the *selectable*
+ * set is the operator-declared `choices` subset. A single pick replaces the
+ * param's choices with `[value]` (single-select reserved key). Stray choices
+ * (not in NORMALIZER_VALUES — defense-in-depth; FR-2 enforces this
+ * server-side) are filtered out with a console warning.
+ */
+function NormalizerSelect({
+  choices,
+  onChange,
+}: {
+  choices: Choice[];
+  onChange: (next: Choice[]) => void;
+}): React.ReactElement {
+  // Values must match backend/app/domain/study/normalizers.py NORMALIZER_CHOICES
+  // (via the NORMALIZER_VALUES re-export in @/lib/enums).
+  const validChoices = choices.filter(isNormalizerValue);
+  if (validChoices.length !== choices.length) {
+    console.warn(
+      `query_normalizer: ignoring choices outside NORMALIZER_VALUES: ${JSON.stringify(
+        choices.filter((c) => !isNormalizerValue(c)),
+      )}`,
+    );
+  }
+  const current = validChoices.length === 1 ? validChoices[0] : undefined;
+  return (
+    <div className="space-y-2" data-testid={`cs-row-${QUERY_NORMALIZER}-choices`}>
+      <p className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+        Query normalizer
+        <InfoTooltip glossaryKey="search_space.query_normalizer.row" />
+      </p>
+      <Select value={current} onValueChange={(v) => onChange([v])}>
+        <SelectTrigger data-testid={`cs-row-${QUERY_NORMALIZER}-select`}>
+          <SelectValue placeholder="Pick a normalizer…" />
+        </SelectTrigger>
+        <SelectContent>
+          {validChoices.map((c) => (
+            <SelectItem key={c} value={c}>
+              {glossary[NORMALIZER_GLOSSARY_KEYS[c]].short}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
 }
 
 function coerce(raw: string): Choice {
@@ -50,6 +117,20 @@ function displayValue(value: Choice): string {
 }
 
 export function RowCategorical({
+  paramName,
+  choices,
+  onChange,
+}: RowCategoricalProps): React.ReactElement {
+  // Dispatcher only (no hooks here, so the conditional return is rules-of-hooks
+  // safe). The reserved key gets a constrained <Select>; everything else keeps
+  // the free-form chip input.
+  if (paramName === QUERY_NORMALIZER) {
+    return <NormalizerSelect choices={choices} onChange={onChange} />;
+  }
+  return <ChipInputCategorical paramName={paramName} choices={choices} onChange={onChange} />;
+}
+
+function ChipInputCategorical({
   paramName,
   choices,
   onChange,

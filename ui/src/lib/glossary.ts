@@ -97,6 +97,30 @@ export const glossary = {
     ariaLabel: 'More information about the cardinality cap',
   },
 
+  // Source-of-truth: backend/app/domain/study/normalizers.py NORMALIZER_CHOICES
+  // (mirrored in ui/src/lib/enums.ts NORMALIZER_VALUES / NORMALIZER_GLOSSARY_KEYS).
+  // feat_query_normalization_tuning FR-7. Choice-key suffixes sanitize `+`→`_`
+  // because `+` is unsafe in a glossary identifier; the NORMALIZER_GLOSSARY_KEYS
+  // map resolves each wire value to its key. The `short` field is the dropdown
+  // LABEL (per §8.4 + AC-11b), not the longer help text.
+  'search_space.query_normalizer.row': {
+    short:
+      'Transform the query before the engine sees it. Off by default; the loop picks the best transform when this row is present.',
+    ariaLabel: 'More information about the query normalizer',
+  },
+  'search_space.query_normalizer.choice.none': {
+    short: 'None — pass query through verbatim',
+  },
+  'search_space.query_normalizer.choice.lowercase': {
+    short: 'Lowercase only',
+  },
+  'search_space.query_normalizer.choice.lowercase_trim': {
+    short: 'Lowercase + trim whitespace',
+  },
+  'search_space.query_normalizer.choice.lowercase_trim_expand_contractions': {
+    short: 'Lowercase + trim + expand contractions (English)',
+  },
+
   // Source-of-truth: backend/app/api/v1/schemas.py ObjectiveMetric
   // (mirrored in ui/src/lib/enums.ts OBJECTIVE_METRIC_VALUES). FR-4 parity
   // test enforces key parity against OBJECTIVE_METRIC_VALUES.
