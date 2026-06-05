@@ -547,16 +547,18 @@ N/A — no frontend scope. No legacy behavior parity table — no user-facing co
 
 ### Current sprint
 - [x] Story 1.1 — `scan_all`/`close_scan`/`ScanPage` Protocol + shape test (commit `95432e5`)
-- [ ] Story 2.1 — `ElasticAdapter.scan_all`/`close_scan` (ES + OpenSearch)
-- [ ] Story 2.2 — `SolrAdapter.scan_all`/`close_scan` (`cursorMark`)
+- [x] Story 2.1 — `ElasticAdapter.scan_all`/`close_scan` (ES + OpenSearch) (commit `6b331c1`)
+- [x] Story 2.2 — `SolrAdapter.scan_all`/`close_scan` (`cursorMark`) (commit `3ab7bc4`)
+- [x] Story 3.2 — centralized `Settings` ceiling (folded into commit `6b331c1`; all 5 fields added alongside `ubi_no_pit_tiebreaker_field` consumer)
 - [ ] Story 3.1 — `UbiReader` paginated aggregation + exact ceiling + chunking + read-only invariant
-- [ ] Story 3.2 — centralized `Settings` ceiling
 
 ### Blocked items
 - None.
 
 ### Done this sprint
-- Story 1.1 (`95432e5`) — Protocol surface: `ScanPage`, `scan_all`, `close_scan`. Note: `test_solr_protocol.py` + `test_protocol.py::TestSolrAdapterProtocolBranch` transiently fail `isinstance(SearchAdapter)` until Story 2.2 ships the methods on `SolrAdapter`.
+- Story 1.1 (`95432e5`) — Protocol surface: `ScanPage`, `scan_all`, `close_scan`.
+- Story 2.1 (`6b331c1`) — `ElasticAdapter.scan_all`/`close_scan` (PIT + search_after, narrow no-PIT fallback, best-effort cleanup, AC-2/2b/3/3b/8/10/11 covered) + 5 Settings ceiling fields (Story 3.2 folded forward).
+- Story 2.2 (`3ab7bc4`) — `SolrAdapter.scan_all`/`close_scan` (POST /select form-body, cursorMark, AC-4 + AC-14 Solr half + P4-A2 covered). Resolves the Story-1.1 transient Protocol-shape failures on `SolrAdapter`.
 
 ## 10) Story-by-Story Verification Gate (Agent Checklist)
 
