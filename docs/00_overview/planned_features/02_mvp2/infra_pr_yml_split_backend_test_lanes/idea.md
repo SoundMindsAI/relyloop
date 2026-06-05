@@ -1,7 +1,7 @@
 # infra_pr_yml_split_backend_test_lanes — Split the heavy backend job into parallel test lanes
 
 **Date:** 2026-06-05
-**Status:** Idea — **deferred (defer-until-binding-constraint)**. Carved out of [`chore_pr_yml_parallelize_backend_job`](../chore_pr_yml_parallelize_backend_job/idea.md) at its 2026-06-05 descope. Pick up only when the integration layer becomes the binding CI constraint after other critical-path work lands.
+**Status:** Idea — **deferred (defer-until-binding-constraint)**. Carved out of `chore_pr_yml_parallelize_backend_job` (now in `implemented_features/2026_06_05_*`; see "Relationship to other work" below for the link) at its 2026-06-05 descope. Pick up only when the integration layer becomes the binding CI constraint after other critical-path work lands.
 **Priority:** P2 — operator iteration cost, not a correctness gate. Lower urgency than the parent chore because the recoverable win is marginal (see "Why deferred").
 **Origin:** Split out from `chore_pr_yml_parallelize_backend_job`. That chore shipped the reliable, zero-risk part (drop redundant lint/format/mypy from the heavy `backend` job — ~30-40s). This idea holds the remaining, riskier wins (Win 2′ lane-split + Win 3 split-by-service) that the operator chose to defer.
 **Depends on:** None. (Builds on the post-lint-dedup `.github/workflows/pr.yml` shape.)
@@ -59,5 +59,5 @@ All integration tests share one job that boots Postgres + Elasticsearch + OpenSe
 
 ## Relationship to other work
 
-- **Parent:** [`chore_pr_yml_parallelize_backend_job`](../chore_pr_yml_parallelize_backend_job/idea.md) — shipped the lint-dedup; this idea holds its deferred lane-split + split-by-service residual.
+- **Parent:** [`chore_pr_yml_parallelize_backend_job`](../../../implemented_features/2026_06_05_chore_pr_yml_parallelize_backend_job/idea.md) — shipped the lint-dedup; this idea holds its deferred lane-split + split-by-service residual.
 - Sibling of `infra_smoke_reseed_runtime_budget` (shipped 2026-06-02, PR #424) — that made the `smoke` job feasible to opt-in; this reduces the default per-PR critical path.
