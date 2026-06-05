@@ -177,6 +177,14 @@ stay on the cluster; they're consumed locally by the converter to decide
 *which* pairs need LLM-fill, not sent to the provider. The same
 `peek_daily_total` + `record_cost` budget gate fires per call.
 
+**The `chore_ubi_reader_search_after_pagination` upgrade does not
+change what leaves the cluster.** The paginated `scan_all` loop reads
+more events (the full window instead of a 10k sample) but the data
+flow to the LLM is identical: the same `(query_text, doc_body,
+rubric)` triple, derived from the same aggregated `FeatureVec` map.
+More pages in → potentially more dense-vs-sparse classification
+accuracy, but no new field types leave the cluster.
+
 ## Future work
 
 * `feat_chat_agent` (after `feat_digest_proposal`) adds a chat
