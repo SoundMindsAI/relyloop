@@ -280,8 +280,9 @@ For each stage from current to target:
    - Update `state.md`: add to recent changes, update current focus + branch context
    - **Check for `phase*_idea.md` files** — if any exist, STOP and ask the user for instructions (the folder contains unimplemented future work)
    - Move feature folder: `planned_features/<bucket>/<dir>` → `implemented_features/<YYYY_MM_DD>_<short_name>/`. Source carries the bucket; destination stays FLAT and date-prefixed (no bucket directory inside `implemented_features/`).
+   - **Regenerate the dashboards + public roadmap** — run `python3 scripts/build_mvp1_dashboard.py` and `python3 scripts/build_public_roadmap.py` explicitly (the pre-commit hooks that normally do this don't run in the remote container and have no CI backstop). The `website/docs/roadmap.md` change is what triggers `deploy-docs` to refresh relyloop.com on merge. See impl-execute Step 8.8 for the full rationale.
    - **Close the tracking issue** per [`feature_templates/tracking-issue-template.md`](../../../docs/00_overview/planned_features/feature_templates/tracking-issue-template.md) — `gh issue close <N> --comment "<merged PR link>"`. If any `phase*_idea.md` follow-ups remain, leave it open and note what's left instead.
-   - Commit and push the finalization changes
+   - Commit and push the finalization changes (include the regenerated dashboards + `website/docs/roadmap.md`)
 
 #### Stage: IMPLEMENT → DONE
 
