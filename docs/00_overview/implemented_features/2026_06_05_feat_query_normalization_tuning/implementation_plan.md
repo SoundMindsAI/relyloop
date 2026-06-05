@@ -1,7 +1,7 @@
 # Implementation Plan — Query normalization as a tunable, opt-in query-time parameter
 
 **Date:** 2026-05-31
-**Status:** Approved
+**Status:** Complete (PR #459, merged 2026-06-05)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):**
 - [`CLAUDE.md`](../../../../../CLAUDE.md) (Absolute Rule #4 — engine adapter Protocol confinement)

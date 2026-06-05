@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">20 / 29</div>
-      <div class="sub">69% specced · 50 filed under MVP2</div>
-      <div class="bar"><span style="width:69%"></span></div>
+      <div class="value">21 / 29</div>
+      <div class="sub">72% specced · 50 filed under MVP2</div>
+      <div class="bar"><span style="width:72%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">28</div>
+      <div class="value">27</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">24</div>
+      <div class="value">23</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">25</div>
+      <div class="value">24</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -693,7 +693,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">11</span></h3>
+  <h3>Plan <span class="count">10</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -703,19 +703,6 @@ footer {
 
   </div>
   <div class="one-liner">The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose.</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md">Query Normalization Tuning</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator&#x27;s judgment set — whether lowercasing, trimming, or contractio</div>
 
 
 </div>
@@ -845,7 +832,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">22</span></h3>
+  <h3>Done <span class="count">23</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -946,6 +933,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/446">PR #446</a> <span>merged 2026-06-04</span>
   </div>
   <div class="one-liner">A new `&lt;FullParamSpacePanel&gt;` renders below `&lt;ConfigDiffPanel&gt;` on `/proposals/[id]`.</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_feat_query_normalization_tuning/feature_spec.md">Query Normalization Tuning</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/459">PR #459</a> <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">A template that opts in by declaring `query_normalizer` as a Categorical param gets the Optuna loop deciding empirically — on the operator&#x27;s judgment set — whether lowercasing, trimming, or contractio</div>
 
 
 </div>
@@ -1157,8 +1157,6 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
-  class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
@@ -1203,6 +1201,8 @@ footer {
   class feat_study_wizard_inline_judgment_generation done;
   feat_overnight_final_solution_phase3[&quot;overnight final solution phase3&quot;]
   class feat_overnight_final_solution_phase3 done;
+  feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
+  class feat_query_normalization_tuning done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1222,8 +1222,6 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
-  feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
-  class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
   feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
@@ -1268,6 +1266,8 @@ footer {
   class feat_study_wizard_inline_judgment_generation done;
   feat_overnight_final_solution_phase3[&quot;overnight final solution phase3&quot;]
   class feat_overnight_final_solution_phase3 done;
+  feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
+  class feat_query_normalization_tuning done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>
