@@ -560,11 +560,13 @@ async def reinstate_proposal_endpoint(
     per D-16; emits ``chain_proposal_reinstated`` structlog AFTER commit
     per D-19.
     """
-    proposal = await repo.get_proposal(db, proposal_id)
-    if proposal is None:
-        raise _err(404, "PROPOSAL_NOT_FOUND", f"proposal {proposal_id} not found", False)
+    # Single read-check-mutate via the repo helper (Gemini perf finding):
+    # catch its LookupError / InvalidStateTransition directly and reuse the
+    # returned row — no separate pre-read or post-commit refresh needed.
     try:
-        await repo.reinstate_from_superseded(db, proposal_id=proposal_id)
+        proposal = await repo.reinstate_from_superseded(db, proposal_id=proposal_id)
+    except LookupError as exc:
+        raise _err(404, "PROPOSAL_NOT_FOUND", f"proposal {proposal_id} not found", False) from exc
     except InvalidStateTransition as exc:
         raise _err(
             409,
@@ -583,15 +585,7 @@ async def reinstate_proposal_endpoint(
         study_id=proposal.study_id,
         prior_status="superseded",
     )
-    refreshed = await repo.get_proposal(db, proposal_id)
-    if refreshed is None:
-        raise _err(
-            404,
-            "PROPOSAL_NOT_FOUND",
-            f"proposal {proposal_id} disappeared mid-update",
-            False,
-        )
-    return await _assemble_proposal_detail(db, refreshed)
+    return await _assemble_proposal_detail(db, proposal)
 
 
 __all__ = ["router"]

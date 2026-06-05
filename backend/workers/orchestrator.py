@@ -752,12 +752,15 @@ async def _stop(
             could_be_in_chain = study.parent_study_id is not None or config_depth not in (None, 0)
             if could_be_in_chain:
                 # Capture anchor + winner for the post-commit log payload.
+                # Pass the fetched traversal through to the rollup helper so
+                # it doesn't re-issue get_chain_for_study (Gemini perf
+                # finding — one fewer chain walk per chain-tail completion).
                 traversal = await repo.get_chain_for_study(db, study_id)
                 if traversal is not None and len(traversal.links) >= 2:
                     chain_anchor_id = traversal.anchor_id
                     best_link_id = select_best_link(traversal.links)
                 count, ids = await chain_rollup.mark_non_winning_chain_proposals_superseded(
-                    db, study_id=study_id
+                    db, study_id=study_id, traversal=traversal
                 )
                 superseded_count = count
                 superseded_ids = ids

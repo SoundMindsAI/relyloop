@@ -120,3 +120,26 @@ async def test_happy_path_with_zero_returned_rows(monkeypatch: pytest.MonkeyPatc
         bulk_returns=[],
     )
     assert result == (0, [])
+
+
+async def test_prefetched_traversal_skips_get_chain_for_study(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Gemini perf finding: when the caller passes ``traversal=``, the service
+    must NOT re-issue ``get_chain_for_study``."""
+    from backend.app.db import repo as repo_mod
+
+    get_chain_mock = AsyncMock(return_value=None)
+    monkeypatch.setattr(repo_mod, "get_chain_for_study", get_chain_mock)
+    monkeypatch.setattr(repo_mod, "bulk_mark_superseded", AsyncMock(return_value=["loser_prop"]))
+    monkeypatch.setattr(
+        chain_rollup, "derive_chain_stop_reason", lambda links, anchor_trials: "no_lift"
+    )
+    monkeypatch.setattr(chain_rollup, "select_best_link", lambda links: "winner")
+    prefetched: Any = _stub_traversal([_StubLink("loser"), _StubLink("winner")])
+    db_stub: Any = object()
+    result = await chain_rollup.mark_non_winning_chain_proposals_superseded(
+        db_stub, study_id="any", traversal=prefetched
+    )
+    assert result == (1, ["loser_prop"])
+    get_chain_mock.assert_not_called()

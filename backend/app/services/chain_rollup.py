@@ -26,6 +26,7 @@ from __future__ import annotations
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db import repo
+from backend.app.db.repo import ChainTraversalResult
 from backend.app.domain.study.chain_summary import (
     derive_chain_stop_reason,
     select_best_link,
@@ -36,6 +37,7 @@ async def mark_non_winning_chain_proposals_superseded(
     db: AsyncSession,
     *,
     study_id: str,
+    traversal: ChainTraversalResult | None = None,
 ) -> tuple[int, list[str]]:
     """Supersede ``pending`` proposals of all chain links other than the winner.
 
@@ -48,12 +50,19 @@ async def mark_non_winning_chain_proposals_superseded(
     so the caller can emit the post-commit ``chain_proposals_superseded``
     structlog event with the full IDs payload per spec D-19.
 
+    ``traversal`` is an optional pre-fetched
+    :class:`~backend.app.db.repo.ChainTraversalResult`. When the caller
+    has already walked the chain (e.g. ``_stop`` reads it to capture the
+    anchor + winner for its log payload), passing it here avoids a
+    duplicate ``get_chain_for_study`` round-trip. When ``None`` the
+    function fetches it itself.
+
     Idempotent. Re-running on the same chain after a successful first
     call returns ``(0, [])`` (the losers are now ``superseded`` and the
     repo helper's ``WHERE status='pending'`` clause excludes them).
 
     Early-returns ``(0, [])`` when:
-        a. ``repo.get_chain_for_study`` returns ``None`` (study not found).
+        a. the chain is missing (study not found).
         b. The chain has fewer than 2 links (single-link chain has no
            siblings to supersede).
         c. The derived ``stop_reason == "in_flight"`` (chain still
@@ -65,7 +74,8 @@ async def mark_non_winning_chain_proposals_superseded(
     boundary (e.g., ``_stop`` commits the link's ``pending`` proposal
     insert and the rollup in the same transaction).
     """
-    traversal = await repo.get_chain_for_study(db, study_id)
+    if traversal is None:
+        traversal = await repo.get_chain_for_study(db, study_id)
     if traversal is None:
         return (0, [])
     if len(traversal.links) < 2:
