@@ -11,7 +11,7 @@
  * stays at `llm`.
  */
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as React from 'react';
 
@@ -59,5 +59,76 @@ describe('<GenerateJudgmentsDialog> — method picker', () => {
       ),
     );
     expect(screen.getByTestId('generate-submit')).toBeInTheDocument();
+  });
+});
+
+// feat_study_wizard_inline_judgment_generation Story 1.1 — defaultTarget prop.
+describe('<GenerateJudgmentsDialog> — defaultTarget (lock + seed-on-open)', () => {
+  it('AC-2: seeds the target field from defaultTarget and locks it read-only', async () => {
+    render(
+      withClient(
+        <GenerateJudgmentsDialog
+          open
+          onOpenChange={() => {}}
+          clusterId="c-1"
+          querySetId="qs-1"
+          defaultTarget="products"
+        />,
+      ),
+    );
+    const target = screen.getByTestId('gen-target');
+    await waitFor(() => expect(target).toHaveValue('products'));
+    expect(target).toHaveAttribute('readonly');
+    expect(target).toHaveAttribute('aria-readonly', 'true');
+  });
+
+  it('AC-2: reopening with a new defaultTarget reflects the new value (not a stale seed)', async () => {
+    const { rerender } = render(
+      withClient(
+        <GenerateJudgmentsDialog
+          open
+          onOpenChange={() => {}}
+          clusterId="c-1"
+          querySetId="qs-1"
+          defaultTarget="products"
+        />,
+      ),
+    );
+    await waitFor(() => expect(screen.getByTestId('gen-target')).toHaveValue('products'));
+    // Close, then reopen with a different target — the seed re-applies on open.
+    rerender(
+      withClient(
+        <GenerateJudgmentsDialog
+          open={false}
+          onOpenChange={() => {}}
+          clusterId="c-1"
+          querySetId="qs-1"
+          defaultTarget="docs-articles"
+        />,
+      ),
+    );
+    rerender(
+      withClient(
+        <GenerateJudgmentsDialog
+          open
+          onOpenChange={() => {}}
+          clusterId="c-1"
+          querySetId="qs-1"
+          defaultTarget="docs-articles"
+        />,
+      ),
+    );
+    await waitFor(() => expect(screen.getByTestId('gen-target')).toHaveValue('docs-articles'));
+  });
+
+  it('AC-6: without defaultTarget the target field is empty and editable (backward-compatible)', () => {
+    render(
+      withClient(
+        <GenerateJudgmentsDialog open onOpenChange={() => {}} clusterId="c-1" querySetId="qs-1" />,
+      ),
+    );
+    const target = screen.getByTestId('gen-target');
+    expect(target).toHaveValue('');
+    expect(target).not.toHaveAttribute('readonly');
   });
 });

@@ -8,6 +8,7 @@ import {
   useQuery,
   useQueryClient,
   type UseMutationResult,
+  type UseQueryOptions,
   type UseQueryResult,
 } from '@tanstack/react-query';
 
@@ -44,8 +45,18 @@ export interface JudgmentListsFilter {
   limit?: number | undefined;
 }
 
+/**
+ * Query-behavior options, kept SEPARATE from `JudgmentListsFilter` so a
+ * non-API concern like polling never enters the queryKey or request params.
+ * (feat_study_wizard_inline_judgment_generation Story 1.3)
+ */
+export interface UseJudgmentListsOptions {
+  refetchInterval?: UseQueryOptions<JudgmentListsPage, ApiError>['refetchInterval'];
+}
+
 export function useJudgmentLists(
   filter: JudgmentListsFilter = {},
+  options: UseJudgmentListsOptions = {},
 ): UseQueryResult<JudgmentListsPage, ApiError> {
   const { query_set_id, cluster_id, target, cursor, limit } = filter;
   return useQuery<JudgmentListsPage, ApiError>({
@@ -57,6 +68,7 @@ export function useJudgmentLists(
       );
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },
+    refetchInterval: options.refetchInterval,
   });
 }
 

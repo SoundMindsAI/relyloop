@@ -58,13 +58,24 @@ def _cap() -> CapabilityResult:
     )
 
 
+# Sentinel distinguishing "argument not passed" from an explicit None. A plain
+# `until or <default>` swallows an explicit None, so `_ubi_req(until=None)` used
+# to silently substitute the fixed 2026-05-29 default — meaning the until=None
+# service path (effective_until defaults to now()) was never actually exercised,
+# and once `now()-7d` crossed 2026-05-29 in UTC the fixed default made
+# `since >= until` and raised VALIDATION_ERROR instead of UBI_INSUFFICIENT_DATA
+# (a date-bomb that went red on 2026-06-05 UTC). See
+# bug_ubi_dispatch_naive_datetime_error_code_flake.
+_UNSET: Any = object()
+
+
 def _ubi_req(
     *,
     converter: str = "ctr_threshold",
     current_template_id: str | None = None,
     rubric: str | None = None,
-    since: datetime | None = None,
-    until: datetime | None = None,
+    since: datetime = _UNSET,
+    until: datetime | None = _UNSET,
     min_impressions_threshold: int | None = 100,
 ) -> UbiJudgmentGenerationRequest:
     return UbiJudgmentGenerationRequest(
@@ -73,8 +84,8 @@ def _ubi_req(
         query_set_id="qs_1",
         cluster_id="clu_1",
         target="products",
-        since=since or datetime(2026, 5, 1, tzinfo=UTC),
-        until=until or datetime(2026, 5, 29, tzinfo=UTC),
+        since=datetime(2026, 5, 1, tzinfo=UTC) if since is _UNSET else since,
+        until=datetime(2026, 5, 29, tzinfo=UTC) if until is _UNSET else until,
         converter=cast(Any, converter),
         converter_config=None,
         llm_fill_threshold=20 if converter == "hybrid_ubi_llm" else None,

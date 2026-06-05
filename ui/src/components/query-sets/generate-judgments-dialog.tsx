@@ -65,6 +65,13 @@ export interface GenerateJudgmentsDialogProps {
   onOpenChange: (open: boolean) => void;
   clusterId: string;
   querySetId: string;
+  /**
+   * When set (e.g. opened from the Create-Study wizard), seeds AND locks the
+   * target field so the generated judgment list matches the caller's target
+   * filter. Omitted on the standalone /judgments-page call sites, where the
+   * target stays empty + operator-editable. (feat_study_wizard_inline_judgment_generation FR-2)
+   */
+  defaultTarget?: string;
 }
 
 const DEFAULT_RUBRIC = [
@@ -114,6 +121,7 @@ export function GenerateJudgmentsDialog({
   onOpenChange,
   clusterId,
   querySetId,
+  defaultTarget,
 }: GenerateJudgmentsDialogProps) {
   const generateLlm = useGenerateJudgments();
   const generateUbi = useGenerateJudgmentsFromUbi();
@@ -135,6 +143,19 @@ export function GenerateJudgmentsDialog({
       llm_fill_threshold: 20,
     },
   });
+
+  // Seed the target from defaultTarget on open / whenever it changes. Done via
+  // explicit setValue (NOT form defaultValues) because RHF applies defaultValues
+  // only at mount — this dialog is mounted persistently by the wizard, so a
+  // stale target would otherwise survive a target change between opens.
+  // (feat_study_wizard_inline_judgment_generation FR-2 / D-8)
+  const targetLocked = defaultTarget != null;
+  useEffect(() => {
+    if (open && defaultTarget != null) {
+      form.setValue('target', defaultTarget);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultTarget]);
 
   const watchedTarget = form.watch('target');
   const watchedMethod = form.watch('method');
@@ -256,7 +277,16 @@ export function GenerateJudgmentsDialog({
           />
         )}
         <form
-          onSubmit={form.handleSubmit(submit)}
+          // stopPropagation defends against the React-synthetic-event bubbling
+          // that survives Radix's DOM portal: when this dialog is mounted inside
+          // another form's React subtree (e.g. the Create-Study wizard), a submit
+          // here would otherwise bubble up the React tree to that parent form's
+          // onSubmit. Harmless on the standalone /judgments call sites.
+          // (feat_study_wizard_inline_judgment_generation — GPT-5.5 final review)
+          onSubmit={(e) => {
+            e.stopPropagation();
+            void form.handleSubmit(submit)(e);
+          }}
           className="space-y-4"
           data-testid="generate-form"
         >
@@ -273,6 +303,9 @@ export function GenerateJudgmentsDialog({
             <Input
               id="gen-target"
               data-testid="gen-target"
+              readOnly={targetLocked}
+              aria-readonly={targetLocked || undefined}
+              className={targetLocked ? 'bg-muted text-muted-foreground' : undefined}
               {...form.register('target', { required: true })}
             />
           </div>
