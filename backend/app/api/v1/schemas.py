@@ -1765,3 +1765,44 @@ class CreateJudgmentListFromUbiRequest(BaseModel):
                 "current_template_id and rubric MUST be null for non-hybrid converters"
             )
         return self
+
+
+# ---------------------------------------------------------------------------
+# Study comparison (feat_ubi_llm_study_comparison) — read-only.
+# CompareKind / CompareWarningCode are the canonical Literals; the
+# study_comparison service imports them so there is one source of truth.
+# ---------------------------------------------------------------------------
+
+CompareKind = Literal["llm", "ubi"]
+CompareWarningCode = Literal["CROSS_CLUSTER", "TARGET_MISMATCH", "OBJECTIVE_MISMATCH"]
+
+
+class CompareWarning(BaseModel):
+    """A non-fatal mismatch between the two compared studies."""
+
+    code: CompareWarningCode
+    message: str
+
+
+class StudyComparePairing(BaseModel):
+    """Validated LLM↔UBI study pair returned by ``GET /studies/compare``."""
+
+    a_study_id: str
+    b_study_id: str
+    a_kind: CompareKind
+    b_kind: CompareKind
+    query_set_id: str
+    warnings: list[CompareWarning]
+
+
+class StudyPairResponse(BaseModel):
+    """``GET /studies/{id}/pair`` — the counterpart, or nulls when none."""
+
+    study_id: str | None
+    kind: CompareKind | None
+
+
+class JudgmentListStudyResponse(BaseModel):
+    """``GET /judgment-lists/{id}/study`` — the single completed study, or null."""
+
+    study_id: str | None
