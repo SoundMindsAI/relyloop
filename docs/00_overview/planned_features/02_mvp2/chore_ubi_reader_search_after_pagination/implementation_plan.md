@@ -546,7 +546,7 @@ N/A — no frontend scope. No legacy behavior parity table — no user-facing co
 ## 9) Execution tracker
 
 ### Current sprint
-- [ ] Story 1.1 — `scan_all`/`close_scan`/`ScanPage` Protocol + shape test
+- [x] Story 1.1 — `scan_all`/`close_scan`/`ScanPage` Protocol + shape test (commit `95432e5`)
 - [ ] Story 2.1 — `ElasticAdapter.scan_all`/`close_scan` (ES + OpenSearch)
 - [ ] Story 2.2 — `SolrAdapter.scan_all`/`close_scan` (`cursorMark`)
 - [ ] Story 3.1 — `UbiReader` paginated aggregation + exact ceiling + chunking + read-only invariant
@@ -556,7 +556,7 @@ N/A — no frontend scope. No legacy behavior parity table — no user-facing co
 - None.
 
 ### Done this sprint
-- (none yet)
+- Story 1.1 (`95432e5`) — Protocol surface: `ScanPage`, `scan_all`, `close_scan`. Note: `test_solr_protocol.py` + `test_protocol.py::TestSolrAdapterProtocolBranch` transiently fail `isinstance(SearchAdapter)` until Story 2.2 ships the methods on `SolrAdapter`.
 
 ## 10) Story-by-Story Verification Gate (Agent Checklist)
 
