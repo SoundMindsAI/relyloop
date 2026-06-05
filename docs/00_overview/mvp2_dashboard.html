@@ -397,9 +397,9 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">19 / 28</div>
-      <div class="sub">68% specced · 50 filed under MVP2</div>
-      <div class="bar"><span style="width:68%"></span></div>
+      <div class="value">19 / 29</div>
+      <div class="sub">66% specced · 50 filed under MVP2</div>
+      <div class="bar"><span style="width:66%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">25</div>
+      <div class="value">26</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      4 idea-only feat/infra folders (not yet scoped into MVP2)
+      3 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -463,20 +463,7 @@ footer {
   </div>
   <div class="kanban">
 <div class="col idea">
-  <h3>Idea <span class="count">18</span></h3>
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase3">Overnight Final Solution Phase3</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">When `follow_suggestions` runs a 4-link chain, today&#x27;s proposal-creation logic at [`backend/workers/orchestrator.py:693-740`](../backend/workers/orchestrator.py#L693-L740)…</div>
-
-
-</div>
-
+  <h3>Idea <span class="count">17</span></h3>
 
 <div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip">Smoke Fork Pr Secret Skip</a></div>
@@ -706,7 +693,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">11</span></h3>
+  <h3>Plan <span class="count">12</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -716,6 +703,19 @@ footer {
 
   </div>
   <div class="one-liner">The winning normalizer ships as a **structured, language-agnostic manifest** in the config-repo PR — not just prose.</div>
+
+
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_overnight_final_solution_phase3/feature_spec.md">Overnight Final Solution Phase3</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/440">PR #440</a> <span>merged 2026-06-04</span>
+  </div>
+  <div class="one-liner">Non-winning chain links&#x27; proposals transition `pending → superseded` when the chain terminates.</div>
 
 
 </div>
@@ -1157,6 +1157,8 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
+  feat_overnight_final_solution_phase3[&quot;overnight final solution phase3&quot;]
+  class feat_overnight_final_solution_phase3 plan;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
@@ -1220,6 +1222,8 @@ footer {
   class chore_ubi_reader_search_after_pagination plan;
   feat_apply_path_normalizer_declaration[&quot;apply path normalizer declaration&quot;]
   class feat_apply_path_normalizer_declaration plan;
+  feat_overnight_final_solution_phase3[&quot;overnight final solution phase3&quot;]
+  class feat_overnight_final_solution_phase3 plan;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
   class feat_query_normalization_tuning plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
