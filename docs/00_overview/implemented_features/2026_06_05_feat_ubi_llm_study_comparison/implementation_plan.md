@@ -1,7 +1,7 @@
 # Implementation Plan — Side-by-side UBI-vs-LLM study comparison view
 
 **Date:** 2026-05-31
-**Status:** Ready for Execution
+**Status:** Complete (PR #461, merged 2026-06-05)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** `CLAUDE.md` (Absolute Rules #4 adapter, read-only posture), `docs/01_architecture/api-conventions.md`, `docs/01_architecture/ui-architecture.md`
 

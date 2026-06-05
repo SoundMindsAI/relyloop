@@ -1,5 +1,7 @@
 # Pipeline Status — Side-by-side UBI-vs-LLM study comparison view
 
+**Release:** mvp2
+
 ## Idea
 - Status: Complete
 - File: idea.md
@@ -20,4 +22,10 @@
 - Phases covered: 1 (single-phase — no deferred phases)
 
 ## Implementation
-- Status: Not started
+- Status: Complete
+- Date: 2026-06-05
+- PR: [#461](https://github.com/SoundMindsAI/relyloop/pull/461) (squash-merged `60ba1417`)
+- CI: all 18 pr.yml checks green (smoke skipped — opt-in/off)
+- Stories: 16/16 across 5 epics
+- Gemini review: 8 findings — 5 accepted+fixed, 3 rejected (dead None-guards on a non-nullable column)
+- Final GPT-5.5 review: skipped per the recorded operator decision (Opus-only internal passes)
