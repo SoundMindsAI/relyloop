@@ -433,10 +433,35 @@ instrumented cluster:
 Every UBI surface on the three synthetic clusters carries a
 **"Synthetic demo data"** chip with a tooltip explaining the data was
 fabricated by the demo reseed. The chip never appears on real operator
-clusters or on `news-search-staging`. The deferred Phase 2 feature
-[`feat_ubi_llm_study_comparison`](https://github.com/SoundMindsAI/relyloop/blob/main/docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison/idea.md)
-will add a side-by-side **Compare two studies** view so you can see
-the LLM-vs-UBI study output diff for the same query set.
+clusters or on `news-search-staging`.
+
+### Compare LLM vs UBI on the same dataset
+
+Once you've run **two** studies on the same query set — one against an
+LLM-graded judgment list and one against a UBI list — RelyLoop can show
+them **side by side**. On either study's detail page a **"Compare with the
+{UBI|LLM} study"** button appears (it's hidden until a valid counterpart
+exists); the **"What real signals bought you"** value-delta card on the UBI
+judgment-list page carries the same **"View matched study comparison →"**
+link.
+
+The comparison view (`/studies/compare?a={llm}&b={ubi}`) is always
+normalized LLM-left / UBI-right regardless of which study you came from, and
+shows four panels:
+
+- **Best metric** — both studies' best score plus a `UBI − LLM` delta framed
+  by the objective direction (a caption warns when the two studies optimized
+  different objectives, so the delta isn't directly comparable).
+- **Best-trial parameters** — one row per knob, flagged `=` (same on both)
+  or `Δ` (differs; an em-dash marks a knob present on only one side).
+- **Digest narrative** — a sentence-level diff of the two prose digests with
+  a per-side change count.
+- **Convergence** — both best-so-far curves overlaid on one chart.
+
+A non-fatal banner appears if the two studies ran on different clusters,
+targeted different indices, or optimized different objectives — the
+comparison still renders, the banner just flags that the diff needs a grain
+of salt. _(Screenshot: the LLM-vs-UBI comparison view with all four panels.)_
 
 ---
 

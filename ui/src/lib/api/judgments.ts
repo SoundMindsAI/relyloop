@@ -82,6 +82,28 @@ export function useJudgmentList(id: string): UseQueryResult<JudgmentListDetail, 
   });
 }
 
+export type JudgmentListStudyResponse = components['schemas']['JudgmentListStudyResponse'];
+
+/**
+ * Resolve the single completed study for a judgment list (FR-9 step 1). The
+ * query is parked until `id` is present; `{study_id: null}` when 0 or >1
+ * completed studies reference the list.
+ */
+export function useJudgmentListStudy(
+  id: string | undefined,
+): UseQueryResult<JudgmentListStudyResponse, ApiError> {
+  return useQuery<JudgmentListStudyResponse, ApiError>({
+    queryKey: ['judgment-lists', id, 'study'],
+    enabled: Boolean(id),
+    queryFn: async () => {
+      const { data } = await apiClient.get<JudgmentListStudyResponse>(
+        `/api/v1/judgment-lists/${id}/study`,
+      );
+      return data;
+    },
+  });
+}
+
 export interface JudgmentsFilter {
   cursor?: string | undefined;
   limit?: number | undefined;

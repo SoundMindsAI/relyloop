@@ -17,7 +17,13 @@ import { useJudgmentsColumns } from '@/components/judgments/judgments-table.colu
 import { ValueDeltaCard } from '@/components/judgments/value-delta-card';
 import { useDataTableUrlState } from '@/hooks/use-data-table-url-state';
 import { useCluster } from '@/lib/api/clusters';
-import { useJudgmentList, useJudgmentLists, useJudgments } from '@/lib/api/judgments';
+import {
+  useJudgmentList,
+  useJudgmentLists,
+  useJudgmentListStudy,
+  useJudgments,
+} from '@/lib/api/judgments';
+import { useStudyPair } from '@/lib/api/studies';
 import { useGenerateJudgmentsFromUbi } from '@/lib/api/ubi';
 import { isDemoSyntheticUbiClusterName } from '@/lib/demo-data';
 import { JUDGMENT_SOURCE_FILTER_VALUES } from '@/lib/enums';
@@ -54,6 +60,16 @@ export function JudgmentListView({ listId }: { listId: string }) {
     cursor: urlState.cursor ?? undefined,
     limit: urlState.pageSize,
   });
+
+  // FR-9 two-step resolution for the "View matched study comparison" affordance:
+  // list -> its completed (UBI) study -> that study's LLM counterpart. Both
+  // hooks park until their input resolves; compareHref is null until both yield.
+  const listStudy = useJudgmentListStudy(listId);
+  const ubiStudyId = listStudy.data?.study_id ?? undefined;
+  const studyPair = useStudyPair(ubiStudyId ?? '');
+  const llmStudyId = studyPair.data?.study_id ?? null;
+  const compareHref =
+    ubiStudyId && llmStudyId ? `/studies/compare?a=${llmStudyId}&b=${ubiStudyId}` : null;
 
   // Pull LLM-only prior lists on the same query_set so the value-delta card
   // can render a comparison link. Disabled until the list detail resolves.
@@ -132,6 +148,7 @@ export function JudgmentListView({ listId }: { listId: string }) {
                     coveragePct={coverage}
                     judgmentCount={listData.judgment_count}
                     priorList={priorListSummary}
+                    compareHref={compareHref}
                   />
                   {ambiguousSkip > 0 && params && (
                     <AmbiguousSkipRecoveryCard
