@@ -397,13 +397,13 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">21 / 29</div>
-      <div class="sub">72% specced · 50 filed under MVP2</div>
-      <div class="bar"><span style="width:72%"></span></div>
+      <div class="value">22 / 29</div>
+      <div class="sub">76% specced · 50 filed under MVP2</div>
+      <div class="bar"><span style="width:76%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">27</div>
+      <div class="value">26</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">23</div>
+      <div class="value">22</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">24</div>
+      <div class="value">23</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -693,7 +693,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">10</span></h3>
+  <h3>Plan <span class="count">9</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -716,19 +716,6 @@ footer {
 
   </div>
   <div class="one-liner">A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t</div>
-
-
-</div>
-
-
-<div class="card feat" data-prefix="feat" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_ubi_llm_study_comparison/feature_spec.md">Ubi Llm Study Comparison</a></div>
-  <div class="meta">
-    <span class="badge feat">Feature</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/320">PR #320</a>
-  </div>
-  <div class="one-liner">A single dedicated route `/studies/compare?a={id}&amp;b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s</div>
 
 
 </div>
@@ -832,7 +819,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">23</span></h3>
+  <h3>Done <span class="count">24</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -1016,6 +1003,19 @@ footer {
 </div>
 
 
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_feat_ubi_llm_study_comparison/feature_spec.md">Ubi Llm Study Comparison</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/461">PR #461</a> <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">A single dedicated route `/studies/compare?a={id}&amp;b={id}` renders the two studies side-by-side with a per-panel diff column: a sentence-level digest-narrative diff, a best-trial parameter table with s</div>
+
+
+</div>
+
+
 <div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
   <div class="meta">
@@ -1159,8 +1159,6 @@ footer {
   class feat_apply_path_normalizer_declaration plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
-  feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
-  class feat_ubi_llm_study_comparison plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1203,6 +1201,8 @@ footer {
   class feat_overnight_final_solution_phase3 done;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
   class feat_query_normalization_tuning done;
+  feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
+  class feat_ubi_llm_study_comparison done;
   feat_ubi_judgments --&gt; infra_adapter_solr</div>
     <noscript><pre>graph LR
   classDef done fill:#dcfce7,stroke:#14532d,color:#14532d;
@@ -1224,8 +1224,6 @@ footer {
   class feat_apply_path_normalizer_declaration plan;
   feat_query_normalizer_typed_pipeline[&quot;query normalizer typed pipeline&quot;]
   class feat_query_normalizer_typed_pipeline plan;
-  feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
-  class feat_ubi_llm_study_comparison plan;
   feat_contextual_help_mvp2[&quot;contextual help mvp2&quot;]
   class feat_contextual_help_mvp2 done;
   feat_study_sub_warmup_guard[&quot;study sub warmup guard&quot;]
@@ -1268,6 +1266,8 @@ footer {
   class feat_overnight_final_solution_phase3 done;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
   class feat_query_normalization_tuning done;
+  feat_ubi_llm_study_comparison[&quot;ubi llm study comparison&quot;]
+  class feat_ubi_llm_study_comparison done;
   feat_ubi_judgments --&gt; infra_adapter_solr</pre></noscript>
   </div>
 </section>
