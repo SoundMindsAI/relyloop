@@ -39,6 +39,10 @@ export interface ProposalsFilter {
   sort?: string | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
+  // Phase 3 D-15 revised: backend default omits ``superseded`` rows when
+  // ``?status=`` is unset. Set this to ``true`` (the "Show superseded"
+  // chip on /proposals) to surface them.
+  include_superseded?: boolean | undefined;
 }
 
 type RefetchInterval<TData> =
@@ -54,8 +58,18 @@ export function useProposals(
   filter: ProposalsFilter = {},
   options: UseProposalsOptions = {},
 ): UseQueryResult<ProposalsPage, ApiError> {
-  const { status, cluster_id, study_id, template_id, source, is_last_merged, sort, cursor, limit } =
-    filter;
+  const {
+    status,
+    cluster_id,
+    study_id,
+    template_id,
+    source,
+    is_last_merged,
+    sort,
+    cursor,
+    limit,
+    include_superseded,
+  } = filter;
   return useQuery<ProposalsPage, ApiError>({
     queryKey: [
       'proposals',
@@ -69,6 +83,7 @@ export function useProposals(
         sort,
         cursor,
         limit,
+        include_superseded,
       },
     ],
     queryFn: async () => {
@@ -83,6 +98,9 @@ export function useProposals(
           sort,
           cursor,
           limit,
+          // Phase 3 D-15 revised: only send the flag when it's true so
+          // the default URL stays untouched.
+          ...(include_superseded ? { include_superseded: true } : {}),
         },
       });
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
@@ -162,6 +180,28 @@ export function useRejectProposal(): UseMutationResult<
       return data;
     },
     onSettled: (_data, _err, { proposalId }) => {
+      qc.invalidateQueries({ queryKey: ['proposal', proposalId] });
+      qc.invalidateQueries({ queryKey: ['proposals'] });
+    },
+  });
+}
+
+/**
+ * Phase 3 FR-6: ``superseded → pending`` flip. Backend reuses the same
+ * 404 / 409 error codes as ``reject_proposal`` (D-16) — the message
+ * field disambiguates which transition is wrong.
+ */
+export function useReinstateProposal(): UseMutationResult<ProposalDetail, ApiError, string> {
+  const qc = useQueryClient();
+  return useMutation<ProposalDetail, ApiError, string>({
+    mutationFn: async (proposalId) => {
+      const { data } = await apiClient.post<ProposalDetail>(
+        `/api/v1/proposals/${proposalId}/reinstate`,
+        {},
+      );
+      return data;
+    },
+    onSettled: (_data, _err, proposalId) => {
       qc.invalidateQueries({ queryKey: ['proposal', proposalId] });
       qc.invalidateQueries({ queryKey: ['proposals'] });
     },

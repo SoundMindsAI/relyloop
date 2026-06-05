@@ -105,6 +105,7 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("get", "/api/v1/proposals/{proposal_id}", "200"),
     ("post", "/api/v1/proposals/{proposal_id}/reject", "200"),
     ("post", "/api/v1/proposals/{proposal_id}/open_pr", "202"),
+    ("post", "/api/v1/proposals/{proposal_id}/reinstate", "200"),
     # ----- /api/v1/conversations (feat_chat_agent) -----
     ("post", "/api/v1/conversations", "201"),
     ("get", "/api/v1/conversations", "200"),

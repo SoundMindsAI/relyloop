@@ -308,7 +308,7 @@ CREATE TABLE proposals (
     template_id     UUID NOT NULL REFERENCES query_templates(id),
     config_diff     JSONB NOT NULL,                    -- {param: {from, to}}
     metric_delta    JSONB,                             -- {ndcg@10: {baseline, achieved, delta_pct}}; null for hand-crafted
-    status          TEXT NOT NULL CHECK (status IN ('pending', 'pr_opened', 'pr_merged', 'rejected')),
+    status          TEXT NOT NULL CHECK (status IN ('pending', 'pr_opened', 'pr_merged', 'rejected', 'superseded')),  -- 'superseded' added by feat_overnight_final_solution_phase3 (migration 0023). Transitions: pending → superseded (system, on chain termination via bulk_mark_superseded); superseded → pending (operator, via POST /api/v1/proposals/{id}/reinstate).
     pr_url          TEXT,
     pr_state        TEXT CHECK (pr_state IS NULL OR pr_state IN ('open', 'closed', 'merged')),  -- mirrors GitHub
     pr_merged_at    TIMESTAMPTZ,

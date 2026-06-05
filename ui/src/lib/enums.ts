@@ -200,7 +200,13 @@ export const RATING_VALUES = [0, 1, 2, 3] as const;
 export type Rating = (typeof RATING_VALUES)[number];
 
 // Values must match backend/app/api/v1/schemas.py ProposalStatusWire.
-export const PROPOSAL_STATUS_VALUES = ['pending', 'pr_opened', 'pr_merged', 'rejected'] as const;
+export const PROPOSAL_STATUS_VALUES = [
+  'pending',
+  'pr_opened',
+  'pr_merged',
+  'rejected',
+  'superseded',
+] as const;
 export type ProposalStatus = (typeof PROPOSAL_STATUS_VALUES)[number];
 
 // Values must match backend/app/api/v1/schemas.py ProposalPrStateWire.

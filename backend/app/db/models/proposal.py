@@ -39,7 +39,7 @@ class Proposal(Base):
     __tablename__ = "proposals"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('pending', 'pr_opened', 'pr_merged', 'rejected')",
+            "status IN ('pending', 'pr_opened', 'pr_merged', 'rejected', 'superseded')",
             name="proposals_status_check",
         ),
         CheckConstraint(
