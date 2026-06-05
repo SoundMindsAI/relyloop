@@ -397,9 +397,9 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">22 / 25</div>
-      <div class="sub">88% specced · 40 filed under MVP2</div>
-      <div class="bar"><span style="width:88%"></span></div>
+      <div class="value">25 / 28</div>
+      <div class="sub">89% specced · 43 filed under MVP2</div>
+      <div class="bar"><span style="width:89%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
@@ -689,7 +689,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">24</span></h3>
+  <h3>Done <span class="count">27</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_15_feat_contextual_help_mvp2">Contextual Help</a></div>
@@ -886,6 +886,19 @@ footer {
 </div>
 
 
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_04_feat_website_walkthrough_guides/feature_spec.md">Website Walkthrough Guides</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/448">PR #448</a> <span>merged 2026-06-04</span>
+  </div>
+  <div class="one-liner">All 10 walkthrough decks (PNG + WebM, plus a locally-generated MP4 for mobile Safari) and all 4 long-form in-depth guides are published to relyloop.com under a new top-level **Guides** nav tab.</div>
+
+
+</div>
+
+
 <div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_31_infra_adapter_solr/feature_spec.md">Adapter Solr</a></div>
   <div class="meta">
@@ -965,6 +978,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_chore_studies_post_arq_spy_fixture/feature_spec.md">Studies Post Arq Spy Fixture</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/476">PR #476</a> <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">A reusable `arq_pool_spy` integration fixture that records every `enqueue_job(name, *args)` call, letting studies-POST tests positively assert `spy.calls == []` on rejection and `spy.calls == [(&quot;start</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_02_chore_template_library_expansion/feature_spec.md">Template Library Expansion</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -972,6 +998,19 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/416">PR #416</a> <span>merged 2026-06-02</span>
   </div>
   <div class="one-liner">A curated, version-grounded **template library** of **6 runnable templates** (4 ES/OpenSearch: basic multi_match, function-score decay, bool-boosted, phrase rescore; 2 Solr: edismax basic, boost decay</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_chore_ubi_reader_search_after_pagination/feature_spec.md">Ubi Reader Search After Pagination</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/474">PR #474</a> <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg</div>
 
 
 </div>
@@ -1059,6 +1098,12 @@ footer {
   class feat_proposal_full_param_space_view done;
   feat_study_wizard_inline_judgment_generation[&quot;study wizard inline judgment generation&quot;]
   class feat_study_wizard_inline_judgment_generation done;
+  feat_website_walkthrough_guides[&quot;website walkthrough guides&quot;]
+  class feat_website_walkthrough_guides done;
+  chore_studies_post_arq_spy_fixture[&quot;studies post arq spy fixture&quot;]
+  class chore_studies_post_arq_spy_fixture done;
+  chore_ubi_reader_search_after_pagination[&quot;ubi reader search after pagination&quot;]
+  class chore_ubi_reader_search_after_pagination done;
   feat_overnight_final_solution_phase3[&quot;overnight final solution phase3&quot;]
   class feat_overnight_final_solution_phase3 done;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]
@@ -1116,6 +1161,12 @@ footer {
   class feat_proposal_full_param_space_view done;
   feat_study_wizard_inline_judgment_generation[&quot;study wizard inline judgment generation&quot;]
   class feat_study_wizard_inline_judgment_generation done;
+  feat_website_walkthrough_guides[&quot;website walkthrough guides&quot;]
+  class feat_website_walkthrough_guides done;
+  chore_studies_post_arq_spy_fixture[&quot;studies post arq spy fixture&quot;]
+  class chore_studies_post_arq_spy_fixture done;
+  chore_ubi_reader_search_after_pagination[&quot;ubi reader search after pagination&quot;]
+  class chore_ubi_reader_search_after_pagination done;
   feat_overnight_final_solution_phase3[&quot;overnight final solution phase3&quot;]
   class feat_overnight_final_solution_phase3 done;
   feat_query_normalization_tuning[&quot;query normalization tuning&quot;]

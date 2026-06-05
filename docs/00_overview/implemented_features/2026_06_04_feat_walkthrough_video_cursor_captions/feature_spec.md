@@ -5,7 +5,7 @@
 **Owners:** Product (soundminds.ai) · Engineering (`@SoundMindsAI/relyloop` maintainers)
 **Related docs:**
 - [`idea.md`](idea.md) — origin brief (with the proven experiment code embedded)
-- [`feat_website_walkthrough_guides`](../../implemented_features/2026_06_04_website_walkthrough_guides/feature_spec.md) — the shipped feature this extends (PR #448)
+- [`feat_website_walkthrough_guides`](../../implemented_features/2026_06_04_feat_website_walkthrough_guides/feature_spec.md) — the shipped feature this extends (PR #448)
 - [`ui/playwright.demo.config.ts`](../../../../../ui/playwright.demo.config.ts) — the demo recording config
 - [`ui/scripts/promote-videos.mjs`](../../../../../ui/scripts/promote-videos.mjs) — video promote step
 - [`website/scripts/build_guides.py`](../../../../../website/scripts/build_guides.py) — the `<video>` block emitter
