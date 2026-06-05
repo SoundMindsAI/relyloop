@@ -4,7 +4,9 @@
 **Status:** Idea — tangential discovery while merging PR #387 (`chore_arq_pool_aclose_deprecation`)
 **Tracking issue:** [#410](https://github.com/SoundMindsAI/relyloop/issues/410) (public — gives external contributors a findable "known fork limitation, not your code" explanation)
 **Type:** `infra_`
-**Priority:** P2 — does not block this repo's own branches (internal PRs see the secret), but every **external contributor** PR gets a permanent red ✗ on the `smoke` job for a reason unrelated to their code. Elevated by the OSS-launch posture (CHANGELOG + CITATION.cff just landed, #382): a red X on a first-time contributor's PR reads as "your change is broken" when it isn't.
+**Priority:** Backlog — demoted P2 → Backlog 2026-06-05 (P2 backlog grooming). **The premise is currently dormant:** the `smoke` job is gated OFF by default (`SMOKE_TEST` repo var unset → skipped, per state.md 2026-06-02), so fork PRs no longer hit this red ✗ at all. The fix only becomes live again the moment an operator re-enables smoke with `gh variable set SMOKE_TEST --body true`. Real latent fix, no current impact — pick up *together with* re-enabling smoke, not before.
+
+  _(Original framing, still accurate once smoke is on:)_ does not block this repo's own branches (internal PRs see the secret), but every **external contributor** PR gets a permanent red ✗ on the `smoke` job for a reason unrelated to their code. Elevated by the OSS-launch posture (CHANGELOG + CITATION.cff just landed, #382): a red X on a first-time contributor's PR reads as "your change is broken" when it isn't.
 
 ## Origin
 
