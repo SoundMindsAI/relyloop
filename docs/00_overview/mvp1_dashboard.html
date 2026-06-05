@@ -397,8 +397,8 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Specced features done</div>
-      <div class="value">97 / 97</div>
-      <div class="sub">100% specced · 135 filed under MVP1</div>
+      <div class="value">98 / 98</div>
+      <div class="sub">100% specced · 136 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">135</span></h3>
+  <h3>Done <span class="count">136</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -638,6 +638,19 @@ footer {
   <div class="one-liner">When a study transitions to `completed`, the digest worker generates: a narrative summary (LLM-authored), a parameter-importance map (computed by `optuna.importance`), and a recommended config.</div>
 
   <div class="deps">depends on: <span class="dep-chip">feat_study_lifecycle</span><span class="dep-chip">feat_llm_judgments</span></div>
+</div>
+
+
+<div class="card feat" data-prefix="feat" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_feat_fts_rank_ordering/feature_spec.md">Fts Rank Ordering</a></div>
+  <div class="meta">
+    <span class="badge feat">Feature</span>
+
+    <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">When `?q=` is present **and no explicit `?sort=` is supplied**, the 6 search-enabled list endpoints order results by relevance: `ORDER BY rank_bucket DESC, created_at DESC, id DESC`, where `rank_bucke</div>
+
+
 </div>
 
 
@@ -2037,7 +2050,7 @@ footer {
   <div class="meta">
     <span class="badge bug">Bug</span>
 
-    <span>merged 2026-06-05</span>
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/470">PR #470</a> <span>merged 2026-06-05</span>
   </div>
   <div class="one-liner">The header renders all three buckets (`llm`, `human`, `click`) so the displayed terms sum to the displayed total count, making the doc-comment claim (&quot;the UI&#x27;s source-breakdown card now renders all th</div>
 
@@ -2446,6 +2459,8 @@ footer {
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
   class chore_cluster_detail_rung_badge done;
+  feat_fts_rank_ordering[&quot;fts rank ordering&quot;]
+  class feat_fts_rank_ordering done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2693,6 +2708,8 @@ footer {
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
   class chore_cluster_detail_rung_badge done;
+  feat_fts_rank_ordering[&quot;fts rank ordering&quot;]
+  class feat_fts_rank_ordering done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments

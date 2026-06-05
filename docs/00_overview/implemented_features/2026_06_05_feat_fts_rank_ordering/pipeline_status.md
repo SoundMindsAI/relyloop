@@ -20,4 +20,6 @@
 - Phases covered: 1 of 1
 
 ## Implementation
-- Status: In progress
+- Status: Complete (PR #472, squash-merged `f970c05`, 2026-06-05)
+- Release: mvp2
+- Note: Backend + small frontend, no migration. `?q=` without `?sort=` now orders the 6 searchable endpoints by relevance (`floor(ts_rank*1e6) DESC, id DESC`) via the rank-bucketed 2-tuple cursor (reuses the `parsed=None` keyset; no new sort helpers). Cross-model: GPT-5.5 unreachable → Opus self-review substituted (operator decision). Gemini 6 findings all accepted (stale datetime cursor on rank path → 422 guard). 10 unit (keyset oracle) + 11-case DB integration matrix + 4 vitest pill. All 19 CI checks green.
