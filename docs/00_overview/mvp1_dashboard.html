@@ -397,8 +397,8 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Specced features done</div>
-      <div class="value">99 / 99</div>
-      <div class="sub">100% specced · 137 filed under MVP1</div>
+      <div class="value">100 / 100</div>
+      <div class="sub">100% specced · 140 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">137</span></h3>
+  <h3>Done <span class="count">140</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1357,6 +1357,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_chore_demo_reseed_partial_completion_fast_test">Demo Reseed Partial Completion Fast Test</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">`infra_solr_ci_readiness` made the demo reseed engine-tolerant: when an engine is unreachable, its scenario is skipped, the reseed completes with `status=&quot;complete&quot;` and a non-empty `scenarios_skipped</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_19_chore_detail_page_shell_primitive">Detail Page Shell Primitive</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -2163,6 +2176,19 @@ footer {
 
 
 <div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_bug_relyloop_spec_ubi_section_drift">Relyloop Spec Ubi Section Drift</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">[`docs/00_overview/relyloop-spec.md`](../relyloop-spec.md) §&quot;Click-derived judgments — OpenSearch UBI as the engine-neutral primary path&quot; (line ~706) carries two staleness bugs from the 2026-05-27 rel</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_26_bug_seed_demo_if_empty_counts_soft_deleted">Seed Demo If Empty Counts Soft Deleted</a></div>
   <div class="meta">
     <span class="badge bug">Bug</span>
@@ -2170,6 +2196,19 @@ footer {
     <span>merged 2026-05-26</span>
   </div>
   <div class="one-liner">[`scripts/seed_meaningful_demos.py:775-825`](../scripts/seed_meaningful_demos.py#L775-L825) — `count_existing_clusters()`:</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_bug_seed_meaningful_demos_silent_bulk_errors">Seed Meaningful Demos Silent Bulk Errors</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">[`scripts/seed_meaningful_demos.py` ~2549-2571](../../../scripts/seed_meaningful_demos.py) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario:</div>
 
 
 </div>
@@ -2472,6 +2511,8 @@ footer {
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
   class chore_cluster_detail_rung_badge done;
+  chore_demo_reseed_partial_completion_fast_test[&quot;demo reseed partial completion fast test&quot;]
+  class chore_demo_reseed_partial_completion_fast_test done;
   chore_pr_yml_parallelize_backend_job[&quot;pr yml parallelize backend job&quot;]
   class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering[&quot;fts rank ordering&quot;]
@@ -2723,6 +2764,8 @@ footer {
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
   class chore_cluster_detail_rung_badge done;
+  chore_demo_reseed_partial_completion_fast_test[&quot;demo reseed partial completion fast test&quot;]
+  class chore_demo_reseed_partial_completion_fast_test done;
   chore_pr_yml_parallelize_backend_job[&quot;pr yml parallelize backend job&quot;]
   class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering[&quot;fts rank ordering&quot;]

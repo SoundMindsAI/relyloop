@@ -14,8 +14,8 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under MVP1 | **137** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **99 / 99** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Filed under MVP1 | **140** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **100 / 100** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -28,7 +28,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (137)
+### Done (140)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -99,6 +99,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_dashboard_regen_quoted_pr_false_positive](implemented_features/2026_05_25_chore_dashboard_regen_quoted_pr_false_positive/feature_spec.md) | Chore | Priority-3 fuzzy match no longer matches PR-merge phrases that live inside backtick-fenced segments. | — | [PR #253](https://github.com/SoundMindsAI/relyloop/pull/253) merged 2026-05-25 |
 | [chore_data_table_columnvisibility_tanstack](implemented_features/2026_05_19_chore_data_table_columnvisibility_tanstack/idea.md) | Chore | `feat_data_table_primitive` shipped with six known non-regression follow-up items captured only in chat transcripts. None block the PR but each is a real improvement that would otherwise evaporate whe | — | Complete |
 | [chore_db_session_skip_reason_disambiguation](implemented_features/2026_05_26_chore_db_session_skip_reason_disambiguation/idea.md) | Chore | When an integration test skips, the reason string should tell the operator which precondition failed: | — | Complete |
+| [chore_demo_reseed_partial_completion_fast_test](implemented_features/2026_06_05_chore_demo_reseed_partial_completion_fast_test/idea.md) | Chore | `infra_solr_ci_readiness` made the demo reseed engine-tolerant: when an engine is unreachable, its scenario is skipped, the reseed completes with `status="complete"` and a non-empty `scenarios_skipped | — | Complete |
 | [chore_detail_page_shell_primitive](implemented_features/2026_05_19_chore_detail_page_shell_primitive/idea.md) | Chore | Six of the seven `/{entity}/[id]` detail routes hand-roll the same three-state scaffold around their data query. The structure is **identical** down to the className strings, with two minor copy varia | — | Complete |
 | [chore_digest_worker_narrow_except](implemented_features/2026_05_14_chore_digest_worker_narrow_except/idea.md) | Chore | … | — | Complete |
 | [chore_drop_demo_seed_from_ci](implemented_features/2026_05_28_chore_drop_demo_seed_from_ci/idea.md) | Chore | The smoke job in `.github/workflows/pr.yml` ran three seed steps before the smoke test + Playwright E2E suite: | — | Complete |
@@ -161,7 +162,9 @@ Pull from the Idea backlog or capture a new feature spec.
 | [bug_openai_capability_check_incapable_on_valid_key](implemented_features/2026_05_24_bug_openai_capability_check_incapable_on_valid_key/feature_spec.md) | Bug | `/healthz` exposes which probe failed (specifically: surfaces `models_endpoint` status) and, when the failure was an HTTP error, the status code that triggered it (e.g., 401 → bad key; 429 → quota). | — | [PR #234](https://github.com/SoundMindsAI/relyloop/pull/234) merged 2026-05-24 |
 | [bug_pr_reconciler_blocked_by_closed_fallback](implemented_features/2026_05_23_bug_pr_reconciler_blocked_by_closed_fallback/idea.md) | Bug | The GitHub webhook receiver at [`backend/app/api/webhooks/github.py:181-209`](../../backend/app/api/webhooks/github.py#L181-L209) handles the eventual-consistency case where GitHub delivers `pull_requ | — | Complete |
 | [bug_query_inline_crud_since_filter_uuidv7_ms_collision](implemented_features/2026_05_14_bug_query_inline_crud_since_filter_uuidv7_ms_collision/idea.md) | Bug | The test ([`test_query_sets_router_queries.py:202-231`](../../backend/tests/integration/test_query_sets_router_queries.py#L202-L231)) seeds 5 queries via `_seed_set(5)`… | — | Complete |
+| [bug_relyloop_spec_ubi_section_drift](implemented_features/2026_06_05_bug_relyloop_spec_ubi_section_drift/idea.md) | Bug | [`docs/00_overview/relyloop-spec.md`](../relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 rel | — | Complete |
 | [bug_seed_demo_if_empty_counts_soft_deleted](implemented_features/2026_05_26_bug_seed_demo_if_empty_counts_soft_deleted/idea.md) | Bug | [`scripts/seed_meaningful_demos.py:775-825`](../scripts/seed_meaningful_demos.py#L775-L825) — `count_existing_clusters()`: | — | Complete |
+| [bug_seed_meaningful_demos_silent_bulk_errors](implemented_features/2026_06_05_bug_seed_meaningful_demos_silent_bulk_errors/idea.md) | Bug | [`scripts/seed_meaningful_demos.py` ~2549-2571](../../../scripts/seed_meaningful_demos.py) bulk-indexes 1000 Amazon ESCI products into a dedicated index per demo scenario: | — | Complete |
 | [bug_smoke_dashboard_demo_state_locator_missing](implemented_features/2026_05_26_bug_smoke_dashboard_demo_state_locator_missing/idea.md) | Bug | Both `getByTestId('reset-demo-state-disclosure')` and `getByTestId('demo-data-banner')` are NOT being rendered on the smoke-stack's `/` route. Either: | — | Complete |
 | [bug_smoke_followup_clone_e2e_flakes](implemented_features/2026_05_26_bug_smoke_followup_clone_e2e_flakes/idea.md) | Bug | Every PR's `smoke` job is currently red on these tests. Operators (and PR reviewers) have to: | — | Complete |
 | [bug_smoke_seed_es_unavailable_shards_race](implemented_features/2026_05_29_bug_smoke_seed_es_unavailable_shards_race/idea.md) | Bug | `backend/app/scripts/seed_es.py` creates the `products` index then immediately bulk-indexes 1000 docs against it. On cold GHA runners with ES 9.4.1 (bumped from 9.4.0 in PR #290), the bulk call someti | — | Complete |
@@ -391,6 +394,8 @@ graph LR
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge["cluster detail rung badge"]
   class chore_cluster_detail_rung_badge done;
+  chore_demo_reseed_partial_completion_fast_test["demo reseed partial completion fast test"]
+  class chore_demo_reseed_partial_completion_fast_test done;
   chore_pr_yml_parallelize_backend_job["pr yml parallelize backend job"]
   class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering["fts rank ordering"]
