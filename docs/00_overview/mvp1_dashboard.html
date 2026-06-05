@@ -397,8 +397,8 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Specced features done</div>
-      <div class="value">98 / 98</div>
-      <div class="sub">100% specced · 136 filed under MVP1</div>
+      <div class="value">99 / 99</div>
+      <div class="sub">100% specced · 137 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">136</span></h3>
+  <h3>Done <span class="count">137</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1604,6 +1604,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_chore_pr_yml_parallelize_backend_job">Pr Yml Parallelize Backend Job</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">`.github/workflows/pr.yml` has a job named `backend (lint + typecheck + tests + coverage)` that runs four sequential things in one job: ruff/lint, mypy, the full pytest matrix (unit + integration + co</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_chore_precommit_node_path_resolution">Precommit Node Path Resolution</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -2459,6 +2472,8 @@ footer {
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
   class chore_cluster_detail_rung_badge done;
+  chore_pr_yml_parallelize_backend_job[&quot;pr yml parallelize backend job&quot;]
+  class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering[&quot;fts rank ordering&quot;]
   class feat_fts_rank_ordering done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -2708,6 +2723,8 @@ footer {
   class feat_walkthrough_video_cursor_captions done;
   chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
   class chore_cluster_detail_rung_badge done;
+  chore_pr_yml_parallelize_backend_job[&quot;pr yml parallelize backend job&quot;]
+  class chore_pr_yml_parallelize_backend_job done;
   feat_fts_rank_ordering[&quot;fts rank ordering&quot;]
   class feat_fts_rank_ordering done;
   feat_study_lifecycle --&gt; feat_digest_proposal

@@ -435,14 +435,14 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">17</div>
+      <div class="value">16</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
   <div class="kpi-secondary">
     <span>
       <strong>Backlog ideas:</strong>
-      2 idea-only feat/infra folders (not yet scoped into MVP2)
+      3 idea-only feat/infra folders (not yet scoped into MVP2)
     </span>
     <span>
       <strong>In flight:</strong>
@@ -464,6 +464,19 @@ footer {
   <div class="kanban">
 <div class="col idea">
   <h3>Idea <span class="count">16</span></h3>
+
+<div class="card infra" data-prefix="infra" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes">Pr Yml Split Backend Test Lanes</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="P2">P2</span>
+
+  </div>
+  <div class="one-liner">The heavy `backend (tests + coverage)` job in `.github/workflows/pr.yml` runs the full `pytest backend/tests/` matrix (unit + integration + contract) serially in one job with `--cov` gating at `fail_u</div>
+
+
+</div>
+
 
 <div class="card infra" data-prefix="infra" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip">Smoke Fork Pr Secret Skip</a></div>
@@ -512,19 +525,6 @@ footer {
 
   </div>
   <div class="one-liner">The `docs/08_guides/tutorial-first-study.md` Step 12 sub-section *&quot;In the morning — read the overnight result card&quot;* shipped on PR #442 with prose only — no…</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_pr_yml_parallelize_backend_job">Pr Yml Parallelize Backend Job</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`.github/workflows/pr.yml` has a job named `backend (lint + typecheck + tests + coverage)` that runs four sequential things in one job: ruff/lint, mypy, the full pytest matrix (unit + integration + co</div>
 
 
 </div>
