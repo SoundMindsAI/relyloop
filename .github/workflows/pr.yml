@@ -359,7 +359,7 @@ jobs:
         run: pnpm --dir ui test
 
   backend:
-    name: backend (lint + typecheck + tests + coverage)
+    name: backend (tests + coverage)
     # TEMP CI-budget kill-switch — see the SKIP_HEAVY_CI note at the top of
     # this file. When the repo variable SKIP_HEAVY_CI == 'true', skip this
     # >1-min job to conserve GitHub Actions minutes. Default (var unset) → runs.
@@ -437,20 +437,6 @@ jobs:
       - name: Install project deps (frozen)
         run: uv sync --frozen
 
-      - name: Restore mypy + ruff caches
-        # Both tools maintain on-disk caches that they invalidate per-file
-        # internally — safe to persist across runs. Cold mypy takes ~27s; a
-        # warm cache typically completes in ~5s. Key on uv.lock + pyproject
-        # (dep / tool-config changes); fall back to any prior runner-OS cache.
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
-        with:
-          path: |
-            .mypy_cache
-            .ruff_cache
-          key: mypy-ruff-${{ runner.os }}-${{ hashFiles('uv.lock', 'pyproject.toml') }}
-          restore-keys: |
-            mypy-ruff-${{ runner.os }}-
-
       - name: Write file-based secrets (CI parity with mounted-secrets pattern)
         # Pydantic Settings reads DATABASE_URL_FILE / POSTGRES_PASSWORD_FILE /
         # CLUSTER_CREDENTIALS_FILE. In CI we materialize them from the
@@ -476,14 +462,15 @@ jobs:
                     "${RUNNER_TEMP}/database_url" \
                     "${RUNNER_TEMP}/cluster_credentials.yaml"
 
-      - name: ruff check
-        run: uv run ruff check .
-
-      - name: Format check (ruff)
-        run: uv run ruff format --check .
-
-      - name: mypy --strict
-        run: uv run mypy backend/
+      # ruff check / ruff format --check / mypy --strict are intentionally NOT
+      # re-run here — the always-run `static-checks-backend` job
+      # (pr.yml ~L297) already covers all three with no service containers,
+      # giving sub-minute lint/type feedback in parallel with this heavy lane.
+      # Duplicating them here only burned ~30-40s of critical path. A lint/type
+      # failure still goes red via static-checks-backend; this lane no longer
+      # self-aborts early on such failures (acceptable — the PR is already red,
+      # and GHA does not auto-cancel sibling jobs). See
+      # chore_pr_yml_parallelize_backend_job/idea.md (Win-1 residual).
 
       - name: pytest (unit + integration + contract) with coverage
         env:
@@ -506,13 +493,12 @@ jobs:
           # collisions (query_sets_cluster_id_fkey violation when parallel
           # tests held a FK reference to a cluster being deleted in another
           # worker's teardown). pytest-xdist remains in dev deps for local
-          # opt-in (`pytest -n auto` works fine on the unit-test layer);
-          # CI-perf #1 + #2 (buildx artifact handoff + base-image cache)
-          # are the actual smoke-pace wins. A follow-up may split the
-          # backend job into a parallel-safe "unit + contract" lane + a
-          # serial "integration" lane to recover #3's savings. See
-          # chore_ci_perf_buildx_artifact_image_cache_xdist/idea.md
-          # §"What is NOT changed in this PR".
+          # opt-in (`pytest -n auto` works fine on the unit-test layer).
+          # A follow-up may split this job into a parallel-safe
+          # "unit + contract" lane (`-n auto`) + a serial "integration" lane
+          # (with a `coverage combine` merge/gate job) to recover the
+          # unit+contract portion's runtime while keeping integration serial.
+          # See planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes/idea.md.
           uv run pytest backend/tests/ \
             --cov=backend \
             --cov-report=xml \

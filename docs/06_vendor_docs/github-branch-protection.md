@@ -33,15 +33,19 @@ For RelyLoop today: SoundMindsAI is on the Free org plan, the repo is private, s
 
 Until one of those triggers, the $4/user/month is buying enforcement of a rule the agent already enforces.
 
-## The three checks to require for `relyloop`
+## The checks to require for `relyloop`
 
 These are the exact strings GitHub will autocomplete in the Rulesets UI (verified via `gh api repos/SoundMindsAI/relyloop/commits/<sha>/check-runs`):
 
 | Check name (paste verbatim) | Source |
 |---|---|
-| `backend (lint + typecheck + tests + coverage)` | `.github/workflows/pr.yml` `jobs.backend.name` |
+| `static-checks (backend — ruff + mypy + guards, always-run)` | `.github/workflows/pr.yml` `jobs.static-checks-backend.name` |
+| `static-checks (frontend — prettier + eslint + tsc + vitest, always-run)` | `.github/workflows/pr.yml` `jobs.static-checks-frontend.name` |
+| `backend (tests + coverage)` | `.github/workflows/pr.yml` `jobs.backend.name` |
 | `frontend (lint + typecheck + tests + build)` | `.github/workflows/pr.yml` `jobs.frontend.name` |
 | `docker buildx (relyloop/api)` | `.github/workflows/pr.yml` `jobs.docker.name` |
+
+**Why the `static-checks-*` jobs are required separately:** ruff/format/mypy (backend) and prettier/eslint/tsc (frontend) run in the always-run `static-checks-*` jobs, NOT in the heavy `backend`/`frontend` jobs (the heavy backend job dropped its redundant lint/type steps — see `chore_pr_yml_parallelize_backend_job`). Requiring only `backend (tests + coverage)` would NOT enforce backend lint/type. Require the `static-checks-*` jobs to keep lint/type gating on `main`.
 
 **Note:** GitHub matches by check `name`, not job ID. If a workflow's `name` field changes (e.g., a future PR renames the backend job), the rule silently stops matching and PRs merge without enforcement. After any rename, return to Rulesets and re-add the new name.
 
@@ -64,11 +68,13 @@ GitHub's note in the Branch Protection Rules docs flags rulesets as the alternat
    - Sub-option: **Dismiss stale pull request approvals when new commits are pushed** — recommended.
 8. Under **Branch protections**, check **Require status checks to pass**.
    - Sub-option: **Require branches to be up to date before merging** — recommended.
-   - **Add the three required checks one at a time:**
-     1. Type `backend` in the search box. The full name `backend (lint + typecheck + tests + coverage)` should autocomplete. Click it. **Click the `+` icon to confirm** (this is the canonical gotcha — typing the name without clicking the `+` does NOT add it).
-     2. Repeat for `frontend (lint + typecheck + tests + build)`.
-     3. Repeat for `docker buildx (relyloop/api)`.
-   - You should see all three listed under "Required status checks" before proceeding.
+   - **Add the required checks one at a time** (search by the leading word, then click the `+` icon to confirm — the canonical gotcha is that typing the name without clicking `+` does NOT add it):
+     1. `static-checks (backend — ruff + mypy + guards, always-run)`
+     2. `static-checks (frontend — prettier + eslint + tsc + vitest, always-run)`
+     3. `backend (tests + coverage)`
+     4. `frontend (lint + typecheck + tests + build)`
+     5. `docker buildx (relyloop/api)`
+   - You should see all five listed under "Required status checks" before proceeding.
 9. (Optional, recommended for production-style hygiene) Also check **Block force pushes** under Branch protections.
 10. Scroll to the bottom and click **Create**.
 
@@ -78,9 +84,11 @@ GitHub's note in the Branch Protection Rules docs flags rulesets as the alternat
 gh api repos/SoundMindsAI/relyloop/rules/branches/main --jq '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context'
 ```
 
-Expected output (3 lines, in any order):
+Expected output (5 lines, in any order):
 ```
-backend (lint + typecheck + tests + coverage)
+static-checks (backend — ruff + mypy + guards, always-run)
+static-checks (frontend — prettier + eslint + tsc + vitest, always-run)
+backend (tests + coverage)
 frontend (lint + typecheck + tests + build)
 docker buildx (relyloop/api)
 ```
@@ -97,7 +105,7 @@ Use this only if your repo already has classic branch protection rules and you d
 4. Check **Require a pull request before merging** (sub-options as above).
 5. Check **Require status checks to pass before merging**.
 6. Check **Require branches to be up to date before merging**.
-7. In the search box under that, add the three checks listed in the table above (same `+`-icon gotcha applies).
+7. In the search box under that, add the checks listed in the table above (same `+`-icon gotcha applies).
 8. Optionally: **Do not allow bypassing the above settings** (so even admins can't merge red PRs).
 9. Click **Create** (or **Save changes**).
 
