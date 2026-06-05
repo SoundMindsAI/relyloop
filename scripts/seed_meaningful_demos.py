@@ -65,6 +65,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Final, cast
@@ -190,6 +191,98 @@ def http(
 
 def post(path: str, body: dict) -> dict:
     return http("POST", f"{API}{path}", body=body)
+
+
+# ---------------------------------------------------------------------------
+# Bulk-index retry (bug_seed_meaningful_demos_silent_bulk_errors)
+#
+# ES /_bulk returns HTTP 200 even when the primary shard is still INITIALIZING
+# — the per-item error lives in the JSON body. The previous loop read and
+# DISCARDED the response, so an `unavailable_shards_exception` on a cold ES (or
+# any mapping bug) silently produced a partial/empty index with no signal, and
+# the operator's `make seed-demo` looked successful. Mirror the retry posture
+# shipped in backend/app/scripts/seed_es.py for
+# bug_smoke_seed_es_unavailable_shards_race: parse the body, retry ONLY the
+# transient shard race a few times, fail LOUD on anything else. This script
+# uses urllib (not httpx), so the helper is standalone rather than imported.
+# ---------------------------------------------------------------------------
+_BULK_RETRY_ATTEMPTS: Final[int] = 3
+_BULK_RETRY_SLEEP_SECS: Final[float] = 2.0
+_RETRYABLE_BULK_ERROR_TYPES: Final[frozenset[str]] = frozenset({"unavailable_shards_exception"})
+
+
+def _first_bulk_error(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Return the first per-item error object in a bulk response, else None.
+
+    ES bulk responses set top-level ``errors: true`` and put each failure under
+    ``items[*].<action>.error``. Mirrors ``backend/app/scripts/seed_es.py``.
+
+    Unlike the sibling, this caller (``_bulk_index_with_retry``) treats a
+    ``None`` return as success, so a malformed body must NOT slip through as
+    ``None``: a non-dict payload raises, and an ``errors=true`` body with no
+    discoverable item error returns a synthetic ``unknown_bulk_error`` so the
+    seed still fails loud rather than reporting a phantom success.
+    """
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"bulk response was not a JSON object (got {type(payload).__name__})")
+    if not payload.get("errors"):
+        return None
+    items = payload.get("items")
+    if isinstance(items, list):
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            for action in item.values():
+                if isinstance(action, dict) and isinstance(action.get("error"), dict):
+                    return cast("dict[str, Any]", action["error"])
+    return {
+        "type": "unknown_bulk_error",
+        "reason": "bulk response set errors=true but no item-level error was found",
+    }
+
+
+def _post_bulk_ndjson(body: bytes) -> dict[str, Any]:
+    """POST one NDJSON ``/_bulk`` chunk and return the parsed JSON response."""
+    req = urllib.request.Request(
+        f"{ES}/_bulk",
+        data=body,
+        method="POST",
+        headers={"Content-Type": "application/x-ndjson", "Authorization": _basic(ES_AUTH)},
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        return cast("dict[str, Any]", json.loads(resp.read()))
+
+
+def _bulk_index_with_retry(
+    body: bytes,
+    *,
+    send: Callable[[bytes], dict[str, Any]] = _post_bulk_ndjson,
+    sleep: Callable[[float], None] = time.sleep,
+) -> None:
+    """Index one NDJSON ``/_bulk`` chunk, retrying the transient shard race.
+
+    Raises ``RuntimeError`` on a non-retryable bulk error, or once a retryable
+    error survives ``_BULK_RETRY_ATTEMPTS`` — so a partial/empty index can never
+    masquerade as a successful seed (bug_seed_meaningful_demos_silent_bulk_errors).
+    ``send`` / ``sleep`` are injectable so the retry logic is unit-testable
+    without a real ES.
+    """
+    for attempt in range(1, _BULK_RETRY_ATTEMPTS + 1):
+        first_error = _first_bulk_error(send(body))
+        if first_error is None:
+            return
+        error_type = first_error.get("type", "unknown")
+        if error_type in _RETRYABLE_BULK_ERROR_TYPES and attempt < _BULK_RETRY_ATTEMPTS:
+            print(
+                f"  bulk attempt {attempt}/{_BULK_RETRY_ATTEMPTS} hit "
+                f"{error_type}; retrying in {_BULK_RETRY_SLEEP_SECS}s",
+                file=sys.stderr,
+            )
+            sleep(_BULK_RETRY_SLEEP_SECS)
+            continue
+        raise RuntimeError(
+            f"bulk index failed ({error_type}) after {attempt} attempt(s): {first_error}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -2556,17 +2649,10 @@ def seed_rich_scenario() -> dict:
             lines.append(json.dumps({"index": {"_index": index_name, "_id": p["id"]}}))
             lines.append(json.dumps({k: v for k, v in p.items() if k != "id"}))
         body = ("\n".join(lines) + "\n").encode()
-        req = urllib.request.Request(
-            f"{ES}/_bulk",
-            data=body,
-            method="POST",
-            headers={
-                "Content-Type": "application/x-ndjson",
-                "Authorization": _basic(ES_AUTH),
-            },
-        )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            resp.read()
+        # Parse + retry the cold-shard race; raise loud on any other bulk error
+        # so a partial index never looks like a successful seed
+        # (bug_seed_meaningful_demos_silent_bulk_errors).
+        _bulk_index_with_retry(body)
     http("POST", f"{ES}/{index_name}/_refresh", body=None, auth=ES_AUTH)
     print(f"  docs: {len(products)} bulk-indexed")
 
