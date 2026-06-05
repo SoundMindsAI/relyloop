@@ -18,6 +18,11 @@ interface ValueDeltaCardProps {
   coveragePct: number | null | undefined;
   judgmentCount: number;
   priorList?: PriorListSummary | null;
+  /**
+   * `/studies/compare?...` link when this UBI list's study has a valid LLM
+   * counterpart (feat_ubi_llm_study_comparison FR-9). Rendered only when set.
+   */
+  compareHref?: string | null;
 }
 
 /**
@@ -38,6 +43,7 @@ export function ValueDeltaCard({
   coveragePct,
   judgmentCount,
   priorList,
+  compareHref,
 }: ValueDeltaCardProps): React.ReactElement {
   const pctText = typeof coveragePct === 'number' ? `${Math.round(coveragePct * 100)}%` : 'most';
   return (
@@ -66,6 +72,17 @@ export function ValueDeltaCard({
           <p className="text-sm">
             This UBI list covered <strong>{pctText}</strong> of recent traffic with{' '}
             <strong>{judgmentCount}</strong> ratings.
+          </p>
+        )}
+        {compareHref && (
+          <p className="mt-2 text-sm">
+            <Link
+              href={compareHref}
+              className="text-blue-600 underline-offset-4 hover:underline"
+              data-testid="value-delta-compare-link"
+            >
+              View matched study comparison →
+            </Link>
           </p>
         )}
       </CardContent>

@@ -272,6 +272,7 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | @types/d3-timer | npm | MIT | runtime | Yes |
 | @types/debug | npm | MIT | runtime | Yes |
 | @types/deep-eql | npm | MIT | dev | Yes |
+| @types/diff | npm | MIT | dev | Yes |
 | @types/estree | npm | MIT | runtime | Yes |
 | @types/estree-jsx | npm | MIT | runtime | Yes |
 | @types/hast | npm | MIT | runtime | Yes |
@@ -395,6 +396,7 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 | detect-libc | npm | Apache-2.0 | runtime | Yes |
 | detect-node-es | npm | MIT | runtime | Yes |
 | devlop | npm | MIT | runtime | Yes |
+| diff | npm | BSD-3-Clause | runtime | Yes |
 | doctrine | npm | Apache-2.0 | dev | Yes |
 | dom-accessibility-api | npm | MIT | dev | Yes |
 | dunder-proto | npm | MIT | dev | Yes |
@@ -809,5 +811,5 @@ The `license-inventory` CI job runs `python scripts/gen_license_inventory.py --c
 
 ## Summary
 
-- Total dependencies in locked closure: **782** (323 shipped, 459 dev-only).
+- Total dependencies in locked closure: **784** (324 shipped, 460 dev-only).
 - Non-permissive licenses: **9** (all adjudicated above).

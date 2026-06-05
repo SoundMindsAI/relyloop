@@ -25,7 +25,7 @@ from typing import Literal
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.app.db.models import Proposal, Study, Trial
+from backend.app.db.models import JudgmentList, Proposal, Study, Trial
 from backend.app.db.repo._fts import fts_predicate
 from backend.app.db.repo._sort import (
     ParsedSort,
@@ -71,6 +71,63 @@ async def get_study(db: AsyncSession, study_id: str) -> Study | None:
     """Fetch a study by id."""
     stmt = select(Study).where(Study.id == study_id)
     return (await db.execute(stmt)).scalar_one_or_none()
+
+
+async def find_paired_ubi_llm_study(db: AsyncSession, study_id: str) -> Study | None:
+    """Find the single completed LLM↔UBI counterpart of ``study_id``.
+
+    Returns ``None`` unless the source study exists AND is completed. The
+    counterpart must share the source's ``query_set_id`` + ``cluster_id``, be
+    completed, and carry the **opposite** judgment-list kind (one ``ubi`` + one
+    ``llm``). Returns ``None`` on 0 or >1 matches (no uniqueness guarantee).
+
+    Kind is the JSONB ``generation_params->>'generation_kind' == 'ubi'`` rule —
+    the SQL mirror of ``study_comparison.classify_judgment_kind`` (a NULL/absent
+    discriminator classifies as ``llm`` via ``is_distinct_from('ubi')``).
+    (feat_ubi_llm_study_comparison FR-2.)
+    """
+    src = (await db.execute(select(Study).where(Study.id == study_id))).scalar_one_or_none()
+    if src is None or src.status != "completed":
+        return None
+    src_jl = (
+        await db.execute(select(JudgmentList).where(JudgmentList.id == src.judgment_list_id))
+    ).scalar_one_or_none()
+    src_is_ubi = bool(
+        src_jl is not None
+        and isinstance(src_jl.generation_params, dict)
+        and src_jl.generation_params.get("generation_kind") == "ubi"
+    )
+    kind_col = JudgmentList.generation_params["generation_kind"].astext
+    stmt = (
+        select(Study)
+        .join(JudgmentList, Study.judgment_list_id == JudgmentList.id)
+        .where(
+            Study.id != src.id,
+            Study.query_set_id == src.query_set_id,
+            Study.cluster_id == src.cluster_id,
+            Study.status == "completed",
+            # opposite kind: LLM source wants a UBI counterpart and vice versa.
+            (kind_col == "ubi") if not src_is_ubi else kind_col.is_distinct_from("ubi"),
+        )
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    return rows[0] if len(rows) == 1 else None
+
+
+async def get_completed_study_for_judgment_list(
+    db: AsyncSession, judgment_list_id: str
+) -> Study | None:
+    """The single completed study referencing ``judgment_list_id``.
+
+    ``studies.judgment_list_id`` has no uniqueness constraint, so this returns
+    ``None`` on 0 OR >1 matches. (feat_ubi_llm_study_comparison FR-9.)
+    """
+    stmt = select(Study).where(
+        Study.judgment_list_id == judgment_list_id,
+        Study.status == "completed",
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    return rows[0] if len(rows) == 1 else None
 
 
 async def list_studies(

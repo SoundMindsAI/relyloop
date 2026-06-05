@@ -37,4 +37,22 @@ describe('<ValueDeltaCard>', () => {
     render(<ValueDeltaCard coveragePct={null} judgmentCount={42} />);
     expect(screen.getByText('most')).toBeInTheDocument();
   });
+
+  // feat_ubi_llm_study_comparison FR-9 / AC-17 — the compare affordance.
+  it('renders the "View matched study comparison" link when compareHref is set', () => {
+    render(
+      <ValueDeltaCard
+        coveragePct={0.5}
+        judgmentCount={10}
+        compareHref="/studies/compare?a=llm-1&b=ubi-2"
+      />,
+    );
+    const link = screen.getByTestId('value-delta-compare-link');
+    expect(link).toHaveAttribute('href', '/studies/compare?a=llm-1&b=ubi-2');
+  });
+
+  it('omits the compare affordance when compareHref is null/absent', () => {
+    render(<ValueDeltaCard coveragePct={0.5} judgmentCount={10} compareHref={null} />);
+    expect(screen.queryByTestId('value-delta-compare-link')).toBeNull();
+  });
 });

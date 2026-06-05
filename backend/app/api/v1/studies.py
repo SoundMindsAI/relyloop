@@ -48,13 +48,16 @@ from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.api.v1.schemas import (
+    CompareWarning,
     CreateStudyRequest,
     RecentChainsResponse,
     RecentChainSummary,
     StudyChainLink,
     StudyChainResponse,
+    StudyComparePairing,
     StudyDetail,
     StudyListResponse,
+    StudyPairResponse,
     StudySortKey,
     StudyStatusWire,
     StudySummary,
@@ -727,6 +730,72 @@ async def get_recent_chains(
 # ---------------------------------------------------------------------------
 # GET /api/v1/studies/{id}
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# GET /api/v1/studies/compare  +  /studies/{id}/pair
+# (feat_ubi_llm_study_comparison Epic 1 + 2). BOTH declared ABOVE
+# /studies/{study_id} so the literal `compare` segment is never captured as a
+# path param.
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/studies/compare",
+    response_model=StudyComparePairing,
+    tags=["studies"],
+)
+async def compare_studies(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    a: Annotated[str, Query(min_length=1, max_length=36)],
+    b: Annotated[str, Query(min_length=1, max_length=36)],
+) -> StudyComparePairing:
+    """Validate an LLM↔UBI study pair for side-by-side comparison (FR-1)."""
+    from backend.app.services.study_comparison import (
+        CompareValidationError,
+        validate_compare_pair,
+    )
+
+    try:
+        pairing = await validate_compare_pair(db, a, b)
+    except CompareValidationError as exc:
+        raise _err(exc.status, exc.code, exc.message, False) from exc
+    return StudyComparePairing(
+        a_study_id=pairing.a_study_id,
+        b_study_id=pairing.b_study_id,
+        a_kind=pairing.a_kind,
+        b_kind=pairing.b_kind,
+        query_set_id=pairing.query_set_id,
+        warnings=[CompareWarning(code=w.code, message=w.message) for w in pairing.warnings],
+    )
+
+
+@router.get(
+    "/studies/{study_id}/pair",
+    response_model=StudyPairResponse,
+    tags=["studies"],
+)
+async def get_study_pair(
+    study_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> StudyPairResponse:
+    """Discover the single LLM↔UBI counterpart of a study (FR-8).
+
+    ``200 {study_id, kind}`` when a unique counterpart exists; ``200
+    {study_id: null, kind: null}`` when none; ``404`` only when ``{id}`` itself
+    is missing.
+    """
+    from backend.app.services.study_comparison import classify_judgment_kind
+
+    row = await repo.get_study(db, study_id)
+    if row is None:
+        raise _err(404, "STUDY_NOT_FOUND", f"study {study_id} not found", False)
+    counterpart = await repo.find_paired_ubi_llm_study(db, study_id)
+    if counterpart is None:
+        return StudyPairResponse(study_id=None, kind=None)
+    jl = await repo.get_judgment_list(db, counterpart.judgment_list_id)
+    kind = classify_judgment_kind(jl.generation_params if jl else None)
+    return StudyPairResponse(study_id=counterpart.id, kind=kind)
 
 
 @router.get(

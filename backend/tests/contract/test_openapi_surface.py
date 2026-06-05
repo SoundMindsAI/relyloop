@@ -83,12 +83,18 @@ EXPECTED_ENDPOINTS: list[tuple[str, str, str]] = [
     ("post", "/api/v1/judgment-lists/import", "201"),
     ("get", "/api/v1/judgment-lists", "200"),
     ("get", "/api/v1/judgment-lists/{judgment_list_id}", "200"),
+    # feat_ubi_llm_study_comparison (this PR) — list→completed-study resolver.
+    ("get", "/api/v1/judgment-lists/{judgment_list_id}/study", "200"),
     ("get", "/api/v1/judgment-lists/{judgment_list_id}/judgments", "200"),
     ("patch", "/api/v1/judgment-lists/{judgment_list_id}/judgments/{judgment_id}", "200"),
     ("post", "/api/v1/judgment-lists/{judgment_list_id}/calibration", "200"),
     # ----- /api/v1/studies -----
     ("post", "/api/v1/studies", "201"),
     ("get", "/api/v1/studies", "200"),
+    # feat_ubi_llm_study_comparison (this PR) — LLM-vs-UBI compare surface.
+    # `compare` + `{id}/pair` are declared ABOVE `/studies/{study_id}`.
+    ("get", "/api/v1/studies/compare", "200"),
+    ("get", "/api/v1/studies/{study_id}/pair", "200"),
     ("get", "/api/v1/studies/{study_id}", "200"),
     ("post", "/api/v1/studies/{study_id}/cancel", "200"),
     ("get", "/api/v1/studies/{study_id}/children", "200"),

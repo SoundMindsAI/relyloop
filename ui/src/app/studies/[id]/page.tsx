@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AutoFollowupChainPanel } from '@/components/studies/auto-followup-chain-panel';
+import { CompareButton } from '@/components/studies/compare-button';
 import { ConfidencePanel } from '@/components/studies/confidence-panel';
 import { ConvergencePanel } from '@/components/studies/convergence-panel';
 import { LinkedEntitiesRow } from '@/components/studies/linked-entities-row';
@@ -83,7 +84,10 @@ export function StudyDetailView({ studyId }: { studyId: string }) {
           <>
             <div className="flex items-center justify-between">
               <h1 className="text-2xl font-semibold tracking-tight">Study detail</h1>
-              <StudyActionBar study={study} chainChildren={childrenQ.data?.data ?? []} />
+              <div className="flex items-center gap-2">
+                <CompareButton study={study} />
+                <StudyActionBar study={study} chainChildren={childrenQ.data?.data ?? []} />
+              </div>
             </div>
             <p className="text-sm text-muted-foreground" data-testid="study-page-summary">
               A study runs Optuna trials against your cluster and judgment list to search for a
