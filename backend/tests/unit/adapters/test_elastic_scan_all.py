@@ -570,6 +570,48 @@ class TestAclAndNotFoundPropagate:
         finally:
             await adapter.aclose()
 
+    @pytest.mark.asyncio
+    async def test_pit_open_404_string_error_does_not_attribute_error(self) -> None:
+        """Gemini review: a 404 whose ``error`` field is a STRING (e.g. a
+        proxy/custom error response, not an ES envelope) must NOT raise
+        AttributeError on ``.get("type")`` — it falls through to
+        ClusterUnreachableError via the isinstance(error, dict) guard."""
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            if req.url.path == "/ubi_events/_pit":
+                # `error` is a bare string, not a dict.
+                return httpx.Response(404, json={"error": "gateway says no such thing"})
+            raise AssertionError(f"unexpected {req.method} {req.url.path}")
+
+        adapter = _build_adapter(handler)
+        try:
+            # NOT AttributeError — a clean ClusterUnreachableError.
+            with pytest.raises(ClusterUnreachableError):
+                await adapter.scan_all("ubi_events", {}, page_size=10)
+        finally:
+            await adapter.aclose()
+
+    @pytest.mark.asyncio
+    async def test_pit_search_404_string_error_does_not_attribute_error(self) -> None:
+        """Same string-error guard on the PIT-mode _search 404 path
+        (_raise_scan_search_errors)."""
+
+        def handler(req: httpx.Request) -> httpx.Response:
+            if req.url.path == "/ubi_events/_pit":
+                return httpx.Response(200, json={"id": "pit-1"})
+            if req.url.path == "/_search":
+                return httpx.Response(404, json={"error": "proxy 404 html-ish string"})
+            if req.method == "DELETE" and req.url.path == "/_pit":
+                return httpx.Response(200, json={})
+            raise AssertionError(f"unexpected {req.method} {req.url.path}")
+
+        adapter = _build_adapter(handler)
+        try:
+            with pytest.raises(ClusterUnreachableError):
+                await adapter.scan_all("ubi_events", {}, page_size=10)
+        finally:
+            await adapter.aclose()
+
 
 # -----------------------------------------------------------------------------
 # AC-8 / P3-A2 — mid-scan exception path closes PIT best-effort, re-raises

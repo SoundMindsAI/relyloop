@@ -776,7 +776,8 @@ class ElasticAdapter:
                 payload = None
             if (
                 isinstance(payload, dict)
-                and payload.get("error", {}).get("type") == "index_not_found_exception"
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
             ):
                 raise TargetNotFoundError(target)
             # found: false → return None
@@ -860,7 +861,8 @@ class ElasticAdapter:
                 payload = None
             if (
                 isinstance(payload, dict)
-                and payload.get("error", {}).get("type") == "index_not_found_exception"
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
             ):
                 raise TargetNotFoundError(target)
             raise ClusterUnreachableError(
@@ -1136,7 +1138,8 @@ class ElasticAdapter:
                 payload = None
             if (
                 isinstance(payload, dict)
-                and payload.get("error", {}).get("type") == "index_not_found_exception"
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
             ):
                 raise TargetNotFoundError(target)
             # 404 on the PIT endpoint itself — propagate as unreachable.
@@ -1322,7 +1325,8 @@ class ElasticAdapter:
                 payload = None
             if (
                 isinstance(payload, dict)
-                and payload.get("error", {}).get("type") == "index_not_found_exception"
+                and isinstance(payload.get("error"), dict)
+                and payload["error"].get("type") == "index_not_found_exception"
             ):
                 # We don't have the un-encoded target here; the path string is
                 # the next-best diagnostic anchor for operators.
