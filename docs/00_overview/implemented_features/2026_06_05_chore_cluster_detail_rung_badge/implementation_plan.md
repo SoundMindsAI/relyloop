@@ -1,7 +1,7 @@
 # Implementation Plan — chore_cluster_detail_rung_badge
 
 **Date:** 2026-06-01
-**Status:** Draft (post-GPT-5.5 convergence)
+**Status:** Complete (PR #464, squash-merged `3e03ce7`, 2026-06-05)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../CLAUDE.md) (Enumerated Value Contract Discipline; E2E real-backend rule); [`docs/01_architecture/ui-architecture.md`](../../../01_architecture/ui-architecture.md) (cluster-detail composition)
 
