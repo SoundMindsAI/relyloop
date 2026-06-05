@@ -4,6 +4,7 @@
 
 'use client';
 import { DemoBadge } from '@/components/common/demo-badge';
+import { InfoTooltip } from '@/components/common/info-tooltip';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { JudgmentListDetail } from '@/lib/api/judgments';
@@ -58,11 +59,16 @@ export function JudgmentListHeader({
             <dt className="text-xs uppercase text-muted-foreground">Total judgments</dt>
             <dd data-testid="header-count">{list.judgment_count.toLocaleString()}</dd>
           </div>
+          {/* Terms mirror backend/app/api/v1/schemas.py _SourceBreakdown (llm + human + click) */}
           <div>
-            <dt className="text-xs uppercase text-muted-foreground">LLM / Human</dt>
+            <dt className="flex items-center gap-1 text-xs uppercase text-muted-foreground">
+              LLM / Human / Clicks
+              <InfoTooltip glossaryKey="judgment.source.click" />
+            </dt>
             <dd data-testid="header-breakdown">
               {list.source_breakdown.llm.toLocaleString()} /{' '}
-              {list.source_breakdown.human.toLocaleString()}
+              {list.source_breakdown.human.toLocaleString()} /{' '}
+              {list.source_breakdown.click.toLocaleString()}
             </dd>
           </div>
           <div>

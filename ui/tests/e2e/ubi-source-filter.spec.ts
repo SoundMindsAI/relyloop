@@ -83,6 +83,29 @@ test.describe('UBI source filter — click widening', () => {
       page.getByTestId('judgments-table').or(page.getByTestId('data-table-empty-no-rows-exist')),
     ).toBeVisible({ timeout: 10_000 });
 
+    // bug_judgment_header_omits_click_bucket (AC-4): the header surfaces the
+    // `click` bucket so the three displayed terms sum to the total. On a
+    // pure-CTR list that is `0 / 0 / {clickCount}` with clickCount > 0.
+    const detailResp = await request.get(
+      new URL(`/api/v1/judgment-lists/${listId}`, API_BASE).toString(),
+    );
+    expect(detailResp.ok()).toBeTruthy();
+    const detail = (await detailResp.json()) as {
+      source_breakdown: { llm: number; human: number; click: number };
+    };
+    expect(detail.source_breakdown.click).toBeGreaterThan(0);
+    const { llm, human, click } = detail.source_breakdown;
+    await expect(page.getByTestId('header-breakdown')).toBeVisible();
+    // Locale-robust: parse the three integers out of the rendered text rather
+    // than compare against Node's toLocaleString() (which can differ from the
+    // browser's locale separators). Per Gemini Code Assist review on PR #470.
+    const breakdownText = (await page.getByTestId('header-breakdown').textContent()) ?? '';
+    const parsedBreakdown = breakdownText
+      .split('/')
+      .map((part) => parseInt(part.replace(/[^\d]/g, ''), 10));
+    expect(parsedBreakdown).toEqual([llm, human, click]);
+    await expect(page.getByText('LLM / Human / Clicks')).toBeVisible();
+
     // The `click` source chip exists (FR-10 widening) + drives ?source=click.
     await page.getByTestId('filter-chip-source-click').click();
     await expect(page).toHaveURL(/[?&]source=click/);
