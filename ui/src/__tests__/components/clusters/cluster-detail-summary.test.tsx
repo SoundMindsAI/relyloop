@@ -59,7 +59,9 @@ describe('ClusterDetailSummary — target_filter', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Story 3.2 / FR-7 — synthetic-data chip on cluster detail (surface #3)
+// chore_cluster_detail_rung_badge Story 5 — the synthetic-UBI chip RELOCATED
+// out of the summary into <ClusterDetailUbiReadinessCard>. The summary must no
+// longer render it, even for a synthetic-UBI demo cluster name.
 // ---------------------------------------------------------------------------
 
 function renderWithTooltip(cluster: ClusterDetail) {
@@ -70,18 +72,18 @@ function renderWithTooltip(cluster: ClusterDetail) {
   );
 }
 
-describe('ClusterDetailSummary — synthetic-data chip (FR-7 surface #3)', () => {
-  it('shows the chip when cluster is a synthetic-UBI demo (acme)', () => {
+describe('ClusterDetailSummary — synthetic-data chip relocated out (Story 5)', () => {
+  it('does NOT render the chip even on a synthetic-UBI demo cluster (acme)', () => {
     renderWithTooltip({ ...BASE_CLUSTER, name: 'acme-products-prod' });
-    expect(screen.getByTestId('demo-badge-synthetic-ubi')).toBeInTheDocument();
+    expect(screen.queryByTestId('demo-badge-synthetic-ubi')).not.toBeInTheDocument();
   });
 
-  it('does NOT show the chip on news-search-staging (demo cluster, no synthetic UBI)', () => {
+  it('does NOT render the chip on news-search-staging (demo, no synthetic UBI)', () => {
     renderWithTooltip({ ...BASE_CLUSTER, name: 'news-search-staging' });
     expect(screen.queryByTestId('demo-badge-synthetic-ubi')).not.toBeInTheDocument();
   });
 
-  it('does NOT show the chip on a production (non-demo) cluster', () => {
+  it('does NOT render the chip on a production (non-demo) cluster', () => {
     renderWithTooltip({ ...BASE_CLUSTER, name: 'production-real-cluster' });
     expect(screen.queryByTestId('demo-badge-synthetic-ubi')).not.toBeInTheDocument();
   });

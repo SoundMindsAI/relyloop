@@ -4,11 +4,9 @@
 
 'use client';
 import { EngineBadge } from '@/components/clusters/engine-badge';
-import { DemoBadge } from '@/components/common/demo-badge';
 import { StatusBadge } from '@/components/common/status-badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ClusterDetail } from '@/lib/api/clusters';
-import { isDemoSyntheticUbiClusterName } from '@/lib/demo-data';
 import type { EngineType } from '@/lib/enums';
 
 export interface ClusterDetailSummaryProps {
@@ -16,18 +14,15 @@ export interface ClusterDetailSummaryProps {
 }
 
 export function ClusterDetailSummary({ cluster }: ClusterDetailSummaryProps) {
-  // FR-7 surface #3 — synthetic-data chip on cluster detail for the
-  // three demo clusters that receive synthetic UBI from the reseed
-  // (acme, corp, jobs). news-search-staging is intentionally absent so
-  // the rung_0 on-ramp nudge stays demoable.
-  const showSyntheticUbiChip = isDemoSyntheticUbiClusterName(cluster.name);
+  // chore_cluster_detail_rung_badge Story 5: the synthetic-UBI chip relocated
+  // to <ClusterDetailUbiReadinessCard> (adjacent to the rung badge) so the
+  // "synthetic data" signal sits next to the readiness it qualifies.
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-3 text-base">
           <span>{cluster.name}</span>
           <StatusBadge kind="health" value={cluster.health_check.status} />
-          {showSyntheticUbiChip && <DemoBadge variant="synthetic-ubi" />}
         </CardTitle>
       </CardHeader>
       <CardContent>

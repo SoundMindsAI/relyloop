@@ -163,13 +163,15 @@ test.describe('demo-ubi surfaces (FR-7 + FR-12)', () => {
   }) => {
     const acme = await discoverClusterByName(request, 'acme-products-prod');
     await page.goto(`/clusters/${acme.id}`);
-    // NB: the cluster detail page does NOT render <UbiRungBadge> — that
-    // badge needs query_set_id + target context it only has inside the
-    // generate-judgments dialog (see ubi-rung-badge.tsx docstring). The
-    // chip is gated purely on isDemoSyntheticUbiClusterName(cluster.name)
-    // and renders next to the cluster name. Wiring a rung badge onto the
-    // cluster detail page is tracked for phase 2 (see phase2_idea.md).
-    await expect(page.getByTestId('demo-badge-synthetic-ubi').first()).toBeVisible({
+    // chore_cluster_detail_rung_badge: the synthetic-data chip RELOCATED out of
+    // the summary header into <ClusterDetailUbiReadinessCard>, adjacent to the
+    // <UbiRungBadge>. The acme demo seeds exactly one query set + a
+    // target_filter, so the card auto-seeds and the badge + chip resolve
+    // without operator interaction.
+    const card = page.getByTestId('cluster-detail-ubi-readiness-card');
+    await expect(card).toBeVisible({ timeout: 15_000 });
+    await expect(card.getByTestId('ubi-rung-badge')).toBeVisible({ timeout: 15_000 });
+    await expect(card.getByTestId('demo-badge-synthetic-ubi')).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -246,7 +248,8 @@ test.describe('demo-ubi surfaces (FR-7 + FR-12)', () => {
     // render).
     const news = await discoverClusterByName(request, 'news-search-staging');
 
-    // (a) Cluster detail page — no chip next to the cluster name.
+    // (a) Cluster detail page — no chip anywhere (neither the summary nor the
+    // relocated readiness card render it for a non-synthetic-UBI cluster).
     await page.goto(`/clusters/${news.id}`);
     await expect(
       page.getByTestId('cluster-detail-summary').or(page.getByText('news-search-staging')).first(),
