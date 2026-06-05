@@ -152,6 +152,33 @@ class DocumentPage(BaseModel):
     next_cursor_token: str | None = None
 
 
+class ScanPage(BaseModel):
+    """One page of a full-stream scan (``SearchAdapter.scan_all``).
+
+    Companion to :class:`DocumentPage` but for the bounded-result-window
+    full-stream aggregation use case (``chore_ubi_reader_search_after_pagination``
+    FR-1). ``UbiReader`` loops ``scan_all`` page-by-page, folding each
+    page's hits into per-(query, doc) accumulators until either the
+    engine signals terminal (``cursor=None``) or the configured ceiling
+    is reached (caller invokes ``close_scan`` to release the held PIT).
+
+    ``cursor`` is an **opaque, engine-internal continuation token** —
+    the caller round-trips it verbatim and never inspects it. The
+    encoding stays engine-agnostic:
+
+    * ``ElasticAdapter`` packs ``{pit_id, search_after, no_pit}`` so
+      each page advances ``search_after`` inside the same PIT and the
+      PIT id rotates with each response.
+    * ``SolrAdapter`` carries the ``nextCursorMark`` string directly.
+
+    ``cursor=None`` means the terminal page has been served — there is
+    nothing more to fetch and no engine-side resource still held.
+    """
+
+    hits: list[ScoredHit]
+    cursor: object | None = None
+
+
 class QueryTemplate(BaseModel):
     """A template definition handed to ``render``.
 
@@ -300,5 +327,108 @@ class SearchAdapter(Protocol):
 
         Same error envelope as :meth:`get_document`: ``TargetNotFoundError`` /
         ``TargetsForbiddenError`` / ``ClusterUnreachableError``.
+        """
+        ...
+
+    async def scan_all(
+        self,
+        target: str,
+        body: dict[str, Any],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage:
+        """Full-stream paginated read (``chore_ubi_reader_search_after_pagination`` FR-1).
+
+        Abstracts the two engine pagination idioms behind one async
+        coroutine that returns one page at a time:
+
+        * **ES + OpenSearch** — ``search_after`` over an injected
+          deterministic total-order sort
+          ``[{timestamp: asc}, {_shard_doc: asc}]``, anchored inside a
+          PIT (Point-In-Time). The PIT id rotates with each response;
+          the adapter packs the latest id into the opaque ``cursor`` so
+          continuations carry it forward. Falls back narrowly (only on
+          405/501/400-unsupported PIT-open responses) to a no-PIT path
+          that uses a configured ``Settings.ubi_no_pit_tiebreaker_field``;
+          if no tiebreaker is configured, the adapter falls back further
+          to a single sampled query bounded by the 10k result window
+          and logs a WARN.
+        * **Solr** — ``cursorMark`` over a uniqueKey-terminated sort.
+          Requests POST to ``/<target>/select`` (form-body params) so
+          large ``{!terms f=query_id}`` filters do not overflow URL
+          limits. Terminal when the engine returns
+          ``nextCursorMark == request cursorMark`` (or a short page).
+
+        ``cursor`` semantics: pass ``None`` on the first page; round-
+        trip the value from the previous page's ``ScanPage.cursor``
+        verbatim on continuations. The caller never inspects the
+        value — it is engine-internal. A returned ``cursor=None``
+        signals the terminal page (nothing left to fetch, no engine
+        resource still held).
+
+        Read-only invariant: ``scan_all`` MUST NOT mutate engine state.
+        The only engine-side write-shaped requests permitted on this
+        path are the read-only PIT close paths (``DELETE /_pit`` on ES,
+        ``DELETE /_search/point_in_time`` on OpenSearch) which release
+        ephemeral read snapshots; those land in :meth:`close_scan`,
+        never inside ``scan_all``'s page loop.
+
+        Args:
+            target: Index/collection name to scan.
+            body: Engine-native filter body. The adapter overwrites any
+                pagination-shaped keys (``pit``/``sort``/``size``/
+                ``search_after`` on ES; ``start``/``rows``/``cursorMark``/
+                ``sort`` on Solr) before issuing the request — caller
+                pagination keys are stripped, not respected.
+            page_size: Maximum hits returned per page. The caller may
+                clamp further (e.g. to the remaining ceiling).
+            cursor: Continuation token from the previous page, or
+                ``None`` for the first page.
+            fl: Optional field-list selection (Solr) / ``_source``
+                includes (ES) for narrowing the returned document
+                shape.
+            request_id: Optional correlation id surfaced to the engine
+                via ``X-Opaque-Id`` (ES) / ``X-Request-Id`` (Solr).
+
+        Returns:
+            A :class:`ScanPage` with the page's hits and a continuation
+            ``cursor`` (``None`` if this is the terminal page).
+
+        Raises:
+            ClusterUnreachableError: connection-class failures / 5xx
+                after the spec §13 single retry.
+            TargetsForbiddenError: engine 401/403 (e.g. on PIT open).
+            TargetNotFoundError: engine 404 (e.g. missing UBI index).
+        """
+        ...
+
+    async def close_scan(
+        self,
+        cursor: object | None,
+        *,
+        request_id: str | None = None,
+    ) -> None:
+        """Release any engine-side resource held by a non-terminal cursor.
+
+        Idempotent + safe with ``cursor=None``:
+
+        * **ES + OpenSearch** — ``DELETE`` the latest PIT id encoded in
+          the cursor (ES path ``/_pit`` body ``{"id": <pit_id>}``;
+          OpenSearch path ``/_search/point_in_time`` body
+          ``{"pit_id": [<pit_id>]}``). No-op when the cursor was
+          generated by the no-PIT fallback path or is ``None``.
+        * **Solr** — always a no-op (``cursorMark`` holds no server-side
+          resource).
+
+        Called from the reader's ``finally`` block on early exit
+        (ceiling reached, exception propagating) so a PIT is never
+        leaked beyond the configured ``keep_alive``. Cleanup is
+        best-effort: a close failure is logged and swallowed, never
+        re-raised, so the cleanup path cannot mask the primary
+        exception that motivated the early exit. Safe to call with the
+        terminal cursor (``None``) as well — the adapter short-circuits.
         """
         ...

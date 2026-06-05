@@ -62,6 +62,7 @@ from backend.app.adapters.protocol import (
     NativeQuery,
     ParamValue,
     QueryTemplate,
+    ScanPage,
     Schema,
     ScoredHit,
     TargetInfo,
@@ -187,6 +188,28 @@ class _StubUbiAdapter:
         request_id: str | None = None,
     ) -> DocumentPage:
         return DocumentPage(hits=[], total=0)
+
+    async def scan_all(
+        self,
+        target: str,
+        body: dict[str, Any],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage:
+        # Default terminal-page stub; Story 3.1 tests override this method
+        # on subclasses or via dataclass replacement.
+        return ScanPage(hits=[], cursor=None)
+
+    async def close_scan(
+        self,
+        cursor: object | None,
+        *,
+        request_id: str | None = None,
+    ) -> None:
+        return None
 
 
 def _query_hit(query_id: str, user_query: str, ts: str = "2026-05-20T10:00:00Z") -> ScoredHit:
@@ -683,13 +706,20 @@ async def test_read_user_query_map_returns_query_id_to_user_query() -> None:
 
 
 def test_search_adapter_protocol_methods_unchanged() -> None:
-    """Story 2.1 DoD: no new method added to SearchAdapter Protocol.
+    """Story 2.1 DoD: no UBI-specific method added to SearchAdapter Protocol.
 
     Lock the current method names + the ``engine_type`` annotation so
     adding a UBI-specific Protocol member anywhere would fail this
     test. ``engine_type`` is an annotation-only attribute (no default),
     so it doesn't appear in ``dir(SearchAdapter)`` — checked via
     ``__annotations__`` instead.
+
+    Updated by ``chore_ubi_reader_search_after_pagination`` Story 1.1:
+    ``scan_all`` + ``close_scan`` joined the Protocol as the generic
+    cursor-scan surface (NOT UBI-specific — UbiReader is one consumer;
+    document-browsing under denser indices could be another). The
+    UBI-decoupling intent of this pin survives: the new methods take a
+    generic ``body`` dict, not a UBI-shaped argument.
     """
     from backend.app.adapters.protocol import SearchAdapter
 
@@ -703,6 +733,8 @@ def test_search_adapter_protocol_methods_unchanged() -> None:
         "explain",
         "get_document",
         "list_documents",
+        "scan_all",
+        "close_scan",
     }
     method_names = {
         name for name in dir(SearchAdapter) if not name.startswith("_") and name not in {"mro"}

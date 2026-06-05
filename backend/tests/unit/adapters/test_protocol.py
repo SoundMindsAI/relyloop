@@ -22,6 +22,7 @@ from backend.app.adapters.protocol import (
     NativeQuery,
     ParamValue,
     QueryTemplate,
+    ScanPage,
     Schema,
     ScoredHit,
     SearchAdapter,
@@ -101,6 +102,27 @@ class _StubAdapter:
     ) -> DocumentPage:
         return DocumentPage(hits=[], total=0)
 
+    async def scan_all(
+        self,
+        target: str,
+        body: dict[str, object],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage:
+        # Terminal-page stub — empty hits, no continuation.
+        return ScanPage(hits=[], cursor=None)
+
+    async def close_scan(
+        self,
+        cursor: object | None,
+        *,
+        request_id: str | None = None,
+    ) -> None:
+        return None
+
 
 # -----------------------------------------------------------------------------
 # Protocol shape
@@ -129,6 +151,8 @@ def test_async_methods_are_coroutines() -> None:
         "explain",
         "get_document",
         "list_documents",
+        "scan_all",
+        "close_scan",
     ):
         method = getattr(stub, name)
         assert inspect.iscoroutinefunction(method), f"{name} must be async"
@@ -308,6 +332,47 @@ class TestDocumentPage:
         assert not hasattr(p, "last_sort")
 
 
+class TestScanPage:
+    """chore_ubi_reader_search_after_pagination Story 1.1 — ``scan_all`` page wrapper.
+
+    The opaque cursor is an engine-internal continuation token —
+    encoding stays adapter-private (ES packs PIT id + ``search_after``;
+    Solr carries ``nextCursorMark``). The Protocol surface only locks
+    ``hits + cursor`` and the ``cursor=None`` terminal sentinel.
+    """
+
+    def test_valid_empty_terminal(self) -> None:
+        """Empty hits + cursor=None — the canonical terminal page shape."""
+        p = ScanPage(hits=[], cursor=None)
+        assert p.hits == []
+        assert p.cursor is None
+
+    def test_valid_with_hits_and_continuation_cursor(self) -> None:
+        """Non-terminal page carries a continuation token + hits."""
+        h1 = ScoredHit(doc_id="a", score=0.0, source={"x": 1})
+        h2 = ScoredHit(doc_id="b", score=0.0, source={"x": 2})
+        p = ScanPage(
+            hits=[h1, h2],
+            # The cursor encoding is adapter-internal; tests just exercise
+            # round-trip integrity of arbitrary objects (dict for ES,
+            # str for Solr).
+            cursor={"pit_id": "pit-abc", "search_after": [123, 456], "no_pit": False},
+        )
+        assert len(p.hits) == 2
+        assert isinstance(p.cursor, dict)
+        assert p.cursor["pit_id"] == "pit-abc"
+
+    def test_solr_string_cursor_round_trips(self) -> None:
+        """Solr packs ``nextCursorMark`` (a string) directly into ``cursor``."""
+        p = ScanPage(hits=[], cursor="AoEpcHJvZC0xMjM=")
+        assert p.cursor == "AoEpcHJvZC0xMjM="
+
+    def test_cursor_defaults_to_none(self) -> None:
+        """Omitting cursor leaves it None — the terminal sentinel."""
+        p = ScanPage(hits=[])
+        assert p.cursor is None
+
+
 class TestSolrAdapterProtocolBranch:
     """infra_adapter_solr Story A1 — SolrAdapter passes the same Protocol shape.
 
@@ -359,6 +424,8 @@ class TestSolrAdapterProtocolBranch:
                 "explain",
                 "get_document",
                 "list_documents",
+                "scan_all",
+                "close_scan",
             ):
                 assert inspect.iscoroutinefunction(getattr(adapter, name))
             for name in ("render", "list_query_parsers"):
