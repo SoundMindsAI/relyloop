@@ -131,7 +131,7 @@ Use a Python script (via the Bash tool) with `urllib.request` to call the OpenAI
 
 **Fallback if GPT-5.5 is unavailable** — see CLAUDE.md §"Cross-model review policy" → "Environment-aware fallback" (authoritative source; this block defers to it):
 - **Claude Code remote sandbox — the common case here: GPT-5.5 is *expected*-unreachable** (no `OPENAI_API_KEY` and/or `api.openai.com` egress-blocked). This is a SANCTIONED standing condition, not an error. Proceed with **Opus self-review** (run the verification passes yourself) and state in the output: `cross-model review: Opus self-review (GPT-5.5 unreachable)`. It is a documented *degradation* — Gemini Code Assist remains the cross-family gate at the code/PR stage. To restore real GPT-5.5 review, enable egress + `OPENAI_API_KEY` per CLAUDE.md "Durable fix".
-- If the `.env` file does not contain `OPENAI_API_KEY`: alert the user and proceed with Opus self-review (as above).
+- If the `.env` file does not contain `OPENAI_API_KEY` **in a non-sandbox environment** (key unexpectedly missing — distinct from the sandbox case above, where its absence is expected and silent): alert the user, then proceed with Opus self-review.
 - If the API call fails (auth error, timeout, model not available): log the failure, alert the user, and proceed with Opus-only internal review passes. Do NOT silently skip the step — the user must be informed that cross-model review was skipped and why.
 - If the user explicitly opts out (e.g., "skip external review"): proceed without it, but note in the review log that cross-model review was skipped by user request.
 
