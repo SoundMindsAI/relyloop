@@ -20,13 +20,18 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import JudgmentList, Proposal, Study, Trial
-from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._fts import (
+    fts_predicate,
+    rank_active,
+    rank_bucket_expr,
+    rows_with_rank,
+)
 from backend.app.db.repo._sort import (
     ParsedSort,
     keyset_predicate,
@@ -159,7 +164,18 @@ async def list_studies(
     ``search_vector`` (studies.name + target). Limit clamped at 200.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _STUDY_SORT_COLUMNS)
-    stmt = select(Study)
+    # feat_fts_rank_ordering: relevance ordering when ?q= present and no ?sort=.
+    is_rank = rank_active(q, parsed_sort)
+    stmt: Select[Any]
+    if is_rank and q is not None:  # q is non-None whenever is_rank is True
+        rank_col = rank_bucket_expr(q)
+        stmt = select(Study, rank_col.label("rb"))
+        order_col: Any = rank_col
+        keyset_parsed: ParsedSort | None = None
+    else:
+        stmt = select(Study)
+        order_col = Study.created_at
+        keyset_parsed = parsed_sort
     if status is not None:
         stmt = stmt.where(Study.status == status)
     if since is not None:
@@ -175,17 +191,20 @@ async def list_studies(
         cursor_value, cursor_id = cursor
         stmt = stmt.where(
             keyset_predicate(
-                parsed_sort,
+                keyset_parsed,
                 cursor_value,
                 cursor_id,
-                default_col=Study.created_at,
+                default_col=order_col,
                 id_col=Study.id,
             )
         )
     stmt = stmt.order_by(
-        *order_by_clauses(parsed_sort, default_col=Study.created_at, id_col=Study.id)
+        *order_by_clauses(keyset_parsed, default_col=order_col, id_col=Study.id)
     ).limit(min(limit, 200))
-    return list((await db.execute(stmt)).scalars().all())
+    result = await db.execute(stmt)
+    if is_rank:
+        return rows_with_rank(result)
+    return list(result.scalars().all())
 
 
 async def count_studies(

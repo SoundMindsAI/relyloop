@@ -8,12 +8,18 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import Query, QuerySet
-from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._fts import (
+    fts_predicate,
+    rank_active,
+    rank_bucket_expr,
+    rows_with_rank,
+)
 from backend.app.db.repo._sort import (
     ParsedSort,
     keyset_predicate,
@@ -58,7 +64,18 @@ async def list_query_sets(
     preserved when ``sort`` is None.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _QUERY_SET_SORT_COLUMNS)
-    stmt = select(QuerySet)
+    # feat_fts_rank_ordering: relevance ordering when ?q= present and no ?sort=.
+    is_rank = rank_active(q, parsed_sort)
+    stmt: Select[Any]
+    if is_rank and q is not None:  # q is non-None whenever is_rank is True
+        rank_col = rank_bucket_expr(q)
+        stmt = select(QuerySet, rank_col.label("rb"))
+        order_col: Any = rank_col
+        keyset_parsed: ParsedSort | None = None
+    else:
+        stmt = select(QuerySet)
+        order_col = QuerySet.created_at
+        keyset_parsed = parsed_sort
     if since is not None:
         stmt = stmt.where(QuerySet.created_at >= since)
     fts = fts_predicate(q)
@@ -68,17 +85,20 @@ async def list_query_sets(
         cursor_value, cursor_id = cursor
         stmt = stmt.where(
             keyset_predicate(
-                parsed_sort,
+                keyset_parsed,
                 cursor_value,
                 cursor_id,
-                default_col=QuerySet.created_at,
+                default_col=order_col,
                 id_col=QuerySet.id,
             )
         )
     stmt = stmt.order_by(
-        *order_by_clauses(parsed_sort, default_col=QuerySet.created_at, id_col=QuerySet.id)
+        *order_by_clauses(keyset_parsed, default_col=order_col, id_col=QuerySet.id)
     ).limit(min(limit, 200))
-    return list((await db.execute(stmt)).scalars().all())
+    result = await db.execute(stmt)
+    if is_rank:
+        return rows_with_rank(result)
+    return list(result.scalars().all())
 
 
 async def count_query_sets(

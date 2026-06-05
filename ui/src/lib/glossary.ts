@@ -41,6 +41,16 @@ export type GlossaryEntry = GlossaryEntryShort | GlossaryEntryLong | GlossaryEnt
 
 export const glossary = {
   // -------------------------------------------------------------------------
+  // Full-text search (feat_fts_rank_ordering)
+  // -------------------------------------------------------------------------
+
+  'fts.relevance_sort': {
+    short:
+      'Results are ordered by how well they match your search (relevance), then newest first. Click a column header to sort by that column instead.',
+    ariaLabel: 'More information about relevance sorting',
+  },
+
+  // -------------------------------------------------------------------------
   // Create-study modal (FR-6)
   // -------------------------------------------------------------------------
 

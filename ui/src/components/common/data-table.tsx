@@ -299,10 +299,26 @@ export function DataTable<T extends { id: string }>(props: DataTableProps<T>) {
       <DataTableSearch value={q} onQChange={onQChange} totalCount={totalCount} />
     ) : null;
 
+  // feat_fts_rank_ordering: when a search is active (?q=) and no explicit
+  // column sort is applied, the backend orders by relevance (ts_rank). Surface
+  // a non-interactive indicator so the user knows the default ordering is
+  // overridden. Mirrors the backend `rank_active(q, parsed_sort)` predicate.
+  const relevanceActive = Boolean(q && q.trim()) && !sort;
+  const relevanceSlot = relevanceActive ? (
+    <span
+      data-testid="fts-relevance-indicator"
+      className="inline-flex items-center gap-1 rounded-sm bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+    >
+      Sorted by relevance
+      <InfoTooltip glossaryKey="fts.relevance_sort" />
+    </span>
+  ) : null;
+
   const leftSlot =
-    searchSlot || filterSlot.length > 0 ? (
+    searchSlot || relevanceSlot || filterSlot.length > 0 ? (
       <>
         {searchSlot}
+        {relevanceSlot}
         {filterSlot}
       </>
     ) : null;

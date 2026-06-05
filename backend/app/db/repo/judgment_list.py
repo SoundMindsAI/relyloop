@@ -20,11 +20,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.db.models import JudgmentList
-from backend.app.db.repo._fts import fts_predicate
+from backend.app.db.repo._fts import (
+    fts_predicate,
+    rank_active,
+    rank_bucket_expr,
+    rows_with_rank,
+)
 from backend.app.db.repo._sort import (
     ParsedSort,
     keyset_predicate,
@@ -88,7 +93,18 @@ async def list_judgment_lists(
     /api/v1/studies`` then rejects at create time with a confusing 422.
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _JUDGMENT_LIST_SORT_COLUMNS)
-    stmt = select(JudgmentList)
+    # feat_fts_rank_ordering: relevance ordering when ?q= present and no ?sort=.
+    is_rank = rank_active(q, parsed_sort)
+    stmt: Select[Any]
+    if is_rank and q is not None:  # q is non-None whenever is_rank is True
+        rank_col = rank_bucket_expr(q)
+        stmt = select(JudgmentList, rank_col.label("rb"))
+        order_col: Any = rank_col
+        keyset_parsed: ParsedSort | None = None
+    else:
+        stmt = select(JudgmentList)
+        order_col = JudgmentList.created_at
+        keyset_parsed = parsed_sort
     if since is not None:
         stmt = stmt.where(JudgmentList.created_at >= since)
     if query_set_id is not None:
@@ -104,21 +120,24 @@ async def list_judgment_lists(
         cursor_value, cursor_id = cursor
         stmt = stmt.where(
             keyset_predicate(
-                parsed_sort,
+                keyset_parsed,
                 cursor_value,
                 cursor_id,
-                default_col=JudgmentList.created_at,
+                default_col=order_col,
                 id_col=JudgmentList.id,
             )
         )
     stmt = stmt.order_by(
         *order_by_clauses(
-            parsed_sort,
-            default_col=JudgmentList.created_at,
+            keyset_parsed,
+            default_col=order_col,
             id_col=JudgmentList.id,
         )
     ).limit(limit)
-    return list((await db.execute(stmt)).scalars().all())
+    result = await db.execute(stmt)
+    if is_rank:
+        return rows_with_rank(result)
+    return list(result.scalars().all())
 
 
 async def count_judgment_lists(

@@ -546,6 +546,7 @@ async def list_studies(
     studies targeting a single index/collection. Composes with all other
     filters via AND.
     """
+    from backend.app.db.repo._fts import rank_active, rank_bucket_of
     from backend.app.db.repo._sort import (
         cursor_value_is_datetime,
         parse_sort,
@@ -559,12 +560,19 @@ async def list_studies(
     from backend.app.db.repo.study import _STUDY_SORT_COLUMNS
 
     parsed_sort = parse_sort(sort, _STUDY_SORT_COLUMNS)
+    # feat_fts_rank_ordering: int rank_bucket cursor on the relevance path.
+    is_rank = rank_active(q, parsed_sort)
     parsed_cursor: tuple[object, str] | None = None
     if cursor:
         try:
             parsed_cursor = _sort_decode_cursor(
-                cursor, value_is_datetime=cursor_value_is_datetime(parsed_sort)
+                cursor,
+                value_is_datetime=False if is_rank else cursor_value_is_datetime(parsed_sort),
             )
+            if is_rank and not isinstance(parsed_cursor[0], int):
+                # A stale non-rank cursor (datetime str) on the rank path would hit
+                # the int rank_bucket column -> Postgres type error (500); reject as 422.
+                raise ValueError("rank cursor value must be an integer")
         except Exception as exc:
             raise _err(422, "VALIDATION_ERROR", f"invalid cursor: {exc}", False) from exc
     status_filter: Any = study_status if study_status else None
@@ -593,8 +601,10 @@ async def list_studies(
     has_more = False
     if rows and len(rows) == limit:
         last = rows[-1]
-        if parsed_sort is None:
-            cursor_value: object = last.created_at
+        if is_rank:
+            cursor_value: object = rank_bucket_of(last)
+        elif parsed_sort is None:
+            cursor_value = last.created_at
         else:
             cursor_value = getattr(last, parsed_sort.col_name)
         next_cursor = _sort_encode_cursor(cursor_value, last.id)
