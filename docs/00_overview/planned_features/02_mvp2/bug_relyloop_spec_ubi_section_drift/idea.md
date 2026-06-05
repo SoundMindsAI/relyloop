@@ -5,6 +5,11 @@
 **Priority:** P2 — doc-only; no operator impact today, but the broken links and stale title surface immediately to anyone who hits §706+ of the umbrella spec.
 **Origin:** Surfaced during `/idea-preflight` of [`feat_ubi_judgments`](../../02_mvp2/feat_ubi_judgments/idea.md) on 2026-05-29 when verifying the idea's spec citations.
 
+> **PREFLIGHT (2026-06-05) — idea partly OBE; scope shifted.** Live audit found:
+> - The `(MVP1.5)` stale title was **already fixed** — `relyloop-spec.md:705` now reads `### Click-derived judgments … (MVP2, shipped 2026-05-29)`. No `MVP1.5` refs remain anywhere in the spec.
+> - The §706 closing-paragraph `feat_ubi_judgments` link was **already fixed** to `implemented_features/2026_05_29_feat_ubi_judgments/`.
+> - **Real remaining breakage (what this fix lands):** both linked siblings have since **shipped + moved** to `implemented_features/`, so three links still pointed at non-existent `planned_features/` paths — line 723 `infra_adapter_solr` (→ `planned_features/02_mvp2/…`) and lines 2282 + 2293 (the original broken `../../00_overview/planned_features/…` pattern, missing bucket + stray prefix, for `infra_adapter_solr` and `feat_ubi_judgments`). All three repointed to `implemented_features/2026_05_31_infra_adapter_solr/idea.md` and `implemented_features/2026_05_29_feat_ubi_judgments/idea.md` (verified to resolve). Grep confirms no other `planned_features/` links to shipped features remain in the spec.
+
 ## Problem
 
 [`docs/00_overview/relyloop-spec.md`](../../../relyloop-spec.md) §"Click-derived judgments — OpenSearch UBI as the engine-neutral primary path" (line ~706) carries two staleness bugs from the 2026-05-27 release-matrix reshuffle (which compressed MVP1.5 into MVP2 per [`state_history.md`](../../../../state_history.md) "Release-matrix reshuffle (2026-05-27)"):
