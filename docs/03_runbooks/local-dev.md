@@ -318,6 +318,36 @@ make down && make up
 The check runs **non-blocking** (`asyncio.create_task`) so a slow LLM endpoint
 never delays startup. WARN logs are emitted on any probe failure.
 
+## Opting a template into normalizer tuning
+
+Shipped by [`feat_query_normalization_tuning`](../00_overview/planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md). Templates are immutable, so you opt in by creating a **new** template whose `declared_params` includes the reserved key `query_normalizer` — and whose body does **NOT** reference `{{ query_normalizer }}` (the adapter consumes it; a reference is rejected with `RESERVED_PARAM_REFERENCED`):
+
+```bash
+curl -sS -X POST http://127.0.0.1:8000/api/v1/query-templates \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "name": "products-normalizer-tuning",
+    "engine_type": "elasticsearch",
+    "body": "{\"query\": {\"match\": {\"title\": \"{{ query_text }}\"}}}",
+    "declared_params": {"query_normalizer": "string"}
+  }'
+```
+
+Then create a study against that template whose `search_space.params` declares `query_normalizer` as a Categorical whose `choices` are a subset of the four built-ins:
+
+```jsonc
+"search_space": {
+  "params": {
+    "query_normalizer": {
+      "type": "categorical",
+      "choices": ["none", "lowercase", "lowercase+trim", "lowercase+trim+expand_contractions"]
+    }
+  }
+}
+```
+
+The loop tunes the normalizer like any categorical. A choice outside the allowlist returns `400 NORMALIZER_CHOICE_INVALID`; declaring `query_normalizer` as a non-Categorical returns `400 NORMALIZER_PARAM_SHAPE`. The winning choice rides in the proposal's `config_diff` and the PR body's **"Operator-side requirement"** section, where a copy-pasteable Python snippet shows how to reproduce the normalizer in your production query layer.
+
 ## Continuous integration
 
 Every PR runs `.github/workflows/pr.yml`:

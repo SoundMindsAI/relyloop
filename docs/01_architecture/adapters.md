@@ -53,6 +53,8 @@ class SearchAdapter(Protocol):
 
 `search_batch` is the **only hot-path method** during a study (called once per Optuna trial). Every other method is define-time (`get_schema`, `list_targets` — called during cluster registration and study creation) or debug-time (`explain` — called from the UI when a user wants to see why a doc ranked where it did).
 
+**Pre-render transform contract** (added by [`feat_query_normalization_tuning`](../00_overview/planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md)). The `render()` implementation is permitted to apply a deterministic pure-function transform to `query_text` before injecting it into the Jinja context, provided the transform is recorded in the trial's `params` JSONB as a Categorical search-space value the operator declared. The `query_normalizer` key is the reserved canonical instance. Both `ElasticAdapter.render` and `SolrAdapter.render` implement the same pop-and-normalize hook, so the same normalized `query_text` enters the template regardless of engine.
+
 **Per-method exception contract.** Concrete adapter implementations translate engine HTTP status codes to named exceptions so routers can dispatch each to a distinct `error_code` envelope:
 
 | Method | 401/403 | 404 | 5xx / connection failure |
