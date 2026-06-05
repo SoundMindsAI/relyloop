@@ -1,7 +1,7 @@
 # Implementation Plan — Judgment-list header renders the `click` (UBI) source bucket
 
 **Date:** 2026-06-02
-**Status:** Ready for Execution
+**Status:** Complete (PR #470, squash-merged `66d1873`, 2026-06-05)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** [`CLAUDE.md`](../../../../../CLAUDE.md) (frontend conventions, enumerated-value discipline, test layers), [`docs/01_architecture/ui-architecture.md`](../../../../01_architecture/ui-architecture.md)
 
