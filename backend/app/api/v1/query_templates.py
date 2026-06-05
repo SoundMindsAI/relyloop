@@ -58,6 +58,7 @@ from backend.app.db.session import get_db
 from backend.app.domain.study.template_validator import (
     DeclaredParamUnused,
     InvalidTemplateSyntax,
+    ReservedParamReferenced,
     UndeclaredParamUsed,
     validate_template_body,
 )
@@ -143,6 +144,8 @@ async def create_query_template(
         raise _err(400, "UNDECLARED_PARAM_USED", str(exc), False) from exc
     except DeclaredParamUnused as exc:
         raise _err(400, "DECLARED_PARAM_UNUSED", str(exc), False) from exc
+    except ReservedParamReferenced as exc:
+        raise _err(400, "RESERVED_PARAM_REFERENCED", str(exc), False) from exc
 
     try:
         row = await repo.create_query_template(
