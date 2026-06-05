@@ -138,9 +138,7 @@ describe('ClusterDetailUbiReadinessCard', () => {
     useQuerySetsHandler({ probeRows: [qs], pickerRows: [qs] });
     useReadinessHandler(() => ({ body: readiness('rung_2') }));
     wrap(
-      <ClusterDetailUbiReadinessCard
-        cluster={{ ...BASE_CLUSTER, target_filter: 'products*' }}
-      />,
+      <ClusterDetailUbiReadinessCard cluster={{ ...BASE_CLUSTER, target_filter: 'products*' }} />,
     );
     const badge = await screen.findByTestId('ubi-rung-badge', undefined, { timeout: 3000 });
     expect(badge).toHaveAttribute('data-rung', 'rung_2');
