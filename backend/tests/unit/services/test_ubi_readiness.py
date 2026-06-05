@@ -22,6 +22,7 @@ from backend.app.adapters.protocol import (
     NativeQuery,
     ParamValue,
     QueryTemplate,
+    ScanPage,
     Schema,
     ScoredHit,
     TargetInfo,
@@ -110,6 +111,30 @@ class _StubAdapter:
         request_id: str | None = None,
     ) -> DocumentPage:
         return DocumentPage(hits=[], total=0)
+
+    async def scan_all(
+        self,
+        target: str,
+        body: dict[str, Any],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage:
+        # chore_ubi_reader_search_after_pagination Story 1.1 — added to the
+        # Protocol. The readiness probe doesn't iterate (only get_schema +
+        # count_ubi_events_in_window via search_batch), so this stub stays
+        # an empty terminal page.
+        return ScanPage(hits=[], cursor=None)
+
+    async def close_scan(
+        self,
+        cursor: object | None,
+        *,
+        request_id: str | None = None,
+    ) -> None:
+        return None
 
 
 def _hits(n: int) -> list[ScoredHit]:

@@ -990,14 +990,14 @@ class TestFoldTimeExceptionStillClosesCursor:
         """
 
         class _ExplodingSlice:
-            def __iter__(self):  # type: ignore[no-untyped-def]
+            def __iter__(self) -> Any:
                 raise RuntimeError("fold-time fault")
 
             def __len__(self) -> int:
                 return 1
 
         class _ExplodingHitsList(list):  # type: ignore[type-arg]
-            def __getitem__(self, idx):  # type: ignore[no-untyped-def]
+            def __getitem__(self, idx: Any) -> Any:
                 if isinstance(idx, slice):
                     return _ExplodingSlice()
                 return super().__getitem__(idx)
@@ -1039,9 +1039,7 @@ class TestFoldTimeExceptionStillClosesCursor:
                 )
                 # model_construct skips validation so the custom list
                 # subclass survives to the reader's slice.
-                return ScanPage.model_construct(
-                    hits=exploding_hits, cursor="rotated-cursor"
-                )
+                return ScanPage.model_construct(hits=exploding_hits, cursor="rotated-cursor")
 
         adapter = _ExplodingAdapter(
             pages_by_target={
