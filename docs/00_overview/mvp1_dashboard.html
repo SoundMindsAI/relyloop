@@ -397,8 +397,8 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Specced features done</div>
-      <div class="value">96 / 96</div>
-      <div class="sub">100% specced · 132 filed under MVP1</div>
+      <div class="value">97 / 97</div>
+      <div class="sub">100% specced · 134 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">132</span></h3>
+  <h3>Done <span class="count">134</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1240,6 +1240,19 @@ footer {
 
 
 <div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_chore_cluster_detail_rung_badge/feature_spec.md">Cluster Detail Rung Badge</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/464">PR #464</a> <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">The cluster-detail page surfaces a `&lt;UbiRungBadge&gt;` for the cluster, scoped by a user-selected (or auto-seeded) query set + target.</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_20_chore_create_study_modal_e2e_stability">Create Study Modal E2E Stability</a></div>
   <div class="meta">
     <span class="badge chore">Chore</span>
@@ -1741,6 +1754,19 @@ footer {
     <span>merged 2026-05-26</span>
   </div>
   <div class="one-liner">The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo</div>
+
+
+</div>
+
+
+<div class="card bug" data-prefix="bug" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_05_bug_baseline_phase_test_isolation/feature_spec.md">Baseline Phase Test Isolation</a></div>
+  <div class="meta">
+    <span class="badge bug">Bug</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/466">PR #466</a> <span>merged 2026-06-05</span>
+  </div>
+  <div class="one-liner">The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on</div>
 
 
 </div>
@@ -2405,6 +2431,8 @@ footer {
   class chore_arq_pool_aclose_deprecation done;
   feat_walkthrough_video_cursor_captions[&quot;walkthrough video cursor captions&quot;]
   class feat_walkthrough_video_cursor_captions done;
+  chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
+  class chore_cluster_detail_rung_badge done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments
@@ -2650,6 +2678,8 @@ footer {
   class chore_arq_pool_aclose_deprecation done;
   feat_walkthrough_video_cursor_captions[&quot;walkthrough video cursor captions&quot;]
   class feat_walkthrough_video_cursor_captions done;
+  chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
+  class chore_cluster_detail_rung_badge done;
   feat_study_lifecycle --&gt; feat_digest_proposal
   feat_llm_judgments --&gt; feat_digest_proposal
   infra_foundation --&gt; feat_llm_judgments

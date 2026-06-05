@@ -14,8 +14,8 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under MVP1 | **132** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **96 / 96** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Filed under MVP1 | **134** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **97 / 97** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -28,7 +28,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (132)
+### Done (134)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -90,6 +90,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_ci_prettier_check](implemented_features/2026_05_19_chore_ci_prettier_check/idea.md) | Chore | `.github/workflows/pr.yml`'s `frontend` job runs: | — | Complete |
 | [chore_clone_narrow_bounds_full_roundtrip_e2e](implemented_features/2026_05_26_chore_clone_narrow_bounds_full_roundtrip_e2e/idea.md) | Chore | [`ui/tests/e2e/study-clone-narrow-bounds.spec.ts`](../../ui/tests/e2e/study-clone-narrow-bounds.spec.ts) currently stops after asserting the textarea's narrowed JSON (Step 5 of the spec's 6-step plan  | — | Complete |
 | [chore_cluster_delete_ui](implemented_features/2026_05_13_chore_cluster_delete_ui/idea.md) | Chore | The `/clusters` list page (Story 2.1) and `/clusters/{id}` detail page render registered clusters fine, but there is no Delete button. When an operator registers a cluster with stale credentials or a  | — | Complete |
+| [chore_cluster_detail_rung_badge](implemented_features/2026_06_05_chore_cluster_detail_rung_badge/feature_spec.md) | Chore | The cluster-detail page surfaces a `<UbiRungBadge>` for the cluster, scoped by a user-selected (or auto-seeded) query set + target. | — | [PR #464](https://github.com/SoundMindsAI/relyloop/pull/464) merged 2026-06-05 |
 | [chore_create_study_modal_e2e_stability](implemented_features/2026_05_20_chore_create_study_modal_e2e_stability/idea.md) | Chore | The Playwright smoke lane runs every `ui/tests/e2e/*.spec.ts` against a real-backend stack. The create-study modal's Step-1 cluster trigger (rendered by [`EntitySelect`](../../ui/src/components/common | — | [PR #161](https://github.com/SoundMindsAI/relyloop/pull/161) merged 2026-05-20 |
 | [chore_create_study_wizard_polish](implemented_features/2026_05_20_chore_create_study_wizard_polish/feature_spec.md) | Chore | Step 4 auto-fills from the template's `declared_params` with conservative ranges, rejects unknown/missing params at create time with new machine-readable error codes, and surfaces four new glossary en | — | [PR #157](https://github.com/SoundMindsAI/relyloop/pull/157) merged 2026-05-20 |
 | [chore_dashboard_pr_extraction_from_idea](implemented_features/2026_05_23_chore_dashboard_pr_extraction_from_idea/feature_spec.md) | Chore | Extend `_extract_pr_number` to accept the idea body as a fourth argument, and have `_load_implemented` read `idea.md` and pass it through. | — | [PR #221](https://github.com/SoundMindsAI/relyloop/pull/221) merged 2026-05-23 |
@@ -129,6 +130,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [chore_trial_summary_single_query](implemented_features/2026_05_13_chore_trial_summary_single_query/idea.md) | Chore | [`backend/app/db/repo/trial.py:aggregate_trials_summary`](../../backend/app/db/repo/trial.py) currently issues two SQL statements: | — | Complete |
 | [chore_tutorial_polish](implemented_features/2026_05_12_chore_tutorial_polish/feature_spec.md) | Chore | The release tag `v0.1.0` is pushed with: a worked tutorial at `docs/08_guides/tutorial-first-study.md`, sample data (50-query set + sample ES index of ~1,000 docs from the Amazon ESCI subset), README  | `feat_chat_agent` `feat_digest_proposal` `feat_github_pr_worker` `feat_github_webhook` `feat_llm_judgments` `feat_proposals_ui` `feat_studies_ui` `feat_study_lifecycle` `infra_adapter_elastic` `infra_foundation` `infra_optuna_eval` | [PR #64](https://github.com/SoundMindsAI/relyloop/pull/64) merged 2026-05-12 |
 | [bug_auto_followup_completed_parent_stop_chain_race](implemented_features/2026_05_26_bug_auto_followup_completed_parent_stop_chain_race/idea.md) | Bug | The cycle-3 C3-1 cascade-cancel design tolerates terminal parents (cascade traverses through `completed` intermediates to reach in-flight descendants). But the FR-1 digest trigger fires `enqueue_follo | — | Complete |
+| [bug_baseline_phase_test_isolation](implemented_features/2026_06_05_bug_baseline_phase_test_isolation/feature_spec.md) | Bug | The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on | — | [PR #466](https://github.com/SoundMindsAI/relyloop/pull/466) merged 2026-06-05 |
 | [bug_capability_check_test_isolation](implemented_features/2026_05_12_bug_capability_check_test_isolation/idea.md) | Bug | Complete | — | Complete |
 | [bug_ceiling_badge_assumes_maximize_direction](implemented_features/2026_05_29_bug_ceiling_badge_assumes_maximize_direction/idea.md) | Bug | The `CEILING` badge in [`studies-table.column-config.tsx:METRIC_CEILING_THRESHOLD`](../ui/src/components/studies/studies-table.column-config.tsx) flags rows where `best_metric >= 0.99`. The threshold  | — | Complete |
 | [bug_clone_e2e_seed_template_params_mismatch](implemented_features/2026_05_26_bug_clone_e2e_seed_template_params_mismatch/idea.md) | Bug | Two helpers produce inconsistent fixture state: | — | Complete |
@@ -384,6 +386,8 @@ graph LR
   class chore_arq_pool_aclose_deprecation done;
   feat_walkthrough_video_cursor_captions["walkthrough video cursor captions"]
   class feat_walkthrough_video_cursor_captions done;
+  chore_cluster_detail_rung_badge["cluster detail rung badge"]
+  class chore_cluster_detail_rung_badge done;
   feat_study_lifecycle --> feat_digest_proposal
   feat_llm_judgments --> feat_digest_proposal
   infra_foundation --> feat_llm_judgments
