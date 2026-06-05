@@ -397,18 +397,18 @@ footer {
   <div class="kpi-row">
     <div class="kpi ">
       <div class="label">Specced features done</div>
-      <div class="value">22 / 28</div>
-      <div class="sub">79% specced · 49 filed under MVP2</div>
-      <div class="bar"><span style="width:79%"></span></div>
+      <div class="value">22 / 27</div>
+      <div class="sub">81% specced · 47 filed under MVP2</div>
+      <div class="bar"><span style="width:81%"></span></div>
     </div>
     <div class="kpi warn">
       <div class="label">Pending work</div>
-      <div class="value">25</div>
+      <div class="value">23</div>
       <div class="sub">every not-done feat/infra/chore/bug across all priorities</div>
     </div>
     <div class="kpi bug">
       <div class="label">Open bugs</div>
-      <div class="value">9</div>
+      <div class="value">8</div>
       <div class="sub">tracked bug_* idea files</div>
     </div>
     <div class="kpi ">
@@ -425,7 +425,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">21</div>
+      <div class="value">19</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
@@ -435,7 +435,7 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">Legacy "Path to MVP2"</div>
-      <div class="value">22</div>
+      <div class="value">20</div>
       <div class="sub">scoped not-done + bugs + chore-ideas only (excludes feat/infra ideas)</div>
     </div>
   </div>
@@ -693,7 +693,7 @@ footer {
 </div>
 
 <div class="col plan">
-  <h3>Plan <span class="count">8</span></h3>
+  <h3>Plan <span class="count">6</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/feat_apply_path_normalizer_declaration/feature_spec.md">Apply Path Normalizer Declaration</a></div>
@@ -716,19 +716,6 @@ footer {
 
   </div>
   <div class="one-liner">A new typed search-space member `NormalizerPipelineParam` lets a template declare an **ordered list of normalization steps**; the Optuna loop samples over the powerset of declared steps and proposes t</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_cluster_detail_rung_badge/feature_spec.md">Cluster Detail Rung Badge</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/320">PR #320</a>
-  </div>
-  <div class="one-liner">The cluster-detail page surfaces a `&lt;UbiRungBadge&gt;` for the cluster, scoped by a user-selected (or auto-seeded) query set + target.</div>
 
 
 </div>
@@ -768,19 +755,6 @@ footer {
     <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/413">PR #413</a>
   </div>
   <div class="one-liner">A new engine-neutral `SearchAdapter.scan_all` cursor-scan lets `UbiReader` iterate the **entire** matching event/query stream for a window (subject to a caller ceiling), folding each page into the agg</div>
-
-
-</div>
-
-
-<div class="card bug" data-prefix="bug" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/bug_baseline_phase_test_isolation/feature_spec.md">Baseline Phase Test Isolation</a></div>
-  <div class="meta">
-    <span class="badge bug">Bug</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The three `TestComputeBaselineWaitS` cases pass standalone — `.venv/bin/python -m pytest backend/tests/unit/workers/test_orchestrator_baseline_phase.py -p no:randomly` is all-green with no reliance on</div>
 
 
 </div>
@@ -1132,8 +1106,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
-  class chore_cluster_detail_rung_badge plan;
   chore_demo_seeding_integration_tests_rewrite[&quot;demo seeding integration tests rewrite&quot;]
   class chore_demo_seeding_integration_tests_rewrite plan;
   chore_studies_post_arq_spy_fixture[&quot;studies post arq spy fixture&quot;]
@@ -1195,8 +1167,6 @@ footer {
   classDef plan fill:#fef9c3,stroke:#854d0e,color:#854d0e;
   classDef spec fill:#dbeafe,stroke:#1e40af,color:#1e40af;
   classDef idea fill:#f1f5f9,stroke:#334155,color:#334155;
-  chore_cluster_detail_rung_badge[&quot;cluster detail rung badge&quot;]
-  class chore_cluster_detail_rung_badge plan;
   chore_demo_seeding_integration_tests_rewrite[&quot;demo seeding integration tests rewrite&quot;]
   class chore_demo_seeding_integration_tests_rewrite plan;
   chore_studies_post_arq_spy_fixture[&quot;studies post arq spy fixture&quot;]
