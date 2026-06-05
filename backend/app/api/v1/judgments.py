@@ -52,6 +52,7 @@ from backend.app.api.v1.schemas import (
     JudgmentListListResponse,
     JudgmentListSortKey,
     JudgmentListStatusWire,
+    JudgmentListStudyResponse,
     JudgmentListSummary,
     JudgmentRow,
     JudgmentRowSortKey,
@@ -520,6 +521,33 @@ async def get_judgment_list_endpoint(
             False,
         )
     return await _detail(db, row)
+
+
+@router.get(
+    "/judgment-lists/{judgment_list_id}/study",
+    response_model=JudgmentListStudyResponse,
+    tags=["judgments"],
+)
+async def get_judgment_list_study(
+    judgment_list_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> JudgmentListStudyResponse:
+    """The single completed study referencing this list (FR-9).
+
+    ``200 {study_id}`` when exactly one completed study references the list;
+    ``200 {study_id: null}`` on 0 or >1; ``404`` only when ``{id}`` itself is
+    missing.
+    """
+    row = await repo.get_judgment_list(db, judgment_list_id)
+    if row is None:
+        raise _err(
+            404,
+            "JUDGMENT_LIST_NOT_FOUND",
+            f"judgment list {judgment_list_id} not found",
+            False,
+        )
+    study = await repo.get_completed_study_for_judgment_list(db, judgment_list_id)
+    return JudgmentListStudyResponse(study_id=study.id if study else None)
 
 
 # ---------------------------------------------------------------------------
