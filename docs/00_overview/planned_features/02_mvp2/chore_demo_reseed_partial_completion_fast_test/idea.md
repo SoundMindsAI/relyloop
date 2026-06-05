@@ -6,6 +6,13 @@
 **Origin:** `infra_solr_ci_readiness` Epic 1 implementation (PR for `feature/infra-solr-ci-readiness`). Surfaced in the GPT-5.5 phase-gate review (Finding 5) and the post-impl tangential sweep.
 **Depends on:** `infra_solr_ci_readiness` Phase 1 merged.
 
+> **PREFLIGHT (2026-06-05).** Live-codebase audit: all concrete claims verified.
+> - `reseed_demo_state` at [`demo_seeding.py:1442`](../../../../backend/app/services/demo_seeding.py); `is_engine_reachable` :446; `snapshot_engine_reachability` :488; `AllEnginesUnreachableError` :210 / `_is_all_engines_unreachable` :232; worker `_build_failed_status` at [`demo_reseed.py:64`](../../../../backend/workers/demo_reseed.py); the `demo_reseed_partial_completion_engines_unreachable` WARN at `demo_seeding.py:2001`; `scenarios_skipped.append(slug)` at :1583; the Solr slug `acme-kb-docs-solr` confirmed in `SCENARIOS`. Existing fast coverage: [`test_demo_seeding_partial_completion.py`](../../../../backend/tests/unit/services/test_demo_seeding_partial_completion.py) (building blocks); the end-to-end partial path only in heavy-lane [`test_demo_seeding_ubi_full.py:144`](../../../../backend/tests/integration/test_demo_seeding_ubi_full.py).
+> - **Local verifiability:** `.venv/bin/pytest` is present and the chosen approach is a pure unit test (no DB, no engines, no OpenAI), so it runs offline before push — no CI-blind risk.
+> - **DESIGN FORK LOCKED → (b′) monkeypatch the module-level I/O helpers, NOT a seam extraction and NOT httpx-URL routing.** The per-scenario seed body is a chained sequence of module-level `async def`s in `demo_seeding.py` (`_post` :?, `_get`, `_put` :580, `_seed_real_study_for_scenario` :965, `_seed_rich_scenario` :1123, `_seed_solr_scenario` :657, `ensure_ubi_indices` / `fabricate_ubi_for_scenario` / `seed_synthetic_ubi`). The test `monkeypatch.setattr`s these to canned-success (returning the exact shapes the body consumes — e.g. `_post` cluster/template/qset/jlist → dicts with the `id` keys the body reads), plus `is_engine_reachable` (Solr→False, ES/OS→True), plus an `AsyncMock` `db` (the body only does one TRUNCATE + commit). This avoids touching the orchestrator's structure — so it does NOT conflict with the deferred `chore_demo_seeding_integration_tests_rewrite`, and keeps the test a pure unit. Rejected: (a) full `httpx.MockTransport` URL-routing over both clients (fragile, must enumerate every URL); (c) Postgres-only integration (needs a real DB in CI for no extra signal — the body delegates all persistence through `api_client`, which is mocked anyway).
+> - **Coordination:** overlaps with the deferred `chore_demo_seeding_integration_tests_rewrite` — proceed **standalone now** (the rewrite is deferred pending a local stack; this focused unit test is small and the rewrite can absorb/supersede it later).
+> - **Route:** `chore_` + just-locked design fork + bounded test-only backend scope → `/bug-fix --ship` (focused `bug_fix.md` locking the helper-monkeypatch approach, then `/impl-execute --ad-hoc`).
+
 ## Problem
 
 `infra_solr_ci_readiness` made the demo reseed engine-tolerant: when an engine is
@@ -46,9 +53,15 @@ a live engine/API/OpenAI, asserting:
 
 The hard part is the seed path: `reseed_demo_state` inlines a lot (engine PUT/collection-create,
 `api_client` cluster/template/query-set/queries/judgments/seed-completed-study, UBI synth).
-Options: (a) a Postgres-only integration test with `api_client`/`engine_client` mocked to
+~~Options: (a) a Postgres-only integration test with `api_client`/`engine_client` mocked to
 return canned success shapes; (b) extract the per-scenario seed body into a seam that can
-be stubbed; (c) a `respx`/`httpx-mock` layer over both clients.
+be stubbed; (c) a `respx`/`httpx-mock` layer over both clients.~~
+
+**LOCKED at preflight → (b′): monkeypatch the module-level I/O helpers** (`_post`/`_get`/`_put`/
+`_seed_real_study_for_scenario`/`_seed_rich_scenario`/`_seed_solr_scenario`/`ensure_ubi_indices`/
+`fabricate_ubi_for_scenario`/`seed_synthetic_ubi`) to canned-success + `is_engine_reachable`
+(Solr→False) + `AsyncMock` db. Pure unit test, no seam extraction, no orchestrator-structure
+change. See the PREFLIGHT block above for the full rationale + rejected alternatives.
 
 ## Scope signals
 
