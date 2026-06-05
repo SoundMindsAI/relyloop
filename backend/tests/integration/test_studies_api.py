@@ -24,6 +24,7 @@ import pytest
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.tests.conftest import postgres_reachable
+from backend.tests.integration.conftest import SpyArqPool, install_arq_pool_spy
 from backend.tests.integration.fixtures.es_overlap_probe import (
     bulk_index_overlap_probe_docs,
     delete_overlap_probe_index,
@@ -134,6 +135,7 @@ _VALID_SEARCH_SPACE = {
 
 async def test_post_study_happy_path_excludes_unset_config_keys(
     async_client: httpx.AsyncClient,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """C3-F1 key-omission contract: POST with config={max_trials: 20} →
     persisted config dict has NO parallelism / trial_timeout_s / sampler /
@@ -159,10 +161,15 @@ async def test_post_study_happy_path_excludes_unset_config_keys(
     )
     assert "trials_summary" in detail
     assert detail["trials_summary"]["total"] == 0
+    # FR-4: the success path enqueues exactly one start_study job for this id,
+    # proving the spy (not the real Redis pool) received the enqueue → the
+    # install-after-lifespan ordering is correct (AC-4).
+    assert arq_pool_spy.calls == [("start_study", detail["id"])]
 
 
 async def test_post_study_invalid_search_space_returns_400(
     async_client: httpx.AsyncClient,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     ids = await _seed_minimum_for_post_studies()
     body = {
@@ -187,10 +194,12 @@ async def test_post_study_invalid_search_space_returns_400(
     resp = await async_client.post("/api/v1/studies", json=body)
     assert resp.status_code == 400, resp.text
     assert resp.json()["detail"]["error_code"] == "INVALID_SEARCH_SPACE"
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
 
 
 async def test_post_study_judgment_query_set_mismatch_returns_422(
     async_client: httpx.AsyncClient,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """spec §11: judgment_list.query_set_id ≠ request.query_set_id → 422."""
     ids = await _seed_minimum_for_post_studies()
@@ -219,6 +228,7 @@ async def test_post_study_judgment_query_set_mismatch_returns_422(
     assert resp.status_code == 422
     assert resp.json()["detail"]["error_code"] == "VALIDATION_ERROR"
     assert "query_set_id" in resp.json()["detail"]["message"]
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
 
 
 # ---------------------------------------------------------------------------
@@ -243,7 +253,9 @@ async def _count_studies(db_factory: object) -> int:
         return int(result.scalar_one())
 
 
-async def test_post_study_rejects_target_mismatch(async_client: httpx.AsyncClient) -> None:
+async def test_post_study_rejects_target_mismatch(
+    async_client: httpx.AsyncClient, arq_pool_spy: SpyArqPool
+) -> None:
     """AC-1: judgment_list.target != body.target → 422 JUDGMENT_TARGET_MISMATCH;
     no studies row inserted; no Arq job enqueued."""
     ids = await _seed_minimum_for_post_studies()
@@ -271,9 +283,12 @@ async def test_post_study_rejects_target_mismatch(async_client: httpx.AsyncClien
     # No studies row inserted.
     after = await _count_studies(None)
     assert after == before, "JUDGMENT_TARGET_MISMATCH must NOT insert a studies row"
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
 
 
-async def test_post_study_rejects_cluster_mismatch(async_client: httpx.AsyncClient) -> None:
+async def test_post_study_rejects_cluster_mismatch(
+    async_client: httpx.AsyncClient, arq_pool_spy: SpyArqPool
+) -> None:
     """AC-11: judgment_list.cluster_id != body.cluster_id → 422
     JUDGMENT_CLUSTER_MISMATCH; fires BEFORE the target check; no insert."""
     seed_a = await _seed_minimum_for_post_studies()
@@ -339,6 +354,7 @@ async def test_post_study_rejects_cluster_mismatch(async_client: httpx.AsyncClie
     # No studies row inserted.
     after = await _count_studies(None)
     assert after == before, "JUDGMENT_CLUSTER_MISMATCH must NOT insert a studies row"
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
 
 
 async def test_post_study_cluster_mismatch_fires_before_target(
@@ -561,6 +577,7 @@ async def test_list_trials_unknown_study_returns_404(
 
 async def test_post_study_unknown_judgment_list_returns_404(
     async_client: httpx.AsyncClient,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """Unknown judgment_list_id → 404 JUDGMENT_LIST_NOT_FOUND."""
     ids = await _seed_minimum_for_post_studies()
@@ -578,10 +595,12 @@ async def test_post_study_unknown_judgment_list_returns_404(
     resp = await async_client.post("/api/v1/studies", json=body)
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "JUDGMENT_LIST_NOT_FOUND"
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
 
 
 async def test_post_study_unknown_template_returns_404(
     async_client: httpx.AsyncClient,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """Unknown template_id → 404 TEMPLATE_NOT_FOUND."""
     ids = await _seed_minimum_for_post_studies()
@@ -599,10 +618,12 @@ async def test_post_study_unknown_template_returns_404(
     resp = await async_client.post("/api/v1/studies", json=body)
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "TEMPLATE_NOT_FOUND"
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
 
 
 async def test_post_study_unknown_query_set_returns_404(
     async_client: httpx.AsyncClient,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """Unknown query_set_id → 404 QUERY_SET_NOT_FOUND."""
     ids = await _seed_minimum_for_post_studies()
@@ -620,10 +641,12 @@ async def test_post_study_unknown_query_set_returns_404(
     resp = await async_client.post("/api/v1/studies", json=body)
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "QUERY_SET_NOT_FOUND"
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
 
 
 async def test_post_study_unknown_cluster_returns_404(
     async_client: httpx.AsyncClient,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """Unknown cluster_id → 404 CLUSTER_NOT_FOUND."""
     ids = await _seed_minimum_for_post_studies()
@@ -641,6 +664,62 @@ async def test_post_study_unknown_cluster_returns_404(
     resp = await async_client.post("/api/v1/studies", json=body)
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "CLUSTER_NOT_FOUND"
+    assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
+
+
+# ---------------------------------------------------------------------------
+# arq_pool_spy restore behavior (chore_studies_post_arq_spy_fixture AC-3 / D-5).
+# These two tests use install_arq_pool_spy DIRECTLY (not the arq_pool_spy
+# fixture) so they can observe app.state.arq_pool AFTER the contextmanager
+# exits within a single test. Each FORCES its own precondition so both restore
+# branches run deterministically every CI run regardless of whether Redis was
+# reachable at boot, and each restores the ORIGINAL boot state in a finally so
+# it never strands the real pool that lifespan shutdown will aclose().
+# ---------------------------------------------------------------------------
+
+
+async def test_arq_pool_spy_restores_existing_pool(async_client: httpx.AsyncClient) -> None:
+    """AC-3 (attr-present branch): install_arq_pool_spy reassigns the prior pool."""
+    from backend.app.main import app
+
+    orig_had = hasattr(app.state, "arq_pool")
+    orig = getattr(app.state, "arq_pool", None)
+    sentinel = object()
+    app.state.arq_pool = sentinel
+    try:
+        with install_arq_pool_spy(app) as spy:
+            assert app.state.arq_pool is spy
+            assert isinstance(app.state.arq_pool, SpyArqPool)
+        # Restored to the exact prior object (the sentinel), not a SpyArqPool.
+        assert app.state.arq_pool is sentinel
+        assert not isinstance(app.state.arq_pool, SpyArqPool)
+    finally:
+        # Restore the ORIGINAL boot state so we don't strand the real pool that
+        # lifespan shutdown will try to aclose().
+        if orig_had:
+            app.state.arq_pool = orig
+        elif hasattr(app.state, "arq_pool"):
+            delattr(app.state, "arq_pool")
+
+
+async def test_arq_pool_spy_restores_unset_attr(async_client: httpx.AsyncClient) -> None:
+    """AC-3 (attr-absent branch): install_arq_pool_spy deletes the attr on exit."""
+    from backend.app.main import app
+
+    had = hasattr(app.state, "arq_pool")
+    saved = getattr(app.state, "arq_pool", None)
+    if had:
+        delattr(app.state, "arq_pool")
+    try:
+        assert not hasattr(app.state, "arq_pool")
+        with install_arq_pool_spy(app) as spy:
+            assert app.state.arq_pool is spy
+        # Attr deleted again on exit (original unset state restored).
+        assert not hasattr(app.state, "arq_pool")
+    finally:
+        # Restore whatever the lifespan originally provided.
+        if had:
+            app.state.arq_pool = saved
 
 
 async def test_get_study_unknown_id_returns_404(
@@ -817,6 +896,7 @@ def _make_fake_probe_result(
 async def test_post_study_insufficient_overlap_returns_422(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """AC-1 (real-engine): overlap=0, judged_doc_count=50 → 422 INSUFFICIENT_JUDGMENT_OVERLAP.
 
@@ -861,6 +941,7 @@ async def test_post_study_insufficient_overlap_returns_422(
         assert "0 of 50 probed" in detail["message"]
         assert "judged_doc_count=50" in detail["message"]
         assert count_after == count_before, "no studies row should have been inserted"
+        assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
     finally:
         await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
@@ -869,6 +950,7 @@ async def test_post_study_insufficient_overlap_returns_422(
 async def test_post_study_sufficient_overlap_returns_201(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """AC-2 (real-engine): overlap=50, judged_doc_count=50 → 201.
 
@@ -895,6 +977,8 @@ async def test_post_study_sufficient_overlap_returns_201(
         )
         assert resp.status_code == 201, resp.text
         assert resp.json()["status"] == "queued"
+        # FR-4: exactly one start_study enqueue for the created study id.
+        assert arq_pool_spy.calls == [("start_study", resp.json()["id"])]
     finally:
         await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
@@ -903,6 +987,7 @@ async def test_post_study_sufficient_overlap_returns_201(
 async def test_post_study_overlap_at_threshold_returns_201(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """AC-3 (real-engine): overlap=3, judged_doc_count=5 → required=min(3,5)=3, 3>=3 → 201.
 
@@ -928,6 +1013,8 @@ async def test_post_study_overlap_at_threshold_returns_201(
             json=_study_body_for(ids, target=ids["target_index"]),
         )
         assert resp.status_code == 201, resp.text
+        # FR-4: exactly one start_study enqueue for the created study id.
+        assert arq_pool_spy.calls == [("start_study", resp.json()["id"])]
     finally:
         await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
@@ -936,6 +1023,7 @@ async def test_post_study_overlap_at_threshold_returns_201(
 async def test_post_study_overlap_one_below_threshold_returns_422(
     async_client: httpx.AsyncClient,
     monkeypatch: pytest.MonkeyPatch,
+    arq_pool_spy: SpyArqPool,
 ) -> None:
     """AC-4 (real-engine): overlap=2, judged_doc_count=5 → required=3, 2<3 → 422.
 
@@ -962,6 +1050,7 @@ async def test_post_study_overlap_one_below_threshold_returns_422(
         )
         assert resp.status_code == 422, resp.text
         assert resp.json()["detail"]["error_code"] == "INSUFFICIENT_JUDGMENT_OVERLAP"
+        assert arq_pool_spy.calls == [], "rejection path must not enqueue start_study"
     finally:
         await delete_overlap_probe_index(ids["es_base_url"], ids["target_index"])
 
