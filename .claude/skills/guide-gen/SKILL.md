@@ -165,7 +165,9 @@ For each screenshot:
 
 ### Step 5: Cross-model visual review (GPT-5.5 — Pass 2)
 
-**This step is MANDATORY for Generate mode.**
+**This step is MANDATORY for Generate mode *when GPT-5.5 is reachable*.**
+
+> **Environment-aware fallback** (see CLAUDE.md §"Cross-model review policy" → "Environment-aware fallback", the authoritative source). In the Claude Code remote sandbox GPT-5.5 is **expected-unreachable** (no `OPENAI_API_KEY` and/or `api.openai.com` egress-blocked). When so: complete Pass 1 (Opus visual audit against the expected-state checklists) as the sole review, state `cross-model review: Opus self-review (GPT-5.5 unreachable)`, and do NOT block guide generation on the missing Pass 2. This is a sanctioned degradation (guides have no PR-stage Gemini equivalent, so flag the reduced coverage explicitly to the user); to restore Pass 2, enable egress + `OPENAI_API_KEY` per CLAUDE.md "Durable fix". (In a *non-sandbox* environment where the key is unexpectedly missing or the API call fails, log the failure + alert the user, then proceed with the Pass-1-only Opus audit.)
 
 Send each screenshot + its expected-state checklist to GPT-5.5 for an independent visual audit.
 

@@ -400,7 +400,9 @@ npx playwright test tests/e2e/<relevant_specs> --reporter=line
 
 ### Step 2: Cross-model code review (GPT-5.5)
 
-**This step is MANDATORY.** The cross-model review catches implementation drift from the plan.
+**This step is MANDATORY *when GPT-5.5 is reachable*.** The cross-model review catches implementation drift from the plan.
+
+> **Environment-aware fallback** (see CLAUDE.md §"Cross-model review policy" → "Environment-aware fallback", the authoritative source). In the Claude Code remote sandbox GPT-5.5 is **expected-unreachable** (no `OPENAI_API_KEY` and/or `api.openai.com` egress-blocked). When so: run the phase-gate review as **Opus self-review** against the plan + diff, state `cross-model review: Opus self-review (GPT-5.5 unreachable)`, and rely on **Gemini Code Assist** (a different model family, reachable) as the live cross-family gate on the eventual PR — adjudicate its findings rigorously per the Step 6 four-quadrant rubric. This is a sanctioned degradation, not a skip; to restore real GPT-5.5 review, enable egress + key per CLAUDE.md "Durable fix". (In a *non-sandbox* environment where the key is unexpectedly missing or the API call fails, log the failure + alert the user, then proceed with Opus self-review.)
 
 **What to review:** The cumulative `git diff` for the phase (all story commits since the phase started).
 
