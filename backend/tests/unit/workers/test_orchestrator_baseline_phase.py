@@ -18,12 +18,14 @@ Covers (real-backend integration coverage lives in
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from backend.app.core.settings import get_settings
 from backend.app.db import repo as _db_repo
 from backend.app.services import study_state as _study_state
 from backend.workers import orchestrator as orch
@@ -31,6 +33,25 @@ from backend.workers.orchestrator import (
     BaselineEnqueueResult,
     _compute_baseline_wait_s,
 )
+
+
+@pytest.fixture(autouse=True)
+def _settings_env_and_restore(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    """Seed required-secret env vars + clear the settings lru_cache.
+
+    Settings construction needs DATABASE_URL_FILE + POSTGRES_PASSWORD_FILE per
+    CLAUDE.md Rule #2. Point both at /dev/null — the cached_property accessors
+    aren't invoked here, so the empty file content is never read. Clears the
+    cache on the canonical get_settings imported from backend.app.core.settings
+    (NOT orch.get_settings, which test_missing_trial_timeout_uses_settings_default
+    monkeypatches to a plain lambda with no .cache_clear()). Makes the module
+    hermetic regardless of collection order (FR-2).
+    """
+    monkeypatch.setenv("DATABASE_URL_FILE", "/dev/null")
+    monkeypatch.setenv("POSTGRES_PASSWORD_FILE", "/dev/null")
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 def _study(**overrides: Any) -> Any:
@@ -87,6 +108,16 @@ class TestComputeBaselineWaitS:
         study = _study(config={})
         # max(60, 45+30) = 75.
         assert _compute_baseline_wait_s(study) == 75.0
+
+    def test_explicit_timeout_does_not_read_settings(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """FR-1: an explicit trial_timeout_s must not construct Settings."""
+
+        def _boom() -> Any:
+            raise AssertionError("get_settings() must not be called for explicit timeout")
+
+        monkeypatch.setattr(orch, "get_settings", _boom)
+        study = _study(config={"trial_timeout_s": 60})
+        assert _compute_baseline_wait_s(study) == 90.0
 
 
 class TestResolveAndEnqueueBaseline:
