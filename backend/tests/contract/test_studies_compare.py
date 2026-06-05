@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import AsyncIterator
+from typing import Any
 
 import httpx
 import pytest
@@ -55,7 +56,7 @@ async def _seed(
     llm_status: str = "completed",
     second_kind: str = "ubi",
     target_b: str = "products",
-    objective_b: dict | None = None,
+    objective_b: dict[str, object] | None = None,
 ) -> dict[str, str]:
     """Seed a pair and return {llm, ubi, jl_llm, jl_ubi}. The 'b' study's kind /
     cluster / query-set / target / objective are parameterized for the gates."""
@@ -105,7 +106,7 @@ async def _seed(
             version=1,
         )
 
-        async def mk_jl(cluster_id, query_set_id, kind, target):  # noqa: ANN001
+        async def mk_jl(cluster_id, query_set_id, kind, target) -> Any:  # noqa: ANN001
             gp = {"generation_kind": "ubi"} if kind == "ubi" else None
             return await repo.create_judgment_list(
                 db,
@@ -123,7 +124,7 @@ async def _seed(
                 generation_params=gp,
             )
 
-        async def mk_study(cluster_id, query_set_id, jl_id, status, target, objective):  # noqa: ANN001
+        async def mk_study(cluster_id, query_set_id, jl_id, status, target, objective) -> Any:  # noqa: ANN001
             sid = _u()
             return await repo.create_study(
                 db,

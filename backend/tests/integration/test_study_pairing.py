@@ -73,7 +73,7 @@ async def _seed_study(  # noqa: ANN001
     template_id: str,
     status: str = "completed",
     target: str = "products",
-    objective: dict | None = None,
+    objective: dict[str, object] | None = None,
 ):
     sid = _u()
     return await repo.create_study(

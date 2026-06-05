@@ -48,7 +48,7 @@ def _study(
     cluster_id: str = "c1",
     target: str = "products",
     judgment_list_id: str = "jl",
-    objective: dict | None = None,
+    objective: dict[str, object] | None = None,
 ) -> SimpleNamespace:
     return SimpleNamespace(
         id=sid,
@@ -77,8 +77,8 @@ def _wire(monkeypatch, studies: dict[str, object], lists: dict[str, object]) -> 
     async def fake_get_jl(_db, jlid):  # noqa: ANN001
         return lists.get(jlid)
 
-    monkeypatch.setattr(sc.repo, "get_study", fake_get_study)
-    monkeypatch.setattr(sc.repo, "get_judgment_list", fake_get_jl)
+    monkeypatch.setattr("backend.app.services.study_comparison.repo.get_study", fake_get_study)
+    monkeypatch.setattr("backend.app.services.study_comparison.repo.get_judgment_list", fake_get_jl)
 
 
 async def test_happy_pair_no_warnings(monkeypatch: pytest.MonkeyPatch) -> None:
