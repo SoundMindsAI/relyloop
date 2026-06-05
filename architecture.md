@@ -151,7 +151,12 @@ backend/
                  git/{redaction,validation}.py from feat_github_pr_worker
                  (GitHub PAT redaction + repo_url + config_path validators)
     adapters/    engine adapters — protocol.py (SearchAdapter Protocol +
-                 8 Pydantic types), elastic.py (ES + OpenSearch),
+                 9 Pydantic types incl. ScanPage from
+                 chore_ubi_reader_search_after_pagination),
+                 elastic.py (ES + OpenSearch — adds scan_all/close_scan via
+                 PIT + search_after with narrow no-PIT fallback),
+                 solr.py (Solr 9/10 — adds scan_all via POST /select +
+                 cursorMark; close_scan no-op),
                  credentials.py, errors.py, health_cache.py
     eval/        ir_measures scoring + Optuna runtime helpers (from
                  infra_optuna_eval): types.py (SamplerKind/PrunerKind/
