@@ -1,7 +1,7 @@
 # Implementation Plan — Baseline-phase unit tests depend on suite ordering
 
 **Date:** 2026-06-02
-**Status:** Ready for Execution
+**Status:** Complete (PR #466, squash-merged `6298e77`, 2026-06-05)
 **Primary spec:** [feature_spec.md](feature_spec.md)
 **Policy source(s):** [CLAUDE.md §"Bug Fix Protocol"](../../../../../CLAUDE.md), [docs/05_quality/testing.md](../../../../05_quality/testing.md)
 
