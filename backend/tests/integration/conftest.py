@@ -35,12 +35,14 @@ Three autouse fixtures:
 
 from __future__ import annotations
 
+import contextlib
 import os
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 
 import httpx
 import pytest_asyncio
 from asgi_lifespan import LifespanManager
+from fastapi import FastAPI
 from sqlalchemy import text
 
 from backend.tests.conftest import postgres_reachable
@@ -158,3 +160,66 @@ async def async_client() -> AsyncIterator[httpx.AsyncClient]:
             timeout=30.0,
         ) as client:
             yield client
+
+
+# ---------------------------------------------------------------------------
+# arq_pool_spy — opt-in recording double for the Arq/Redis enqueue sink
+# (chore_studies_post_arq_spy_fixture). Lets studies-POST integration tests
+# positively assert enqueue behavior: rejection paths assert NO enqueue,
+# success paths assert exactly one `("start_study", <id>)` enqueue.
+# ---------------------------------------------------------------------------
+
+
+class SpyArqPool:
+    """In-memory recording double for ``arq.connections.ArqRedis``.
+
+    Records each ``enqueue_job`` call as a flattened ``(name, *args)`` tuple
+    so the studies-POST handler's ``enqueue_job("start_study", study_id)``
+    records ``("start_study", study_id)``. Returns a truthy sentinel to
+    mirror ``ArqRedis.enqueue_job``'s "returns a Job on accept" contract
+    (FR-1 / D-3, D-4).
+    """
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[object, ...]] = []
+
+    async def enqueue_job(self, name: str, *args: object, **kwargs: object) -> object:
+        self.calls.append((name, *args))  # flattened: (name,) + args
+        return object()  # truthy sentinel (not None)
+
+
+_UNSET: object = object()
+"""Sentinel distinguishing "attr unset" from "attr is None"."""
+
+
+@contextlib.contextmanager
+def install_arq_pool_spy(app: FastAPI) -> Iterator[SpyArqPool]:
+    """Install a :class:`SpyArqPool` on ``app.state.arq_pool``; restore on exit.
+
+    Captures the prior value (or ``_UNSET`` if the attribute was never set,
+    which happens on Redis-down boots per ``backend/app/main.py``). On exit,
+    deletes the attribute if it was originally unset, else reassigns the
+    captured value (FR-2 / D-5).
+    """
+    prior = getattr(app.state, "arq_pool", _UNSET)
+    spy = SpyArqPool()
+    app.state.arq_pool = spy
+    try:
+        yield spy
+    finally:
+        if prior is _UNSET:
+            # delattr is safe: we set it above, so it exists now.
+            delattr(app.state, "arq_pool")
+        else:
+            app.state.arq_pool = prior
+
+
+@pytest_asyncio.fixture
+async def arq_pool_spy(async_client: httpx.AsyncClient) -> AsyncIterator[SpyArqPool]:
+    """Yield a :class:`SpyArqPool` installed on the live app AFTER the lifespan
+    built (or skipped) the real pool. Depends on ``async_client`` so the
+    install ordering is correct (FR-2 / D-2). NOT autouse (D-1)."""
+    from backend.app.main import app
+
+    with install_arq_pool_spy(app) as spy:
+        yield spy
