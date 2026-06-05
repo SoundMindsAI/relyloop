@@ -31,6 +31,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from backend.app.domain.study.normalizers import NORMALIZER_CHOICES
 from backend.app.domain.study.search_space import (
     CategoricalParam,
     FloatParam,
@@ -176,6 +177,14 @@ def build_starter_search_space(declared_params: dict[str, str]) -> StarterSearch
     regex_matched: set[str] = set()
 
     for name, type_name in declared_params.items():
+        # feat_query_normalization_tuning: the reserved query_normalizer key
+        # auto-fills to a Categorical over the full NORMALIZER_CHOICES, so the
+        # loop searches all four normalizers by default (the create-study
+        # Select lets the operator pin one). Without this it would fall through
+        # to the "string" → ["__placeholder__"] sentinel and never tune.
+        if name == "query_normalizer":
+            params[name] = CategoricalParam(type="categorical", choices=list(NORMALIZER_CHOICES))
+            continue
         matched = _match_heuristic_rule(name)
         if matched is not None:
             params[name] = _spec_dict_to_param(matched)

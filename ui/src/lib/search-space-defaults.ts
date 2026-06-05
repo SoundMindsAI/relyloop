@@ -19,6 +19,8 @@
  * two tests.
  */
 
+import { NORMALIZER_VALUES } from '@/lib/enums';
+
 /**
  * Wire-format ParamSpec — mirrors backend
  * `backend/app/domain/study/search_space.py` discriminated union over
@@ -189,6 +191,15 @@ export function buildStarterSearchSpace(
   const regexMatched = new Set<string>();
 
   for (const [name, typeName] of Object.entries(declaredParams)) {
+    // feat_query_normalization_tuning: the reserved query_normalizer key
+    // auto-fills to a Categorical over the full NORMALIZER_VALUES so the loop
+    // searches all four normalizers by default (the create-study Select lets
+    // the operator pin one). Mirrors the Python build_starter_search_space
+    // special-case; the parity fixture locks the two together.
+    if (name === 'query_normalizer') {
+      params[name] = { type: 'categorical', choices: [...NORMALIZER_VALUES] };
+      continue;
+    }
     const matched = matchHeuristicRule(name);
     if (matched) {
       params[name] = clone(matched);

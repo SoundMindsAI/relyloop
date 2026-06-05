@@ -97,6 +97,30 @@ export const glossary = {
     ariaLabel: 'More information about the cardinality cap',
   },
 
+  // Source-of-truth: backend/app/domain/study/normalizers.py NORMALIZER_CHOICES
+  // (mirrored in ui/src/lib/enums.ts NORMALIZER_VALUES / NORMALIZER_GLOSSARY_KEYS).
+  // feat_query_normalization_tuning FR-7. Choice-key suffixes sanitize `+`→`_`
+  // because `+` is unsafe in a glossary identifier; the NORMALIZER_GLOSSARY_KEYS
+  // map resolves each wire value to its key. The `short` field is the dropdown
+  // LABEL (per §8.4 + AC-11b), not the longer help text.
+  'search_space.query_normalizer.row': {
+    short:
+      'Transform the query before the engine sees it. Off by default; the loop picks the best transform when this row is present.',
+    ariaLabel: 'More information about the query normalizer',
+  },
+  'search_space.query_normalizer.choice.none': {
+    short: 'None — pass query through verbatim',
+  },
+  'search_space.query_normalizer.choice.lowercase': {
+    short: 'Lowercase only',
+  },
+  'search_space.query_normalizer.choice.lowercase_trim': {
+    short: 'Lowercase + trim whitespace',
+  },
+  'search_space.query_normalizer.choice.lowercase_trim_expand_contractions': {
+    short: 'Lowercase + trim + expand contractions (English)',
+  },
+
   // Source-of-truth: backend/app/api/v1/schemas.py ObjectiveMetric
   // (mirrored in ui/src/lib/enums.ts OBJECTIVE_METRIC_VALUES). FR-4 parity
   // test enforces key parity against OBJECTIVE_METRIC_VALUES.
@@ -407,6 +431,13 @@ export const glossary = {
     short:
       'Next-study suggestions from the LLM, based on which parameters mattered most. Treat as hypotheses, not commands.',
     ariaLabel: 'More information about suggested follow-ups',
+  },
+  // feat_query_normalization_tuning FR-6 — the analyzer-redundancy advisory.
+  // Long-only: the canonical copy exceeds the 140-char `short` bound, and the
+  // advisory line itself is self-explanatory (rendered inline above the
+  // recommended-config JSON), so it carries no nested info-tooltip.
+  'digest.normalizer_advisory': {
+    long: 'The winning normalizer applies lowercasing, which your field analyzer already does. The loop still found a measurable gain — the duplication is harmless. Production parity is required for the gain to reproduce.',
   },
   'digest.open_pr_button': {
     short:

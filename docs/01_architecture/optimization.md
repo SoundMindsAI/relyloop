@@ -187,14 +187,24 @@ A search-relevance pipeline runs in stages, and RelyLoop deliberately operates a
 | 3. **Ranking / boosting** | Field boosts, function scores, tie-breakers, fuzziness, slop, `min_should_match`, rerankers. | Query-time parameters | **Yes — this is RelyLoop's tuning surface** |
 | 4. **Re-ranking / business rules / personalization** | LTR rerank, pinned results, merchandising rules. | Operator (LTR consume-only in MVP2; rules are out of scope) | Partial (LTR consume-only) |
 
-**RelyLoop tunes stage 3.** It passes `query_text` through to the engine **verbatim** — no lowercasing, no trimming, no rewriting ([`ElasticAdapter.render`](../../backend/app/adapters/elastic.py); the template interpolates `{{ query_text }}` raw).
+**RelyLoop tunes stage 3** — and, as of MVP2, a thin, opt-in slice of stage 1 (see "Normalizer tuning" below). By default it passes `query_text` through to the engine **verbatim** — no lowercasing, no trimming, no rewriting ([`ElasticAdapter.render`](../../backend/app/adapters/elastic.py); the template interpolates `{{ query_text }}` raw). A template that declares the reserved `query_normalizer` Categorical param opts into having the loop tune a bundled query-string transform.
 
 Normalization splits into two mechanisms, both currently outside RelyLoop's tuning boundary, for *different* reasons:
 
 - **Analyzer-level normalization** (lowercase, stemming, stopwords, synonyms as token filters) is governed by the index's **analyzers**, with index-time/query-time *symmetry* — the same analysis runs on documents at index time and on the query at search time. Changing it usually requires **reindexing**, which is why it sits behind the umbrella spec §4 non-goal: *"Make schema/mapping/analyzer changes. Tuning is restricted to query-time parameters."* RelyLoop *reads* analyzer names (the schema browser shows them) but never writes them. **This boundary is permanent.**
-- **Pre-query rewriting** (contraction expansion, spell-correction, query expansion) is an *application-layer* transform of the query string before it reaches the engine. It does **not** require touching the cluster, so it is technically query-time — RelyLoop's domain — but RelyLoop has no parameter for it today. Tuning it is captured as an exploratory idea: [`feat_query_normalization_tuning`](../00_overview/planned_features/02_mvp2/feat_query_normalization_tuning/idea.md) (release target unresolved pending the prod-reproducibility question — a rewrite RelyLoop applies only reproduces in production if the operator's query pipeline applies the same rewrite).
+- **Pre-query rewriting** (contraction expansion, spell-correction, query expansion) is an *application-layer* transform of the query string before it reaches the engine. It does **not** require touching the cluster, so it is technically query-time — RelyLoop's domain. **MVP2 ships a bounded, opt-in slice of this** via the reserved `query_normalizer` param (see below); broader rewriting (spell-correction, synonyms, query expansion) remains the operator's query layer.
 
 **Operator guidance:** do your query-understanding work (stage 1) *before* leaning on RelyLoop for stage 3. Ranking tuning cannot recover a query whose terms never matched the index in the first place — the canonical failure is an analyzer that strips `not` as a stopword, turning "not waterproof" into "waterproof". RelyLoop sharpens *how matched candidates are scored*; it does not fix *whether the query matched*.
+
+### Normalizer tuning (MVP2)
+
+Shipped by [`feat_query_normalization_tuning`](../00_overview/planned_features/02_mvp2/feat_query_normalization_tuning/feature_spec.md). A template opts in by declaring a reserved Categorical search-space param named **`query_normalizer`** whose `choices` are a subset of the four built-in normalizers: `none`, `lowercase`, `lowercase+trim`, `lowercase+trim+expand_contractions` (English, 30-entry contraction dictionary). The Optuna loop then searches over those choices like any other categorical, deciding empirically — on the operator's judgment set — which transform lifts the metric.
+
+Mechanics:
+
+- **Consumption is adapter-confined.** Only `ElasticAdapter.render` and `SolrAdapter.render` read `params["query_normalizer"]`; a pre-render hook normalizes `query_text` before it enters the Jinja context. The orchestrator, trial runner, baseline runner, and judgment generator pass the value through opaquely (invariant I-2). The pure-domain library lives in [`backend/app/domain/study/normalizers.py`](../../backend/app/domain/study/normalizers.py).
+- **Production parity is documented, not engineered.** RelyLoop applies the normalizer only inside its own evaluation loop. The winning choice travels in the proposal's `config_diff` and surfaces in the PR body as a copy-pasteable Python snippet under an **"Operator-side requirement"** section — the operator replicates it in their query-serving layer to reproduce the gain. RelyLoop never touches the cluster.
+- **Reserved, non-render key.** `query_normalizer` is consumed by the adapter, so a template body must **not** reference `{{ query_normalizer }}` (rejected at create time with `RESERVED_PARAM_REFERENCED`); it may declare it without referencing it.
 
 ## Cross-references
 

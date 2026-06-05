@@ -952,23 +952,29 @@ No update — testing convention covers the new test layers.
 ## 9) Execution tracker (copy/paste)
 
 ### Current sprint
-- [ ] Story 1.1 — normalizer module + contractions + snippets
-- [ ] Story 1.2 — `compute_default_params` extension (verification gate)
-- [ ] Story 1.3 — `validate_normalizer_reservation` + template-validator extension
-- [ ] Story 2.1 — router wiring
-- [ ] Story 2.2 — `ElasticAdapter.render` hook
-- [ ] Story 2.3 — `SolrAdapter.render` hook + cross-engine parametrized test
-- [ ] Story 3.1 — PR-body section
-- [ ] Story 4.1 — digest advisory
-- [ ] Story 4.2 — enum + glossary + row-categorical conditional rendering
-- [ ] Story 5.1 — docs sweep
-- [ ] Story 6.1 — E2E spec
+- [x] Story 1.1 — normalizer module + contractions + snippets
+- [x] Story 1.2 — `compute_default_params` extension (verification gate)
+- [x] Story 1.3 — `validate_normalizer_reservation` + template-validator extension
+- [x] Story 2.1 — router wiring
+- [x] Story 2.2 — `ElasticAdapter.render` hook
+- [x] Story 2.3 — `SolrAdapter.render` hook + cross-engine parametrized test
+- [x] Story 3.1 — PR-body section
+- [x] Story 4.1 — digest advisory
+- [x] Story 4.2 — enum + glossary + row-categorical conditional rendering
+- [x] Story 5.1 — docs sweep
+- [x] Story 6.1 — E2E spec
 
 ### Blocked items
 - _None._
 
 ### Done this sprint
-- _None yet._
+- All 11 stories complete. Plus a tangential inline fix (`build_starter_search_space` /
+  `buildStarterSearchSpace` auto-fill the reserved `query_normalizer` key to the full
+  `NORMALIZER_CHOICES` instead of the `__placeholder__` sentinel — the wizard-flow enabler
+  for Story 6.1, parity-locked on both sides) and the spec FR-6 schema-endpoint path
+  correction. Local gates: 2383 backend unit + 1193 vitest green; mypy --strict + ruff
+  format/check + ESLint (0 errors) + tsc + `next build` green; generated-artifacts fresh.
+  Integration/contract/E2E skip locally (no Postgres/stack) — exercised in CI.
 
 ## 10) Story-by-Story Verification Gate
 

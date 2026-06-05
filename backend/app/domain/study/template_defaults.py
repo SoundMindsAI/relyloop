@@ -40,6 +40,8 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from backend.app.domain.study.normalizers import DEFAULT_NORMALIZER
+
 # Per-type fallback values used when ``declared_params`` is stored in
 # the API's simple form (``{"foo": "float"}``) and so carries no range
 # / categorical metadata. These match the values most query templates
@@ -87,6 +89,18 @@ def compute_default_params(template_row: Any) -> dict[str, Any]:
     declared: dict[str, Any] = cast(dict[str, Any], template_row.declared_params) or {}
     params: dict[str, Any] = {}
     for name, schema in declared.items():
+        # FR-1 (feat_query_normalization_tuning): the reserved non-render
+        # key short-circuits to DEFAULT_NORMALIZER regardless of declaration
+        # shape (simple "string" or rich categorical). Baseline trials and
+        # LLM-judgment runs feed this dict to adapter.render -> normalize();
+        # "none" is the only safe default for a key the operator hasn't
+        # pinned, and it keeps the simple-form fallback ("") and the
+        # categorical-first-value from ever reaching normalize() as an
+        # invalid choice. The adapter hook (Story 2.2/2.3) repeats this
+        # default as defense-in-depth, but THIS is the actual fix.
+        if name == "query_normalizer":
+            params[name] = DEFAULT_NORMALIZER
+            continue
         if isinstance(schema, str):
             # Simple form: type-name string. API-stored templates always
             # land here.

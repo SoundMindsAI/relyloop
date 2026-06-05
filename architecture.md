@@ -74,7 +74,14 @@ expected to honor them. The full text lives in [`CLAUDE.md`](CLAUDE.md):
    from `Settings`.
 4. **Engine-specific code lives only in `backend/app/adapters/<engine>.py`**
    — the orchestrator and study runner consume the unified `SearchAdapter`
-   Protocol.
+   Protocol. **Reserved non-render params** (the canonical instance is
+   `query_normalizer`, from `feat_query_normalization_tuning`) are
+   consumed **only** inside `render()` via a deterministic pure-function
+   pre-render transform of `query_text`; workers pass them through
+   opaquely and template bodies must never reference them. The reservation
+   discipline lives in `backend/app/domain/study/template_validator.py`
+   (`_RESERVED_NONRENDER_PARAMS`) + `normalizers.py`
+   (`validate_normalizer_reservation`).
 5. **All Alembic migrations include `downgrade()`** and round-trip cleanly.
 6. `/healthz` is **unauthenticated by design** (operator probe, unprefixed).
 7. Conventional Commits format is enforced via `pre-commit` `commit-msg`
