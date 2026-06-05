@@ -1,7 +1,7 @@
 # Implementation Plan — Overnight Final Solution Phase 3 (Proposal supersession on chain rollup)
 
 **Date:** 2026-06-05
-**Status:** Ready for Execution
+**Status:** Complete (PR #457, merged 2026-06-05)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Source idea:** [`idea.md`](idea.md)
 
