@@ -25,7 +25,7 @@ _STUDY = SimpleNamespace(id="study-abc", name="prod-en-v1")
 _DIGEST = SimpleNamespace(suggested_followups=[])
 
 
-def _render(config_diff: dict) -> str:
+def _render(config_diff: dict[str, object]) -> str:
     return _render_pr_body_study_backed(
         proposal=_PROPOSAL,
         study=_STUDY,

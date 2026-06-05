@@ -89,7 +89,9 @@ async def _seed_cluster_and_template() -> tuple[str, str]:
         return cluster.id, template.id
 
 
-def _study_body(cluster_id: str, template_id: str, normalizer_param: dict) -> dict:
+def _study_body(
+    cluster_id: str, template_id: str, normalizer_param: dict[str, object]
+) -> dict[str, object]:
     return {
         "name": "norm-reservation",
         "cluster_id": cluster_id,

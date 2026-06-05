@@ -33,19 +33,19 @@ def test_valid_subset_returns_none() -> None:
     space = _space(
         {"query_normalizer": {"type": "categorical", "choices": ["none", "lowercase+trim"]}}
     )
-    assert validate_normalizer_reservation(space) is None
+    validate_normalizer_reservation(space)  # no raise
 
 
 def test_full_allowlist_is_accepted() -> None:
     space = _space(
         {"query_normalizer": {"type": "categorical", "choices": list(NORMALIZER_CHOICES)}}
     )
-    assert validate_normalizer_reservation(space) is None
+    validate_normalizer_reservation(space)  # no raise
 
 
 def test_absent_key_is_noop() -> None:
     space = _space({"title_boost": {"type": "float", "low": 0.1, "high": 1.0}})
-    assert validate_normalizer_reservation(space) is None
+    validate_normalizer_reservation(space)  # no raise (absent key)
 
 
 def test_bad_choice_raises_choice_invalid_with_spec_message() -> None:

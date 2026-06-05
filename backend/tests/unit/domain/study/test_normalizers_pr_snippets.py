@@ -46,7 +46,7 @@ def _load_snippet_fn(choice: str) -> Callable[[str], str]:
     exec(snippet, namespace)  # noqa: S102 — trusted, in-repo static snippet
     fn = namespace["normalize_query"]
     assert callable(fn)
-    return fn  # type: ignore[return-value]
+    return fn
 
 
 @pytest.mark.parametrize("choice", list(_PR_BODY_NORMALIZER_SNIPPETS.keys()))

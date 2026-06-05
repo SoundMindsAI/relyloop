@@ -14,7 +14,7 @@ from __future__ import annotations
 import pytest
 
 from backend.app.adapters.elastic import ElasticAdapter
-from backend.app.adapters.protocol import QueryTemplate
+from backend.app.adapters.protocol import ParamValue, QueryTemplate
 from backend.app.core.settings import get_settings
 
 
@@ -92,7 +92,7 @@ def test_caller_params_dict_is_not_mutated() -> None:
         ),
         declared_params={"query_normalizer": "string", "title_boost": "float"},
     )
-    params = {"query_normalizer": "lowercase", "title_boost": 2.0}
+    params: dict[str, ParamValue] = {"query_normalizer": "lowercase", "title_boost": 2.0}
     _adapter().render(template, params=params, query_text="HELLO")
     assert params == {"query_normalizer": "lowercase", "title_boost": 2.0}
 

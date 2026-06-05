@@ -22,6 +22,7 @@ contacted — ``search_batch`` is monkeypatched to return handbuilt hits.
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 import httpx
 import pytest
@@ -198,7 +199,7 @@ async def test_trial_runner_records_and_normalizes_query_normalizer(
         client=httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(404))),
     )
 
-    rendered_bodies: list[dict] = []
+    rendered_bodies: list[dict[str, Any]] = []
     real_render = adapter.render
 
     def _recording_render(template, params, query_text):
