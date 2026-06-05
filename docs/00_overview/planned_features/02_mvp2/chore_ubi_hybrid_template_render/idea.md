@@ -7,7 +7,7 @@ LLM-fill worker uses `adapter.get_document` rather than rendering
 `current_template_id` + `search_batch`. On analysis (during the
 chore_ubi_e2e_suite work), this is **not** a bug — see below.
 **Depends on:** `feat_ubi_judgments` shipped
-**Priority:** P3 (cosmetic contract cleanup; current behavior is correct)
+**Priority:** Backlog — demoted P3 → Backlog 2026-06-05 (P2 backlog grooming). The idea's own analysis concludes **the worker is correct as shipped** — this is a vestigial-requirement cleanup gated on a product decision (drop the `current_template_id` requirement for `hybrid_ubi_llm`) that has **no operator signal**. Freeze until an operator actually asks to stop supplying a template for the hybrid path; there is nothing to fix until then.
 
 ## Analysis — the worker is correct as shipped
 

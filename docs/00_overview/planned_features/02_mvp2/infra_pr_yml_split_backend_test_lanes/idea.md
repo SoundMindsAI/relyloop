@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-05
 **Status:** Idea — **deferred (defer-until-binding-constraint)**. Carved out of `chore_pr_yml_parallelize_backend_job` (now in `implemented_features/2026_06_05_*`; see "Relationship to other work" below for the link) at its 2026-06-05 descope. Pick up only when the integration layer becomes the binding CI constraint after other critical-path work lands.
-**Priority:** P2 — operator iteration cost, not a correctness gate. Lower urgency than the parent chore because the recoverable win is marginal (see "Why deferred").
+**Priority:** Backlog — operator iteration cost, not a correctness gate. Demoted P2 → Backlog 2026-06-05 (P2 backlog grooming) to match its own `defer-until-binding-constraint` status: the recoverable win is ~1–1.5 min bought with a blind-validated `coverage combine` job, so it should not head the MVP2 idea list. Pick up only when the integration layer becomes the binding CI constraint.
 **Origin:** Split out from `chore_pr_yml_parallelize_backend_job`. That chore shipped the reliable, zero-risk part (drop redundant lint/format/mypy from the heavy `backend` job — ~30-40s). This idea holds the remaining, riskier wins (Win 2′ lane-split + Win 3 split-by-service) that the operator chose to defer.
 **Depends on:** None. (Builds on the post-lint-dedup `.github/workflows/pr.yml` shape.)
 

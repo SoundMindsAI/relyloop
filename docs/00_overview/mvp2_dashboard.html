@@ -425,12 +425,12 @@ footer {
     </div>
     <div class="kpi">
       <div class="label">P2 (default)</div>
-      <div class="value">13</div>
+      <div class="value">9</div>
       <div class="sub">important to file, not blocking</div>
     </div>
     <div class="kpi">
       <div class="label">Backlog</div>
-      <div class="value">3</div>
+      <div class="value">7</div>
       <div class="sub">captured for record, not planned</div>
     </div>
     <div class="kpi">
@@ -465,45 +465,6 @@ footer {
 <div class="col idea">
   <h3>Idea <span class="count">13</span></h3>
 
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes">Pr Yml Split Backend Test Lanes</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The heavy `backend (tests + coverage)` job in `.github/workflows/pr.yml` runs the full `pytest backend/tests/` matrix (unit + integration + contract) serially in one job with `--cov` gating at `fail_u</div>
-
-
-</div>
-
-
-<div class="card infra" data-prefix="infra" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip">Smoke Fork Pr Secret Skip</a></div>
-  <div class="meta">
-    <span class="badge infra">Infra</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">`.github/workflows/pr.yml` triggers on `pull_request:` ([pr.yml:43](../.github/workflows/pr.yml)) — **not** `pull_request_target`. GitHub deliberately withholds repository secrets from workflows trigg</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_e2e_overnight_strategy_radix_select_timing">E2E Overnight Strategy Radix Select Timing</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">The Story 3.2 E2E spec walks the create-study wizard to Step 5, clicks the depth `&lt;Select&gt;` (&quot;2 follow-ups&quot;), and asserts the new Strategy `&lt;Select&gt;` becomes visible. In chromium against `pnpm dev`, t</div>
-
-
-</div>
-
-
 <div class="card chore" data-prefix="chore" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_overnight_result_card_screenshot">Overnight Result Card Screenshot</a></div>
   <div class="meta">
@@ -525,19 +486,6 @@ footer {
 
   </div>
   <div class="one-liner">The 13-story `infra_adapter_solr` execution surfaced several follow-on items that fit neither the original spec nor any sister feature folder. None block the MVP2 Solr release — they&#x27;re operator-exper</div>
-
-
-</div>
-
-
-<div class="card chore" data-prefix="chore" data-priority="P2">
-  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render">Ubi Hybrid Template Render</a></div>
-  <div class="meta">
-    <span class="badge chore">Chore</span>
-    <span class="badge priority" data-priority="P2">P2</span>
-
-  </div>
-  <div class="one-liner">Idea — contract decision deferred (NOT a worker bug)</div>
 
 
 </div>
@@ -608,6 +556,32 @@ footer {
 </div>
 
 
+<div class="card infra" data-prefix="infra" data-priority="Backlog">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_pr_yml_split_backend_test_lanes">Pr Yml Split Backend Test Lanes</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
+
+  </div>
+  <div class="one-liner">The heavy `backend (tests + coverage)` job in `.github/workflows/pr.yml` runs the full `pytest backend/tests/` matrix (unit + integration + contract) serially in one job with `--cov` gating at `fail_u</div>
+
+
+</div>
+
+
+<div class="card infra" data-prefix="infra" data-priority="Backlog">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/infra_smoke_fork_pr_secret_skip">Smoke Fork Pr Secret Skip</a></div>
+  <div class="meta">
+    <span class="badge infra">Infra</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
+
+  </div>
+  <div class="one-liner">`.github/workflows/pr.yml` triggers on `pull_request:` ([pr.yml:43](../.github/workflows/pr.yml)) — **not** `pull_request_target`. GitHub deliberately withholds repository secrets from workflows trigg</div>
+
+
+</div>
+
+
 <div class="card chore" data-prefix="chore" data-priority="Backlog">
   <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_auto_followup_parent_advisory_lock">Auto Followup Parent Advisory Lock</a></div>
   <div class="meta">
@@ -616,6 +590,32 @@ footer {
 
   </div>
   <div class="one-liner">The shipped `feat_auto_followup_studies` worker uses a two-layer idempotency scheme:</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="Backlog">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_e2e_overnight_strategy_radix_select_timing">E2E Overnight Strategy Radix Select Timing</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
+
+  </div>
+  <div class="one-liner">The Story 3.2 E2E spec walks the create-study wizard to Step 5, clicks the depth `&lt;Select&gt;` (&quot;2 follow-ups&quot;), and asserts the new Strategy `&lt;Select&gt;` becomes visible. In chromium against `pnpm dev`, t</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="Backlog">
+  <div class="name"><a href="../../docs/00_overview/planned_features/02_mvp2/chore_ubi_hybrid_template_render">Ubi Hybrid Template Render</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+    <span class="badge priority" data-priority="Backlog">Backlog</span>
+
+  </div>
+  <div class="one-liner">Idea — contract decision deferred (NOT a worker bug)</div>
 
 
 </div>
