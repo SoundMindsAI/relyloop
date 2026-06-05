@@ -95,9 +95,15 @@ test.describe('UBI source filter — click widening', () => {
     };
     expect(detail.source_breakdown.click).toBeGreaterThan(0);
     const { llm, human, click } = detail.source_breakdown;
-    await expect(page.getByTestId('header-breakdown')).toHaveText(
-      `${llm.toLocaleString()} / ${human.toLocaleString()} / ${click.toLocaleString()}`,
-    );
+    await expect(page.getByTestId('header-breakdown')).toBeVisible();
+    // Locale-robust: parse the three integers out of the rendered text rather
+    // than compare against Node's toLocaleString() (which can differ from the
+    // browser's locale separators). Per Gemini Code Assist review on PR #470.
+    const breakdownText = (await page.getByTestId('header-breakdown').textContent()) ?? '';
+    const parsedBreakdown = breakdownText
+      .split('/')
+      .map((part) => parseInt(part.replace(/[^\d]/g, ''), 10));
+    expect(parsedBreakdown).toEqual([llm, human, click]);
     await expect(page.getByText('LLM / Human / Clicks')).toBeVisible();
 
     // The `click` source chip exists (FR-10 widening) + drives ?source=click.
