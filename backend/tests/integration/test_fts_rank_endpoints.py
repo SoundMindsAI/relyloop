@@ -19,6 +19,7 @@ from __future__ import annotations
 import base64
 import json
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
@@ -43,6 +44,15 @@ def _term() -> str:
 
 async def _seed_clusters_rank() -> tuple[str, str, str]:
     term = _term()
+    # Stamp EXPLICIT, distinct created_at values (low strictly after high) so
+    # the no-q created_at-DESC ordering in test_no_q_does_not_rank is
+    # deterministic. Without this, both rows are created in one transaction
+    # and `created_at` (server_default=func.now()) resolves to the SAME
+    # transaction-start time for both — the ordering then ties on created_at
+    # and falls to the `id DESC` tiebreak over random UUIDs, a ~50% coin
+    # flip. (Tangential fix during chore_ubi_reader_search_after_pagination —
+    # the flake is in feat_fts_rank_ordering, surfaced on this PR's CI.)
+    base = datetime(2026, 1, 1, tzinfo=UTC)
     factory = get_session_factory()
     async with factory() as db:
         high = await repo.create_cluster(
@@ -54,6 +64,7 @@ async def _seed_clusters_rank() -> tuple[str, str, str]:
             base_url="http://stub:9200",
             auth_kind="es_basic",
             credentials_ref="ref",
+            created_at=base,
         )
         low = await repo.create_cluster(
             db,
@@ -64,6 +75,7 @@ async def _seed_clusters_rank() -> tuple[str, str, str]:
             base_url="http://stub:9200",
             auth_kind="es_basic",
             credentials_ref="ref",
+            created_at=base + timedelta(seconds=1),
         )
         await db.commit()
         return high.id, low.id, term
