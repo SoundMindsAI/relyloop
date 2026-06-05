@@ -126,6 +126,15 @@ describe('shouldShowNormalizerAdvisory predicate', () => {
     ).toBe(true);
   });
 
+  it('true for a custom analyzer with mixed-case "Lowercase" (case-insensitive)', () => {
+    expect(
+      shouldShowNormalizerAdvisory({ query_normalizer: 'lowercase' }, 'elasticsearch', {
+        name: 'p',
+        fields: [{ name: 'title', type: 'text', analyzer: 'MyCustomLowercaseAnalyzer' }],
+      }),
+    ).toBe(true);
+  });
+
   it('false when engineType is undefined', () => {
     expect(
       shouldShowNormalizerAdvisory({ query_normalizer: 'lowercase' }, undefined, STANDARD_SCHEMA),

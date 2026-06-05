@@ -58,7 +58,7 @@ export function shouldShowNormalizerAdvisory(
     if (f.type !== 'text') return false;
     const a = f.analyzer;
     if (!a) return false;
-    return LOWERCASE_APPLYING_ANALYZERS.has(a) || a.includes('lowercase');
+    return LOWERCASE_APPLYING_ANALYZERS.has(a) || a.toLowerCase().includes('lowercase');
   });
 }
 
