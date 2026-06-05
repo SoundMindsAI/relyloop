@@ -14,8 +14,8 @@ Pull from the Idea backlog or capture a new feature spec.
 
 | Metric | Value |
 |---|---|
-| Filed under MVP1 | **131** folders total (done + specced not-done + idea backlog + bugs) |
-| Specced features done | **95 / 95** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
+| Filed under MVP1 | **132** folders total (done + specced not-done + idea backlog + bugs) |
+| Specced features done | **96 / 96** (100%) — of features *past the idea stage* (those with a spec); the idea backlog below is NOT in this denominator, so 100% ≠ release complete |
 | Pending work | **0** items (every not-done feat/infra/chore/bug across all priorities) |
 | → P0 — do next | **0** unblocking / paying daily cost |
 | → P1 | **0** high-value, ready when P0 clears |
@@ -28,7 +28,7 @@ Pull from the Idea backlog or capture a new feature spec.
 
 ## Pipeline
 
-### Done (131)
+### Done (132)
 
 | Feature | Type | One-liner | Depends on | Status |
 |---|---|---|---|---|
@@ -81,6 +81,7 @@ Pull from the Idea backlog or capture a new feature spec.
 | [infra_study_preflight_real_engine_integration](implemented_features/2026_05_25_infra_study_preflight_real_engine_integration/feature_spec.md) | Infra | Replace AC-1 through AC-4b with real-engine variants that (a) seed `judgments.doc_id` rows for a representative query, (b) bulk-index a controlled subset of those `doc_id` values into the ES service-c | — | [PR #255](https://github.com/SoundMindsAI/relyloop/pull/255) merged 2026-05-22 |
 | [infra_test_worktree_missing_integration_envs](implemented_features/2026_05_26_infra_test_worktree_missing_integration_envs/feature_spec.md) | Infra | `scripts/run-tests-in-worktree.sh` propagates `POSTGRES_PASSWORD_FILE` unconditionally (fail-loud if `$MAIN_REPO/secrets/postgres_password` is missing — mirroring the existing `DATABASE_URL_FILE` prer | — | [PR #257](https://github.com/SoundMindsAI/relyloop/pull/257) merged 2026-05-26 |
 | [infra_uv_sync_drops_precommit](implemented_features/2026_05_21_infra_uv_sync_drops_precommit/idea.md) | Infra | Complete | — | Complete |
+| [chore_arq_pool_aclose_deprecation](implemented_features/2026_06_01_chore_arq_pool_aclose_deprecation/feature_spec.md) | Chore | Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close( | — | [PR #387](https://github.com/SoundMindsAI/relyloop/pull/387) merged 2026-06-01 |
 | [chore_auto_followup_e2e_chain_seed_helper](implemented_features/2026_05_26_chore_auto_followup_e2e_chain_seed_helper/idea.md) | Chore | `feat_auto_followup_studies` Story 3.3 specified a Playwright E2E spec that seeds a 3-node chain (root R → middle M → leaf L) and asserts: | — | Complete |
 | [chore_chat_last_message_preview](implemented_features/2026_05_14_chore_chat_last_message_preview/idea.md) | Chore | The `/chat` list page renders each conversation row as `title + relative timestamp (created_at) + count` via [`ui/src/components/chat/conversation-list.tsx:30-49`](../ui/src/components/chat/conversati | — | Complete |
 | [chore_ci_gitignore_paths_ignore_gap](implemented_features/2026_05_13_chore_ci_gitignore_paths_ignore_gap/idea.md) | Chore | `.github/workflows/pr.yml` has a `paths-ignore` filter that skips the entire workflow when *every* changed path matches: | — | Complete |
@@ -379,6 +380,8 @@ graph LR
   class chore_e2e_api_base_url_construction done;
   chore_state_md_size_compression["state md size compression"]
   class chore_state_md_size_compression done;
+  chore_arq_pool_aclose_deprecation["arq pool aclose deprecation"]
+  class chore_arq_pool_aclose_deprecation done;
   feat_walkthrough_video_cursor_captions["walkthrough video cursor captions"]
   class feat_walkthrough_video_cursor_captions done;
   feat_study_lifecycle --> feat_digest_proposal

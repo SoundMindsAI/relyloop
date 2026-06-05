@@ -1,7 +1,7 @@
 # Implementation Plan — Replace deprecated `arq_pool.close()` with `aclose()`
 
 **Date:** 2026-06-01
-**Status:** Ready for Execution
+**Status:** Complete (shipped in PR #387, 2026-06-01)
 **Primary spec:** [`feature_spec.md`](feature_spec.md)
 **Policy source(s):** CLAUDE.md (Conventional Commits + DCO sign-off; no migration; no behavior change)
 

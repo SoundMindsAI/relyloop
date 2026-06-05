@@ -397,8 +397,8 @@ footer {
   <div class="kpi-row">
     <div class="kpi complete">
       <div class="label">Specced features done</div>
-      <div class="value">95 / 95</div>
-      <div class="sub">100% specced · 131 filed under MVP1</div>
+      <div class="value">96 / 96</div>
+      <div class="sub">100% specced · 132 filed under MVP1</div>
       <div class="bar"><span style="width:100%"></span></div>
     </div>
     <div class="kpi complete">
@@ -483,7 +483,7 @@ footer {
 </div>
 
 <div class="col done">
-  <h3>Done <span class="count">131</span></h3>
+  <h3>Done <span class="count">132</span></h3>
 
 <div class="card feat" data-prefix="feat" data-priority="P2">
   <div class="name"><a href="../../docs/00_overview/implemented_features/2026_05_21_feat_agent_propose_search_space/feature_spec.md">Agent Propose Search Space</a></div>
@@ -1117,6 +1117,19 @@ footer {
     <span>merged 2026-05-21</span>
   </div>
   <div class="one-liner">Complete</div>
+
+
+</div>
+
+
+<div class="card chore" data-prefix="chore" data-priority="P2">
+  <div class="name"><a href="../../docs/00_overview/implemented_features/2026_06_01_chore_arq_pool_aclose_deprecation/feature_spec.md">Arq Pool Aclose Deprecation</a></div>
+  <div class="meta">
+    <span class="badge chore">Chore</span>
+
+    <a class="pr" href="https://github.com/SoundMindsAI/relyloop/pull/387">PR #387</a> <span>merged 2026-06-01</span>
+  </div>
+  <div class="one-liner">Both call sites use `await arq_pool.aclose()`; no `DeprecationWarning` on shutdown; a regression guard asserts the async-correct form on both paths so a future edit cannot silently reintroduce `close(</div>
 
 
 </div>
@@ -2388,6 +2401,8 @@ footer {
   class chore_e2e_api_base_url_construction done;
   chore_state_md_size_compression[&quot;state md size compression&quot;]
   class chore_state_md_size_compression done;
+  chore_arq_pool_aclose_deprecation[&quot;arq pool aclose deprecation&quot;]
+  class chore_arq_pool_aclose_deprecation done;
   feat_walkthrough_video_cursor_captions[&quot;walkthrough video cursor captions&quot;]
   class feat_walkthrough_video_cursor_captions done;
   feat_study_lifecycle --&gt; feat_digest_proposal
@@ -2631,6 +2646,8 @@ footer {
   class chore_e2e_api_base_url_construction done;
   chore_state_md_size_compression[&quot;state md size compression&quot;]
   class chore_state_md_size_compression done;
+  chore_arq_pool_aclose_deprecation[&quot;arq pool aclose deprecation&quot;]
+  class chore_arq_pool_aclose_deprecation done;
   feat_walkthrough_video_cursor_captions[&quot;walkthrough video cursor captions&quot;]
   class feat_walkthrough_video_cursor_captions done;
   feat_study_lifecycle --&gt; feat_digest_proposal
