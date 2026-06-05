@@ -29,7 +29,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend.app.adapters.protocol import Document, NativeQuery, ScoredHit
+from backend.app.adapters.protocol import Document, NativeQuery, ScanPage, ScoredHit
 from backend.app.db import repo
 from backend.app.db.session import get_session_factory
 from backend.tests.conftest import postgres_reachable
@@ -212,6 +212,81 @@ def _ubi_adapter_stub(
         raise AssertionError(f"unexpected scan {native.query_id!r}")
 
     adapter.search_batch = AsyncMock(side_effect=search_batch)
+
+    # chore_ubi_reader_search_after_pagination — UbiReader now paginates via
+    # adapter.scan_all() + adapter.close_scan() instead of a single
+    # search_batch call. Serve the SAME canned data (keyed on the scan
+    # target instead of the NativeQuery.query_id) as a single terminal
+    # ScanPage so the worker's paginated read produces identical features.
+    def _query_scan_hits() -> list[ScoredHit]:
+        return [
+            ScoredHit(
+                doc_id=ubi_qid,
+                score=1.0,
+                source={
+                    "query_id": ubi_qid,
+                    "user_query": user_query,
+                    "application": "products",
+                    "timestamp": "2026-05-20T10:00:00Z",
+                },
+            )
+            for user_query, ubi_qid in user_query_to_id.items()
+        ]
+
+    def _event_scan_hits() -> list[ScoredHit]:
+        events: list[ScoredHit] = []
+        for ubi_qid in user_query_to_id.values():
+            for d in range(docs_per_query):
+                doc_id = f"doc-{d}"
+                for _ in range(impressions_per_pair):
+                    events.append(
+                        ScoredHit(
+                            doc_id="evt",
+                            score=0.0,
+                            source={
+                                "query_id": ubi_qid,
+                                "action_name": "impression",
+                                "object_id": doc_id,
+                                "position": d + 1,
+                                "timestamp": "2026-05-20T10:01:00Z",
+                            },
+                        )
+                    )
+                for _ in range(clicks_per_query if d == 0 else 0):
+                    events.append(
+                        ScoredHit(
+                            doc_id="evt",
+                            score=0.0,
+                            source={
+                                "query_id": ubi_qid,
+                                "action_name": "click",
+                                "object_id": doc_id,
+                                "timestamp": "2026-05-20T10:02:00Z",
+                            },
+                        )
+                    )
+        return events
+
+    async def scan_all(
+        target: str,
+        body: dict[str, Any],
+        *,
+        page_size: int,
+        cursor: object | None = None,
+        fl: list[str] | None = None,
+        request_id: str | None = None,
+    ) -> ScanPage:
+        # Single terminal page per scan; cursor=None ends the reader loop.
+        # The default ceilings (1M events / 200k queries) comfortably exceed
+        # these canned volumes, so no truncation occurs.
+        if target == "ubi_queries":
+            return ScanPage(hits=_query_scan_hits(), cursor=None)
+        if target == "ubi_events":
+            return ScanPage(hits=_event_scan_hits(), cursor=None)
+        raise AssertionError(f"unexpected scan_all target {target!r}")
+
+    adapter.scan_all = AsyncMock(side_effect=scan_all)
+    adapter.close_scan = AsyncMock(return_value=None)
 
     async def get_document(target: str, doc_id: str, *, request_id: str | None = None) -> Document:
         return Document(doc_id=doc_id, source={"body": f"body for {doc_id}"})
