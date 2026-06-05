@@ -102,8 +102,11 @@ export function ClusterDetailUbiReadinessCard({
   );
 
   // D-16 dual leak gate: a stale badge must not render after the operator
-  // clears either control.
-  const pickerStateValid = pickerReady && querySetId !== '' && target.length > 0;
+  // clears either control. `targetRaw.trim()` is checked alongside the
+  // debounced `target` so clearing the input hides the badge *immediately*
+  // (spec interaction table) rather than after the 200ms debounce window.
+  const pickerStateValid =
+    pickerReady && querySetId !== '' && targetRaw.trim().length > 0 && target.length > 0;
   const showBadge = pickerStateValid && readinessQuery.data != null;
   const showSyntheticChip = isDemoSyntheticUbiClusterName(cluster.name);
 

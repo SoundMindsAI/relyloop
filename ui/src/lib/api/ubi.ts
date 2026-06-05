@@ -85,6 +85,12 @@ export function useUbiReadiness(
     // flash. No-op for the cold-mount generate-judgments dialog consumer.
     placeholderData: keepPreviousData,
     queryFn: async () => {
+      // Defensive: `enabled` already gates the params, but a manual refetch can
+      // invoke queryFn with `enabled === false`; bail before the missing values
+      // serialize into a `?query_set_id=null` request.
+      if (!clusterId || !querySetId || !target) {
+        throw new Error('Missing required parameters for UBI readiness fetch');
+      }
       try {
         const { data } = await apiClient.get<UbiReadinessResponse>(
           `/api/v1/clusters/${clusterId}/ubi-readiness`,
