@@ -6,6 +6,13 @@
 # Pinned to exact versions for reproducible CI builds (see
 # .github/workflows/deploy-docs.yml). Bump deliberately, not via `>=`.
 #
+# This is the CURATED top-level source. CI does NOT install from it directly —
+# it installs the hash-pinned `website/requirements.lock` with
+# `pip install --require-hashes` (OSSF Scorecard Pinned-Dependencies). After
+# editing any pin below, regenerate the lock:
+#
+#     uv pip compile website/requirements.txt --generate-hashes -o website/requirements.lock
+#
 # The [imaging] extra (Pillow + CairoSVG) is included so social cards are a
 # one-line opt-in, but the `social` plugin is intentionally NOT enabled in
 # mkdocs.yml — it needs system Cairo libraries that the CI runner lacks.
