@@ -86,6 +86,20 @@ make test                # all three in sequence
 - Tests that depend on the API itself running should use the
   `_api_reachable()` helper to skip cleanly when the API isn't up — that's
   acceptable (CI doesn't boot the API in MVP1; deploy job comes at MVP3).
+- **Asserting enqueue behavior (`chore_studies_post_arq_spy_fixture`):** to
+  positively assert that a handler did (or did NOT) enqueue an Arq job, use
+  the opt-in `arq_pool_spy` fixture in
+  [`backend/tests/integration/conftest.py`](../../backend/tests/integration/conftest.py).
+  It installs a `SpyArqPool` recording double on `app.state.arq_pool`
+  **after** the lifespan built (or skipped) the real pool — so a recorded
+  call proves the spy, not the real Redis pool, received the enqueue. The
+  spy records each call as a flattened `(name, *args)` tuple, so the
+  studies-POST handler's `enqueue_job("start_study", study_id)` records
+  `("start_study", study_id)`; rejection-path tests assert `spy.calls == []`.
+  The fixture is **opt-in** (not autouse) and restores the prior
+  `app.state.arq_pool` on teardown, so tests that don't request it are
+  unaffected. The Arq/Redis enqueue sink is an *external service*, so this
+  double is consistent with the mocking rule above.
 
 ### Contract tests
 

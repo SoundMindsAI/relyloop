@@ -442,14 +442,15 @@ For all unchanged files: safe because the spy is opt-in (not autouse) and restor
 ## 9) Execution tracker (copy/paste section)
 
 ### Current sprint
-- [ ] Story 1.1 — `SpyArqPool` + `install_arq_pool_spy` + `arq_pool_spy` fixture
-- [ ] Story 1.2 — wire 10 rejection + 3 success enqueue assertions + AC-3 restore test
+- [x] Story 1.1 — `SpyArqPool` + `install_arq_pool_spy` + `arq_pool_spy` fixture (commit `149b58e`)
+- [x] Story 1.2 — wire 10 rejection + 3 success enqueue assertions + AC-3 restore test (commit `f8ee244`)
 
 ### Blocked items
 - (none)
 
 ### Done this sprint
-- (none yet)
+- Story 1.1 (`149b58e`) — `SpyArqPool` double + `install_arq_pool_spy` ctx + `arq_pool_spy` fixture in integration conftest + 5 unit tests in `test_arq_pool_spy.py`.
+- Story 1.2 (`f8ee244`) — 13 studies-POST tests carry the enqueue assertion (10 `== []`, 3 `== [("start_study", <id>)]`) + 2 AC-3 restore tests. Counts verified.
 
 ## 10) Story-by-Story Verification Gate (Agent Checklist)
 
