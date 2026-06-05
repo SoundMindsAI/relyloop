@@ -15,6 +15,7 @@ import { CurrentlyLiveBadge } from '@/components/proposals/currently-live-badge'
 import { FullParamSpacePanel } from '@/components/proposals/full-param-space-panel';
 import { PrPanel } from '@/components/proposals/pr-panel';
 import { ProposalHeader } from '@/components/proposals/proposal-header';
+import { ReinstateProposalButton } from '@/components/proposals/reinstate-proposal-button';
 import { RejectDialog } from '@/components/proposals/reject-dialog';
 import { SuggestedFollowupsPanel } from '@/components/proposals/suggested-followups-panel';
 import { CreateStudyModal, type PrefillValues } from '@/components/studies/create-study-modal';
@@ -378,6 +379,11 @@ export function ProposalDetailView({ proposalId }: { proposalId: string }) {
               {proposal.status === 'pending' && (
                 <div className="pt-12">
                   <RejectDialog proposal={proposal} />
+                </div>
+              )}
+              {proposal.status === 'superseded' && (
+                <div className="pt-12">
+                  <ReinstateProposalButton proposal={proposal} />
                 </div>
               )}
             </div>

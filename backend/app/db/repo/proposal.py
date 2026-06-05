@@ -53,7 +53,7 @@ _PROPOSAL_SORT_COLUMNS: dict[str, object] = {
 
 # Wire values for `?status=` filter on `GET /api/v1/proposals`.
 # Values must match backend/app/db/models/proposal.py CHECK proposals_status_check.
-ProposalStatusFilter = Literal["pending", "pr_opened", "pr_merged", "rejected"]
+ProposalStatusFilter = Literal["pending", "pr_opened", "pr_merged", "rejected", "superseded"]
 # Per chore_proposals_source_filter_server_side: distinguishes proposals
 # derived from a completed study (study_id NOT NULL) from operator-authored
 # manual proposals (study_id NULL).
@@ -173,6 +173,7 @@ async def list_proposals_paginated(
     study_id: str | None = None,
     is_last_merged: bool | None = None,
     sort: str | None = None,
+    include_superseded: bool = False,
 ) -> Sequence[Proposal]:
     """Cursor-paginated proposal list. Sort-aware (Story 1.3).
 
@@ -185,11 +186,20 @@ async def list_proposals_paginated(
     (used by the study-detail page's pending-proposal lookup).
     ``is_last_merged`` (feat_config_repo_baseline_tracking FR-6) filters
     to proposals tracked (or not) as some config_repo's live pointer.
+
+    Phase 3 D-15 revised: ``include_superseded`` defaults to ``False``;
+    when ``False`` AND ``status is None``, the implicit filter
+    ``Proposal.status != 'superseded'`` is applied so the default list
+    omits non-winning chain links. Explicit ``status`` overrides this
+    (e.g., ``status='superseded'`` returns only superseded rows).
     """
     parsed_sort: ParsedSort | None = parse_sort(sort, _PROPOSAL_SORT_COLUMNS)
     stmt = select(Proposal)
     if status is not None:
         stmt = stmt.where(Proposal.status == status)
+    elif not include_superseded:
+        # Phase 3 D-15 revised: default response excludes superseded rows.
+        stmt = stmt.where(Proposal.status != "superseded")
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
     if template_id is not None:
@@ -224,17 +234,21 @@ async def count_proposals(
     template_id: str | None = None,
     study_id: str | None = None,
     is_last_merged: bool | None = None,
+    include_superseded: bool = False,
 ) -> int:
     """COUNT(*) for the ``X-Total-Count`` header on ``GET /api/v1/proposals``.
 
     ``template_id`` filter (Story 1.5) narrows by FK. ``study_id`` filter
     narrows to a single study. ``is_last_merged``
     (feat_config_repo_baseline_tracking FR-6) restricts to the live-pointer
-    set or its complement.
+    set or its complement. ``include_superseded`` mirrors the rule on
+    :func:`list_proposals_paginated` — Phase 3 D-15 revised.
     """
     stmt = select(func.count()).select_from(Proposal)
     if status is not None:
         stmt = stmt.where(Proposal.status == status)
+    elif not include_superseded:
+        stmt = stmt.where(Proposal.status != "superseded")
     if cluster_id is not None:
         stmt = stmt.where(Proposal.cluster_id == cluster_id)
     if template_id is not None:
@@ -632,3 +646,67 @@ async def hard_delete_proposal(db: AsyncSession, proposal_id: str) -> bool:
     await db.delete(existing)
     await db.flush()
     return True
+
+
+# ---------------------------------------------------------------------------
+# feat_overnight_final_solution_phase3 Story 1.2 — supersession + reinstate
+# ---------------------------------------------------------------------------
+
+
+async def bulk_mark_superseded(
+    db: AsyncSession,
+    *,
+    study_ids: list[str],
+) -> list[str]:
+    """Conditional UPDATE for the chain-rollup loser supersession path.
+
+    Transitions ``pending → superseded`` for proposals whose ``study_id``
+    is in ``study_ids``. Idempotent. Silently skips rows whose status is not ``pending`` —
+    that includes already-superseded rows on a re-run, ``pr_opened`` /
+    ``pr_merged`` rows (operator already shipped), and ``rejected`` rows
+    (operator already rejected — D-6 / Q3 precedence). Returns the IDs
+    actually transitioned, or ``[]`` if no rows matched. Caller commits.
+    """
+    if not study_ids:
+        return []
+    stmt = (
+        update(Proposal)
+        .where(Proposal.study_id.in_(study_ids), Proposal.status == "pending")
+        .values(status="superseded")
+        .returning(Proposal.id)
+    )
+    result = await db.execute(stmt)
+    transitioned: list[str] = [row[0] for row in result]
+    if transitioned:
+        await db.flush()
+    return transitioned
+
+
+async def reinstate_from_superseded(
+    db: AsyncSession,
+    *,
+    proposal_id: str,
+) -> Proposal:
+    """Transition ``superseded → pending`` for the operator-initiated reinstate flow.
+
+    Mirrors the :func:`reject_proposal` read-check-mutate precedent
+    (spec D-17) — the conditional-UPDATE pattern would collapse 404
+    (unknown id) and 409 (wrong status) into one zero-row signal and
+    the API endpoint could not drive its deterministic 404-vs-409
+    contract.
+
+    Raises :class:`LookupError` if the proposal id does not exist
+    (API translates to HTTP 404 ``PROPOSAL_NOT_FOUND``). Raises
+    :class:`InvalidStateTransition` if the row is not in ``superseded``
+    status (API translates to HTTP 409 ``INVALID_STATE_TRANSITION`` —
+    D-16 reuses the existing reject endpoint's code).
+    Caller commits.
+    """
+    row = await get_proposal(db, proposal_id)
+    if row is None:
+        raise LookupError(f"proposal {proposal_id!r} not found")
+    if row.status != "superseded":
+        raise InvalidStateTransition(proposal_id, row.status)
+    row.status = "pending"
+    await db.flush()
+    return row

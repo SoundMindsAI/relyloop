@@ -1376,7 +1376,7 @@ class CalibrationResponse(BaseModel):
 # feat_digest_proposal Epic 3 schemas (Stories 3.1-3.4)
 # ---------------------------------------------------------------------------
 
-ProposalStatusWire = Literal["pending", "pr_opened", "pr_merged", "rejected"]
+ProposalStatusWire = Literal["pending", "pr_opened", "pr_merged", "rejected", "superseded"]
 """Wire values for ``proposals.status`` filter on ``GET /api/v1/proposals``.
 
 Values must match backend/app/db/models/proposal.py CHECK

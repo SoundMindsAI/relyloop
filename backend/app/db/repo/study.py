@@ -338,7 +338,14 @@ async def get_chain_for_study(
     proposal_rows = (
         await db.execute(
             select(Proposal.id, Proposal.study_id)
-            .where(Proposal.study_id.in_(link_ids), Proposal.status != "rejected")
+            # Phase 3 FR-4: filter widened from `!= "rejected"` to also
+            # exclude `superseded` so the chain panel's per-link proposal
+            # resolution honors the rollup. Cascades automatically to
+            # `list_recent_completed_chains` (which reuses this function).
+            .where(
+                Proposal.study_id.in_(link_ids),
+                Proposal.status.notin_(("rejected", "superseded")),
+            )
             .order_by(
                 Proposal.study_id,
                 Proposal.created_at.desc(),

@@ -25,6 +25,10 @@ const VARIANT_TABLE: Record<string, Record<string, BadgeVariant>> = {
     pr_opened: 'default',
     pr_merged: 'success',
     rejected: 'outline',
+    // Phase 3 D-12: reuses the `outline` variant; visual distinction
+    // from `rejected` comes from the badge label text + the row's
+    // lower visual weight when the "Show superseded" toggle surfaces it.
+    superseded: 'outline',
   },
   proposal_pr: {
     open: 'default',

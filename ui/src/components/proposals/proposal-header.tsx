@@ -17,6 +17,7 @@ const STATUS_TO_GLOSSARY_KEY = {
   pr_opened: 'proposal.status.pr_opened',
   pr_merged: 'proposal.status.pr_merged',
   rejected: 'proposal.status.rejected',
+  superseded: 'proposal.status.superseded',
 } as const satisfies Record<ProposalStatus, ShortGlossaryKey>;
 
 const PR_STATE_TO_GLOSSARY_KEY = {

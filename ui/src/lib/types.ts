@@ -865,6 +865,11 @@ export interface paths {
          *     study-detail page's pending-proposal lookup). Both reject invalid
          *     UUIDs with 422 via FastAPI's UUID parsing. ``?sort=`` (Story 1.3) is
          *     a :data:`ProposalSortKey` value with sort-aware cursor.
+         *
+         *     Phase 3 D-15 revised: ``?include_superseded`` defaults to ``False``;
+         *     when ``False`` AND no ``?status=`` is set, the response omits
+         *     ``superseded`` rows. Explicit ``?status=`` always beats implicit
+         *     ``include_superseded`` (single-value backward compat preserved).
          */
         get: operations["list_proposals_endpoint_api_v1_proposals_get"];
         put?: never;
@@ -918,6 +923,31 @@ export interface paths {
          *     identical — same error codes, status codes, response shape.
          */
         post: operations["open_pr_endpoint_api_v1_proposals__proposal_id__open_pr_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/proposals/{proposal_id}/reinstate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reinstate Proposal Endpoint
+         * @description Phase 3 FR-6: ``superseded → pending`` transition.
+         *
+         *     Mirrors :func:`reject_proposal_endpoint` (D-17 — read-check-mutate so
+         *     404 vs 409 stays deterministic). Reuses ``INVALID_STATE_TRANSITION``
+         *     per D-16; emits ``chain_proposal_reinstated`` structlog AFTER commit
+         *     per D-19.
+         */
+        post: operations["reinstate_proposal_endpoint_api_v1_proposals__proposal_id__reinstate_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2684,7 +2714,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "pending" | "pr_opened" | "pr_merged" | "rejected";
+            status: "pending" | "pr_opened" | "pr_merged" | "rejected" | "superseded";
             /** Study Id */
             study_id: string | null;
             study_summary: components["schemas"]["_StudySummary"] | null;
@@ -2722,7 +2752,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "pending" | "pr_opened" | "pr_merged" | "rejected";
+            status: "pending" | "pr_opened" | "pr_merged" | "rejected" | "superseded";
             /** Study Id */
             study_id: string | null;
             template: components["schemas"]["_TemplateEmbed"];
@@ -5162,7 +5192,7 @@ export interface operations {
     list_proposals_endpoint_api_v1_proposals_get: {
         parameters: {
             query?: {
-                status?: ("pending" | "pr_opened" | "pr_merged" | "rejected") | null;
+                status?: ("pending" | "pr_opened" | "pr_merged" | "rejected" | "superseded") | null;
                 cluster_id?: string | null;
                 source?: ("study" | "manual") | null;
                 template_id?: string | null;
@@ -5171,6 +5201,7 @@ export interface operations {
                 cursor?: string | null;
                 limit?: number;
                 sort?: ("created_at:asc" | "created_at:desc" | "status:asc" | "status:desc" | "pr_state:asc" | "pr_state:desc") | null;
+                include_superseded?: boolean;
             };
             header?: never;
             path?: never;
@@ -5280,6 +5311,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OpenPrResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reinstate_proposal_endpoint_api_v1_proposals__proposal_id__reinstate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proposal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProposalDetail"];
                 };
             };
             /** @description Validation Error */
