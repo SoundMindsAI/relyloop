@@ -77,6 +77,7 @@ from backend.app.db.repo.judgment_list import (
 from backend.app.db.repo.proposal import (
     InvalidStateTransition,
     ProposalStatusFilter,
+    bulk_mark_superseded,
     count_proposals,
     create_proposal,
     get_proposal,
@@ -90,6 +91,7 @@ from backend.app.db.repo.proposal import (
     mark_proposal_pr_merged_from_closed,
     mark_proposal_pr_opened,
     mark_proposal_pr_reopened,
+    reinstate_from_superseded,
     reject_proposal,
     set_proposal_pr_open_error,
     stamp_proposal_last_polled_at,
@@ -222,11 +224,13 @@ __all__ = [
     # feat_digest_proposal Story 1.2 (digest repo + proposal repo extensions)
     "InvalidStateTransition",
     "ProposalStatusFilter",
+    "bulk_mark_superseded",
     "count_proposals",
     "create_digest",
     "get_digest_for_study",
     "list_pending_proposals_for_boot_scan",
     "list_proposals_paginated",
+    "reinstate_from_superseded",
     "reject_proposal",
     "update_proposal_for_digest",
     # feat_github_pr_worker Story 1.1 (config_repo list/count + proposal pr-transition helpers)
