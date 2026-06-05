@@ -83,6 +83,8 @@ class TestProtocolShape:
                 "explain",
                 "get_document",
                 "list_documents",
+                "scan_all",
+                "close_scan",
             ):
                 method = getattr(adapter, name)
                 assert inspect.iscoroutinefunction(method), f"{name} must be async"
