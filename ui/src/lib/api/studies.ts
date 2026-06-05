@@ -25,6 +25,9 @@ export type StudyChainResponse = components['schemas']['StudyChainResponse'];
 export type StudyChainLink = components['schemas']['StudyChainLink'];
 export type RecentChainSummary = components['schemas']['RecentChainSummary'];
 export type RecentChainsResponse = components['schemas']['RecentChainsResponse'];
+export type StudyComparePairing = components['schemas']['StudyComparePairing'];
+export type StudyPairResponse = components['schemas']['StudyPairResponse'];
+export type CompareWarning = components['schemas']['CompareWarning'];
 
 /** Single-page list response augmented with the parsed `X-Total-Count` header. */
 export type StudyListPage = StudyListResponse & { totalCount: number };
@@ -88,19 +91,60 @@ export function useStudy(
   });
 }
 
+/**
+ * Resolve + validate an LLM↔UBI study pair for the comparison view
+ * (feat_ubi_llm_study_comparison FR-3). The query is parked until both ids are
+ * present. Pairing errors (404/422) surface as the query's `error` so the page
+ * can render a keyed error state.
+ */
+export function useStudyComparePairing(
+  a: string | undefined,
+  b: string | undefined,
+): UseQueryResult<StudyComparePairing, ApiError> {
+  return useQuery<StudyComparePairing, ApiError>({
+    queryKey: ['studies', 'compare', a, b],
+    enabled: Boolean(a && b),
+    retry: false,
+    queryFn: async () => {
+      const { data } = await apiClient.get<StudyComparePairing>('/api/v1/studies/compare', {
+        params: { a, b },
+      });
+      return data;
+    },
+  });
+}
+
+/**
+ * Discover the single LLM↔UBI counterpart of a study (FR-8). Always 200 when
+ * the study exists — `{study_id: null, kind: null}` when there is no pair.
+ */
+export function useStudyPair(studyId: string): UseQueryResult<StudyPairResponse, ApiError> {
+  return useQuery<StudyPairResponse, ApiError>({
+    queryKey: ['studies', studyId, 'pair'],
+    enabled: Boolean(studyId),
+    queryFn: async () => {
+      const { data } = await apiClient.get<StudyPairResponse>(`/api/v1/studies/${studyId}/pair`);
+      return data;
+    },
+  });
+}
+
 export interface StudyTrialsFilter {
   sort?: string | undefined;
   cursor?: string | undefined;
   limit?: number | undefined;
   since?: string | undefined;
   refetchInterval?: RefetchInterval<TrialListPage>;
+  /** Park the query until true. Defaults to true. Added for the comparison
+   * view's convergence fallback (feat_ubi_llm_study_comparison). */
+  enabled?: boolean | undefined;
 }
 
 export function useStudyTrials(
   studyId: string,
   filter: StudyTrialsFilter = {},
 ): UseQueryResult<TrialListPage, ApiError> {
-  const { sort, cursor, limit, since, refetchInterval } = filter;
+  const { sort, cursor, limit, since, refetchInterval, enabled } = filter;
   return useQuery<TrialListPage, ApiError>({
     queryKey: ['studies', studyId, 'trials', { sort, cursor, limit, since }],
     queryFn: async () => {
@@ -111,6 +155,7 @@ export function useStudyTrials(
       return { ...data, totalCount: Number(headers.get('X-Total-Count') ?? 0) };
     },
     refetchInterval: refetchInterval ?? false,
+    enabled: enabled ?? true,
   });
 }
 
